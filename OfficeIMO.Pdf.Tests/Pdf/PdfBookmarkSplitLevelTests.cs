@@ -8,9 +8,9 @@ public class PdfBookmarkSplitLevelTests {
     [Fact]
     public void LevelSectionsRetainNestedPagesAndStopAtOuterSections() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
-            .H1("Chapter One").Paragraph(p => p.Text("Opening body"))
-            .PageBreak().H2("Nested section").Paragraph(p => p.Text("Nested body"))
-            .PageBreak().H1("Chapter Two").Paragraph(p => p.Text("Next chapter body"))
+            .H1("Chapter One").Paragraph(p => p.AddText("Opening body"))
+            .PageBreak().H2("Nested section").Paragraph(p => p.AddText("Nested body"))
+            .PageBreak().H1("Chapter Two").Paragraph(p => p.AddText("Next chapter body"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
         Assert.Equal(3, document.Pages.BookmarkPageRanges().Count);

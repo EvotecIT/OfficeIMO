@@ -16,7 +16,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (source.SpaceBelow.HasValue) target.SpaceBelow = OdfLength.Points(source.SpaceBelow.Value.ToPoints());
         if (source.IsRightToLeft) target.WritingMode = "rl-tb";
         if (TryMapWordLineHeight(source, out OdfLength lineHeight)) target.LineHeight = lineHeight;
-        if (OdfColor.TryParse(source.ShadingFillColorHex, out OdfColor background)) target.BackgroundColor = background;
+        if (OdfColor.TryParse(source.ShadingFillColor?.ToRgbHex(), out OdfColor background)) target.BackgroundColor = background;
     }
 
     private static int ApplyOdtParagraphFormatting(OdtParagraph source, WordParagraph target) {
@@ -46,7 +46,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (source.SpaceBelow.Value.TryToPoints(out double points)) target.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         unsupported += ApplyOdtLineHeight(source.LineHeight, target);
-        if (source.BackgroundColor.HasValue) target.ShadingFillColorHex = source.BackgroundColor.Value.ToString();
+        if (source.BackgroundColor.HasValue) target.ShadingFillValue = source.BackgroundColor.Value.ToString();
         return unsupported;
     }
 

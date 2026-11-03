@@ -39,8 +39,8 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "blended");
 
-        Assert.Equal("0000FF", paragraph.ShadingFillColorHex);
-        Assert.Equal("800080", paragraph.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("0000FF"), paragraph.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("800080"), paragraph.BackgroundColor);
     }
 
     [Fact]
@@ -70,8 +70,8 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         List<WordTableCell> cells = Assert.Single(document.Tables).Rows[0].Cells;
 
-        Assert.Equal("0000FF", cells[0].ShadingFillColorHex);
-        Assert.Equal("800080", cells[1].ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cells[0].ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("800080"), cells[1].ShadingFillColor);
     }
 
     [Fact]

@@ -150,14 +150,14 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static PdfCore.PdfTextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, string text, string? fallbackFontFamily) {
-        string? fontFamily = cell.FontName ?? fallbackFontFamily;
+        string? fontFamily = cell.FontFamily ?? fallbackFontFamily;
         return new PdfCore.PdfTextRun(
             text,
             bold: cell.Bold,
             italic: cell.Italic,
-            color: ParsePdfColor(cell.Color),
+            color: cell.Color is global::OfficeIMO.OfficeColor cellColor ? global::OfficeIMO.OfficeColor.FromRgb(cellColor.R, cellColor.G, cellColor.B) : null,
             fontSize: ((double?)(cell.FontSize?.ToPoints()) is double physicalLength9 ? global::OfficeIMO.OfficeLength.Points(physicalLength9) : (global::OfficeIMO.OfficeLength?)null),
-            font: MapFont(fontFamily),
+            standardFont: MapFont(fontFamily),
             fontFamily: fontFamily);
     }
 

@@ -55,11 +55,11 @@ var heading = text.AddParagraph("Highlights", p => {
     p.Alignment = PowerPointTextAlignment.Left;
     p.SpaceAfter = global::OfficeIMO.OfficeLength.Points(6);
 });
-PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);
+PowerPointTextStyle.Subtitle.WithColor(OfficeColor.Parse("1F4E79")).Apply(heading);
 
 var line = text.AddParagraph();
 line.AddText("Ship ");
-line.AddFormattedText("faster", bold: true).SetColor("C00000");
+line.AddFormattedText("faster", bold: true).SetColor(OfficeColor.Parse("C00000"));
 line.AddText(" with cleaner automated decks.");
 
 text.AddBullet("Release completed on schedule");
@@ -68,6 +68,8 @@ text.AddNumberedItem("Review adoption metrics");
 text.AddNumberedItem("Prepare next milestone");
 text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 ```
+
+`AddText` and `AddFormattedText` return the run they create, so `SetBold`, `SetColor` and the other run setters format only that text. The same setters on a paragraph format every run already in it.
 
 ## Build tables and charts from data
 

@@ -16,7 +16,7 @@ public sealed class PdfVisualPageImportTests {
         var raster = new OfficeIMO.Drawing.OfficeRasterImage(240, 320, OfficeIMO.OfficeColor.White);
         byte[] png = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(raster, OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using OfficeWordDocument word = OfficeWordDocument.Create();
-        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D); word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(320D);
+        word.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(240D); word.Sections[0].PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(320D);
         using var stream = new MemoryStream(png);
         var image = word.AddParagraph().AddImage(stream, "foreground.png", OfficeIMO.OfficeLength.Pixels(320), OfficeIMO.OfficeLength.Pixels(426.6666666667), options: new OfficeIMO.Word.WordImageOptions { Wrapping = OfficeIMO.Word.WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
@@ -70,7 +70,7 @@ public sealed class PdfVisualPageImportTests {
     [Fact]
     public void VisualPagesScopeOutlineWarningsToSelectedPages() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { CreateOutlineFromHeadings = true })
-            .Paragraph(paragraph => paragraph.Text("Selected first page"))
+            .Paragraph(paragraph => paragraph.AddText("Selected first page"))
             .PageBreak()
             .H1("Excluded second-page outline")
             .ToBytes();
@@ -137,8 +137,8 @@ public sealed class PdfVisualPageImportTests {
     public void PageAnchoredImageUsesPhysicalOffsetsWithoutConsumingItsHeightInFlow() {
         byte[] png = Create().Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 36 })[0].Bytes!;
         using OfficeWordDocument word = OfficeWordDocument.Create();
-        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D);
-        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(320D);
+        word.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(240D);
+        word.Sections[0].PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(320D);
         using var source = new MemoryStream(png);
         var image = word.AddParagraph().AddImage(source, "page.png", OfficeIMO.OfficeLength.Pixels(60), OfficeIMO.OfficeLength.Pixels(80), options: new OfficeIMO.Word.WordImageOptions { Wrapping = OfficeIMO.Word.WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
@@ -172,7 +172,7 @@ public sealed class PdfVisualPageImportTests {
     }
 
     private static PdfCore.PdfDocument Create() => PdfCore.PdfDocument.Create(compose => {
-        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.Paragraph(text => text.Text("First page")))));
-        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)).Content(content => content.Item(item => item.Paragraph(text => text.Text("Second page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.AddParagraph(text => text.AddText("First page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)).Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Second page")))));
     });
 }

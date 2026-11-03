@@ -801,17 +801,17 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Red);
                 Assert.True(wordTable.LastRow.FirstCell.ShadingPattern == WordShadingPattern.Percent20);
 
-                wordTable.Rows[1].FirstCell.ShadingFillColorHex = "#0000FF";
+                wordTable.Rows[1].FirstCell.ShadingFillColor = OfficeColor.Parse("#0000FF");
 
                 Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == Color.Blue);
-                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColorHex == "0000FF");
+                Assert.True(wordTable.Rows[1].FirstCell.ShadingFillColor == OfficeColor.Parse("0000FF"));
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAndOptions.docx"))) {
 
                 Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColor == Color.Blue);
-                Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColorHex == "0000FF");
+                Assert.True(document.Tables[0].Rows[1].FirstCell.ShadingFillColor == OfficeColor.Parse("0000FF"));
 
                 document.Save();
             }
@@ -1306,8 +1306,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable.Rows[1].Cells[0].Paragraphs[0].Text == "Test 2");
                 Assert.True(wordTable.Rows[2].Cells[0].Paragraphs[0].Text == "Test 3");
 
-                WordDocument.FindAndReplace(wordTable.Rows[0].Cells[0].Paragraphs, "Test 1", "Test 11");
-                WordDocument.FindAndReplace(wordTable.Rows[1].Cells[0].Paragraphs, "Test 2", "Test 21");
+                WordDocument.ReplaceAll(wordTable.Rows[0].Cells[0].Paragraphs, "Test 1", "Test 11");
+                WordDocument.ReplaceAll(wordTable.Rows[1].Cells[0].Paragraphs, "Test 2", "Test 21");
 
                 // lets make sure find and replace works only on table
                 Assert.True(document.Paragraphs[0].Text == "Table1 - Test 1");

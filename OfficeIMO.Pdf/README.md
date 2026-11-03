@@ -30,10 +30,11 @@ using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Service review")
-        .Paragraph(p => p
-            .Text("All scheduled checks passed. ")
-            .Bold("Two follow-ups remain open."))
-        .Table(new[] {
+        .AddParagraph(p => {
+            p.AddText("All scheduled checks passed. ");
+            p.AddText("Two follow-ups remain open.").SetBold();
+        })
+        .AddTable(new[] {
             new[] { "Task", "Owner", "Due" },
             new[] { "Rotate certificates", "Platform", "4 Nov" },
             new[] { "Review backups", "Operations", "11 Nov" }
@@ -111,7 +112,7 @@ using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Salaries 2027")
-        .Paragraph(p => p.Text("Confidential."))),
+        .AddParagraph(p => p.AddText("Confidential."))),
         new PdfCreateOptions().SetEncryption("open-password", ownerPassword: "owner-password"))
     .Save("Salaries.pdf");
 ```

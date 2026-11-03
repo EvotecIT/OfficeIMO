@@ -17,11 +17,11 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (options.PageSize.HasValue) {
-                pdfOptions.PageSize = options.PageSize.Value;
+                pdfOptions.PageSetup.Size = options.PageSize.Value;
             }
 
             if (options.Margins.HasValue) {
-                pdfOptions.Margins = options.Margins.Value;
+                pdfOptions.PageSetup.Margins.Set(options.Margins.Value);
             }
 
             return pdfOptions;

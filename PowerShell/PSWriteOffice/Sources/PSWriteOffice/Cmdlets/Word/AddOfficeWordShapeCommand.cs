@@ -104,12 +104,12 @@ public sealed class AddOfficeWordShapeCommand : PSCmdlet
     {
         if (!string.IsNullOrWhiteSpace(FillColor))
         {
-            shape.FillColorHex = FillColor!;
+            shape.FillColor = OfficeIMO.OfficeColor.Parse(FillColor!);
         }
 
         if (!string.IsNullOrWhiteSpace(StrokeColor))
         {
-            shape.StrokeColorHex = StrokeColor!;
+            shape.StrokeColor = OfficeIMO.OfficeColor.Parse(StrokeColor!);
         }
 
         if (StrokeWidth.HasValue)

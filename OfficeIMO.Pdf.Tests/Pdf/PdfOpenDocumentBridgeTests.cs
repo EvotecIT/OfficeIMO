@@ -14,7 +14,7 @@ public sealed class PdfOpenDocumentBridgeTests {
     public void PdfToOdt_ReconstructsSemanticTextAndExposesBothStageReports() {
         byte[] source = PdfCore.PdfDocument.Create()
             .H1("Quarterly summary")
-            .Paragraph(paragraph => paragraph.Text("Revenue increased."))
+            .Paragraph(paragraph => paragraph.AddText("Revenue increased."))
             .ToBytes();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
@@ -48,7 +48,7 @@ public sealed class PdfOpenDocumentBridgeTests {
     [Fact]
     public void PdfToOds_ReconstructsDetectedTablesAndReportsOmittedPageContentAsLoss() {
         byte[] source = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice summary"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice summary"))
             .KeyValueTable(new[] {
                 PdfCore.PdfKeyValueRow.Text("InvoiceId", "INV-001"),
                 PdfCore.PdfKeyValueRow.Text("Customer", "Evotec")
@@ -68,12 +68,10 @@ public sealed class PdfOpenDocumentBridgeTests {
     [Fact]
     public void PdfToOdp_DefaultsToEditableContentAndProducesValidOdfPackage() {
         byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("First page")

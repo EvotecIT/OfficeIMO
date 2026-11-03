@@ -9,12 +9,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with custom page numbers 2");
             string filePath = System.IO.Path.Combine(folderPath, "Document with PageNumbers2.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
-
-                var footers = Guard.NotNull(document.Footer, "Document footers must exist after enabling headers.");
-                var defaultFooter = Guard.NotNull(footers.Default, "Default footer must exist after enabling headers.");
-
-                var table = defaultFooter.AddTable(1, 2, WordTableStyle.TableGrid);
+                var table = document.PageSetup.Footer.AddTable(1, 2, WordTableStyle.TableGrid);
                 table.Width = WordTableWidth.Percent(100);
 
                 table.Rows[0].Cells[0].AddParagraph("Confidential");

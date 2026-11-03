@@ -187,7 +187,7 @@ namespace OfficeIMO.Word.Markdown {
                 return string.Empty;
             }
 
-            string alt = image.Description ?? string.Empty;
+            string alt = image.AltText ?? string.Empty;
             if (image.IsExternal && options.FallbackExternalImagesToLinks) {
                 string source = image.ExternalUri?.ToString() ?? image.FilePath;
                 if (string.IsNullOrWhiteSpace(source)) {

@@ -438,8 +438,8 @@ namespace OfficeIMO.Word {
         private void RearrangeSectionsAfterLoad() {
             if (Sections.Count > 0) {
                 //var firstElement = Sections[0];
-                var firstElementHeader = Sections[0].Header;
-                var firstElementFooter = Sections[0].Footer;
+                var firstElementHeader = Sections[0].Headers;
+                var firstElementFooter = Sections[0].Footers;
                 var firstElementSection = Sections[0]._sectionProperties;
 
                 for (int i = 0; i < Sections.Count; i++) {
@@ -449,16 +449,16 @@ namespace OfficeIMO.Word {
                     //var tempSectionProp = element._sectionProperties;
 
                     if (i + 1 < Sections.Count) {
-                        Sections[i].Footer = Sections[i + 1].Footer;
-                        Sections[i].Header = Sections[i + 1].Header;
+                        Sections[i].Footers = Sections[i + 1].Footers;
+                        Sections[i].Headers = Sections[i + 1].Headers;
                         Sections[i]._sectionProperties = Sections[i + 1]._sectionProperties;
 
-                        Sections[i + 1].Footer = element.Footer;
-                        Sections[i + 1].Header = element.Header;
+                        Sections[i + 1].Footers = element.Footers;
+                        Sections[i + 1].Headers = element.Headers;
                         Sections[i + 1]._sectionProperties = element._sectionProperties;
                     } else {
-                        Sections[i].Footer = firstElementFooter;
-                        Sections[i].Header = firstElementHeader;
+                        Sections[i].Footers = firstElementFooter;
+                        Sections[i].Headers = firstElementHeader;
                         Sections[i]._sectionProperties = firstElementSection;
                     }
                 }

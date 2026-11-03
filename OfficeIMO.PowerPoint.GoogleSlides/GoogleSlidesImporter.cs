@@ -163,7 +163,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                     includeAuthorization: false,
                                     maxResponseBytes: options.MaxImageBytes).ConfigureAwait(false);
                                 using var image = new MemoryStream(bytes, writable: false);
-                                PowerPointPicture picture = slide.AddImage(image, DetectImageType(bytes), OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
+                                PowerPointImage picture = slide.AddImage(image, DetectImageType(bytes), OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                                 ApplyTransform(picture, geometry);
                             } catch (Exception ex) when (!(ex is OperationCanceledException)) {
                                 report.Add(TranslationSeverity.Warning, "Images", "A native Google Slides image could not be downloaded; Drive-export import remains the broad fallback.", code: "SLIDES.IMPORT.IMAGE_FALLBACK", action: TranslationAction.Skip);
@@ -206,13 +206,13 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 IReadOnlyList<ImportedTextRun> sourceRuns = sourceParagraphs[paragraphIndex].Runs;
                 if (sourceRuns.Count == 0) continue;
 
-                PowerPointTextRun targetRun = targetParagraph.Runs.FirstOrDefault() ?? targetParagraph.AddRun(string.Empty);
+                PowerPointTextRun targetRun = targetParagraph.Runs.FirstOrDefault() ?? targetParagraph.AddText(string.Empty);
                 for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
                     ImportedTextRun sourceRun = sourceRuns[runIndex];
                     if (runIndex == 0) {
                         targetRun.Text = sourceRun.Text;
                     } else {
-                        targetRun = targetParagraph.AddRun(sourceRun.Text);
+                        targetRun = targetParagraph.AddText(sourceRun.Text);
                     }
                     ApplyTextRunStyle(targetRun, sourceRun.Style);
                 }
@@ -271,8 +271,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 _ => null,
             };
             if (style.FontSize != null) run.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(ToPoints(style.FontSize)));
-            if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontName = style.FontFamily;
-            if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);
+            if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontFamily = style.FontFamily;
+            if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = OfficeIMO.OfficeColor.Parse(ToHex(textColor));
             if (Uri.TryCreate(style.Link?.Url, UriKind.Absolute, out Uri? link)) run.Hyperlink = link;
         }
         private static double ToPoints(GoogleSlidesApiDimension? dimension) => dimension == null ? 0 : ToPoints(dimension.Magnitude, dimension.Unit);

@@ -15,8 +15,7 @@ namespace OfficeIMO.Tests {
                 body.Append(new Paragraph(
                     new Run(new RunProperties(new Bold()), new Text("Hello {{Customer")),
                     new Run(new RunProperties(new Italic()), new Text(".Name}}!"))));
-                document.AddHeadersAndFooters();
-                document.Header!.Default!.AddParagraph("Order {{Order.Id}}");
+                document.PageSetup.Header.AddParagraph("Order {{Order.Id}}");
 
                 var values = new Dictionary<string, object?> {
                     ["Customer"] = new Dictionary<string, object?> { ["Name"] = "Ada" },
@@ -28,7 +27,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, result.PlaceholderCount);
                 Assert.Equal(2, result.ReplacedPlaceholderCount);
                 Assert.Contains("Hello Ada!", body.InnerText, StringComparison.Ordinal);
-                Assert.Contains("Order 42", document.Header.Default.Paragraphs.Single().Text, StringComparison.Ordinal);
+                Assert.Contains("Order 42", document.PageSetup.Header.Paragraphs.Single().Text, StringComparison.Ordinal);
                 Assert.True(body.Descendants<Run>().First().RunProperties?.Bold != null);
                 Assert.True(body.Descendants<Run>().Skip(1).First().RunProperties?.Italic != null);
                 document.Save();
@@ -82,7 +81,7 @@ namespace OfficeIMO.Tests {
                     new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.OfficeColor.White));
                 var values = new Dictionary<string, object?> {
                     ["Logo"] = new WordTemplateImage(png, "logo.png", width: global::OfficeIMO.OfficeLength.Inches(1),
-                        height: global::OfficeIMO.OfficeLength.Millimeters(12.7), description: "Company logo"),
+                        height: global::OfficeIMO.OfficeLength.Millimeters(12.7), altText: "Company logo"),
                     ["AutoLogo"] = new WordTemplateImage(png, "auto.png", width: global::OfficeIMO.OfficeLength.Centimeters(2.54)),
                     ["NaturalLogo"] = new WordTemplateImage(png, "natural.png"),
                     ["Portal"] = new WordTemplateHyperlink("customer portal", new Uri("https://example.com/customer"))
@@ -105,7 +104,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new long[] { 457200, 914400, 9525 }, extents.Select(extent => extent.Cy!.Value));
             Assert.Equal(new long[] { 914400, 914400, 9525 }, reopened.Images.Select(image => image.Width!.Value.ToEmus()));
             Assert.Equal(new long[] { 457200, 914400, 9525 }, reopened.Images.Select(image => image.Height!.Value.ToEmus()));
-            Assert.Equal("Company logo", reopened.Images[0].Description);
+            Assert.Equal("Company logo", reopened.Images[0].AltText);
             Assert.Equal(new Uri("https://example.com/customer"), Assert.Single(reopened.HyperLinks).Uri);
             Assert.Empty(new OpenXmlValidator().Validate(reopened._wordprocessingDocument));
         }

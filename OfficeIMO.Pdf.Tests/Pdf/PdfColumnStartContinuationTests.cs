@@ -12,7 +12,7 @@ public sealed class PdfColumnStartContinuationTests {
     [InlineData(true, true)]
     public void Columns_ExplicitKeptParagraphBalancingPolicyRetainsPhysicalPageKeeps(bool allowBalancing, bool partialPage) {
         var document = PdfDocument.Create(Options());
-        if (partialPage) document.Paragraph(p => p.Text(Markers("Prelude", 12)), style: ParagraphStyle());
+        if (partialPage) document.Paragraph(p => p.AddText(Markers("Prelude", 12)), style: ParagraphStyle());
         var options = ColumnOptions(); options.BalanceKeptParagraphLines = allowBalancing;
         document.Columns(columns => AddKeptContent(columns, "paragraph", 13), options);
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -28,12 +28,12 @@ public sealed class PdfColumnStartContinuationTests {
     [InlineData("paragraph")]
     [InlineData("list")]
     public void Columns_FirstLineThatExceedsAPartialColumnCanUseTheNextPhysicalPage(string kind) {
-        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.Text(Markers("Prelude", 12)), style: ParagraphStyle())
+        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.AddText(Markers("Prelude", 12)), style: ParagraphStyle())
             .Columns(columns => {
                 if (kind == "paragraph") {
                     var style = ParagraphStyle(); style.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(120));
-                    columns.Paragraph(p => p.Text("Marker001"), style: style);
-                } else columns.RichNumbered(new[] { new PdfListItem("Marker001") }, style: new PdfListStyle {
+                    columns.AddParagraph(p => p.AddText("Marker001"), style: style);
+                } else columns.AddNumberedList(new[] { new PdfListItem("Marker001") }, style: new PdfListStyle {
                     LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(120)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0)
                 });
             }, ColumnOptions()).ToBytes();
@@ -50,22 +50,22 @@ public sealed class PdfColumnStartContinuationTests {
     [InlineData("list")]
     [InlineData("panel")]
     public void Columns_KeepWithNextChainMovesTogetherPastUnusedPartialColumns(string kind) {
-        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.Text(Markers("Prelude", 12)), style: ParagraphStyle())
+        byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.AddText(Markers("Prelude", 12)), style: ParagraphStyle())
             .Columns(columns => {
                 if (kind == "heading") columns.H1("Marker001", style: new PdfHeadingStyle {
                     FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 });
                 else if (kind == "paragraph") {
                     var style = ParagraphStyle(); style.KeepWithNext = true;
-                    columns.Paragraph(p => p.Text("Marker001"), style: style);
-                } else if (kind == "list") columns.RichNumbered(new[] { new PdfListItem("Marker001") }, style: new PdfListStyle {
+                    columns.AddParagraph(p => p.AddText("Marker001"), style: style);
+                } else if (kind == "list") columns.AddNumberedList(new[] { new PdfListItem("Marker001") }, style: new PdfListStyle {
                     LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true
                 });
-                else columns.Panel(content => content.Paragraph(p => p.Text("Marker001"), style: ParagraphStyle()), new PdfPanelStyle {
+                else columns.Panel(content => content.AddParagraph(p => p.AddText("Marker001"), style: ParagraphStyle()), new PdfPanelStyle {
                     PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepWithNext = true
                 });
                 var body = ParagraphStyle(); body.KeepTogether = true;
-                columns.Paragraph(p => p.Text(Markers("Body", 4)), style: body);
+                columns.AddParagraph(p => p.AddText(Markers("Body", 4)), style: body);
             }, ColumnOptions()).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
@@ -83,7 +83,7 @@ public sealed class PdfColumnStartContinuationTests {
     [InlineData("flow")]
     public void Columns_KeptContentCannotRetryBeyondItsPaddedPhysicalCapacity(string kind) {
         var document = PdfDocument.Create(Options()).Panel(outer => {
-            outer.Paragraph(p => p.Text("Prelude"), style: ParagraphStyle());
+            outer.AddParagraph(p => p.AddText("Prelude"), style: ParagraphStyle());
             outer.Columns(columns => AddKeptContent(columns, kind, 16), ColumnOptions());
         }, new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(20), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -96,7 +96,7 @@ public sealed class PdfColumnStartContinuationTests {
     [InlineData("flow")]
     public void Columns_KeptContentMovesFromPartialColumnsToAFullPhysicalPage(string kind) {
         byte[] bytes = PdfDocument.Create(Options())
-            .Paragraph(p => p.Text(Markers("Prelude", 12)), style: ParagraphStyle())
+            .Paragraph(p => p.AddText(Markers("Prelude", 12)), style: ParagraphStyle())
             .Columns(columns => AddKeptContent(columns, kind, 13), ColumnOptions()).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
@@ -114,13 +114,13 @@ public sealed class PdfColumnStartContinuationTests {
     [InlineData("flow")]
     public void Columns_BlockStartingANewPhysicalPageRetainsItsSiblingsForBalancing(string kind) {
         byte[] bytes = PdfDocument.Create(Options()).Columns(columns => {
-            columns.Paragraph(p => p.Text(Markers("Prelude", 32)), style: ParagraphStyle());
+            columns.AddParagraph(p => p.AddText(Markers("Prelude", 32)), style: ParagraphStyle());
             if (kind == "heading") columns.H1("Marker001", style: new PdfHeadingStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             });
             else AddKeptContent(columns, kind, 4);
             int count = kind == "heading" ? 9 : 6;
-            columns.Paragraph(p => p.Text(Markers("Body", count)), style: ParagraphStyle());
+            columns.AddParagraph(p => p.AddText(Markers("Body", count)), style: ParagraphStyle());
         }, ColumnOptions()).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
@@ -135,14 +135,14 @@ public sealed class PdfColumnStartContinuationTests {
     private static void AddKeptContent(PdfContentBuilder content, string kind, int count) {
         if (kind == "paragraph") {
             var style = ParagraphStyle(); style.KeepTogether = true;
-            content.Paragraph(p => p.Text(Markers("Marker", count)), style: style);
-        } else if (kind == "list") content.RichNumbered(Enumerable.Range(1, count)
+            content.AddParagraph(p => p.AddText(Markers("Marker", count)), style: style);
+        } else if (kind == "list") content.AddNumberedList(Enumerable.Range(1, count)
             .Select(index => new PdfListItem($"Marker{index:D3}")), style: new PdfListStyle {
                 LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true
             });
-        else if (kind == "panel") content.Panel(panel => panel.Paragraph(p => p.Text(Markers("Marker", count)), style: ParagraphStyle()),
+        else if (kind == "panel") content.Panel(panel => panel.AddParagraph(p => p.AddText(Markers("Marker", count)), style: ParagraphStyle()),
             new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true });
-        else content.Flow(flow => flow.Paragraph(p => p.Text(Markers("Marker", count)), style: ParagraphStyle()),
+        else content.Flow(flow => flow.AddParagraph(p => p.AddText(Markers("Marker", count)), style: ParagraphStyle()),
             new PdfFlowOptions { KeepTogether = true });
     }
 
@@ -153,8 +153,10 @@ public sealed class PdfColumnStartContinuationTests {
         Matches(string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text)), "Marker"));
     private static double X(PdfPigDocument pdf, int page, string marker) => pdf.GetPage(page).GetWords()
         .Single(word => word.Text == marker || word.Text.EndsWith("." + marker, StringComparison.Ordinal)).BoundingBox.Left;
-    private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false, MaxGeneratedPages = 4 };
+    private static PdfCreateOptions Options() => new() { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(400)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+    }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false, MaxGeneratedPages = 4 };
     private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
         SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
     private static PdfMultiColumnOptions ColumnOptions() => new() { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true };

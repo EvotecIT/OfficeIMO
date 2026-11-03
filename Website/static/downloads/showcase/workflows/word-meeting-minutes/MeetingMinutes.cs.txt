@@ -30,7 +30,7 @@ internal static class MeetingMinutes {
             for (int column = 0; column < 3; column++) {
                 actions.Rows[row].Cells[column].Paragraphs[0].Text = values[row, column];
                 actions.Rows[row].Cells[column].Paragraphs[0].Bold = row == 0;
-                if (row == 0) actions.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
+                if (row == 0) actions.Rows[row].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
             }
         }
         document.AddParagraph("Next meeting").Style = WordParagraphStyles.Heading2;

@@ -169,7 +169,7 @@ internal static class ReaderBenchmarkCorpus {
                 content.H1("Reader benchmark page " + page);
                 for (int paragraph = 1; paragraph <= 8; paragraph++) {
                     int currentParagraph = paragraph;
-                    content.Paragraph(value => value.Text(
+                    content.AddParagraph(value => value.AddText(
                         "Representative PDF paragraph " + currentParagraph + " with extraction, geometry, and diagnostic content."));
                 }
             }

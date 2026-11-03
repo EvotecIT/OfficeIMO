@@ -191,9 +191,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private sealed class LegacyXlsStringSegmentWriter {
-            private readonly List<MemoryStream> _segments = new();
+            // Each segment is one bounded record payload. Owned buffers avoid a stream
+            // call and limit check per header byte while keeping the same bounds.
+            private readonly List<byte[]> _segments = new();
+            private readonly List<int> _segmentLengths = new();
             private readonly long _maximumBytes;
             private long _completedBytes;
+            private byte[] _current = null!;
+            private int _currentLength;
+            private int _currentLimit;
+            private byte[] _scratch = new byte[64];
 
             internal LegacyXlsStringSegmentWriter(long maximumBytes = int.MaxValue) {
                 _maximumBytes = maximumBytes;
@@ -203,14 +210,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             private void AddBoundedSegment() {
                 long remaining = _maximumBytes - _completedBytes - 4;
                 if (remaining <= 0) throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("Native XLS shared strings exceed the in-memory save limit.");
-                _segments.Add(new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(Math.Min(BiffMaxRecordDataLength, remaining)));
+                if (_segments.Count > 0) _segmentLengths[_segments.Count - 1] = _currentLength;
+                _currentLimit = (int)Math.Min(BiffMaxRecordDataLength, remaining);
+                _current = new byte[Math.Min(256, _currentLimit)];
+                _currentLength = 0;
+                _segments.Add(_current);
+                _segmentLengths.Add(0);
             }
-
-            private MemoryStream Current => _segments[_segments.Count - 1];
 
             internal void WriteUInt32(uint value) {
                 EnsureAtomicCapacity(4);
-                LegacyXlsWriter.WriteUInt32(Current, value);
+                byte[] bytes = Reserve(4);
+                bytes[_currentLength] = (byte)value;
+                bytes[_currentLength + 1] = (byte)(value >> 8);
+                bytes[_currentLength + 2] = (byte)(value >> 16);
+                bytes[_currentLength + 3] = (byte)(value >> 24);
+                _currentLength += 4;
             }
 
             internal LegacyXlsStringPosition WriteUnicodeString(string text, IReadOnlyList<LegacyXlsTextFormattingRun> formattingRuns) {
@@ -218,40 +233,54 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     throw new NotSupportedException("Native XLS saving does not support strings longer than 32,767 characters.");
                 }
 
-                if (formattingRuns.Count > ushort.MaxValue) {
+                int runCount = formattingRuns.Count;
+                if (runCount > ushort.MaxValue) {
                     throw new NotSupportedException("Native XLS saving does not support rich-text run counts outside BIFF8 limits.");
                 }
 
                 bool compressed = CanUseCompressedString(text);
                 byte options = compressed ? (byte)0 : (byte)1;
-                if (formattingRuns.Count > 0) {
+                if (runCount > 0) {
                     options |= 0x08;
                 }
 
-                int headerSize = formattingRuns.Count > 0 ? 5 : 3;
+                int headerSize = runCount > 0 ? 5 : 3;
                 EnsureAtomicCapacity(headerSize);
-                var position = new LegacyXlsStringPosition(_segments.Count - 1, checked((int)Current.Length));
-                LegacyXlsWriter.WriteUInt16(Current, checked((ushort)text.Length));
-                Current.WriteByte(options);
-                if (formattingRuns.Count > 0) {
-                    LegacyXlsWriter.WriteUInt16(Current, checked((ushort)formattingRuns.Count));
+                var position = new LegacyXlsStringPosition(_segments.Count - 1, _currentLength);
+                byte[] header = Reserve(headerSize);
+                header[_currentLength] = (byte)text.Length;
+                header[_currentLength + 1] = (byte)(text.Length >> 8);
+                header[_currentLength + 2] = options;
+                if (runCount > 0) {
+                    header[_currentLength + 3] = (byte)runCount;
+                    header[_currentLength + 4] = (byte)(runCount >> 8);
                 }
+                _currentLength += headerSize;
 
                 WriteStringCharacters(text, compressed, (byte)(options & 0x01));
-                foreach (LegacyXlsTextFormattingRun run in formattingRuns) {
+                for (int index = 0; index < runCount; index++) {
+                    LegacyXlsTextFormattingRun run = formattingRuns[index];
                     EnsureAtomicCapacity(4);
-                    LegacyXlsWriter.WriteUInt16(Current, run.StartCharacter);
-                    LegacyXlsWriter.WriteUInt16(Current, run.FontIndex);
+                    byte[] bytes = Reserve(4);
+                    bytes[_currentLength] = (byte)run.StartCharacter;
+                    bytes[_currentLength + 1] = (byte)(run.StartCharacter >> 8);
+                    bytes[_currentLength + 2] = (byte)run.FontIndex;
+                    bytes[_currentLength + 3] = (byte)(run.FontIndex >> 8);
+                    _currentLength += 4;
                 }
 
                 return position;
             }
 
             internal IReadOnlyList<byte[]> GetPayloads(CancellationToken cancellationToken = default) {
+                _segmentLengths[_segments.Count - 1] = _currentLength;
                 var payloads = new byte[_segments.Count][];
                 for (int segmentIndex = 0; segmentIndex < _segments.Count; segmentIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    payloads[segmentIndex] = _segments[segmentIndex].ToArray();
+                    int length = _segmentLengths[segmentIndex];
+                    var payload = new byte[length];
+                    Buffer.BlockCopy(_segments[segmentIndex], 0, payload, 0, length);
+                    payloads[segmentIndex] = payload;
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
@@ -259,44 +288,66 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             private void WriteStringCharacters(string text, bool compressed, byte continuationOptions) {
-                byte[] bytes = compressed ? Encoding.ASCII.GetBytes(text) : Encoding.Unicode.GetBytes(text);
                 int bytesPerCharacter = compressed ? 1 : 2;
+                int byteCount = text.Length * bytesPerCharacter;
+                if (_scratch.Length < byteCount) _scratch = new byte[Math.Max(byteCount, _scratch.Length * 2)];
+                byte[] source = _scratch;
+                // Compressed text is 7-bit ASCII; both encoders keep their existing byte output.
+                _ = compressed
+                    ? Encoding.ASCII.GetBytes(text, 0, text.Length, source, 0)
+                    : Encoding.Unicode.GetBytes(text, 0, text.Length, source, 0);
                 int sourceOffset = 0;
-                while (sourceOffset < bytes.Length) {
-                    int availableBytes = checked(BiffMaxRecordDataLength - (int)Current.Length);
+                while (sourceOffset < byteCount) {
+                    int availableBytes = BiffMaxRecordDataLength - _currentLength;
                     int availableCharacters = availableBytes / bytesPerCharacter;
                     if (availableCharacters == 0) {
                         StartSegment();
-                        Current.WriteByte(continuationOptions);
+                        Reserve(1)[_currentLength++] = continuationOptions;
                         availableBytes = BiffMaxRecordDataLength - 1;
                         availableCharacters = availableBytes / bytesPerCharacter;
                     }
 
-                    int remainingCharacters = (bytes.Length - sourceOffset) / bytesPerCharacter;
+                    int remainingCharacters = (byteCount - sourceOffset) / bytesPerCharacter;
                     int charactersToWrite = Math.Min(remainingCharacters, availableCharacters);
                     int bytesToWrite = checked(charactersToWrite * bytesPerCharacter);
-                    Current.Write(bytes, sourceOffset, bytesToWrite);
+                    Buffer.BlockCopy(source, sourceOffset, Reserve(bytesToWrite), _currentLength, bytesToWrite);
+                    _currentLength += bytesToWrite;
                     sourceOffset += bytesToWrite;
                 }
             }
 
+            private byte[] Reserve(int byteCount) {
+                int end = _currentLength + byteCount;
+                if (end > _currentLimit) {
+                    throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create($"The artifact exceeds the configured output limit of {_currentLimit} bytes.");
+                }
+                if (end > _current.Length) {
+                    var grown = new byte[Math.Min(_currentLimit, Math.Max(end, _current.Length * 2))];
+                    Buffer.BlockCopy(_current, 0, grown, 0, _currentLength);
+                    _current = grown;
+                    _segments[_segments.Count - 1] = grown;
+                }
+                return _current;
+            }
+
             private void EnsureAtomicCapacity(int byteCount) {
-                if (Current.Length + byteCount > BiffMaxRecordDataLength) {
+                if (_currentLength + byteCount > BiffMaxRecordDataLength) {
                     StartSegment();
                 }
             }
 
             private void StartSegment() {
-                if (Current.Length == 0) {
+                if (_currentLength == 0) {
                     return;
                 }
 
-                _completedBytes = checked(_completedBytes + Current.Length + 4);
+                _completedBytes = checked(_completedBytes + _currentLength + 4);
                 AddBoundedSegment();
             }
         }
 
-        private sealed class LegacyXlsSharedStringEntry {
+        // A value entry keeps one table slot per distinct string without an object per string.
+        private readonly struct LegacyXlsSharedStringEntry {
             internal LegacyXlsSharedStringEntry(string text, IReadOnlyList<LegacyXlsTextFormattingRun> formattingRuns) {
                 Text = text;
                 FormattingRuns = formattingRuns;

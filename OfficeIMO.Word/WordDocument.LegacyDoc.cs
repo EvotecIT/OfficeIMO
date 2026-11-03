@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
             }
 
             foreach (WordSection section in document.Sections) {
-                section.DifferentOddAndEvenPages = true;
+                section.PageSetup.DifferentOddAndEvenPages = true;
             }
         }
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.DifferentFirstPage) {
-                section.DifferentFirstPage = true;
+                section.PageSetup.DifferentFirstPage = true;
             }
 
             if (sectionFormat.Orientation != null) {
@@ -254,27 +254,27 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.PageWidthTwips != null) {
-                section.PageSettings.Width= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageWidthTwips.Value) is { } wordLength14476 ? global::OfficeIMO.OfficeLength.Points((wordLength14476) / 20D) : (global::OfficeIMO.OfficeLength?)null);
+                section.PageSetup.Size.Width= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageWidthTwips.Value) is { } wordLength14476 ? global::OfficeIMO.OfficeLength.Points((wordLength14476) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (sectionFormat.PageHeightTwips != null) {
-                section.PageSettings.Height= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageHeightTwips.Value) is { } wordLength14672 ? global::OfficeIMO.OfficeLength.Points((wordLength14672) / 20D) : (global::OfficeIMO.OfficeLength?)null);
+                section.PageSetup.Size.Height= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageHeightTwips.Value) is { } wordLength14672 ? global::OfficeIMO.OfficeLength.Points((wordLength14672) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (sectionFormat.MarginTopTwips != null) {
-                section.Margins.Top = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginTopTwips.Value) / 20D);
+                section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginTopTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginRightTwips != null) {
-                section.Margins.Right = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginRightTwips.Value) / 20D);
+                section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginRightTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginBottomTwips != null) {
-                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginBottomTwips.Value) / 20D);
+                section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginBottomTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginLeftTwips != null) {
-                section.Margins.Left = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginLeftTwips.Value) / 20D);
+                section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginLeftTwips.Value) / 20D);
             }
 
             PageMargin? pageMargin = section._sectionProperties.GetFirstChild<PageMargin>();
@@ -557,7 +557,7 @@ namespace OfficeIMO.Word {
                 picture.FileName,
                 OfficeLength.Pixels(picture.WidthPixels),
                 OfficeLength.Pixels(picture.HeightPixels),
-                new WordImageOptions { Description = "Imported legacy DOC inline picture" });
+                new WordImageOptions { AltText = "Imported legacy DOC inline picture" });
             if (picture.Crop.HasCrop) {
                 var addedPicture = paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Last();
                 addedPicture.BlipFill!.SourceRectangle = new DocumentFormat.OpenXml.Drawing.SourceRectangle {
@@ -1316,7 +1316,7 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
-                paragraph.ShadingFillColorHex = paragraphFormat.ParagraphShading.Value.FillColorHex!;
+                paragraph.ShadingFillValue = paragraphFormat.ParagraphShading.Value.FillColorHex!;
             }
 
             if (paragraphFormat.ParagraphBorders != null && paragraphFormat.ParagraphBorders.Value.HasAny) {
@@ -1479,25 +1479,25 @@ namespace OfficeIMO.Word {
             ApplyLegacyDocParagraphBorder(
                 borders.Top,
                 style => paragraph.Borders.TopStyle = style.ToOfficeEnum(),
-                color => paragraph.Borders.TopColorHex = color,
+                color => paragraph.Borders.TopColorValue = color,
                 size => paragraph.Borders.TopSize = OfficeLength.Points(size / 8D),
                 space => paragraph.Borders.TopSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Left,
                 style => paragraph.Borders.LeftStyle = style.ToOfficeEnum(),
-                color => paragraph.Borders.LeftColorHex = color,
+                color => paragraph.Borders.LeftColorValue = color,
                 size => paragraph.Borders.LeftSize = OfficeLength.Points(size / 8D),
                 space => paragraph.Borders.LeftSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Bottom,
                 style => paragraph.Borders.BottomStyle = style.ToOfficeEnum(),
-                color => paragraph.Borders.BottomColorHex = color,
+                color => paragraph.Borders.BottomColorValue = color,
                 size => paragraph.Borders.BottomSize = OfficeLength.Points(size / 8D),
                 space => paragraph.Borders.BottomSpace = OfficeLength.Points(space));
             ApplyLegacyDocParagraphBorder(
                 borders.Right,
                 style => paragraph.Borders.RightStyle = style.ToOfficeEnum(),
-                color => paragraph.Borders.RightColorHex = color,
+                color => paragraph.Borders.RightColorValue = color,
                 size => paragraph.Borders.RightSize = OfficeLength.Points(size / 8D),
                 space => paragraph.Borders.RightSpace = OfficeLength.Points(space));
 

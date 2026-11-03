@@ -509,7 +509,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointLayoutCard logo = logos[i];
                 if (!string.IsNullOrWhiteSpace(logo.Image) && System.IO.File.Exists(logo.Image)) {
                     var max = new PowerPointLayoutRect(tile.X + tile.Width * 0.19D, tile.Y + tile.Height * 0.28D, tile.Width * 0.62D, tile.Height * 0.44D);
-                    PowerPointPicture picture = RenderImage(context, writer, new PowerPointLayoutImage(logo.Image!, logo.Title), max, cover: false);
+                    PowerPointImage picture = RenderImage(context, writer, new PowerPointLayoutImage(logo.Image!, logo.Title), max, cover: false);
                     // Centre the contained logo in its tile.
                     double pw = picture.Width.ToPoints(), ph = picture.Height.ToPoints();
                     picture.Left = OfficeLength.Points(tile.X + (tile.Width - pw) / 2D);

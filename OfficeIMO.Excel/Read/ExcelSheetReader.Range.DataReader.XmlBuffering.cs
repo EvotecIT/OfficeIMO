@@ -88,11 +88,11 @@ namespace OfficeIMO.Excel {
 
             private void ReleaseCurrentValueReferences() {
                 if (_currentRow != null && !ReferenceEquals(_currentRow, _currentValues)) {
-                    Array.Clear(_currentRow, 0, _currentRow.Length);
+                    _currentRow.AsSpan().Clear();
                 }
-                Array.Clear(_currentValues, 0, _currentValues.Length);
-                Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
-                Array.Clear(_currentPrimitiveKinds, 0, _currentPrimitiveKinds.Length);
+                _currentValues.AsSpan().Clear();
+                _currentValueLoaded.AsSpan().Clear();
+                _currentPrimitiveKinds.AsSpan().Clear();
             }
 
             private void ReleaseBufferedValueReferences() {

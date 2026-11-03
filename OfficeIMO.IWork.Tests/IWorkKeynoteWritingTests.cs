@@ -33,7 +33,7 @@ public sealed class IWorkKeynoteWritingTests {
         using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains("Edited in Keynote", reopened.Slides[1].TextBoxes.Single().Text);
-        Assert.Equal("003366", reopened.Slides[1].TextBoxes.Single().Color);
+        Assert.Equal(OfficeColor.Parse("003366"), reopened.Slides[1].TextBoxes.Single().Color);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.Equal(3, reopened.Slides.Count);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains("Zażółć gęślą jaźń", reopened.Slides[1].TextBoxes.Single().Text);
-        Assert.Equal("003366", reopened.Slides[1].TextBoxes.Single().Color);
+        Assert.Equal(OfficeColor.Parse("003366"), reopened.Slides[1].TextBoxes.Single().Color);
     }
 
     [Fact]

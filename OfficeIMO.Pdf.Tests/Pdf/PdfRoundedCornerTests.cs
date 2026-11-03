@@ -35,8 +35,8 @@ public class PdfRoundedCornerTests {
 
     [Fact]
     public void TableCornerRadius_RoundsOuterBox_ClipsCellBorder_AndKeepsInlineText() {
-        byte[] rounded = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), OfficeAlignment.Left, CalloutStyle(6)))).ToBytes();
-        byte[] square = PdfDocument.Create(d => d.Content(c => c.Table(Callout(), OfficeAlignment.Left, CalloutStyle(0)))).ToBytes();
+        byte[] rounded = PdfDocument.Create(d => d.Content(c => c.AddTable(Callout(), OfficeAlignment.Left, CalloutStyle(6)))).ToBytes();
+        byte[] square = PdfDocument.Create(d => d.Content(c => c.AddTable(Callout(), OfficeAlignment.Left, CalloutStyle(0)))).ToBytes();
 
         string roundedRaw = PdfTestContentText.ReadDecoded(rounded);
         string squareRaw = PdfTestContentText.ReadDecoded(square);
@@ -62,7 +62,7 @@ public class PdfRoundedCornerTests {
         byte[] bytes = PdfDocument.Create()
             .Container(content => {
                 content.H2("Panel title");
-                content.Paragraph(p => p.Text("Panel body"));
+                content.AddParagraph(p => p.AddText("Panel body"));
             }, new PdfPanelStyle {
                 Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95, 0.97, 0.99),
                 BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
@@ -84,8 +84,7 @@ public class PdfRoundedCornerTests {
     public void CanvasTableCornerRadius_RoundsTheFixedPositionOuterBox() {
         var style = CalloutStyle(8);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)) },
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.Table(Callout(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(64), style))
@@ -185,12 +184,10 @@ public class PdfRoundedCornerTests {
         style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> { [(0, 0)] = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(160),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(120),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(120)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .Table(rows, style: style)
             .ToBytes();
@@ -212,10 +209,16 @@ public class PdfRoundedCornerTests {
         byte[] oversizedFlow = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Table(rows, style: CreateStyle(100))
             .ToBytes();
-        byte[] expectedCanvas = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(180), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(10), MarginRight = global::OfficeIMO.OfficeLength.Points(10), MarginTop = global::OfficeIMO.OfficeLength.Points(10), MarginBottom = global::OfficeIMO.OfficeLength.Points(10), CompressContentStreams = false })
+        byte[] expectedCanvas = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(120)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(10), Right = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(10), Bottom = global::OfficeIMO.OfficeLength.Points(10) }
+        }, CompressContentStreams = false })
             .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60), CreateStyle(10)))
             .ToBytes();
-        byte[] oversizedCanvas = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(180), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(10), MarginRight = global::OfficeIMO.OfficeLength.Points(10), MarginTop = global::OfficeIMO.OfficeLength.Points(10), MarginBottom = global::OfficeIMO.OfficeLength.Points(10), CompressContentStreams = false })
+        byte[] oversizedCanvas = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(120)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(10), Right = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(10), Bottom = global::OfficeIMO.OfficeLength.Points(10) }
+        }, CompressContentStreams = false })
             .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60), CreateStyle(100)))
             .ToBytes();
 

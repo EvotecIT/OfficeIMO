@@ -23,10 +23,10 @@ namespace OfficeIMO.PowerPoint {
                 runProps.Italic = italic.Value;
             }
             if (color != null) {
-                PowerPointTextPropertyFormatting.SetColor(runProps, color);
+                PowerPointTextPropertyFormatting.SetColorLiteral(runProps, color);
             }
             if (fontName != null) {
-                PowerPointTextPropertyFormatting.SetFontName(runProps, fontName);
+                PowerPointTextPropertyFormatting.SetFontFamily(runProps, fontName);
             }
         }
 

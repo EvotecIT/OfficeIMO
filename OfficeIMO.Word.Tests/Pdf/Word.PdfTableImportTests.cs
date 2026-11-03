@@ -12,12 +12,10 @@ public partial class Word {
     [Fact]
     public void PdfTables_SaveAsWord_ImportsDetectedTablesAsWordTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
@@ -66,12 +64,10 @@ public partial class Word {
     [Fact]
     public void PdfTables_SaveAsWord_AppliesRowCapsAndKeepsDocumentValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
@@ -84,7 +80,7 @@ public partial class Word {
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
-            .Paragraph(p => p.Text("No table on this page."))
+            .Paragraph(p => p.AddText("No table on this page."))
             .ToBytes();
 
         using var document = new MemoryStream();

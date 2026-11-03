@@ -20,8 +20,8 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Text");
 
-        Assert.Equal("FF0000", paragraph.Borders.LeftColorHex);
-        Assert.Equal("FF0000", paragraph.Borders.RightColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Borders.RightColor);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Text");
 
         Assert.Equal(WordHighlightColor.None, run.Highlight);
-        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
         Assert.Contains(
             """<mark style="background-color:transparent">Text</mark>""",
             document.ToHtml());
@@ -43,11 +43,11 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public void AddHtmlToBody_TableContainerWidthUsesTheOwningSection() {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(600D);
+        document.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(600D);
         WordSection target = document.AddSection();
-        target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(450D);
-        target.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
-        target.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
+        target.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(450D);
+        target.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        target.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
 
         document.AddHtml(HtmlConversionDocument.Parse("""
             <div style="padding-inline-end:20px">

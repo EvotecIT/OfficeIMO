@@ -8,8 +8,8 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfPageOverlayTests {
     [Fact]
     public void RepeatedTargetPageSelectorIsDeduplicatedForOneOverlayRequest() {
-        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target")).ToBytes();
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Overlay once")).ToBytes();
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Target")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Overlay once")).ToBytes();
 
         byte[] result = PdfStamper.StampPage(target, source, new PdfPageOverlayOptions {
             TargetPages = PdfPageSelector.Parse("1,1")
@@ -23,16 +23,16 @@ public class PdfPageOverlayTests {
     [Fact]
     public void OverlayPage_ImportsSelectedSourcePageAsFormOnSelectedTargetPages() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Source page one"))
+            .Paragraph(paragraph => paragraph.AddText("Source page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Source page two"))
+            .Paragraph(paragraph => paragraph.AddText("Source page two"))
             .ToBytes();
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Target one"))
+            .Paragraph(paragraph => paragraph.AddText("Target one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Target two"))
+            .Paragraph(paragraph => paragraph.AddText("Target two"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Target three"))
+            .Paragraph(paragraph => paragraph.AddText("Target three"))
             .ToBytes();
 
         byte[] result = PdfStamper.OverlayPage(target, source, new PdfPageOverlayOptions {
@@ -57,8 +57,8 @@ public class PdfPageOverlayTests {
 
     [Fact]
     public void OverlayPage_WritesBlendModeAtFullOpacity() {
-        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target")).ToBytes();
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Overlay")).ToBytes();
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Target")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Overlay")).ToBytes();
 
         byte[] result = PdfStamper.OverlayPage(target, source, new PdfPageOverlayOptions {
             BlendMode = OfficeBlendMode.Multiply
@@ -93,7 +93,7 @@ public class PdfPageOverlayTests {
             << /Root 1 0 R >>
             %%EOF
             """);
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Overlay")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Overlay")).ToBytes();
 
         byte[] result = PdfStamper.OverlayPage(target, source);
 
@@ -118,10 +118,10 @@ public class PdfPageOverlayTests {
     [InlineData(true)]
     public void StampPage_ControlsWhetherImportedPageContentIsBeforeOrAfterExistingContent(bool behindContent) {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Imported"))
+            .Paragraph(paragraph => paragraph.AddText("Imported"))
             .ToBytes();
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Existing"))
+            .Paragraph(paragraph => paragraph.AddText("Existing"))
             .ToBytes();
 
         byte[] result = PdfStamper.StampPage(target, source, new PdfPageOverlayOptions { BehindContent = behindContent });
@@ -144,11 +144,11 @@ public class PdfPageOverlayTests {
     [Fact]
     public void UnderlayPage_UsesVisualSourceGeometryForRotatedPages() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Rotated source"))
+            .Paragraph(paragraph => paragraph.AddText("Rotated source"))
             .ToBytes();
         source = PdfDocument.Load(source).Pages.Rotate(90, "1").ToBytes();
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Target"))
+            .Paragraph(paragraph => paragraph.AddText("Target"))
             .ToBytes();
 
         byte[] result = PdfStamper.UnderlayPage(target, source);
@@ -168,8 +168,8 @@ public class PdfPageOverlayTests {
 
     [Fact]
     public void OverlayPage_MapsVisualPlacementIntoRotatedTargetCropCoordinates() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Imported geometry")).ToBytes();
-        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Rotated target")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Imported geometry")).ToBytes();
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Rotated target")).ToBytes();
         target = PdfPageEditor.SetCropBox(target, 10D, 20D, 610D, 780D, 1);
         target = PdfPageEditor.RotatePages(target, 90, 1);
 
@@ -189,8 +189,8 @@ public class PdfPageOverlayTests {
 
     [Fact]
     public void FluentOverlayPage_SupportsPathAndStreamSources() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reusable overlay")).ToBytes();
-        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Reusable overlay")).ToBytes();
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Target")).ToBytes();
         string sourcePath = Path.Combine(Path.GetTempPath(), "officeimo-overlay-" + Guid.NewGuid().ToString("N") + ".pdf");
         File.WriteAllBytes(sourcePath, source);
         try {
@@ -241,7 +241,7 @@ public class PdfPageOverlayTests {
             << /Root 1 0 R >>
             %%EOF
             """);
-        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target")).ToBytes();
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Target")).ToBytes();
 
         byte[] result = PdfStamper.OverlayPage(target, source);
 

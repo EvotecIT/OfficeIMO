@@ -52,9 +52,12 @@ public sealed class WordPdfIdentifierTests {
         const string uri = "https://example.test/template";
         string display = WordPaperText.WithIdentifierBreaks(identifier).Replace('\u200C', '\u200B');
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width + 40), global::OfficeIMO.OfficeLength.Points(792)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
-        }.UseTextFallbacks()).Paragraph(paragraph => paragraph.Link(display, uri)).ToBytes();
+        }.UseTextFallbacks()).Paragraph(paragraph => paragraph.AddLink(display, uri)).ToBytes();
         Assert.Equal(identifier, PdfReadDocument.Open(pdf).ExtractText().Trim());
         Assert.Contains(uri, PdfInspector.Inspect(pdf).LinkUris);
         string? proof = Environment.GetEnvironmentVariable("OFFICEIMO_IDENTIFIER_PROOF_DIR");

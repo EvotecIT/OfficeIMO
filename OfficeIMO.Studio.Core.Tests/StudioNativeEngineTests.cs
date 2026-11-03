@@ -409,7 +409,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "Alpha needle here", "Nothing to see", "Another NEEDLE" })
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(text)))));
         }).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
 
@@ -436,7 +436,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "Alpha needle here", "Nothing to see", "Another NEEDLE and a needle" })
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(text)))));
         }).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         var pages = new List<StudioNativeSearchPage>();
@@ -533,7 +533,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => {
             foreach (string text in new[] { "first page", "second needle" })
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)).Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(text)))));
         }).Save(path);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
         delegate* unmanaged<nint, int*, int, nint, byte**, int> reorder = &StudioNativeExports.DocumentReorderPages;
@@ -676,7 +676,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     public async Task Page_text_gives_each_element_a_box_on_the_page_as_displayed() {
         string path = Path.Combine(_root, "text.pdf");
         PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300))
-            .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Hello world")))))).Save(path);
+            .Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Hello world")))))).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
 
         StudioNativePageText text = await document.GetPageTextAsync(1, default);
@@ -816,7 +816,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     public async Task Making_a_digital_document_searchable_leaves_its_text_alone() {
         string path = Path.Combine(_root, "digital.pdf");
         PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300))
-            .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Already searchable")))))).Save(path);
+            .Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Already searchable")))))).Save(path);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         long revision = (await document.GetInfoAsync(default)).Revision;
 
@@ -925,7 +925,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     [Fact]
     public async Task PdfConversionRetainsTheOpenDocumentsReadLimits() {
         byte[] pdf = OfficeIMO.Pdf.PdfDocument.Create(compose => compose.Page(page =>
-            page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Budgeted conversion")))))).ToBytes();
+            page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Budgeted conversion")))))).ToBytes();
         string output = Path.Combine(_root, "budgeted.docx");
         var options = new OfficeIMO.Pdf.PdfLoadOptions {
             Limits = new OfficeIMO.Pdf.PdfReadLimits { MaxInputBytes = 32 }

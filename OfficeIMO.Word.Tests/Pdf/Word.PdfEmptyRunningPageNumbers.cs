@@ -14,7 +14,7 @@ public partial class Word {
     [InlineData(2)]
     public void SaveAsPdf_ImplicitFooterPreservesSiblingPageAndSectionFields(int emptyVariant) {
         using WordDocument document = CreateEmptyRunningStoryDocument("absent", footer: true);
-        WordHeaderFooter[] stories = { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate };
+        WordHeaderFooter[] stories = { document.PageSetup.FirstPageFooter, document.PageSetup.EvenPageFooter, document.PageSetup.Footer };
         foreach (WordHeaderFooter story in stories)
             foreach (var child in story.ChildElements.ToArray()) child.Remove();
         for (int index = 0; index < 3; index++) {
@@ -58,7 +58,7 @@ public partial class Word {
     [InlineData(2, "hidden")]
     public void SaveAsPdf_EmptyRunningFooterSiblingPreservesAbsentAndEmptyNumberVariants(int variant, string kind) {
         using WordDocument source = CreateEmptyRunningStoryDocument("absent", footer: true);
-        WordHeaderFooter[] stories = { source.FooterFirstOrCreate, source.FooterEvenOrCreate, source.FooterDefaultOrCreate };
+        WordHeaderFooter[] stories = { source.PageSetup.FirstPageFooter, source.PageSetup.EvenPageFooter, source.PageSetup.Footer };
         foreach (WordHeaderFooter story in stories)
             foreach (var child in story.ChildElements.ToArray()) child.Remove();
         // Creating first/even stories also creates header peers. This control
@@ -120,7 +120,7 @@ public partial class Word {
     [InlineData(2, true)]
     public void SaveAsPdf_EmptyRunningFooterPreservesGeneratedPageNumberPresentation(int emptyVariant, bool typography) {
         using WordDocument document = CreateEmptyRunningStoryDocument("absent", footer: true);
-        WordHeaderFooter[] stories = { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate };
+        WordHeaderFooter[] stories = { document.PageSetup.FirstPageFooter, document.PageSetup.EvenPageFooter, document.PageSetup.Footer };
         foreach (var child in stories[emptyVariant].ChildElements.ToArray()) child.Remove();
         for (int index = 0; index < 3; index++) {
             if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);
@@ -132,12 +132,12 @@ public partial class Word {
         WordPdfExportOptions options = EmptyRunningOptions();
         options.IncludePageNumbers = true;
         options.PageNumberFormat = "NUMBER {page}/{pages}";
-        options.PdfOptions = new PdfCreateOptions { FooterOffsetY = global::OfficeIMO.OfficeLength.Points(typography ? 18D : 24D) };
+        options.PdfOptions = new PdfCreateOptions { PageSetup = { Footer = { Offset = global::OfficeIMO.OfficeLength.Points(typography ? 18D : 24D) } } };
         if (typography) {
-            options.PdfOptions.FooterFont = PdfStandardFont.Courier;
-            options.PdfOptions.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24D);
-            options.PdfOptions.FooterAlign = OfficeAlignment.Left;
-            options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+            options.PdfOptions.PageSetup.Footer.StandardFont = PdfStandardFont.Courier;
+            options.PdfOptions.PageSetup.Footer.FontSize = global::OfficeIMO.OfficeLength.Points(24D);
+            options.PdfOptions.PageSetup.Footer.Alignment = OfficeAlignment.Left;
+            options.PdfOptions.PageSetup.Footer.Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
         }
         using var withImplicit = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         W.HeaderFooterValues kind = emptyVariant == 0 ? W.HeaderFooterValues.First

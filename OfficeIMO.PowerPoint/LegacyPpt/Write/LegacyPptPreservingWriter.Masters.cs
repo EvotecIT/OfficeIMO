@@ -221,8 +221,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     changedShapeMetadata = shape;
                 }
-                PowerPointPicture? changedPictureFormatting = null;
-                if (shape is PowerPointPicture picture
+                PowerPointImage? changedPictureFormatting = null;
+                if (shape is PowerPointImage picture
                     && picture is not PowerPointMedia
                     && shapeProjection.CanEditPictureFormatting
                     && !shapeProjection.PictureFormattingMatches(picture)) {

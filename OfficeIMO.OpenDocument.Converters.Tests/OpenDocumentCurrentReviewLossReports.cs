@@ -66,7 +66,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextBox textBox = source.AddSlide().AddTextBox("Heavy",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         textBox.Paragraphs[0].Runs[0].UnderlineStyle = PowerPointUnderlineStyle.WavyHeavy;
-        textBox.Paragraphs[0].AddRun(" Words").UnderlineStyle = PowerPointUnderlineStyle.Words;
+        textBox.Paragraphs[0].AddText(" Words").UnderlineStyle = PowerPointUnderlineStyle.Words;
 
         OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
 
@@ -104,7 +104,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void WordPatternedParagraphShadingIsFlattenedAndReported() {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Patterned");
-        paragraph.ShadingFillColorHex = "D9EAF7";
+        paragraph.ShadingFillColor = OfficeColor.Parse("D9EAF7");
         paragraph.ShadingPattern = WordShadingPattern.Percent20;
 
         OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
@@ -120,9 +120,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void WordRunShadingAndDefaultHeaderFormattingArePreserved() {
         using WordDocument source = WordDocument.Create();
         WordParagraph body = source.AddParagraph("Shaded");
-        body.RunShadingFillColorHex = "112233";
-        source.AddHeadersAndFooters();
-        WordParagraph header = source.Header!.Default!.AddParagraph("Styled header");
+        body.BackgroundColor = OfficeColor.Parse("112233");
+        WordParagraph header = source.PageSetup.Header.AddParagraph("Styled header");
         header.Bold = true;
         header.FontSize = global::OfficeIMO.OfficeLength.Points(11.5);
 
@@ -271,7 +270,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using PowerPointDocument target = conversion.Value;
 
         Assert.Equal("Liberation Sans", target.Slides.Single().TextBoxes.Single()
-            .Paragraphs.Single().Runs.Single().FontName);
+            .Paragraphs.Single().Runs.Single().FontFamily);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "font-family-fallbacks"
             && mapping.Status == OdfConversionMappingStatus.Approximated
@@ -404,8 +403,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 run.Italic = true;
                 run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
                 run.SetSuperscript();
-                run.Color = "336699";
-            }).AddRun("After");
+                run.Color = OfficeColor.Parse("336699");
+            }).AddText("After");
             Assert.Equal(new[] {
                 PowerPointParagraphInlineKind.Run,
                 PowerPointParagraphInlineKind.LineBreak,
@@ -590,7 +589,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         Assert.Equal(2, runs.Length);
         Assert.All(runs, run => Assert.True(run.Underline));
         Assert.All(runs, run => Assert.True(run.Strikethrough));
-        Assert.All(runs, run => Assert.Equal("AABBCC", run.HighlightColor));
+        Assert.All(runs, run => Assert.Equal(OfficeColor.Parse("AABBCC"), run.BackgroundColor));
     }
 
     [Fact]
@@ -749,7 +748,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
-        WordParagraph paragraph = Assert.Single(target.Header!.Default!.Paragraphs, item => item.Text.Contains("Styled", StringComparison.Ordinal));
+        WordParagraph paragraph = Assert.Single(target.PageSetup.Header.Paragraphs, item => item.Text.Contains("Styled", StringComparison.Ordinal));
         WordParagraph[] runs = paragraph.GetRuns().ToArray();
 
         Assert.Contains(runs, run => run.Text == "Styled" && run.Bold);
@@ -1319,7 +1318,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         PowerPointSlide converted = Assert.Single(target.Slides);
 
         Assert.Equal(new[] { "First", "Second" }, converted.TextBoxes.Single().Paragraphs.Select(paragraph => paragraph.Text));
-        Assert.Single(converted.Pictures);
+        Assert.Single(converted.Images);
         Assert.Equal("445566", converted.GetBackground().Color);
     }
 
@@ -1357,11 +1356,9 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void WordToOdtReportsHeaderFooterTablesAndLaterSectionDefaults() {
         using WordDocument source = WordDocument.Create();
-        source.AddHeadersAndFooters();
-        source.Sections[0].Header.Default!.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Table";
+        source.Sections[0].PageSetup.Header.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Table";
         WordSection second = source.AddSection();
-        second.AddHeadersAndFooters();
-        second.Header.Default!.AddParagraph("Later header");
+        second.PageSetup.Header.AddParagraph("Later header");
 
         OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence(new WordOpenDocumentConversionOptions {
             IncludeHeadersAndFooters = true
@@ -1394,7 +1391,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             .Single().Runs);
 
         Assert.Null(run.HighlightColor);
-        Assert.Null(run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
     }
 
     [Fact]

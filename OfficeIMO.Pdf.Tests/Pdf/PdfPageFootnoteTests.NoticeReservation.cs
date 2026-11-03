@@ -17,7 +17,7 @@ public partial class PdfPageFootnoteTests {
         PdfDocument Render(bool reserve, int noticeKind = 1) {
             var document = PdfDocument.Create(Options());
             Action<PdfContentBuilder>? notice = noticeKind switch {
-                1 => body => body.Text("UnpaintedNotice", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(noticeSpacer)),
+                1 => body => body.AddParagraph("UnpaintedNotice", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(noticeSpacer)),
                 2 => _ => { },
                 _ => null
             };
@@ -28,12 +28,12 @@ public partial class PdfPageFootnoteTests {
             var note = document.Content.DefineFootnote(body => {
                 // Both true and false must be captured before this callback runs.
                 options.ReserveContinuationNoticeSpaceOnFinalPage = !reserve;
-                body.Text("CompleteShortNote", style: Style());
+                body.AddParagraph("CompleteShortNote", style: Style());
             }, options);
-            document.Content.Paragraph(p => p.Runs(new[] {
+            document.Content.AddParagraph(p => p.AddRuns(new[] {
                 PdfTextRun.Normal("ShortReference").WithFootnoteReference(note)
             }), style: Style());
-            document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(65D)).Text("FollowingBody", style: Style());
+            document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(65D)).AddParagraph("FollowingBody", style: Style());
             return document;
         }
 
@@ -74,15 +74,15 @@ public partial class PdfPageFootnoteTests {
         PdfDocument Render(bool reserve) {
             var document = PdfDocument.Create(Options());
             var note = document.Content.DefineFootnote(body => {
-                for (int index = 0; index < 24; index++) body.Text("ReservedLong" + index.ToString("00"), style: Style());
+                for (int index = 0; index < 24; index++) body.AddParagraph("ReservedLong" + index.ToString("00"), style: Style());
             }, new PdfFootnoteOptions {
                 Placement = placement, ReserveContinuationNoticeSpaceOnFinalPage = reserve,
-                ContinuationNotice = body => body.Text("MeasuredNotice", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(7D))
+                ContinuationNotice = body => body.AddParagraph("MeasuredNotice", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(7D))
             });
-            document.Content.Paragraph(p => p.Runs(new[] {
+            document.Content.AddParagraph(p => p.AddRuns(new[] {
                 PdfTextRun.Normal("LongReference").WithFootnoteReference(note)
             }), style: Style());
-            document.Content.Text("FollowingLongBody", style: Style());
+            document.Content.AddParagraph("FollowingLongBody", style: Style());
             return document;
         }
 
@@ -114,24 +114,24 @@ public partial class PdfPageFootnoteTests {
     [InlineData(true)]
     public void FirstAdmittedTableNoteOwnsFinalReservationWithoutChargingItAgain(bool firstAdmittedReserves) {
         var options = Options();
-        options.PageHeight = global::OfficeIMO.OfficeLength.Points(260D);
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(260D));
         var document = PdfDocument.Create(options);
         // The right-cell note is admitted first, although the spanned left-cell
         // reference precedes it in authored source order and is admitted later.
-        var firstAdmitted = document.Content.DefineFootnote(body => body.Text("FirstAdmittedNote", style: Style()),
+        var firstAdmitted = document.Content.DefineFootnote(body => body.AddParagraph("FirstAdmittedNote", style: Style()),
             new PdfFootnoteOptions {
                 ReserveContinuationNoticeSpaceOnFinalPage = firstAdmittedReserves,
-                ContinuationNotice = body => body.Text("OwnerNotice", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(7D))
+                ContinuationNotice = body => body.AddParagraph("OwnerNotice", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(7D))
             });
-        var earlierAuthored = document.Content.DefineFootnote(body => body.Text("EarlierAuthoredNote", style: Style()),
+        var earlierAuthored = document.Content.DefineFootnote(body => body.AddParagraph("EarlierAuthoredNote", style: Style()),
             new PdfFootnoteOptions {
                 ReserveContinuationNoticeSpaceOnFinalPage = !firstAdmittedReserves,
-                ContinuationNotice = body => body.Text("UnselectedNotice", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(25D))
+                ContinuationNotice = body => body.AddParagraph("UnselectedNotice", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(25D))
             });
         var style = FootnoteTableStyle();
         style.MinimumBodyRowsOnFirstPage = 0;
         style.MinimumBodyRowsOnLastPage = 0;
-        document.Content.Table(new[] {
+        document.Content.AddTable(new[] {
             new[] {
                 new PdfTableCell(TableReferenceLines(12, 8, "LRef", earlierAuthored), rowSpan: 2),
                 new PdfTableCell(new[] { PdfTextRun.Normal("RRef").WithFootnoteReference(firstAdmitted), PdfTextRun.Normal("\nRightFirstTail") })
@@ -140,8 +140,8 @@ public partial class PdfPageFootnoteTests {
         }, style: style);
 
         var baselineDocument = PdfDocument.Create(options);
-        var baselineNote = baselineDocument.Content.DefineFootnote(body => body.Text("BaselineNote", style: Style()));
-        baselineDocument.Content.Paragraph(p => p.Runs(new[] {
+        var baselineNote = baselineDocument.Content.DefineFootnote(body => body.AddParagraph("BaselineNote", style: Style()));
+        baselineDocument.Content.AddParagraph(p => p.AddRuns(new[] {
             PdfTextRun.Normal("BaselineReference").WithFootnoteReference(baselineNote)
         }), style: Style());
         using var baseline = PdfPigDocument.Open(baselineDocument.ToBytes());
@@ -170,12 +170,12 @@ public partial class PdfPageFootnoteTests {
         var options = Options();
         options.MaxGeneratedPages = 2;
         var document = PdfDocument.Create(options);
-        var note = document.Content.DefineFootnote(body => body.Text("OtherwiseCompleteNote", style: Style()),
+        var note = document.Content.DefineFootnote(body => body.AddParagraph("OtherwiseCompleteNote", style: Style()),
             new PdfFootnoteOptions {
                 Placement = placement, ReserveContinuationNoticeSpaceOnFinalPage = true,
                 ContinuationNotice = body => body.Spacer(global::OfficeIMO.OfficeLength.Points(100D))
             });
-        document.Content.Paragraph(p => p.Runs(new[] {
+        document.Content.AddParagraph(p => p.AddRuns(new[] {
             PdfTextRun.Normal("ImpossibleReference").WithFootnoteReference(note)
         }), style: Style());
         Assert.Throws<ArgumentException>(() => document.ToBytes());

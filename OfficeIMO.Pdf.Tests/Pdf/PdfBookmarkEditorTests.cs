@@ -10,11 +10,11 @@ public class PdfBookmarkEditorTests {
         // The reading fixture keeps the built-in heading metrics; the reader's level heuristics are not what this test covers.
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true, DefaultHeadingStyles = new PdfHeadingStyles() })
             .H1("First")
-            .Paragraph(p => p.Text("Page one"))
+            .Paragraph(p => p.AddText("Page one"))
             .PageBreak()
             .H1("Second")
             .H2("Detail")
-            .Paragraph(p => p.Text("Page two"))
+            .Paragraph(p => p.AddText("Page two"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 17 } };
 

@@ -24,9 +24,9 @@ public partial class PdfUnderstandingPipelineTests {
     public void FastPipeline_ExposesAllStagesAndCallerOrderedPages() {
         byte[] pdf = PdfDocument.Create()
             .H1("Pipeline heading")
-            .Paragraph(p => p.Text("First body line"))
+            .Paragraph(p => p.AddText("First body line"))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page body"))
+            .Paragraph(p => p.AddText("Second page body"))
             .ToBytes();
 
         PdfDocumentReadResult result = Read(
@@ -57,7 +57,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_DetectsTablesOnceAndReusesFirstClassCandidatesForLogicalProjection() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var tableDetection = new CountingTableDetectionStage();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
@@ -82,7 +82,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_SegmentsSharedBaselineTableFragmentsIndependently() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Left", "F1", 10D, 40D, 700D, 35D),
@@ -119,12 +119,10 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredPipeline_PromotesTableBeforeGeneralSegmentation() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(320)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
@@ -156,7 +154,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void StructuredPipeline_PreservesTightlyPositionedOfficeTextFragmentsInTables() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Code", "F1", 10D, 40D, 700D, 24D),
@@ -200,8 +198,8 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void Pipeline_UsesCallerSuppliedStageAndRecordsItsProvider() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Top region"))
-            .Paragraph(p => p.Text("Bottom region"), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(40) })
+            .Paragraph(p => p.AddText("Top region"))
+            .Paragraph(p => p.AddText("Bottom region"), style: new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(40) })
             .ToBytes();
         var custom = new ReverseReadingOrderStage();
         var options = new PdfUnderstandingPipelineOptions { ReadingOrder = custom };
@@ -242,7 +240,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_RejectsOversizedCustomStageArtifacts() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var options = new PdfUnderstandingPipelineOptions {
             GlyphDecoding = new FixedGlyphStage(new[] {
                 new PdfTextSpan("one", "F1", 12, 10, 10, 20),
@@ -259,7 +257,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_RejectsOversizedCustomTableCandidateSets() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("first", "F1", 12D, 40D, 700D, 80D),
@@ -277,7 +275,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_RejectsOversizedNestedTableCandidateArtifacts() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("first", "F1", 12D, 40D, 700D, 80D),
@@ -295,7 +293,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_GroupsRotatedBaselinesAndOrdersMultipleColumns() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Left top", "F1", 12, 50, 700, 48),
             new PdfTextSpan("Left bottom", "F1", 12, 50, 650, 60),
@@ -321,7 +319,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedLineGrouping_PreservesLongWordsFromOneSourceRun() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         const string text = "Sensitive payroll token PAY-SECRET-2026";
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
@@ -336,7 +334,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedWordGrouping_UsesDecodedCharacterAdvancesForWordGeometry() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan(
@@ -366,7 +364,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedWordGrouping_ProjectsFallbackGeometryByUnicodeScalar() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("𝟙𝟚 AB", "F1", 12D, 50D, 700D, 50D)
@@ -384,7 +382,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedLineGrouping_JoinsAdjacentRunFragmentsAndSpacesPositiveGaps() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Hel", "F1", 12D, 50D, 700D, 18D),
@@ -401,7 +399,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_UsesRecursiveWhitespaceCutsForIndentedColumnContent() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Left one", "F1", 12, 50, 700, 110),
             new PdfTextSpan("Left two", "F1", 12, 80, 650, 110),
@@ -423,7 +421,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_ForceSingleColumnOrdersRowsBeforeColumns() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Left top", "F1", 12, 50, 700, 90),
             new PdfTextSpan("Right top", "F1", 12, 320, 700, 90),
@@ -444,7 +442,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_OrdersStaggeredRegionsTopToBottomInsteadOfAsColumns() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Upper right heading", "F1", 16, 320, 700, 150),
             new PdfTextSpan("Lower left body", "F1", 11, 50, 500, 120)
@@ -462,7 +460,7 @@ public partial class PdfUnderstandingPipelineTests {
     [InlineData(false)]
     [InlineData(true)]
     public void AdvancedPipeline_OrdersInterleavedStaggeredRegionsTopToBottom(bool mirrorColumns) {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         double outerColumn = mirrorColumns ? 320 : 50;
         double middleColumn = mirrorColumns ? 50 : 320;
         var glyphs = new FixedGlyphStage(new[] {
@@ -481,7 +479,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_RequiresActualBandOverlapBeforeSelectingColumns() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Upper left", "F1", 12, 50, 700, 110),
             new PdfTextSpan("Upper middle right", "F1", 12, 320, 600, 130),
@@ -500,7 +498,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_AutoOrdersRightToLeftWordsAndColumnsByUnicodeDirection() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             // Deliberately supply the left word first. Source sequence may inform Auto direction,
@@ -532,7 +530,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_ExplicitLeftToRightOverridesAutoDirection() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("שמאל", "F1", 12D, 220D, 700D, 44D),
@@ -570,7 +568,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_DoesNotAssignPageEdgeSemanticsWithoutDocumentOrTaggedEvidence() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Quarterly report", "F1", 12, 50, 800, 90),
             new PdfTextSpan("Item", "F1", 11, 50, 500, 24), new PdfTextSpan("Amount", "F1", 11, 90, 500, 42),
@@ -608,7 +606,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_DoesNotTreatEnglishNumberedWordsAsCaptionEvidence() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Table of Contents", "F1", 20D, 50D, 700D, 180D),
             new PdfTextSpan("Introduction body", "F1", 10D, 50D, 650D, 120D),
@@ -631,7 +629,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_UsesTableGeometryInsteadOfCaptionVocabulary() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Таблица доходов", "F1", 10D, 50D, 726D, 130D),
@@ -1188,9 +1186,9 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void PdfReaderAdapter_PropagatesConfiguredSemanticPageLimit() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .ToBytes();
 
         ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => PdfReaderAdapter.ReadDocument(
@@ -1242,7 +1240,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedSemanticClassification_DoesNotInferRotatedFootnotesFromPositionAlone() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         pdf = PdfPageEditor.SetCropBox(pdf, 100D, 0D, 500D, 600D);
         pdf = PdfPageEditor.RotatePages(pdf, 90);
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
@@ -1268,7 +1266,7 @@ public partial class PdfUnderstandingPipelineTests {
     public void Sections_KeepTableLinesOutOfUngroupedTextBlocks() {
         byte[] pdf = PdfDocument.Create()
             .H1("Table section")
-            .Paragraph(paragraph => paragraph.Text("Section introduction."))
+            .Paragraph(paragraph => paragraph.AddText("Section introduction."))
             .Table(new[] {
                 new[] { "Metric", "Value" },
                 new[] { "Quality", "Premium" }
@@ -1290,7 +1288,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void LogicalProjection_PreservesRotatedLineVisualBounds() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Vertical text", "F1", 12D, 220D, 300D, 72D, rotationDegrees: 90D)
@@ -1311,7 +1309,7 @@ public partial class PdfUnderstandingPipelineTests {
     public void FastAndStructured_UseTheSameCanonicalPageStagesAndArtifacts() {
         byte[] pdf = PdfDocument.Create()
             .H1("Shared page pipeline")
-            .Paragraph(paragraph => paragraph.Text("Body content before the table."))
+            .Paragraph(paragraph => paragraph.AddText("Body content before the table."))
             .Table(new[] {
                 new[] { "Account", "Amount" },
                 new[] { "North", "42" }
@@ -1334,11 +1332,11 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void SelectedSinglePageReads_DoNotInventHeadersAndFootersWithoutTaggedEvidence() {
         byte[] pdf = PdfDocument.Create()
-            .Header(header => header.AlignLeft().Text("Local page header {page}/{pages}"))
-            .Footer(footer => footer.AlignLeft().Text("Local page footer {page}/{pages}"))
-            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .Header(header => header.Alignment(OfficeAlignment.Left).Text("Local page header {page}/{pages}"))
+            .Footer(footer => footer.Alignment(OfficeAlignment.Left).Text("Local page footer {page}/{pages}"))
+            .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page body."))
+            .Paragraph(paragraph => paragraph.AddText("Second page body."))
             .ToBytes();
 
         PdfLogicalPage fastPage = Assert.Single(PdfDocument.Load(pdf).Read(new PdfLoadOptions {
@@ -1382,7 +1380,7 @@ public partial class PdfUnderstandingPipelineTests {
     public void StructuredRead_PromotesPageLocalHeadingToItsDocumentFontTier() {
         byte[] pdf = PdfDocument.Create()
             .H1("Only document heading")
-            .Paragraph(paragraph => paragraph.Text("Document body."))
+            .Paragraph(paragraph => paragraph.AddText("Document body."))
             .ToBytes();
         var pipeline = new PdfUnderstandingPipelineOptions {
             SemanticClassification = new HeadingLevelTwoClassificationStage()
@@ -1500,7 +1498,7 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void LogicalProjection_ReusesCanonicalDecodedRunsAndHonorsCancellation() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Source content must not be decoded twice"))
+            .Paragraph(paragraph => paragraph.AddText("Source content must not be decoded twice"))
             .ToBytes();
         PdfReadDocument document = PdfReadDocument.Open(pdf);
         PdfUnderstandingLine line = CreateUnderstandingLine("Canonical decoded content", 72D, 250D, 700D);
@@ -1541,7 +1539,7 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void LogicalProjection_UsesConfiguredLineArtifactsForSemanticBlocks() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Source content must not define projection lines"))
+            .Paragraph(paragraph => paragraph.AddText("Source content must not define projection lines"))
             .ToBytes();
         PdfReadDocument document = PdfReadDocument.Open(pdf);
         var firstRun = new PdfTextSpan("Combined", "Helvetica", 20D, 72D, 700D, 90D);
@@ -1580,7 +1578,7 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void LogicalProjection_ClearsDecodedTextWhenConfiguredLineStageReturnsNoLines() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Filtered source content"))
+            .Paragraph(paragraph => paragraph.AddText("Filtered source content"))
             .ToBytes();
         var pipeline = PdfUnderstandingPipelineOptions.Structured();
         pipeline.LineGrouping = new FixedLineGroupingStage(Array.Empty<PdfUnderstandingLine>());
@@ -1597,9 +1595,9 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void LogicalProjection_ClaimsCombinedCustomLinesOnlyOnceAcrossSourceParagraphs() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First source paragraph"))
+            .Paragraph(paragraph => paragraph.AddText("First source paragraph"))
             .Spacer(80D)
-            .Paragraph(paragraph => paragraph.Text("Second source paragraph"))
+            .Paragraph(paragraph => paragraph.AddText("Second source paragraph"))
             .ToBytes();
         var pipeline = PdfUnderstandingPipelineOptions.Structured();
         pipeline.LineGrouping = new CombinedLineGroupingStage();
@@ -1615,7 +1613,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void LogicalProjection_UsesCanonicalSemanticRegionsForParagraphOwnership() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Первый фрагмент", "F1", 12D, 50D, 700D, 120D),
@@ -1660,7 +1658,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_WorkBudgetRejectsAStageChargeAboveTheLimit() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfDocumentReadResult accepted = Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(10), 100));
         Assert.Single(accepted.Pages);
 
@@ -1722,7 +1720,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void CanceledSourceParse_DoesNotPoisonTheCanonicalParseCache() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("retry after cancellation")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("retry after cancellation")).ToBytes();
         PdfDocumentSource source = PdfDocumentSource.FromCallerBytes(pdf, options: null);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -1735,7 +1733,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_ObservesCancellationInsideAStage() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         using var cancellation = new CancellationTokenSource();
         PdfUnderstandingPipelineOptions options = CreatePassThroughPipeline(
             new CancellingGlyphStage(cancellation, cancelAfterWorkUnit: 4),
@@ -1749,7 +1747,7 @@ public partial class PdfUnderstandingPipelineTests {
     public void CompletedReadResult_RemainsUsableAfterItsOperationTokenIsCanceled() {
         byte[] pdf = PdfDocument.Create()
             .H1("Completed read")
-            .Paragraph(paragraph => paragraph.Text("Retained semantic content"))
+            .Paragraph(paragraph => paragraph.AddText("Retained semantic content"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
 
@@ -1768,7 +1766,7 @@ public partial class PdfUnderstandingPipelineTests {
     public void GeneratedEncryptedDocument_UsesItsCredentialsForCanonicalRead() {
         PdfDocument document = PdfDocument.Create(
             new PdfCreateOptions().SetEncryption("open", "owner"));
-        document.Paragraph(paragraph => paragraph.Text("Encrypted semantic content"));
+        document.Paragraph(paragraph => paragraph.AddText("Encrypted semantic content"));
 
         PdfDocumentReadResult result = document.Read();
 
@@ -1777,7 +1775,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedSegmentation_ChargesCanonicalLayoutRecoveryBeforeTableProjection() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
         var context = new PdfUnderstandingPageContext(
             sourcePage,
@@ -1802,7 +1800,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedSegmentation_ChargesOrderingBeforeSpatialTraversal() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
         var context = new PdfUnderstandingPageContext(
             sourcePage,
@@ -1826,7 +1824,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void LogicalProjection_HonorsLinesOmittedByPageSegmentation() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Retained by segmentation", "F1", 12D, 50D, 700D, 150D),
@@ -1880,7 +1878,7 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void AdvancedTableDetection_PreservesSingleRowLeaderCandidate() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Section").Tab(PdfTabLeaderStyle.Dots).Text("7"))
+            .Paragraph(paragraph => { paragraph.AddText("Section"); paragraph.AddTab(PdfTabLeaderStyle.Dots); paragraph.AddText("7"); })
             .ToBytes();
 
         PdfLogicalPage page = Assert.Single(Read(pdf, PdfUnderstandingPipelineOptions.Structured()).Pages);
@@ -1895,9 +1893,9 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredRead_DoesNotClassifyTallRepeatedRegionsAsHeaders() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("first placeholder"))
+            .Paragraph(paragraph => paragraph.AddText("first placeholder"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("second placeholder"))
+            .Paragraph(paragraph => paragraph.AddText("second placeholder"))
             .ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
@@ -1919,7 +1917,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_RemovesIgnoredPageBandsBeforeSemanticStages() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Ignored header evidence", "F1", 8D, 50D, 760D, 140D),
@@ -1942,7 +1940,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_RemovesIgnoredPageBandsInRotatedCropCoordinates() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         pdf = PdfPageEditor.SetCropBox(pdf, 100D, 200D, 500D, 800D);
         pdf = PdfPageEditor.RotatePages(pdf, 90);
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
@@ -1967,7 +1965,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedLineGrouping_ChargesOrderingWorkBeforeGroupingTraversal() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
         var context = new PdfUnderstandingPageContext(
             sourcePage,
@@ -1991,7 +1989,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedSegmentation_SortsCallerSuppliedLinesBeforeVerticalGapExit() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         var options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("placeholder", "F1", 12D, 10D, 10D, 30D)
@@ -2015,9 +2013,9 @@ public partial class PdfUnderstandingPipelineTests {
     public void StructuredRead_BoundsDocumentWideComparisonWork() {
         byte[] pdf = PdfDocument.Create()
             .Header(header => header.Text("Repeated document header"))
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .ToBytes();
         var options = new PdfUnderstandingPipelineOptions { MaxDocumentWorkUnits = 1 };
 
@@ -2048,7 +2046,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void Pipeline_RejectsRawGlyphOverflowBeforeIgnoredPageBandsAreRemoved() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var options = new PdfUnderstandingPipelineOptions {
             GlyphDecoding = new FixedGlyphStage(new[] {
                 new PdfTextSpan("header one", "F1", 12, 10, 790, 60),
@@ -2078,7 +2076,7 @@ public partial class PdfUnderstandingPipelineTests {
 
         Assert.Throws<OperationCanceledException>(() => TextLayoutEngine.FilterIgnoredPageBands(
             spans,
-            PdfReadDocument.Open(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes()).Pages[0],
+            PdfReadDocument.Open(PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes()).Pages[0],
             new PdfTextLayoutOptions { IgnoreHeaderHeight = OfficeIMO.OfficeLength.Points(20D) },
             consumeWork: null,
             cancellationCheck: () => {
@@ -2163,7 +2161,7 @@ public partial class PdfUnderstandingPipelineTests {
             .H1("Tagged first level")
             .H2("Tagged second level")
             .H3("Tagged third level")
-            .Paragraph(paragraph => paragraph.Text("Tagged body paragraph."))
+            .Paragraph(paragraph => paragraph.AddText("Tagged body paragraph."))
             .ToBytes();
 
         PdfDocumentReadResult result = PdfDocument.Load(pdf).Read();
@@ -2296,7 +2294,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void SemanticClassifier_DoesNotCreateASecondTableFromUnrelatedGaps() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
         var context = new PdfUnderstandingPageContext(sourcePage, 1, new PdfTextLayoutOptions(), 10_000, 10_000);
         var region = new PdfUnderstandingRegion(new[] {
@@ -2313,13 +2311,13 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredRead_ProjectsRepeatedPageEdgesIntoTheLogicalModel() {
         byte[] pdf = PdfDocument.Create()
-            .Header(header => header.AlignLeft().Text("Quarterly operations {page}/{pages}"))
-            .Footer(footer => footer.AlignCenter().Text("Confidential page {page}"))
-            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .Header(header => header.Alignment(OfficeAlignment.Left).Text("Quarterly operations {page}/{pages}"))
+            .Footer(footer => footer.Alignment(OfficeAlignment.Center).Text("Confidential page {page}"))
+            .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page body."))
+            .Paragraph(paragraph => paragraph.AddText("Second page body."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Third page body."))
+            .Paragraph(paragraph => paragraph.AddText("Third page body."))
             .ToBytes();
 
         PdfDocumentReadResult result = Read(pdf, PdfUnderstandingPipelineOptions.Structured());
@@ -2342,9 +2340,9 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredRead_DoesNotPromoteMerelySimilarPageEdgeParagraphs() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Operational readiness summary for northern region"))
+            .Paragraph(paragraph => paragraph.AddText("Operational readiness summary for northern region"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Operational readiness summary for southern region"))
+            .Paragraph(paragraph => paragraph.AddText("Operational readiness summary for southern region"))
             .ToBytes();
 
         PdfDocumentReadResult result = Read(pdf, PdfUnderstandingPipelineOptions.Structured());
@@ -2360,7 +2358,7 @@ public partial class PdfUnderstandingPipelineTests {
         const int pageCount = 30;
         const int headerCount = 30;
         for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-            document.Paragraph(paragraph => paragraph.Text("Page placeholder"));
+            document.Paragraph(paragraph => paragraph.AddText("Page placeholder"));
             if (pageIndex + 1 < pageCount) document.PageBreak();
         }
 
@@ -2389,9 +2387,9 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredRead_ReclassifiesRepeatedLargeFontPageEdgesAsHeaders() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("first placeholder"))
+            .Paragraph(paragraph => paragraph.AddText("first placeholder"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("second placeholder"))
+            .Paragraph(paragraph => paragraph.AddText("second placeholder"))
             .ToBytes();
         var pipeline = PdfUnderstandingPipelineOptions.Structured();
         pipeline.GlyphDecoding = new FixedGlyphStage(new[] {
@@ -2437,9 +2435,9 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void StructuredRead_ClassifiesRepeatedEdgesInRotatedCropCoordinates() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("first placeholder"))
+            .Paragraph(paragraph => paragraph.AddText("first placeholder"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("second placeholder"))
+            .Paragraph(paragraph => paragraph.AddText("second placeholder"))
             .ToBytes();
         pdf = PdfPageEditor.SetCropBox(pdf, 100D, 200D, 500D, 800D);
         pdf = PdfPageEditor.RotatePages(pdf, 90);
@@ -2460,10 +2458,10 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void Sections_TrackLastPageInCallerSelectedReadingOrder() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Final selected page body"))
+            .Paragraph(paragraph => paragraph.AddText("Final selected page body"))
             .PageBreak()
             .H1("Section begins on source page two")
-            .Paragraph(paragraph => paragraph.Text("Opening body"))
+            .Paragraph(paragraph => paragraph.AddText("Opening body"))
             .ToBytes();
 
         PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfLoadOptions {
@@ -2505,7 +2503,7 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void LogicalProjection_PreservesAuthoritativeUnmarkedListItems() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Semantically tagged list entry"))
+            .Paragraph(paragraph => paragraph.AddText("Semantically tagged list entry"))
             .ToBytes();
         var options = new PdfUnderstandingPipelineOptions {
             SemanticClassification = new UnmarkedListClassificationStage()
@@ -2557,7 +2555,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void LogicalProjection_KeepsSeparateVisualBulletsIndependentInsideOneHeuristicRegion() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("- First independent item", "F1", 12D, 72D, 700D, 130D),
@@ -2578,7 +2576,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void LogicalProjection_KeepsHeuristicWrappedListContinuationInOneItem() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("- Wrapped list item", "F1", 12D, 72D, 700D, 110D),
@@ -2599,7 +2597,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedSegmentation_KeepsVariableGapWrappedListLinesInOneItem() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("- Wrapped list item", "F1", 12D, 72D, 700D, 110D),
@@ -2616,7 +2614,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedSegmentation_UsesExplicitBreaksBetweenSameStyleNonLatinParagraphs() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Первый абзац", "F1", 12D, 50D, 700D, 110D),
@@ -2634,7 +2632,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedSegmentation_UsesLocalVerticalRhythmBetweenSameStyleParagraphs() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("第一段", "F1", 12D, 50D, 700D, 72D),
@@ -2654,7 +2652,7 @@ public partial class PdfUnderstandingPipelineTests {
     [InlineData(false)]
     [InlineData(true)]
     public void AdvancedSegmentation_SeparatesLinesTooShortToHaveWrappedAndJoinsWrappedOnes(bool unrelatedContentAbove) {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         // Both blocks use a loose 20.4pt pitch; the short lines sit far enough down to be their own component.
         options.GlyphDecoding = new FixedGlyphStage(new[] {
@@ -2677,7 +2675,7 @@ public partial class PdfUnderstandingPipelineTests {
     [InlineData(633D)]
     [InlineData(600D)]
     public void AdvancedSegmentation_KeepsNarrowWrappedColumnBesideOtherContentTogether(double rightColumnBaseline) {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Full width introduction above the narrow columns", "F1", 12D, 72D, 700D, 400D),
@@ -2693,7 +2691,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedSegmentation_RecognizesBoundaryAfterSingleLineParagraph() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("第一段", "F1", 12D, 50D, 700D, 72D),
@@ -2712,7 +2710,7 @@ public partial class PdfUnderstandingPipelineTests {
     [InlineData("Работа завершена。»")]
     [InlineData("作業完了。」")]
     public void AdvancedSemanticClassification_KeepsQuotedCompletedBottomSentenceAsBody(string sentence) {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Основной текст", "F1", 12D, 50D, 400D, 110D),
@@ -2780,7 +2778,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedPipeline_PrioritizesCanonicalTablesAtPageEdges() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Item", "Helvetica-Bold", 11D, 50D, 820D, 40D),
@@ -2817,7 +2815,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedReadingOrder_NormalizesRotatedCropGeometryBeforePartitioning() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         pdf = PdfPageEditor.SetCropBox(pdf, 100D, 200D, 500D, 800D);
         pdf = PdfPageEditor.RotatePages(pdf, 90);
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
@@ -2859,7 +2857,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedReadingOrder_IsolatesCloseSpanningHeadingBeforeColumns() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
         var context = new PdfUnderstandingPageContext(sourcePage, 1, new PdfTextLayoutOptions(), 10000, 10000);
         PdfUnderstandingRegion heading = new(new[] { CreateUnderstandingLine("Spanning heading", 50D, 500D, 710D) });
@@ -2879,7 +2877,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void AdvancedReadingOrder_IsolatesCloseTrailingSpanningRegionAfterColumns() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
         var context = new PdfUnderstandingPageContext(sourcePage, 1, new PdfTextLayoutOptions(), 10000, 10000);
         PdfUnderstandingRegion leftTop = new(new[] { CreateUnderstandingLine("Left top", 50D, 160D, 700D) });
@@ -2901,7 +2899,7 @@ public partial class PdfUnderstandingPipelineTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Pipeline_DoesNotClassifyDecimalAmountsAsListItems(bool advanced) {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("1037.25", "F1", 11, 50, 500, 45),
             new PdfTextSpan("1. Actual numbered item", "F1", 11, 50, 430, 120),
@@ -2942,7 +2940,7 @@ public partial class PdfUnderstandingPipelineTests {
     [InlineData(false, "*Compact ASCII bullet")]
     [InlineData(true, "*Compact ASCII bullet")]
     public void Pipeline_ClassifiesHierarchicalAndCompactListItems(bool advanced, string text) {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = advanced
             ? PdfUnderstandingPipelineOptions.Structured()
             : new PdfUnderstandingPipelineOptions();

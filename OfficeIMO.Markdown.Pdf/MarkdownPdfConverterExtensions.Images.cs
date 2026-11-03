@@ -114,24 +114,21 @@ public static partial class MarkdownPdfConverterExtensions {
 
         MarkdownPdfFigureStyle figureStyle = visualTheme.FigureStyleSnapshot;
         PdfCore.PdfPanelStyle? panelStyle = figureStyle.PanelStyleSnapshot;
-        Action<PdfCore.PdfParagraphBuilder> render = builder => builder
-            .Italic(true)
-            .Color(figureStyle.PlaceholderColorSnapshot)
-            .Text("[Image unavailable: " + label + "]");
+        Action<PdfCore.PdfParagraph> render = builder => builder.AddText("[Image unavailable: " + label + "]").SetItalic().SetColor(figureStyle.PlaceholderColorSnapshot);
 
         if (panelStyle != null) {
-            pdf.PanelParagraph(render, panelStyle, defaultColor: figureStyle.PlaceholderColorSnapshot);
+            pdf.PanelParagraph(render, panelStyle, color: figureStyle.PlaceholderColorSnapshot);
             return;
         }
 
-        pdf.Paragraph(render, defaultColor: figureStyle.PlaceholderColorSnapshot);
+        pdf.Paragraph(render, color: figureStyle.PlaceholderColorSnapshot);
     }
 
     private static PdfCore.PdfImageStyle CreateConverterImageStyle(MarkdownPdfFigureStyle figureStyle, string? altText) {
         PdfCore.PdfImageStyle style = figureStyle.ImageStyleSnapshot;
         style.ScaleDownToFit = true;
         if (!string.IsNullOrWhiteSpace(altText)) {
-            style.AlternativeText = altText!.Trim();
+            style.AltText = altText!.Trim();
         }
 
         return style;
@@ -143,11 +140,8 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         pdf.Paragraph(builder => {
-            builder.Italic(true)
-                .FontSize(figureStyle.CaptionFontSizeSnapshot)
-                .Color(figureStyle.CaptionColorSnapshot)
-                .Text(caption!.Trim());
-        }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(2) });
+            builder.AddText(caption!.Trim()).SetItalic().SetColor(figureStyle.CaptionColorSnapshot).SetFontSize(figureStyle.CaptionFontSizeSnapshot);
+        }, align: figureStyle.CaptionAlignSnapshot, color: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(2) });
     }
 
     private static bool TryReadImageBytes(string path, MarkdownPdfExportOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {

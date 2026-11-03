@@ -44,7 +44,7 @@ internal partial class HtmlToWordConverter {
             long zOrder = 251659264L + region.ZIndex * 1024L + order++;
             zOrder = zOrder < 1L ? 1L : zOrder > uint.MaxValue ? uint.MaxValue : zOrder;
             textBox.ZOrder = checked((uint)zOrder);
-            if (region.BackgroundColor.HasValue) textBox.FillColorHex = region.BackgroundColor.Value.ToRgbHex();
+            if (region.BackgroundColor.HasValue) textBox.FillColor = region.BackgroundColor.Value;
             if (horizontalSimplified || verticalSimplified || widthSimplified
                 || heightSimplified || containerWidthSimplified) {
                 options.ConversionReport.Add("OfficeIMO.Word.Html",

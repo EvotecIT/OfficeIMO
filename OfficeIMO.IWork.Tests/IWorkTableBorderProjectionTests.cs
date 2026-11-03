@@ -69,11 +69,11 @@ public sealed partial class IWorkBoundaryTests {
             table = Assert.Single(result.Projection.Tables); result.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved);
             var output = Assert.Single(reopened.Tables);
-            Assert.Equal("FF0000", output.Rows[0].Cells[0].Borders.BottomColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), output.Rows[0].Cells[0].Borders.BottomColor);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(3), output.Rows[0].Cells[0].Borders.BottomSize);
             Assert.Equal(WordBorderStyle.Nil, output.Rows[0].Cells[1].Borders.BottomStyle);
             Assert.Equal(WordBorderStyle.Nil, output.Rows[1].Cells[1].Borders.TopStyle);
-            Assert.Equal("000000", output.Rows[2].Cells[1].Borders.BottomColorHex);
+            Assert.Equal(OfficeColor.Parse("000000"), output.Rows[2].Cells[1].Borders.BottomColor);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), output.Rows[2].Cells[1].Borders.BottomSize);
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelResult(policy); Assert.False(result.IsVisualFallback);

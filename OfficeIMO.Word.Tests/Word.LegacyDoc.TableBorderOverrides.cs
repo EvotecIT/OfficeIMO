@@ -17,10 +17,10 @@ public partial class Word {
         void AssertExplicitCellEdges(WordDocument value) {
             var borders = value.Tables[0].Rows[0].Cells[0].Borders;
             var edges = new[] {
-                (borders.TopStyle, borders.TopColorHex, borders.TopSize, borders.TopSpace),
-                (borders.LeftStyle, borders.LeftColorHex, borders.LeftSize, borders.LeftSpace),
-                (borders.BottomStyle, borders.BottomColorHex, borders.BottomSize, borders.BottomSpace),
-                (borders.RightStyle, borders.RightColorHex, borders.RightSize, borders.RightSpace)
+                (borders.TopStyle, borders.TopColor, borders.TopSize, borders.TopSpace),
+                (borders.LeftStyle, borders.LeftColor, borders.LeftSize, borders.LeftSpace),
+                (borders.BottomStyle, borders.BottomColor, borders.BottomSize, borders.BottomSpace),
+                (borders.RightStyle, borders.RightColor, borders.RightSize, borders.RightSpace)
             };
             foreach (var edge in edges) {
                 Assert.Equal(style, edge.Item1);
@@ -41,12 +41,12 @@ public partial class Word {
         int changedRow = fixture.Contains("FirstRow") ? 0 : 1;
         Assert.Equal(color == null ? WordBorderStyle.Nil : WordBorderStyle.Single,
             table.Rows[changedRow].Cells[0].Borders.LeftStyle);
-        Assert.Equal(color, table.Rows[changedRow].Cells[0].Borders.LeftColorHex);
+        Assert.Equal(color, table.Rows[changedRow].Cells[0].Borders.LeftColor?.ToRgbHex());
         Assert.Equal(WordBorderStyle.Single, table.Rows[1 - changedRow].Cells[0].Borders.LeftStyle);
         Assert.Equal(color == null ? WordBorderStyle.Nil : WordBorderStyle.Single,
             table.StyleDetails!.GetBorderProperties(changedRow == 0 ? WordTableBorderSide.Top : WordTableBorderSide.Bottom).Style);
         Assert.Equal(color, table.StyleDetails!.GetBorderProperties(
-            changedRow == 0 ? WordTableBorderSide.Top : WordTableBorderSide.Bottom).ColorHex);
+            changedRow == 0 ? WordTableBorderSide.Top : WordTableBorderSide.Bottom).Color?.ToRgbHex());
         if (color == null) {
             // The first row still owns a visible shared edge above the borderless final row.
             Assert.Equal(WordBorderStyle.Single, table.Rows[1].Cells[0].Borders.TopStyle);
@@ -54,7 +54,7 @@ public partial class Word {
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         Assert.Equal(table.Rows[changedRow].Cells[0].Borders.LeftStyle,
             restored.Tables[0].Rows[changedRow].Cells[0].Borders.LeftStyle);
-        Assert.Equal(color, restored.Tables[0].Rows[changedRow].Cells[0].Borders.LeftColorHex);
+        Assert.Equal(color, restored.Tables[0].Rows[changedRow].Cells[0].Borders.LeftColor?.ToRgbHex());
         if (color == null) {
             Assert.Equal(WordBorderStyle.Single, restored.Tables[0].Rows[1].Cells[0].Borders.TopStyle);
         }
@@ -68,11 +68,11 @@ public partial class Word {
         var nested = Assert.Single(document.Tables[0].Rows[0].Cells[0].NestedTables);
         Assert.Equal(WordBorderStyle.Single, nested.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top).Style);
         Assert.Equal(style, nested.Rows[0].Cells[0].Borders.TopStyle);
-        Assert.Equal(color, nested.Rows[0].Cells[0].Borders.TopColorHex);
+        Assert.Equal(color, nested.Rows[0].Cells[0].Borders.TopColor?.ToRgbHex());
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         var cell = Assert.Single(restored.Tables[0].Rows[0].Cells[0].NestedTables).Rows[0].Cells[0];
         Assert.Equal(style, cell.Borders.TopStyle);
-        Assert.Equal(color, cell.Borders.TopColorHex);
+        Assert.Equal(color, cell.Borders.TopColor?.ToRgbHex());
     }
 
     [Theory]

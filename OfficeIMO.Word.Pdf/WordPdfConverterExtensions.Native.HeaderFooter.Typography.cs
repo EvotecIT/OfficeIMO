@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfStandardFont ResolveNativeHeaderFooterBaseFont(WordDocument document, WordPdfExportOptions? options, bool isHeader) {
             if (options?.PdfOptions != null) {
-                return PdfCore.PdfStandardFontMapper.GetFontFamily(isHeader ? options.PdfOptions.HeaderFont : options.PdfOptions.FooterFont);
+                return PdfCore.PdfStandardFontMapper.GetFontFamily(isHeader ? options.PdfOptions.PageSetup.Header.StandardFont : options.PdfOptions.PageSetup.Footer.StandardFont);
             }
 
             NativeDocumentDefaults defaults = GetNativeDocumentDefaults(document);
@@ -357,7 +357,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<global::OfficeIMO.OfficeColor> EnumerateNativeParagraphColors(WordParagraph paragraph) {
-            global::OfficeIMO.OfficeColor? paragraphColor = ParseNativeColor(paragraph.ColorHex);
+            global::OfficeIMO.OfficeColor? paragraphColor = ParseNativeColor(paragraph.RunColorValue);
             if (paragraphColor.HasValue) {
                 yield return paragraphColor.Value;
             }
@@ -377,7 +377,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                global::OfficeIMO.OfficeColor? runColor = ParseNativeColor(run.ColorHex);
+                global::OfficeIMO.OfficeColor? runColor = ParseNativeColor(run.RunColorValue);
                 if (runColor.HasValue) {
                     yield return runColor.Value;
                 }

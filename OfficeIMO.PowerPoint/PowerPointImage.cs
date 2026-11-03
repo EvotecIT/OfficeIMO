@@ -11,19 +11,19 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents an image placed on a slide.
     /// </summary>
-    public partial class PowerPointPicture : PowerPointShape {
+    public partial class PowerPointImage : PowerPointShape {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Element.Ancestors<Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer _initialOwnerPart;
         private OpenXmlPartContainer _ownerPart => _initialOwnerPart is SlidePart ? _slidePart! : _initialOwnerPart;
 
-        internal PowerPointPicture(Picture picture, SlidePart slidePart) : this(picture, slidePart, slidePart) {
+        internal PowerPointImage(Picture picture, SlidePart slidePart) : this(picture, slidePart, slidePart) {
         }
 
-        internal PowerPointPicture(Picture picture, OpenXmlPartContainer ownerPart) : this(picture, null, ownerPart) {
+        internal PowerPointImage(Picture picture, OpenXmlPartContainer ownerPart) : this(picture, null, ownerPart) {
         }
 
-        private PowerPointPicture(Picture picture, SlidePart? slidePart, OpenXmlPartContainer ownerPart) : base(picture) {
+        private PowerPointImage(Picture picture, SlidePart? slidePart, OpenXmlPartContainer ownerPart) : base(picture) {
             _initialSlidePart = slidePart;
             _initialOwnerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
         }
@@ -187,13 +187,13 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public double CropBottomRatio => GetCrop().Bottom;
 
-        internal PowerPointPictureCrop GetCrop() {
+        internal PowerPointImageCrop GetCrop() {
             A.SourceRectangle? rect = Picture.BlipFill?.SourceRectangle;
             if (rect == null) {
-                return PowerPointPictureCrop.None;
+                return PowerPointImageCrop.None;
             }
 
-            return new PowerPointPictureCrop(
+            return new PowerPointImageCrop(
                 ToCropFraction(rect.Left?.Value),
                 ToCropFraction(rect.Top?.Value),
                 ToCropFraction(rect.Right?.Value),

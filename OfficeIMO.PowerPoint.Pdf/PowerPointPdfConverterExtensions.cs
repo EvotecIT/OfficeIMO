@@ -311,10 +311,10 @@ public static partial class PowerPointPdfConverterExtensions {
         };
     }
 
-    private static void RenderPicture(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointPicture picture, double x, double y, double width, double height, int slideNumber, PowerPointPdfExportOptions options) {
+    private static void RenderPicture(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointImage picture, double x, double y, double width, double height, int slideNumber, PowerPointPdfExportOptions options) {
         try {
             PdfCore.PdfImageStyle style = new();
-            PptCore.PowerPointPictureCrop crop = picture.GetCrop();
+            PptCore.PowerPointImageCrop crop = picture.GetCrop();
             if (crop.HasCrop) {
                 style.SourceCrop = new PdfCore.PdfImageSourceCrop(crop.Left, crop.Top, crop.Right, crop.Bottom);
             } else {
@@ -330,7 +330,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
             byte[] imageBytes = picture.GetImageBytes(GetImageReadLimit(options));
             options.EmbeddedImageBytesRead += imageBytes.Length;
-            AddPowerPointPictureAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
+            AddPowerPointImageAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
 
             canvas.Image(
                 imageBytes,
@@ -353,7 +353,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 "unsupported-picture",
                 "Skipped a PowerPoint picture because it could not be embedded as a PDF image: " + ex.Message,
                 PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
-                "PowerPointPicture",
+                "PowerPointImage",
                 "The PowerPoint picture could not be embedded as a PDF image.",
                 x,
                 y,

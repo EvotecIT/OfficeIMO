@@ -16,7 +16,7 @@ public class PdfHeadingHierarchyTests {
     public void SparseHeadingLevels_KeepTaggedDepthAndUseOutlinesAsFallback(int level, bool tagged) {
         var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
         if (tagged) document.TaggedPdfCatalogMarkers();
-        document.Content.Heading(1, "ParentHeading").Heading(level, "SparseHeading");
+        document.Content.AddHeading("ParentHeading", 1).AddHeading("SparseHeading", level);
         byte[] bytes = document.ToBytes();
         Assert.Equal(2, Assert.Single(Assert.Single(PdfInspector.Inspect(bytes).Outlines).Children).Level);
         var heading = Assert.Single(PdfDocumentReadResult.Load(bytes).Headings, item => item.Text == "SparseHeading");
@@ -29,16 +29,21 @@ public class PdfHeadingHierarchyTests {
     public void AdapterHeading_RetainsStyledRunsWithoutChangingOutlineTitle(bool columns) {
         var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
         document.TaggedPdfCatalogMarkers();
-        PdfParagraphBuilder captured = null!;
+        PdfParagraph captured = null!;
         const string uri = "https://example.com/inline-heading";
         void AddHeading(PdfContentBuilder content) => content.Heading(9, "Outline title", builder => {
             captured = builder;
-            builder.Text("PlainMarker ").Italic(true).Text("ItalicMarker ").Italic(false)
-                .Link("LinkedMarker", uri).Baseline(PdfTextBaseline.Superscript).Text("2");
+            builder.AddText("PlainMarker ");
+            builder.RunDefaults.Italic = true;
+            builder.AddText("ItalicMarker ");
+            builder.RunDefaults.Italic = false;
+            builder.AddLink("LinkedMarker", uri);
+            builder.RunDefaults.Baseline = PdfTextBaseline.Superscript;
+            builder.AddText("2");
         }, OfficeAlignment.Left, null, new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12) });
         if (columns) document.Content.Columns(AddHeading);
         else AddHeading(document.Content);
-        captured.Text("Late mutation");
+        captured.AddText("Late mutation");
 
         byte[] bytes = document.ToBytes();
         var spans = PdfReadDocument.Open(bytes).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
@@ -55,7 +60,7 @@ public class PdfHeadingHierarchyTests {
         var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
         document.TaggedPdfCatalogMarkers();
         for (int level = 1; level <= 9; level++) {
-            document.Content.Heading(level, "HeadingLevel" + level, style: new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12) });
+            document.Content.AddHeading("HeadingLevel" + level, level, style: new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12) });
         }
 
         byte[] bytes = document.ToBytes();
@@ -93,6 +98,6 @@ public class PdfHeadingHierarchyTests {
     [InlineData(10)]
     public void Heading_RejectsUnsupportedHierarchyLevels(int level) {
         var document = PdfDocument.Create();
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.Content.Heading(level, "InvalidHeading"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.Content.AddHeading("InvalidHeading", level));
     }
 }

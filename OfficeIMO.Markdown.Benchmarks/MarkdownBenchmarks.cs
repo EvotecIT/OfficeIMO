@@ -27,7 +27,7 @@ public class MarkdownParseBenchmarks {
     }
 
     [Benchmark(Baseline = true, Description = "OfficeIMO-Semantic")]
-    public MarkdownDocument OfficeIMO_ParseSemantic_CommonMark() => MarkdownReader.ParseSemantic(_markdown, _commonMarkOptions);
+    public MarkdownDocument OfficeIMO_ParseSemantic_CommonMark() => MarkdownBenchmarkParsing.ParseSemantic(_markdown, _commonMarkOptions);
 
     [Benchmark(Description = "OfficeIMO source-backed")]
     public MarkdownDocument OfficeIMO_Parse_SourceBacked_CommonMark() => MarkdownDocument.Parse(_markdown, _commonMarkOptions);
@@ -42,13 +42,13 @@ public class MarkdownParseBenchmarks {
     public MarkdownDocument OfficeIMO_Parse_Portable() => MarkdownDocument.Parse(_markdown, _portableOptions);
 
     [Benchmark]
-    public MarkdownParseInfo OfficeIMO_Parse_WithSyntaxTree_CommonMark() => MarkdownReader.ParseWithSyntaxTree(_markdown, _commonMarkOptions);
+    public MarkdownParseInfo OfficeIMO_Parse_WithSyntaxTree_CommonMark() => MarkdownBenchmarkParsing.ParseWithSyntaxTree(_markdown, _commonMarkOptions);
 
     [Benchmark]
-    public MarkdownParseInfo OfficeIMO_Parse_WithSyntaxTree_Default() => MarkdownReader.ParseWithSyntaxTree(_markdown);
+    public MarkdownParseInfo OfficeIMO_Parse_WithSyntaxTree_Default() => MarkdownBenchmarkParsing.ParseWithSyntaxTree(_markdown);
 
     [Benchmark]
-    public MarkdownParseInfo OfficeIMO_Parse_WithSyntaxTree_Portable() => MarkdownReader.ParseWithSyntaxTree(_markdown, _portableOptions);
+    public MarkdownParseInfo OfficeIMO_Parse_WithSyntaxTree_Portable() => MarkdownBenchmarkParsing.ParseWithSyntaxTree(_markdown, _portableOptions);
 }
 
 [MemoryDiagnoser]
@@ -113,7 +113,7 @@ public class MarkdownTransformBenchmarks {
 
     [Benchmark]
     public MarkdownParseInfo OfficeIMO_ParseWithSyntaxTreeAndDiagnostics_WithNormalizationTransforms() =>
-        MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(_markdown, _transformOptions);
+        MarkdownBenchmarkParsing.ParseWithSyntaxTree(_markdown, _transformOptions);
 
     [Benchmark]
     public string OfficeIMO_ToMarkdown_AfterNormalizationTransforms() =>

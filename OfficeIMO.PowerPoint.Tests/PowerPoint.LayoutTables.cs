@@ -26,9 +26,9 @@ public sealed class PowerPointLayoutTableTests {
         Assert.Equal(3, tables.Length);
         var values = new List<string>();
         foreach (var native in tables) {
-            Assert.NotNull(native.Description);
-            Assert.Contains("Service", native.Description);
-            Assert.Contains("Count", native.Description);
+            Assert.NotNull(native.AltText);
+            Assert.Contains("Service", native.AltText);
+            Assert.Contains("Count", native.AltText);
             if (includeHeaders) Assert.Equal("Service", native.GetCell(0, 0).Text);
             for (int row = includeHeaders ? 1 : 0; row < native.Rows; row++) values.Add(native.GetCell(row, 0).Text);
         }
@@ -120,7 +120,7 @@ public sealed class PowerPointLayoutTableTests {
         options.ApplyTheme = false;
         document.Compose(new PowerPointDeckPlan().AddContent("Services", new[] { table }), options);
         using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
-        Assert.Equal(caption, Assert.Single(Assert.Single(saved.Slides).Tables).Description);
+        Assert.Equal(caption, Assert.Single(Assert.Single(saved.Slides).Tables).AltText);
         Assert.Empty(saved.ValidateDocument());
         Assert.DoesNotContain(saved.InspectAccessibility().Findings,
             finding => finding.Code == "accessibility-missing-alternative-text");

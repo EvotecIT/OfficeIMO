@@ -14,7 +14,7 @@ public partial class PdfInspectorTests {
     public void AuthenticatedXrefRecoveryRetainsDiscardedSignatureEvidence(PdfStandardEncryptionAlgorithm algorithm) {
         byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new("open") {
             OwnerPassword = "owner", Algorithm = algorithm, EncryptMetadata = false
-        })).Paragraph(paragraph => paragraph.Text("Readable page")).ToBytes();
+        })).Paragraph(paragraph => paragraph.AddText("Readable page")).ToBytes();
         var options = new PdfLoadOptions { Password = "owner" };
         Assert.True(PdfMutationPlanner.Plan(PdfInspector.Preflight(encrypted, options), PdfMutationOperation.ChangeEncryption).CanExecute);
         string source = PdfEncoding.Latin1GetString(encrypted);

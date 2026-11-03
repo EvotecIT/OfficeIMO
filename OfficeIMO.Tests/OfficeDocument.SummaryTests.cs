@@ -127,7 +127,7 @@ public sealed class OfficeDocumentSummaryTests {
     [Fact]
     public void PdfSummaryUsesNativePreflightAndDoesNotRequireContentProjection() {
         using var document = PdfDocument.Create();
-        document.Compose(builder => builder.Content(content => content.Text("PDF inspection")));
+        document.Compose(builder => builder.Content(content => content.AddParagraph("PDF inspection")));
         OfficeDocumentInfo info = OfficeDocument.Inspect((object)document, Summary(detailed: true));
         Assert.Equal(1, info.PageCount);
         Assert.False(info.IsEncrypted);
@@ -142,7 +142,7 @@ public sealed class OfficeDocumentSummaryTests {
             string path = Path.Combine(root, "protected.pdf");
             using (var document = PdfDocument.Create(new PdfCreateOptions()
                 .SetEncryption(new PdfStandardEncryptionOptions("synthetic-open")))) {
-                document.Compose(builder => builder.Content(content => content.Text("Protected inspection")));
+                document.Compose(builder => builder.Content(content => content.AddParagraph("Protected inspection")));
                 document.Save(path, new PdfSaveOptions { AllowLoss = true });
             }
             byte[] original = File.ReadAllBytes(path);

@@ -28,8 +28,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         try {
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
-                WordParagraph headerLogo = document.Sections[0].Header.Default!.AddParagraph("OfficeIMO");
+                WordParagraph headerLogo = document.Sections[0].PageSetup.Header.AddParagraph("OfficeIMO");
                 headerLogo.ParagraphAlignment = WordParagraphAlignment.Right;
                 headerLogo.AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(24));
 
@@ -43,21 +42,21 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                 WordParagraph styled = document.AddParagraph();
                 styled.AddText("Scoped runs: ");
-                styled.AddText("large blue").SetFontSize(global::OfficeIMO.OfficeLength.Points(15)).ColorHex = "1f4e79";
+                styled.AddText("large blue").SetFontSize(global::OfficeIMO.OfficeLength.Points(15)).Color = OfficeColor.Parse("1f4e79");
                 styled.AddText(", ");
                 styled.AddText("highlighted").SetHighlight(WordHighlightColor.Yellow);
                 styled.AddText(", and restored default text.");
 
                 WordParagraph panel = document.AddParagraph("Shaded paragraph with uniform Word borders mapped through the native PDF path.");
-                panel.ShadingFillColorHex = "e6f2ff";
+                panel.ShadingFillColor = OfficeColor.Parse("e6f2ff");
                 panel.Borders.TopStyle = WordBorderStyle.Single;
                 panel.Borders.BottomStyle = WordBorderStyle.Single;
                 panel.Borders.LeftStyle = WordBorderStyle.Single;
                 panel.Borders.RightStyle = WordBorderStyle.Single;
-                panel.Borders.TopColorHex = "336699";
-                panel.Borders.BottomColorHex = "336699";
-                panel.Borders.LeftColorHex = "336699";
-                panel.Borders.RightColorHex = "336699";
+                panel.Borders.TopColor = OfficeColor.Parse("336699");
+                panel.Borders.BottomColor = OfficeColor.Parse("336699");
+                panel.Borders.LeftColor = OfficeColor.Parse("336699");
+                panel.Borders.RightColor = OfficeColor.Parse("336699");
                 panel.Borders.TopSize = OfficeLength.Points(1);
                 panel.Borders.BottomSize = OfficeLength.Points(1);
                 panel.Borders.LeftSize = OfficeLength.Points(1);
@@ -117,22 +116,21 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         try {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.Settings.FontFamily = "Calibri";
-                document.Background.SetColorHex("EAF4FF");
+                document.Background.SetColor(OfficeColor.Parse("EAF4FF"));
                 WordSection section = document.Sections[0];
-                section.Margins.Left = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
-                section.Margins.Right = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
-                section.Margins.Top = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
-                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
+                section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
+                section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
+                section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
+                section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
                 section.ColumnCount = 2;
                 section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(27);
                 section.HasColumnSeparator = true;
 
-                document.AddHeadersAndFooters();
-                WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
+                WordParagraph header = document.Sections[0].PageSetup.Header.AddParagraph();
                 header.ParagraphAlignment = WordParagraphAlignment.Right;
                 header.AddText("Daily layout gate");
                 header.AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(42), OfficeIMO.OfficeLength.Pixels(20));
-                document.Sections[0].Footer.Default!.AddParagraph("OfficeIMO native Word layout proof");
+                document.Sections[0].PageSetup.Footer.AddParagraph("OfficeIMO native Word layout proof");
 
                 document.AddTableOfContent();
                 document.AddParagraph("Daily Word Layout Gate").SetStyle(WordParagraphStyles.Heading1);
@@ -142,7 +140,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                 WordParagraph leftHeading = document.AddParagraph("Column narrative");
                 leftHeading.SetStyle(WordParagraphStyles.Heading2);
-                leftHeading.SetColorHex("#1f4e79");
+                leftHeading.SetColor(OfficeColor.Parse("#1f4e79"));
 
                 WordParagraph rich = document.AddParagraph();
                 rich.AddText("Styled runs: ");
@@ -150,18 +148,18 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 rich.AddText(", ");
                 rich.AddText("Courier note").SetFontFamily("Courier New").SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
                 rich.AddText(", ");
-                rich.AddText("blue emphasis").SetFontSize(global::OfficeIMO.OfficeLength.Points(11)).ColorHex = "1f4e79";
+                rich.AddText("blue emphasis").SetFontSize(global::OfficeIMO.OfficeLength.Points(11)).Color = OfficeColor.Parse("1f4e79");
                 rich.AddText(", and ");
                 rich.AddHyperLink("external link", new Uri("https://evotec.xyz/native-daily-layout"), addStyle: true, tooltip: "Native daily layout link");
                 rich.AddText(".");
 
                 WordParagraph shaded = document.AddParagraph("Shaded paragraph and side borders protect report-style callouts.");
-                shaded.ShadingFillColorHex = "e6f2ff";
+                shaded.ShadingFillColor = OfficeColor.Parse("e6f2ff");
                 shaded.Borders.LeftStyle = WordBorderStyle.Single;
-                shaded.Borders.LeftColorHex = "1f4e79";
+                shaded.Borders.LeftColor = OfficeColor.Parse("1f4e79");
                 shaded.Borders.LeftSize = OfficeLength.Points(1.5);
                 shaded.Borders.BottomStyle = WordBorderStyle.Single;
-                shaded.Borders.BottomColorHex = "b7c9d9";
+                shaded.Borders.BottomColor = OfficeColor.Parse("b7c9d9");
                 shaded.Borders.BottomSize = OfficeLength.Points(0.5);
 
                 WordList bullets = document.AddList(WordListStyle.Bulleted);
@@ -180,7 +178,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
                 WordParagraph rightHeading = document.AddParagraph("Column evidence");
                 rightHeading.SetStyle(WordParagraphStyles.Heading2);
-                rightHeading.SetColorHex("#2f6f3e");
+                rightHeading.SetColor(OfficeColor.Parse("#2f6f3e"));
 
                 WordTable table = document.AddTable(4, 3);
                 table.Style = WordTableStyle.GridTable1LightAccent1;

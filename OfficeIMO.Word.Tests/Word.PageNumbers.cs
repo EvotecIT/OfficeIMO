@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddingPageNumberToParagraph() {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberParagraph.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var table = footer.AddTable(1, 2);
                 table.Rows[0].Cells[0].AddParagraph("Footer");
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberSettings.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].AddPageNumbering(2, WordNumberFormat.LowerRoman);
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 footer.AddParagraph().AddPageNumber();
                 document.Save();
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageNumberSeparator() {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberSeparator.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var para = footer.AddParagraph();
                 para.AddPageNumber(includeTotalPages: true, separator: " / ");
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             foreach (WordPageNumberStyle style in Enum.GetValues(typeof(WordPageNumberStyle))) {
                 string filePath = Path.Combine(_directoryWithFiles, $"PageNumberStyle_{style}.docx");
                 using (WordDocument document = WordDocument.Create(filePath)) {
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                     header.AddPageNumber(style);
                     document.Save();
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageNumberWithCustomText() {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberCustomText.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var pageNumber = header.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" custom");
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageNumberWithTotalPages() {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberTotalPages.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var pageNumber = footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" of ");
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageNumberRestartInNewSection() {
             string filePath = Path.Combine(_directoryWithFiles, "SectionPageNumberReset.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var firstSectionFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 firstSectionFooter.AddParagraph().AddPageNumber();
 
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PageNumberRoman.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].AddPageNumbering(1, WordNumberFormat.UpperRoman);
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var para = footer.AddParagraph();
                 para.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.UpperRoman);
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
         public void Test_PageNumberCustomFormat(string format) {
             string filePath = Path.Combine(_directoryWithFiles, $"PageNumberCustomFormat_{Guid.NewGuid()}.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var pageNumber = footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.CustomFormat = format;

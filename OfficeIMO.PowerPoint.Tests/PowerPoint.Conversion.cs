@@ -83,7 +83,7 @@ public sealed class PowerPointConversionTests {
         Assert.True(converted.HasLoss);
         using PowerPointDocument reopened = PowerPointDocument.Load(destination);
         Assert.Empty(reopened.Slides[0].Charts);
-        Assert.Single(reopened.Slides[0].Pictures);
+        Assert.Single(reopened.Slides[0].Images);
     }
 
     [Fact]
@@ -171,7 +171,7 @@ public sealed class PowerPointConversionTests {
                 && finding.State == OfficeCompatibilityState.EmbeddedSource);
         using PowerPointDocument reopened = PowerPointDocument.Load(destination);
         Assert.Empty(reopened.Slides[0].Charts);
-        Assert.Single(reopened.Slides[0].Pictures);
+        Assert.Single(reopened.Slides[0].Images);
         Assert.True(reopened.TryGetCompatibilitySourcePayload(out OfficeCompatibilitySourcePayload? payload, out string? error), error);
         Assert.NotNull(payload);
         Assert.Equal("PowerPoint.Pptx", payload!.FormatId);

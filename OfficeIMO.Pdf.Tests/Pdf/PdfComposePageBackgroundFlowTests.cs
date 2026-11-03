@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void PageBackground_RendersBeforePageContent() {
             byte[] pdfBytes = PdfDocument.Create()
                 .Background(global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255))
-                .Paragraph(paragraph => paragraph.Text("DocBackgroundMarker"))
+                .Paragraph(paragraph => paragraph.AddText("DocBackgroundMarker"))
                 .ToBytes();
 
             string content = PdfTestContentText.JoinTextArrays(PdfTestContentText.ReadDecoded(pdfBytes));
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Page(page => page
                     .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
                     .Background(global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255))
-                    .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("PageBackgroundMarker")))))
+                    .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("PageBackgroundMarker")))))
                 .ToBytes();
 
             string content = PdfTestContentText.ReadDecoded(pdfBytes);
@@ -52,12 +52,12 @@ namespace OfficeIMO.Tests.Pdf {
                     .Content(content => content
                         .Item(item => item
                             .H1("DirectComposeTitle")
-                            .Paragraph(paragraph => paragraph.Text("DirectComposeLead")))
+                            .AddParagraph(paragraph => paragraph.AddText("DirectComposeLead")))
                         .Spacer(global::OfficeIMO.OfficeLength.Points(24))
                         .Column(column => column
-                            .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeTop")))
+                            .Item(item => item.AddParagraph(paragraph => paragraph.AddText("ColumnComposeTop")))
                             .Spacer(global::OfficeIMO.OfficeLength.Points(18))
-                            .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeBottom")))))))
+                            .Item(item => item.AddParagraph(paragraph => paragraph.AddText("ColumnComposeBottom")))))))
                 .ToBytes();
 
             string text = PdfReadDocument.Open(pdfBytes).ExtractText();
@@ -85,12 +85,12 @@ namespace OfficeIMO.Tests.Pdf {
                 .Compose(compose => compose.Page(page => page
                     .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
-                        .Item(item => item.Paragraph(paragraph => paragraph.Text("DirectPageOne")))
+                        .Item(item => item.AddParagraph(paragraph => paragraph.AddText("DirectPageOne")))
                         .PageBreak()
                         .Column(column => column
-                            .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnPageTwo")))
+                            .Item(item => item.AddParagraph(paragraph => paragraph.AddText("ColumnPageTwo")))
                             .PageBreak()
-                            .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnPageThree")))))))
+                            .Item(item => item.AddParagraph(paragraph => paragraph.AddText("ColumnPageThree")))))))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
@@ -113,10 +113,10 @@ namespace OfficeIMO.Tests.Pdf {
                     .Content(content => content
                         .Column(column => column
                             .Item(item => item
-                                .Paragraph(paragraph => paragraph.Text("NestedPageOne"))
+                                .AddParagraph(paragraph => paragraph.AddText("NestedPageOne"))
                                 .Element(element => element.Content(nested => nested
                                     .PageBreak()
-                                    .Paragraph(paragraph => paragraph.Text("NestedPageTwo")))))))))
+                                    .AddParagraph(paragraph => paragraph.AddText("NestedPageTwo")))))))))
                 .ToBytes();
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));

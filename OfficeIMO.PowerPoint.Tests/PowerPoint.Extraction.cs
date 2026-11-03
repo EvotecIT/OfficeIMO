@@ -148,10 +148,10 @@ namespace OfficeIMO.Tests {
             table.GetCell(1, 1).Text = "120";
 
             PowerPointTextBox afterTable = slide.AddTextBox("Read ");
-            afterTable.Paragraphs[0].AddRun("the guide")
+            afterTable.Paragraphs[0].AddText("the guide")
                 .SetHyperlink("https://example.test/guide");
-            afterTable.Paragraphs[0].AddRun(" and ");
-            afterTable.Paragraphs[0].AddRun("roadmap")
+            afterTable.Paragraphs[0].AddText(" and ");
+            afterTable.Paragraphs[0].AddText("roadmap")
                 .SetHyperlink("Quarter 1.pptx");
             slide.Notes.Text = "Speaker reminder";
 

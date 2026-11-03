@@ -10,15 +10,15 @@ public partial class PdfPageFootnoteTests {
     public void LaterTableReferencePreservesEarlierSpanPageAndCoordinatesAgainstUnreferencedControl() {
         static byte[] Build(bool associateNote) {
             var document = PdfDocument.Create(Options());
-            var note = document.Content.DefineFootnote(body => body.Text("AttachedNote", style: Style()));
-            document.Content.Text("Host", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(75D));
+            var note = document.Content.DefineFootnote(body => body.AddParagraph("AttachedNote", style: Style()));
+            document.Content.AddParagraph("Host", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(75D));
             var reference = PdfTextRun.Normal("LateReference");
             if (associateNote) reference = reference.WithFootnoteReference(note);
             var style = FootnoteTableStyle();
             style.MinimumBodyRowsOnFirstPage = 0;
             style.MinimumBodyRowsOnLastPage = 0;
             style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(110D) };
-            document.Content.Table(new[] {
+            document.Content.AddTable(new[] {
                 new[] {
                     new PdfTableCell(string.Join("\n", Enumerable.Range(1, 6).Select(index => "Prefix" + index.ToString("00"))), rowSpan: 2),
                     new PdfTableCell("RightFirst")

@@ -34,7 +34,7 @@ public class HtmlArtifactRoundTrips {
         byte[] pdf = (source.ToPdf()).ToBytes();
         string svg = source.ToSvg();
 
-        Assert.NotEmpty(reopenedWord.Find(Marker, StringComparison.Ordinal));
+        Assert.NotEmpty(reopenedWord.Find(Marker, new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(Marker, string.Join("\n", reopenedRtf.Document.Paragraphs.Select(paragraph => paragraph.ToPlainText())), StringComparison.Ordinal);
         Assert.Contains(Marker, markdown, StringComparison.Ordinal);
         Assert.Contains(Marker, PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);

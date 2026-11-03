@@ -29,6 +29,13 @@ namespace OfficeIMO.Word {
             return OfficeIMO.OfficeColor.Parse(hex);
         }
 
+        /// <summary>Parses a native hexadecimal colour value; missing, <c>auto</c> and invalid values return null.</summary>
+        internal static OfficeIMO.OfficeColor? ParseNativeColor(string? value) {
+            return !string.IsNullOrEmpty(value) && OfficeIMO.OfficeColor.TryParseHex(value, out OfficeIMO.OfficeColor color)
+                ? color
+                : null;
+        }
+
         /// <summary>
         /// Normalizes color input which may be a hex value or a named color.
         /// Hex values may be specified as three or six digits, with or without '#'.

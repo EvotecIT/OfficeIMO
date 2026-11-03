@@ -12241,6 +12241,179 @@
       "category": "naming",
       "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string text, Action<PowerPointTextRun>? configure = null) : PowerPointParagraph",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string text) : PowerPointTextRun",
+      "replacement": "Format the returned run: paragraph.AddText(\"x\").SetBold(). Replace the configure callback with statements on the returned run; chain further text from the paragraph.",
+      "reason": "AddText returns the created run in Word, PowerPoint and PDF, so formatting after AddText formats that text.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.AddRun(string text, Action<PowerPointTextRun>? configure = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string text) : PowerPointTextRun",
+      "reason": "AddRun and AddText appended the same run; AddText is the shared name.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTableCell.AddRun(string text, Action<PowerPointTextRun>? configure = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.AddText(string text) : PowerPointTextRun",
+      "reason": "AddText is the shared name for appending a run.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(string text, bool bold = false, bool italic = false, PowerPointUnderlineStyle? underline = null, bool strikethrough = false) : PowerPointParagraph",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(...) : PowerPointTextRun",
+      "reason": "Returns the created run, like Word's AddFormattedText.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetBold/SetItalic/SetUnderline/SetStrikethrough/SetFontSize/SetFontName/SetColor/SetHighlightColor",
+      "kind": "method",
+      "action": "change",
+      "new": "Same methods, applied to every run in the paragraph; PowerPointTextRun.SetBold/SetItalic/SetUnderline/SetStrikethrough/SetFontSize/SetColor/... format one run",
+      "replacement": "To format only the text you just added, call the setter on the run returned by AddText.",
+      "reason": "The paragraph setters used to format a hidden 'current run' (the last run written through that paragraph object). There is no current-run cursor any more.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTextRun/PowerPointTableCell/PowerPointTextBox.FontName, PowerPointTextRun/PowerPointParagraph.SetFontName(string), PowerPointTextStyle.FontName / WithFontName(string?) / constructor parameter fontName",
+      "kind": "property",
+      "action": "rename",
+      "new": "FontFamily, SetFontFamily(string), PowerPointTextStyle.FontFamily / WithFontFamily(string?) / constructor parameter fontFamily",
+      "replacement": "Rename the member. BulletFontName and the design-theme HeadingFontName/BodyFontName are unchanged.",
+      "reason": "FontFamily is the shared spelling for a font family name.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTextRun/PowerPointTableCell/PowerPointTextBox.Color : string?, PowerPointTextRun/PowerPointParagraph.SetColor(string), PowerPointTextStyle.Color : string? / WithColor(string?) / constructor parameter color : string?",
+      "kind": "property",
+      "action": "change",
+      "new": "Color : OfficeColor?, SetColor(OfficeColor), PowerPointTextStyle.Color : OfficeColor? / WithColor(OfficeColor?) / constructor parameter color : OfficeColor?",
+      "replacement": "run.Color = OfficeColor.Parse(\"FF000080\"). Alpha below 255 is still written as native DrawingML opacity, and the getter now returns that alpha.",
+      "reason": "One colour value type across Word and PowerPoint text.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTextRun.HighlightColor : string?, PowerPointTextRun/PowerPointParagraph.SetHighlightColor(string), PowerPointTextStyle.HighlightColor / WithHighlightColor(string?) / constructor parameter highlightColor",
+      "kind": "property",
+      "action": "rename",
+      "new": "BackgroundColor : OfficeColor?, SetBackgroundColor(OfficeColor), PowerPointTextStyle.BackgroundColor / WithBackgroundColor(OfficeColor?) / constructor parameter backgroundColor",
+      "replacement": "run.BackgroundColor = OfficeColor.Parse(\"FFFF00\"). The DrawingML highlight is written as before, including native opacity.",
+      "reason": "The arbitrary-colour text background shares the BackgroundColor name and OfficeColor type with Word.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointPicture",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointImage",
+      "replacement": "Use PowerPointImage wherever PowerPointPicture was declared, cast or pattern-matched. Members (UpdateImage, Crop, Fit, effects, image bytes) are unchanged.",
+      "reason": "AddImage returns a {Format}Image handle in Word, PowerPoint and Markdown.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.Pictures : IEnumerable<PowerPointPicture>",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.Images : IEnumerable<PowerPointImage>",
+      "reason": "The collection is named after the shared image handle type.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(string name) : PowerPointPicture?",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.GetImage(string name) : PowerPointImage?",
+      "reason": "The lookup is named after the shared image handle type.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointPicture>",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointImage>",
+      "reason": "The lookup is named after the shared image handle type.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddImage(...) : PowerPointPicture",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddImage(...) : PowerPointImage",
+      "reason": "Return type follows the PowerPointPicture -> PowerPointImage rename; parameters are unchanged.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointShape.Description",
+      "kind": "property",
+      "action": "remove",
+      "new": "OfficeIMO.PowerPoint.PowerPointShape.AltText",
+      "replacement": "Use AltText. It reads and writes the same OOXML descr value. Description trimmed surrounding whitespace; trim the value yourself if you relied on that.",
+      "reason": "Description was a second name for AltText; AltText is the shared alternative-text name.",
+      "category": "accessibility"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) : PowerPointTable",
+      "kind": "method",
+      "action": "change",
+      "new": "Same signature",
+      "replacement": "Name stays the graphic-frame name. A non-null Caption throws NotSupportedException; add a text box next to the table for visible caption text.",
+      "reason": "PowerPoint tables have no visible caption, so the intent is reported instead of ignored.",
+      "category": "tables"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDocument.ReplaceText(string oldValue, string newValue, bool includeTables = true, bool includeNotes = false) : int",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.ReplaceAll(string text, string replacement, PowerPointTextSearchOptions? options = null) : int",
+      "replacement": "deck.ReplaceAll(text, replacement, new PowerPointTextSearchOptions { IncludeTables = ..., IncludeNotes = ..., MatchCase = true }). Matching is now case-insensitive by default; set MatchCase = true to keep the former case-sensitive behaviour.",
+      "reason": "ReplaceAll and the shared search options match Word and PDF, including the case-insensitive default.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.ReplaceText(string oldValue, string newValue, bool includeTables = true, bool includeNotes = false) : int",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.ReplaceAll(string text, string replacement, PowerPointTextSearchOptions? options = null) : int",
+      "replacement": "slide.ReplaceAll(text, replacement, new PowerPointTextSearchOptions { IncludeTables = ..., IncludeNotes = ..., MatchCase = true }). Matching is now case-insensitive by default.",
+      "reason": "ReplaceAll and the shared search options match Word and PDF.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceText(string oldValue, string newValue) : int",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int",
+      "replacement": "Pass new OfficeTextSearchOptions { MatchCase = true } to keep case-sensitive matching.",
+      "reason": "Same name, options and case-insensitive default as the document ReplaceAll.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceText(string oldValue, string newValue) : int",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int",
+      "replacement": "Pass new OfficeTextSearchOptions { MatchCase = true } to keep case-sensitive matching.",
+      "reason": "Same name, options and case-insensitive default as the document ReplaceAll.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceText(string oldValue, string newValue) : int",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int",
+      "replacement": "Pass new OfficeTextSearchOptions { MatchCase = true } to keep case-sensitive matching.",
+      "reason": "Same name, options and case-insensitive default as the document ReplaceAll. Matches remain run-based.",
+      "category": "search"
     }
   ],
   "packageMoves": [

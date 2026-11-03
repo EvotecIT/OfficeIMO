@@ -86,7 +86,7 @@ public sealed class OfficeConverterBatchPersistenceTests {
         const string password = "synthetic-pdf-source-password";
         string input = Path.Combine(files.Root, "encrypted.pdf");
         using (var document = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions(password)))) {
-            document.Compose(builder => builder.Content(content => content.Text("Separate PDF password reference")));
+            document.Compose(builder => builder.Content(content => content.AddParagraph("Separate PDF password reference")));
             document.Save(input);
         }
         OfficeBatchOptions options = files.Settings() with {

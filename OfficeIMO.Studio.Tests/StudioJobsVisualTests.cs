@@ -24,7 +24,7 @@ public sealed class StudioJobsVisualTests {
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "Job source.pdf");
             PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500))
-                .Content(content => content.Text("A real workflow output opened from Jobs.")))).Save(source);
+                .Content(content => content.AddParagraph("A real workflow output opened from Jobs.")))).Save(source);
             var window = new MainWindow(services) { Width = width, Height = height };
             StudioJobRecord? waiting = null;
             try {

@@ -20,13 +20,13 @@ namespace OfficeIMO.Examples.Word
                 document.Properties.Title = "This is sparta";
                 document.Properties.Creator = "Przemek";
                 var filePathImage = System.IO.Path.Combine(imagePaths, "Kulek.jpg");
-                document.DifferentOddAndEvenPages = true;
-                var header = document.HeaderDefaultOrCreate;
+                document.PageSetup.DifferentOddAndEvenPages = true;
+                var header = document.PageSetup.Header;
                 var paragraphHeader = header.AddParagraph("This is header");
                 // add image to header, directly to paragraph
                 header.AddParagraph().AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 // add image to footer, directly to paragraph
-                document.FooterDefaultOrCreate.AddParagraph().AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
+                document.PageSetup.Footer.AddParagraph().AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(100), OfficeIMO.OfficeLength.Pixels(100));
                 // add image to header, but to a table
                 var table = header.AddTable(2, 2);
                 GetOrAddParagraph(table, 1, 1).Text = "Test123";
@@ -69,7 +69,7 @@ namespace OfficeIMO.Examples.Word
                 firstImage.Width = OfficeIMO.OfficeLength.Pixels(200);
                 string fileToSave = System.IO.Path.Combine(imagePaths, "OutputPrzemyslawKlysAndKulkozaurr.jpg");
                 firstImage.Save(fileToSave);
-                var paragraphHeaderEven = document.HeaderEvenOrCreate.AddParagraph("This adds another picture via Stream with 100x100 to Header Even");
+                var paragraphHeaderEven = document.PageSetup.EvenPageHeader.AddParagraph("This adds another picture via Stream with 100x100 to Header Even");
                 const string fileNameImageEvotec = "EvotecLogo.png";
                 var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
                 using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec))

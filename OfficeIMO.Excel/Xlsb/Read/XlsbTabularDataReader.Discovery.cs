@@ -243,6 +243,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             BrtCellError or BrtCellBool => valueBytes >= sizeof(byte),
                             BrtCellReal => valueBytes >= sizeof(double),
                             BrtCellIsst => valueBytes >= sizeof(uint),
+                            // A fitting inline string; any other shape keeps the cursor's exact errors.
+                            BrtCellSt => valueBytes >= sizeof(uint)
+                                && Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))) is uint characters
+                                && characters <= (long)limits.MaxStringCharacters
+                                && characters <= (uint)(valueBytes - sizeof(uint)) / sizeof(char),
                             _ => false
                         };
                         if (validFixedPayload && recordType == BrtCellIsst) {

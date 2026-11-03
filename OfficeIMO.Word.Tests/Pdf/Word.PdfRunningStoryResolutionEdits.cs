@@ -17,8 +17,7 @@ public partial class Word {
             Assert.Contains("MARK", initial.GetPage(2).Text);
 
         WordSection later = document.Sections[1];
-        later.AddHeadersAndFooters();
-        WordHeaderFooter local = footer ? later.Footer.Default! : later.Header.Default!;
+        WordHeaderFooter local = footer ? later.PageSetup.Footer : later.PageSetup.Header;
         local.AddParagraph("LOCAL");
         using (var authored = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))) {
             Assert.Contains("MARK", authored.GetPage(1).Text);
@@ -38,8 +37,8 @@ public partial class Word {
     public async Task RunningStoryResolutionScopeRestoresNestedAndCapturedOperations() {
         using WordDocument first = WordDocument.Create();
         using WordDocument second = WordDocument.Create();
-        WordHeader firstHeader = first.HeaderDefaultOrCreate;
-        WordHeader secondHeader = second.HeaderDefaultOrCreate;
+        WordHeader firstHeader = first.PageSetup.Header;
+        WordHeader secondHeader = second.PageSetup.Header;
         firstHeader.AddParagraph("FIRST"); secondHeader.AddParagraph("SECOND");
         WordHeaderFooterResolutionSnapshot captured;
         using (WordHeaderFooterResolutionSnapshot.Begin(first)) {

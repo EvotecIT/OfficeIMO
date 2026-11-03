@@ -374,7 +374,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
             var occupied = slide.TextBoxes
                 .Select(box => new EditableLayoutSlideBounds(box.Left.ToPoints(), box.Top.ToPoints(), box.Width.ToPoints(), box.Height.ToPoints()))
-                .Concat(slide.Pictures.Select(picture => new EditableLayoutSlideBounds(
+                .Concat(slide.Images.Select(picture => new EditableLayoutSlideBounds(
                     picture.Left.ToPoints(), picture.Top.ToPoints(), picture.Width.ToPoints(), picture.Height.ToPoints())))
                 .Concat(slide.Tables.Select(table => new EditableLayoutSlideBounds(
                     table.Left.ToPoints(), table.Top.ToPoints(), table.Width.ToPoints(), table.Height.ToPoints())))
@@ -608,7 +608,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             double pictureHeight = NormalizeGeometry(image.Height * 0.75D, 1D, 1D,
                 budget, result, "editable layout picture height");
             using var stream = new MemoryStream(image.Bytes);
-            PptCore.PowerPointPicture picture = slide.AddImage(stream, imageType,
+            PptCore.PowerPointImage picture = slide.AddImage(stream, imageType,
                 OfficeIMO.OfficeLength.Points(pictureLeft), OfficeIMO.OfficeLength.Points(pictureTop), OfficeIMO.OfficeLength.Points(pictureWidth), OfficeIMO.OfficeLength.Points(pictureHeight));
             // The HTML layout already resolved object-fit and the visible image frame.
             picture.Bounds = new PptCore.PowerPointLayoutBox(OfficeLength.Points(pictureLeft), OfficeLength.Points(pictureTop), OfficeLength.Points(pictureWidth), OfficeLength.Points(pictureHeight));
@@ -702,7 +702,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         GetGenericResourcePictureSize(resource, presentation, budget,
             out double width, out double height, out bool fitted);
         using var stream = new MemoryStream(bytes);
-        PptCore.PowerPointPicture picture = slide.AddImage(stream, imagePartType, OfficeIMO.OfficeLength.Points(64D), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
+        PptCore.PowerPointImage picture = slide.AddImage(stream, imagePartType, OfficeIMO.OfficeLength.Points(64D), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         picture.Bounds = new PptCore.PowerPointLayoutBox(OfficeLength.Points(64D), OfficeLength.Points(top), OfficeLength.Points(width), OfficeLength.Points(height));
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
         ApplyPictureHyperlink(picture, resource.Hyperlink, result, options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);

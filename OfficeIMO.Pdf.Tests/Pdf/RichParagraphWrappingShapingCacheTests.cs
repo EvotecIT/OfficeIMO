@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             provider.Requests.Clear();
             PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.Runs(new[] {
+                .Paragraph(paragraph => paragraph.AddRuns(new[] {
                     PdfTextRun.Normal("AV AV").WithFeatureSettings(features)
                 }))
                 .ToBytes();

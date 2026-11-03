@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) run.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
             if (fmt.VerticalTextAlignment.HasValue) run.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
             if (!string.IsNullOrEmpty(defaultFont)) run.SetFontFamily(defaultFont!);
-            if (!string.IsNullOrEmpty(defaultTextColorHex)) run.SetColorHex(defaultTextColorHex!);
+            if (!string.IsNullOrEmpty(defaultTextColorHex)) run.SetColor(OfficeIMO.OfficeColor.Parse(defaultTextColorHex!));
             return run;
         }
 
@@ -604,7 +604,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.VerticalTextAlignment.HasValue) hyperlink.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
             if (!string.IsNullOrEmpty(defaultFont)) hyperlink.SetFontFamily(defaultFont!);
             string? accentHex = ResolveTheme(options)?.PaletteSnapshot.Accent.ToRgbHex();
-            if (!string.IsNullOrEmpty(accentHex)) hyperlink.SetColorHex(accentHex!);
+            if (!string.IsNullOrEmpty(accentHex)) hyperlink.SetColor(OfficeIMO.OfficeColor.Parse(accentHex!));
         }
 
         private static void ApplyHyperlinkRunFormattingOmd(IEnumerable<WordParagraph> runs, MarkdownWordExportOptions options) {
@@ -614,7 +614,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             foreach (WordParagraph run in runs) {
-                run.SetColorHex(accentHex!);
+                run.SetColor(OfficeIMO.OfficeColor.Parse(accentHex!));
             }
         }
     }

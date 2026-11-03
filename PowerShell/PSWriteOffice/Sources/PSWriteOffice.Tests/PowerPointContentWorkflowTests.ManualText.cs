@@ -38,7 +38,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.Equal(2, persisted.Paragraphs[0].Runs.Count);
         Assert.True(persisted.Paragraphs[0].Runs[0].Bold);
         Assert.True(persisted.Paragraphs[0].Runs[1].Italic);
-        Assert.Equal("112233", persisted.Paragraphs[0].Runs[0].Color);
+        Assert.Equal(OfficeIMO.OfficeColor.Parse("112233"), persisted.Paragraphs[0].Runs[0].Color);
         Assert.Equal(720000L, persisted.Left.ToEmus());
         Assert.Equal(1080000L, persisted.Top.ToEmus());
         Assert.Equal(4320000L, persisted.Width.ToEmus());

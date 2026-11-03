@@ -23,7 +23,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
             InvoicePdfLineColumn.Quantity, InvoicePdfLineColumn.Unit, InvoicePdfLineColumn.NetPrice, InvoicePdfLineColumn.Vat, InvoicePdfLineColumn.NetAmount }) layout.LineColumns.Add(column);
         var snapshot = PdfInvoiceDocument.Create(invoice, Contract(), layout);
         layout.LineColumns.Clear(); // A deferred render uses its captured column settings.
-        var options = Options(); options.PageWidth = global::OfficeIMO.OfficeLength.Points(842); options.PageHeight = global::OfficeIMO.OfficeLength.Points(595);
+        var options = Options(); options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(842), global::OfficeIMO.OfficeLength.Points(595));
         byte[] pdf = snapshot.ToPdfBytes(options);
         WriteEvidence(modern ? "presentation-modern" : "presentation-classic", pdf);
         string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
@@ -46,10 +46,10 @@ public sealed class PdfInvoicePresentationOptionsTests {
         var layout = InvoicePdfLayoutOptions.ForCultures("pl-PL");
         layout.Theme = modern ? new InvoicePdfTheme() : null;
         layout.IncludePageIdentity = true;
-        var options = Options(); options.ShowHeader = true; options.HeaderFormat = "RUNNING-HEADER";
-        options.DifferentFirstPageHeaderFooter = true; options.FirstPageHeaderFormat = "FIRST-HEADER";
-        options.DifferentOddAndEvenPagesHeaderFooter = true; options.EvenPageHeaderFormat = "EVEN-HEADER";
-        options.FirstPageFooterFormat = "OLD-FIRST-FOOTER"; options.EvenPageFooterFormat = "OLD-EVEN-FOOTER";
+        var options = Options(); options.PageSetup.Header.Show = true; options.PageSetup.Header.Format = "RUNNING-HEADER";
+        options.PageSetup.DifferentFirstPage = true; options.PageSetup.FirstPageHeader.Format = "FIRST-HEADER";
+        options.PageSetup.DifferentOddAndEvenPages = true; options.PageSetup.EvenPageHeader.Format = "EVEN-HEADER";
+        options.PageSetup.FirstPageFooter.Format = "OLD-FIRST-FOOTER"; options.PageSetup.EvenPageFooter.Format = "OLD-EVEN-FOOTER";
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(options);
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.True(document.Pages.Count > 2);
@@ -61,7 +61,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
             Assert.DoesNotContain("OLD-FIRST-FOOTER", text);
             Assert.DoesNotContain("OLD-EVEN-FOOTER", text);
         }
-        Assert.Equal("OLD-FIRST-FOOTER", options.FirstPageFooterFormat);
+        Assert.Equal("OLD-FIRST-FOOTER", options.PageSetup.FirstPageFooter.Format);
         WriteEvidence(modern ? "continuation-modern" : "continuation-classic", pdf);
     }
 
@@ -88,7 +88,7 @@ public sealed class PdfInvoicePresentationOptionsTests {
         foreach (var column in new[] { InvoicePdfLineColumn.Item, InvoicePdfLineColumn.Period, InvoicePdfLineColumn.SellerItem,
             InvoicePdfLineColumn.BuyerItem, InvoicePdfLineColumn.StandardItem, InvoicePdfLineColumn.AccountingReference, priceColumn,
             InvoicePdfLineColumn.NetAmount }) layout.LineColumns.Add(column);
-        var options = Options(); options.PageWidth = global::OfficeIMO.OfficeLength.Points(1191); options.PageHeight = global::OfficeIMO.OfficeLength.Points(842);
+        var options = Options(); options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(1191), global::OfficeIMO.OfficeLength.Points(842));
         string text = PdfDocument.Load(new System.IO.MemoryStream(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPdfBytes(options))).ExtractUnwrappedText();
         foreach (string value in new[] { "SELLERKEY", "BUYERKEY", "1234567890128", "project-cost", "2026-08-31", "2026-09-10", price }) Assert.Contains(value, text);
         Assert.Equal(1, text.Split(new[] { "SELLERKEY" }, StringSplitOptions.None).Length - 1);

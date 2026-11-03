@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             | (1U << 12) | (1U << 28);
 
         private static bool TryReadPictureProtectionForWrite(
-            PowerPointPicture picture, out uint? propertyValue,
+            PowerPointImage picture, out uint? propertyValue,
             out string? reason) {
             if (picture == null) throw new ArgumentNullException(
                 nameof(picture));
@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static void AddPictureProtectionProperties(
             ICollection<LegacyPptWriterFoptProperty> properties,
-            PowerPointPicture picture) {
+            PowerPointImage picture) {
             if (!TryReadPictureProtectionForWrite(picture,
                     out uint? propertyValue, out string? reason)) {
                 throw new NotSupportedException(reason);

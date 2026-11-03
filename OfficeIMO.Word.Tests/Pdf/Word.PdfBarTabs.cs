@@ -126,11 +126,11 @@ public sealed class WordPdfBarTabTests {
         SetDefaultBar(document);
         WordParagraph body = document.AddParagraph("BODY");
         SetTabs(body, Tab(W.TabStopValues.Clear));
-        W.Footer footer = document.FooterDefaultOrCreate._footer!;
+        W.Footer footer = document.PageSetup.Footer._footer!;
         footer.RemoveAllChildren();
         // Creating the footer also creates an empty default header. Isolate
         // this footer contract by explicitly clearing its inherited header bar.
-        WordHeaderFooter header = document.HeaderDefaultOrCreate;
+        WordHeaderFooter header = document.PageSetup.Header;
         header._header!.RemoveAllChildren();
         SetTabs(header.AddParagraph(), Tab(W.TabStopValues.Clear));
         string sourceXml = footer.OuterXml;
@@ -148,11 +148,11 @@ public sealed class WordPdfBarTabTests {
     public void SaveAsPdf_FlatRunningProjectionReportsOmittedEffectiveBars() {
         using WordDocument document = CreateDocument();
         document.AddParagraph("BODY");
-        WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph("FIRST");
+        WordParagraph paragraph = document.PageSetup.Header.AddParagraph("FIRST");
         ConfigureParagraph(paragraph, "FIRST");
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         WordPdfExportOptions options = Options();
-        options.PdfOptions!.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10D);
+        options.PdfOptions!.PageSetup.Header.FontSize = global::OfficeIMO.OfficeLength.Points(10D);
 
         PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         PdfConversionWarning warning = Assert.Single(result.Warnings,
@@ -170,7 +170,7 @@ public sealed class WordPdfBarTabTests {
     public void SaveAsPdf_ObjectOnlyProjectionReportsOmissionBeforeAnyApproximation(bool header) {
         using WordDocument document = CreateDocument();
         document.AddParagraph("BODY");
-        WordParagraph paragraph = header ? document.HeaderDefaultOrCreate.AddParagraph() : document.AddParagraph();
+        WordParagraph paragraph = header ? document.PageSetup.Header.AddParagraph() : document.AddParagraph();
         ConfigureParagraph(paragraph, string.Empty);
         paragraph.AddShape(OfficeIMO.OfficeLength.Points(48D), OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeColor.Parse("#00A060"));
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
@@ -195,7 +195,7 @@ public sealed class WordPdfBarTabTests {
     public void SaveAsPdf_ObjectOnlyCellRetainsItsDecoratedMark(bool header) {
         using WordDocument document = CreateDocument();
         document.AddParagraph("BODY");
-        WordTable table = header ? document.HeaderDefaultOrCreate.AddTable(1, 1) : document.AddTable(1, 1);
+        WordTable table = header ? document.PageSetup.Header.AddTable(1, 1) : document.AddTable(1, 1);
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         ConfigureParagraph(paragraph, string.Empty);
         paragraph.AddShape(OfficeIMO.OfficeLength.Points(48D), OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeColor.Parse("#00A060"));
@@ -307,7 +307,7 @@ public sealed class WordPdfBarTabTests {
     [InlineData(true)]
     public void SaveAsPdf_NestedRunningBoxOwnerReportsOmissionBeforeDeferredPainting(bool footer) {
         using WordDocument document = CreateDocument();
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph outer = story.AddParagraph("PREFIX");
         WordParagraph middle = outer.AddTextBox(string.Empty, WordImageTextWrapping.Square).Paragraphs.Single();
         ConfigureParagraph(middle, string.Empty);
@@ -381,14 +381,14 @@ public sealed class WordPdfBarTabTests {
     [InlineData(true)]
     public void SaveAsPdf_RunningMixedGroupBarReportMatchesItsActualOwnerLine(bool anchored) {
         using WordDocument document = CreateDocument();
-        WordHeaderFooter story = document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = document.PageSetup.Header;
         WordParagraph outer = story.AddParagraph("PREFIX");
         WordParagraph middle = outer.AddTextBox(string.Empty, WordImageTextWrapping.Square).Paragraphs.Single();
         ConfigureParagraph(middle, string.Empty);
         middle.AddTextBox("INNER", WordImageTextWrapping.Square);
         middle.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColorHex = "00FF00" },
-            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(16D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColorHex = "00FF00" }
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColor = OfficeColor.Parse("00FF00") },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(16D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColor = OfficeColor.Parse("00FF00") }
         }, OfficeLength.Points(180D), OfficeLength.Points(30D));
         if (anchored) {
             var anchor = middle._paragraph.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor>()
@@ -446,8 +446,8 @@ public sealed class WordPdfBarTabTests {
             case "body":
             case "empty": return document.AddParagraph();
             case "table": return document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
-            case "header": document.AddParagraph("BODY"); return document.HeaderDefaultOrCreate.AddParagraph();
-            case "footer": document.AddParagraph("BODY"); return document.FooterDefaultOrCreate.AddParagraph();
+            case "header": document.AddParagraph("BODY"); return document.PageSetup.Header.AddParagraph();
+            case "footer": document.AddParagraph("BODY"); return document.PageSetup.Footer.AddParagraph();
             case "heading":
                 WordParagraph heading = document.AddParagraph();
                 heading.Style = WordParagraphStyles.Heading1;

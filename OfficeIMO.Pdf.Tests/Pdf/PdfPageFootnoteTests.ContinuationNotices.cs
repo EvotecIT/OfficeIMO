@@ -13,13 +13,13 @@ public partial class PdfPageFootnoteTests {
     public void ContinuationNoticeReservesSpaceAfterFragmentsAndIsAbsentFromFinalPage(PdfFootnotePlacement placement) {
         PdfDocument document = PdfDocument.Create(Options());
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
-            for (int index = 0; index < 25; index++) body.Text("NoticeNote" + index.ToString("00"), style: Style());
+            for (int index = 0; index < 25; index++) body.AddParagraph("NoticeNote" + index.ToString("00"), style: Style());
         }, new PdfFootnoteOptions {
             Placement = placement,
-            ContinuationNotice = body => body.Text("ContinuedNotice", style: Style())
+            ContinuationNotice = body => body.AddParagraph("ContinuedNotice", style: Style())
         });
-        document.Content.Paragraph(body => body.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
-        document.Content.Text("FollowingBody", style: Style());
+        document.Content.AddParagraph(body => body.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
+        document.Content.AddParagraph("FollowingBody", style: Style());
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(3, pdf.NumberOfPages);
@@ -48,13 +48,13 @@ public partial class PdfPageFootnoteTests {
     public void CompleteNoteDoesNotReserveOrPaintAnUnusedNotice() {
         PdfDocument document = PdfDocument.Create(Options());
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
-            for (int index = 0; index < 9; index++) body.Text("CompleteNote" + index, style: Style());
+            for (int index = 0; index < 9; index++) body.AddParagraph("CompleteNote" + index, style: Style());
         }, new PdfFootnoteOptions {
-            ContinuationNotice = body => body.Text("UnusedNotice", style: new PdfParagraphStyle {
+            ContinuationNotice = body => body.AddParagraph("UnusedNotice", style: new PdfParagraphStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(100)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
         });
-        document.Content.Paragraph(body => body.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
+        document.Content.AddParagraph(body => body.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Single(pdf.GetPages());
         Assert.Contains("CompleteNote8", pdf.GetPage(1).Text);
@@ -67,17 +67,17 @@ public partial class PdfPageFootnoteTests {
         int calls = 0;
         PdfContentBuilder? retained = null;
         var options = new PdfFootnoteOptions {
-            ContinuationNotice = body => { calls++; retained = body; body.Text("CapturedNotice", style: Style()); }
+            ContinuationNotice = body => { calls++; retained = body; body.AddParagraph("CapturedNotice", style: Style()); }
         };
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
-            options.ContinuationNotice = changed => changed.Text("ChangedNotice", style: Style());
-            for (int index = 0; index < 12; index++) body.Text("CapturedNote" + index, style: Style());
+            options.ContinuationNotice = changed => changed.AddParagraph("ChangedNotice", style: Style());
+            for (int index = 0; index < 12; index++) body.AddParagraph("CapturedNote" + index, style: Style());
         }, options);
         Assert.NotNull(retained);
         // The retained builder is document-bound. Once capture ends, later calls
         // add ordinary body content rather than extending the frozen notice.
-        retained!.Text("LateBody", style: Style());
-        document.Content.Paragraph(body => body.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
+        retained!.AddParagraph("LateBody", style: Style());
+        document.Content.AddParagraph(body => body.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
         foreach (byte[] bytes in new[] { document.ToBytes(), document.ToBytes() }) {
             using var pdf = PdfPigDocument.Open(bytes);
             Assert.Equal(2, pdf.NumberOfPages);
@@ -96,12 +96,12 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void FirstAdmittedNoteSelectsOneNoticeForTheWholePage() {
         PdfDocument document = PdfDocument.Create(Options());
-        PdfFootnoteDefinition first = document.Content.DefineFootnote(body => body.Text("ShortNote", style: Style()),
-            new PdfFootnoteOptions { ContinuationNotice = body => body.Text("FirstNotice", style: Style()) });
+        PdfFootnoteDefinition first = document.Content.DefineFootnote(body => body.AddParagraph("ShortNote", style: Style()),
+            new PdfFootnoteOptions { ContinuationNotice = body => body.AddParagraph("FirstNotice", style: Style()) });
         PdfFootnoteDefinition second = document.Content.DefineFootnote(body => {
-            for (int index = 0; index < 25; index++) body.Text("SecondNote" + index.ToString("00"), style: Style());
-        }, new PdfFootnoteOptions { ContinuationNotice = body => body.Text("SecondNotice", style: Style()) });
-        document.Content.Paragraph(body => body.Runs(new[] {
+            for (int index = 0; index < 25; index++) body.AddParagraph("SecondNote" + index.ToString("00"), style: Style());
+        }, new PdfFootnoteOptions { ContinuationNotice = body => body.AddParagraph("SecondNotice", style: Style()) });
+        document.Content.AddParagraph(body => body.AddRuns(new[] {
             PdfTextRun.Normal("First").WithFootnoteReference(first),
             PdfTextRun.Normal("Second").WithFootnoteReference(second)
         }), style: Style());
@@ -125,21 +125,21 @@ public partial class PdfPageFootnoteTests {
         options.MaxGeneratedPages = 2;
         PdfDocument document = PdfDocument.Create(options);
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
-            for (int index = 0; index < 25; index++) body.Text("LongNote" + index, style: Style());
+            for (int index = 0; index < 25; index++) body.AddParagraph("LongNote" + index, style: Style());
         }, new PdfFootnoteOptions {
             ContinuationNotice = body => body.Spacer(global::OfficeIMO.OfficeLength.Points(100))
         });
-        document.Content.Paragraph(body => body.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
+        document.Content.AddParagraph(body => body.AddRuns(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }
 
     [Fact]
     public void ContinuationNoticeCannotIntroduceRecursiveReferences() {
         PdfDocument document = PdfDocument.Create(Options());
-        PdfFootnoteDefinition nested = document.Content.DefineFootnote(body => body.Text("Nested", style: Style()));
-        Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(body => body.Text("Outer", style: Style()),
+        PdfFootnoteDefinition nested = document.Content.DefineFootnote(body => body.AddParagraph("Nested", style: Style()));
+        Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(body => body.AddParagraph("Outer", style: Style()),
             new PdfFootnoteOptions {
-                ContinuationNotice = body => body.Paragraph(paragraph => paragraph.Runs(new[] {
+                ContinuationNotice = body => body.AddParagraph(paragraph => paragraph.AddRuns(new[] {
                     PdfTextRun.Normal("NestedReference").WithFootnoteReference(nested)
                 }), style: Style())
             }));

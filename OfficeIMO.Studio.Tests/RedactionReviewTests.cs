@@ -13,7 +13,7 @@ public sealed class RedactionReviewTests {
         using var files = new TestFiles();
         string text = string.Join(" ", Enumerable.Repeat("x", 1001).Concat(Enumerable.Repeat("y", 999)).Append("z"));
         PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content =>
-            content.Item(item => item.Paragraph(paragraph => paragraph.Font(PdfStandardFont.Courier).FontSize(global::OfficeIMO.OfficeLength.Points(10)).Text(text),
+            content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text).SetFontSize(global::OfficeIMO.OfficeLength.Points(10)).SetStandardFont(PdfStandardFont.Courier),
                 style: new PdfParagraphStyle { LineHeight = 2D }))))).Save(files.Input);
         using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
         await model.OpenDocumentAsync(files.Input);
@@ -122,8 +122,8 @@ public sealed class RedactionReviewTests {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         PdfDocument document = PdfDocument.Create(compose => {
             compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).BackgroundImage(image)
-                .Content(content => content.Item(item => item.Paragraph(text => text.Text("Before private account after")))));
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Other private account")))));
+                .Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Before private account after")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Other private account")))));
         });
         byte[] source = document.ToBytes();
         Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(source)).Images.Placements());
@@ -186,7 +186,7 @@ public sealed class RedactionReviewTests {
     public async Task PreciseSearchReviewPreservesNeighborsAndExcludedOccurrences(bool regex, int rotation) {
         using var files = new TestFiles();
         PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800))
-            .Content(content => content.Item(item => item.Paragraph(text => text.Text("Before private account 123 and private account 456 after"))))));
+            .Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Before private account 123 and private account 456 after"))))));
         if (rotation != 0) document = document.Pages.Rotate(rotation, 1);
         byte[] source = document.ToBytes();
         await File.WriteAllBytesAsync(files.Input, source);
@@ -353,9 +353,9 @@ public sealed class RedactionReviewTests {
 
     private static byte[] CreateSource() => PdfDocument.Create(compose => {
         compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.Item(item =>
-            item.Paragraph(paragraph => paragraph.Text("First private account 123")))));
+            item.AddParagraph(paragraph => paragraph.AddText("First private account 123")))));
         compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.Item(item =>
-            item.Paragraph(paragraph => paragraph.Text("Second private account 456")))));
+            item.AddParagraph(paragraph => paragraph.AddText("Second private account 456")))));
     }).ToBytes();
 
     private static async Task WaitUntilAsync(Func<bool> predicate) {

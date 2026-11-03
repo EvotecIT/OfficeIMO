@@ -8,7 +8,7 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceReturnsVerifiedNoOpForSearchWithoutMatches() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Retained ordinary content"))
+            .Paragraph(paragraph => paragraph.AddText("Retained ordinary content"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source);
         PdfRedactionPlan plan = document.Redactions.Search(
@@ -27,8 +27,8 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceReturnsSourceBoundActualVersusPlannedProof() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Remove evidence marker"))
-            .Paragraph(paragraph => paragraph.Text("Retain ordinary content"))
+            .Paragraph(paragraph => paragraph.AddText("Remove evidence marker"))
+            .Paragraph(paragraph => paragraph.AddText("Retain ordinary content"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source);
         PdfRedactionPlan plan = document.Redactions.Search(
@@ -82,7 +82,7 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceMarksItemsInconclusiveWhenConfiguredProofFails() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Remove this marker"))
+            .Paragraph(paragraph => paragraph.AddText("Remove this marker"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source);
         PdfRedactionPlan plan = document.Redactions.Search(
@@ -217,7 +217,7 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceExpandsSourceTightLimitsForGeneratedOutput() {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Retained source content"))),
+                .AddParagraph(paragraph => paragraph.AddText("Retained source content"))),
                 new PdfCreateOptions { CompressContentStreams = false })
             .ToBytes();
         PdfStream[] sourceStreams = PdfSyntax.ParseObjects(source).Map.Values

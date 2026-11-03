@@ -13,7 +13,7 @@ public class PdfImageExtractorTests {
     public void ExtractImages_ReturnsPngFilesByPageFromGeneratedPdf() {
         byte[] source = PdfDocument.Create()
             .Image(CreateMinimalRgbPng(), 24, 24)
-            .Paragraph(p => p.Text("Image page marker"))
+            .Paragraph(p => p.AddText("Image page marker"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -37,7 +37,7 @@ public class PdfImageExtractorTests {
     public void ExtractImages_ReturnsRgbaPngWhenImageHasSoftMask() {
         byte[] source = PdfDocument.Create()
             .Image(CreateMinimalRgbaPng(), 24, 24)
-            .Paragraph(p => p.Text("Transparent image marker"))
+            .Paragraph(p => p.AddText("Transparent image marker"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -474,7 +474,7 @@ public class PdfImageExtractorTests {
     public void ExtractImages_ReturnsRgbaPngWhenRgbTransparencyCreatesSoftMask() {
         byte[] source = PdfDocument.Create()
             .Image(CreateMinimalRgbTransparencyPng(), 24, 24)
-            .Paragraph(p => p.Text("RGB tRNS image marker"))
+            .Paragraph(p => p.AddText("RGB tRNS image marker"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -494,7 +494,7 @@ public class PdfImageExtractorTests {
     public void ExtractImages_ReturnsGrayAlphaPngWhenGrayscaleTransparencyCreatesSoftMask() {
         byte[] source = PdfDocument.Create()
             .Image(CreateMinimalGrayscaleTransparencyPng(), 24, 24)
-            .Paragraph(p => p.Text("Grayscale tRNS image marker"))
+            .Paragraph(p => p.AddText("Grayscale tRNS image marker"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -514,7 +514,7 @@ public class PdfImageExtractorTests {
     public void ExtractImages_ReturnsGrayAlphaPngWhenPackedGrayscaleTransparencyCreatesSoftMask() {
         byte[] source = PdfDocument.Create()
             .Image(CreateMinimalPackedGrayscaleTransparencyPng(), 24, 12)
-            .Paragraph(p => p.Text("Packed grayscale tRNS image marker"))
+            .Paragraph(p => p.AddText("Packed grayscale tRNS image marker"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -572,7 +572,7 @@ public class PdfImageExtractorTests {
     [Fact]
     public void ExtractImages_ReturnsEmptyListWhenPdfHasNoImages() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("No images here"))
+            .Paragraph(p => p.AddText("No images here"))
             .ToBytes();
 
         var images = PdfImageExtractor.ExtractImages(source);
@@ -796,12 +796,12 @@ public class PdfImageExtractorTests {
         doc.Compose(compose => {
             compose.Page(page => {
                 page.Size(PdfPageSizes.A4);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page body"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("First page body"))));
             });
 
             compose.Page(page => {
                 page.Size(PdfPageSizes.A4);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page body"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Second page body"))));
             });
         });
 
@@ -813,17 +813,17 @@ public class PdfImageExtractorTests {
         doc.Compose(compose => {
             compose.Page(page => {
                 page.Size(PdfPageSizes.A4);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page body"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("First page body"))));
             });
 
             compose.Page(page => {
                 page.Size(PdfPageSizes.A4);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page body"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Second page body"))));
             });
 
             compose.Page(page => {
                 page.Size(PdfPageSizes.A4);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Third page body"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Third page body"))));
             });
         });
 

@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfAnnotationCreationTests {
     [Fact]
     public void AddTextAnnotationGeneratesTheRequestedIconAppearance() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Text note appearance")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Text note appearance")).ToBytes();
 
         PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text",
@@ -24,7 +24,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void MoveAnnotation_TranslatesRectangleAndLineGeometryTogether() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Move annotation")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Move annotation")).ToBytes();
         PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Line",
             Rectangle = new[] { 40D, 50D, 180D, 100D },
@@ -46,7 +46,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void ResizeAnnotation_ScalesRectangleAndMarkupGeometryTogether() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Resize annotation")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Resize annotation")).ToBytes();
         PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Highlight",
             Rectangle = new[] { 40D, 50D, 140D, 70D },
@@ -76,7 +76,7 @@ public class PdfAnnotationCreationTests {
         };
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .TextAnnotation("restricted note")
-            .Paragraph(paragraph => paragraph.Text("Restricted annotation source"))
+            .Paragraph(paragraph => paragraph.AddText("Restricted annotation source"))
             .ToBytes();
         var ownerReadOptions = new PdfLoadOptions { Password = "owner" };
         var userReadOptions = new PdfLoadOptions { Password = "open" };
@@ -194,7 +194,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void AddAnnotation_CreatesUriLinkWithReadback() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Existing page")).ToBytes();
 
         PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Link",
@@ -213,8 +213,8 @@ public class PdfAnnotationCreationTests {
     [Fact]
     public void AddAnnotation_CreatesPageLinkWithReadback() {
         byte[] source = PdfDocument.Create(document => {
-            document.Page(page => page.Content(content => content.Text("Contents")));
-            document.Page(page => page.Content(content => content.Text("Chapter two")));
+            document.Page(page => page.Content(content => content.AddParagraph("Contents")));
+            document.Page(page => page.Content(content => content.AddParagraph("Chapter two")));
         }).ToBytes();
 
         PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
@@ -231,7 +231,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void AddLinkAnnotation_RequiresExactlyOneTarget() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Existing page")).ToBytes();
         Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Link", Rectangle = new[] { 40D, 50D, 180D, 80D }, LinkUri = "https://officeimo.com", LinkPageNumber = 1
         }));
@@ -242,7 +242,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void AddLinkAnnotation_RejectsRelativeUriWithoutCatalogBase() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Existing page")).ToBytes();
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
@@ -258,7 +258,7 @@ public class PdfAnnotationCreationTests {
     public void AddLinkAnnotation_AllowsRelativeUriWithCatalogBase() {
         byte[] source = PdfDocument
             .Create(new PdfCreateOptions().SetCatalogUriBase("https://officeimo.com/docs/"))
-            .Paragraph(p => p.Text("Existing page"))
+            .Paragraph(p => p.AddText("Existing page"))
             .ToBytes();
 
         PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
@@ -282,7 +282,7 @@ public class PdfAnnotationCreationTests {
     [InlineData("PopupRectangle")]
     [InlineData("PopupOpen")]
     public void AddLinkAnnotation_RejectsMarkupOnlyOptions(string optionName) {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Link validation")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Link validation")).ToBytes();
         var options = new PdfAnnotationCreateOptions {
             Subtype = "Link",
             Rectangle = new[] { 40D, 50D, 180D, 80D },
@@ -309,7 +309,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void LinkAnnotation_MoveAndResizeUpdateRectangleWithoutAppearanceRegeneration() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Existing page")).ToBytes();
         PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Link",
             Rectangle = new[] { 40D, 50D, 180D, 80D },
@@ -396,7 +396,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void AddAnnotation_CreatesLineGeometryAppearanceAndPopupOnExistingPage() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Existing page")).ToBytes();
 
         PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Line",
@@ -423,7 +423,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void AddAnnotation_CreatesReplyRelationship() {
-        byte[] source = PdfDocument.Create().TextAnnotation("Parent").Paragraph(p => p.Text("Existing page")).ToBytes();
+        byte[] source = PdfDocument.Create().TextAnnotation("Parent").Paragraph(p => p.AddText("Existing page")).ToBytes();
         int parentObject = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
 
         PdfAnnotationEditResult result = PdfAnnotationEditor.AddAnnotation(source, new PdfAnnotationCreateOptions {
@@ -471,7 +471,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void AddAnnotation_UsesAppendOnlyRevisionWhenCertificationAllowsAnnotations() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Certified page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Certified page")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, new PdfExternalSignatureOptions {
             Profile = PdfSignatureProfile.Certification,
             CertificationPermission = PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures,
@@ -494,7 +494,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void AppendOnlyAnnotationProofAllowsItsOwnedRevisionBeyondTheSourceBudget() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Certified page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Certified page")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, new PdfExternalSignatureOptions {
             Profile = PdfSignatureProfile.Certification,
             CertificationPermission = PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures,
@@ -522,7 +522,7 @@ public class PdfAnnotationCreationTests {
     [Fact]
     public void FluentAnnotationEdits_UseStoredOwnerCredentialsForEncryptedPdf() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted annotations"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted annotations"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };
 
@@ -552,7 +552,7 @@ public class PdfAnnotationCreationTests {
     [Fact]
     public void StaticAnnotationResult_RetainsExplicitOwnerCredentialsForToDocument() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Static encrypted annotation"))
+            .Paragraph(paragraph => paragraph.AddText("Static encrypted annotation"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };
 
@@ -575,7 +575,7 @@ public class PdfAnnotationCreationTests {
     public void FluentAnnotationFlatten_UsesStoredOwnerCredentialsDuringPreflight() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .FreeTextAnnotation("Encrypted annotation", 120, 30)
-            .Paragraph(paragraph => paragraph.Text("Encrypted flatten"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted flatten"))
             .ToBytes();
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
@@ -591,7 +591,7 @@ public class PdfAnnotationCreationTests {
         byte[] source = PdfDocument.Create()
             .FreeTextAnnotation("Flatten me", 120, 30)
             .HighlightAnnotation("Keep me", 120, 14)
-            .Paragraph(p => p.Text("Existing page"))
+            .Paragraph(p => p.AddText("Existing page"))
             .ToBytes();
         int freeTextObject = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("FreeText")).ObjectNumber!.Value;
 
@@ -630,7 +630,7 @@ public class PdfAnnotationCreationTests {
     public void UpdateAnnotation_ReservesTheSerializedPrimaryAnnotation() {
         byte[] source = PdfDocument.Create()
             .TextAnnotation("Short")
-            .Paragraph(paragraph => paragraph.Text("Annotation update"))
+            .Paragraph(paragraph => paragraph.AddText("Annotation update"))
             .ToBytes();
         int objectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
         var readOptions = new PdfLoadOptions {

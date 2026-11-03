@@ -33,7 +33,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfSections.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             defaultHeader.AddParagraph("Header1");
@@ -41,7 +41,7 @@ public partial class Word {
             document.AddParagraph("Section1 Paragraph");
 
             WordSection section2 = document.AddSection();
-            section2.AddHeadersAndFooters();
+            _ = section2.PageSetup.Header;
             var section2Header = RequireSectionHeader(document, 1, HeaderFooterValues.Default);
             var section2Footer = RequireSectionFooter(document, 1, HeaderFooterValues.Default);
             section2Header.AddParagraph("Header2");
@@ -109,7 +109,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfHeaderVariants.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             header.AddParagraph("DefaultHeader");
@@ -132,7 +132,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooter.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Header");
             RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Footer");
             document.AddParagraph("Native body text");
@@ -157,7 +157,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFonts.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("QSerifHeader");
             header.SetFontFamily("Georgia");
             WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("XMonoFooter");
@@ -206,7 +206,7 @@ public partial class Word {
                     CustomStyle = true
                 });
 
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("BigNativeHeader");
             header.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("StyledNativeFooter");
@@ -246,11 +246,11 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterColors.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("RedNativeHeader");
-            header.ColorHex = "FF0000";
+            header.Color = OfficeColor.Parse("FF0000");
             WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("BlueNativeFooter");
-            footer.ColorHex = "0000FF";
+            footer.Color = OfficeColor.Parse("0000FF");
             document.AddParagraph("Plain body text");
 
             document.Save();
@@ -300,7 +300,7 @@ public partial class Word {
                     CustomStyle = true
                 });
 
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("QStyledHeader");
             header.SetStyleId(headerStyleId);
             WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("GreenStyledFooter");
@@ -357,7 +357,7 @@ public partial class Word {
                     CustomStyle = true
                 });
 
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
             header.AddText("QCharStyledHeader").SetCharacterStyleId(headerStyleId);
             WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph();
@@ -391,7 +391,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterEmphasis.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("QBoldSerifHeader");
             header.SetFontFamily("Georgia");
             header.Bold = true;
@@ -434,7 +434,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAlignedHeaderFooter.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph centeredHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("NativeCenterHeader");
             centeredHeader.ParagraphAlignment = WordParagraphAlignment.Center;
             WordParagraph rightFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("NativeRightFooter");
@@ -473,7 +473,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableHeaderFooter.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordTable headerTable = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
             headerTable.LayoutMode = WordTableLayoutMode.Fixed;
             headerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7200) * 635)));
@@ -533,7 +533,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableHeaderFooterBlankParagraphs.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             WordTable headerTable = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTable(1, 2, WordTableStyle.TableNormal);
             headerTable.Rows[0].Cells[0].AddParagraph("ShiftedHeaderLeft");
@@ -578,7 +578,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMultilineHeaderBodyClearance.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordTable headerTable = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTable(1, 2, WordTableStyle.TableNormal);
             headerTable.Rows[0].Cells[0].AddParagraph("ClearanceHeaderOne");
             headerTable.Rows[0].Cells[0].AddParagraph("ClearanceHeaderTwo");
@@ -627,7 +627,7 @@ public partial class Word {
 
         static void CreateMultilineHeaderDocument(string docPath, string pdfPath, string bodyText, int? headerFontSize) {
             using WordDocument document = WordDocument.Create(docPath);
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             for (int index = 1; index <= 4; index++) {
                 WordParagraph paragraph = header.AddParagraph("ClearanceHeaderLine" + index.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -651,7 +651,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMultilineHeaderFooter.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header.AddParagraph("NativeHeaderLineOne");
             header.AddParagraph("NativeHeaderLineTwo");
@@ -697,7 +697,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMultilineFooterPlacement.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             footer.AddParagraph("NativeFooterBandLineOne").FontSize = global::OfficeIMO.OfficeLength.Points(9);
             footer.AddParagraph("NativeFooterBandLineTwo").FontSize = global::OfficeIMO.OfficeLength.Points(9);
@@ -727,7 +727,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLargeMultilineFooterPlacement.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             for (int index = 1; index <= 4; index++) {
                 WordParagraph paragraph = footer.AddParagraph("LargeFooterLine" + index.ToString(CultureInfo.InvariantCulture));
@@ -760,11 +760,11 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Reserves_Body_Clearance_For_Multiline_Footer_Margins() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeMultilineFooterMarginExpansion.docx"));
-        document.Sections[0].Margins.Top = global::OfficeIMO.OfficeLength.Points(30D);
-        document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
-        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(30D);
-        document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
-        document.AddHeadersAndFooters();
+        document.Sections[0].PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+        _ = document.PageSetup.Header;
         WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
         footer.AddParagraph("ClearanceFooterOne").FontSize = global::OfficeIMO.OfficeLength.Points(9);
         footer.AddParagraph("ClearanceFooterTwo").FontSize = global::OfficeIMO.OfficeLength.Points(9);

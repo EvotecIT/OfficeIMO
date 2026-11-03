@@ -8,8 +8,7 @@ internal static class MeetingMinutes {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
         document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-        document.AddHeadersAndFooters();
-        document.Header!.Default!.AddParagraph("NORTHWIND / DELIVERY REVIEW");
+        document.PageSetup.Header.AddParagraph("NORTHWIND / DELIVERY REVIEW");
         document.AddParagraph("Delivery review minutes").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("14 September 2026 | Facilitator: Jordan Lee | Duration: 30 minutes");
         document.AddParagraph("Attendees: Product, Engineering, Operations and Support.");
@@ -30,7 +29,7 @@ internal static class MeetingMinutes {
             for (int column = 0; column < 3; column++) {
                 actions.Rows[row].Cells[column].Paragraphs[0].Text = values[row, column];
                 actions.Rows[row].Cells[column].Paragraphs[0].Bold = row == 0;
-                if (row == 0) actions.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
+                if (row == 0) actions.Rows[row].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
             }
         }
         document.AddParagraph("Next meeting").Style = WordParagraphStyles.Heading2;

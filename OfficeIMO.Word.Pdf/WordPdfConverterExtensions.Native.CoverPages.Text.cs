@@ -72,7 +72,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike: HasNativeOnOff(properties?.Strike),
                 fontSize: ((double?)(style.FontSize ?? (style.SmallCaps && !style.AllCaps
                     ? style.EffectiveFontSize : GetNativeVmlRunFontSize(properties))) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
-                font: GetNativeVmlRunFont(properties)));
+                standardFont: GetNativeVmlRunFont(properties)));
 
         private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {
             foreach (V.TextPath textPath in element.Descendants<V.TextPath>()) {
@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
                     italic: false,
                     strike: false,
                     fontSize: ((double?)(GetNativeVmlTextPathFontSize(textPath)) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
-                    font: GetNativeVmlTextPathFont(textPath)));
+                    standardFont: GetNativeVmlTextPathFont(textPath)));
             }
         }
 

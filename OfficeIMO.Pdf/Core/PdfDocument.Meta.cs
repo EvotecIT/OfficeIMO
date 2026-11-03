@@ -303,6 +303,8 @@ public sealed partial class PdfDocument : IDisposable {
             if (block is MultiColumnBlock or RowBlock or PdfCanvasBlock)
                 throw new NotSupportedException("Page-associated footnotes require ordinary single-column flow.");
         }
+        if (block is MultiColumnBlock or RowBlock or PdfCanvasBlock)
+            foreach (PdfParagraph paragraph in PdfFootnoteTraversal.LiveParagraphs(block)) paragraph.RejectsFootnotes = true;
         if (block is TableBlock { Style: { BorderFrame: not null, Position: null, ConsumesVerticalFlow: true } } table)
             block = new ContainerBlock(table);
         CurrentBlockSink(block);

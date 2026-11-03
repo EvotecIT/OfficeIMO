@@ -1,17 +1,38 @@
+#pragma warning disable RS0026 // Text and callback paragraph forms share AddParagraph and its optional layout parameters.
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
-    /// <summary>
-    /// Fluent paragraph builder in the style of OfficeIMO.Word.
-    /// Example: Paragraph(p => p.Color(OfficeColor.Gray).Text("You can ").Bold("mix ").Italic("styles"));
-    /// </summary>
-    internal PdfDocument Paragraph(System.Action<PdfParagraphBuilder> compose, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfParagraphStyle? style = null) {
-        Guard.NotNull(compose, nameof(compose));
-        var builder = new PdfParagraphBuilder(align, defaultColor);
-        compose(builder);
-        AddBlock(builder.Build(style));
+    /// <summary>Appends a paragraph to the current flow and returns it.</summary>
+    /// <param name="text">Optional first text run, formatted from the paragraph run defaults.</param>
+    /// <param name="align">Paragraph alignment.</param>
+    /// <param name="color">Optional text colour; it becomes <see cref="PdfTextRunDefaults.Color"/> and the colour of runs that carry none.</param>
+    /// <param name="style">Optional paragraph layout style.</param>
+    /// <returns>The paragraph. It stays editable until the document is laid out, so <c>AddParagraph().AddText("x").SetBold()</c> renders bold text.</returns>
+    public PdfParagraph AddParagraph(string? text = null, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfParagraphStyle? style = null) {
+        var paragraph = new PdfParagraph(align, color, this);
+        if (text != null) paragraph.AddText(text);
+        AddBlock(paragraph.CreateBlock(style));
+        return paragraph;
+    }
+
+    /// <summary>Appends a paragraph built by a callback and returns it.</summary>
+    /// <param name="build">Adds and formats the paragraph runs.</param>
+    /// <param name="align">Paragraph alignment.</param>
+    /// <param name="color">Optional text colour; it becomes <see cref="PdfTextRunDefaults.Color"/> and the colour of runs that carry none.</param>
+    /// <param name="style">Optional paragraph layout style.</param>
+    public PdfParagraph AddParagraph(System.Action<PdfParagraph> build, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfParagraphStyle? style = null) {
+        Guard.NotNull(build, nameof(build));
+        var paragraph = new PdfParagraph(align, color, this);
+        build(paragraph);
+        AddBlock(paragraph.CreateBlock(style));
+        return paragraph;
+    }
+
+    // Chaining form used by adapters and tests that compose a document in one expression.
+    internal PdfDocument Paragraph(System.Action<PdfParagraph> build, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfParagraphStyle? style = null) {
+        AddParagraph(build, align, color, style);
         return this;
     }
 

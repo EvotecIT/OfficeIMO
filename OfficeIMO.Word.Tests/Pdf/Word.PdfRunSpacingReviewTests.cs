@@ -44,10 +44,10 @@ public sealed class WordPdfRunSpacingReviewTests {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Main");
         foreach (string literal in new[] { "{page}", "{pages}", "{documentpages}" }) {
-            WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph(literal);
+            WordParagraph paragraph = document.PageSetup.Header.AddParagraph(literal);
             if (spaced) paragraph.Spacing = OfficeLength.Emus((long)(20) * 635);
         }
-        WordParagraph mixed = document.HeaderDefaultOrCreate.AddParagraph("{page}");
+        WordParagraph mixed = document.PageSetup.Header.AddParagraph("{page}");
         mixed.Spacing = OfficeLength.Emus((long)(20) * 635);
         mixed._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " PAGE " });
         using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -63,8 +63,8 @@ public sealed class WordPdfRunSpacingReviewTests {
     public void NaturalDocumentPageFieldKeepsItsValueInAStyledHeaderZone() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Main");
-        document.HeaderDefaultOrCreate.AddParagraph("Styled label").Spacing = OfficeLength.Emus((long)(20) * 635);
-        WordParagraph count = document.HeaderDefaultOrCreate.AddParagraph();
+        document.PageSetup.Header.AddParagraph("Styled label").Spacing = OfficeLength.Emus((long)(20) * 635);
+        WordParagraph count = document.PageSetup.Header.AddParagraph();
         count._paragraph.Append(new SimpleField(new Run(new Text("888"))) { Instruction = " NUMPAGES " });
         using var pdf = PdfPigDocument.Open(document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.DoesNotContain("{documentpages}", pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -134,10 +134,10 @@ public sealed class WordPdfRunSpacingReviewTests {
         WordParagraph item = list.AddItem("BODY");
         WordParagraph paragraph = item;
         if (route == "cell") paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
-        else if (route == "header") paragraph = document.HeaderDefaultOrCreate.AddParagraph();
-        else if (route == "footer") paragraph = document.FooterDefaultOrCreate.AddParagraph();
-        else if (route == "header-box") paragraph = document.HeaderDefaultOrCreate.AddParagraph().AddTextBox("Placeholder", WordImageTextWrapping.Square).Paragraphs.Single();
-        else if (route == "footer-box") paragraph = document.FooterDefaultOrCreate.AddParagraph().AddTextBox("Placeholder", WordImageTextWrapping.Square).Paragraphs.Single();
+        else if (route == "header") paragraph = document.PageSetup.Header.AddParagraph();
+        else if (route == "footer") paragraph = document.PageSetup.Footer.AddParagraph();
+        else if (route == "header-box") paragraph = document.PageSetup.Header.AddParagraph().AddTextBox("Placeholder", WordImageTextWrapping.Square).Paragraphs.Single();
+        else if (route == "footer-box") paragraph = document.PageSetup.Footer.AddParagraph().AddTextBox("Placeholder", WordImageTextWrapping.Square).Paragraphs.Single();
         if (!ReferenceEquals(item, paragraph)) {
             paragraph._paragraph.RemoveAllChildren();
             foreach (var child in item._paragraph.ChildElements) paragraph._paragraph.Append(child.CloneNode(true));
@@ -159,7 +159,7 @@ public sealed class WordPdfRunSpacingReviewTests {
     private static double FieldFollowingTextOrigin(bool complex, string instruction, bool styled) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Main");
-        WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph();
+        WordParagraph paragraph = document.PageSetup.Header.AddParagraph();
         var result = new Run(new RunProperties(new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new Caps(),
             new Spacing { Val = styled ? 20 : 0 }, new CharacterScale { Val = styled ? 200 : 100 },
             new FontSize { Val = "24" }), new Text("888"));

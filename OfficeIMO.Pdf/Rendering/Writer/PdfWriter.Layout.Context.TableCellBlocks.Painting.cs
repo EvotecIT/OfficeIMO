@@ -29,7 +29,6 @@ internal static partial class PdfWriter {
             EndRoundedClip(sb);
             string? uri = cell.LinkUri;
             string? destination = cell.LinkDestinationName;
-            if (geometry.Table.Links.TryGetValue((slice.Row, cell.Column), out string? tableUri)) { uri = tableUri; destination = null; }
             if (HasCellLinkTarget(uri, destination)) {
                 currentPage!.Annotations.Add(new LinkAnnotation {
                     X1 = left + padLeft, X2 = left + padLeft + prepared.Width, Y1 = top - height, Y2 = top,

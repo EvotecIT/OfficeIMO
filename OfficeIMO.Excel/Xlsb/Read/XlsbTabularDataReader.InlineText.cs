@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Text;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
@@ -38,7 +37,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (value == null && _inlineTextSlices.Length != 0) {
                 InlineTextSlice slice = _inlineTextSlices[ordinal];
                 if (slice.IsPresent) {
-                    value = Encoding.Unicode.GetString(
+                    value = XlsbWideText.Decode(
                         _worksheetPart.Buffer, slice.Offset, slice.ByteCount);
                     _strings[ordinal] = value;
                 }

@@ -35,12 +35,12 @@ public partial class Word {
         else options.PdfOptions = new PdfCreateOptions();
         PdfCreateOptions configured = options.PdfOptions!;
         switch (setting) {
-            case "header-size": configured.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24); break;
-            case "footer-size": configured.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24); break;
-            case "header-font": configured.HeaderFont = PdfStandardFont.Courier; break;
-            case "footer-font": configured.FooterFont = PdfStandardFont.Courier; break;
-            case "header-family": configured.HeaderFontFamily = "Courier New"; break;
-            case "footer-family": configured.FooterFontFamily = "Courier New"; break;
+            case "header-size": configured.PageSetup.Header.FontSize = global::OfficeIMO.OfficeLength.Points(24); break;
+            case "footer-size": configured.PageSetup.Footer.FontSize = global::OfficeIMO.OfficeLength.Points(24); break;
+            case "header-font": configured.PageSetup.Header.StandardFont = PdfStandardFont.Courier; break;
+            case "footer-font": configured.PageSetup.Footer.StandardFont = PdfStandardFont.Courier; break;
+            case "header-family": configured.PageSetup.Header.FontFamily = "Courier New"; break;
+            case "footer-family": configured.PageSetup.Footer.FontFamily = "Courier New"; break;
             case "metadata": options.Title = "Typography control"; break;
         }
         string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -68,7 +68,7 @@ public partial class Word {
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
         else options.PdfOptions = new PdfCreateOptions();
         options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
-        options.PdfOptions.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24);
+        options.PdfOptions.PageSetup.Header.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains("Courier", letter.FontName, StringComparison.Ordinal));
     }
@@ -87,13 +87,13 @@ public partial class Word {
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
         else options.PdfOptions = new PdfCreateOptions();
         if (footer) {
-            options.PdfOptions!.FooterFont = PdfStandardFont.Courier;
+            options.PdfOptions!.PageSetup.Footer.StandardFont = PdfStandardFont.Courier;
             options.IncludePageNumbers = true;
             options.PageNumberFormat = "NUMBER {page}/{pages}";
         } else {
-            options.PdfOptions!.HeaderFont = PdfStandardFont.Courier;
-            options.PdfOptions.ShowHeader = true;
-            options.PdfOptions.HeaderFormat = "HEADER";
+            options.PdfOptions!.PageSetup.Header.StandardFont = PdfStandardFont.Courier;
+            options.PdfOptions.PageSetup.Header.Show = true;
+            options.PdfOptions.PageSetup.Header.Format = "HEADER";
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;

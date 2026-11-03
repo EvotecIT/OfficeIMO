@@ -17,8 +17,10 @@ public class PdfGradientPlacementConsistencyTests {
         shape.StrokeWidth = 0;
         if (transformed) shape.Transform = OfficeTransform.RotateDegrees(17, 100, 50);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(700),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(50), MarginRight = global::OfficeIMO.OfficeLength.Points(50), MarginTop = global::OfficeIMO.OfficeLength.Points(150), MarginBottom = global::OfficeIMO.OfficeLength.Points(150)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(700)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(50), Right = global::OfficeIMO.OfficeLength.Points(50), Top = global::OfficeIMO.OfficeLength.Points(150), Bottom = global::OfficeIMO.OfficeLength.Points(150) }
+                }
             })
             .Compose(document => document.Page(page => page
                 .Header(header => header.Shape(shape))

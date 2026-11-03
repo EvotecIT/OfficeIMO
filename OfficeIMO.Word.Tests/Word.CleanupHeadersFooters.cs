@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void CleanupDocument_RemovesClutterFromHeadersAndFooters() {
             string filePath = Path.Combine(_directoryWithFiles, "CleanupHeadersAndFooters.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var headerParagraph = defaultHeader.AddParagraph("Header ");

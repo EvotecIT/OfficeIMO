@@ -163,7 +163,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         ReadPictureSize(item, budget, result, out double width, out double height);
         ReadPicturePosition(item, fallbackLeft, fallbackTop, budget, result, out double left, out double pictureTop);
         using var stream = new MemoryStream(bytes);
-        PptCore.PowerPointPicture picture = slide.AddImage(stream, imagePartType, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(pictureTop), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
+        PptCore.PowerPointImage picture = slide.AddImage(stream, imagePartType, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(pictureTop), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         // Reconstruction keeps the authored frame, including deliberate stretching and crop.
         picture.Bounds = new PptCore.PowerPointLayoutBox(OfficeLength.Points(left), OfficeLength.Points(pictureTop), OfficeLength.Points(width), OfficeLength.Points(height));
         string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
@@ -188,7 +188,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         fallbackTop = Math.Max(fallbackTop, pictureTop + height + 18D);
     }
 
-    private static void ApplyPictureHyperlink(PptCore.PowerPointPicture picture, string? target, HtmlToPowerPointResult result, HtmlUrlPolicy policy) {
+    private static void ApplyPictureHyperlink(PptCore.PowerPointImage picture, string? target, HtmlToPowerPointResult result, HtmlUrlPolicy policy) {
         if (target == null || target.Trim().Length == 0) return;
         string trimmed = HtmlUrlPolicyEvaluator.ResolveUrl(target, null, policy);
         if (trimmed.Length == 0) return;
@@ -685,7 +685,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         top = NormalizeGeometry(top, fallbackTop, -budget.Limits.MaxAbsoluteGeometry, budget, result, "picture top");
     }
 
-    private static void ApplyPictureTransforms(IElement item, PptCore.PowerPointPicture picture, HtmlImportBudget budget, HtmlToPowerPointResult result) {
+    private static void ApplyPictureTransforms(IElement item, PptCore.PowerPointImage picture, HtmlImportBudget budget, HtmlToPowerPointResult result) {
         ApplyShapeTransforms(item, picture, budget, result);
 
         double left = ReadOptionalDoubleAttribute(item, "data-officeimo-crop-left") ?? 0D;

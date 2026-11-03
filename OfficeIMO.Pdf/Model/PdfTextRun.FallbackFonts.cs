@@ -13,7 +13,7 @@ public sealed partial class PdfTextRun {
     internal PdfTextRun WithResolvedFallbackFontFamily(string familyName) {
         familyName = OfficeIMO.Drawing.OfficeFontFamilyParser.SerializeLiteral(familyName);
         PdfTextRun copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic,
-            Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName,
+            Strike, FontSize, StandardFont, LinkUri, LinkContents, Baseline, LinkDestinationName,
             TabLeader, TabAlignment, BackgroundColor, familyName, UnderlineStyle, StrikeStyle, DecorationColor));
         copy.PlannedFontFallback = null;
         return copy;

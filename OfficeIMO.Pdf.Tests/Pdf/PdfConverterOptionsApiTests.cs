@@ -151,25 +151,24 @@ public sealed class PdfConverterOptionsApiTests {
         PdfCreateOptions defaultClone = defaults.Clone();
 
         Assert.False(defaults.HasExplicitDefaultFont);
-        Assert.False(defaults.HasExplicitHeaderFont);
-        Assert.False(defaults.HasExplicitFooterFont);
+        Assert.False(defaults.PageSetup.Header.HasExplicitStandardFont);
+        Assert.False(defaults.PageSetup.Footer.HasExplicitStandardFont);
         Assert.False(defaultClone.HasExplicitDefaultFont);
-        Assert.False(defaultClone.HasExplicitHeaderFont);
-        Assert.False(defaultClone.HasExplicitFooterFont);
+        Assert.False(defaultClone.PageSetup.Header.HasExplicitStandardFont);
+        Assert.False(defaultClone.PageSetup.Footer.HasExplicitStandardFont);
 
         var configured = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier,
-            HeaderFont = PdfStandardFont.TimesRoman,
-            FooterFont = PdfStandardFont.Helvetica
+            PageSetup = { Header = { StandardFont = PdfStandardFont.TimesRoman }, Footer = { StandardFont = PdfStandardFont.Helvetica } }
         };
         PdfCreateOptions configuredClone = configured.Clone();
 
         Assert.True(configured.HasExplicitDefaultFont);
-        Assert.True(configured.HasExplicitHeaderFont);
-        Assert.True(configured.HasExplicitFooterFont);
+        Assert.True(configured.PageSetup.Header.HasExplicitStandardFont);
+        Assert.True(configured.PageSetup.Footer.HasExplicitStandardFont);
         Assert.True(configuredClone.HasExplicitDefaultFont);
-        Assert.True(configuredClone.HasExplicitHeaderFont);
-        Assert.True(configuredClone.HasExplicitFooterFont);
+        Assert.True(configuredClone.PageSetup.Header.HasExplicitStandardFont);
+        Assert.True(configuredClone.PageSetup.Footer.HasExplicitStandardFont);
     }
 
     [Fact]

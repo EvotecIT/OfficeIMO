@@ -12,10 +12,10 @@ public sealed class PdfHtmlPageSelectionTests {
     [Fact]
     public void DocumentHtmlExport_AppliesPageRangesBeforeSemanticReading() {
         PdfDocument source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page 1"));
+            .Paragraph(paragraph => paragraph.AddText("Page 1"));
         for (int pageNumber = 2; pageNumber <= 1001; pageNumber++) {
             int capturedPageNumber = pageNumber;
-            source.PageBreak().Paragraph(paragraph => paragraph.Text("Page " + capturedPageNumber));
+            source.PageBreak().Paragraph(paragraph => paragraph.AddText("Page " + capturedPageNumber));
         }
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source.ToBytes()));
         var options = new PdfHtmlExportOptions {
@@ -74,9 +74,9 @@ public sealed class PdfHtmlPageSelectionTests {
     [InlineData(2, true)]
     public void VisualWordAndPowerPoint_ReportOptionalContentOnlyForSelectedUsage(int pageNumber, bool expectedWarning) {
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Unlayered page"))
+            .Paragraph(paragraph => paragraph.AddText("Unlayered page"))
             .PageBreak()
-            .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
+            .Layer("Selected layer", layer => layer.AddParagraph(paragraph => paragraph.AddText("Layered page")))
             .ToBytes()));
         PdfWordExportOptions wordOptions = PdfWordExportOptions.CreateVisualPages();
         wordOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(pageNumber) };
@@ -96,7 +96,7 @@ public sealed class PdfHtmlPageSelectionTests {
     [Fact]
     public void VisualWordAndPowerPoint_ReportInconclusiveOptionalContentInspectionWithoutFailingConversion() {
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-            .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
+            .Layer("Selected layer", layer => layer.AddParagraph(paragraph => paragraph.AddText("Layered page")))
             .ToBytes()));
         PdfReadPage.OptionalContentUsageInspectionObserverForTesting = static () =>
             throw new InvalidDataException("Synthetic optional-content inspection failure.");
@@ -119,9 +119,9 @@ public sealed class PdfHtmlPageSelectionTests {
     [Fact]
     public void HtmlExport_ReportsOptionalContentOnlyWhenSelectedPagesUseIt() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Unlayered page"))
+            .Paragraph(paragraph => paragraph.AddText("Unlayered page"))
             .PageBreak()
-            .Layer("Selected layer", layer => layer.Paragraph(paragraph => paragraph.Text("Layered page")))
+            .Layer("Selected layer", layer => layer.AddParagraph(paragraph => paragraph.AddText("Layered page")))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
 

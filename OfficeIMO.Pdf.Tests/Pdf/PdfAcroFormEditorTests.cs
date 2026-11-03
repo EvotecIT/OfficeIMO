@@ -55,7 +55,7 @@ public class PdfAcroFormEditorTests {
 
     [Fact]
     public void Edit_RejectsDefaultValuesForPushButtons() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Push default")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Push default")).ToBytes();
         byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Submit",
             Kind = PdfFormFieldCreationKind.PushButton,
@@ -150,7 +150,7 @@ public class PdfAcroFormEditorTests {
             .ChoiceField("Country", new[] { "Poland", "Germany" }, value: "Poland")
             .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash" }, value: "Cash")
             .PageBreak()
-            .Paragraph(p => p.Text("Second page"))
+            .Paragraph(p => p.AddText("Second page"))
             .ToBytes();
 
         PdfAcroFormEditResult result = PdfAcroFormEditor.Edit(source, edit => edit
@@ -221,7 +221,7 @@ public class PdfAcroFormEditorTests {
 
     [Fact]
     public void Edit_CreatesAcroFormInDocumentWithoutFields() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("No form yet")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("No form yet")).ToBytes();
 
         PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Created.Name",
@@ -251,7 +251,7 @@ public class PdfAcroFormEditorTests {
 
     [Fact]
     public void Edit_RejectsTerminalNamesThatCollideWithNonterminalParents() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Field hierarchy collisions")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Field hierarchy collisions")).ToBytes();
         byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions { Name = "Customer.Notes", Value = "kept" })
             .Create(new PdfFormFieldCreateOptions { Name = "Other", Value = "rename source" }))
@@ -264,7 +264,7 @@ public class PdfAcroFormEditorTests {
 
     [Fact]
     public void Edit_MoveRegeneratesAnEmptyChoiceAppearanceForTheNewBounds() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Empty choice move")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Empty choice move")).ToBytes();
         byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Country",
             Kind = PdfFormFieldCreationKind.Choice,
@@ -289,7 +289,7 @@ public class PdfAcroFormEditorTests {
 
     [Fact]
     public void Edit_MoveRegeneratesPushButtonCaptionAppearanceForTheNewBounds() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Push button move")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Push button move")).ToBytes();
         byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Submit",
             Kind = PdfFormFieldCreationKind.PushButton,
@@ -325,9 +325,9 @@ public class PdfAcroFormEditorTests {
     [Fact]
     public void Edit_MoveRejectsCrossPagePushButtonWithResourceLessAppearance() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("First page"))
+            .Paragraph(p => p.AddText("First page"))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page"))
+            .Paragraph(p => p.AddText("Second page"))
             .ToBytes();
         source = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Submit",
@@ -361,7 +361,7 @@ public class PdfAcroFormEditorTests {
 
     [Fact]
     public void Edit_AllowsFurtherLayoutChangesToUnsignedSignatureField() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature page")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Signature page")).ToBytes();
         byte[] placed = PdfAcroFormEditor.Edit(source, edit => edit.PlaceSignatureField("Approval", 1, 72, 500, 180, 40)).ToBytes();
 
         PdfAcroFormEditResult moved = PdfAcroFormEditor.Edit(placed, edit => edit.Move("Approval", 1, 90, 440, 200, 50));
@@ -379,9 +379,9 @@ public class PdfAcroFormEditorTests {
     [InlineData("invalid-matrix")]
     public void Edit_MoveRejectsCrossPageUnsignedSignatureWithResourceLessAppearance(string placement) {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("First page"))
+            .Paragraph(p => p.AddText("First page"))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page"))
+            .Paragraph(p => p.AddText("Second page"))
             .ToBytes();
         source = PdfAcroFormEditor.Edit(source, edit => edit.PlaceSignatureField("Approval", 1, 72, 500, 180, 40)).ToBytes();
         source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {

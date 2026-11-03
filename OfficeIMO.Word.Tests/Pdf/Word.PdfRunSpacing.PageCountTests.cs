@@ -10,7 +10,7 @@ public partial class Word {
     [Fact]
     public void StyledHeaderFooterPageCountsKeepDocumentAndRestartedSectionTotalsSeparate() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         AddCounts(RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph());
         AddCounts(RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph());
         document.AddParagraph("First section first page");

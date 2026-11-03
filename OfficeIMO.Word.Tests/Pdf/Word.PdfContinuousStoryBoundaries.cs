@@ -17,8 +17,8 @@ public partial class Word {
     public void SaveAsPdf_RequiredSiblingPreservesImplicitVariantFrame(bool footer, int emptyVariant) {
         using WordDocument document = CreateEmptyRunningStoryDocument("absent", footer);
         WordHeaderFooter[] stories = footer
-            ? new WordHeaderFooter[] { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate }
-            : new WordHeaderFooter[] { document.HeaderFirstOrCreate, document.HeaderEvenOrCreate, document.HeaderDefaultOrCreate };
+            ? new WordHeaderFooter[] { document.PageSetup.FirstPageFooter, document.PageSetup.EvenPageFooter, document.PageSetup.Footer }
+            : new WordHeaderFooter[] { document.PageSetup.FirstPageHeader, document.PageSetup.EvenPageHeader, document.PageSetup.Header };
         foreach (var child in stories[emptyVariant].ChildElements.ToArray()) child.Remove();
         for (int index = 0; index < stories.Length; index++) {
             if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);
@@ -29,8 +29,8 @@ public partial class Word {
         }
         WordPdfExportOptions options = EmptyRunningOptions();
         options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions();
-        if (footer) options.PdfOptions.FooterOffsetY = global::OfficeIMO.OfficeLength.Points(24D);
-        else options.PdfOptions.HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(24D);
+        if (footer) options.PdfOptions.PageSetup.Footer.Offset = global::OfficeIMO.OfficeLength.Points(24D);
+        else options.PdfOptions.PageSetup.Header.Offset = global::OfficeIMO.OfficeLength.Points(24D);
         using var ordinary = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         for (int index = 0; index < stories.Length; index++)
             if (index != emptyVariant) stories[index].Paragraphs.Last().AddText(" ").AddField(WordFieldType.SectionPages);
@@ -47,13 +47,13 @@ public partial class Word {
     public void SaveAsPdf_ContinuousBodyIgnoresUnusedStoryEdgeDistance(bool footerDistance, bool oppositeStory) {
         using WordDocument source = WordDocument.Create();
         if (oppositeStory) {
-            WordHeaderFooter story = footerDistance ? source.HeaderDefaultOrCreate : source.FooterDefaultOrCreate;
+            WordHeaderFooter story = footerDistance ? source.PageSetup.Header : source.PageSetup.Footer;
             SetInheritedRunningControlStyle(story.AddParagraph("MARK"));
         }
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection(WordSectionBreakType.Continuous);
-        if (footerDistance) later.Margins.FooterDistance+= global::OfficeIMO.OfficeLength.Points(36D);
-        else later.Margins.HeaderDistance+= global::OfficeIMO.OfficeLength.Points(36D);
+        if (footerDistance) later.PageSetup.Margins.FooterDistance+= global::OfficeIMO.OfficeLength.Points(36D);
+        else later.PageSetup.Margins.HeaderDistance+= global::OfficeIMO.OfficeLength.Points(36D);
         SetInheritedRunningControlStyle(source.AddParagraph("S2"));
         // The public story convenience API can create an empty opposite part.
         // This control specifically has no authored story on the changed edge.
@@ -71,8 +71,8 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_ContinuousInheritedStoryPreservesChangedEdgeDistance(bool footer) {
         using WordDocument source = CreateInheritedRunningStoryControl(footer, "default", "continuous");
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
-        source.Sections[1].Margins.HeaderDistance = source.Sections[1].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(54D);
+        source.Sections[0].PageSetup.Margins.HeaderDistance = source.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        source.Sections[1].PageSetup.Margins.HeaderDistance = source.Sections[1].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(54D);
         source.Paragraphs.Single(p => p.Text == "S2A").PageBreakBefore = true;
         using var pdf = PdfPigDocument.Open(source.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
@@ -111,16 +111,16 @@ public partial class Word {
     [InlineData(true, true, true)]
     public void SaveAsPdf_InheritedRequiredStoryPreservesMixedAnchoredTextBox(bool footer, bool even, bool table) {
         using WordDocument source = WordDocument.Create();
-        WordHeaderFooter required = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordHeaderFooter required = footer ? source.PageSetup.Footer : source.PageSetup.Header;
         if (table) required.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "TABLE";
         else required.AddParagraph("COUNT ").AddField(WordFieldType.SectionPages);
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection();
-        later.AddHeadersAndFooters();
-        later.DifferentFirstPage = !even;
-        later.DifferentOddAndEvenPages = even;
-        WordHeaderFooter mixed = footer ? even ? later.Footer!.Even! : later.Footer!.First!
-            : even ? later.Header!.Even! : later.Header!.First!;
+        _ = later.PageSetup.Header;
+        later.PageSetup.DifferentFirstPage = !even;
+        later.PageSetup.DifferentOddAndEvenPages = even;
+        WordHeaderFooter mixed = footer ? even ? later.PageSetup.EvenPageFooter : later.PageSetup.FirstPageFooter
+            : even ? later.PageSetup.EvenPageHeader : later.PageSetup.FirstPageHeader;
         foreach (var element in mixed.ChildElements.ToArray()) element.Remove();
         WordParagraph paragraph = mixed.AddParagraph("PREFIX");
         paragraph.AddText(string.Empty).AddTextBox("BOX", WordImageTextWrapping.Square);

@@ -24,7 +24,7 @@ public class PowerPointHyperlinkTextColorTests {
             run = slide.AddTextBox("Linked label").Paragraphs.Single().Runs.Single();
         }
         if (linkFirst) run.SetHyperlink("https://example.test/first");
-        run.Color = "FFFFFF";
+        run.Color = OfficeColor.Parse("FFFFFF");
         run.SetHyperlink("https://example.test/final");
         using var output = new MemoryStream();
         presentation.Save(output);
@@ -38,7 +38,7 @@ public class PowerPointHyperlinkTextColorTests {
         PowerPointTextRun actual = tableCell
             ? reopened.Slides.Single().Tables.Single().GetCell(0, 0).Runs.Single()
             : reopened.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
-        Assert.Equal("FFFFFF", actual.Color);
+        Assert.Equal(OfficeColor.Parse("FFFFFF"), actual.Color);
         Assert.Equal("https://example.test/final", actual.Hyperlink?.AbsoluteUri);
         Assert.Equal("Linked label", actual.Text);
     }
@@ -60,11 +60,11 @@ public class PowerPointHyperlinkTextColorTests {
         Assert.Null(run.Color);
         run.SetHyperlink("https://example.test/replaced");
         Assert.True(run.HyperlinkUsesTextColor);
-        run.Color = "FFFFFF";
+        run.Color = OfficeColor.Parse("FFFFFF");
         run.Color = null;
         Assert.Null(run.Color);
         Assert.True(run.HyperlinkUsesTextColor);
-        run.Color = "FFFFFF";
+        run.Color = OfficeColor.Parse("FFFFFF");
         run.HyperlinkUsesTextColor = false;
         run.SetHyperlink("https://example.test/theme");
         Assert.False(run.HyperlinkUsesTextColor);
@@ -75,7 +75,7 @@ public class PowerPointHyperlinkTextColorTests {
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         var actual = reopened.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.False(actual.HyperlinkUsesTextColor);
-        Assert.Equal("FFFFFF", actual.Color);
+        Assert.Equal(OfficeColor.Parse("FFFFFF"), actual.Color);
         Assert.Equal("https://example.test/theme", actual.Hyperlink!.AbsoluteUri);
     }
 
@@ -88,8 +88,8 @@ public class PowerPointHyperlinkTextColorTests {
             .Single().Slide.Descendants<A.HyperlinkOnClick>().Single();
         hyperlink.HyperlinkExtensionList = new A.HyperlinkExtensionList(
             new A.HyperlinkExtension { Uri = "{F60F15CC-1C01-4324-90E6-D474220C5BB0}" });
-        run.Color = "FFFFFF";
-        run.Color = "FFDD00";
+        run.Color = OfficeColor.Parse("FFFFFF");
+        run.Color = OfficeColor.Parse("FFDD00");
         byte[] sound = {
             (byte)'R', (byte)'I', (byte)'F', (byte)'F', 40, 0, 0, 0,
             (byte)'W', (byte)'A', (byte)'V', (byte)'E', (byte)'f', (byte)'m', (byte)'t', (byte)' ',

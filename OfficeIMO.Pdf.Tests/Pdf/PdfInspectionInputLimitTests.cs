@@ -80,7 +80,7 @@ public class PdfInspectionInputLimitTests {
     }
 
     private static byte[] CreatePdf() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("Inspection input budget"))
+        .Paragraph(paragraph => paragraph.AddText("Inspection input budget"))
         .ToBytes();
 
     private class ForwardOnlyStream : Stream {

@@ -142,7 +142,7 @@ public sealed partial class PdfDocument {
                     marker,
                     bold: style?.MarkerBold == true,
                     italic: style?.MarkerItalic == true,
-                    font: markerFont,
+                    standardFont: markerFont,
                     fontFamily: style?.MarkerFontFamily)
             };
             AddRuns(diagnostics, markerRuns, options, markerFont, "PdfListMarker", AppendLocation(itemLocation, "Marker"));
@@ -262,7 +262,7 @@ public sealed partial class PdfDocument {
                     bold: text.Font.IsBold,
                     underline: text.Font.IsUnderline,
                     italic: text.Font.IsItalic,
-                    font: font,
+                    standardFont: font,
                     fontFamily: text.Font.FamilyName)
             };
             AddRuns(diagnostics, runs, options, font, "PdfDrawingText", AppendLocation(locationPrefix, "PdfDrawingText[" + elementIndex.ToString(CultureInfo.InvariantCulture) + "]"));
@@ -432,7 +432,7 @@ public sealed partial class PdfDocument {
 
     private static void AddPageStyledRun(List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, PdfTextRun run, PdfCreateOptions options, PdfStandardFont font, string? fontFamily, string source, string location, int pageNumber) {
         string effectiveFontFamily = run.FontFamily ?? fontFamily ?? string.Empty;
-        string key = source + "|StyledRun|" + (run.Font?.ToString() ?? font.ToString()) + "|" + effectiveFontFamily + "|" + run.Bold + "|" + run.Italic + "|" + run.Text;
+        string key = source + "|StyledRun|" + (run.StandardFont?.ToString() ?? font.ToString()) + "|" + effectiveFontFamily + "|" + run.Bold + "|" + run.Italic + "|" + run.Text;
         if (!seenPageText.Add(key)) {
             return;
         }
@@ -445,7 +445,7 @@ public sealed partial class PdfDocument {
             italic: run.Italic,
             strike: run.Strike,
             fontSize: run.FontSize,
-            font: run.Font,
+            standardFont: run.StandardFont,
             baseline: run.Baseline,
             backgroundColor: run.BackgroundColor,
             fontFamily: string.IsNullOrEmpty(effectiveFontFamily) ? null : effectiveFontFamily,
@@ -543,7 +543,7 @@ public sealed partial class PdfDocument {
                     text!,
                     bold: IsBoldStandardFont(font),
                     italic: IsItalicStandardFont(font),
-                    font: fallbackFont,
+                    standardFont: fallbackFont,
                     fontFamily: fontFamily)
             };
             if (options.HasDiagnosticsReport) {
@@ -676,7 +676,7 @@ public sealed partial class PdfDocument {
         (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) && cffFontProgram != null);
 
     private static PdfStandardFont ResolveDiagnosticRunFont(PdfStandardFont defaultFont, PdfTextRun run) {
-        PdfStandardFont font = run.Font ?? defaultFont;
+        PdfStandardFont font = run.StandardFont ?? defaultFont;
         if (run.Bold && run.Italic) {
             return PdfStandardFontMapper.GetStyledFont(font, bold: true, italic: true);
         }

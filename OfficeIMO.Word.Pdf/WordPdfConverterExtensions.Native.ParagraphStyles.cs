@@ -403,17 +403,17 @@ namespace OfficeIMO.Word.Pdf {
             double headerExpansion = UsesNativeRunningHeader(section, options) ? 0D : GetNativeHeaderFooterMarginExpansion(
                 listMarkers,
                 section.ResolveDefaultHeader(),
-                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
-                section.DifferentOddAndEvenPages ? section.ResolveEvenHeader() : null);
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.PageSetup.DifferentOddAndEvenPages ? section.ResolveEvenHeader() : null);
             double footerExpansion = UsesNativeRunningFooter(section, options) ? 0D : GetNativeFooterMarginExpansion(
                 listMarkers,
                 section.ResolveDefaultFooter(),
-                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
-                section.DifferentOddAndEvenPages ? section.ResolveEvenFooter() : null);
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.PageSetup.DifferentOddAndEvenPages ? section.ResolveEvenFooter() : null);
 
-            double baseTop = (checked((int?)(section.Margins.Top?.ToTwips())) ?? 0) / 20D;
-            if (section._document.Settings.GutterAtTop) baseTop += checked((uint)(section.Margins.Gutter.GetValueOrDefault().ToTwips())) / 20D;
-            double baseBottom = (checked((int?)(section.Margins.Bottom?.ToTwips())) ?? 0) / 20D;
+            double baseTop = (checked((int?)(section.PageSetup.Margins.Top?.ToTwips())) ?? 0) / 20D;
+            if (section._document.Settings.GutterAtTop) baseTop += checked((uint)(section.PageSetup.Margins.Gutter.GetValueOrDefault().ToTwips())) / 20D;
+            double baseBottom = (checked((int?)(section.PageSetup.Margins.Bottom?.ToTwips())) ?? 0) / 20D;
             double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height.ToPoints() - baseTop - baseBottom);
             double minimumBodyHeight = Math.Min(NativeMinimumBodyHeight, availableBodyHeight);
             double maximumExpansion = Math.Max(0D, availableBodyHeight - minimumBodyHeight);

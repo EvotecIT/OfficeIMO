@@ -36,8 +36,8 @@ public sealed class WordPerfectImportTests {
         Assert.Equal(2, result.Content.Sections.Count);
         Assert.InRange(result.Content.Sections[0].PageWidth!.Value.ToPoints(), 595, 596);
         Assert.InRange(result.Content.Sections[0].MarginLeft!.Value.ToPoints(), 70, 72);
-        Assert.Equal("Header Type A", string.Concat(result.Value.Sections[0].Header.Default!.Paragraphs.Select(paragraph => paragraph.Text)));
-        Assert.Equal("Header Type A but changed", string.Concat(result.Value.Sections[1].Header.Default!.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Equal("Header Type A", string.Concat(result.Value.Sections[0].PageSetup.Header.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Equal("Header Type A but changed", string.Concat(result.Value.Sections[1].PageSetup.Header.Paragraphs.Select(paragraph => paragraph.Text)));
         Assert.Equal(WordSectionBreakType.NextPage, result.Value.Sections[1].BreakType);
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2019).Validate(result.Value.OpenXmlDocument));
     }
@@ -178,7 +178,7 @@ public sealed class WordPerfectImportTests {
             Assert.Same(accepted.Content.Sections[0].HeadersAndFooters[0],
                 accepted.Content.Sections[1].HeadersAndFooters[0]);
             Assert.Equal("Header A", accepted.Content.Sections[1].HeadersAndFooters[0].Paragraphs[0].Text);
-            Assert.Equal("Header A", accepted.Value.Sections[1].Header.Default!.Paragraphs[0].Text);
+            Assert.Equal("Header A", accepted.Value.Sections[1].PageSetup.Header.Paragraphs[0].Text);
         }
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>

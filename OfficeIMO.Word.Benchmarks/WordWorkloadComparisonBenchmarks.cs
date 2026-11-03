@@ -140,8 +140,9 @@ public class WordTemplateFillComparisonBenchmarks {
     public byte[] OfficeIMO() {
         using var input = new MemoryStream(_fixture, writable: false);
         using WordDocument document = WordDocument.Load(input);
+        var matchCase = new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true };
         foreach (KeyValuePair<string, string> field in WordWorkloadCorpus.Fields) {
-            document.FindAndReplace(field.Key, field.Value, StringComparison.Ordinal);
+            document.ReplaceAll(field.Key, field.Value, matchCase);
         }
         return document.ToBytes();
     }

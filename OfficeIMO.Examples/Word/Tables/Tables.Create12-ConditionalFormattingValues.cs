@@ -21,8 +21,8 @@ namespace OfficeIMO.Examples.Word {
                     "Status",
                     "Done",
                     WordTextMatchType.Equals,
-                    matchFillColorHex: "92d050",
-                    noMatchFillColorHex: "ff0000",
+                    matchFillColor: OfficeColor.Parse("92d050"),
+                    noMatchFillColor: OfficeColor.Parse("ff0000"),
                     matchTextFormat: p => p.SetBold(),
                     noMatchTextFormat: p => p.SetUnderline(WordUnderlineStyle.Single));
 
@@ -32,8 +32,8 @@ namespace OfficeIMO.Examples.Word {
                         ("Name", "Task1", WordTextMatchType.StartsWith)
                     },
                     matchAll: true,
-                    matchFillColorHex: "92d050",
-                    noMatchFillColorHex: "ff0000",
+                    matchFillColor: OfficeColor.Parse("92d050"),
+                    noMatchFillColor: OfficeColor.Parse("ff0000"),
                     highlightColumns: new[] { "Name" },
                     matchTextFormat: p => p.SetBold(),
                     noMatchTextFormat: p => p.SetUnderline(WordUnderlineStyle.Single));

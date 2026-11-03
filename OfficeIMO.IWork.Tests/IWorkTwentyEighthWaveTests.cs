@@ -96,7 +96,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
-        Assert.Single(Assert.Single(result.Value.Slides).Pictures);
+        Assert.Single(Assert.Single(result.Value.Slides).Images);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED");
     }

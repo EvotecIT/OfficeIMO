@@ -140,13 +140,13 @@ Describe 'PowerPointTableEditing workflows' {
                 PowerPointText 'Linked' -Color Crimson -Highlight Yellow -Font Arial -Size 18 -Link 'https://example.org/ppt'
             } -PassThru
             $textBox.Paragraphs[0].Runs[0].Color | Should -Be 'DC143C'
-            $textBox.Paragraphs[0].Runs[0].HighlightColor | Should -Be 'FFFF00'
+            $textBox.Paragraphs[0].Runs[0].BackgroundColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('FFFF00'))
             $textBox.Paragraphs[0].Runs[0].Hyperlink.AbsoluteUri | Should -Be 'https://example.org/ppt'
             $textBox = $textBox | Set-OfficePowerPointShapeText -Content { PowerPointText 'Plain' } -PassThru
             $textBox.Text | Should -Be 'Plain'
             $textBox.Paragraphs[0].Runs[0].Color | Should -BeNullOrEmpty
-            $textBox.Paragraphs[0].Runs[0].HighlightColor | Should -BeNullOrEmpty
-            $textBox.Paragraphs[0].Runs[0].FontName | Should -BeNullOrEmpty
+            $textBox.Paragraphs[0].Runs[0].BackgroundColor | Should -BeNullOrEmpty
+            $textBox.Paragraphs[0].Runs[0].FontFamily | Should -BeNullOrEmpty
             $textBox.Paragraphs[0].Runs[0].FontSize | Should -BeNullOrEmpty
             $textBox.Paragraphs[0].Runs[0].Hyperlink | Should -BeNullOrEmpty
 
@@ -180,7 +180,7 @@ Describe 'PowerPointTableEditing workflows' {
             $table.GetCell(1, 0).Text | Should -Be 'Owner'
             $table.GetCell(2, 0).Text | Should -Be 'Filled'
             $table.GetCell(2, 0).Runs[0].Bold | Should -BeTrue
-            $table.GetCell(2, 0).Runs[0].HighlightColor | Should -BeNullOrEmpty
+            $table.GetCell(2, 0).Runs[0].BackgroundColor | Should -BeNullOrEmpty
             $table.GetCell(2, 0).FillColor | Should -Be 'FFFF00'
             $table.GetCell(3, 0).Text | Should -Be 'Queued'
 

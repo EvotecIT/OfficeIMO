@@ -10,8 +10,8 @@ internal partial class WordToMarkdownConverter {
             message, OfficeConversionLossKind.Omission, location: location, format: "Word"));
 
     private static void ReportOmittedRunningContent(WordSection section, int index, WordMarkdownExportOptions options, CancellationToken token) {
-        Check(section.Header.Default, "Header/default"); Check(section.Header.First, "Header/first"); Check(section.Header.Even, "Header/even");
-        Check(section.Footer.Default, "Footer/default"); Check(section.Footer.First, "Footer/first"); Check(section.Footer.Even, "Footer/even");
+        Check(section.PageSetup.GetHeader(WordHeaderFooterType.Default), "Header/default"); Check(section.PageSetup.GetHeader(WordHeaderFooterType.First), "Header/first"); Check(section.PageSetup.GetHeader(WordHeaderFooterType.Even), "Header/even");
+        Check(section.PageSetup.GetFooter(WordHeaderFooterType.Default), "Footer/default"); Check(section.PageSetup.GetFooter(WordHeaderFooterType.First), "Footer/first"); Check(section.PageSetup.GetFooter(WordHeaderFooterType.Even), "Footer/even");
         void Check(WordHeaderFooter? story, string slot) {
             OpenXmlCompositeElement? root = (OpenXmlCompositeElement?)story?._header ?? story?._footer;
             if (root == null) return;

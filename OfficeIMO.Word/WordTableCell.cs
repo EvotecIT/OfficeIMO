@@ -122,10 +122,8 @@ namespace OfficeIMO.Word {
             get => WordTableCellSpanResolver.GetRowSpan(this);
         }
 
-        /// <summary>
-        /// Get or set the background color of the cell using hexadecimal color code.
-        /// </summary>
-        public string ShadingFillColorHex {
+        /// <summary>Native cell shading fill (hexadecimal or <c>auto</c>); empty removes the shading.</summary>
+        internal string ShadingFillValue {
             get {
                 var fill = _tableCellProperties?.Shading?.Fill?.Value;
                 return fill != null ? fill.ToUpperInvariant() : "";
@@ -224,22 +222,14 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Get or set the background color of a cell using OfficeIMO color.
-        /// An automatic or unspecified fill has no RGB color and returns null.
+        /// An automatic or unspecified fill has no RGB color and returns null; setting null removes the shading.
         /// </summary>
         public Color? ShadingFillColor {
             get {
-                string fill = ShadingFillColorHex;
-                if (fill != "" && !string.Equals(fill, "auto", StringComparison.OrdinalIgnoreCase)) {
-                    return Helpers.ParseColor(fill);
-                }
-
-                return null;
+                string fill = ShadingFillValue;
+                return fill != "" && OfficeIMO.OfficeColor.TryParseHex(fill, out OfficeIMO.OfficeColor color) ? color : null;
             }
-            set {
-                if (value != null) {
-                    this.ShadingFillColorHex = value.Value.ToRgbHex();
-                }
-            }
+            set => ShadingFillValue = value?.ToRgbHex() ?? "";
         }
 
         /// <summary>Gets or sets the directly authored preferred cell width. Null removes tcW.</summary>

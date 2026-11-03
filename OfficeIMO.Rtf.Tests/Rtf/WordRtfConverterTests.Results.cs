@@ -273,9 +273,9 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_ToRtf_Result_Reports_Unsupported_Header_And_Footer_Elements() {
         using WordDocument word = WordDocument.Create();
-        word.HeaderDefaultOrCreate._header!.Append(new SdtBlock(
+        word.PageSetup.Header._header!.Append(new SdtBlock(
             new SdtContentBlock(new Paragraph(new Run(new Text("Header control"))))));
-        word.FooterDefaultOrCreate._footer!.Append(new SdtBlock(
+        word.PageSetup.Footer._footer!.Append(new SdtBlock(
             new SdtContentBlock(new Paragraph(new Run(new Text("Footer control"))))));
 
         RtfConversionResult<RtfDocument> result = word.ConvertToRtfWithEvidence();

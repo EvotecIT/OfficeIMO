@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (options.HasExplicitPdfPageSizeConfiguration) {
-                return options.PdfOptions!.PageSize;
+                return options.PdfOptions!.PageSetup.Size;
             }
 
             OfficePageSize officePageSize = ExcelPageSetupGeometry.ResolvePageSize(pageSetup, OfficePageSizes.Letter);
@@ -209,7 +209,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (options.PdfOptions?.HasExplicitMargins == true) {
-                return options.PdfOptions.Margins;
+                return options.PdfOptions.PageSetup.Margins.ToPdfPageMargins();
             }
 
             return ExcelNormalMargins;

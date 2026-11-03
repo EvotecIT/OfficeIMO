@@ -43,11 +43,6 @@ internal static partial class PdfWriter {
             string? linkUri = cell.LinkUri;
             string? linkDestinationName = cell.LinkDestinationName;
             string? linkContents = cell.LinkContents;
-            if (table.Links.TryGetValue((rowIndex, c), out var uri)) {
-                linkUri = uri;
-                linkDestinationName = null;
-                linkContents = cell.Text;
-            }
 
             if (sourceStartLine == 0 && includeNamedDestination) {
                 AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);

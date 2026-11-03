@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Before KEY After");
                 paragraph.SetBold();
 
-                document.FindAndReplace("KEY", "Line1\nLine2");
+                document.ReplaceAll("KEY", "Line1\nLine2");
 
                 Console.WriteLine($"Paragraph text: {paragraph.Text.Replace(Environment.NewLine, "\\n")}");
                 document.Save();

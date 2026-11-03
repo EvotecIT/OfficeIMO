@@ -469,13 +469,13 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or Sets default Background Color for the whole document
+        /// Gets or Sets default Background Color for the whole document; automatic colour reads as <see langword="null"/>.
         /// </summary>
-        public string? BackgroundColor {
+        public OfficeIMO.OfficeColor? BackgroundColor {
             get {
                 var background = _document._wordprocessingDocument.MainDocumentPart?
                     .Document?.DocumentBackground;
-                return background?.Color?.Value?.ToUpperInvariant();
+                return Helpers.ParseNativeColor(background?.Color?.Value);
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart?
@@ -491,26 +491,16 @@ namespace OfficeIMO.Word {
                 if (document.DocumentBackground == null) {
                     document.DocumentBackground = new DocumentBackground();
                 }
-                document.DocumentBackground.Color = value;
+                document.DocumentBackground.Color = value?.ToRgbHex();
             }
         }
-        /// <summary>
-        /// Sets the background color using a hex value.
-        /// </summary>
-        /// <param name="backgroundColor">Hexadecimal color value.</param>
-        /// <returns>The current <see cref="WordSettings"/> instance.</returns>
-        public WordSettings SetBackgroundColor(string backgroundColor) {
-            BackgroundColor = backgroundColor;
-            return this;
-        }
-
         /// <summary>
         /// Sets the background color using a <see cref="OfficeIMO.OfficeColor"/> value.
         /// </summary>
         /// <param name="backgroundColor">Color value.</param>
         /// <returns>The current <see cref="WordSettings"/> instance.</returns>
         public WordSettings SetBackgroundColor(OfficeIMO.OfficeColor backgroundColor) {
-            BackgroundColor = backgroundColor.ToRgbHex();
+            BackgroundColor = backgroundColor;
             return this;
         }
 

@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     new PowerPointMedia(picture, slidePart, kind),
                 P.Picture picture when PowerPointMedia.TryGetMediaKind(
                     picture, out _) => null,
-                P.Picture picture => new PowerPointPicture(picture,
+                P.Picture picture => new PowerPointImage(picture,
                     ownerPart),
                 P.GroupShape nested => new PowerPointGroupShape(nested,
                     ownerPart),

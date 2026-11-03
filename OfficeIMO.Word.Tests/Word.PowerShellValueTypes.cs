@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests
             paragraph.SetUnderline(WordUnderlineStyle.Double);
             paragraph.AddBreak(WordBreakType.Page);
             WordSection section = document.Sections[0];
-            Assert.NotNull(section.GetOrCreateHeader(WordHeaderFooterType.First));
-            Assert.NotNull(section.GetOrCreateFooter(WordHeaderFooterType.Even));
+            Assert.NotNull(section.PageSetup.FirstPageHeader);
+            Assert.NotNull(section.PageSetup.EvenPageFooter);
             WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
             cell.VerticalAlignment = WordTableVerticalAlignment.Bottom;
             cell.TextDirection = WordTextDirection.TopToBottomRightToLeft;

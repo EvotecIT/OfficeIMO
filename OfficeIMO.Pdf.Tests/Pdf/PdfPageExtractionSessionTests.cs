@@ -7,7 +7,7 @@ public sealed class PdfPageExtractionSessionTests {
     [Fact]
     public void ReadModelEditsDoNotChangeMetadataPreservedByPageOperations() {
         byte[] bytes = PdfDocument.Create().Meta(title: "Original title")
-            .Paragraph(p => p.Text("FirstPage")).PageBreak().Paragraph(p => p.Text("SecondPage")).ToBytes();
+            .Paragraph(p => p.AddText("FirstPage")).PageBreak().Paragraph(p => p.AddText("SecondPage")).ToBytes();
         PdfDocument source = PdfDocument.Load(bytes);
         source.Read().Metadata.Title = "Changed read model";
         source.Inspect().Metadata.Author = "Changed inspection";
@@ -25,9 +25,9 @@ public sealed class PdfPageExtractionSessionTests {
 
     [Fact]
     public void CompoundSelectionsPreserveRepeatedPagesOrderAndSource() {
-        byte[] bytes = PdfDocument.Create().Paragraph(p => p.Text("FirstPage"))
-            .PageBreak().Paragraph(p => p.Text("SecondPage"))
-            .PageBreak().Paragraph(p => p.Text("ThirdPage")).ToBytes();
+        byte[] bytes = PdfDocument.Create().Paragraph(p => p.AddText("FirstPage"))
+            .PageBreak().Paragraph(p => p.AddText("SecondPage"))
+            .PageBreak().Paragraph(p => p.AddText("ThirdPage")).ToBytes();
         PdfDocument source = PdfDocument.Load(bytes);
         _ = source.Read();
         IReadOnlyList<PdfDocument> parts = source.Pages.Split(
@@ -46,9 +46,9 @@ public sealed class PdfPageExtractionSessionTests {
 
     [Fact]
     public void ChainedSelectionsKeepPageOrderAndValidatedPipelineCounts() {
-        byte[] bytes = PdfDocument.Create().Paragraph(p => p.Text("FirstPage"))
-            .PageBreak().Paragraph(p => p.Text("SecondPage"))
-            .PageBreak().Paragraph(p => p.Text("ThirdPage")).ToBytes();
+        byte[] bytes = PdfDocument.Create().Paragraph(p => p.AddText("FirstPage"))
+            .PageBreak().Paragraph(p => p.AddText("SecondPage"))
+            .PageBreak().Paragraph(p => p.AddText("ThirdPage")).ToBytes();
         PdfDocument source = PdfDocument.Load(bytes);
 
         PdfDocument first = source.Pages.Extract(PdfPageSelection.Parse("3,1-2"));
@@ -64,7 +64,7 @@ public sealed class PdfPageExtractionSessionTests {
 
     [Fact]
     public void WarmSourceStillEnforcesExplicitParserLimitsForPageOperations() {
-        byte[] bytes = PdfDocument.Create().Paragraph(p => p.Text("Readable")).ToBytes();
+        byte[] bytes = PdfDocument.Create().Paragraph(p => p.AddText("Readable")).ToBytes();
         PdfDocument source = PdfDocument.Load(bytes);
         Assert.Contains("Readable", source.Reader.Text());
         PdfLoadOptions restricted = new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 1 } };
@@ -79,7 +79,7 @@ public sealed class PdfPageExtractionSessionTests {
     [Fact]
     public void WarmEncryptedSourceDoesNotBypassAnOverridePassword() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(p => p.Text("SecretPage")).ToBytes();
+            .Paragraph(p => p.AddText("SecretPage")).ToBytes();
         PdfDocument source = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "owner" });
         Assert.Contains("SecretPage", source.Reader.Text());
         PdfLoadOptions incorrect = new PdfLoadOptions { Password = "incorrect" };

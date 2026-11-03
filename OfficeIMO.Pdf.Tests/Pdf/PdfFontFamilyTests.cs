@@ -35,10 +35,16 @@ public partial class PdfFontFamilyTests {
 
         byte[] pdf = PdfDocument.Create(options)
             .Paragraph(paragraph => {
-                if (namedFamily) paragraph.FontFamily("Oblique Proof");
-                else paragraph.Font(PdfStandardFont.Helvetica);
-                paragraph.Text("Regular ").Italic("Italic ").Bold(true).Italic(true).Text("Bold italic ")
-                    .Bold(false).Italic(false).Text("Regular again");
+                if (namedFamily) { paragraph.RunDefaults.FontFamily = "Oblique Proof"; paragraph.RunDefaults.StandardFont = null; }
+                else { paragraph.RunDefaults.StandardFont = PdfStandardFont.Helvetica; paragraph.RunDefaults.FontFamily = null; }
+                paragraph.AddText("Regular ");
+                paragraph.AddText("Italic ").SetItalic().SetBold(false);
+                paragraph.RunDefaults.Bold = true;
+                paragraph.RunDefaults.Italic = true;
+                paragraph.AddText("Bold italic ");
+                paragraph.RunDefaults.Bold = false;
+                paragraph.RunDefaults.Italic = false;
+                paragraph.AddText("Regular again");
             })
             .ToBytes();
 
@@ -66,7 +72,7 @@ public partial class PdfFontFamilyTests {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }
                 .RegisterFontFamily(PdfStandardFont.Helvetica, family))
             .Watermark("DRAFT", fontSize: 32, rotationAngle: 0, bold: false, italic: true)
-            .Paragraph(paragraph => paragraph.Text("Watermark proof"))
+            .Paragraph(paragraph => paragraph.AddText("Watermark proof"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(pdf);
@@ -89,9 +95,7 @@ public partial class PdfFontFamilyTests {
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Visible Named", fontData));
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph
-                .FontFamily("Visible Named")
-                .Text("Only the named family paints text."))
+            .Paragraph(paragraph => paragraph.AddText("Only the named family paints text.").SetFontFamily("Visible Named"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -112,9 +116,7 @@ public partial class PdfFontFamilyTests {
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph
-                .FontFamily(familyName)
-                .Text("Only the registered family is used."))
+            .Paragraph(paragraph => paragraph.AddText("Only the registered family is used.").SetFontFamily(familyName))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -133,12 +135,10 @@ public partial class PdfFontFamilyTests {
         byte[] fontData = File.ReadAllBytes(fontPath);
         var options = new PdfCreateOptions {
             CompressContentStreams = false,
-            ShowHeader = true,
-            HeaderFormat = "Header",
-            HeaderFontFamily = familyName,
-            ShowPageNumbers = true,
-            FooterFormat = "Footer",
-            FooterFontFamily = familyName
+            PageSetup = {
+                Header = { Show = true, Format = "Header", FontFamily = familyName },
+                Footer = { Show = true, Format = "Footer", FontFamily = familyName }
+            }
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, fontData));
         var listStyle = new PdfListStyle {
             MarkerFontFamily = familyName
@@ -147,7 +147,7 @@ public partial class PdfFontFamilyTests {
         byte[] bytes = PdfDocument.Create(options)
             .RichNumbered(new[] { new PdfListItem("Top item", marker: "1.") }, style: listStyle)
             .Row(row => row.PercentColumn(100, column =>
-                column.RichBullets(new[] { new PdfListItem("Column item", marker: "*") }, style: listStyle)))
+                column.AddList(new[] { new PdfListItem("Column item", marker: "*") }, style: listStyle)))
             .ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -189,7 +189,7 @@ public partial class PdfFontFamilyTests {
                 fontFamily: family))
             .ToArray();
         byte[] bytes = PdfDocument.Create(clone)
-            .Paragraph(paragraph => paragraph.Runs(runs))
+            .Paragraph(paragraph => paragraph.AddRuns(runs))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -220,8 +220,8 @@ public partial class PdfFontFamilyTests {
         Assert.Equal("Snapshot Family-Regular", options.EmbeddedFonts[PdfStandardFont.Helvetica].FontName);
         Assert.Equal("Snapshot Family-Bold", options.EmbeddedFonts[PdfStandardFont.HelveticaBold].FontName);
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
-        Assert.Equal(PdfStandardFont.Helvetica, options.HeaderFont);
-        Assert.Equal(PdfStandardFont.Helvetica, options.FooterFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.PageSetup.Header.StandardFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.PageSetup.Footer.StandardFont);
         Assert.Throws<ArgumentException>(() => new PdfEmbeddedFontFamily("Broken", Array.Empty<byte>()));
     }
 
@@ -237,11 +237,12 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .UseFontFamily(family)
-            .Paragraph(paragraph => paragraph
-                .Text("System regular ")
-                .Bold("system bold ")
-                .Italic("system italic ")
-                .Text("system done"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("System regular ");
+                paragraph.AddText("system bold ").SetBold();
+                paragraph.AddText("system italic ").SetItalic();
+                paragraph.AddText("system done");
+            })
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -307,8 +308,8 @@ public partial class PdfFontFamilyTests {
             .UseOfficeFontFamily("OfficeIMO Missing Display, Consolas, monospace", embedSystemFont: false);
 
         Assert.Equal(PdfStandardFont.Courier, options.DefaultFont);
-        Assert.Equal(PdfStandardFont.Courier, options.HeaderFont);
-        Assert.Equal(PdfStandardFont.Courier, options.FooterFont);
+        Assert.Equal(PdfStandardFont.Courier, options.PageSetup.Header.StandardFont);
+        Assert.Equal(PdfStandardFont.Courier, options.PageSetup.Footer.StandardFont);
     }
 
     [Fact]
@@ -337,8 +338,7 @@ public partial class PdfFontFamilyTests {
 
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
-            HeaderFont = PdfStandardFont.TimesRoman,
-            FooterFont = PdfStandardFont.TimesRoman
+            PageSetup = { Header = { StandardFont = PdfStandardFont.TimesRoman }, Footer = { StandardFont = PdfStandardFont.TimesRoman } }
         }.UseTextFallbacks(PdfTextFallbackFeatures.SymbolAndEmojiFonts);
 
         PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
@@ -367,7 +367,7 @@ public partial class PdfFontFamilyTests {
         }
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Font(PdfStandardFont.Courier).Text("A\u2713B"))
+            .Paragraph(paragraph => paragraph.AddText("A\u2713B").SetStandardFont(PdfStandardFont.Courier))
             .ToBytes();
         Assert.Contains("A\u2713B", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
@@ -383,7 +383,7 @@ public partial class PdfFontFamilyTests {
 
         const string polish = "Zażółć gęślą jaźń Łódź";
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(polish))
+            .Paragraph(paragraph => paragraph.AddText(polish))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -472,8 +472,7 @@ public partial class PdfFontFamilyTests {
     public void PdfOptions_CreateRegisteredFontFamilySlotsNormalizesConfiguredAndEmbeddedFamilies() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.HelveticaBold,
-            HeaderFont = PdfStandardFont.TimesItalic,
-            FooterFont = PdfStandardFont.CourierBoldOblique
+            PageSetup = { Header = { StandardFont = PdfStandardFont.TimesItalic }, Footer = { StandardFont = PdfStandardFont.CourierBoldOblique } }
         }.RegisterFontFamily(
             PdfStandardFont.TimesRoman,
             new PdfEmbeddedFontFamily("OfficeIMO Slot Test", CreateMinimalOpenTypeCffFont()));
@@ -533,8 +532,7 @@ public partial class PdfFontFamilyTests {
     public void PdfOptions_GetAvailableEmbeddedFallbackFontSlotsSkipsDocumentReservedAndEmbeddedFamilies() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.HelveticaBold,
-            HeaderFont = PdfStandardFont.Helvetica,
-            FooterFont = PdfStandardFont.HelveticaOblique
+            PageSetup = { Header = { StandardFont = PdfStandardFont.Helvetica }, Footer = { StandardFont = PdfStandardFont.HelveticaOblique } }
         }.RegisterFontFamily(
             PdfStandardFont.TimesRoman,
             new PdfEmbeddedFontFamily("OfficeIMO Fallback Slot Test", CreateMinimalOpenTypeCffFont()));
@@ -560,17 +558,15 @@ public partial class PdfFontFamilyTests {
             PdfEmbeddedFontFamily.FromFiles("OfficeIMO Semantic Serif", fontPath));
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph
-                .Font(PdfStandardFont.TimesRoman)
-                .Text("Semantic serif Łódź"))
+            .Paragraph(paragraph => paragraph.AddText("Semantic serif Łódź").SetStandardFont(PdfStandardFont.TimesRoman))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
-        Assert.Equal(PdfStandardFont.Helvetica, options.HeaderFont);
-        Assert.Equal(PdfStandardFont.Helvetica, options.FooterFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.PageSetup.Header.StandardFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.PageSetup.Footer.StandardFont);
         Assert.Matches(PdfTestContentText.BaseFontPattern("OfficeIMOSemanticSerif-Regular"), raw);
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains("Semantic serif Łódź", text, StringComparison.Ordinal);
@@ -944,10 +940,11 @@ public partial class PdfFontFamilyTests {
             })
             .UseFontFamily(family)
             .Header(header => header.Text("Object font header"))
-            .Paragraph(paragraph => paragraph
-                .Text("Object regular ")
-                .Bold("object bold ")
-                .Italic("object italic"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("Object regular ");
+                paragraph.AddText("object bold ").SetBold();
+                paragraph.AddText("object italic").SetItalic();
+            })
             .Footer(footer => footer.Text("Object font footer {page}/{pages}"))
             .ToBytes();
 
@@ -1084,8 +1081,8 @@ public partial class PdfFontFamilyTests {
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = true })
             .UseFontFamily(new PdfEmbeddedFontFamily("Shared Page Font", fontData))
-            .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(firstMarker)))))
-            .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(secondMarker)))))
+            .Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(firstMarker)))))
+            .Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(secondMarker)))))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(pdf).ExtractText();
@@ -1107,9 +1104,9 @@ public partial class PdfFontFamilyTests {
             })
             .UseFontFamily(new PdfEmbeddedFontFamily("Shaping Context Font", fontData))
             .UseTextShaping(PdfTextShapingMode.UnicodeScalar)
-            .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Explicit \uFB01 glyph")))))
+            .Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Explicit \uFB01 glyph")))))
             .UseTextShaping(PdfTextShapingMode.LatinLigatures)
-            .Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Shaped fine text")))))
+            .Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Shaped fine text")))))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(pdf);
@@ -1205,11 +1202,11 @@ public partial class PdfFontFamilyTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.Text("Before page font"))
+            .Paragraph(paragraph => paragraph.AddText("Before page font"))
             .Page(page => page
                 .UseFontFamily(family)
                 .Header(header => header.Text("Page font header"))
-                .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Page font body"))))
+                .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Page font body"))))
                 .Footer(footer => footer.Text("Page font footer {page}/{pages}")))
             .ToBytes();
 
@@ -1258,10 +1255,10 @@ public partial class PdfFontFamilyTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .Header(header => header.Font(PdfStandardFont.TimesRoman).Text("Times header"))
-            .Footer(footer => footer.Font(PdfStandardFont.Courier).Text("Courier footer"))
+            .Header(header => header.StandardFont(PdfStandardFont.TimesRoman).Text("Times header"))
+            .Footer(footer => footer.StandardFont(PdfStandardFont.Courier).Text("Courier footer"))
             .DefaultTextStyle(style => style.FontFamily(family).FontSize(global::OfficeIMO.OfficeLength.Points(12)))
-            .Paragraph(paragraph => paragraph.Text("Styled body"))
+            .Paragraph(paragraph => paragraph.AddText("Styled body"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1288,10 +1285,11 @@ public partial class PdfFontFamilyTests {
             })
             .UseFontFamily("OfficeIMO Unicode Font", fontPath)
             .Header(header => header.Text("Nagłówek Łódź"))
-            .Paragraph(paragraph => paragraph
-                .Text(polish + " ")
-                .Bold("Śląsk ")
-                .Italic("źrebak"))
+            .Paragraph(paragraph => {
+                paragraph.AddText(polish + " ");
+                paragraph.AddText("Śląsk ").SetBold();
+                paragraph.AddText("źrebak").SetItalic();
+            })
             .Footer(footer => footer.Text("Stopka Łódź {page}/{pages}"))
             .ToBytes();
 
@@ -1370,7 +1368,7 @@ public partial class PdfFontFamilyTests {
         ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() =>
             PdfDocument.Create()
                 .UseFontFamily("OfficeIMO Diagnostic Font", fontPath)
-                .Paragraph(paragraph => paragraph.Text("Missing " + missingGlyph))
+                .Paragraph(paragraph => paragraph.AddText("Missing " + missingGlyph))
                 .ToBytes());
 
         Assert.Contains("U+10FFFF", exception.Message, StringComparison.Ordinal);
@@ -1483,7 +1481,7 @@ public partial class PdfFontFamilyTests {
             "Sample warning."));
 
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Conversion result")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Conversion result")),
             report);
 
         report.Clear();
@@ -1519,7 +1517,7 @@ public partial class PdfFontFamilyTests {
     public void PdfDocumentConversionResult_RefreshesWarningsEmittedAfterResultCreation() {
         var report = new PdfConversionReport();
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Save diagnostics result")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Save diagnostics result")),
             report);
 
         report.Add(new PdfConversionWarning(
@@ -1547,7 +1545,7 @@ public partial class PdfFontFamilyTests {
             "Async sample warning."));
 
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Async conversion result")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Async conversion result")),
             report);
 
         report.Clear();
@@ -1623,7 +1621,7 @@ public partial class PdfFontFamilyTests {
 
         ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.Text("\u0645\u0631\u062D\u0628\u0627"))
+                .Paragraph(paragraph => paragraph.AddText("\u0645\u0631\u062D\u0628\u0627"))
                 .ToBytes());
 
         Assert.Contains("WinAnsiEncoding", exception.Message, StringComparison.Ordinal);
@@ -1645,14 +1643,14 @@ public partial class PdfFontFamilyTests {
 
         Assert.ThrowsAny<ArgumentException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.Text("\u0645\u0631\u062D\u0628\u0627"))
+                .Paragraph(paragraph => paragraph.AddText("\u0645\u0631\u062D\u0628\u0627"))
                 .ToBytes());
 
         options.ReportDiagnosticsTo(second, "OfficeIMO.Tests");
 
         Assert.ThrowsAny<ArgumentException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.Text("\u0645\u0631\u062D\u0628\u0627"))
+                .Paragraph(paragraph => paragraph.AddText("\u0645\u0631\u062D\u0628\u0627"))
                 .ToBytes());
 
         Assert.Contains(first.Warnings, item => item.Code == "unsupported-complex-script-shaping");
@@ -1751,7 +1749,7 @@ public partial class PdfFontFamilyTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "OfficeIMO Source Serif CFF");
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("office"))
+            .Paragraph(paragraph => paragraph.AddText("office"))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.NotEmpty(bytes);
@@ -1860,7 +1858,7 @@ public partial class PdfFontFamilyTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "OfficeIMO Source Serif CFF");
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("CFF Łódź A"))
+            .Paragraph(paragraph => paragraph.AddText("CFF Łódź A"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1921,7 +1919,7 @@ public partial class PdfFontFamilyTests {
         Assert.Null(options.EmbeddedFontFallbacks);
         ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.Text("Fallback cleared Łódź"))
+                .Paragraph(paragraph => paragraph.AddText("Fallback cleared Łódź"))
                 .ToBytes());
         Assert.Contains("WinAnsiEncoding", exception.Message, StringComparison.Ordinal);
     }
@@ -1944,7 +1942,7 @@ public partial class PdfFontFamilyTests {
                 CompressEmbeddedFonts = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Paragraph(paragraph => paragraph.FallbackText(fallbackSet, "CFF fallback Łódź", "pdf:paragraph[1]"))
+            .Paragraph(paragraph => paragraph.AddFallbackText(fallbackSet, "CFF fallback Łódź", "pdf:paragraph[1]"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1974,7 +1972,7 @@ public partial class PdfFontFamilyTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("CFF property fallback Łódź"))
+            .Paragraph(paragraph => paragraph.AddText("CFF property fallback Łódź"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1998,7 +1996,7 @@ public partial class PdfFontFamilyTests {
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.Text("Unsupported configured font"))
+                .Paragraph(paragraph => paragraph.AddText("Unsupported configured font"))
                 .ToBytes());
 
         Assert.Contains("OpenType", exception.Message, StringComparison.Ordinal);
@@ -2134,7 +2132,7 @@ public partial class PdfFontFamilyTests {
         PdfTextRun run = Assert.Single(plan.ToTextRuns(new[] { PdfStandardFont.Courier }, template));
 
         Assert.Equal("Invoice Cafe 123", run.Text);
-        Assert.Equal(PdfStandardFont.Courier, run.Font);
+        Assert.Equal(PdfStandardFont.Courier, run.StandardFont);
         Assert.True(run.Bold);
         Assert.True(run.Underline);
         Assert.True(run.Italic);
@@ -2164,7 +2162,7 @@ public partial class PdfFontFamilyTests {
         Assert.Equal("\n", runs[0].Text);
         Assert.Equal("\t", runs[1].Text);
         Assert.Equal("Invoice", runs[2].Text);
-        Assert.Equal(PdfStandardFont.Helvetica, runs[2].Font);
+        Assert.Equal(PdfStandardFont.Helvetica, runs[2].StandardFont);
     }
 
     [Fact]
@@ -2332,7 +2330,7 @@ public partial class PdfFontFamilyTests {
 
         IReadOnlyList<PdfTextRun> runs = fallbackSet.PlanTextRuns("Invoice Cafe");
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Runs(runs))
+            .Paragraph(paragraph => paragraph.AddRuns(runs))
             .ToBytes();
         Assert.True(options.TryGetNamedFontProgramForGeneration(fallbackFace, out PdfTrueTypeFontProgram? programAfterRendering));
 
@@ -2341,7 +2339,7 @@ public partial class PdfFontFamilyTests {
         Assert.True(fallbackSet.UsesNamedFontFamilies);
         Assert.Empty(fallbackSet.FontSlots);
         Assert.Equal("Portable Fallback", run.FontFamily);
-        Assert.Null(run.Font);
+        Assert.Null(run.StandardFont);
         Assert.True(options.HasNamedFontFamily("Portable Fallback"));
         Assert.Matches(PdfTestContentText.BaseFontPattern("PortableFallback-Regular"), Encoding.ASCII.GetString(bytes));
         Assert.Contains("Invoice Cafe", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
@@ -2366,7 +2364,7 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Paragraph(paragraph => paragraph.Runs(runs))
+            .Paragraph(paragraph => paragraph.AddRuns(runs))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2374,7 +2372,7 @@ public partial class PdfFontFamilyTests {
 
         PdfTextRun run = Assert.Single(runs);
         Assert.True(run.Bold);
-        Assert.Equal(PdfStandardFont.Helvetica, run.Font);
+        Assert.Equal(PdfStandardFont.Helvetica, run.StandardFont);
         Assert.Matches(PdfTestContentText.BaseFontPattern("Primary-Bold"), raw);
         Assert.Contains("Invoice Cafe", extracted, StringComparison.Ordinal);
     }
@@ -2403,7 +2401,7 @@ public partial class PdfFontFamilyTests {
         Assert.True(covered);
         Assert.True(run.Italic);
         Assert.Equal(12, (run.FontSize?.ToPoints()));
-        Assert.Equal(PdfStandardFont.Helvetica, run.Font);
+        Assert.Equal(PdfStandardFont.Helvetica, run.StandardFont);
         Assert.False(report.HasWarnings);
     }
 
@@ -2499,13 +2497,14 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Paragraph(paragraph => paragraph
-                .Bold()
-                .Italic()
-                .Underline()
-                .FontSize(global::OfficeIMO.OfficeLength.Points(13))
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30))
-                .FallbackText(fallbackSet, "Invoice Cafe", "word:paragraph[9]"))
+            .Paragraph(paragraph => {
+                paragraph.RunDefaults.Bold = true;
+                paragraph.RunDefaults.Italic = true;
+                paragraph.RunDefaults.UnderlineStyle = global::OfficeIMO.Drawing.OfficeTextDecorationStyle.Single;
+                paragraph.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(13);
+                paragraph.RunDefaults.Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30);
+                paragraph.AddFallbackText(fallbackSet, "Invoice Cafe", "word:paragraph[9]");
+            })
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2531,9 +2530,7 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Paragraph(paragraph => paragraph
-                .Bold()
-                .Text("Zażółć gęślą jaźń"))
+            .Paragraph(paragraph => paragraph.AddText("Zażółć gęślą jaźń").SetBold())
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2593,9 +2590,9 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Header(header => header.AlignCenter().Text("Nagłówek Łódź"))
-            .Footer(footer => footer.AlignRight().Text("Stopka Zażółć {page}/{pages}"))
-            .Paragraph(paragraph => paragraph.Text("Body"))
+            .Header(header => header.Alignment(OfficeAlignment.Center).Text("Nagłówek Łódź"))
+            .Footer(footer => footer.Alignment(OfficeAlignment.Right).Text("Stopka Zażółć {page}/{pages}"))
+            .Paragraph(paragraph => paragraph.AddText("Body"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2639,7 +2636,7 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column.Table(new[] {
+            .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column.AddTable(new[] {
                 new[] { "Name", "Value" },
                 new[] { "Beta", "2" }
             }, style: rowColumnStyle))))))
@@ -2668,8 +2665,7 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)) },
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
@@ -2703,8 +2699,7 @@ public partial class PdfFontFamilyTests {
             new[] { PdfStandardFont.TimesRoman });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
+                PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)) }
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
             .Canvas(canvas => canvas.Text(marker, global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(28), fontSize: global::OfficeIMO.OfficeLength.Points(12)))
@@ -2737,7 +2732,7 @@ public partial class PdfFontFamilyTests {
                 fontSize: 11,
                 borderColor: global::OfficeIMO.OfficeColor.Black,
                 fillColor: global::OfficeIMO.OfficeColor.FromRgb(245, 248, 255))
-            .Paragraph(paragraph => paragraph.Text("Body"))
+            .Paragraph(paragraph => paragraph.AddText("Body"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2771,7 +2766,7 @@ public partial class PdfFontFamilyTests {
                 fontSize: 11,
                 borderColor: global::OfficeIMO.OfficeColor.Black,
                 fillColor: global::OfficeIMO.OfficeColor.FromRgb(245, 248, 255))
-            .Paragraph(paragraph => paragraph.Text("Body"))
+            .Paragraph(paragraph => paragraph.AddText("Body"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -2868,7 +2863,7 @@ public partial class PdfFontFamilyTests {
         Assert.Throws<InvalidOperationException>(() =>
             PdfDocument.Create()
                 .RegisterEmbeddedFontFallbacks(fallbackSet)
-                .Paragraph(paragraph => paragraph.FallbackText(fallbackSet, text, "word:paragraph[10]")));
+                .Paragraph(paragraph => paragraph.AddFallbackText(fallbackSet, text, "word:paragraph[10]")));
     }
 
     [Fact]
@@ -2985,7 +2980,7 @@ public partial class PdfFontFamilyTests {
                 PdfStandardFont.Helvetica,
                 PdfStandardFont.TimesRoman
             });
-            Assert.Contains(runs, run => run.Font == PdfStandardFont.TimesRoman && run.Text.Contains("😀", StringComparison.Ordinal));
+            Assert.Contains(runs, run => run.StandardFont == PdfStandardFont.TimesRoman && run.Text.Contains("😀", StringComparison.Ordinal));
 
             byte[] bytes;
             try {
@@ -2994,7 +2989,7 @@ public partial class PdfFontFamilyTests {
                     })
                     .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "OfficeIMO Primary Fallback")
                     .EmbedStandardFont(PdfStandardFont.TimesRoman, fallback, "OfficeIMO Emoji Fallback")
-                    .Paragraph(paragraph => paragraph.Runs(runs))
+                    .Paragraph(paragraph => paragraph.AddRuns(runs))
                     .ToBytes();
             } catch (ArgumentException exception) when (exception.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal)) {
                 continue;
@@ -3077,7 +3072,7 @@ public partial class PdfFontFamilyTests {
                     new PdfEmbeddedFontFamily("OfficeIMO Primary", primary));
 
                 bytes = PdfDocument.Create(options)
-                    .Paragraph(paragraph => paragraph.Bold().Text(text))
+                    .Paragraph(paragraph => paragraph.AddText(text).SetBold())
                     .ToBytes();
             } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException) {
                 continue;
@@ -3143,8 +3138,8 @@ public partial class PdfFontFamilyTests {
                         CompressContentStreams = false
                     })
                     .RegisterEmbeddedFontFallbacks(fallbackSet)
-                    .Paragraph(paragraph => paragraph.Text("Polish " + polish))
-                    .Paragraph(paragraph => paragraph.Text("Emoji \U0001F600"))
+                    .Paragraph(paragraph => paragraph.AddText("Polish " + polish))
+                    .Paragraph(paragraph => paragraph.AddText("Emoji \U0001F600"))
                     .ToBytes();
             } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException) {
                 continue;
@@ -3173,7 +3168,7 @@ public partial class PdfFontFamilyTests {
             })
             .UseFontFamily("OfficeIMO Watermark Font", fontPath)
             .Watermark("DRAFT", fontSize: 32, opacity: 0.25)
-            .Paragraph(paragraph => paragraph.Text("Watermark font proof"))
+            .Paragraph(paragraph => paragraph.AddText("Watermark font proof"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(pdf);
@@ -3199,7 +3194,7 @@ public partial class PdfFontFamilyTests {
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
             .Watermark("DRAFT Łódź", fontSize: 32, opacity: 0.25)
-            .Paragraph(paragraph => paragraph.Text("Watermark fallback proof"))
+            .Paragraph(paragraph => paragraph.AddText("Watermark fallback proof"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(pdf);
@@ -3217,12 +3212,13 @@ public partial class PdfFontFamilyTests {
             try {
                 bytes = PdfDocument.Create(new PdfCreateOptions {
                     CompressContentStreams = false,
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(120),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(24)
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(792)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24) }
+                    }
                 })
                 .UseFontFamily("OfficeIMO NonBmp Font", fontPath)
-                .Paragraph(paragraph => paragraph.Text("AAAAAAAAAAAA😀BBBBBBBBBBBB"))
+                .Paragraph(paragraph => paragraph.AddText("AAAAAAAAAAAA😀BBBBBBBBBBBB"))
                 .ToBytes();
             } catch (ArgumentException exception) when (exception.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal)) {
                 continue;
@@ -3259,8 +3255,8 @@ public partial class PdfFontFamilyTests {
             })
             .UseFontFamily("OfficeIMO Multilingual", fontPath)
             .Header(header => header.Text("Q2 multilingual revenue report"))
-            .Paragraph(paragraph => paragraph.Text("Executive summary: Zażółć gęślą jaźń Łódź."))
-            .Paragraph(paragraph => paragraph.Text("Regional notes: Ελλάδα Athens pipeline; Київ renewal forecast."))
+            .Paragraph(paragraph => paragraph.AddText("Executive summary: Zażółć gęślą jaźń Łódź."))
+            .Paragraph(paragraph => paragraph.AddText("Regional notes: Ελλάδα Athens pipeline; Київ renewal forecast."))
             .Footer(footer => footer.Text("Generated proof {page}/{pages}"))
             .ToBytes();
 

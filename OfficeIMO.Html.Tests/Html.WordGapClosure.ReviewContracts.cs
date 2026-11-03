@@ -89,7 +89,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             paragraph => paragraph.Text == "Side reset");
 
-        Assert.True(string.IsNullOrEmpty(background.ShadingFillColorHex));
+        Assert.Null(background.ShadingFillColor);
         Assert.Null(border.Borders.TopStyle);
         Assert.Null(border.Borders.LeftStyle);
         Assert.Null(side.Borders.LeftStyle);
@@ -108,9 +108,9 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Inherited frame");
 
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
-        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.LeftColor);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Marked");
 
         Assert.Equal(WordHighlightColor.Yellow, run.Highlight);
-        Assert.Equal(string.Empty, run.RunShadingFillColorHex);
+        Assert.Null(run.BackgroundColor);
     }
 
     [Fact]
@@ -165,10 +165,10 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Framed");
 
         Assert.True(paragraph.IsListItem);
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.BottomStyle);
-        Assert.Equal("123456", paragraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.LeftColor);
     }
 
     [Fact]
@@ -244,9 +244,9 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs);
 
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
-        Assert.Equal("123456", paragraph.Borders.TopColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.TopColor);
         Assert.Equal(60, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
         Assert.Equal(60, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
@@ -371,9 +371,9 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs);
 
-        Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), paragraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
-        Assert.Equal("123456", paragraph.Borders.TopColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), paragraph.Borders.TopColor);
         Assert.Equal(60, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
         Assert.Equal(60, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
@@ -382,7 +382,7 @@ public partial class HtmlWordGapClosure {
     public void WordToHtml_VisibleHighlight_TakesPrecedenceOverExactRunShading() {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Layered");
-        run.RunShadingFillColorHex = "ABCDEF";
+        run.BackgroundColor = OfficeColor.Parse("ABCDEF");
         run.Highlight = WordHighlightColor.Cyan;
 
         string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
@@ -400,7 +400,7 @@ public partial class HtmlWordGapClosure {
         accent.Append(new A.RgbColorModelHex { Val = "000000" });
 
         WordParagraph run = document.AddParagraph("Themed");
-        run.RunShadingFillColorHex = "FFFFFF";
+        run.BackgroundColor = OfficeColor.Parse("FFFFFF");
         run._runProperties!.Shading!.ThemeFill = ThemeColorValues.Accent1;
         run._runProperties.Shading.ThemeFillTint = "80";
 
@@ -414,7 +414,7 @@ public partial class HtmlWordGapClosure {
     public void WordToHtml_SolidRunShading_UsesForegroundColorInsteadOfFill() {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Solid");
-        run.RunShadingFillColorHex = "0000FF";
+        run.BackgroundColor = OfficeColor.Parse("0000FF");
         run._runProperties!.Shading!.Val = ShadingPatternValues.Solid;
         run._runProperties.Shading.Color = "FF0000";
 
@@ -436,7 +436,7 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Cleared");
 
-        Assert.True(string.IsNullOrEmpty(paragraph.ShadingFillColorHex));
+        Assert.Null(paragraph.ShadingFillColor);
     }
 
     [Fact]
@@ -476,9 +476,9 @@ public partial class HtmlWordGapClosure {
 
         Assert.Equal(WordBorderStyle.Single, restored.Borders.LeftStyle);
         Assert.Equal(OfficeLength.Points(0.75), restored.Borders.LeftSize);
-        Assert.Equal("FF0000", restored.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), restored.Borders.LeftColor);
         Assert.Equal(WordBorderStyle.Single, currentColor.Borders.TopStyle);
-        Assert.Equal("123456", currentColor.Borders.TopColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), currentColor.Borders.TopColor);
     }
 
     [Fact]

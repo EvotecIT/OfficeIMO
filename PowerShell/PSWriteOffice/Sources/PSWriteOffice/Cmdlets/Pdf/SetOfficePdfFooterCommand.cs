@@ -105,13 +105,13 @@ public sealed class SetOfficePdfFooterCommand : PSCmdlet
         switch (Align)
         {
             case OfficeAlignment.Right:
-                footer.AlignRight();
+                footer.Alignment(OfficeAlignment.Right);
                 break;
             case OfficeAlignment.Left:
-                footer.AlignLeft();
+                footer.Alignment(OfficeAlignment.Left);
                 break;
             default:
-                footer.AlignCenter();
+                footer.Alignment(OfficeAlignment.Center);
                 break;
         }
     }

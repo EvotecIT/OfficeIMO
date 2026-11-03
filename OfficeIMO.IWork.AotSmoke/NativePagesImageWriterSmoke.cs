@@ -55,7 +55,7 @@ internal static class NativePagesImageWriterSmoke {
             "The inline frame lost its point dimensions in Word's pixel API.");
         for (int index = 0; index < 3; index++) {
             Require(saved.Images[index].ToBytes().SequenceEqual(projection.Images[index].GetBytes())
-                && saved.Images[index].Description == projection.Images[index].AccessibilityDescription,
+                && saved.Images[index].AltText == projection.Images[index].AccessibilityDescription,
                 "Saved DOCX lost an image payload or description.");
         }
     }

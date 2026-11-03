@@ -58,7 +58,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
             orderedShapes,
             shape => Assert.IsType<PowerPointTable>(shape),
             shape => Assert.Same(firstText.GetType(), shape.GetType()),
-            shape => Assert.IsType<PowerPointPicture>(shape),
+            shape => Assert.IsType<PowerPointImage>(shape),
             shape => Assert.Same(lastText.GetType(), shape.GetType()));
         PowerPointTable importedTable = Assert.IsType<PowerPointTable>(orderedShapes[0]);
         Assert.Equal(90D, importedTable.Left.ToPoints(), 3);

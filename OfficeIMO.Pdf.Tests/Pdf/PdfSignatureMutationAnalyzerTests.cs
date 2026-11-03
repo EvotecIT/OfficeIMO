@@ -77,7 +77,7 @@ public class PdfSignatureMutationAnalyzerTests {
     [Fact]
     public void Analyze_MapsByteRangeToSignedRevisionAndIdentifiesLaterRevision() {
         byte[] original = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Signed revision coverage"))
+            .Paragraph(paragraph => paragraph.AddText("Signed revision coverage"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             original,

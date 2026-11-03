@@ -1,41 +1,338 @@
 #nullable enable
+*REMOVED*OfficeIMO.Word.Legacy.LegacyWordImportResult.RequireNoLoss() -> OfficeIMO.Word.WordDocument!
+OfficeIMO.Word.Legacy.LegacyWordImportResult.ThrowIfLoss() -> void
+OfficeIMO.Word.Legacy.LegacyWordRunContent.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.Legacy.LegacyWordRunContent.ColorHex.get -> string?
+OfficeIMO.Word.Legacy.LegacyWordStyleContent.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.Legacy.LegacyWordStyleContent.ColorHex.get -> string?
+OfficeIMO.Word.WordBackground.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordBackground.Color.get -> string?
+*REMOVED*OfficeIMO.Word.WordBackground.SetColorHex(string! color) -> OfficeIMO.Word.WordBackground!
+*REMOVED*OfficeIMO.Word.WordBorders.BottomColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordBorders.BottomColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordBorders.BottomColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordBorders.BottomColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordBorders.LeftColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordBorders.LeftColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordBorders.LeftColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordBorders.LeftColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordBorders.RightColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordBorders.RightColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordBorders.RightColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordBorders.RightColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordBorders.TopColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordBorders.TopColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordBorders.TopColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordBorders.TopColorHex.set -> void
+OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordBulletSymbol symbol, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind kind, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontFamily, OfficeIMO.OfficeColor? color, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontName, string! colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*OfficeIMO.Word.WordDocument.AddHeadersAndFooters() -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
+OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<object?>! items, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Word.WordTable!
+*REMOVED*OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<object?>! items, OfficeIMO.Word.WordTableStyle style, bool includeHeader = true, OfficeIMO.Word.WordTableLayoutMode? layout = null) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordDocument.AppendDocument(OfficeIMO.Word.WordDocument! source, OfficeIMO.Word.WordDocumentMergeOptions? options) -> void
+*REMOVED*OfficeIMO.Word.WordDocument.BuiltinDocumentProperties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
+*REMOVED*OfficeIMO.Word.WordDocument.CustomDocumentProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
+OfficeIMO.Word.WordDocument.CustomProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
+*REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.get -> bool
+*REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.set -> void
+*REMOVED*OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages.get -> bool
+*REMOVED*OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages.set -> void
+OfficeIMO.Word.WordDocument.Find(System.Text.RegularExpressions.Regex! pattern) -> OfficeIMO.Word.WordSearchResult!
+OfficeIMO.Word.WordDocument.Find(string! text, OfficeIMO.OfficeTextSearchOptions? options = null) -> OfficeIMO.Word.WordSearchResult!
+*REMOVED*OfficeIMO.Word.WordDocument.Find(string! text, System.StringComparison stringComparison = System.StringComparison.OrdinalIgnoreCase) -> System.Collections.Generic.List<OfficeIMO.Word.WordParagraph!>!
+*REMOVED*OfficeIMO.Word.WordDocument.FindAndReplace(string! textToFind, string! textToReplace, System.StringComparison stringComparison = System.StringComparison.OrdinalIgnoreCase) -> int
+*REMOVED*OfficeIMO.Word.WordDocument.Footer.get -> OfficeIMO.Word.WordFooters?
+*REMOVED*OfficeIMO.Word.WordDocument.FooterDefaultOrCreate.get -> OfficeIMO.Word.WordFooter!
+*REMOVED*OfficeIMO.Word.WordDocument.FooterEvenOrCreate.get -> OfficeIMO.Word.WordFooter!
+*REMOVED*OfficeIMO.Word.WordDocument.FooterFirstOrCreate.get -> OfficeIMO.Word.WordFooter!
+*REMOVED*OfficeIMO.Word.WordDocument.Header.get -> OfficeIMO.Word.WordHeaders?
+*REMOVED*OfficeIMO.Word.WordDocument.HeaderDefaultOrCreate.get -> OfficeIMO.Word.WordHeader!
+*REMOVED*OfficeIMO.Word.WordDocument.HeaderEvenOrCreate.get -> OfficeIMO.Word.WordHeader!
+*REMOVED*OfficeIMO.Word.WordDocument.HeaderFirstOrCreate.get -> OfficeIMO.Word.WordHeader!
+*REMOVED*OfficeIMO.Word.WordDocument.Margins.get -> OfficeIMO.Word.WordMargins!
+*REMOVED*OfficeIMO.Word.WordDocument.Margins.set -> void
+*REMOVED*OfficeIMO.Word.WordDocument.PageOrientation.get -> OfficeIMO.OfficePageOrientation
+*REMOVED*OfficeIMO.Word.WordDocument.PageOrientation.set -> void
+*REMOVED*OfficeIMO.Word.WordDocument.PageSettings.get -> OfficeIMO.Word.WordPageSizes!
+*REMOVED*OfficeIMO.Word.WordDocument.PageSettings.set -> void
+OfficeIMO.Word.WordDocument.PageSetup.get -> OfficeIMO.Word.WordPageSetup!
+OfficeIMO.Word.WordDocument.Properties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
+OfficeIMO.Word.WordDocument.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
 OfficeIMO.Word.WordDocumentMergeOptions
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.get -> OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.set -> void
 OfficeIMO.Word.WordDocumentMergeOptions.StyleMode.get -> OfficeIMO.Word.WordMergeStyleMode
 OfficeIMO.Word.WordDocumentMergeOptions.StyleMode.set -> void
 OfficeIMO.Word.WordDocumentMergeOptions.WordDocumentMergeOptions() -> void
+*REMOVED*OfficeIMO.Word.WordDocumentRegexExtensions
 OfficeIMO.Word.WordFieldEvaluationBasis.LayoutPagination = 6 -> OfficeIMO.Word.WordFieldEvaluationBasis
 OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.get -> bool
 OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.set -> void
 OfficeIMO.Word.WordFieldUpdateOptions.UseLayoutPagination.get -> bool
 OfficeIMO.Word.WordFieldUpdateOptions.UseLayoutPagination.set -> void
+*REMOVED*OfficeIMO.Word.WordFooters
+*REMOVED*OfficeIMO.Word.WordFooters.Default.get -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordFooters.Default.set -> void
+*REMOVED*OfficeIMO.Word.WordFooters.Even.get -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordFooters.Even.set -> void
+*REMOVED*OfficeIMO.Word.WordFooters.First.get -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordFooters.First.set -> void
+*REMOVED*OfficeIMO.Word.WordFooters.WordFooters() -> void
 OfficeIMO.Word.WordHeaderFooter.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+*REMOVED*OfficeIMO.Word.WordHeaders
+*REMOVED*OfficeIMO.Word.WordHeaders.Default.get -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordHeaders.Default.set -> void
+*REMOVED*OfficeIMO.Word.WordHeaders.Even.get -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordHeaders.Even.set -> void
+*REMOVED*OfficeIMO.Word.WordHeaders.First.get -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordHeaders.First.set -> void
+*REMOVED*OfficeIMO.Word.WordHeaders.WordHeaders() -> void
+*REMOVED*OfficeIMO.Word.WordHeadersAndFooters
+*REMOVED*OfficeIMO.Word.WordImage.AlphaInversionColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordImage.AlphaInversionColorHex.set -> void
+OfficeIMO.Word.WordImage.AltText.get -> string?
+OfficeIMO.Word.WordImage.AltText.set -> void
+*REMOVED*OfficeIMO.Word.WordImage.ColorChangeFromHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordImage.ColorChangeFromHex.set -> void
+*REMOVED*OfficeIMO.Word.WordImage.ColorChangeToHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordImage.ColorChangeToHex.set -> void
+*REMOVED*OfficeIMO.Word.WordImage.ColorReplacementHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordImage.ColorReplacementHex.set -> void
+*REMOVED*OfficeIMO.Word.WordImage.Description.get -> string?
+*REMOVED*OfficeIMO.Word.WordImage.Description.set -> void
+*REMOVED*OfficeIMO.Word.WordImage.DuotoneColor1Hex.get -> string?
+*REMOVED*OfficeIMO.Word.WordImage.DuotoneColor1Hex.set -> void
+*REMOVED*OfficeIMO.Word.WordImage.DuotoneColor2Hex.get -> string?
+*REMOVED*OfficeIMO.Word.WordImage.DuotoneColor2Hex.set -> void
+OfficeIMO.Word.WordImageOptions.AltText.get -> string!
+OfficeIMO.Word.WordImageOptions.AltText.set -> void
+*REMOVED*OfficeIMO.Word.WordImageOptions.Description.get -> string!
+*REMOVED*OfficeIMO.Word.WordImageOptions.Description.set -> void
+OfficeIMO.Word.WordInlineImageInfo.AltText.get -> string?
+*REMOVED*OfficeIMO.Word.WordInlineImageInfo.Description.get -> string?
+*REMOVED*OfficeIMO.Word.WordLine.ColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordLine.ColorHex.set -> void
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordBulletSymbol symbol, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+*REMOVED*OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordListLevelKind kind, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+*REMOVED*OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, char symbol, string! fontFamily, OfficeIMO.OfficeColor? color, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+*REMOVED*OfficeIMO.Word.WordList.AddListLevel(int levelIndex, char symbol, string! fontName, string? colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+*REMOVED*OfficeIMO.Word.WordList.ColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordList.ColorHex.set -> void
+OfficeIMO.Word.WordList.FontFamily.get -> string?
+OfficeIMO.Word.WordList.FontFamily.set -> void
+*REMOVED*OfficeIMO.Word.WordList.FontName.get -> string!
+*REMOVED*OfficeIMO.Word.WordList.FontName.set -> void
 OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordMergeSectionMode.KeepSourceSections = 0 -> OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordMergeSectionMode.UseDestinationSections = 1 -> OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordMergeStyleMode
 OfficeIMO.Word.WordMergeStyleMode.KeepDifferentStyles = 1 -> OfficeIMO.Word.WordMergeStyleMode
 OfficeIMO.Word.WordMergeStyleMode.UseDestinationStyles = 0 -> OfficeIMO.Word.WordMergeStyleMode
+OfficeIMO.Word.WordPageSetup
+OfficeIMO.Word.WordPageSetup.DifferentFirstPage.get -> bool
+OfficeIMO.Word.WordPageSetup.DifferentFirstPage.set -> void
+OfficeIMO.Word.WordPageSetup.DifferentOddAndEvenPages.get -> bool
+OfficeIMO.Word.WordPageSetup.DifferentOddAndEvenPages.set -> void
+OfficeIMO.Word.WordPageSetup.EvenPageFooter.get -> OfficeIMO.Word.WordFooter!
+OfficeIMO.Word.WordPageSetup.EvenPageHeader.get -> OfficeIMO.Word.WordHeader!
+OfficeIMO.Word.WordPageSetup.FirstPageFooter.get -> OfficeIMO.Word.WordFooter!
+OfficeIMO.Word.WordPageSetup.FirstPageHeader.get -> OfficeIMO.Word.WordHeader!
+OfficeIMO.Word.WordPageSetup.Footer.get -> OfficeIMO.Word.WordFooter!
+OfficeIMO.Word.WordPageSetup.GetFooter(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordFooter?
+OfficeIMO.Word.WordPageSetup.GetHeader(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordHeader?
+OfficeIMO.Word.WordPageSetup.Header.get -> OfficeIMO.Word.WordHeader!
+OfficeIMO.Word.WordPageSetup.Margins.get -> OfficeIMO.Word.WordMargins!
+OfficeIMO.Word.WordPageSetup.Orientation.get -> OfficeIMO.OfficePageOrientation
+OfficeIMO.Word.WordPageSetup.Orientation.set -> void
+OfficeIMO.Word.WordPageSetup.Size.get -> OfficeIMO.Word.WordPageSizes!
 OfficeIMO.Word.WordParagraph.AddTableAfter(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordParagraph.AddTableBefore(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordParagraph.BackgroundColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordParagraph.BackgroundColor.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraph.ColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordParagraph.ColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraph.RunShadingFillColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordParagraph.RunShadingFillColor.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraph.RunShadingFillColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordParagraph.RunShadingFillColorHex.set -> void
+OfficeIMO.Word.WordParagraph.SetBackgroundColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordParagraph!
+*REMOVED*OfficeIMO.Word.WordParagraph.SetColorHex(string! color) -> OfficeIMO.Word.WordParagraph!
+*REMOVED*OfficeIMO.Word.WordParagraph.SetRunShadingFillColorHex(string! color) -> OfficeIMO.Word.WordParagraph!
+*REMOVED*OfficeIMO.Word.WordParagraph.ShadingFillColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordParagraph.ShadingFillColorHex.set -> void
+OfficeIMO.Word.WordParagraphBorderInfo.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordParagraphBorderInfo.ColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphBorders.BottomColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphBorders.BottomColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphBorders.LeftColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphBorders.LeftColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphBorders.RightColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphBorders.RightColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphBorders.TopColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphBorders.TopColorHex.set -> void
+OfficeIMO.Word.WordParagraphInfo.ShadingFillColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordParagraphInfo.ShadingFillColorHex.get -> string?
+OfficeIMO.Word.WordParagraphStyleDefinition.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordParagraphStyleDefinition.Color.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.ColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.ColorHex.set -> void
+OfficeIMO.Word.WordParagraphStyleDefinition.FontFamily.get -> string?
+OfficeIMO.Word.WordParagraphStyleDefinition.FontFamily.set -> void
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.FontName.get -> string?
+*REMOVED*OfficeIMO.Word.WordParagraphStyleDefinition.FontName.set -> void
 OfficeIMO.Word.WordParagraphStyles.Subtitle = 13 -> OfficeIMO.Word.WordParagraphStyles
 OfficeIMO.Word.WordParagraphStyles.Title = 12 -> OfficeIMO.Word.WordParagraphStyles
+OfficeIMO.Word.WordRunInfo.BackgroundColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordRunInfo.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordRunInfo.ColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordRunInfo.RunShadingFillColorHex.get -> string?
+OfficeIMO.Word.WordSearchResult.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordParagraph!>!
+*REMOVED*OfficeIMO.Word.WordSection.AddHeadersAndFooters() -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
 OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+*REMOVED*OfficeIMO.Word.WordSection.DifferentFirstPage.get -> bool
+*REMOVED*OfficeIMO.Word.WordSection.DifferentFirstPage.set -> void
+*REMOVED*OfficeIMO.Word.WordSection.DifferentOddAndEvenPages.get -> bool
+*REMOVED*OfficeIMO.Word.WordSection.DifferentOddAndEvenPages.set -> void
+*REMOVED*OfficeIMO.Word.WordSection.Footer.get -> OfficeIMO.Word.WordFooters!
+*REMOVED*OfficeIMO.Word.WordSection.GetFooter() -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordSection.GetFooter(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordSection.GetHeader() -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordSection.GetHeader(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordSection.GetOrCreateFooter(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordFooter!
+*REMOVED*OfficeIMO.Word.WordSection.GetOrCreateHeader(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordHeader!
+*REMOVED*OfficeIMO.Word.WordSection.Header.get -> OfficeIMO.Word.WordHeaders!
+*REMOVED*OfficeIMO.Word.WordSection.Margins.get -> OfficeIMO.Word.WordMargins!
+*REMOVED*OfficeIMO.Word.WordSection.PageOrientation.get -> OfficeIMO.OfficePageOrientation
+*REMOVED*OfficeIMO.Word.WordSection.PageOrientation.set -> void
+*REMOVED*OfficeIMO.Word.WordSection.PageSettings.get -> OfficeIMO.Word.WordPageSizes!
+OfficeIMO.Word.WordSection.PageSetup.get -> OfficeIMO.Word.WordPageSetup!
+*REMOVED*OfficeIMO.Word.WordSection.SetMargins(OfficeIMO.Word.WordMargin pageMargins) -> OfficeIMO.Word.WordSection!
+OfficeIMO.Word.WordSettings.BackgroundColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordSettings.BackgroundColor.get -> string?
+*REMOVED*OfficeIMO.Word.WordSettings.SetBackgroundColor(string! backgroundColor) -> OfficeIMO.Word.WordSettings!
+*REMOVED*OfficeIMO.Word.WordShape.FillColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordShape.FillColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordShape.StrokeColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordShape.StrokeColorHex.set -> void
+OfficeIMO.Word.WordShapeGroupItem.FillColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordShapeGroupItem.FillColor.set -> void
+*REMOVED*OfficeIMO.Word.WordShapeGroupItem.FillColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordShapeGroupItem.FillColorHex.set -> void
+OfficeIMO.Word.WordShapeGroupItem.StrokeColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordShapeGroupItem.StrokeColor.set -> void
+*REMOVED*OfficeIMO.Word.WordShapeGroupItem.StrokeColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordShapeGroupItem.StrokeColorHex.set -> void
+OfficeIMO.Word.WordSmartArt.ReplaceTexts(System.Collections.Generic.IEnumerable<string!>! texts, bool bold, bool italic, bool underline, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> void
+*REMOVED*OfficeIMO.Word.WordSmartArt.ReplaceTexts(System.Collections.Generic.IEnumerable<string!>! texts, bool bold, bool italic, bool underline, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> void
+OfficeIMO.Word.WordSmartArt.ReplaceTexts(bool bold, bool italic, bool underline, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null, params string![]! texts) -> void
+*REMOVED*OfficeIMO.Word.WordSmartArt.ReplaceTexts(bool bold, bool italic, bool underline, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null, params string![]! texts) -> void
+OfficeIMO.Word.WordSmartArt.SetNodeText(int index, string! text, bool bold, bool italic, bool underline, OfficeIMO.OfficeColor? color, OfficeIMO.OfficeLength? fontSize) -> void
+*REMOVED*OfficeIMO.Word.WordSmartArt.SetNodeText(int index, string! text, bool bold, bool italic, bool underline, string? colorHex, OfficeIMO.OfficeLength? fontSize) -> void
+*REMOVED*OfficeIMO.Word.WordStructuredDocumentTag.ColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordStructuredDocumentTag.ColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordStructuredDocumentTag.SetColorHex(string! color) -> OfficeIMO.Word.WordStructuredDocumentTag!
+*REMOVED*OfficeIMO.Word.WordTable.ConditionalFormatting(System.Collections.Generic.IEnumerable<(string! ColumnName, string! MatchText, OfficeIMO.Word.WordTextMatchType MatchType)>! conditions, bool matchAll, OfficeIMO.OfficeColor matchFillColor, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> void
+OfficeIMO.Word.WordTable.ConditionalFormatting(System.Collections.Generic.IEnumerable<(string! ColumnName, string! MatchText, OfficeIMO.Word.WordTextMatchType MatchType)>! conditions, bool matchAll, OfficeIMO.OfficeColor? matchFillColor = null, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> void
+*REMOVED*OfficeIMO.Word.WordTable.ConditionalFormatting(System.Collections.Generic.IEnumerable<(string! ColumnName, string! MatchText, OfficeIMO.Word.WordTextMatchType MatchType)>! conditions, bool matchAll, string? matchFillColorHex = null, string? matchFontColorHex = null, string? noMatchFillColorHex = null, string? noMatchFontColorHex = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> void
+*REMOVED*OfficeIMO.Word.WordTable.ConditionalFormatting(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, OfficeIMO.OfficeColor matchFillColor, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> void
+OfficeIMO.Word.WordTable.ConditionalFormatting(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, OfficeIMO.OfficeColor? matchFillColor = null, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> void
+*REMOVED*OfficeIMO.Word.WordTable.ConditionalFormatting(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, string? matchFillColorHex = null, string? matchFontColorHex = null, string? noMatchFillColorHex = null, string? noMatchFontColorHex = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> void
 OfficeIMO.Word.WordTableCell.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern, bool removePrecedingParagraph = false) -> OfficeIMO.Word.WordTable!
-*REMOVED*OfficeIMO.Word.Legacy.LegacyWordImportResult.RequireNoLoss() -> OfficeIMO.Word.WordDocument!
-*REMOVED*OfficeIMO.Word.WordDocument.BuiltinDocumentProperties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
-*REMOVED*OfficeIMO.Word.WordDocument.CustomDocumentProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
-OfficeIMO.Word.Legacy.LegacyWordImportResult.ThrowIfLoss() -> void
-OfficeIMO.Word.WordDocument.CustomProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
-OfficeIMO.Word.WordDocument.Properties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
-
-*REMOVED*static OfficeIMO.Word.WordDocument.SignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
+*REMOVED*OfficeIMO.Word.WordTableCell.ShadingFillColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordTableCell.ShadingFillColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.BottomColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.BottomColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.BottomColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.BottomColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.EndColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.EndColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.EndColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.EndColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.InsideHorizontalColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.InsideHorizontalColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.InsideHorizontalColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.InsideHorizontalColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.InsideVerticalColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.InsideVerticalColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.InsideVerticalColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.InsideVerticalColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.LeftColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.LeftColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.LeftColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.LeftColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.RightColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.RightColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.RightColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.RightColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.StartColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.StartColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.StartColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.StartColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.TopColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopLeftToBottomRightColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.TopLeftToBottomRightColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopLeftToBottomRightColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopLeftToBottomRightColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopRightToBottomLeftColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.Word.WordTableCellBorder.TopRightToBottomLeftColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopRightToBottomLeftColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableCellBorder.TopRightToBottomLeftColorHex.set -> void
+OfficeIMO.Word.WordTableCellBorderInfo.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellBorderInfo.ColorHex.get -> string?
+OfficeIMO.Word.WordTableCellInfo.ShadingFillColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Word.WordTableCellInfo.ShadingFillColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.Collections.Generic.IEnumerable<(string! ColumnName, string! MatchText, OfficeIMO.Word.WordTextMatchType MatchType)>! conditions, bool matchAll, OfficeIMO.OfficeColor matchFillColor, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
+OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.Collections.Generic.IEnumerable<(string! ColumnName, string! MatchText, OfficeIMO.Word.WordTextMatchType MatchType)>! conditions, bool matchAll, OfficeIMO.OfficeColor? matchFillColor = null, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
+*REMOVED*OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.Collections.Generic.IEnumerable<(string! ColumnName, string! MatchText, OfficeIMO.Word.WordTextMatchType MatchType)>! conditions, bool matchAll, string? matchFillColorHex = null, string? matchFontColorHex = null, string? noMatchFillColorHex = null, string? noMatchFontColorHex = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
+*REMOVED*OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, OfficeIMO.OfficeColor matchFillColor, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
+OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, OfficeIMO.OfficeColor? matchFillColor = null, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
+*REMOVED*OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, string? matchFillColorHex = null, string? matchFontColorHex = null, string? noMatchFillColorHex = null, string? noMatchFontColorHex = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
+OfficeIMO.Word.WordTableOptions
+OfficeIMO.Word.WordTableOptions.LayoutMode.get -> OfficeIMO.Word.WordTableLayoutMode?
+OfficeIMO.Word.WordTableOptions.LayoutMode.set -> void
+OfficeIMO.Word.WordTableOptions.Style.get -> OfficeIMO.Word.WordTableStyle
+OfficeIMO.Word.WordTableOptions.Style.set -> void
+OfficeIMO.Word.WordTableOptions.WordTableOptions() -> void
+OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(OfficeIMO.Word.WordTableBorderSide side) -> (OfficeIMO.Word.WordBorderStyle? Style, OfficeIMO.OfficeLength? Size, OfficeIMO.OfficeColor? Color)
+*REMOVED*OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(OfficeIMO.Word.WordTableBorderSide side) -> (OfficeIMO.Word.WordBorderStyle? Style, OfficeIMO.OfficeLength? Size, string? ColorHex)
+*REMOVED*OfficeIMO.Word.WordTableStyleDetails.ShadingColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordTableStyleDetails.ShadingColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordTableStyleDetails.ShadingFillColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordTableStyleDetails.ShadingFillColorHex.set -> void
+OfficeIMO.Word.WordTemplateImage.AltText.get -> string!
+*REMOVED*OfficeIMO.Word.WordTemplateImage.Description.get -> string!
+OfficeIMO.Word.WordTemplateImage.WordTemplateImage(byte[]! content, string! fileName, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string! altText = "") -> void
+*REMOVED*OfficeIMO.Word.WordTemplateImage.WordTemplateImage(byte[]! content, string! fileName, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string! description = "") -> void
+OfficeIMO.Word.WordTextBox.FillColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Word.WordTextBox.FillColor.set -> void
+*REMOVED*OfficeIMO.Word.WordTextBox.FillColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordTextBox.FillColorHex.set -> void
+*REMOVED*OfficeIMO.Word.WordWatermark.ColorHex.get -> string!
+*REMOVED*OfficeIMO.Word.WordWatermark.ColorHex.set -> void
+*REMOVED*static OfficeIMO.Word.WordDocument.FindAndReplace(System.Collections.Generic.List<OfficeIMO.Word.WordParagraph!>! paragraphs, string! textToFind, string! textToReplace, System.StringComparison stringComparison = System.StringComparison.OrdinalIgnoreCase) -> int
+static OfficeIMO.Word.WordDocument.ReplaceAll(System.Collections.Generic.List<OfficeIMO.Word.WordParagraph!>! paragraphs, string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
 static OfficeIMO.Word.WordDocument.SignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options) -> OfficeIMO.Security.OfficePackageSigningResult!
-
-*REMOVED*static OfficeIMO.Word.WordDocument.TrySignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
+*REMOVED*static OfficeIMO.Word.WordDocument.SignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 static OfficeIMO.Word.WordDocument.TrySignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options) -> OfficeIMO.Security.OfficePackageSigningResult!
-
+*REMOVED*static OfficeIMO.Word.WordDocument.TrySignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 *REMOVED*static OfficeIMO.Word.WordDocument.ValidatePackageSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
 static OfficeIMO.Word.WordDocument.ValidateSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
+*REMOVED*static OfficeIMO.Word.WordDocumentRegexExtensions.Find(this OfficeIMO.Word.WordDocument! document, System.Text.RegularExpressions.Regex! regex) -> OfficeIMO.Word.WordSearchResult!
+*REMOVED*static OfficeIMO.Word.WordHeadersAndFooters.AddHeadersAndFooters(this OfficeIMO.Word.WordDocument! document) -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
+*REMOVED*static OfficeIMO.Word.WordHeadersAndFooters.AddHeadersAndFooters(this OfficeIMO.Word.WordSection! section) -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
+static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordBulletSymbol symbol, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordListLevelKind kind, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontFamily, OfficeIMO.OfficeColor? color, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontName, string? colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*static OfficeIMO.Word.WordMargins.SetMargins(OfficeIMO.Word.WordSection! wordSection, OfficeIMO.Word.WordMargin pageMargins) -> OfficeIMO.Word.WordSection!

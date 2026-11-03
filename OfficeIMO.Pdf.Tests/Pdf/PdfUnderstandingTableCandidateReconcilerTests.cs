@@ -159,7 +159,7 @@ public sealed class PdfUnderstandingTableCandidateReconcilerTests {
 
     private static PdfLogicalPage CreatePage() => Assert.Single(
         PdfDocumentReadResult.Load(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("anchor")).ToBytes()).Pages);
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("anchor")).ToBytes()).Pages);
 
     private static PdfUnderstandingTableCandidate CreateCandidate(int index) {
         double left = index * 220D;

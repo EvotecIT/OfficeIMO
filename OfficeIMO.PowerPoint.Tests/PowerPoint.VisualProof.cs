@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument secondPresentation = PowerPointDocument.Create(secondStream);
             PowerPointTextBox cleanText = secondPresentation.AddSlide()
                 .AddTextBox("Clean snapshot",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(40));
-            cleanText.FontName = "Helvetica";
+            cleanText.FontFamily = "Helvetica";
             cleanText.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             string second = secondPresentation.ToHtml(options, out OfficeConversionReport secondReport);
 
@@ -51,13 +51,13 @@ namespace OfficeIMO.Tests {
                     PowerPointTextBox title = slide.AddTextBox("Shared fidelity proof",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(480),global::OfficeIMO.OfficeLength.Points(46));
                     title.Title = "Slide title";
                     title.SetLanguage("en-US");
-                    title.Color = "172033";
+                    title.Color = OfficeColor.Parse("172033");
                     title.FontSize = global::OfficeIMO.OfficeLength.Points(28);
                     PowerPointTextBox body = slide.AddTextBox(
                         "One OfficeDrawing scene feeds PNG, SVG, positioned HTML, and faithful PDF.",                        global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(60));
                     body.Title = "Fidelity statement";
                     body.SetLanguage("en-US");
-                    body.Color = "30343B";
+                    body.Color = OfficeColor.Parse("30343B");
                     body.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                     PowerPointAutoShape accent = slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(205), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(18), "Decorative accent");
                     accent.FillColor = "0098C8";

@@ -136,10 +136,10 @@ table.Rows[3].Cells[0].VerticalMerge = WordCellMerge.Continue;
 var borders = table.Rows[0].Cells[0].Borders;
 borders.TopStyle = WordBorderStyle.Single;
 borders.TopSize = 12;
-borders.TopColorHex = "FF0000";
+borders.TopColor = OfficeColor.Parse("FF0000");
 borders.BottomStyle = WordBorderStyle.Double;
 borders.BottomSize = 6;
-borders.BottomColorHex = "0000FF";
+borders.BottomColor = OfficeColor.Parse("0000FF");
 ```
 
 ## Table Layout
@@ -170,11 +170,10 @@ var employees = new[] {
     new { Name = "Carol", Role = "Manager", Salary = 105000 },
 };
 
-var table = document.AddTable(
-    employees,
-    WordTableStyle.GridTable4Accent1,
-    includeHeader: true
-);
+var table = document.AddTable(employees, new WordTableOptions {
+    Style = WordTableStyle.GridTable4Accent1,
+    Caption = "Table 1. Employees"
+});
 ```
 
 ## Accessing All Table Paragraphs

@@ -18,8 +18,8 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void MergeResult_ToBytesReturnsDefensiveCopies() {
-        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
-        byte[] second = PdfDocument.Create().Paragraph(p => p.Text("Second")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(p => p.AddText("First")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(p => p.AddText("Second")).ToBytes();
 
         PdfMergeResult result = PdfMerger.MergeResult(new PdfMergeOptions(), first, second);
         byte[] firstCopy = result.ToBytes();
@@ -41,7 +41,7 @@ public class PdfMergerPolicyTests {
             "EMC\n" +
             "BT\n/F1 12 Tf\n72 720 Td\n(Primary body) Tj\nET\n");
         byte[] second = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Secondary body"))
+            .Paragraph(paragraph => paragraph.AddText("Secondary body"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { IncludeArtifactText = true };
 
@@ -58,8 +58,8 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void PolicyMergeResult_AcceptsBytePayloadsWithoutDocumentWrappers() {
-        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First body")).ToBytes();
-        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Second body")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("First body")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Second body")).ToBytes();
 
         PdfMergeResult result = PdfDocument.MergeBytesResult(
             new PdfMergeOptions(),
@@ -75,8 +75,8 @@ public class PdfMergerPolicyTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ByteMerge_BorrowsInputsOnlyForTheSynchronousOperation(bool returnPolicyResult) {
-        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Borrowed first")).ToBytes();
-        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Borrowed second")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Borrowed first")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Borrowed second")).ToBytes();
         byte[] firstSnapshot = (byte[])first.Clone();
         byte[] secondSnapshot = (byte[])second.Clone();
 
@@ -98,8 +98,8 @@ public class PdfMergerPolicyTests {
     [InlineData(false)]
     [InlineData(true)]
     public void MergeToBytes_TransfersOwnedOutputWithoutRetainingCallerInputs(bool usePolicy) {
-        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Direct first")).ToBytes();
-        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Direct second")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Direct first")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Direct second")).ToBytes();
         byte[] firstSnapshot = (byte[])first.Clone();
         byte[] secondSnapshot = (byte[])second.Clone();
 
@@ -120,8 +120,8 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void PolicyMergeComposesSourceStructuralLimitsForTheOwnedOutput() {
-        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();
-        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Second")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("First")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Second")).ToBytes();
         int sourceObjectLimit = Math.Max(
             PdfSyntax.ParseObjects(first).Map.Count,
             PdfSyntax.ParseObjects(second).Map.Count);
@@ -149,7 +149,7 @@ public class PdfMergerPolicyTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 4 0 R >>",
             "<< /Length 0 >>\nstream\n\nendstream",
             "<< /Fields [] /XFA (unsupported-packet) >>");
-        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Incoming")).ToBytes();
 
         Assert.Throws<NotSupportedException>(() => PdfMerger.MergeResult(new PdfMergeOptions(), xfa, incoming));
 
@@ -165,7 +165,7 @@ public class PdfMergerPolicyTests {
     [Fact]
     public void MiddlePageInsertion_RejectsXfaBeforeRebuildingTheCatalog() {
         byte[] xfa = BuildTwoPageXfaPdf("middle-insertion-packet");
-        byte[] inserted = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Inserted")).ToBytes();
+        byte[] inserted = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Inserted")).ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             PdfMerger.MergePrimaryWithInsertedPages(xfa, inserted, insertBeforePageNumber: 2));
@@ -179,7 +179,7 @@ public class PdfMergerPolicyTests {
     [InlineData(3)]
     public void PublicPageInsertion_RejectsTargetXfaAtEveryPlacement(int insertBeforePageNumber) {
         byte[] xfa = BuildTwoPageXfaPdf("unsupported-insertion-packet");
-        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Incoming")).ToBytes();
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfDocument.Load(xfa).Pages.Insert(insertBeforePageNumber, incoming));
@@ -240,12 +240,12 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void Merge_DefaultAttachmentPolicyReportsIncomingMetadataWithoutDecodingPayload() {
-        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("Primary without attachments")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(p => p.AddText("Primary without attachments")).ToBytes();
         var incomingOptions = new PdfCreateOptions().AddEmbeddedFile(
             "oversized.bin",
             Enumerable.Repeat((byte)0x41, 128).ToArray(),
             "application/octet-stream");
-        byte[] second = PdfDocument.Create(incomingOptions).Paragraph(p => p.Text("Incoming attachment")).ToBytes();
+        byte[] second = PdfDocument.Create(incomingOptions).Paragraph(p => p.AddText("Incoming attachment")).ToBytes();
         var tightAttachmentLimit = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 16 }
         };
@@ -261,8 +261,8 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void MergeResult_RejectIncomingPolicyFailsBeforeReturningArtifact() {
-        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
-        byte[] second = PdfDocument.Create().ViewerPreferences(preferences => preferences.HideToolbar = true).Paragraph(p => p.Text("Second")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(p => p.AddText("First")).ToBytes();
+        byte[] second = PdfDocument.Create().ViewerPreferences(preferences => preferences.HideToolbar = true).Paragraph(p => p.AddText("Second")).ToBytes();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.RejectIncoming } };
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => PdfMerger.MergeResult(options, first, second));
@@ -454,12 +454,12 @@ public class PdfMergerPolicyTests {
         byte[] first = PdfDocument.Create()
             .CatalogView(PdfCatalogPageMode.UseThumbs, PdfCatalogPageLayout.OneColumn)
             .ViewerPreferences(preferences => preferences.HideToolbar = true)
-            .Paragraph(p => p.Text("First"))
+            .Paragraph(p => p.AddText("First"))
             .ToBytes();
         byte[] second = PdfDocument.Create()
             .ViewerPreferences(preferences => preferences.HideMenubar = true)
             .OpenAction(1, destinationTop: 500)
-            .Paragraph(p => p.Text("Second"))
+            .Paragraph(p => p.AddText("Second"))
             .ToBytes();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { ViewerPreferences = PdfMergeStructureMode.Combine } };
 
@@ -475,7 +475,7 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void MergeResult_PreservesIncomingOpenActionZoom() {
-        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("First")).ToBytes();
         byte[] second = BuildRawPdf(
             "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /XYZ 12 100 1.5] >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
@@ -499,13 +499,13 @@ public class PdfMergerPolicyTests {
             .Language("en-US")
             .CatalogUriBase("https://primary.example/")
             .SrgbOutputIntent()
-            .Paragraph(p => p.Text("First"))
+            .Paragraph(p => p.AddText("First"))
             .ToBytes();
         byte[] second = PdfDocument.Create()
             .Language("de-DE")
             .CatalogUriBase("https://incoming.example/")
             .SrgbOutputIntent()
-            .Paragraph(p => p.Text("Second"))
+            .Paragraph(p => p.AddText("Second"))
             .ToBytes();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Combine } };
 
@@ -520,7 +520,7 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void MergeResult_RejectsOptionalContentCombineThatCouldExposeHiddenLayers() {
-        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(p => p.AddText("First")).ToBytes();
         byte[] second = PdfOptionalContentSupport.BuildOptionalContentMetadataPdf();
         var options = new PdfMergeOptions { Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Combine } };
 
@@ -534,9 +534,9 @@ public class PdfMergerPolicyTests {
     [InlineData(PdfMergeStructureMode.KeepPrimary)]
     [InlineData(PdfMergeStructureMode.Drop)]
     public void MergeResult_RejectsPoliciesThatDiscardIncomingHiddenLayerState(PdfMergeStructureMode mode) {
-        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
+        byte[] first = PdfDocument.Create().Paragraph(p => p.AddText("First")).ToBytes();
         byte[] second = PdfDocument.Create()
-            .Layer("Hidden evidence", layer => layer.Paragraph(p => p.Text("Must stay hidden")), new PdfLayerOptions {
+            .Layer("Hidden evidence", layer => layer.AddParagraph(p => p.AddText("Must stay hidden")), new PdfLayerOptions {
                 InitiallyVisible = false
             })
             .ToBytes();
@@ -550,7 +550,7 @@ public class PdfMergerPolicyTests {
 
     [Fact]
     public void MergeResult_ReportsPageNormalizationChoice() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Source")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Source")).ToBytes();
         byte[] sourceSnapshot = (byte[])source.Clone();
         var options = new PdfMergeOptions {
             ResizePages = new PdfPageResizeOptions(PdfPageSizes.A4) { Mode = PdfPageResizeMode.Fit }
@@ -570,7 +570,7 @@ public class PdfMergerPolicyTests {
         return PdfDocument.Create(options)
             .Meta(title: title, author: author, subject: subject)
             .H1(heading)
-            .Paragraph(p => p.Text(heading + " body"))
+            .Paragraph(p => p.AddText(heading + " body"))
             .ToBytes();
     }
 
@@ -578,9 +578,9 @@ public class PdfMergerPolicyTests {
         var options = new PdfCreateOptions();
         options.AddPageLabelRange(1, labelStyle, 1, labelPrefix);
         return PdfDocument.Create(options)
-            .Paragraph(p => p.LinkToBookmark("Jump", "Shared"))
+            .Paragraph(p => p.AddBookmarkLink("Jump", "Shared"))
             .Bookmark("Shared")
-            .Paragraph(p => p.Text(text))
+            .Paragraph(p => p.AddText(text))
             .ToBytes();
     }
 

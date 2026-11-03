@@ -51,7 +51,7 @@ public sealed class IWorkKeynoteImageResizeTests {
             Assert.Equal(index == 1 ? 180 : 168, image.Geometry.HeightPoints);
             Assert.Equal(original.Slides[index].Drawables.Select(drawable => drawable.Kind),
                 projection.Slides[index].Drawables.Select(drawable => drawable.Kind));
-            var picture = Assert.Single(saved.Slides[index].Pictures); var oracle = Assert.Single(native.Slides[index].Pictures);
+            var picture = Assert.Single(saved.Slides[index].Images); var oracle = Assert.Single(native.Slides[index].Images);
             Assert.Equal(image.GetBytes(), picture.GetImageBytes()); Assert.Equal(oracle.GetImageBytes(), picture.GetImageBytes());
             Assert.Equal(image.AccessibilityDescription, picture.AltText); Assert.Equal(oracle.AltText, picture.AltText);
             Assert.Equal(OfficeLength.Points(image.Geometry.LeftPoints), picture.Left); Assert.Equal(OfficeLength.Points(image.Geometry.TopPoints), picture.Top);

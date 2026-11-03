@@ -317,7 +317,7 @@ internal static partial class PdfWriter {
         }
 
         var runs = new[] {
-            PdfTextRun.Normal(text, effectiveStyle.TextColor, global::OfficeIMO.OfficeLength.Points(fontSize), font: PdfStandardFont.Helvetica)
+            PdfTextRun.Normal(text, effectiveStyle.TextColor, global::OfficeIMO.OfficeLength.Points(fontSize), standardFont: PdfStandardFont.Helvetica)
         };
         return WrapRichRunsCore(
             runs,

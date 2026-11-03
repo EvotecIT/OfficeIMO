@@ -15,8 +15,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData("image-row", false)]
     public void Panel_BordersRemainVisibleOverDescendantFills(string child, bool rowColumn) {
         var options = new PdfCreateOptions {
-            PageWidth = Pt(200), PageHeight = Pt(110), MarginLeft = Pt(20), MarginRight = Pt(20),
-            MarginTop = Pt(20), MarginBottom = Pt(20), DefaultFont = PdfStandardFont.Helvetica,
+            PageSetup = { Size = new PdfPageSize(Pt(200), Pt(110)), Margins = { Left = Pt(20), Right = Pt(20), Top = Pt(20), Bottom = Pt(20) } }, DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = Pt(10), MaxGeneratedPages = 1
         };
         var style = new PdfPanelStyle {
@@ -26,19 +25,19 @@ public partial class PdfDocumentVisualQualityTests {
         };
         void Content(PdfContentBuilder content) => content.Panel(panel => {
             if (child.StartsWith("image", StringComparison.Ordinal)) {
-                void Image(PdfContentBuilder target) => target.Image(PdfPngTestImages.CreateRgbaPng(255, 0, 0, 255), Pt(160), Pt(40),
+                void Image(PdfContentBuilder target) => target.AddImage(PdfPngTestImages.CreateRgbaPng(255, 0, 0, 255), Pt(160), Pt(40),
                     style: new PdfImageStyle { SpacingBefore = Pt(0), SpacingAfter = Pt(0), ScaleDownToFit = false });
                 if (child == "image-row") panel.Row(row => row.PercentColumn(100, Image));
                 else Image(panel);
             } else if (child == "table") {
-                panel.Table(new[] { new[] { "A" }, new[] { "B" } }, style: new PdfTableStyle {
+                panel.AddTable(new[] { new[] { "A" }, new[] { "B" } }, style: new PdfTableStyle {
                     HeaderRowCount = 0, FontSize = Pt(10), LineHeight = 2,
                     FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { Pt(20), Pt(20) }, CellPaddingX = Pt(0), CellPaddingY = Pt(0),
                     BorderWidth = Pt(0), BorderColor = null, RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0),
                     SpacingBefore = Pt(0), SpacingAfter = Pt(0), KeepTogether = true
                 });
             } else {
-                panel.Panel(inner => inner.Paragraph(p => p.Text("A\nB"), style: new PdfParagraphStyle {
+                panel.Panel(inner => inner.AddParagraph(p => p.AddText("A\nB"), style: new PdfParagraphStyle {
                     FontSize = Pt(10), LineSpacing = PdfLineSpacing.Exact(Pt(20)),
                     SpacingBefore = Pt(0), SpacingAfter = Pt(0), WidowControl = false
                 }), new PdfPanelStyle {
@@ -72,10 +71,9 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Panel_FlowImageKeepsItsDebugBoxAndPlacement() {
         var options = new PdfCreateOptions {
-            PageWidth = Pt(200), PageHeight = Pt(110), MarginLeft = Pt(20), MarginRight = Pt(20),
-            MarginTop = Pt(20), MarginBottom = Pt(20), Debug = new PdfDebugOptions { ShowFlowObjectBoxes = true }
+            PageSetup = { Size = new PdfPageSize(Pt(200), Pt(110)), Margins = { Left = Pt(20), Right = Pt(20), Top = Pt(20), Bottom = Pt(20) } }, Debug = new PdfDebugOptions { ShowFlowObjectBoxes = true }
         };
-        void Image(PdfContentBuilder content) => content.Image(PdfPngTestImages.CreateRgbaPng(255, 0, 0, 255), Pt(40), Pt(20),
+        void Image(PdfContentBuilder content) => content.AddImage(PdfPngTestImages.CreateRgbaPng(255, 0, 0, 255), Pt(40), Pt(20),
             style: new PdfImageStyle { SpacingBefore = Pt(0), SpacingAfter = Pt(0), Align = OfficeAlignment.Center, ScaleDownToFit = false });
         byte[] bytes = PdfDocument.Create(options).Compose(document => document.Page(page => page.Content(content =>
             content.Panel(Image, new PdfPanelStyle { PaddingX = Pt(0), PaddingY = Pt(2), SpacingBefore = Pt(0), SpacingAfter = Pt(0) })))).ToBytes();

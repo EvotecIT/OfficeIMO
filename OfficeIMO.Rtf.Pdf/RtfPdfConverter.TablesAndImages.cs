@@ -316,7 +316,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static PdfCore.PdfImageStyle GetImageStyle(RtfImage image, RtfImageLayout layout) {
-        var style = new PdfCore.PdfImageStyle { AlternativeText = string.IsNullOrWhiteSpace(image.Description) ? null : image.Description };
+        var style = new PdfCore.PdfImageStyle { AltText = string.IsNullOrWhiteSpace(image.Description) ? null : image.Description };
         double left = (image.CropLeftTwips ?? 0) / layout.WidthTwips!.Value;
         double top = (image.CropTopTwips ?? 0) / layout.HeightTwips!.Value;
         double right = (image.CropRightTwips ?? 0) / layout.WidthTwips!.Value;

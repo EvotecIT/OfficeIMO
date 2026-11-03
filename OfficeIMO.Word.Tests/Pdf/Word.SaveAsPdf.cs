@@ -19,7 +19,7 @@ public partial class Word {
         var pdfPath = Path.Combine(_directoryWithFiles, "PdfSample.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             defaultHeader.AddParagraph("Sample Header");
@@ -67,7 +67,7 @@ public partial class Word {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             header.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
@@ -368,7 +368,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, $"PdfSectionOrientation{orientationValue}.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.Sections[0].PageSettings.Orientation = orientation;
+            document.Sections[0].PageSetup.Size.Orientation = orientation;
             document.AddParagraph("Hello World");
             document.SaveAsPdf(pdfPath);
         }
@@ -480,13 +480,13 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfSectionPageSettings.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-            document.Sections[0].PageSettings.Orientation = OfficePageOrientation.Landscape;
+            document.Sections[0].PageSetup.Size.PageSize = WordPageSize.A4;
+            document.Sections[0].PageSetup.Size.Orientation = OfficePageOrientation.Landscape;
             document.AddParagraph("Section1");
 
             WordSection section2 = document.AddSection();
-            section2.PageSettings.PageSize = WordPageSize.A5;
-            section2.PageSettings.Orientation = OfficePageOrientation.Portrait;
+            section2.PageSetup.Size.PageSize = WordPageSize.A5;
+            section2.PageSetup.Size.Orientation = OfficePageOrientation.Portrait;
             section2.AddParagraph("Section2");
 
             document.Save();

@@ -291,12 +291,12 @@ namespace OfficeIMO.Word {
                     AddBookmarksFromTable(table, list);
                 }
 
-                AddBookmarksFromHeaderFooter(Header.Default, list);
-                AddBookmarksFromHeaderFooter(Header.First, list);
-                AddBookmarksFromHeaderFooter(Header.Even, list);
-                AddBookmarksFromHeaderFooter(Footer.Default, list);
-                AddBookmarksFromHeaderFooter(Footer.First, list);
-                AddBookmarksFromHeaderFooter(Footer.Even, list);
+                AddBookmarksFromHeaderFooter(Headers.Default, list);
+                AddBookmarksFromHeaderFooter(Headers.First, list);
+                AddBookmarksFromHeaderFooter(Headers.Even, list);
+                AddBookmarksFromHeaderFooter(Footers.Default, list);
+                AddBookmarksFromHeaderFooter(Footers.First, list);
+                AddBookmarksFromHeaderFooter(Footers.Even, list);
 
                 foreach (var footnote in FootNotes) {
                     AddBookmarksFromParagraphs(footnote.Paragraphs, list);
@@ -637,30 +637,23 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
-        /// <summary>
-        /// Exposes the footers available for this section.
-        /// </summary>
-        public WordFooters Footer { get; internal set; } = new WordFooters();
+        internal WordFooters Footers { get; set; } = new WordFooters();
 
-        /// <summary>
-        /// Exposes the headers available for this section.
-        /// </summary>
-        public WordHeaders Header { get; internal set; } = new WordHeaders();
+        internal WordHeaders Headers { get; set; } = new WordHeaders();
 
         /// <summary>
         /// Provides access to page border settings for this section.
         /// </summary>
         public WordBorders Borders { get; internal set; } = null!;
 
-        /// <summary>
-        /// Provides access to page margin settings for this section.
-        /// </summary>
-        public WordMargins Margins { get; internal set; } = null!;
+        internal WordMargins _margins = null!;
+        internal WordPageSizes _pageSizes = null!;
+        private WordPageSetup? _pageSetup;
 
         /// <summary>
-        /// Provides access to page size and orientation settings for this section.
+        /// Gets the page size, margins, orientation and running headers and footers of this section.
         /// </summary>
-        public WordPageSizes PageSettings { get; internal set; } = null!;
+        public WordPageSetup PageSetup => _pageSetup ??= new WordPageSetup(this);
 
         /// <summary>
         /// Provides a list of all lists within the section
@@ -687,9 +680,9 @@ namespace OfficeIMO.Word {
                 var sdtBlockList = GetSdtBlockList();
                 list.AddRange(WordSection.ConvertStdBlockToWatermark(_document, sdtBlockList));
 
-                if (Header.Default != null) list.AddRange(Header.Default.Watermarks);
-                if (Header.Even != null) list.AddRange(Header.Even.Watermarks);
-                if (Header.First != null) list.AddRange(Header.First.Watermarks);
+                if (Headers.Default != null) list.AddRange(Headers.Default.Watermarks);
+                if (Headers.Even != null) list.AddRange(Headers.Even.Watermarks);
+                if (Headers.First != null) list.AddRange(Headers.First.Watermarks);
 
                 return list;
             }
@@ -763,9 +756,9 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            this.Margins = new WordMargins(wordDocument, this);
+            this._margins = new WordMargins(wordDocument, this);
             this.Borders = new WordBorders(wordDocument, this);
-            this.PageSettings = new WordPageSizes(wordDocument, this);
+            this._pageSizes = new WordPageSizes(wordDocument, this);
         }
 
 
@@ -808,86 +801,10 @@ namespace OfficeIMO.Word {
             }
 
 
-            this.Margins = new WordMargins(wordDocument, this);
+            this._margins = new WordMargins(wordDocument, this);
             this.Borders = new WordBorders(wordDocument, this);
-            this.PageSettings = new WordPageSizes(wordDocument, this);
+            this._pageSizes = new WordPageSizes(wordDocument, this);
             wordDocument.Sections.Add(this);
-        }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the first page has different headers and footers.
-        /// </summary>
-        public bool DifferentFirstPage {
-            get {
-                var sectionProperties = _sectionProperties;
-                if (sectionProperties != null) {
-                    var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-                    if (titlePage != null) {
-                        return titlePage.Val?.Value ?? true;
-                    }
-                }
-
-                return false;
-            }
-            set {
-                var sectionProperties = _sectionProperties;
-                if (sectionProperties == null) {
-                    if (value == false) {
-                        // section properties doesn't exists, so we don't do anything
-                        return;
-                    } else {
-                        throw new InvalidOperationException("Section doesn't exits. Weird :-)");
-                    }
-                }
-
-                sectionProperties = _sectionProperties;
-                var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
-                if (value == false) {
-                    if (titlePage == null) {
-                        return;
-                    } else {
-                        titlePage.Remove();
-                    }
-                } else {
-                    if (titlePage == null) sectionProperties.Append(new TitlePage());
-                    else titlePage.Val = true;
-                    WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.First);
-                    WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.First);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets whether this section has an explicit or inherited even-page header or footer while the
-        /// document-wide odd/even setting is enabled. Setting the value to
-        /// <see langword="true"/> creates even-page references for this section and enables that setting;
-        /// setting it to <see langword="false"/> disables the document-wide setting.
-        /// </summary>
-        public bool DifferentOddAndEvenPages {
-            get {
-                if (!DocumentOddEvenSettingEnabled) return false;
-                return ResolveEvenHeader() != null || ResolveEvenFooter() != null;
-
-            }
-            set {
-                if (!value) {
-                    _wordprocessingDocument.MainDocumentPart?
-                        .DocumentSettingsPart?
-                        .Settings?
-                        .GetFirstChild<EvenAndOddHeaders>()?
-                        .Remove();
-                    return;
-                }
-
-                _ = _document.Settings;
-                WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.Even);
-                WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.Even);
-
-                Settings settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
-                EvenAndOddHeaders? setting = settings.GetFirstChild<EvenAndOddHeaders>();
-                if (setting == null) settings.AddChild(new EvenAndOddHeaders(), true);
-                else setting.Val = true;
-            }
         }
 
         internal bool DocumentOddEvenSettingEnabled {

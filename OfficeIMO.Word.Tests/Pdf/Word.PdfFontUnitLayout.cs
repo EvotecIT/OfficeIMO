@@ -16,8 +16,8 @@ public partial class Word {
         var actual = new List<int>();
         foreach (bool split in new[] { false, true }) {
             using WordDocument document = WordDocument.Create();
-            document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(((uint)Math.Round((bodyWidth + 40D) * 20D)) / 20D);
-            document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(20D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(20D);
+            document.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(((uint)Math.Round((bodyWidth + 40D) * 20D)) / 20D);
+            document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(20D); document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(20D);
             string text = string.Concat(Enumerable.Repeat("AV", 10));
             WordParagraph paragraph = document.AddParagraph();
             int index = 0;
@@ -25,7 +25,7 @@ public partial class Word {
                 WordParagraph run = paragraph.AddText(fragment);
                 run.FontFamily = ManagedTextShapingTestAssets.FamilyName; run.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 run.CharacterScale = scale; run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1);
-                run.ColorHex = index++ % 2 == 0 ? "CC0000" : "0000CC";
+                run.Color = OfficeColor.Parse(index++ % 2 == 0 ? "CC0000" : "0000CC");
             }
             byte[] font = ManagedTextShapingTestAssets.CreateFontWithFontUnitKerning(2048, 'A', 'V', -101);
             var options = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
@@ -44,8 +44,8 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_FontUnitPrecisionStartsSeparateOversizedWordsOnFreshLines() {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(65D);
-        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(20D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(20D);
+        document.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(65D);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(20D); document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(20D);
         WordParagraph paragraph = document.AddParagraph("AAAAAAAA BBBBBBBB");
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(2048, 1229, ' ', 'A', 'B');
@@ -75,8 +75,8 @@ public partial class Word {
     public void SaveAsPdf_FontUnitPrecisionControlsWrappingAcrossRuns(
         ushort advance, int length, int scale, int spacing, double bodyWidth, int firstLineLetters, bool split) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(((uint)Math.Round((bodyWidth + 40D) * 20D)) / 20D);
-        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(20D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(20D);
+        document.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(((uint)Math.Round((bodyWidth + 40D) * 20D)) / 20D);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(20D); document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(20D);
         string text = new string('A', length) + " B";
         WordParagraph paragraph = document.AddParagraph(split ? text.Substring(0, length / 2) : text);
         Configure(paragraph);

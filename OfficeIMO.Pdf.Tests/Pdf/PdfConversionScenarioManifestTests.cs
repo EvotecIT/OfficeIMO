@@ -252,20 +252,18 @@ public sealed class PdfConversionScenarioManifestTests {
             var pdfOptions = new PdfCore.PdfCreateOptions {
                     CompressContentStreams = false,
                     CompressEmbeddedFonts = false,
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(520),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(420),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                    PageSetup = {
+                        Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(520), global::OfficeIMO.OfficeLength.Points(420)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                    }
                 }
                 .UseRenderingProfile(renderingProfile);
             pdf = PdfCore.PdfDocument.Create(pdfOptions)
                 .UseFontFamily("OfficeIMO Multilingual", fontPath)
                 .Header(header => header.Text("Q2 multilingual revenue report"))
                 .H1("Q2 multilingual revenue report")
-                .Paragraph(paragraph => paragraph.Text("Executive summary: Zażółć gęślą jaźń Łódź."))
-                .Paragraph(paragraph => paragraph.Text("Regional notes: Ελλάδα Athens pipeline; Київ renewal forecast."))
+                .Paragraph(paragraph => paragraph.AddText("Executive summary: Zażółć gęślą jaźń Łódź."))
+                .Paragraph(paragraph => paragraph.AddText("Regional notes: Ελλάδα Athens pipeline; Київ renewal forecast."))
                 .Table(new[] {
                     new[] { "Region", "Signal", "Status" },
                     new[] { "Polska", "Łódź", "Ready" },
@@ -698,8 +696,8 @@ public sealed class PdfConversionScenarioManifestTests {
 
         byte[] pdf = PdfCore.PdfDocument.Create(options)
             .H1("Provider Shaped Text Gate")
-            .Paragraph(paragraph => paragraph.Text(complexText))
-            .Paragraph(paragraph => paragraph.Font(PdfCore.PdfStandardFont.TimesRoman).Text("office"))
+            .Paragraph(paragraph => paragraph.AddText(complexText))
+            .Paragraph(paragraph => paragraph.AddText("office").SetStandardFont(PdfCore.PdfStandardFont.TimesRoman))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(pdf);
@@ -1731,8 +1729,8 @@ public sealed class PdfConversionScenarioManifestTests {
         byte[] encrypted = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions().SetEncryption("open", "owner"))
             .Meta(title: "PDF Standard Security Gate", author: "OfficeIMO")
             .H1("PDF Standard Security Gate")
-            .Paragraph(paragraph => paragraph.Text("Credential protected marker"))
-            .Paragraph(paragraph => paragraph.Text("Extracted page marker"))
+            .Paragraph(paragraph => paragraph.AddText("Credential protected marker"))
+            .Paragraph(paragraph => paragraph.AddText("Extracted page marker"))
             .ToBytes();
 
         PdfCore.PdfDocumentPreflight blockedPreflight = PdfCore.PdfInspector.Preflight(encrypted);
@@ -1931,10 +1929,10 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfToHtmlResult_ReportsFilteredParentOutlineTargetAsLossWhileKeepingItsChild() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Parent outline")
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
             .H2("Child outline")
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
         var options = new PdfHtmlExportOptions {
@@ -2265,17 +2263,15 @@ public sealed class PdfConversionScenarioManifestTests {
     private static byte[] CreateLogicalProofPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(460),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(460)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "Logical PDF sample", author: "OfficeIMO")
             .H1("Logical Heading", linkUri: "https://example.com/logical-proof", linkContents: "Logical PDF sample")
-            .Paragraph(paragraph => paragraph.Text("Logical readback marker."))
+            .Paragraph(paragraph => paragraph.AddText("Logical readback marker."))
             .Bullets(new[] { "Detected logical bullet" })
             .H2("Jump to details", linkDestinationName: "Details", linkContents: "Jump to details")
             .Bookmark("Details")
@@ -2290,7 +2286,7 @@ public sealed class PdfConversionScenarioManifestTests {
                 CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
-            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Logical proof pixel")
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, altText: "Logical proof pixel")
             .ToBytes();
     }
 
@@ -2483,10 +2479,10 @@ public sealed class PdfConversionScenarioManifestTests {
         slide.SetBackgroundGradient("172554", "38BDF8", 35D);
         PowerPointTextBox title = slide.AddTextBox("Layout Theme Group Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(8),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(34));
         title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-        title.Color = "FFFFFF";
+        title.Color = OfficeColor.Parse("FFFFFF");
         PowerPointTextBox marker = slide.AddTextBox("Grouped transform marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(58),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(20));
         marker.FontSize = global::OfficeIMO.OfficeLength.Points(9);
-        marker.Color = "0F172A";
+        marker.Color = OfficeColor.Parse("0F172A");
         PowerPointAutoShape preset = slide.AddShape(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(176), OfficeIMO.OfficeLength.Points(44), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(36));
         preset.FillColor = "1F4E79";
         preset.OutlineColor = "1F4E79";
@@ -2520,19 +2516,17 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static byte[] CreateLogicalDiagnosticsPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = OfficeLength.Points(460),
-                PageHeight = OfficeLength.Points(380),
-                MarginLeft = OfficeLength.Points(36),
-                MarginRight = OfficeLength.Points(36),
-                MarginTop = OfficeLength.Points(36),
-                MarginBottom = OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(460), OfficeLength.Points(380)),
+                    Margins = { Left = OfficeLength.Points(36), Right = OfficeLength.Points(36), Top = OfficeLength.Points(36), Bottom = OfficeLength.Points(36) }
+                },
                 DefaultFontSize = OfficeLength.Points(10),
                 // Built-in heading metrics keep this reading fixture independent of the document theme.
                 DefaultHeadingStyles = new PdfCore.PdfHeadingStyles()
             })
             .Meta(title: "Revenue Readback Diagnostics", author: "OfficeIMO")
             .H1("Revenue Readback Diagnostics", linkUri: "https://example.com/pdf-logical-diagnostics", linkContents: "Logical diagnostics")
-            .Paragraph(paragraph => paragraph.Text("Image geometry and table confidence marker."))
+            .Paragraph(paragraph => paragraph.AddText("Image geometry and table confidence marker."))
             .Table(new[] {
                 new[] { "Metric", "Score", "Owner" },
                 new[] { "Renewal quality", "97", "Finance" },
@@ -2544,21 +2538,19 @@ public sealed class PdfConversionScenarioManifestTests {
                 CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
-            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Wide diagnostics badge")
-            .Image(PdfPngTestImages.CreateRgbPng(2, 3), 32, 48, alternativeText: "Tall diagnostics badge")
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, altText: "Wide diagnostics badge")
+            .Image(PdfPngTestImages.CreateRgbPng(2, 3), 32, 48, altText: "Tall diagnostics badge")
             .ToBytes();
     }
 
     private static byte[] CreateReaderOcrHandoffCorpusPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(24),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(24),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(24)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                }
             })
-            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 180, 120, alternativeText: "Scanned statement page")
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 180, 120, altText: "Scanned statement page")
             .ToBytes();
     }
 

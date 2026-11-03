@@ -117,8 +117,8 @@ public sealed class PdfEditCancellationTests {
     [InlineData(true)]
     public void CancellationInsideCanvasCallbackStopsBeforeNextPageAndLeavesSourceUnchanged(bool resultRoute) {
         byte[] source = PdfDocument.Create().Compose(compose => {
-            compose.Page(page => page.Content(content => content.Paragraph(paragraph => paragraph.Text("First"))));
-            compose.Page(page => page.Content(content => content.Paragraph(paragraph => paragraph.Text("Second"))));
+            compose.Page(page => page.Content(content => content.AddParagraph(paragraph => paragraph.AddText("First"))));
+            compose.Page(page => page.Content(content => content.AddParagraph(paragraph => paragraph.AddText("Second"))));
         }).ToBytes();
         PdfDocument target = PdfDocument.Load(source);
         using var cancellation = new CancellationTokenSource();
@@ -238,7 +238,7 @@ public sealed class PdfEditCancellationTests {
         Assert.Equal(source, input.GetBytes());
     }
 
-    private static byte[] CreatePdf(string text = "Existing content") => PdfDocument.Create().Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+    private static byte[] CreatePdf(string text = "Existing content") => PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(text)).ToBytes();
 
     private sealed class TrackingInput : MemoryStream {
         private readonly Action? _afterRead;

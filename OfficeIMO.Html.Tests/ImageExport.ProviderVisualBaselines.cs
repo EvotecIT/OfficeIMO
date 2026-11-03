@@ -41,9 +41,9 @@ public sealed class ImageExportProviderVisualBaselineTests {
     private static byte[] RenderWord() {
         using var stream = new MemoryStream();
         using WordDocument document = WordDocument.Create(stream);
-        document.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(360D);
-        document.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(216D);
-        document.Margins.Type = WordMargin.Narrow;
+        document.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(360D);
+        document.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(216D);
+        document.PageSetup.Margins.Type = WordMargin.Narrow;
         document.AddParagraph("Quarterly delivery brief")
             .SetFontSize(global::OfficeIMO.OfficeLength.Points(22))
             .SetBold()
@@ -52,7 +52,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         document.AddParagraph("Polished previews with predictable output.")
             .SetFontFamily(PortableFontFamily);
         using (var image = new MemoryStream(CreateVisualBadge())) {
-            document.AddParagraph().AddImage(image, "delivery-status.png", OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "Delivery status visualization" });
+            document.AddParagraph().AddImage(image, "delivery-status.png", OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "Delivery status visualization" });
         }
         var options = new WordImageExportOptions {
             Format = OfficeImageExportFormat.Png,
@@ -73,18 +73,18 @@ public sealed class ImageExportProviderVisualBaselineTests {
         PowerPointTextBox title = slide.AddTextBox("Delivery dashboard",global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(34));
         title.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         title.Bold = true;
-        title.FontName = PortableFontFamily;
-        title.Color = "1E3A8A";
+        title.FontFamily = PortableFontFamily;
+        title.Color = OfficeColor.Parse("1E3A8A");
         PowerPointTextBox status = slide.AddTextBox("On track",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(88),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(64));
         status.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         status.Bold = true;
-        status.FontName = PortableFontFamily;
-        status.Color = "166534";
+        status.FontFamily = PortableFontFamily;
+        status.Color = OfficeColor.Parse("166534");
         PowerPointTextBox evidence = slide.AddTextBox("Evidence ready",global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(88),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(64));
         evidence.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         evidence.Bold = true;
-        evidence.FontName = PortableFontFamily;
-        evidence.Color = "155E75";
+        evidence.FontFamily = PortableFontFamily;
+        evidence.Color = OfficeColor.Parse("155E75");
         slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(28), OfficeIMO.OfficeLength.Points(178), OfficeIMO.OfficeLength.Points(174), OfficeIMO.OfficeLength.Points(46))
             .Fill("DBEAFE")
             .Stroke("2563EB", global::OfficeIMO.OfficeLength.Points(1D));

@@ -158,7 +158,7 @@ public sealed class ReaderPowerPointExtractionTests {
             PowerPointSlide source = presentation.AddSlide();
             PowerPointSlide target = presentation.AddSlide();
             PowerPointTextBox link = source.AddTextBox("Open ");
-            link.Paragraphs[0].AddRun("destination")
+            link.Paragraphs[0].AddText("destination")
                 .SetHyperlink(target, "Jump to destination");
             target.AddTitle("Destination",
                 left: global::OfficeIMO.OfficeLength.Emus(540000),
@@ -337,7 +337,7 @@ public sealed class ReaderPowerPointExtractionTests {
             PowerPointNumberingScheme.AlphaLowerCharacterParenR,
             startAt: 3);
         PowerPointTextBox link = slide.AddTextBox("Read ");
-        link.Paragraphs[0].AddRun("the guide")
+        link.Paragraphs[0].AddText("the guide")
             .SetHyperlink("https://example.test/guide");
         slide.Notes.Text = "Speaker reminder";
         var preflight = presentation.AnalyzeLegacyPptWrite();

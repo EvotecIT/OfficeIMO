@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox title = slide.AddTitle("Speaker Notes",global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));
             if (title.Paragraphs.Count > 0) {
-                PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
+                PowerPointTextStyle.Title.WithColor(OfficeColor.Parse("1F4E79")).Apply(title.Paragraphs[0]);
             }
 
             PowerPointTextBox body = slide.AddTextBox(

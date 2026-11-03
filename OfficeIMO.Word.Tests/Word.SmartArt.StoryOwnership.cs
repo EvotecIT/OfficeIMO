@@ -24,7 +24,7 @@ public sealed class WordSmartArtStoryOwnershipTests {
     [MemberData(nameof(StoryLayouts))]
     public void HeaderAndFooterDiagramsOwnTheirPartsAndRoundTrip(bool footer, WordSmartArtType type) {
         using WordDocument document = WordDocument.Create();
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordSmartArt created = story.AddParagraph().AddSmartArt(type);
         created.SetNodeText(0, "Original story node");
         AssertStoryParts(document, created, footer, type);
@@ -55,8 +55,8 @@ public sealed class WordSmartArtStoryOwnershipTests {
     public void StoryReadersKeepCollidingRelationshipIdsSeparateFromBody() {
         using WordDocument document = WordDocument.Create();
         WordSmartArt body = document.AddSmartArt(WordSmartArtType.CustomSmartArt2);
-        WordSmartArt header = document.HeaderDefaultOrCreate.AddParagraph().AddSmartArt(WordSmartArtType.CustomSmartArt1);
-        WordSmartArt footer = document.FooterDefaultOrCreate.AddParagraph().AddSmartArt(WordSmartArtType.CustomSmartArt2);
+        WordSmartArt header = document.PageSetup.Header.AddParagraph().AddSmartArt(WordSmartArtType.CustomSmartArt1);
+        WordSmartArt footer = document.PageSetup.Footer.AddParagraph().AddSmartArt(WordSmartArtType.CustomSmartArt2);
         foreach (var item in new[] { (body, "Body"), (header, "Header"), (footer, "Footer") }) {
             item.Item1.SetNodeText(0, item.Item2);
             OpenXmlPart owner = WordPartOwnership.Resolve(document, item.Item1._drawing);
@@ -90,8 +90,8 @@ public sealed class WordSmartArtStoryOwnershipTests {
     }
 
     private static WordHeaderFooter GetStory(WordDocument document, bool footer) => footer
-        ? Assert.IsType<WordFooter>(document.Sections[0].Footer.Default)
-        : Assert.IsType<WordHeader>(document.Sections[0].Header.Default);
+        ? Assert.IsType<WordFooter>(document.Sections[0].PageSetup.GetFooter(WordHeaderFooterType.Default))
+        : Assert.IsType<WordHeader>(document.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.Default));
 
     private static void AssertStoryParts(WordDocument document, WordSmartArt smartArt, bool footer, WordSmartArtType type) {
         OpenXmlPart owner = WordPartOwnership.Resolve(document, smartArt._drawing);

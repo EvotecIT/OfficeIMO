@@ -24,7 +24,7 @@ public sealed class OfficeConverterOutputSecurityTests {
             byte[] source;
             if (sourceExtension == ".pdf") {
                 using var pdf = PdfDocument.Create();
-                pdf.Compose(builder => builder.Content(content => content.Text("Protected reconstructed content")));
+                pdf.Compose(builder => builder.Content(content => content.AddParagraph("Protected reconstructed content")));
                 source = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true });
             } else source = Encoding.UTF8.GetBytes(sourceExtension == ".html" ? "<p>Protected imported content</p>" : "Protected imported content");
             const string password = "synthetic-destination-password";
@@ -64,7 +64,7 @@ public sealed class OfficeConverterOutputSecurityTests {
         try {
             string input = Path.Combine(directory, "source.docx"), output = Path.Combine(directory, "result.md");
             using (var source = WordDocument.Create(input)) {
-                source.AddHeadersAndFooters(); source.Header!.Default!.AddParagraph("Running content");
+                source.PageSetup.Header.AddParagraph("Running content");
                 source.AddParagraph("Body content"); source.Save();
             }
             File.WriteAllText(output, "original destination");

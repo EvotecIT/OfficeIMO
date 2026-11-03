@@ -111,7 +111,7 @@ public class PdfMergeImportInputLimitTests {
     }
 
     private static byte[] CreatePdf(string text) =>
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText(text)).ToBytes();
 
     private static MemoryStream CreatePrefixedStream(byte[] pdf) {
         var stream = new MemoryStream();

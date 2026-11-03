@@ -31,7 +31,7 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
             Assert.Equal("Source", run.Text);
             Assert.Equal("https://example.test/source", run.Hyperlink!.AbsoluteUri);
             Assert.True(run.HyperlinkUsesTextColor);
-            if (authoredColor) Assert.Equal("FFDD00", run.Color);
+            if (authoredColor) Assert.Equal(OfficeColor.Parse("FFDD00"), run.Color);
         });
         Assert.Empty(new OpenXmlValidator().Validate(presentation.OpenXmlDocument));
         using var stream = new MemoryStream();
@@ -50,14 +50,14 @@ public class HtmlPowerPointHeaderHyperlinkColorTests {
     public void SemanticRoundTripPreservesExplicitHyperlinkColorPolicy(bool textColor) {
         using var source = PowerPointDocument.Create();
         var run = source.AddSlide().AddTextBox("Source link").Paragraphs.Single().Runs.Single();
-        run.Color = "FFDD00";
+        run.Color = OfficeColor.Parse("FFDD00");
         run.SetHyperlink("https://example.test/source");
         run.HyperlinkUsesTextColor = textColor;
         using PowerPointDocument imported = HtmlConversionDocument.Parse(source.ToHtml())
             .ConvertToPowerPointWithEvidence().RequireValue();
         var actual = imported.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Equal(textColor, actual.HyperlinkUsesTextColor);
-        Assert.Equal("FFDD00", actual.Color);
+        Assert.Equal(OfficeColor.Parse("FFDD00"), actual.Color);
         Assert.Equal("https://example.test/source", actual.Hyperlink!.AbsoluteUri);
         Assert.Equal("Source link", actual.Text);
         Assert.Empty(new OpenXmlValidator().Validate(imported.OpenXmlDocument));

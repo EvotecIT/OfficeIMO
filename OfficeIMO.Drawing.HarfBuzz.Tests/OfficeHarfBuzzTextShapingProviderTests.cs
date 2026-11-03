@@ -92,12 +92,10 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(120D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+                }
             }
             .ReportDiagnosticsTo(report, "HarfBuzz vertical PDF")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
@@ -144,8 +142,10 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(120D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+                }
             }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
             .SetLanguage("ja")

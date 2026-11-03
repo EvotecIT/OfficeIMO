@@ -252,22 +252,22 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the font name (Latin).
+        /// Gets or sets the font family (Latin).
         /// </summary>
-        public string? FontName {
+        public string? FontFamily {
             get => RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
             set {
-                PowerPointTextPropertyFormatting.SetFontName(EnsureRunProperties(), value);
+                PowerPointTextPropertyFormatting.SetFontFamily(EnsureRunProperties(), value);
                 SyncLineContinuation();
             }
         }
 
         /// <summary>
-        /// Gets the RGB text color or sets an RGB or RGBA hexadecimal literal (e.g. "FF000080").
-        /// Alpha is written as native DrawingML opacity. Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
+        /// Gets or sets the explicit RGB text color. Alpha below 255 is written as native DrawingML opacity.
+        /// Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
         /// </summary>
-        public string? Color {
-            get => RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+        public global::OfficeIMO.OfficeColor? Color {
+            get => PowerPointTextPropertyFormatting.ReadColor(RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
             set {
                 PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
                 SyncLineContinuation();
@@ -275,12 +275,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets the RGB highlight color or sets an RGB or RGBA hexadecimal literal (e.g. "FFFF0080").
+        /// Gets or sets the run background (DrawingML highlight) color. Alpha below 255 is written as native opacity.
         /// </summary>
-        public string? HighlightColor {
-            get => RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>()?.Val;
+        public global::OfficeIMO.OfficeColor? BackgroundColor {
+            get => PowerPointTextPropertyFormatting.ReadColor(RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>());
             set {
-                PowerPointTextPropertyFormatting.SetHighlightColor(EnsureRunProperties(), value);
+                PowerPointTextPropertyFormatting.SetBackgroundColor(EnsureRunProperties(), value);
                 SyncLineContinuation();
             }
         }

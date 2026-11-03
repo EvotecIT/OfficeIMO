@@ -19,7 +19,7 @@ public class PdfDocumentMetadataTests {
     [Fact]
     public void MetadataWriterPreservesUnicodeAcrossCreationAndUpdates() {
         const string title = "Earth’s € – ™";
-        byte[] bytes = PdfDocument.Create().Meta(title: title).Paragraph(p => p.Text("Body")).ToBytes();
+        byte[] bytes = PdfDocument.Create().Meta(title: title).Paragraph(p => p.AddText("Body")).ToBytes();
         Assert.Equal(title, PdfInspector.Inspect(bytes).Metadata.Title);
         using var originalIndependent = PdfPigDocument.Open(bytes);
         Assert.Equal(title, originalIndependent.Information.Title);
@@ -39,7 +39,7 @@ public class PdfDocumentMetadataTests {
 
         byte[] bytes = PdfDocument.Create()
             .Meta(title: title, author: author, subject: subject, keywords: keywords)
-            .Paragraph(p => p.Text("Metadata body."))
+            .Paragraph(p => p.AddText("Metadata body."))
             .ToBytes();
 
         string pdfText = Encoding.ASCII.GetString(bytes);

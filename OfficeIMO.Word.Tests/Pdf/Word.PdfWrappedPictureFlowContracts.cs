@@ -51,8 +51,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         using var word = BaseDocument();
         WordParagraph heading;
         if (header) {
-            word.AddHeadersAndFooters();
-            var story = word.Sections[0].Header.Default!;
+            var story = word.Sections[0].PageSetup.Header;
             heading = story.Paragraphs.FirstOrDefault() ?? story.AddParagraph();
         } else heading = word.AddParagraph();
         heading.Style = WordParagraphStyles.Heading1;
@@ -184,10 +183,10 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         var word = WordDocument.Create();
         word.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         var section = word.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
-        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
-        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(240D); section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.PageSetup.Margins.Left = section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+        section.PageSetup.Margins.Top = section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        section.PageSetup.Margins.HeaderDistance = section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
         return word;
     }
 

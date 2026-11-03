@@ -44,8 +44,8 @@ public class PdfDefaultControlAdmissionTests {
         Assert.Empty(cff ? ot!.GetUsedGlyphIds() : tt!.GetUsedGlyphIds());
         Assert.Equal(mappingsBefore, cff ? ot!.GetGlyphToUnicodeMappings().ToArray() : tt!.GetGlyphToUnicodeMappings().ToArray());
         PdfDocument document = PdfDocument.Create(pdfOptions).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily("Control admission");
-            paragraph.Text(text);
+            if (named) { paragraph.RunDefaults.FontFamily = "Control admission"; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText(text);
         });
         Assert.Empty(document.AnalyzeTextEncoding());
         byte[] pdf = document.ToBytes();
@@ -165,8 +165,8 @@ public class PdfDefaultControlAdmissionTests {
             ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Control features", data))
             : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Control features");
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily("Control features");
-            paragraph.FeatureSettings(OfficeTextFeatureSettings.Default.With("aalt", 1)).Text("A\u200EA");
+            if (named) { paragraph.RunDefaults.FontFamily = "Control features"; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.RunDefaults.FeatureSettings = OfficeTextFeatureSettings.Default.With("aalt", 1); paragraph.AddText("A\u200EA");
         });
         Assert.NotEmpty(document.AnalyzeTextEncoding());
         Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
@@ -198,8 +198,8 @@ public class PdfDefaultControlAdmissionTests {
         Assert.Equal(0, provider.Calls);
         Assert.Empty(cff ? ot!.GetUsedGlyphIds() : tt!.GetUsedGlyphIds());
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily("Custom control");
-            paragraph.Text("A\u200EA");
+            if (named) { paragraph.RunDefaults.FontFamily = "Custom control"; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText("A\u200EA");
         });
         Assert.NotEmpty(document.AnalyzeTextEncoding());
         Assert.Equal(0, provider.Calls);
@@ -225,8 +225,8 @@ public class PdfDefaultControlAdmissionTests {
             }))
             .ReportDiagnosticsTo(report);
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily(family);
-            paragraph.Text(source);
+            if (named) { paragraph.RunDefaults.FontFamily = family; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText(source);
         });
 
         Assert.Empty(document.AnalyzeTextEncoding());
@@ -254,7 +254,7 @@ public class PdfDefaultControlAdmissionTests {
             }))
             .SetTextShapingMode(customProvider ? PdfTextShapingMode.OpenTypeLigatures : PdfTextShapingMode.UnicodeScalar);
         if (customProvider) options.SetTextShapingProvider(provider);
-        PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(source));
+        PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(source));
 
         var diagnostics = document.AnalyzeTextEncoding();
         Assert.NotEmpty(diagnostics);

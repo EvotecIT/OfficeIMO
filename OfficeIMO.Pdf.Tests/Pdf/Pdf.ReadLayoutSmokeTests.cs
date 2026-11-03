@@ -15,8 +15,8 @@ public sealed partial class PdfReadLayoutSmokeTests {
             var pdf = PdfDocument.Create()
                 .Meta(title: "Smoke")
                 .H1("Header")
-                .Paragraph(p => p.Text("Line one for extraction."))
-                .Paragraph(p => p.Text("Line two for extraction."));
+                .Paragraph(p => p.AddText("Line one for extraction."))
+                .Paragraph(p => p.AddText("Line two for extraction."));
 
             pdf.Save(path);
 
@@ -44,7 +44,7 @@ public sealed partial class PdfReadLayoutSmokeTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {
             var pdf = PdfDocument.Create()
-                .Paragraph(p => p.Text("Page extension api smoke."));
+                .Paragraph(p => p.AddText("Page extension api smoke."));
             pdf.Save(path);
 
             var doc = PdfReadDocument.Open(path);

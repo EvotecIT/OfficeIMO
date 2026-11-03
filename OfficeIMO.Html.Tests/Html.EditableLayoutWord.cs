@@ -161,7 +161,7 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Print anchor", StringComparison.Ordinal));
+        Assert.NotEmpty(word.Find("Print anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }
@@ -175,7 +175,7 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Ambiguous anchor", StringComparison.Ordinal));
+        Assert.NotEmpty(word.Find("Ambiguous anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
@@ -211,7 +211,7 @@ public sealed class HtmlEditableLayoutWordTests {
             using WordDocument word = result.Value;
 
             Assert.Empty(word.TextBoxes);
-            Assert.NotEmpty(word.Find("Path styled anchor", StringComparison.Ordinal));
+            Assert.NotEmpty(word.Find("Path styled anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
@@ -243,7 +243,7 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Linked styled anchor", StringComparison.Ordinal));
+        Assert.NotEmpty(word.Find("Linked styled anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
@@ -274,10 +274,10 @@ public sealed class HtmlEditableLayoutWordTests {
         Assert.Equal(685800, positioned.VerticalPositionOffset?.ToEmus());
         Assert.Equal(2286000L, positioned.Width.ToEmus());
         Assert.Equal(685800L, positioned.Height.ToEmus());
-        Assert.Equal("DBEAFE", positioned.FillColorHex);
+        Assert.Equal(OfficeColor.Parse("DBEAFE"), positioned.FillColor);
         Assert.Equal(WordImageTextWrapping.InFrontOfText, positioned.WrapText);
         Assert.Equal(WordImageTextWrapping.Square, floating.WrapText);
-        Assert.NotEmpty(reopened.Find("Flex remains", StringComparison.Ordinal));
+        Assert.NotEmpty(reopened.Find("Flex remains", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
         Assert.True(result.Succeeded);

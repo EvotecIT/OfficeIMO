@@ -75,11 +75,11 @@ public partial class Word {
     public void LegacyDoc_ListTabsInParagraphsRetainPublicSettingsAcrossStories(int story) {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("BODY");
-        if (story >= 2) source.AddHeadersAndFooters();
+        if (story >= 2) _ = source.PageSetup.Header;
         WordParagraph paragraph = story switch {
             1 => source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0],
-            2 => source.Header.Default.AddParagraph("MARKED"),
-            3 => source.Footer.Default.AddParagraph("MARKED"),
+            2 => source.PageSetup.Header.AddParagraph("MARKED"),
+            3 => source.PageSetup.Footer.AddParagraph("MARKED"),
             _ => source.AddParagraph("MARKED")
         };
         paragraph.Text = "MARKED";
@@ -87,8 +87,8 @@ public partial class Word {
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph actual = story switch {
             1 => restored.Tables.Single().Rows[0].Cells[0].Paragraphs[0],
-            2 => restored.Header.Default.Paragraphs.Single(p => p.Text == "MARKED"),
-            3 => restored.Footer.Default.Paragraphs.Single(p => p.Text == "MARKED"),
+            2 => restored.PageSetup.Header.Paragraphs.Single(p => p.Text == "MARKED"),
+            3 => restored.PageSetup.Footer.Paragraphs.Single(p => p.Text == "MARKED"),
             _ => restored.Paragraphs.Single(p => p.Text == "MARKED")
         };
         WordTabStop tab = Assert.Single(actual.TabStops);
@@ -99,8 +99,8 @@ public partial class Word {
         using WordDocument edited = WordDocument.Load(new MemoryStream(restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         WordParagraph projected = story switch {
             1 => edited.Tables.Single().Rows[0].Cells[0].Paragraphs[0],
-            2 => edited.Header.Default.Paragraphs.Single(p => p.Text == "MARKED"),
-            3 => edited.Footer.Default.Paragraphs.Single(p => p.Text == "MARKED"),
+            2 => edited.PageSetup.Header.Paragraphs.Single(p => p.Text == "MARKED"),
+            3 => edited.PageSetup.Footer.Paragraphs.Single(p => p.Text == "MARKED"),
             _ => edited.Paragraphs.Single(p => p.Text == "MARKED")
         };
         Assert.Equal(OfficeLength.Points(130), Assert.Single(projected.TabStops).Position);

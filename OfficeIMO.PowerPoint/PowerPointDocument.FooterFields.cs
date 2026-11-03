@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
         internal static void AddFooterNumber(PowerPointParagraph paragraph, bool includeTotal) {
             paragraph.AddField("1", "slidenum");
             if (!includeTotal) return;
-            var run = paragraph.AddRun(" / 1");
+            var run = paragraph.AddText(" / 1");
             run.Run.RunProperties ??= new A.RunProperties();
             var list = run.Run.RunProperties.GetFirstChild<A.ExtensionList>();
             if (list == null) run.Run.RunProperties.Append(list = new A.ExtensionList());

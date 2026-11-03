@@ -22,7 +22,7 @@ public sealed partial class DocumentAssistantTests {
             var services = TestAppBuilder.CreateTestServices();
             var connections = services.AiConnections;
             connections.ProviderIndex = 3; connections.Model = "fixture"; connections.IsConnected = true;
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("A source sentence.")))).ToBytes();
             string? operation = null;
             using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => true),
                 _ => { }, services.Localizer, (profile, _, _) => Task.FromResult<IOfficeAiExecutor>(new FixtureExecutor(profile, request => {

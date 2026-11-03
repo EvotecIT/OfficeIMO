@@ -46,7 +46,7 @@ public partial class PdfDocumentVisualQualityTests {
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'W', '1', '2', '.', '5', '0')));
         var style = new PdfParagraphStyle();
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(150D), PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("\tW\u200B12.50"), style: style).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("\tW\u200B12.50"), style: style).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);
         var page = Assert.Single(pdf.GetPages());

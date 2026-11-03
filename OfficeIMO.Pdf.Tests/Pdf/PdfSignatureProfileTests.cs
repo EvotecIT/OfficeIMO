@@ -10,7 +10,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void CertificationProfileEmitsDocMdpCatalogAndTransformPermissions() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Certification source"))
+            .Paragraph(paragraph => paragraph.AddText("Certification source"))
             .ToBytes();
 
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
@@ -35,9 +35,9 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void VisibleApprovalProfileCreatesWidgetAndAppearanceOnSelectedPage() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Visible approval source"))
+            .Paragraph(paragraph => paragraph.AddText("Visible approval source"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Signature target page"))
+            .Paragraph(paragraph => paragraph.AddText("Signature target page"))
             .ToBytes();
         var appearance = new PdfVisibleSignatureAppearanceOptions {
             PageNumber = 2,
@@ -85,7 +85,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void VisibleApprovalProfileEmbedsOrientedJpegInAppearanceStream() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Image-backed approval source"))
+            .Paragraph(paragraph => paragraph.AddText("Image-backed approval source"))
             .ToBytes();
         var raster = new OfficeRasterImage(2, 1);
         raster.SetPixel(0, 0, OfficeColor.Red);
@@ -152,7 +152,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void VisibleApprovalProfileWithImageHonorsCancellationToken() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancelled image-backed approval source"))
+            .Paragraph(paragraph => paragraph.AddText("Cancelled image-backed approval source"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -251,7 +251,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void VisibleApprovalProfileUsesAppearanceBoundsForUnidentifiedJpegDimensions() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("JPEG fallback source"))
+            .Paragraph(paragraph => paragraph.AddText("JPEG fallback source"))
             .ToBytes();
 
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
@@ -277,7 +277,7 @@ public class PdfSignatureProfileTests {
     [InlineData(OfficeImageFit.Stretch)]
     public void VisibleApprovalProfilePaintsBorderAfterZeroPaddingImage(OfficeImageFit fit) {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Border ordering source"))
+            .Paragraph(paragraph => paragraph.AddText("Border ordering source"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -302,7 +302,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void DocumentTimestampProfileSelectsRfc3161SubFilter() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Timestamp source"))
+            .Paragraph(paragraph => paragraph.AddText("Timestamp source"))
             .ToBytes();
 
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
@@ -323,7 +323,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void VisibleApprovalProfileOmitsBackgroundAndBorderWhenDisabled() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Image only appearance source"))
+            .Paragraph(paragraph => paragraph.AddText("Image only appearance source"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -352,7 +352,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void ApprovalProfileAllowsAdditionalSignatureOverSignedRevision() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Multi-signature source"))
+            .Paragraph(paragraph => paragraph.AddText("Multi-signature source"))
             .ToBytes();
         PdfExternalSignaturePreparation first = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -431,7 +431,7 @@ public class PdfSignatureProfileTests {
             signed = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(permissionLevel: 2);
         } else {
             byte[] source = PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.Text("Approval source"))
+                .Paragraph(paragraph => paragraph.AddText("Approval source"))
                 .ToBytes();
             PdfExternalSignaturePreparation approval = PdfIncrementalUpdater.PrepareExternalSignature(
                 source,
@@ -459,7 +459,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void CertificationProfileAllowsTheFirstSignatureWhenOnlyAnUnsignedFieldExists() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Unsigned field source"))
+            .Paragraph(paragraph => paragraph.AddText("Unsigned field source"))
             .ToBytes();
         byte[] unsigned = PdfAcroFormEditor.Edit(
             source,
@@ -557,7 +557,7 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void CertificationWithNoChangesBlocksAdditionalSignaturePreparation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Locked certification source"))
+            .Paragraph(paragraph => paragraph.AddText("Locked certification source"))
             .ToBytes();
         PdfExternalSignaturePreparation certification = PdfIncrementalUpdater.PrepareExternalSignature(
             source,

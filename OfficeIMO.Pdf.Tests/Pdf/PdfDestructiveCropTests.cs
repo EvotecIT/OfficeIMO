@@ -8,9 +8,9 @@ public class PdfDestructiveCropTests {
     [Fact]
     public void DestructiveCrop_ReplacesSelectedPageContentAndPreservesOtherStructures() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Selected page source marker"))
+            .Paragraph(p => p.AddText("Selected page source marker"))
             .PageBreak()
-            .Paragraph(p => p.Text("Untouched page marker"))
+            .Paragraph(p => p.AddText("Untouched page marker"))
             .AttachFile("proof.txt", Encoding.UTF8.GetBytes("attachment proof"), "text/plain")
             .ToBytes();
 
@@ -36,7 +36,7 @@ public class PdfDestructiveCropTests {
     [Fact]
     public void DestructiveCrop_BlocksSelectedPagesWithFormWidgets() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Form crop"))
+            .Paragraph(p => p.AddText("Form crop"))
             .TextField("Account", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20))
             .ToBytes();
 
@@ -46,7 +46,7 @@ public class PdfDestructiveCropTests {
 
     [Fact]
     public void DestructiveCrop_RemovesPageThumbnailReferenceAndPayload() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Thumbnail crop source")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Thumbnail crop source")).ToBytes();
         int pageObjectNumber = PdfReadDocument.Open(source).Pages[0].ObjectNumber;
         byte[] withThumbnail = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             int thumbnailObjectNumber = objects.Keys.Max() + 1;

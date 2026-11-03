@@ -15,9 +15,9 @@ public sealed class PdfConversionLossPropagationTests {
     [Fact]
     public void ArtifactProofReadsTheSavedBytesWithoutSerializingAgain() {
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Original artifact")), new PdfConversionReport());
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Original artifact")), new PdfConversionReport());
         byte[] original = result.ToBytes();
-        result.Value.Paragraph(paragraph => paragraph.Text("Added after serialization"));
+        result.Value.Paragraph(paragraph => paragraph.AddText("Added after serialization"));
         var options = new PdfConversionProofOptions();
         options.RequiredTextMarkers.Add("Original artifact");
         PdfConversionProofReport proof = result.AssessArtifactProof(original, options);
@@ -39,7 +39,7 @@ public sealed class PdfConversionLossPropagationTests {
             PdfConversionWarningSeverity.Warning,
             OfficeConversionLossKind.Omission));
         var conversion = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Content")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Content")),
             new PdfConversionReport())
             .WithSourceConversionReport(sourceReport);
 
@@ -62,7 +62,7 @@ public sealed class PdfConversionLossPropagationTests {
         PdfDocument document = PdfDocument.Create().Deferred(_ => {
             report.Add(new PdfConversionWarning("renderer", "LateLoss", "page:1", "Late omission",
                 PdfConversionWarningSeverity.Information, OfficeConversionLossKind.Omission));
-            return item => item.Paragraph(paragraph => paragraph.Text("Content"));
+            return item => item.AddParagraph(paragraph => paragraph.AddText("Content"));
         });
         var conversion = new PdfDocumentConversionResult(document, report);
         var operation = conversion.CreateImageExportOperation(new PdfImageExportOptions { Format = OfficeImageExportFormat.Svg });
@@ -92,7 +92,7 @@ public sealed class PdfConversionLossPropagationTests {
         sourceReport.Add(new PdfConversionWarning("source", "UnsupportedObject", "source:1", "Object omitted",
             PdfConversionWarningSeverity.Information, lossKind));
         var conversion = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Content")), new PdfConversionReport())
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Content")), new PdfConversionReport())
             .WithSourceConversionReport(sourceReport);
         var permissive = new PdfImageExportOptions {
             Policy = new OfficeImageExportPolicy { RequireNoFailures = false }
@@ -116,7 +116,7 @@ public sealed class PdfConversionLossPropagationTests {
     [Fact]
     public void ImageExportFailsClosedWhenAnUpstreamReportViolatesTheTypedLossContract() {
         var conversion = new PdfDocumentConversionResult(
-                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Content")),
+                PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Content")),
                 new PdfConversionReport())
             .WithSourceConversionReport(new AggregateOnlyLossReport());
 
@@ -145,7 +145,7 @@ public sealed class PdfConversionLossPropagationTests {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning("format-renderer", "RasterFallback", "source:1",
             "A vector was rasterized.", PdfConversionWarningSeverity.Information, lossKind));
-        var result = new PdfDocumentConversionResult(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Content")), report);
+        var result = new PdfDocumentConversionResult(PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Content")), report);
 
         Assert.Equal(lossKind, Assert.Single(result.Warnings).LossKind);
         Assert.True(result.HasLoss);
@@ -168,7 +168,7 @@ public sealed class PdfConversionLossPropagationTests {
     [Fact]
     public void ExcelTableOnlyProjectionTreatsOmittedPageContentAsLoss() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice reference INV-1001"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice reference INV-1001"))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -201,7 +201,7 @@ public sealed class PdfConversionLossPropagationTests {
     [Fact]
     public void SemanticHtmlReportsLayoutReconstructionAsTypedLoss() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice reference INV-1001"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice reference INV-1001"))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -217,7 +217,7 @@ public sealed class PdfConversionLossPropagationTests {
     [Fact]
     public void EditablePowerPointReportsReconstructionAsTypedLoss() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice reference INV-1001"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice reference INV-1001"))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 

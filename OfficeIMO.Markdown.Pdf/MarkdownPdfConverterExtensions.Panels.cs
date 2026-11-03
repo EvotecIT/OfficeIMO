@@ -16,7 +16,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         if (!string.IsNullOrWhiteSpace(text)) {
             pdf.PanelParagraph(builder => {
-                builder.Italic(true);
+                builder.RunDefaults.Italic = true;
                 AppendTextWithLineBreaks(builder, text);
             }, FitPanelStyle(visualTheme.QuotePanelStyleSnapshot, options, out _));
         }

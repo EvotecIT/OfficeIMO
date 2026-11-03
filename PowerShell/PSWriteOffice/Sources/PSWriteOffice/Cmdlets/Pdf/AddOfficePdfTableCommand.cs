@@ -283,7 +283,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
         if (OfficeTableSpecParser.TryCreate(projectedRows, Property, Header, out var tableSpec, normalizationOptions))
         {
             var style = ApplyPdfCellStyles(CreateStyle(), tableSpec.Placements);
-            content.Table(ToPdfRows(tableSpec), Align, style);
+            content.AddTable(ToPdfRows(tableSpec), Align, style);
             return;
         }
 
@@ -294,7 +294,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
             ? PdfCommandUtilities.ConvertDataRows(enumerable, Header, normalizationOptions)
             : PdfCommandUtilities.ConvertToTableRows(projectedRows, Property, Header, normalizationOptions);
 
-        content.Table(rows, Align, CreateStyle());
+        content.AddTable(rows, Align, CreateStyle());
     }
 
     private static bool IsRowEnumerable(object item)

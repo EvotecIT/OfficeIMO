@@ -355,12 +355,12 @@ public sealed class IWorkCorpusTests {
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.All(reopened.Sections, section => {
-            Assert.False(section.DifferentFirstPage);
-            Assert.False(section.DifferentOddAndEvenPages);
+            Assert.False(section.PageSetup.DifferentFirstPage);
+            Assert.False(section.PageSetup.DifferentOddAndEvenPages);
         });
-        Assert.Contains(reopened.Sections[0].Header.Default!.Paragraphs,
+        Assert.Contains(reopened.Sections[0].PageSetup.Header.Paragraphs,
             p => p.Text.Contains("Apple Pages Import Fixture"));
-        Assert.Contains(reopened.Sections[0].Footer.Default!.Paragraphs,
+        Assert.Contains(reopened.Sections[0].PageSetup.Footer.Paragraphs,
             p => p.Text.Contains("Fixture coverage:"));
         Assert.Empty(reopened.ValidateDocument());
     }
@@ -450,7 +450,7 @@ public sealed class IWorkCorpusTests {
         Assert.True(result.IsVisualFallback);
         Assert.Equal(1920d, result.Value.SlideSize.Width.ToPoints(), 3);
         Assert.Equal(1080d, result.Value.SlideSize.Height.ToPoints(), 3);
-        PowerPointPicture preview = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
+        PowerPointImage preview = Assert.Single(Assert.Single(result.Value.Slides).Images);
         Assert.Equal("Visual fallback from the source Keynote package", preview.AltText);
         IWorkTextBox box = Assert.Single(result.Projection.Slides)
             .TextBoxes.First(item => item.Content.PlainText == "账户passport");
@@ -508,7 +508,7 @@ public sealed class IWorkCorpusTests {
         using var imageResult = IWorkSourceDocument.Open(Fixture("keynotekit/imagedeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult();
         Assert.False(imageResult.IsVisualFallback);
         imageResult.Report.RequireCompleteEditableReconstruction();
-        PowerPointPicture picture = Assert.Single(Assert.Single(imageResult.Value.Slides).Pictures);
+        PowerPointImage picture = Assert.Single(Assert.Single(imageResult.Value.Slides).Images);
         Assert.Equal("image/png", picture.ContentType);
         Assert.True(picture.GetImageBytes().Length > 100);
     }
@@ -540,7 +540,7 @@ public sealed class IWorkCorpusTests {
         Assert.Single(excel.Sheets);
         Assert.Equal("a", excel.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(2, powerPoint.Slides.Count);
-        Assert.Empty(powerPoint.Slides[0].Pictures);
+        Assert.Empty(powerPoint.Slides[0].Images);
         Assert.Contains(powerPoint.Slides[0].TextBoxes, box => box.Text.Contains("first bullet", StringComparison.Ordinal));
     }
 
@@ -567,7 +567,7 @@ public sealed class IWorkCorpusTests {
     public void Keynote_visual_fallback_uses_the_recovered_source_canvas() {
         using var result = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
-        PowerPointPicture picture = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
+        PowerPointImage picture = Assert.Single(Assert.Single(result.Value.Slides).Images);
         Assert.Equal(result.Value.SlideSize.Width.ToPoints() / 72d, picture.Width.ToInches(), 3);
         Assert.Equal(result.Value.SlideSize.Height.ToPoints() / 72d, picture.Height.ToInches(), 3);
         Assert.Equal(0d, picture.Left.ToInches(), 3);

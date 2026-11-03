@@ -29,9 +29,9 @@ namespace OfficeIMO.Tests {
         public void LinkedInlineImageLeavesTextAndAnUnavailableImageWarning(string story) {
             using WordDocument word = WordDocument.Create();
             word.AddParagraph("Body");
-            if (story == "header") word.AddHeadersAndFooters();
+            if (story == "header") _ = word.PageSetup.Header;
             var paragraph = story == "cell" ? word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] :
-                story == "header" ? word.Sections[0].Header.Default!.AddParagraph() : word.AddParagraph();
+                story == "header" ? word.Sections[0].PageSetup.Header.AddParagraph() : word.AddParagraph();
             paragraph.Text = "Before";
             paragraph.AddText("").AddImage(new Uri("https://example.invalid/image.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(80));
             paragraph.AddText("After");

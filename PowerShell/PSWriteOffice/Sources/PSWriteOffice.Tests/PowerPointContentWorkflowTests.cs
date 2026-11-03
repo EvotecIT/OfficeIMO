@@ -213,7 +213,7 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
         Assert.Equal(expected, change.Text);
         if (color != null) {
             string wanted = color == "success" ? OfficeIMO.OfficeTheme.Modern.Palette.Success.ToRgbHex() : color;
-            Assert.Equal(wanted, Assert.Single(change.Paragraphs.SelectMany(paragraph => paragraph.Runs)).Color, ignoreCase: true);
+            Assert.Equal(OfficeIMO.OfficeColor.Parse(wanted!), Assert.Single(change.Paragraphs.SelectMany(paragraph => paragraph.Runs)).Color);
         }
         Assert.Empty(document.ValidateDocument());
     }

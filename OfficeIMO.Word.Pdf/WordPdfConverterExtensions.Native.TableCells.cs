@@ -688,7 +688,7 @@ namespace OfficeIMO.Word.Pdf {
                 italic: previous.Italic,
                 strike: previous.Strike,
                 fontSize: previous.FontSize,
-                font: previous.Font,
+                standardFont: previous.StandardFont,
                 baseline: previous.Baseline,
                 backgroundColor: previous.BackgroundColor,
                 fontFamily: previous.FontFamily,
@@ -717,7 +717,7 @@ namespace OfficeIMO.Word.Pdf {
             left.Italic == right.Italic &&
             left.StrikeStyle == right.StrikeStyle &&
             NullableDoubleEquals((left.FontSize?.ToPoints()), (right.FontSize?.ToPoints())) &&
-            left.Font == right.Font &&
+            left.StandardFont == right.StandardFont &&
             string.Equals(left.FontFamily, right.FontFamily, StringComparison.OrdinalIgnoreCase) &&
             left.Baseline == right.Baseline &&
             left.HorizontalTextScaling == right.HorizontalTextScaling &&
@@ -738,7 +738,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike: style.Strike,
                 fontSize: ((double?)(style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
                     nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize)) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
-                font: style.Font,
+                standardFont: style.Font,
                 baseline: style.Baseline,
                 backgroundColor: style.BackgroundColor,
                 fontFamily: style.FontFamily,
@@ -769,7 +769,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike: style.Strike,
                 fontSize: ((double?)(style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
                     nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize)) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
-                font: style.Font,
+                standardFont: style.Font,
                 linkUri: linkUri,
                 linkContents: contents,
                 baseline: style.Baseline,

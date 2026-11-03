@@ -3601,6 +3601,670 @@
       "reason": "Cancellable operations take a final CancellationToken cancellationToken = default; page lists use PdfPageSelection.",
       "category": "cancellation",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options) with OfficeTableOptions.Name rendered as the caption",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options)",
+      "replacement": "Set Caption instead of Name for the visible PDF table caption. A non-null Name now throws NotSupportedException.",
+      "reason": "Name is the native table identity, which PDF tables do not have; Caption is the visible text.",
+      "category": "tables"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Text(string text, OfficeAlignment align = Left, OfficeColor? color = null, PdfParagraphStyle? style = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddParagraph(string text, OfficeAlignment align = Left, OfficeColor? color = null, PdfParagraphStyle? style = null)",
+      "reason": "The fluent wrapper uses the model operation name; PdfDocument.AddParagraph(string?) returns the PdfParagraph.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Paragraph(Action<PdfParagraphBuilder> build, OfficeAlignment align = Left, OfficeColor? defaultColor = null, PdfParagraphStyle? style = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddParagraph(Action<PdfParagraph> build, OfficeAlignment align = Left, OfficeColor? color = null, PdfParagraphStyle? style = null)",
+      "reason": "Same name as PdfDocument.AddParagraph(Action<PdfParagraph>), which returns the paragraph.",
+      "category": "authoring",
+      "replacement": "Rename the defaultColor: named argument to color:."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.PanelParagraph(Action<PdfParagraphBuilder> build, PdfPanelStyle? style = null, OfficeAlignment align = Left, OfficeColor? defaultColor = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddPanelParagraph(Action<PdfParagraph> build, PdfPanelStyle? style = null, OfficeAlignment align = Left, OfficeColor? color = null)",
+      "reason": "Add vocabulary for flow content.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Table(IEnumerable<string[]>) / Table(IEnumerable<string[]>, OfficeAlignment, PdfTableStyle?) / Table(IEnumerable<PdfTableCell[]>) / Table(IEnumerable<PdfTableCell[]>, OfficeAlignment, PdfTableStyle?)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddTable(rows, OfficeAlignment align = Left, PdfTableStyle? style = null)",
+      "reason": "One overload per row type with the model name PdfDocument.AddTable, which returns PdfTable.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows) / Table<T>(IEnumerable<T> rows, OfficeTableOptions? options)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null)",
+      "reason": "Typed-table projection moved to PdfDocument.AddTable<T>; the wrapper forwards.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.TableDeferred(...)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddDeferredTable(...)",
+      "reason": "Add vocabulary; same model operation PdfDocument.AddDeferredTable.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.KeyValueTable(...)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddKeyValueTable(...)",
+      "reason": "Add vocabulary; same model operation PdfDocument.AddKeyValueTable.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Image(byte[] jpegBytes, OfficeLength width, OfficeLength height, ... string? alternativeText = null) / Image(byte[], OfficeLength, OfficeLength, string? alternativeText)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddImage(byte[] imageBytes, OfficeLength width, OfficeLength height, ..., string? altText = null)",
+      "reason": "AddImage is the image verb; PdfDocument.AddImage returns PdfImage.",
+      "category": "authoring",
+      "replacement": "Rename alternativeText: to altText:."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Heading(int level, string text, ...)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddHeading(string text, int level = 1, ...)",
+      "reason": "Matches Word and Markdown AddHeading(text, level). H1, H2 and H3 stay as shortcuts.",
+      "category": "authoring",
+      "replacement": "Swap the first two arguments: AddHeading(text, level)."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Bullets(IEnumerable<string>, ...) / RichBullets(IEnumerable<PdfListItem>, ...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddList(items, ...)",
+      "reason": "Bulleted list operation named like Markdown AddList; plain and rich items are overloads.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Numbered(IEnumerable<string>, ...) / RichNumbered(IEnumerable<PdfListItem>, ...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddNumberedList(items, ..., int startNumber = 1, ...)",
+      "reason": "Numbered list operation; plain and rich items are overloads.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDocument (no public paragraph, table, image, heading or list authoring)",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfDocument.AddParagraph(string?) : PdfParagraph, AddParagraph(Action<PdfParagraph>) : PdfParagraph, AddTable(...) : PdfTable, AddTable<T>(...) : PdfTable, AddDeferredTable(...) : PdfTable, AddKeyValueTable(...) : PdfTable, AddImage(...) : PdfImage, AddHeading(string text, int level = 1, ...) : PdfHeading, AddList(...) : PdfList, AddNumberedList(...) : PdfList",
+      "reason": "The object model owns authoring; Add* returns what it creates. New handle types PdfTable, PdfImage, PdfHeading, PdfList.",
+      "category": "authoring",
+      "replacement": "Call the operations on the document; Compose(...).Content(...) remains as the fluent wrapper with the same names."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfParagraphBuilder",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfParagraph",
+      "reason": "One native paragraph handle for the model and the fluent wrapper.",
+      "category": "authoring",
+      "replacement": "Replace the type name; the paragraph returned by PdfDocument.AddParagraph is the same object a callback receives."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfParagraphBuilder.Text(string) : PdfParagraphBuilder",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfParagraph.AddText(string text) : PdfTextRun",
+      "reason": "Text(...).Bold() did not format the inserted text; AddText returns the run as in Word and PowerPoint.",
+      "category": "authoring",
+      "replacement": "paragraph.AddText(\"x\").SetBold() formats that text. Chain further runs from the paragraph, e.g. p => { p.AddText(\"a\"); p.AddText(\"b\").SetBold(); }."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfParagraphBuilder.Bold(bool)/Italic(bool)/Underline(bool|style)/Strike(bool|style)/Superscript(bool)/Subscript(bool)/Baseline/Color/FontSize/Font/FontFamily/BackgroundColor/FeatureSettings/HorizontalTextScaling/CharacterSpacing",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Pdf.PdfParagraph.RunDefaults (PdfTextRunDefaults) or PdfTextRun.Set*",
+      "reason": "No hidden current-run state; defaults for future runs are one named setting.",
+      "category": "authoring",
+      "replacement": "Format one run: AddText(\"x\").SetBold().SetColor(c). For later runs set paragraph.RunDefaults.Bold, .Italic, .UnderlineStyle, .StrikeStyle, .Baseline, .Color, .FontSize, .StandardFont, .FontFamily, .BackgroundColor, .FeatureSettings, .HorizontalTextScaling or .CharacterSpacing."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfParagraphBuilder.ResetColor/ResetFontSize/ResetFont/ResetBackgroundColor/ResetFeatureSettings",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Pdf.PdfParagraph.RunDefaults",
+      "reason": "Defaults are ordinary properties.",
+      "category": "authoring",
+      "replacement": "Assign the property back (Color = the paragraph colour or null, FontSize = null, StandardFont = null and FontFamily = null, BackgroundColor = null, FeatureSettings = OfficeTextFeatureSettings.Default)."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfParagraphBuilder.Bold(string, OfficeColor?)/Italic(string, OfficeColor?)/Underlined(string, ...)/Strikethrough(string, ...)/Superscript(string, OfficeColor?)/Subscript(string, OfficeColor?)",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Pdf.PdfParagraph.AddText(text).SetBold()/SetItalic()/SetUnderline(...)/SetStrikethrough(...)/SetSuperscript()/SetSubscript()",
+      "reason": "One way to append text; formatting is on the run.",
+      "category": "authoring",
+      "replacement": "Append a SetColor(c) call for the colour argument."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfParagraphBuilder.Link/LinkToBookmark/Tab/LineBreak/Inline/InlineImage/InlineBox/Runs/FallbackText : PdfParagraphBuilder",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfParagraph.AddLink/AddBookmarkLink/AddTab/AddLineBreak/AddInline/AddInlineImage/AddInlineBox : PdfTextRun; AddRuns/AddFallbackText : PdfParagraph",
+      "reason": "Add vocabulary; operations that create one run return it.",
+      "category": "authoring",
+      "replacement": "InlineImage/InlineBox alternativeText: becomes altText:."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfParagraphBuilder.Align / DefaultColor / PdfParagraphBuilder(OfficeAlignment, OfficeColor?)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfParagraph.Alignment / PdfParagraph.RunDefaults.Color / PdfDocument.AddParagraph(...)",
+      "reason": "Alignment matches PowerPoint paragraphs; the default colour is the initial RunDefaults.Color.",
+      "category": "authoring",
+      "replacement": "Create paragraphs with PdfDocument.AddParagraph or the content builder; read runs from PdfParagraph.Runs."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextRun (immutable formatting)",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfTextRun.SetBold/SetItalic/SetUnderline/SetStrikethrough/SetColor/SetBackgroundColor/SetFontSize/SetFontFamily/SetStandardFont/SetBaseline/SetSuperscript/SetSubscript/SetHorizontalTextScaling/SetCharacterSpacing",
+      "reason": "Runs are formatted in place and the paragraph renders the change.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextRun.Font",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfTextRun.StandardFont",
+      "reason": "F09: PdfStandardFont is the explicitly named built-in font selector; FontFamily stays the family name.",
+      "category": "typography"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextRun(..., PdfStandardFont? font = null, ...) and PdfTextRun.Normal/Bolded/Italicized/Underlined/BoldUnderlined/BoldItalic/Strikethrough/Superscript/Subscript/Link/LinkToBookmark(..., PdfStandardFont? font = null, ...)",
+      "kind": "parameter",
+      "action": "rename",
+      "new": "standardFont",
+      "reason": "Parameter matches the StandardFont property.",
+      "category": "typography",
+      "replacement": "Rename the font: named argument to standardFont:."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.TableWithLinks(IEnumerable<string[]> rows, Dictionary<(int Row, int Col), string> links, OfficeAlignment align = Left, PdfTableStyle? style = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.AddTable(IEnumerable<PdfTableCell[]> rows, ...)",
+      "reason": "A link belongs to its cell; the dictionary keyed by row and column duplicated the cell link model.",
+      "category": "tables",
+      "replacement": "Build cells with PdfTableCell.TextCell(text, linkUri) for linked cells."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageStyle.AlternativeText",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfImageStyle.AltText",
+      "reason": "Image alt text is AltText in Word, PowerPoint, Markdown and PDF.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfInlineElement.AlternativeText; PdfInlineImage(..., string? alternativeText, ...); PdfInlineBox(..., string? alternativeText, ...)",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfInlineElement.AltText; altText parameters",
+      "reason": "Image alt text is AltText in Word, PowerPoint, Markdown and PDF.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.Image(...)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfDocument.AddImage(...) : PdfImage / PdfContentBuilder.AddImage(...)",
+      "reason": "AddImage is the only image verb.",
+      "category": "images",
+      "replacement": "AddImage appends at the current flow position; there is no positional insert in PDF authoring."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.PageSize",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.Size",
+      "replacement": "options.PageSetup.Size = PdfPageSizes.A4;",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.PageWidth",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.Size",
+      "replacement": "Read options.PageSetup.Size.Width; set options.PageSetup.Size = new PdfPageSize(width, options.PageSetup.Size.Height).",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.PageHeight",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.Size",
+      "replacement": "Read options.PageSetup.Size.Height; set options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, height).",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.PageOrientation",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.Orientation",
+      "replacement": "options.PageSetup.Orientation = OfficePageOrientation.Landscape;",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation. Orientation is now settable and swaps width and height.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.MarginLeft",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetupMargins.Left",
+      "replacement": "options.PageSetup.Margins.Left = OfficeLength.Points(36);",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation. Each side still follows the theme until it is set.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.MarginTop",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetupMargins.Top",
+      "replacement": "options.PageSetup.Margins.Top = OfficeLength.Points(36);",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation. Each side still follows the theme until it is set.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.MarginRight",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetupMargins.Right",
+      "replacement": "options.PageSetup.Margins.Right = OfficeLength.Points(36);",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation. Each side still follows the theme until it is set.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.MarginBottom",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetupMargins.Bottom",
+      "replacement": "options.PageSetup.Margins.Bottom = OfficeLength.Points(36);",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation. Each side still follows the theme until it is set.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.Margins",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.Margins",
+      "replacement": "options.PageSetup.Margins.Set(PdfPageMargins.Narrow); read with options.PageSetup.Margins.ToPdfPageMargins().",
+      "reason": "Margins is a per-side view so unset sides keep following the theme; assign a whole value with Set.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.MirrorMargins",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.MirrorMargins",
+      "reason": "Page size, margins and orientation live on the options PageSetup, matching Word PageSetup.Size/Margins/Orientation.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.DifferentFirstPageHeaderFooter",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.DifferentFirstPage",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.DifferentOddAndEvenPagesHeaderFooter",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.DifferentOddAndEvenPages",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.UsePageNumberParityForHeaderFooter",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfPageSetup.UseVisiblePageNumberParity",
+      "reason": "The setting also applies to watermarks; the new name says which parity it uses.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.ShowHeader",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Show",
+      "replacement": "options.PageSetup.Header.Show = true;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HeaderFormat",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Format",
+      "replacement": "options.PageSetup.Header.Format = \"Page {page} of {pages}\";",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FirstPageHeaderFormat",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Format",
+      "replacement": "options.PageSetup.FirstPageHeader.Format = \"Page {page} of {pages}\";",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.EvenPageHeaderFormat",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Format",
+      "replacement": "options.PageSetup.EvenPageHeader.Format = \"Page {page} of {pages}\";",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HeaderFont",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.StandardFont",
+      "replacement": "options.PageSetup.Header.StandardFont = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HeaderFontFamily",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.FontFamily",
+      "replacement": "options.PageSetup.Header.FontFamily = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HeaderFontSize",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.FontSize",
+      "replacement": "options.PageSetup.Header.FontSize = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HeaderTextColor",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Color",
+      "replacement": "options.PageSetup.Header.Color = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HeaderAlign",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Alignment",
+      "replacement": "options.PageSetup.Header.Alignment = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HeaderOffsetY",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Offset",
+      "replacement": "options.PageSetup.Header.Offset = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HasExplicitHeaderFont",
+      "kind": "property",
+      "action": "internalize",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.HasExplicitStandardFont (internal)",
+      "reason": "Only OfficeIMO converters need to know whether the font slot came from the caller or a theme.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.ShowPageNumbers",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Show",
+      "replacement": "options.PageSetup.Footer.Show = true;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FooterFormat",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Format",
+      "replacement": "options.PageSetup.Footer.Format = \"Page {page} of {pages}\";",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FirstPageFooterFormat",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Format",
+      "replacement": "options.PageSetup.FirstPageFooter.Format = \"Page {page} of {pages}\";",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterFormat",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Format",
+      "replacement": "options.PageSetup.EvenPageFooter.Format = \"Page {page} of {pages}\";",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FooterFont",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.StandardFont",
+      "replacement": "options.PageSetup.Footer.StandardFont = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FooterFontFamily",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.FontFamily",
+      "replacement": "options.PageSetup.Footer.FontFamily = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FooterFontSize",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.FontSize",
+      "replacement": "options.PageSetup.Footer.FontSize = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FooterTextColor",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Color",
+      "replacement": "options.PageSetup.Footer.Color = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FooterAlign",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Alignment",
+      "replacement": "options.PageSetup.Footer.Alignment = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FooterOffsetY",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Offset",
+      "replacement": "options.PageSetup.Footer.Offset = ...;",
+      "reason": "Running header and footer settings live on PageSetup.Header/FirstPageHeader/EvenPageHeader/Footer/FirstPageFooter/EvenPageFooter (PdfHeaderFooter), matching Word PageSetup names. The text style is shared by all variants of the header (or footer).",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.HasExplicitFooterFont",
+      "kind": "property",
+      "action": "internalize",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.HasExplicitStandardFont (internal)",
+      "reason": "Only OfficeIMO converters need to know whether the font slot came from the caller or a theme.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FooterSegments",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Segments",
+      "replacement": "options.PageSetup.Footer.Segments = segments;",
+      "reason": "Segments are slot state on PdfHeaderFooter for headers and footers alike; the property is IReadOnlyList<PdfFooterSegment>?.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.FirstPageFooterSegments",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Segments",
+      "replacement": "options.PageSetup.FirstPageFooter.Segments = segments;",
+      "reason": "Segments are slot state on PdfHeaderFooter for headers and footers alike; the property is IReadOnlyList<PdfFooterSegment>?.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCreateOptions.EvenPageFooterSegments",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfHeaderFooter.Segments",
+      "replacement": "options.PageSetup.EvenPageFooter.Segments = segments;",
+      "reason": "Segments are slot state on PdfHeaderFooter for headers and footers alike; the property is IReadOnlyList<PdfFooterSegment>?.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfHeaderBuilder.Font(PdfStandardFont font)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfHeaderBuilder.StandardFont(PdfStandardFont font)",
+      "reason": "Builder methods use the PdfHeaderFooter property names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfHeaderBuilder.AlignLeft()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfHeaderBuilder.Alignment(OfficeAlignment alignment)",
+      "replacement": ".Alignment(OfficeAlignment.Left)",
+      "reason": "One builder method per PdfHeaderFooter property.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfHeaderBuilder.AlignCenter()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfHeaderBuilder.Alignment(OfficeAlignment alignment)",
+      "replacement": ".Alignment(OfficeAlignment.Center)",
+      "reason": "One builder method per PdfHeaderFooter property.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfHeaderBuilder.AlignRight()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfHeaderBuilder.Alignment(OfficeAlignment alignment)",
+      "replacement": ".Alignment(OfficeAlignment.Right)",
+      "reason": "One builder method per PdfHeaderFooter property.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfFooterBuilder.Font(PdfStandardFont font)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.PdfFooterBuilder.StandardFont(PdfStandardFont font)",
+      "reason": "Builder methods use the PdfHeaderFooter property names.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfFooterBuilder.AlignLeft()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfFooterBuilder.Alignment(OfficeAlignment alignment)",
+      "replacement": ".Alignment(OfficeAlignment.Left)",
+      "reason": "One builder method per PdfHeaderFooter property.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfFooterBuilder.AlignCenter()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfFooterBuilder.Alignment(OfficeAlignment alignment)",
+      "replacement": ".Alignment(OfficeAlignment.Center)",
+      "reason": "One builder method per PdfHeaderFooter property.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfFooterBuilder.AlignRight()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Pdf.PdfFooterBuilder.Alignment(OfficeAlignment alignment)",
+      "replacement": ".Alignment(OfficeAlignment.Right)",
+      "reason": "One builder method per PdfHeaderFooter property.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfHeaderBuilder.Offset(OfficeLength points)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfHeaderBuilder.Offset(OfficeLength offset)",
+      "replacement": "Use the positional argument or offset: as the named argument.",
+      "reason": "The parameter is a length, not a point count; it sets PdfHeaderFooter.Offset.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfFooterBuilder.Offset(OfficeLength points)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfFooterBuilder.Offset(OfficeLength offset)",
+      "replacement": "Use the positional argument or offset: as the named argument.",
+      "reason": "The parameter is a length, not a point count; it sets PdfHeaderFooter.Offset.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextSearchOptions.MatchCase / WholeWords",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.OfficeTextSearchOptions.MatchCase / WholeWords (inherited by PdfTextSearchOptions)",
+      "replacement": "No source change: PdfTextSearchOptions derives from OfficeTextSearchOptions, so options.MatchCase and options.WholeWords still compile with the same defaults. Recompile against the new package.",
+      "reason": "PDF keeps its own search options for pages and invisible text while sharing the comparison settings with Word and PowerPoint.",
+      "category": "search"
     }
   ],
   "packageMoves": [

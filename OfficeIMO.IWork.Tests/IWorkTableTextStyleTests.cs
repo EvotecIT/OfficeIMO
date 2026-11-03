@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextAlignment.Center, paragraph.Alignment);
             Assert.All(paragraph.Runs, run => {
                 Assert.Equal(OfficeLength.Points(32), run.FontSize);
-                Assert.Equal("HelveticaNeue", run.FontName);
+                Assert.Equal("HelveticaNeue", run.FontFamily);
                 Assert.Equal(row == 0, run.Bold);
             });
         }

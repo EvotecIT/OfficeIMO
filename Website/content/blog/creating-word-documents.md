@@ -81,9 +81,8 @@ OfficeIMO embeds the image directly inside the DOCX archive, so the file is full
 If your document needs repeated chrome, you can add headers and footers and then populate the default sections:
 
 ```csharp
-doc.AddHeadersAndFooters();
-doc.Header.Default.AddParagraph("Contoso Ltd. — Confidential");
-doc.Footer.Default.AddParagraph("Page ");
+doc.PageSetup.Header.AddParagraph("Contoso Ltd. — Confidential");
+doc.PageSetup.Footer.AddParagraph("Page ");
 ```
 
 ## Saving

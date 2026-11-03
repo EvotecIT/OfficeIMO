@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_DRAWABLE_UNSUPPORTED");
-        Assert.Single(Assert.Single(result.Value.Slides).Pictures);
+        Assert.Single(Assert.Single(result.Value.Slides).Images);
     }
 
     [Fact]

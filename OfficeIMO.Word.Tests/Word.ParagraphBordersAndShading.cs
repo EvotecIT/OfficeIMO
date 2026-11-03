@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordBorderStyle.Thick, paragraph.Borders.LeftStyle);
                 Assert.Equal(Color.Red.ToRgbHex(), paragraph.Borders.LeftColor!.Value.ToRgbHex());
                 Assert.Equal(OfficeLength.Points(3), paragraph.Borders.LeftSize);
-                Assert.Equal(Color.LightGray.ToRgbHex(), paragraph.ShadingFillColorHex);
+                Assert.Equal(Color.LightGray, paragraph.ShadingFillColor);
             }
         }
     }

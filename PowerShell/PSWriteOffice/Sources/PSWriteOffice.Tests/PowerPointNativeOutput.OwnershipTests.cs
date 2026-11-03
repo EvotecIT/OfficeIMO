@@ -149,7 +149,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         using var saved = PowerPointDocument.Load(Save(deck, "wide-quote.pptx"));
         Assert.True(saved.Slides.Count > 1);
         Assert.Equal(text, string.Concat(saved.Slides.SelectMany(s => s.TextBoxes).SelectMany(b => b.Paragraphs)
-            .Where(p => p.Runs.Any(r => r.FontName == "Courier New")).Select(p => p.Text)));
+            .Where(p => p.Runs.Any(r => r.FontFamily == "Courier New")).Select(p => p.Text)));
         Assert.DoesNotContain(saved.Slides.SelectMany(s => s.CreateVisualSnapshot().Diagnostics), d => d.Code == "powerpoint-text-overflow");
         Assert.Empty(saved.ValidateDocument());
     }

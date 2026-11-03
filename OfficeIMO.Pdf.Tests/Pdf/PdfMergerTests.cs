@@ -47,7 +47,7 @@ public class PdfMergerTests {
         byte[] withImage = PdfDocument.Create()
             .Meta(title: "Image source", author: "OfficeIMO")
             .Image(CreateMinimalRgbPng(), 24, 24)
-            .Paragraph(p => p.Text("Image source page"))
+            .Paragraph(p => p.AddText("Image source page"))
             .ToBytes();
         byte[] textOnly = BuildPdf("Text source", "Text only page");
 
@@ -361,14 +361,14 @@ public class PdfMergerTests {
     private static byte[] BuildPdf(string title, string firstPageText, params (string Text, PdfPageSize Size)[] extraPages) {
         var doc = PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
-            .Paragraph(p => p.Text(firstPageText));
+            .Paragraph(p => p.AddText(firstPageText));
 
         if (extraPages.Length > 0) {
             doc.Compose(compose => {
                 foreach (var extraPage in extraPages) {
                     compose.Page(page => {
                         page.Size(extraPage.Size);
-                        page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(extraPage.Text))));
+                        page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(extraPage.Text))));
                     });
                 }
             });
@@ -382,7 +382,7 @@ public class PdfMergerTests {
                 CompressContentStreams = false
             })
             .Meta(title: title, author: "OfficeIMO")
-            .Paragraph(p => p.Text(pageText))
+            .Paragraph(p => p.AddText(pageText))
             .FreeTextAnnotation(
                 "Merge review note",
                 width: 150,

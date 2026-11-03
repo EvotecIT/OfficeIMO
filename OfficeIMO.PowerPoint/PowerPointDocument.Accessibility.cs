@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint {
                 for (int shapeIndex = 0; shapeIndex < shapes.Count; shapeIndex++) {
                     PowerPointShape shape = shapes[shapeIndex];
                     shapeInfos.Add(new PowerPointAccessibilityShapeInfo(shape.ReadingOrder, shape.Id, shape.Name,
-                        shape.Title, shape.Description, shape.Decorative, shape.Language, shape.ShapeContentType));
+                        shape.Title, shape.AltText, shape.Decorative, shape.Language, shape.ShapeContentType));
                     InspectShapeAccessibility(slide, slideIndex, shape, shapes, resolved, findings);
                 }
 
@@ -77,7 +77,7 @@ namespace OfficeIMO.PowerPoint {
                 findings.Add(ShapeFinding(options.Profile, "accessibility-missing-shape-title",
                     "The informative visual does not define a concise accessibility title.", slideIndex, shape));
             }
-            if (informativeVisual && options.RequireAlternativeText && string.IsNullOrWhiteSpace(shape.Description)) {
+            if (informativeVisual && options.RequireAlternativeText && string.IsNullOrWhiteSpace(shape.AltText)) {
                 findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
                     "accessibility-missing-alternative-text",
                     "The informative visual is neither decorative nor described with alternative text.",
@@ -154,7 +154,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
                 foreach (PowerPointTextRun run in paragraph.Runs) {
                     if (string.IsNullOrWhiteSpace(run.Text)) continue;
-                    OfficeColor? foreground = ParseColor(run.Color ?? textBox.Color);
+                    OfficeColor? foreground = run.Color ?? textBox.Color;
                     double? fontSize = run.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints();
                     if (!foreground.HasValue || !fontSize.HasValue) continue;
                     inspectedRun = true;
@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (!inspectedRun && !string.IsNullOrWhiteSpace(textBox.Text)) {
-                OfficeColor? foreground = ParseColor(textBox.Color);
+                OfficeColor? foreground = textBox.Color;
                 double? fontSize = textBox.FontSize?.ToPoints();
                 if (foreground.HasValue && fontSize.HasValue) {
                     double required = fontSize.Value >= options.LargeTextThreshold.ToPoints()
@@ -193,7 +193,7 @@ namespace OfficeIMO.PowerPoint {
         private static void InspectChartMeaning(PowerPointChart chart, int slideIndex,
             PowerPointAccessibilityOptions options, IList<PowerPointAccessibilityFinding> findings) {
             if (!chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot) || snapshot.Data.Series.Count < 2) return;
-            string description = chart.Description ?? string.Empty;
+            string description = chart.AltText ?? string.Empty;
             if (description.IndexOf("Data summary:", StringComparison.OrdinalIgnoreCase) >= 0) return;
             findings.Add(new PowerPointAccessibilityFinding(
                 options.Profile == PowerPointAccessibilityPolicyProfile.Strict

@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests.Pdf {
                 page.Size(global::OfficeIMO.OfficeLength.Points(1000), global::OfficeIMO.OfficeLength.Points(1000));
                 page.Content(content =>
                     content.Column(column =>
-                        column.Item().Paragraph(p => p.Text("Large page after margins."))));
+                        column.Item().AddParagraph(p => p.AddText("Large page after margins."))));
             }));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Margin(global::OfficeIMO.OfficeLength.Points(100));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Text("Impossible frame."))));
+                            column.Item().AddParagraph(p => p.AddText("Impossible frame."))));
                 })).ToBytes());
 
             Assert.Contains("PDF margins must leave a positive content width.", exception.Message, StringComparison.Ordinal);
@@ -113,18 +113,17 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void PdfOptionsPageSetupProperties_ApplyReusableValuesAndValidate() {
-            var options = new PdfCreateOptions {
-                PageSize = PdfPageSizes.A4.Landscape(),
-                Margins = PdfPageMargins.Moderate
-            };
+            var options = new PdfCreateOptions();
+            options.PageSetup.Size = PdfPageSizes.A4.Landscape();
+            options.PageSetup.Margins.Set(PdfPageMargins.Moderate);
 
-            Assert.InRange(options.PageWidth.ToPoints(), 841.0, 843.0);
-            Assert.InRange(options.PageHeight.ToPoints(), 594.0, 596.0);
-            Assert.Equal(OfficePageOrientation.Landscape, options.PageOrientation);
-            AssertMargins(options.Margins, 54, 72, 54, 72);
+            Assert.InRange(options.PageSetup.Size.Width.ToPoints(), 841.0, 843.0);
+            Assert.InRange(options.PageSetup.Size.Height.ToPoints(), 594.0, 596.0);
+            Assert.Equal(OfficePageOrientation.Landscape, options.PageSetup.Orientation);
+            AssertMargins(options.PageSetup.Margins.ToPdfPageMargins(), 54, 72, 54, 72);
 
             var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new PdfCreateOptions { PageSize = default });
+                new PdfCreateOptions { PageSetup = { Size = default } });
 
             Assert.Equal("PageSize", exception.ParamName);
         }
@@ -135,12 +134,12 @@ namespace OfficeIMO.Tests.Pdf {
                 .Size(PdfPageSizes.A5)
                 .Landscape()
                 .Margin(PdfPageMargins.Narrow)
-                .Paragraph(p => p.Text("Document default page setup."));
+                .Paragraph(p => p.AddText("Document default page setup."));
 
             doc.Compose(c => c.Page(page =>
                 page.Content(content =>
                     content.Column(column =>
-                        column.Item().Paragraph(p => p.Text("Composed page inherits setup."))))));
+                        column.Item().AddParagraph(p => p.AddText("Composed page inherits setup."))))));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
             Assert.Equal(2, pdf.NumberOfPages);
@@ -167,7 +166,7 @@ namespace OfficeIMO.Tests.Pdf {
                 page.Margin(PdfPageMargins.Narrow);
                 page.Content(content =>
                     content.Column(column =>
-                        column.Item().Paragraph(p => p.Text("Narrow margin body."))));
+                        column.Item().AddParagraph(p => p.AddText("Narrow margin body."))));
             }));
 
             using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
@@ -179,6 +178,33 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.InRange(firstBodyLetter.StartBaseLine.X, 35.5, 36.5);
             Assert.Contains("Narrowmarginbody", Normalize(pdf.GetPage(1).Text), StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void ComposePagePageSetup_ChangesOnlyThatPageGroupSnapshot() {
+            var options = new PdfCreateOptions();
+            options.PageSetup.Footer.SetText("Document footer");
+            var doc = PdfDocument.Create(options);
+
+            doc.Compose(c => {
+                c.Page(page => {
+                    page.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                    page.PageSetup.Footer.SetText("Group footer");
+                    page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("First group."))));
+                });
+                c.Page(page => page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Second group.")))));
+            });
+
+            Assert.Equal("Document footer", options.PageSetup.Footer.Format);
+            Assert.Equal(OfficePageOrientation.Portrait, options.PageSetup.Orientation);
+            using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
+            var page1 = pdf.GetPage(1);
+            var page2 = pdf.GetPage(2);
+            Assert.True(page1.Width > page1.Height);
+            Assert.Contains("Groupfooter", Normalize(page1.Text), StringComparison.OrdinalIgnoreCase);
+            Assert.True(page2.Width < page2.Height);
+            Assert.Contains("Documentfooter", Normalize(page2.Text), StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Groupfooter", Normalize(page2.Text), StringComparison.OrdinalIgnoreCase);
         }
 
     }

@@ -97,8 +97,8 @@ public sealed class PdfNormalizedCoverageInteractionTests {
             options.RegisterEmbeddedFontFallbacks(fallbacks);
         }
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily(family);
-            paragraph.Text(source);
+            if (named) { paragraph.RunDefaults.FontFamily = family; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText(source);
         });
         return (document, report);
     }

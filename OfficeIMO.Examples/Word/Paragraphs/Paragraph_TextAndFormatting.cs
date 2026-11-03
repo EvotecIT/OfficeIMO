@@ -17,7 +17,7 @@ internal static partial class Paragraphs
                 paragraph1 = paragraph1.AddText(" World");
                 paragraph1.SetBold();
                 paragraph1.SetItalic();
-                paragraph1.SetColorHex("#ff0000");
+                paragraph1.SetColor(OfficeColor.Parse("#ff0000"));
                 paragraph1 = paragraph1.AddText("!");
                 paragraph1.SetBold();
                 document.Save();

@@ -41,12 +41,14 @@ public class PdfDelimitedTokenFrameTests {
     private static byte[] Create(string text, double innerWidth, int route) {
         double frameWidth = innerWidth + (route == 0 ? 0D : 4D);
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(frameWidth + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(400D),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(frameWidth + 40D), global::OfficeIMO.OfficeLength.Points(400D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            },
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
         };
         var document = PdfDocument.Create(options);
-        if (route == 0) document.Content.Text(text, style: new PdfParagraphStyle {
+        if (route == 0) document.Content.AddParagraph(text, style: new PdfParagraphStyle {
             FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineHeight = 1D, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
         });
         else {
@@ -62,7 +64,7 @@ public class PdfDelimitedTokenFrameTests {
                 cell = new PdfTableCell(Array.Empty<PdfTextRun>(), null, blocks: new IPdfBlock[] { inner });
                 style = style.Clone(); style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D);
             }
-            document.Content.Table(new[] { new[] { cell } }, style: style);
+            document.Content.AddTable(new[] { new[] { cell } }, style: style);
         }
         return document.ToBytes();
     }

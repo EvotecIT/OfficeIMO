@@ -69,10 +69,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the left border color as a hex value.
-        /// </summary>
-        public string? LeftColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? LeftColorValue {
             get {
                 var color = GetParagraphBorders()?.LeftBorder?.Color?.Value;
                 return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
@@ -88,8 +86,8 @@ namespace OfficeIMO.Word {
         /// Gets or sets the left border color.
         /// </summary>
         public OfficeIMO.OfficeColor? LeftColor {
-            get => LeftColorHex == null || string.Equals(LeftColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(LeftColorHex);
-            set => LeftColorHex = value?.ToRgbHex();
+            get => Helpers.ParseNativeColor(LeftColorValue);
+            set => LeftColorValue = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -172,10 +170,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the right border color as a hex value.
-        /// </summary>
-        public string? RightColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? RightColorValue {
             get {
                 var color = GetParagraphBorders()?.RightBorder?.Color?.Value;
                 return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
@@ -191,8 +187,8 @@ namespace OfficeIMO.Word {
         /// Gets or sets the right border color.
         /// </summary>
         public OfficeIMO.OfficeColor? RightColor {
-            get => RightColorHex == null || string.Equals(RightColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(RightColorHex);
-            set => RightColorHex = value?.ToRgbHex();
+            get => Helpers.ParseNativeColor(RightColorValue);
+            set => RightColorValue = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -275,10 +271,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the top border color as a hex value.
-        /// </summary>
-        public string? TopColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? TopColorValue {
             get {
                 var color = GetParagraphBorders()?.TopBorder?.Color?.Value;
                 return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
@@ -294,8 +288,8 @@ namespace OfficeIMO.Word {
         /// Gets or sets the top border color.
         /// </summary>
         public OfficeIMO.OfficeColor? TopColor {
-            get => TopColorHex == null || string.Equals(TopColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(TopColorHex);
-            set => TopColorHex = value?.ToRgbHex();
+            get => Helpers.ParseNativeColor(TopColorValue);
+            set => TopColorValue = value?.ToRgbHex();
         }
 
         /// <summary>
@@ -379,10 +373,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the bottom border color as a hex value.
-        /// </summary>
-        public string? BottomColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? BottomColorValue {
             get {
                 var color = GetParagraphBorders()?.BottomBorder?.Color?.Value;
                 return color != null ? color.Replace("#", "").ToUpperInvariant() : null;
@@ -398,8 +390,8 @@ namespace OfficeIMO.Word {
         /// Gets or sets the bottom border color.
         /// </summary>
         public OfficeIMO.OfficeColor? BottomColor {
-            get => BottomColorHex == null || string.Equals(BottomColorHex, "auto", StringComparison.OrdinalIgnoreCase) ? null : Helpers.ParseColor(BottomColorHex);
-            set => BottomColorHex = value?.ToRgbHex();
+            get => Helpers.ParseNativeColor(BottomColorValue);
+            set => BottomColorValue = value?.ToRgbHex();
         }
 
         /// <summary>

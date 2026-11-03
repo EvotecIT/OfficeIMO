@@ -304,17 +304,17 @@ public sealed partial class IWorkBoundaryTests {
 
         using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
 
-        Assert.Contains(result.Value.Sections[0].Header.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[0].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "First header");
-        Assert.NotNull(result.Value.Sections[1].Header.Default);
-        Assert.DoesNotContain(result.Value.Sections[1].Header.Default!.Paragraphs,
+        Assert.NotNull(result.Value.Sections[1].PageSetup.GetHeader(WordHeaderFooterType.Default));
+        Assert.DoesNotContain(result.Value.Sections[1].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "First header");
         using var bytes = new MemoryStream();
         result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
-        Assert.NotNull(reopened.Sections[1].Header.Default);
-        Assert.DoesNotContain(reopened.Sections[1].Header.Default!.Paragraphs,
+        Assert.NotNull(reopened.Sections[1].PageSetup.GetHeader(WordHeaderFooterType.Default));
+        Assert.DoesNotContain(reopened.Sections[1].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "First header");
     }
 

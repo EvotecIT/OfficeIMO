@@ -31,7 +31,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         WordTextBox positionedWordBox = Assert.Single(word.TextBoxes, box => box.Paragraphs.Any(paragraph =>
             paragraph.Text.Contains("Editable positioned", StringComparison.Ordinal)));
         HtmlRenderMargins margins = new HtmlRenderOptions().Margins;
-        Assert.Equal("DBEAFE", positionedWordBox.FillColorHex);
+        Assert.Equal(OfficeColor.Parse("DBEAFE"), positionedWordBox.FillColor);
         Assert.Equal((int)((32D + margins.Left) * 9525D), positionedWordBox.HorizontalPositionOffset?.ToEmus());
         Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset?.ToEmus());
         Assert.Equal(240L * 9525L, positionedWordBox.Width.ToEmus());

@@ -77,7 +77,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         cell.Text = "Alpha beta gamma delta epsilon zeta";
         cell.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         cell.Bold = false;
-        cell.Color = "FF0000";
+        cell.Color = OfficeColor.Parse("FF0000");
         cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0);
         cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(9);
         cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(8);
@@ -115,8 +115,8 @@ public sealed class PowerPointPdfTableFidelityTests {
         cell.Text = "Large";
         cell.Bold = true;
         cell.FontSize = global::OfficeIMO.OfficeLength.Points(28);
-        cell.Color = "FF0000";
-        cell.AddRun(" regular");
+        cell.Color = OfficeColor.Parse("FF0000");
+        cell.AddText(" regular");
         // AddRun copies the template for editing convenience; unspecify the
         // second run to reproduce genuine imported runs with no local style.
         cell.Cell.TextBody!.Elements<A.Paragraph>().Single().Elements<A.Run>().Last().RunProperties = new A.RunProperties();
@@ -145,7 +145,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         table.StyleId = null;
         var cell = table.GetCell(0, 0);
         cell.Text = "First\nSecond\nTail";
-        cell.FontName = "Helvetica";
+        cell.FontFamily = "Helvetica";
         cell.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         if (onMaster) {
             // Legacy export wraps master frames without attaching them to a
@@ -153,7 +153,7 @@ public sealed class PowerPointPdfTableFidelityTests {
             presentation.SetThemeColor(PowerPointThemeColor.Accent2, "112233");
             var master = presentation.OpenXmlDocument.PresentationPart!.SlideMasterParts.Single();
             master.SlideMaster!.ColorMap!.Accent1 = A.ColorSchemeIndexValues.Accent2;
-            cell.FontName = "+mn-lt";
+            cell.FontFamily = "+mn-lt";
             foreach (var run in cell.Cell.TextBody!.Elements<A.Paragraph>().Single().Elements<A.Run>()) {
                 run.RunProperties!.RemoveAllChildren<A.SolidFill>();
                 run.RunProperties.Append(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }));
@@ -172,9 +172,10 @@ public sealed class PowerPointPdfTableFidelityTests {
         // Read back the actual preview, including text below the original
         // frame, rather than only checking its enlarged model dimensions.
         var pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(preview.Width),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(preview.Height),
-            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
+            PageSetup = {
+                Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(preview.Width), global::OfficeIMO.OfficeLength.Points(preview.Height)),
+                Margins = { Left = OfficeIMO.OfficeLength.Points(0), Top = OfficeIMO.OfficeLength.Points(0), Right = OfficeIMO.OfficeLength.Points(0), Bottom = OfficeIMO.OfficeLength.Points(0) }
+            }
         });
         pdf.Canvas(canvas => canvas.DrawingForClippedRendering(preview, 0, 0, preview.Width, preview.Height));
         byte[] bytes = pdf.ToBytes();

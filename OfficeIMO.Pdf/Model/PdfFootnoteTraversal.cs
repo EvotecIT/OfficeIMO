@@ -12,19 +12,27 @@ internal static class PdfFootnoteTraversal {
         };
         foreach (PdfTextRun run in runs)
             if (run.FootnoteReference is { } note) yield return note;
-        IEnumerable<IPdfBlock> children = block switch {
-            FlowBlock { StaticBlocks: { } blocks } => blocks,
-            PageBlock page => page.Blocks,
-            ContainerBlock container => container.Blocks,
-            MultiColumnBlock columns => columns.Blocks,
-            RowBlock row => row.Columns.SelectMany(column => column.Blocks),
-            SemanticBlock semantic => semantic.Blocks,
-            LayerBlock layer => layer.Blocks,
-            SectionBlock section => section.Blocks,
-            TableBlock table => table.Cells.SelectMany(row => row).SelectMany(cell => cell.Blocks),
-            _ => Array.Empty<IPdfBlock>()
-        };
-        foreach (IPdfBlock child in children)
+        foreach (IPdfBlock child in Children(block))
             foreach (PdfFootnoteDefinition note in References(child)) yield return note;
     }
+
+    /// <summary>Authoring paragraphs inside a block, so flow that cannot place footnotes can reject later footnote runs.</summary>
+    internal static IEnumerable<PdfParagraph> LiveParagraphs(IPdfBlock block) {
+        if (block is RichParagraphBlock { Source: { } paragraph }) yield return paragraph;
+        foreach (IPdfBlock child in Children(block))
+            foreach (PdfParagraph nested in LiveParagraphs(child)) yield return nested;
+    }
+
+    private static IEnumerable<IPdfBlock> Children(IPdfBlock block) => block switch {
+        FlowBlock { StaticBlocks: { } blocks } => blocks,
+        PageBlock page => page.Blocks,
+        ContainerBlock container => container.Blocks,
+        MultiColumnBlock columns => columns.Blocks,
+        RowBlock row => row.Columns.SelectMany(column => column.Blocks),
+        SemanticBlock semantic => semantic.Blocks,
+        LayerBlock layer => layer.Blocks,
+        SectionBlock section => section.Blocks,
+        TableBlock table => table.Cells.SelectMany(row => row).SelectMany(cell => cell.Blocks),
+        _ => Array.Empty<IPdfBlock>()
+    };
 }

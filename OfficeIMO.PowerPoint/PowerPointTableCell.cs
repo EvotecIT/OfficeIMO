@@ -147,17 +147,16 @@ namespace OfficeIMO.PowerPoint {
             (Cell.RowSpan?.Value ?? 1) > 1 || (Cell.GridSpan?.Value ?? 1) > 1;
 
         /// <summary>
-        ///     Replaces text within the cell while preserving run formatting.
+        ///     Replaces literal text in the cell paragraphs.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue) {
-            if (oldValue == null) {
-                throw new ArgumentNullException(nameof(oldValue));
-            }
-            if (oldValue.Length == 0) {
-                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
-            }
-
-            return Cell.TextBody == null ? 0 : Paragraphs.Sum(paragraph => paragraph.ReplaceText(oldValue, newValue));
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>Each match lies within one text run; text split across runs with different formatting is not matched. Replacement keeps each run's formatting.</remarks>
+        public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
+            return Cell.TextBody == null ? 0 : Paragraphs.Sum(paragraph => paragraph.ReplaceAll(text, replacement, options));
         }
 
         /// <summary>
@@ -172,13 +171,10 @@ namespace OfficeIMO.PowerPoint {
                 .ToList() ?? new List<PowerPointTextRun>();
 
         /// <summary>
-        ///     Adds a formatted run to the first cell paragraph.
+        ///     Appends text as a new run in the first cell paragraph and returns that run.
         /// </summary>
-        public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
-            PowerPointTextRun wrapper = new PowerPointParagraph(EnsureParagraph(), _slidePart, _ownerPart).InsertRun(text);
-            configure?.Invoke(wrapper);
-            return wrapper;
-        }
+        public PowerPointTextRun AddText(string text) =>
+            new PowerPointParagraph(EnsureParagraph(), _slidePart, _ownerPart).InsertRun(text);
 
         /// <summary>
         ///     Gets or sets whether the cell text is bold. Setting applies to every run and line break in the cell.
@@ -213,18 +209,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the font name.
+        ///     Gets or sets the font family.
         /// </summary>
-        public string? FontName {
+        public string? FontFamily {
             get => GetRun()?.RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetFontName(props, value));
+            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetFontFamily(props, value));
         }
 
         /// <summary>
-        ///     Gets or sets the text color in hex format (e.g. "FF0000").
+        ///     Gets or sets the text color. Alpha below 255 is written as native DrawingML opacity.
         /// </summary>
-        public string? Color {
-            get => GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
+        public global::OfficeIMO.OfficeColor? Color {
+            get => PowerPointTextPropertyFormatting.ReadColor(GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
             set => FormatRuns(props => PowerPointTextPropertyFormatting.SetColor(props, value));
         }
 

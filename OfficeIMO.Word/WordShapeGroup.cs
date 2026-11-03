@@ -36,10 +36,10 @@ namespace OfficeIMO.Word {
         public OfficeLength Width { get; }
         /// <summary>Shape height.</summary>
         public OfficeLength Height { get; }
-        /// <summary>Optional RGB fill, with or without a leading '#'.</summary>
-        public string? FillColorHex { get; set; }
-        /// <summary>Optional RGB outline, with or without a leading '#'.</summary>
-        public string? StrokeColorHex { get; set; }
+        /// <summary>Optional RGB fill.</summary>
+        public OfficeIMO.OfficeColor? FillColor { get; set; }
+        /// <summary>Optional RGB outline.</summary>
+        public OfficeIMO.OfficeColor? StrokeColor { get; set; }
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ namespace OfficeIMO.Word {
                 Wps.WordprocessingShape shape = WordShape.BuildWpsShape(cx, cy, item.ShapeType);
                 A.Transform2D transform = shape.Descendants<A.Transform2D>().First();
                 transform.Offset = new A.Offset { X = x, Y = y };
-                ApplyColors(shape, item.FillColorHex, item.StrokeColorHex);
+                ApplyColors(shape, item.FillColor, item.StrokeColor);
                 children.Add(shape);
                 groupCx = Math.Max(groupCx, checked(x + cx));
                 groupCy = Math.Max(groupCy, checked(y + cy));
@@ -162,22 +162,15 @@ namespace OfficeIMO.Word {
             return inline;
         }
 
-        private static void ApplyColors(Wps.WordprocessingShape shape, string? fillColorHex, string? strokeColorHex) {
+        private static void ApplyColors(Wps.WordprocessingShape shape, OfficeIMO.OfficeColor? fillColor, OfficeIMO.OfficeColor? strokeColor) {
             Wps.ShapeProperties properties = shape.GetFirstChild<Wps.ShapeProperties>()!;
-            if (!string.IsNullOrWhiteSpace(fillColorHex)) {
-                properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = NormalizeRgb(fillColorHex!, nameof(fillColorHex)) }));
+            if (fillColor.HasValue) {
+                properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = fillColor.Value.ToRgbHex() }));
             }
-            if (!string.IsNullOrWhiteSpace(strokeColorHex)) {
+            if (strokeColor.HasValue) {
                 properties.Append(new A.Outline(
-                    new A.SolidFill(new A.RgbColorModelHex { Val = NormalizeRgb(strokeColorHex!, nameof(strokeColorHex)) })));
+                    new A.SolidFill(new A.RgbColorModelHex { Val = strokeColor.Value.ToRgbHex() })));
             }
-        }
-
-        private static string NormalizeRgb(string value, string paramName) {
-            if (!OfficeIMO.OfficeColor.TryParseHex(value, out OfficeIMO.OfficeColor color)) {
-                throw new ArgumentException("Color must be a three-, six-, or eight-digit hexadecimal value.", paramName);
-            }
-            return color.ToRgbHex();
         }
     }
 }

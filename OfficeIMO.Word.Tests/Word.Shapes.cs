@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("My rectangle", shape.Description);
                 Assert.False(shape.Hidden!.Value);
                 Assert.True(shape.Stroked!.Value);
-                Assert.Equal(Color.Blue.ToRgbHex(), shape.StrokeColorHex);
+                Assert.Equal(Color.Blue, shape.StrokeColor);
                 Assert.Equal(2d, shape.StrokeWeight!.Value.ToPoints(), 1);
                 Assert.Equal(120d, shape.Width.ToPoints(), 1);
                 Assert.Equal(60d, shape.Height.ToPoints(), 1);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("My rectangle", loadedShape.Description);
                 Assert.False(loadedShape.Hidden!.Value);
                 Assert.True(loadedShape.Stroked!.Value);
-                Assert.Equal(Color.Blue.ToRgbHex(), loadedShape.StrokeColorHex);
+                Assert.Equal(Color.Blue, loadedShape.StrokeColor);
                 Assert.Equal(2d, loadedShape.StrokeWeight!.Value.ToPoints(), 1);
                 Assert.Equal(120d, loadedShape.Width.ToPoints(), 1);
                 Assert.Equal(60d, loadedShape.Height.ToPoints(), 1);
@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var shape = document.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), Color.Lime, Color.Black, OfficeIMO.OfficeLength.Points(2));
                 Assert.True(document.Paragraphs[0].IsShape);
-                Assert.Equal(Color.Lime.ToRgbHex(), shape.FillColorHex);
-                Assert.Equal(Color.Black.ToRgbHex(), shape.StrokeColorHex);
+                Assert.Equal(Color.Lime, shape.FillColor);
+                Assert.Equal(Color.Black, shape.StrokeColor);
                 document.Save();
             }
 
@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var loadedShape = document.Paragraphs[0].Shape;
                 Assert.NotNull(loadedShape);
-                Assert.Equal(Color.Lime.ToRgbHex(), loadedShape!.FillColorHex);
-                Assert.Equal(Color.Black.ToRgbHex(), loadedShape.StrokeColorHex);
+                Assert.Equal(Color.Lime, loadedShape!.FillColor);
+                Assert.Equal(Color.Black, loadedShape.StrokeColor);
             }
         }
 
@@ -90,8 +90,8 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph();
                 var shape = paragraph.AddShape(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), Color.Aqua, Color.Red, OfficeIMO.OfficeLength.Points(1.5));
                 Assert.True(paragraph.IsShape);
-                Assert.Equal(Color.Aqua.ToRgbHex(), shape.FillColorHex);
-                Assert.Equal(Color.Red.ToRgbHex(), shape.StrokeColorHex);
+                Assert.Equal(Color.Aqua, shape.FillColor);
+                Assert.Equal(Color.Red, shape.StrokeColor);
                 document.Save();
             }
 
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].IsShape);
                 var loadedShape = document.Paragraphs[0].Shape;
                 Assert.NotNull(loadedShape);
-                Assert.Equal(Color.Aqua.ToRgbHex(), loadedShape!.FillColorHex);
-                Assert.Equal(Color.Red.ToRgbHex(), loadedShape.StrokeColorHex);
+                Assert.Equal(Color.Aqua, loadedShape!.FillColor);
+                Assert.Equal(Color.Red, loadedShape.StrokeColor);
             }
         }
 
@@ -120,14 +120,14 @@ namespace OfficeIMO.Tests {
                 rect.Remove();
 
                 Assert.True(document.Shapes.Count == 1);
-                Assert.Equal(Color.Yellow.ToRgbHex(), document.Shapes[0].FillColorHex);
+                Assert.Equal(Color.Yellow, document.Shapes[0].FillColor);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Shapes.Count == 1);
-                Assert.Equal(Color.Yellow.ToRgbHex(), document.Shapes[0].FillColorHex);
+                Assert.Equal(Color.Yellow, document.Shapes[0].FillColor);
             }
         }
 
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
                 section.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(15), Color.Yellow, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
                 section.AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
 
-                section.AddHeadersAndFooters();
+                _ = section.PageSetup.Header;
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 defaultHeader.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(15), Color.Blue, Color.Black);
                 defaultHeader.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(25), OfficeIMO.OfficeLength.Points(15), Color.Green, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);

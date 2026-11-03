@@ -6,7 +6,7 @@ namespace OfficeIMO.Word {
     /// Provides access to the footer instances associated with a
     /// <see cref="WordDocument"/> section.
     /// </summary>
-    public class WordFooters {
+    internal sealed class WordFooters {
         /// <summary>
         /// Gets or sets the default footer for the section.
         /// </summary>
@@ -55,11 +55,11 @@ namespace OfficeIMO.Word {
             }
 
             if (_type == HeaderFooterValues.Default) {
-                document._currentSection.Footer.Default = this;
+                document._currentSection.Footers.Default = this;
             } else if (_type == HeaderFooterValues.Even) {
-                document._currentSection.Footer.Even = this;
+                document._currentSection.Footers.Even = this;
             } else if (_type == HeaderFooterValues.First) {
-                document._currentSection.Footer.First = this;
+                document._currentSection.Footers.First = this;
             } else {
                 throw new InvalidOperationException("Shouldn't happen?");
             }

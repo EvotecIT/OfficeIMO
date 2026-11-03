@@ -135,7 +135,7 @@ public class PdfAdapterSecurityComplianceTests {
     public void PdfA2BAndPasswordEncryptionRemainAnExplicitlyRejectedCombination() {
         PdfCore.PdfCreateOptions options = CreatePdfA2BOptions().SetEncryption("open", "owner");
         PdfCore.PdfDocument document = PdfCore.PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(Marker("pdfa-encryption")));
+            .Paragraph(paragraph => paragraph.AddText(Marker("pdfa-encryption")));
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
 

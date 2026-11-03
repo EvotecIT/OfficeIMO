@@ -9,8 +9,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an image from the given file path.
         /// </summary>
-        public PowerPointPicture AddImage(string imagePath, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
+#pragma warning disable RS0026 // Existing overload shape; only the return type was renamed to PowerPointImage.
+        public PowerPointImage AddImage(string imagePath, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
             OfficeLength? height = null) {
+#pragma warning restore RS0026
             long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
@@ -67,7 +69,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PowerPointPicture pic = TrackShape(new PowerPointPicture(picture, _slidePart));
+            PowerPointImage pic = TrackShape(new PowerPointImage(picture, _slidePart));
             // Keep the image's own aspect ratio inside the requested box instead of stretching it.
             pic.ContainInFrame();
             return pic;
@@ -82,8 +84,10 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="top">Top position as a physical length.</param>
         /// <param name="width">Width as a physical length.</param>
         /// <param name="height">Height as a physical length.</param>
-        public PowerPointPicture AddImage(Stream image,OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeLength? left = null, OfficeLength? top = null,
+#pragma warning disable RS0026 // Existing overload shape; only the return type was renamed to PowerPointImage.
+        public PowerPointImage AddImage(Stream image,OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeLength? left = null, OfficeLength? top = null,
             OfficeLength? width = null, OfficeLength? height = null) {
+#pragma warning restore RS0026
             long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(914400L)).ToEmus();
@@ -140,7 +144,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(picture);
-            PowerPointPicture pic = TrackShape(new PowerPointPicture(picture, _slidePart));
+            PowerPointImage pic = TrackShape(new PowerPointImage(picture, _slidePart));
             // Keep the image's own aspect ratio inside the requested box instead of stretching it.
             pic.ContainInFrame();
             return pic;
@@ -149,14 +153,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds an image using a layout box.
         /// </summary>
-        public PowerPointPicture AddImage(string imagePath, PowerPointLayoutBox layout) {
+        public PowerPointImage AddImage(string imagePath, PowerPointLayoutBox layout) {
             return AddImage(imagePath, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         /// <summary>
         ///     Adds an image from a stream using a layout box.
         /// </summary>
-        public PowerPointPicture AddImage(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, PowerPointLayoutBox layout) {
+        public PowerPointImage AddImage(Stream image, OfficeIMO.Drawing.OfficeImageFormat imageType, PowerPointLayoutBox layout) {
             return AddImage(image, imageType, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 

@@ -21,7 +21,7 @@ public sealed class StudioViewPreferencesTests {
             services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
             string source = Path.Combine(services.Paths.Root, "custom-zoom.pdf");
             PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800))
-                .Content(content => content.Text("Custom zoom survives editing and saving.")))).Save(source);
+                .Content(content => content.AddParagraph("Custom zoom survives editing and saving.")))).Save(source);
             var window = new MainWindow(services) { Width = width, Height = height };
             try {
                 window.Show();

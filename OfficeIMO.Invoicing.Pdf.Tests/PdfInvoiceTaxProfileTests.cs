@@ -97,7 +97,7 @@ public sealed class PdfInvoiceTaxProfileTests {
             .UsePdfA(PdfComplianceProfile.PdfA3B)
             .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow);
         PdfDocument document = PdfDocument.Create(options);
-        document.Content.Paragraph(paragraph => paragraph.Text("Invoice tax profile regression"));
+        document.Content.AddParagraph(paragraph => paragraph.AddText("Invoice tax profile regression"));
         return document;
     }
 

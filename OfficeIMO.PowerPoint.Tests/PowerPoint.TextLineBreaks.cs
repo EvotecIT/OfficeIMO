@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                     return () => cell.Text;
                 },
                 ["cell run"] = (slide, text) => {
-                    PowerPointTextRun run = Cell(slide).AddRun(text);
+                    PowerPointTextRun run = Cell(slide).AddText(text);
                     return () => run.Text;
                 },
                 ["cell paragraph"] = (slide, text) => {
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
                 },
                 ["replaced text"] = (slide, text) => {
                     PowerPointTextBox box = slide.AddTextBox("token");
-                    box.ReplaceText("token", text);
+                    box.ReplaceAll("token", text);
                     return () => box.Text;
                 },
                 ["notes paragraph"] = (slide, text) => {
@@ -97,8 +97,8 @@ namespace OfficeIMO.Tests {
                 cell.FontSize = OfficeIMO.OfficeLength.Points(21);
                 cell.Bold = true;
                 cell.Italic = true;
-                cell.FontName = "Arial";
-                cell.Color = "112233";
+                cell.FontFamily = "Arial";
+                cell.Color = OfficeColor.Parse("112233");
                 cell.Text = "Three\nFour\r\nFive";
                 presentation.Save();
             }
@@ -134,13 +134,13 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
             PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("Lead ").Paragraphs[0];
 
-            PowerPointTextRun run = paragraph.AddRun("One\nTwo", item => item.Bold = true);
-            run.Color = "445566";
+            PowerPointTextRun run = paragraph.AddText("One\nTwo").SetBold();
+            run.Color = OfficeColor.Parse("445566");
 
             Assert.False(paragraph.Runs[0].Bold);
             Assert.All(paragraph.Runs.Skip(1), line => {
                 Assert.True(line.Bold);
-                Assert.Equal("445566", line.Color);
+                Assert.Equal(OfficeColor.Parse("445566"), line.Color);
             });
             A.Break lineBreak = Assert.Single(paragraph.Paragraph.Elements<A.Break>());
             Assert.True(lineBreak.RunProperties?.Bold?.Value);
@@ -154,7 +154,9 @@ namespace OfficeIMO.Tests {
             Assert.All(box.Paragraphs[0].Runs, run => Assert.True(run.Bold));
 
             PowerPointParagraph chained = box.AddParagraph(string.Empty);
-            chained.AddText("Three").AddLineBreak().AddText("Four\nFive").SetItalic();
+            chained.AddText("Three");
+            chained.AddLineBreak();
+            chained.AddText("Four\nFive").SetItalic();
             Assert.False(chained.Runs.First(run => run.Text == "Three").Italic);
             Assert.All(chained.Runs.Where(run => run.Text is "Four" or "Five"), run => Assert.True(run.Italic));
         }
@@ -164,7 +166,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
             PowerPointParagraph paragraph = presentation.AddSlide().AddTextBox("x").Paragraphs[0];
 
-            paragraph.AddRun("One\nTwo").SetHyperlink("https://example.com/", "tip");
+            paragraph.AddText("One\nTwo").SetHyperlink("https://example.com/", "tip");
 
             Assert.All(paragraph.Paragraph.Elements<A.Run>().Skip(1), run =>
                 Assert.NotNull(run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>()));

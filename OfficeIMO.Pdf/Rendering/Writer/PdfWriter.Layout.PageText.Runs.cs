@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
             italic: italic,
             strike: false,
             fontSize: global::OfficeIMO.OfficeLength.Points(fontSize),
-            font: ChooseNormal(font),
+            standardFont: ChooseNormal(font),
             fontFamily: fontFamily);
         return NormalizeFallbackRuns(new[] { run }, ChooseNormal(font), opts);
     }
@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
             };
 
             if (segment.StyledRun != null) {
-                runs.Add(CreateStyledTextRun(text, segment.StyledRun, segment.StyledRun.Font, fontFamily));
+                runs.Add(CreateStyledTextRun(text, segment.StyledRun, segment.StyledRun.StandardFont, fontFamily));
             } else {
                 runs.Add(new PdfTextRun(
                     text,
@@ -51,7 +51,7 @@ internal static partial class PdfWriter {
                     italic: italic,
                     strike: false,
                     fontSize: global::OfficeIMO.OfficeLength.Points(fontSize),
-                    font: ChooseNormal(font),
+                    standardFont: ChooseNormal(font),
                     fontFamily: fontFamily));
             }
         }
@@ -125,7 +125,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (index > segmentStart) {
-                    current.Add(CreateStyledTextRun(text.Substring(segmentStart, index - segmentStart), run, run.Font));
+                    current.Add(CreateStyledTextRun(text.Substring(segmentStart, index - segmentStart), run, run.StandardFont));
                 }
 
                 if (lines.Count >= MaximumTextLayoutLines)
@@ -140,7 +140,7 @@ internal static partial class PdfWriter {
             }
 
             if (segmentStart < text.Length) {
-                current.Add(CreateStyledTextRun(text.Substring(segmentStart), run, run.Font));
+                current.Add(CreateStyledTextRun(text.Substring(segmentStart), run, run.StandardFont));
             }
         }
 
@@ -230,7 +230,7 @@ internal static partial class PdfWriter {
     }
 
     private static PdfStandardFont ResolvePageTextRunFont(PdfTextRun run, PdfStandardFont baseFont) {
-        PdfStandardFont runBaseFont = run.Font ?? baseFont;
+        PdfStandardFont runBaseFont = run.StandardFont ?? baseFont;
         return (run.Bold && run.Italic)
             ? ChooseBoldItalic(ChooseNormal(runBaseFont))
             : run.Bold

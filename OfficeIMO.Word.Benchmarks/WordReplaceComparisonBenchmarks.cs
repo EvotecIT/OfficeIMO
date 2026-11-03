@@ -36,10 +36,10 @@ public class WordReplaceComparisonBenchmarks {
     public byte[] OfficeIMO() {
         using var input = new MemoryStream(_fixture, writable: false);
         using WordDocument document = WordDocument.Load(input);
-        document.FindAndReplace(
+        document.ReplaceAll(
             WordBenchmarkCorpus.Placeholder,
             WordBenchmarkCorpus.Replacement,
-            StringComparison.Ordinal);
+            new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true });
         return document.ToBytes();
     }
 

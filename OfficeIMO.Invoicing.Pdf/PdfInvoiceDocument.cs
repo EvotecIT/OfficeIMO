@@ -133,12 +133,12 @@ public sealed partial class PdfInvoiceDocument {
             }
             configured.SetEmbeddedFileModificationDate("factur-x.xml", _capturedAt);
         }
-        if (!_layout.IncludePageIdentity && !configured.ShowPageNumbers) {
+        if (!_layout.IncludePageIdentity && !configured.PageSetup.Footer.Show) {
             // Invoices that run over a page keep their page count visible without extra configuration.
-            configured.ShowPageNumbers = true;
-            configured.FooterFormat = Label(InvoicePdfText.Page) + " {page} " + Label(InvoicePdfText.PageOf) + " {pages}";
-            configured.FooterAlign = OfficeAlignment.Right;
-            if (configured.FooterTextColor == null) configured.FooterTextColor = (_layout.Theme ?? new InvoicePdfTheme()).MutedText;
+            configured.PageSetup.Footer.Show = true;
+            configured.PageSetup.Footer.Format = Label(InvoicePdfText.Page) + " {page} " + Label(InvoicePdfText.PageOf) + " {pages}";
+            configured.PageSetup.Footer.Alignment = OfficeAlignment.Right;
+            if (configured.PageSetup.Footer.Color == null) configured.PageSetup.Footer.Color = (_layout.Theme ?? new InvoicePdfTheme()).MutedText;
         }
         // The invoice language and its title identify the document to readers and assistive technology.
         configured.Language ??= _layout.Languages[0].Culture.Name;
@@ -153,8 +153,8 @@ public sealed partial class PdfInvoiceDocument {
                 Action<PdfFooterTextBuilder> identity = text => text.Text(_invoice.Number);
                 Action<PdfFooterTextBuilder> count = text => text.Text(Label(InvoicePdfText.Page) + " ").CurrentPage().Text(" " + Label(InvoicePdfText.PageOf) + " ").TotalPages();
                 footer.StyledZones(identity, null, count);
-                if (configured.DifferentFirstPageHeaderFooter) footer.FirstPageStyledZones(identity, null, count);
-                if (configured.DifferentOddAndEvenPagesHeaderFooter) footer.EvenPagesStyledZones(identity, null, count);
+                if (configured.PageSetup.DifferentFirstPage) footer.FirstPageStyledZones(identity, null, count);
+                if (configured.PageSetup.DifferentOddAndEvenPages) footer.EvenPagesStyledZones(identity, null, count);
             }).Content(Compose)));
         } else Compose(document.Content);
         byte[] pdf = document.SerializeBytes(cancellationToken);

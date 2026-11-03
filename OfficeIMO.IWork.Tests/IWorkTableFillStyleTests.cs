@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
             for (int i = 0; i < positions.Length; i++) {
                 var (row, column) = positions[i]; var cell = reopened.Tables[0].Rows[row - 1].Cells[column - 1];
                 if (expected[i] == null) Assert.Equal(OfficeIMO.Word.WordShadingPattern.Nil, cell.ShadingPattern);
-                else Assert.Equal(expected[i], cell.ShadingFillColorHex);
+                else Assert.Equal(OfficeIMO.OfficeColor.Parse(expected[i]!), cell.ShadingFillColor);
             }
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelResult(policy);

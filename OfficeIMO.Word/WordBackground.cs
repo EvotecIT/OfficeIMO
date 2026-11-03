@@ -9,16 +9,15 @@ namespace OfficeIMO.Word {
         internal WordDocument _document;
 
         /// <summary>
-        /// Gets or sets the background color as a hex string.
+        /// Gets or sets the background color; automatic or missing colours return <see langword="null"/>.
         /// </summary>
-        public string? Color {
+        public OfficeIMO.OfficeColor? Color {
             get {
                 var mainPart = _document._wordprocessingDocument.MainDocumentPart;
-                if (mainPart?.Document?.DocumentBackground != null) {
-                    return mainPart.Document.DocumentBackground.Color;
-                }
-
-                return null;
+                string? value = mainPart?.Document?.DocumentBackground?.Color?.Value;
+                return value != null && OfficeIMO.OfficeColor.TryParseHex(value, out OfficeIMO.OfficeColor color)
+                    ? color
+                    : null;
             }
             set {
                 _ = _document.Settings;
@@ -30,7 +29,7 @@ namespace OfficeIMO.Word {
                 if (mainPart?.Document?.DocumentBackground == null) {
                     mainPart!.Document!.DocumentBackground = new DocumentBackground();
                 }
-                mainPart!.Document!.DocumentBackground!.Color = value;
+                mainPart!.Document!.DocumentBackground!.Color = value?.ToRgbHex();
             }
         }
 
@@ -59,21 +58,12 @@ namespace OfficeIMO.Word {
             //DocumentBackground documentBackground2 = new DocumentBackground() { Color = "BF8F00", ThemeColor = ThemeColorValues.Accent4, ThemeShade = "BF" };
         }
         /// <summary>
-        /// Sets the background color using a hex value.
-        /// </summary>
-        /// <param name="color">Hex color value.</param>
-        /// <returns>The current instance.</returns>
-        public WordBackground SetColorHex(string color) {
-            this.Color = color.Replace("#", "").ToUpperInvariant();
-            return this;
-        }
-        /// <summary>
         /// Sets the background color using a <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         /// <param name="color">Color value.</param>
         /// <returns>The current instance.</returns>
         public WordBackground SetColor(OfficeIMO.OfficeColor color) {
-            this.Color = color.ToRgbHex();
+            this.Color = color;
             return this;
         }
 

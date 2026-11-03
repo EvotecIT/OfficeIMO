@@ -519,7 +519,7 @@ public class PdfUtilityAdmissionCancellationTests {
     }
 
     private static byte[] CreatePdf() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("Utility admission"))
+        .Paragraph(paragraph => paragraph.AddText("Utility admission"))
         .ToBytes();
 
     private sealed class CancellingOutputStream : MemoryStream {

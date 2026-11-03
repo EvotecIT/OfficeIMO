@@ -10,10 +10,7 @@ namespace OfficeIMO.Word {
             if (this.Sections.Count == 0) throw new InvalidOperationException("Document has no sections.");
             if (sectionIndex < 0) sectionIndex = this.Sections.Count - 1;
             if (sectionIndex >= this.Sections.Count) throw new ArgumentOutOfRangeException(nameof(sectionIndex));
-            var headers = this.Sections[sectionIndex].Header;
-            if (type == WordHeaderFooterType.First) return headers.First;
-            if (type == WordHeaderFooterType.Even) return headers.Even;
-            return headers.Default;
+            return this.Sections[sectionIndex].PageSetup.GetHeader(type);
         }
         /// <summary>
         /// Returns the default header for a specific section index.
@@ -28,10 +25,7 @@ namespace OfficeIMO.Word {
             if (this.Sections.Count == 0) throw new InvalidOperationException("Document has no sections.");
             if (sectionIndex < 0) sectionIndex = this.Sections.Count - 1;
             if (sectionIndex >= this.Sections.Count) throw new ArgumentOutOfRangeException(nameof(sectionIndex));
-            var footers = this.Sections[sectionIndex].Footer;
-            if (type == WordHeaderFooterType.First) return footers.First;
-            if (type == WordHeaderFooterType.Even) return footers.Even;
-            return footers.Default;
+            return this.Sections[sectionIndex].PageSetup.GetFooter(type);
         }
         /// <summary>
         /// Returns the default footer for a specific section index.

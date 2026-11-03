@@ -64,14 +64,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds default headers and footers to the document.
-        /// </summary>
-        /// <returns>The attached default header and footer.</returns>
-        public (WordHeader Header, WordFooter Footer) AddHeadersAndFooters() {
-            return WordHeadersAndFooters.AddHeadersAndFooters(this);
-        }
-
-        /// <summary>
         /// Inserts a break into the document.
         /// </summary>
         /// <param name="breakType">Type of break to insert.</param>
@@ -215,34 +207,36 @@ namespace OfficeIMO.Word {
         /// Adds a custom bullet list with formatting options.
         /// </summary>
         /// <param name="symbol">Bullet symbol.</param>
-        /// <param name="fontName">Font name for the symbol.</param>
-        /// <param name="colorHex">Hex color of the symbol.</param>
-        /// <param name="fontSize">Font size in points.</param>
+        /// <param name="fontFamily">Font family for the symbol.</param>
+        /// <param name="color">Color of the symbol.</param>
+        /// <param name="fontSize">Font size.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(char symbol, string fontName, string colorHex, global::OfficeIMO.OfficeLength? fontSize = null) {
-            return WordList.AddCustomBulletList(this, symbol, fontName, colorHex, fontSize);
+#pragma warning disable RS0026 // Existing overload shape; only the colour parameter type changed.
+        public WordList AddCustomBulletList(char symbol, string fontFamily, OfficeIMO.OfficeColor? color, global::OfficeIMO.OfficeLength? fontSize = null) {
+#pragma warning restore RS0026
+            return WordList.AddCustomBulletList(this, symbol, fontFamily, color, fontSize);
         }
 
         /// <summary>
         /// Adds a custom bullet list with formatting options.
         /// </summary>
         /// <param name="symbol">Bullet symbol.</param>
-        /// <param name="fontName">Font name for the symbol.</param>
+        /// <param name="fontFamily">Font family for the symbol.</param>
         /// <param name="color">Bullet color.</param>
-        /// <param name="colorHex">Hex color fallback.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, global::OfficeIMO.OfficeLength? fontSize = null) {
-            return WordList.AddCustomBulletList(this, symbol, fontName, color, colorHex, fontSize);
+#pragma warning disable RS0026 // Existing overload shape; only the colour parameter type changed.
+        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontFamily, OfficeIMO.OfficeColor? color = null, global::OfficeIMO.OfficeLength? fontSize = null) {
+#pragma warning restore RS0026
+            return WordList.AddCustomBulletList(this, symbol, fontFamily, color, fontSize);
         }
 
         /// <summary>
         /// Adds a custom bullet list using the specified formatting.
         /// </summary>
         /// <param name="kind">Bullet level kind.</param>
-        /// <param name="fontName">Font name for the bullet.</param>
+        /// <param name="fontFamily">Font family for the bullet.</param>
         /// <param name="color">Bullet color.</param>
-        /// <param name="colorHex">Hex color fallback.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
         /// <example>
@@ -259,8 +253,10 @@ namespace OfficeIMO.Word {
         /// document.Save();
         /// ]]></code>
         /// </example>
-        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, global::OfficeIMO.OfficeLength? fontSize = null) {
-            return WordList.AddCustomBulletList(this, kind, fontName, color, colorHex, fontSize);
+#pragma warning disable RS0026 // Existing overload shape; only the colour parameter type changed.
+        public WordList AddCustomBulletList(WordListLevelKind kind, string fontFamily, OfficeIMO.OfficeColor? color = null, global::OfficeIMO.OfficeLength? fontSize = null) {
+#pragma warning restore RS0026
+            return WordList.AddCustomBulletList(this, kind, fontFamily, color, fontSize);
         }
 
         /// <summary>
@@ -291,8 +287,8 @@ namespace OfficeIMO.Word {
         /// using WordDocument document = WordDocument.Create(filePath);
         ///
         /// WordList list = document.AddCustomList();
-        /// list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: global::OfficeIMO.OfficeLength.Points(14));
-        /// list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: global::OfficeIMO.OfficeLength.Points(10));
+        /// list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", color: OfficeIMO.OfficeColor.Parse("#FF0000"), fontSize: global::OfficeIMO.OfficeLength.Points(14));
+        /// list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", color: OfficeIMO.OfficeColor.Parse("#00FF00"), fontSize: global::OfficeIMO.OfficeLength.Points(10));
         ///
         /// list.AddItem("First level item");
         /// list.AddItem("Fifth level item", 4);

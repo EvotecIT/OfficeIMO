@@ -21,14 +21,14 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.Equal(new[] { IWorkKeynoteDrawableKind.Image, IWorkKeynoteDrawableKind.Table },
             sourceSlide.Drawables.Select(drawable => drawable.Kind));
-        Assert.IsType<PowerPointPicture>(targetSlide.Shapes[0]);
+        Assert.IsType<PowerPointImage>(targetSlide.Shapes[0]);
         Assert.IsType<PowerPointTable>(targetSlide.Shapes[1]);
 
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
         using PowerPointDocument reopened = PowerPointDocument.Load(saved);
-        Assert.IsType<PowerPointPicture>(Assert.Single(reopened.Slides).Shapes[0]);
+        Assert.IsType<PowerPointImage>(Assert.Single(reopened.Slides).Shapes[0]);
         Assert.IsType<PowerPointTable>(Assert.Single(reopened.Slides).Shapes[1]);
     }
 

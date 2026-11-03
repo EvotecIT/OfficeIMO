@@ -2,7 +2,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
-    public partial class PowerPointPicture {
+    public partial class PowerPointImage {
         /// <summary>
         /// Gets or sets the luminance brightness adjustment as a percentage
         /// from -100 through 100, or <see langword="null"/> when omitted.

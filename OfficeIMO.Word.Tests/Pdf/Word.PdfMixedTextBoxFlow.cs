@@ -21,7 +21,7 @@ public partial class Word {
     public void NativeFlowPreservesTextAroundPeerAndNestedBoxes(string scope, bool nested) {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordHeaderFooter? story = scope == "body" ? null : scope == "header"
-            ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
+            ? document.PageSetup.Header : document.PageSetup.Footer;
         WordParagraph paragraph = story == null ? document.AddParagraph("PREFIX") : story.AddParagraph("PREFIX");
         WordParagraph first = paragraph.AddTextBox("FIRSTBOX", WordImageTextWrapping.Square).Paragraphs.Single();
         if (nested) {
@@ -68,7 +68,7 @@ public partial class Word {
     public void NativeMixedTextBoxFlowRetainsSiblingInlinePictures(string scope) {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordHeaderFooter? story = scope == "body" ? null : scope == "header"
-            ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
+            ? document.PageSetup.Header : document.PageSetup.Footer;
         WordParagraph paragraph = story == null ? document.AddParagraph("PREFIX") : story.AddParagraph("PREFIX");
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
@@ -144,8 +144,8 @@ public partial class Word {
         document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         document.AddParagraph("BODY").FontFamily = ManagedTextShapingTestAssets.FamilyName;
         WordTable table = scope switch {
-            "header" => document.HeaderDefaultOrCreate.AddTable(1, 1, WordTableStyle.TableNormal),
-            "footer" => document.FooterDefaultOrCreate.AddTable(1, 1, WordTableStyle.TableNormal),
+            "header" => document.PageSetup.Header.AddTable(1, 1, WordTableStyle.TableNormal),
+            "footer" => document.PageSetup.Footer.AddTable(1, 1, WordTableStyle.TableNormal),
             _ => document.AddTable(1, 1, WordTableStyle.TableNormal)
         };
         if (scope == "nested")

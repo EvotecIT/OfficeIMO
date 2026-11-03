@@ -286,8 +286,8 @@ public sealed class TextEditingReviewTests {
     }
 
     internal static PdfDocument CreateDocument() => PdfDocument.Create(compose => {
-        compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Account alpha Account beta")))));
-        compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Account gamma")))));
+        compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Account alpha Account beta")))));
+        compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Account gamma")))));
     });
 
     internal static PdfEditorSelection Selection(PdfTextMatch match) => new(PdfEditorSelectionKind.Text, match.PageNumber,

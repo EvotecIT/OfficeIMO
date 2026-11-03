@@ -453,7 +453,7 @@ namespace OfficeIMO.Word.Html {
                         foreach (var cell in row.Cells) {
                             cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = tableBorderStyle?.ToOfficeEnum();
                             cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = WordBorderLengths.FromSize(tableBorderSize);
-                            cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
+                            cell.Borders.LeftColorValue = cell.Borders.RightColorValue = cell.Borders.TopColorValue = cell.Borders.BottomColorValue = hex;
                         }
                     }
                 }
@@ -679,7 +679,7 @@ namespace OfficeIMO.Word.Html {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle?.ToOfficeEnum();
                     cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = WordBorderLengths.FromSize(borderSize);
                     var hex = borderColor.ToRgbHex();
-                    cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
+                    cell.Borders.LeftColorValue = cell.Borders.RightColorValue = cell.Borders.TopColorValue = cell.Borders.BottomColorValue = hex;
                 }
                 foreach (var sideBorder in sideBorders) {
                     ApplyCellBorder(cell, sideBorder.Key, sideBorder.Value.Style, sideBorder.Value.Size, sideBorder.Value.Color);
@@ -737,7 +737,7 @@ namespace OfficeIMO.Word.Html {
                                 cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = bStyle.ToOfficeEnum();
                                 cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = WordBorderLengths.FromSize(bSize);
                                 var hex = bColor.ToRgbHex();
-                                cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
+                                cell.Borders.LeftColorValue = cell.Borders.RightColorValue = cell.Borders.TopColorValue = cell.Borders.BottomColorValue = hex;
                                 borderSet = true;
                             }
                             break;
@@ -785,7 +785,7 @@ namespace OfficeIMO.Word.Html {
                 if (TryParseBorderWidth(borderAttr + "px", out var bSize)) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = WordBorderStyle.Single;
                     cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = WordBorderLengths.FromSize(bSize);
-                    cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = "000000";
+                    cell.Borders.LeftColorValue = cell.Borders.RightColorValue = cell.Borders.TopColorValue = cell.Borders.BottomColorValue = "000000";
                 }
             }
             return alignment;
@@ -843,22 +843,22 @@ namespace OfficeIMO.Word.Html {
                 case TableBorderSide.Left:
                     cell.Borders.LeftStyle = style.ToOfficeEnum();
                     cell.Borders.LeftSize = WordBorderLengths.FromSize(size);
-                    cell.Borders.LeftColorHex = hex;
+                    cell.Borders.LeftColorValue = hex;
                     break;
                 case TableBorderSide.Right:
                     cell.Borders.RightStyle = style.ToOfficeEnum();
                     cell.Borders.RightSize = WordBorderLengths.FromSize(size);
-                    cell.Borders.RightColorHex = hex;
+                    cell.Borders.RightColorValue = hex;
                     break;
                 case TableBorderSide.Top:
                     cell.Borders.TopStyle = style.ToOfficeEnum();
                     cell.Borders.TopSize = WordBorderLengths.FromSize(size);
-                    cell.Borders.TopColorHex = hex;
+                    cell.Borders.TopColorValue = hex;
                     break;
                 case TableBorderSide.Bottom:
                     cell.Borders.BottomStyle = style.ToOfficeEnum();
                     cell.Borders.BottomSize = WordBorderLengths.FromSize(size);
-                    cell.Borders.BottomColorHex = hex;
+                    cell.Borders.BottomColorValue = hex;
                     break;
             }
         }

@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel.Pdf {
                             foreach (WorksheetImageExportData image in plan.Images) {
                                 cancellationToken.ThrowIfCancellationRequested();
                                 if (!imagesByCellReference.ContainsKey(NormalizeCellReference(image.CellReference))) {
-                                    item.Image(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), global::OfficeIMO.OfficeAlignment.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), spacingAfter: global::OfficeIMO.OfficeLength.Points(6), style: CreateConverterImageStyle(image));
+                                    item.AddImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), global::OfficeIMO.OfficeAlignment.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), spacingAfter: global::OfficeIMO.OfficeLength.Points(6), style: CreateConverterImageStyle(image));
                                 }
                             }
 
@@ -106,7 +106,7 @@ namespace OfficeIMO.Excel.Pdf {
                                         item.PageBreak();
                                     }
 
-                                    item.Table(
+                                    item.AddTable(
                                         CreatePdfRows(data.Values, data.Styles, data.Hyperlinks, data.CellReferences, data.StructuredTables, data.MergedCells, imagesByCellReference, pageRows, 0, chunk.ColumnIndexes.Count, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily, fontScale: cellFontScale, dateSystem: document.DateSystem),
                                         style: tableStyle);
                                 }

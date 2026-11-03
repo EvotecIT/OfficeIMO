@@ -44,11 +44,11 @@ namespace OfficeIMO.Word.Pdf {
                 pdfOptions.Language = defaults.Language;
             }
 
-            pdfOptions.PageSize = firstSection == null ? PdfCore.PdfPageSizes.A4 : GetNativePageSize(firstSection, options);
-            pdfOptions.Margins = firstSection == null
+            pdfOptions.PageSetup.Size = firstSection == null ? PdfCore.PdfPageSizes.A4 : GetNativePageSize(firstSection, options);
+            pdfOptions.PageSetup.Margins.Set(firstSection == null
                 ? PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
-                : GetNativeMargins(firstSection, options, GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers));
-            pdfOptions.MirrorMargins = firstSection != null && ShouldMirrorNativeMargins(firstSection, options);
+                : GetNativeMargins(firstSection, options, GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers)));
+            pdfOptions.PageSetup.MirrorMargins = firstSection != null && ShouldMirrorNativeMargins(firstSection, options);
             bool allowSystemFontEmbedding = options?.ResourcePolicy.AllowSystemFontEmbedding == true;
             bool allowDocumentFontEmbedding = allowSystemFontEmbedding &&
                                               options?.ResourcePolicy.AllowDocumentFontEmbedding == true;
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
             bool preserveConfiguredFontSlots = appliedNativeDefaultFont || hasConfiguredPdfOptions;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowDocumentFontEmbedding, nativeFontMap);
             ApplyNativeTextFallbacks(document, options, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, listMarkers);
-            pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
+            pdfOptions.BackgroundColor = document.Background?.Color;
             pdfOptions.CreateOutlineFromHeadings = true;
             ApplyNativeBiDiViewerPreferences(document, pdfOptions);
             // Standard slots still without a font file take the theme fallback font, embedded, before any text is measured.

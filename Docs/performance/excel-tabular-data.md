@@ -87,27 +87,77 @@ small timing differences to this patch. CSV allocation is unchanged; the complet
 per-library results include those timing movements too. Initial and fixed-input
 baseline reader launches are retained separately as evidence of launch variation.
 
+## Follow-up cohort: 3 November 2026
+
+The baseline is `9db3761b50`; the measured candidate is `e00a512a8a`, which also
+merges the current performance base. Harness, options, pinned reader inputs and
+host match the 2 November cohort. The [normalized evidence](excel-tabular-data-2026-11-03.json)
+holds all 36 pairs with samples, allocation and assembly hashes. Other serialized
+heavy runs shared the host between launches, so I treat movements under about 5%
+in unchanged code as launch variation.
+
+Profiles showed these hidden costs, and I removed them without changing the API,
+the validation boundaries or the returned values:
+
+- XLSB text decoded through `Encoding.Unicode`, whose character counting took
+  about a seventh of a raw read. Text without surrogate code units now copies
+  directly; any surrogate keeps the encoder's pairing and U+FFFD rules.
+- XLSB discovery sent every inline string through the general cursor validator.
+  A fitting `BrtCellSt` now passes the fused checks; other shapes keep the exact
+  cursor errors.
+- The XLS shared-string writer made several stream calls, limit checks and an
+  encoder allocation per string; it took about a quarter of an XLS write. It now
+  writes into one bounded buffer per record payload with the same segment limits.
+  Cached rows no longer zero per-row stack buffers, and table entries are values.
+- The XLSX string cache kept probing eight full slots for unique text. It now
+  samples its hit rate and pauses lookups while fewer than one in sixteen repeat.
+- The tabular readers reset small per-row arrays through the general
+  `Array.Clear`; they now use typed span clears.
+
+| Lane, median ms | Before | After | ExcelReader.NET |
+|---|---:|---:|---:|
+| XLSX read | 10.314 | 9.957 | 6.373 |
+| XLSX typed parse | 11.987 | 11.278 | 8.083 |
+| XLSB read | 8.058 | 6.101 | 4.764 |
+| XLSB typed parse | 9.968 | 7.766 | 6.057 |
+| XLS read | 5.387 | 5.244 | 4.627 |
+| XLS typed parse | 7.569 | 7.527 | 7.519 |
+| XLSX write | 9.924 | 9.924 | 7.974 |
+| XLSB write | 16.380 | 16.214 | 5.448 |
+| XLS write | 23.959 | 17.749 | 3.941 |
+
+XLS write allocation falls from 38.622 to 36.194 MiB; every other OfficeIMO lane
+keeps its allocation. Sylvan, ExcelDataReader, SpreadCheetah and all CSV lanes
+stay within launch variation. In the XLBench shape comparison, edited-read moved
+from 659.5 to 708.5 ms and calc from 43.6 to 45.8 ms; two interleaved
+baseline/candidate reruns put both within 2% of each other. Every other category
+moved by 4% or less.
+
 ## Remaining costs and limits
 
-Parity is incomplete. ExcelReader.NET reads XLSX in 6.360 ms versus 10.334 ms here,
-and XLSB in 4.657 versus 7.604 ms. The OfficeIMO profiles still include XML row
-indexing, BIFF12 discovery/delivery and typed accessor/mapping work. These are CPU
-costs rather than the former per-string BIFF allocation. Returning borrowed raw
-spans is a different contract from returning owned strings and is not the lane
-measured here.
+Parity is incomplete. XLSX reads remain about 56% slower than ExcelReader.NET, XLSX
+typed parsing 40%, XLSB reads 28% and XLSB typed parsing 28%. The remaining read
+cost is structural rather than one hidden hot spot. OfficeIMO proves the whole
+part before delivering the first row and gives the data reader a fixed field
+count. It therefore makes a validation and indexing pass and then a delivery
+pass; ExcelReader.NET reads each row once. Inflation takes about a fifth of the
+XLSX and XLSB reads. Typed parsing also qualifies every mapped cell through the
+data-reader wrapper before the compiled mapper reads it.
 
-Native XLS and XLSB writes still take 23.564 and 16.030 ms against 4.055 and
-5.405 ms. The existing `WriteData` route buffers object-valued projections before
-native planning; XLS also builds its shared-string table and compound package.
-The stream/byte-array save path retains complete package copies. Those are
-remaining reachable costs; this run does not quantify each cost separately.
-I keep the public API and format-validation boundaries intact instead of changing
-the workload or weakening validation to improve the comparison. XLSX encoding,
-compression and package buffering remain measurable work; the profile did not
-justify duplicating the row loop.
+The XLS and XLSB writers are the `WriteData` plus `Save` route. Before it saves,
+that route retains every source row and boxed selector value, so the generated
+rows survive into older GC generations. On its own, the measured registration
+takes about 7 ms of each write against 0.7 ms to generate the same rows. XLSB
+deflate takes about another 5 ms; its BIFF12 payload is 5.7 MB against 5.1 MB from
+ExcelReader.NET; the difference matches writing the three numeric columns as
+8-byte reals instead of 4-byte RK values. XLS also
+builds its compound file as one more complete copy. Removing the buffering would
+change when selectors and source enumeration run, so I leave that contract
+unchanged here.
 
-This is one M4 cohort with OS scheduling across both core types. I do not infer
-Windows, .NET Framework runtime, peak-memory or large-workbook results from it.
+These are single M4 cohorts with OS scheduling across both core types. I do not
+infer Windows, .NET Framework runtime, peak-memory or large-workbook results from
+them.
 
 ## Correctness and compatibility proof
 
@@ -131,3 +181,12 @@ including constructor-bound record mapping. Final net10.0 correctness runs use
 `Category!=Performance`: Excel.Tests passes 7,742 with five opt-in/platform skips;
 CSV.Tests passes all 938. No Office or GUI process is used. Review is a structured
 self-review; an independent reviewer was unavailable.
+
+For the 3 November changes, the existing reader-boundary proof already covers the
+changed behaviour, so I add no tests. XLSB inline and shared strings with paired
+and unpaired surrogates and NUL keep their decoded values. Inline-string count
+and truncation failures keep their discovery errors. Native XLS long ASCII and
+Unicode strings that span CONTINUE records, cached formula strings and rich-text
+shared strings keep their output, and the pooled-cache clearing contract still
+holds. The focused XLS, XLSB, reader, shared-string and mapping run passes 2,349
+cases with two skips. Excel builds for netstandard2.0, net8.0, net10.0 and net472.

@@ -54,7 +54,7 @@ public sealed class PdfPublicApiContractTests {
         PdfDocument document = PdfDocument.Create(pdf => pdf
             .Content(content => content
                 .H1("Canonical authoring")
-                .Paragraph(paragraph => paragraph.Text("One public composition model."))));
+                .AddParagraph(paragraph => paragraph.AddText("One public composition model."))));
 
         string text = document.Read().Text;
 
@@ -65,11 +65,11 @@ public sealed class PdfPublicApiContractTests {
     [Fact]
     public void CanonicalPageDslBuildsHeadersFootersAndFlowContent() {
         PdfDocument document = PdfDocument.Create(pdf => pdf.Page(page => page
-            .Header(header => header.Text("Quarterly review").AlignLeft())
-            .Footer(footer => footer.Text("Confidential").AlignCenter())
+            .Header(header => header.Text("Quarterly review").Alignment(OfficeAlignment.Left))
+            .Footer(footer => footer.Text("Confidential").Alignment(OfficeAlignment.Center))
             .Content(layout => layout.Item(content => content
                 .H1("Service report")
-                .Paragraph(paragraph => paragraph.Text("Validated operational data."))))));
+                .AddParagraph(paragraph => paragraph.AddText("Validated operational data."))))));
 
         string text = string.Join(" ", document.Read().TextBlocks.Select(static block => block.Text));
 
@@ -124,7 +124,7 @@ public sealed class PdfPublicApiContractTests {
 
         PdfDocument document = PdfDocument.Create(pdf => pdf
             .Typography(OfficeRenderingProfile.Managed)
-            .Content(content => content.Text("Profiled text")));
+            .Content(content => content.AddParagraph("Profiled text")));
 
         Assert.Same(OfficeRenderingProfile.Managed.TextShapingProvider, document.Options.TextShapingProvider);
     }
@@ -137,7 +137,7 @@ public sealed class PdfPublicApiContractTests {
             textShapingLanguage: "pl-PL");
 
         PdfDocument document = PdfDocument.Create(pdf => pdf
-            .Page(page => page.Content(content => content.Text("Earlier page")))
+            .Page(page => page.Content(content => content.AddParagraph("Earlier page")))
             .Typography(profile));
         PageBlock page = Assert.IsType<PageBlock>(Assert.Single(document.Blocks));
 
@@ -152,7 +152,7 @@ public sealed class PdfPublicApiContractTests {
             textShapingProvider: OfficeManagedTextShapingProvider.Instance,
             textShapingLanguage: "de-DE");
         PdfDocument document = PdfDocument.Create(pdf => pdf
-            .Page(page => page.Content(content => content.Text("Existing page"))));
+            .Page(page => page.Content(content => content.AddParagraph("Existing page"))));
 
         document.Compose(pdf => pdf.Typography(profile));
         PageBlock page = Assert.IsType<PageBlock>(Assert.Single(document.Blocks));
@@ -179,23 +179,22 @@ public sealed class PdfPublicApiContractTests {
     }
 
     [Fact]
-    public void FacadeDoesNotDuplicateBuilderAuthoringMethods() {
-        Type[] authoringBuilders = {
-            typeof(PdfDocumentBuilder),
-            typeof(PdfPageBuilder),
-            typeof(PdfContentBuilder)
-        };
-        HashSet<string> authoringMethodNames = authoringBuilders
-            .SelectMany(type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            .Where(method => !method.IsSpecialName)
+    public void ContentBuilderAddOperationsForwardToSameNamedDocumentOperations() {
+        // AddPanelParagraph composes a panel container, which stays a fluent-only layout scope.
+        string[] fluentOnly = { nameof(PdfContentBuilder.AddPanelParagraph) };
+        HashSet<string> documentOperations = typeof(PdfDocument)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Select(method => method.Name)
             .ToHashSet(StringComparer.Ordinal);
-        MethodInfo[] facadeMethods = typeof(PdfDocument)
+        string[] builderAddOperations = typeof(PdfContentBuilder)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .Where(method => !method.IsSpecialName)
+            .Select(method => method.Name)
+            .Where(name => name.StartsWith("Add", StringComparison.Ordinal) && !fluentOnly.Contains(name))
+            .Distinct()
             .ToArray();
 
-        Assert.DoesNotContain(facadeMethods, method => authoringMethodNames.Contains(method.Name));
+        Assert.NotEmpty(builderAddOperations);
+        Assert.All(builderAddOperations, name => Assert.Contains(name, documentOperations));
     }
 
     [Fact]
@@ -222,7 +221,7 @@ public sealed class PdfPublicApiContractTests {
         Assert.All(groupedRootMethods, methodName => Assert.Null(
             typeof(PdfDocument).GetMethod(methodName, BindingFlags.Public | BindingFlags.Instance)));
 
-        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(paragraph => paragraph.Text("capabilities"))));
+        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content.AddParagraph(paragraph => paragraph.AddText("capabilities"))));
         Assert.NotNull(document.Security);
         Assert.NotNull(document.Redactions);
         Assert.NotNull(document.Optimization);
@@ -233,7 +232,7 @@ public sealed class PdfPublicApiContractTests {
     public void SpecializedCapabilityObjectsExecuteThroughTheirPublicPaths() {
         byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Capability proof")
-                .Paragraph(paragraph => paragraph.Text("Sensitive marker"))))
+                .AddParagraph(paragraph => paragraph.AddText("Sensitive marker"))))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(bytes));
 

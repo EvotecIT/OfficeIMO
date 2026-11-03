@@ -118,12 +118,12 @@ public sealed class PdfCreationOfficeThemeReviewRegressions {
         });
         document.Content.H1("ExplicitDefaultHeading")
             .H2("ExplicitBlockHeading", new PdfHeadingStyle { Font = PdfStandardFont.Helvetica })
-            .Heading(3, "ExplicitRunHeading", paragraph => paragraph.Font(PdfStandardFont.Courier).Text("ExplicitRunHeading"),
+            .Heading(3, "ExplicitRunHeading", paragraph => paragraph.AddText("ExplicitRunHeading").SetStandardFont(PdfStandardFont.Courier),
                 OfficeAlignment.Left, null, new PdfHeadingStyle { Font = PdfStandardFont.TimesRoman })
-            .Text("ExplicitBody");
+            .AddParagraph("ExplicitBody");
         document.Compose(builder => builder.Page(page => page.Theme(boardroom)
             .DefaultTextStyle(style => style.Font(PdfStandardFont.Courier))
-            .Content(content => content.H1("ExplicitPageThemeHeading").Text("ExplicitPageBody"))));
+            .Content(content => content.H1("ExplicitPageThemeHeading").AddParagraph("ExplicitPageBody"))));
 
         using var saved = PdfPigDocument.Open(Save(document));
         AssertFont(saved, "ExplicitDefaultHeading", "Times");
@@ -176,10 +176,10 @@ public sealed class PdfCreationOfficeThemeReviewRegressions {
             .Deferred(_ => outer => outer.Deferred(nestedContext => inner => AddTable(inner, prefix + "Nested")));
     }
 
-    private static void AddTable(PdfContentBuilder content, string text) => content.Table(new[] { new { Item = text } });
+    private static void AddTable(PdfContentBuilder content, string text) => content.AddTable(new[] { new { Item = text } });
 
     private static void AddHeadings(PdfContentBuilder content, string prefix) => content
-        .H1(prefix + "One").H2(prefix + "Two").H3(prefix + "Three").Text(prefix + "Body");
+        .H1(prefix + "One").H2(prefix + "Two").H3(prefix + "Three").AddParagraph(prefix + "Body");
 
     private static byte[] Save(PdfDocument document) {
         using var output = new MemoryStream();

@@ -53,12 +53,12 @@ internal static class PowerPointBenchmarkCorpus {
             $"Operational review {index + 1}",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(40));
         title.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         title.Bold = true;
-        title.Color = "0F172A";
+        title.Color = OfficeColor.Parse("0F172A");
 
         PowerPointTextBox subtitle = slide.AddTextBox(
             $"Slide {index + 1} of {slideCount} · deterministic benchmark corpus",            global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(700),global::OfficeIMO.OfficeLength.Points(28));
         subtitle.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-        subtitle.Color = "475569";
+        subtitle.Color = OfficeColor.Parse("475569");
 
         string[] colors = { "DBEAFE", "DCFCE7", "FEF3C7", "FCE7F3" };
         for (int card = 0; card < 4; card++) {
@@ -77,13 +77,13 @@ internal static class PowerPointBenchmarkCorpus {
             PowerPointTextBox narrative = slide.AddTextBox(
                 "Measured work includes editable text, vector shapes, package serialization, and rendering.",                global::OfficeIMO.OfficeLength.Points(390),global::OfficeIMO.OfficeLength.Points(238),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(110));
             narrative.FontSize = global::OfficeIMO.OfficeLength.Points(18);
-            narrative.Color = "1E293B";
+            narrative.Color = OfficeColor.Parse("1E293B");
         }
 
         PowerPointTextBox footer = slide.AddTextBox(
             "OfficeIMO.PowerPoint performance corpus",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(20));
         footer.FontSize = global::OfficeIMO.OfficeLength.Points(9);
-        footer.Color = "64748B";
+        footer.Color = OfficeColor.Parse("64748B");
     }
 
     private static void AddTable(PowerPointSlide slide, int index) {
@@ -115,7 +115,7 @@ internal static class PowerPointBenchmarkCorpus {
             PowerPointTextBox value = slide.AddTextBox(
                 $"Workstream {row + 1}: checkpoint {index + row + 1}",                global::OfficeIMO.OfficeLength.Points(56),global::OfficeIMO.OfficeLength.Points(239 + row * 72),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(24));
             value.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            value.Color = "334155";
+            value.Color = OfficeColor.Parse("334155");
         }
     }
 

@@ -28,8 +28,8 @@ internal static class DocumentDelivery {
 
     private static void WriteWord(string path, IReadOnlyList<VisualSpecimen> specimens) {
         using var document = WordDocument.Create(path);
-        document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-        document.Margins.Type = WordMargin.Normal;
+        document.Sections[0].PageSetup.Size.PageSize = WordPageSize.A4;
+        document.PageSetup.Margins.Type = WordMargin.Normal;
         for (int index = 0; index < specimens.Count; index++) {
             if (index > 0) document.AddPageBreak();
             var specimen = specimens[index];
@@ -81,7 +81,7 @@ internal static class DocumentDelivery {
     }
 
     private static void WritePdf(string path, IReadOnlyList<VisualSpecimen> specimens) {
-        var options = new PdfCreateOptions { PageSize = PdfPageSizes.A4, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints) };
+        var options = new PdfCreateOptions { PageSetup = { Size = PdfPageSizes.A4 }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints) };
         options.EnableTaggedPdfCatalogMarkers();
         PdfDocument.Create(document => document.Content(content => {
             for (int index = 0; index < specimens.Count; index++) {
@@ -89,7 +89,7 @@ internal static class DocumentDelivery {
                 var specimen = specimens[index];
                 content.H1(Heading(specimen));
                 content.AddVisualArtifact(specimen.Artifact, spacingBefore: 12D, spacingAfter: 18D);
-                content.Text(specimen.Caption);
+                content.AddParagraph(specimen.Caption);
             }
         }), options).Save(path);
     }
@@ -109,7 +109,7 @@ internal static class DocumentDelivery {
     private static void Text(PowerPointSlide slide, string text, double left, double top, double width, double height,
         double size, string color) {
         var box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),            global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
-        box.FontName = Style.FontFamily; box.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)); box.Color = color.TrimStart('#');
+        box.FontFamily = Style.FontFamily; box.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)); box.Color = OfficeIMO.OfficeColor.Parse(color);
     }
 
     private static string Heading(VisualSpecimen specimen) => specimen.Artifact.Title + " · " + specimen.ModeName;

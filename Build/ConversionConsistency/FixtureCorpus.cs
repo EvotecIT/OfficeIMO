@@ -15,7 +15,7 @@ internal static partial class FixtureCorpus {
         Directory.CreateDirectory(output);
         const string family = "Consistency Sans";
         using (var word = WordDocument.Create()) {
-            word.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
+            word.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
             for (int page = 1; page <= 2; page++) {
                 if (page > 1) word.AddPageBreak();
                 var heading = word.AddParagraph("SERVICE REVIEW " + page);
@@ -54,9 +54,9 @@ internal static partial class FixtureCorpus {
             for (int page = 1; page <= 2; page++) {
                 var slide = presentation.AddSlide();
                 var heading = slide.AddTextBox("SERVICE REVIEW " + page,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
-                heading.FontName = family; heading.FontSize = OfficeLength.Points(18);
+                heading.FontFamily = family; heading.FontSize = OfficeLength.Points(18);
                 var body = slide.AddTextBox("Completed actions: 9 of 12",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(66),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
-                body.FontName = family; body.FontSize = OfficeLength.Points(12);
+                body.FontFamily = family; body.FontSize = OfficeLength.Points(12);
             }
             presentation.Save(Path.Combine(output, "service-review.pptx"));
             using (var converted = presentation.ToOpenDocument()) converted.Save(Path.Combine(output, "service-review.odp"));

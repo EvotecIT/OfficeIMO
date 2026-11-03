@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var paragraph = Assert.Single(reopened.Tables).Rows[0].Cells[0].Paragraphs[0];
             Assert.Equal(expectedText, paragraph.Text);
-            if (expectedColor.Length > 0) Assert.Equal(expectedColor, paragraph.ColorHex);
+            if (expectedColor.Length > 0) Assert.Equal(OfficeIMO.OfficeColor.Parse(expectedColor), paragraph.Color);
         } else {
             using var result = source.ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
@@ -84,7 +84,7 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0);
             Assert.Equal(expectedText, target.Text);
-            if (expectedColor.Length > 0) Assert.Equal(expectedColor, target.Paragraphs[0].Runs[0].Color);
+            if (expectedColor.Length > 0) Assert.Equal(OfficeIMO.OfficeColor.Parse(expectedColor), target.Paragraphs[0].Runs[0].Color);
             Assert.Empty(reopened.ValidateDocument());
         }
         Assert.Equal(value, cell.Value);

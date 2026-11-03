@@ -37,7 +37,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordPdfExportOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             if (TryGetNativeStructuredBlockPropertyValue(document, sdtBlock, out string? propertyValue)) {
-                pdf.Paragraph(builder => builder.Text(propertyValue!));
+                pdf.Paragraph(builder => builder.AddText(propertyValue!));
                 return;
             }
 
@@ -307,7 +307,7 @@ namespace OfficeIMO.Word.Pdf {
             if (HasNativeHeaderSpecificWatermarks(section)) {
                 WordWatermark? defaultWatermark = section.ResolveDefaultHeader()?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
                 NativeAppliedWatermark defaultApplied = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, defaultWatermark, options, "default header watermark");
-                if (section.DifferentFirstPage) {
+                if (section.PageSetup.DifferentFirstPage) {
                     WordWatermark? firstWatermark = section.ResolveFirstHeader()?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
                     NativeAppliedWatermark firstApplied = ApplyNativeWatermark(page.FirstPageWatermark, page.FirstPageImageWatermark, firstWatermark, options, "first header watermark");
                     SuppressMissingFirstPageWatermark(page, defaultApplied, firstApplied);
@@ -389,7 +389,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdfWatermark.RotationAngle = watermark.Rotation.Value;
             }
 
-            global::OfficeIMO.OfficeColor? color = ParseNativeWatermarkColor(watermark.ColorHex);
+            global::OfficeIMO.OfficeColor? color = ParseNativeWatermarkColor(watermark.ColorValue);
             if (color.HasValue) {
                 pdfWatermark.Color = color.Value;
             }
@@ -456,7 +456,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool HasNativeHeaderSpecificWatermarks(WordSection section) {
-            if (!section.DifferentFirstPage && !section.DocumentOddEvenSettingEnabled) {
+            if (!section.PageSetup.DifferentFirstPage && !section.DocumentOddEvenSettingEnabled) {
                 return false;
             }
 

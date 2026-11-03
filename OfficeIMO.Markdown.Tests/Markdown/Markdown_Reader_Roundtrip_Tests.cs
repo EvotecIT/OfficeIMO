@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                     .Item("Tables from sequences")
                     .Item("Callouts and TOC")
                     .ItemTask("Works offline", true))
-                .Image("https://example.com/logo.png", alt: "Logo", title: "Example").Caption("Our logo")
+                .Image("https://example.com/logo.png", altText: "Logo", title: "Example").Caption("Our logo")
                 .Table(t => t.Headers("Col1", "Col2").Row("A", "1").Row("B", "2").Align(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Right))
                 .Callout("info", "Heads up", "Early access APIs may change.")
                 .Dl(d => d.Item("Term", "Definition"));

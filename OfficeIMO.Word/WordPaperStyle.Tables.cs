@@ -40,12 +40,12 @@ public sealed partial class WordPaperStyle {
                 // Explicit cell borders can otherwise override the table's border contract.
                 cell._tableCell.TableCellProperties?.GetFirstChild<TableCellBorders>()?.Remove();
                 bool header = hasHeader && row == 0;
-                if (header) cell.ShadingFillColorHex = Surface;
+                if (header) cell.ShadingFillValue = Surface;
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
                     paragraph.FontFamily = FontFamily;
                     paragraph.FontSize = header ? global::OfficeIMO.OfficeLength.Points(9) : TableFontSize;
                     paragraph.Bold = header;
-                    paragraph.ColorHex = header ? Muted : Ink;
+                    paragraph.RunColorValue = header ? Muted : Ink;
                     paragraph.LineSpacingBefore = TableParagraphSpacing;
                     paragraph.LineSpacingAfter = TableParagraphSpacing;
                     if (TableLineSpacing.HasValue) {

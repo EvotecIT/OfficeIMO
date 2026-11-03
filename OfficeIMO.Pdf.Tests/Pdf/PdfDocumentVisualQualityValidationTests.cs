@@ -137,30 +137,30 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ParagraphAndPanelBlocks_RejectInvalidAlignmentModelState() {
         var paragraphAlignException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Paragraph(p => p.Text("Invalid paragraph"), (OfficeAlignment)99));
+            PdfDocument.Create().Paragraph(p => p.AddText("Invalid paragraph"), (OfficeAlignment)99));
 
         Assert.Contains("Paragraph alignment must be Left, Center, Right, Justify, Start, or End.", paragraphAlignException.Message, StringComparison.Ordinal);
 
         byte[] justifiedParagraph = PdfDocument.Create()
-            .Paragraph(p => p.Text("Justified paragraph alignment remains supported for report text."), OfficeAlignment.Justify)
+            .Paragraph(p => p.AddText("Justified paragraph alignment remains supported for report text."), OfficeAlignment.Justify)
             .ToBytes();
 
         Assert.NotEmpty(justifiedParagraph);
 
         var panelParagraphAlignException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().PanelParagraph(p => p.Text("Invalid panel text"), new PdfPanelStyle(), (OfficeAlignment)99));
+            PdfDocument.Create().PanelParagraph(p => p.AddText("Invalid panel text"), new PdfPanelStyle(), (OfficeAlignment)99));
 
         Assert.Contains("Paragraph alignment must be Left, Center, Right, Justify, Start, or End.", panelParagraphAlignException.Message, StringComparison.Ordinal);
 
         byte[] justifiedPanelParagraph = PdfDocument.Create()
-            .PanelParagraph(p => p.Text("Justified panel text remains supported inside the panel box."), new PdfPanelStyle(), OfficeAlignment.Justify)
+            .PanelParagraph(p => p.AddText("Justified panel text remains supported inside the panel box."), new PdfPanelStyle(), OfficeAlignment.Justify)
             .ToBytes();
 
         Assert.NotEmpty(justifiedPanelParagraph);
 
         var invalidPanelBoxAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .PanelParagraph(p => p.Text("Invalid panel box"), new PdfPanelStyle {
+                .PanelParagraph(p => p.AddText("Invalid panel box"), new PdfPanelStyle {
                     MaxWidth = global::OfficeIMO.OfficeLength.Points(120),
                     Align = (OfficeAlignment)99
                 })
@@ -170,7 +170,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var panelBoxJustifyException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .PanelParagraph(p => p.Text("Unsupported panel box"), new PdfPanelStyle {
+                .PanelParagraph(p => p.AddText("Unsupported panel box"), new PdfPanelStyle {
                     MaxWidth = global::OfficeIMO.OfficeLength.Points(120),
                     Align = OfficeAlignment.Justify
                 })
@@ -183,28 +183,28 @@ public partial class PdfDocumentVisualQualityTests {
     public void MutableAlignmentProperties_RejectUnsupportedValuesOnAssignment() {
         var headerAlignException = Assert.Throws<ArgumentException>(() =>
             new PdfCreateOptions {
-                HeaderAlign = (OfficeAlignment)99
+                PageSetup = { Header = { Alignment = (OfficeAlignment)99 } }
             });
 
         Assert.Contains("PDF header alignment must be Left, Center, Right, Start, or End.", headerAlignException.Message, StringComparison.Ordinal);
 
         var headerJustifyException = Assert.Throws<ArgumentException>(() =>
             new PdfCreateOptions {
-                HeaderAlign = OfficeAlignment.Justify
+                PageSetup = { Header = { Alignment = OfficeAlignment.Justify } }
             });
 
         Assert.Contains("PDF header alignment must be Left, Center, Right, Start, or End.", headerJustifyException.Message, StringComparison.Ordinal);
 
         var footerAlignException = Assert.Throws<ArgumentException>(() =>
             new PdfCreateOptions {
-                FooterAlign = (OfficeAlignment)99
+                PageSetup = { Footer = { Alignment = (OfficeAlignment)99 } }
             });
 
         Assert.Contains("PDF footer alignment must be Left, Center, Right, Start, or End.", footerAlignException.Message, StringComparison.Ordinal);
 
         var footerJustifyException = Assert.Throws<ArgumentException>(() =>
             new PdfCreateOptions {
-                FooterAlign = OfficeAlignment.Justify
+                PageSetup = { Footer = { Alignment = OfficeAlignment.Justify } }
             });
 
         Assert.Contains("PDF footer alignment must be Left, Center, Right, Start, or End.", footerJustifyException.Message, StringComparison.Ordinal);
@@ -238,16 +238,16 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void LinkAnnotations_RejectInvalidUriModelStateBeforeRendering() {
         Assert.Throws<ArgumentNullException>(() =>
-            PdfDocument.Create().Paragraph(p => p.Link("OfficeIMO", null!)));
+            PdfDocument.Create().Paragraph(p => p.AddLink("OfficeIMO", null!)));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Paragraph(p => p.Link("OfficeIMO", "bad\u0001uri")));
+            PdfDocument.Create().Paragraph(p => p.AddLink("OfficeIMO", "bad\u0001uri")));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Paragraph(p => p.Link("", "https://evotec.xyz")));
+            PdfDocument.Create().Paragraph(p => p.AddLink("", "https://evotec.xyz")));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Paragraph(p => p.Link("OfficeIMO", "https://evotec.xyz", contents: " ")));
+            PdfDocument.Create().Paragraph(p => p.AddLink("OfficeIMO", "https://evotec.xyz", contents: " ")));
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().H1("Linked heading", linkUri: "bad\u0001uri"));
@@ -303,34 +303,6 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().Drawing(drawing, linkContents: "metadata without link"));
-
-        Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().TableWithLinks(
-                new[] { new[] { "Name" }, new[] { "OfficeIMO" } },
-                new Dictionary<(int Row, int Col), string> {
-                    [(1, 0)] = "bad\u0001uri"
-                }));
-
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create().TableWithLinks(
-                new[] { new[] { "Name" }, new[] { "OfficeIMO" } },
-                new Dictionary<(int Row, int Col), string> {
-                    [(-1, 0)] = "https://evotec.xyz"
-                }));
-
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create().TableWithLinks(
-                new[] { new[] { "Name" }, new[] { "OfficeIMO" } },
-                new Dictionary<(int Row, int Col), string> {
-                    [(2, 0)] = "https://evotec.xyz"
-                }));
-
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create().TableWithLinks(
-                new[] { new[] { "Name", "Url" }, new[] { "OfficeIMO" } },
-                new Dictionary<(int Row, int Col), string> {
-                    [(1, 1)] = "https://evotec.xyz"
-                }));
     }
 
 

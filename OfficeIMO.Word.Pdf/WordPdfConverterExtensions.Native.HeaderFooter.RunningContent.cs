@@ -21,8 +21,8 @@ public static partial class WordPdfConverterExtensions {
 
     private static IEnumerable<WordHeaderFooter> EnumerateNativeActiveRunningStories(WordSection section) =>
         new WordHeaderFooter?[] { section.ResolveDefaultHeader(), section.ResolveDefaultFooter(),
-            section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
-            section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+            section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+            section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
             section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null,
             section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null }
         .Where(story => story != null).Cast<WordHeaderFooter>();
@@ -31,11 +31,11 @@ public static partial class WordPdfConverterExtensions {
         EnumerateNativeActiveRunningStories(section).Any(NativeRunningStoryUsesSectionPageCount);
 
     private static bool UsesNativeRunningHeader(WordSection section, WordPdfExportOptions? options) => UsesNativeRunningStories(section, options, false,
-        section.ResolveDefaultHeader(), section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+        section.ResolveDefaultHeader(), section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
         section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null);
 
     private static bool UsesNativeRunningFooter(WordSection section, WordPdfExportOptions? options) => UsesNativeRunningStories(section, options, true,
-        section.ResolveDefaultFooter(), section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+        section.ResolveDefaultFooter(), section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
         section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
 
     private static bool UsesNativeRunningStories(WordSection section, WordPdfExportOptions? options, bool isFooter, params WordHeaderFooter?[] variants) {
@@ -97,7 +97,7 @@ public static partial class WordPdfConverterExtensions {
             // Retain the bounded simple-story export for obviously oversized
             // ordinary stories. Its expansion clamp preserves a usable body;
             // bounded running flow cannot create continuation pages for them.
-            double distance = (isFooter ? checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
+            double distance = (isFooter ? checked((uint)(section.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
             ordinaryStoriesSupported &= minimumHeight + distance < GetNativePageSize(section, options).Height.ToPoints();
         }
         return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
@@ -133,53 +133,53 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static bool HasNativeRunningStoryOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
-            ? options.FooterOffsetY.ToPoints() != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != global::OfficeIMO.OfficeAlignment.Center
-            : options.HeaderOffsetY.ToPoints() != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != global::OfficeIMO.OfficeAlignment.Center);
+            ? options.PageSetup.Footer.Offset.ToPoints() != 18D || options.PageSetup.Footer.HasExplicitStandardFont || options.PageSetup.Footer.FontFamily != null ||
+                options.PageSetup.Footer.FontSize.ToPoints() != 9D || options.PageSetup.Footer.Color.HasValue || options.PageSetup.Footer.Alignment != global::OfficeIMO.OfficeAlignment.Center
+            : options.PageSetup.Header.Offset.ToPoints() != 18D || options.PageSetup.Header.HasExplicitStandardFont || options.PageSetup.Header.FontFamily != null ||
+                options.PageSetup.Header.FontSize.ToPoints() != 9D || options.PageSetup.Header.Color.HasValue || options.PageSetup.Header.Alignment != global::OfficeIMO.OfficeAlignment.Center);
 
     private static void ConfigureNativeRunningHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section,
         WordPdfExportOptions? options, NativeFontMap fontMap,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults) {
         if (UsesNativeRunningHeader(section, options)) {
-            double distance = checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips())) / 20D;
+            double distance = checked((uint)(section.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())) / 20D;
             page.Header(header => {
                 if (section.ResolveDefaultHeader() != null)
                     header.Content(CreateNativeRunningStory(section.ResolveDefaultHeader(), section, options, fontMap, listMarkers, defaults, false), global::OfficeIMO.OfficeLength.Points(distance));
-                if (section.DifferentFirstPage && section.ResolveFirstHeader() != null)
+                if (section.PageSetup.DifferentFirstPage && section.ResolveFirstHeader() != null)
                     header.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstHeader(), section, options, fontMap, listMarkers, defaults, false), global::OfficeIMO.OfficeLength.Points(distance));
                 if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null)
                     header.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenHeader(), section, options, fontMap, listMarkers, defaults, false), global::OfficeIMO.OfficeLength.Points(distance));
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.ResolveDefaultHeader(),
-                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
                 section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null);
-            if (!new[] { section.ResolveDefaultHeader(), section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+            if (!new[] { section.ResolveDefaultHeader(), section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
                     section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: true);
         } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: false);
         if (UsesNativeRunningFooter(section, options)) {
-            double distance = checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) / 20D;
+            double distance = checked((uint)(section.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())) / 20D;
             page.Footer(footer => {
                 if (section.ResolveDefaultFooter() != null)
                     footer.Content(CreateNativeRunningStory(section.ResolveDefaultFooter(), section, options, fontMap, listMarkers, defaults, true), global::OfficeIMO.OfficeLength.Points(distance));
-                if (section.DifferentFirstPage && section.ResolveFirstFooter() != null)
+                if (section.PageSetup.DifferentFirstPage && section.ResolveFirstFooter() != null)
                     footer.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstFooter(), section, options, fontMap, listMarkers, defaults, true), global::OfficeIMO.OfficeLength.Points(distance));
                 if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
                     footer.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenFooter(), section, options, fontMap, listMarkers, defaults, true), global::OfficeIMO.OfficeLength.Points(distance));
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.ResolveDefaultFooter(),
-                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
             RetainNativeTextFreeFooterProjection(page.Options, section.ResolveDefaultFooter(), listMarkers, fontMap,
                 PdfCore.PdfRunningContentVariant.Default);
-            if (section.DifferentFirstPage)
+            if (section.PageSetup.DifferentFirstPage)
                 RetainNativeTextFreeFooterProjection(page.Options, section.ResolveFirstFooter(), listMarkers, fontMap,
                     PdfCore.PdfRunningContentVariant.FirstPage);
             if (section.DocumentOddEvenSettingEnabled)
                 RetainNativeTextFreeFooterProjection(page.Options, section.ResolveEvenFooter(), listMarkers, fontMap,
                     PdfCore.PdfRunningContentVariant.EvenPages);
-            if (!new[] { section.ResolveDefaultFooter(), section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+            if (!new[] { section.ResolveDefaultFooter(), section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                     section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
         } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: true);
@@ -246,7 +246,7 @@ public static partial class WordPdfConverterExtensions {
                     index + 1 < elements.Count ? elements[index + 1] : null);
             }
             if (addPageNumber)
-                content.Paragraph(paragraph => paragraph.Text(FormatNativeRunningPageTokens(
+                content.AddParagraph(paragraph => paragraph.AddText(FormatNativeRunningPageTokens(
                     GetNativePageNumberFormat(options), context, null)), global::OfficeIMO.OfficeAlignment.Right);
         };
     }

@@ -128,8 +128,8 @@ public sealed class PdfEditorCommandTests {
     public void AreaRedaction_AllowsIdenticalTextOutsideTheReviewedArea() {
         const string repeated = "Confidential";
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
-            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(repeated)))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(repeated)))));
         }).ToBytes();
         PdfPageInteractionRegion[] regions = PdfDocument.Load(new System.IO.MemoryStream(source)).Render.Interactions(1).TextRegions
             .Where(region => !string.IsNullOrWhiteSpace(region.Text))
@@ -193,7 +193,7 @@ public sealed class PdfEditorCommandTests {
     private static byte[] CreateSource(string text = "Existing content") =>
         PdfDocument.Create(compose => compose.Page(page => page
             .Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
-            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text),
+            .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text),
                 style: new PdfParagraphStyle { LineHeight = 2D }))))).ToBytes();
 
     private static PdfEditorGesture CreateGesture() => new(

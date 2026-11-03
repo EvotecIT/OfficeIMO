@@ -128,6 +128,8 @@ public sealed class PdfGraphicsGradientAlphaTests {
     }
 
     private static OfficeRasterImage Render(byte[] pdf) => OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
-    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(80D), PageHeight = global::OfficeIMO.OfficeLength.Points(160D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D) };
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(160D)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+    } };
 }

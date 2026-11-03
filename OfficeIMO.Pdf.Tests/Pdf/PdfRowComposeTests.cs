@@ -135,8 +135,8 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Content(content =>
                         content.Row(row => {
                             row.Style(style);
-                            row.PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("Left")));
-                            row.PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("Right")));
+                            row.PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("Left")));
+                            row.PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("Right")));
                         }))));
 
             style.Gap = global::OfficeIMO.OfficeLength.Points(4);
@@ -167,8 +167,8 @@ namespace OfficeIMO.Tests.Pdf {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row => {
-                            row.PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("Left")));
-                            row.PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("Right")));
+                            row.PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("Left")));
+                            row.PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("Right")));
                         }))));
 
             var defaultPage = Assert.IsType<PageBlock>(Assert.Single(defaultDoc.Blocks));
@@ -182,8 +182,8 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Content(content =>
                         content.Row(row => {
                             row.Gap(global::OfficeIMO.OfficeLength.Points(0));
-                            row.PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("Left")));
-                            row.PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("Right")));
+                            row.PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("Left")));
+                            row.PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("Right")));
                         }))));
 
             var optOutPage = Assert.IsType<PageBlock>(Assert.Single(optOutDoc.Blocks));
@@ -228,12 +228,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void RowColumnSeparator_RendersBetweenColumns() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
                 .Compose(compose =>
@@ -242,8 +240,8 @@ namespace OfficeIMO.Tests.Pdf {
                             content.Row(row => row
                                 .Gap(global::OfficeIMO.OfficeLength.Points(20))
                                 .ColumnSeparator(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56), global::OfficeIMO.OfficeLength.Points(1.25))
-                                .PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("LeftSeparatorMarker")))
-                                .PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("RightSeparatorMarker")))))))
+                                .PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("LeftSeparatorMarker")))
+                                .PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("RightSeparatorMarker")))))))
                 .ToBytes();
 
             string rawPdf = PdfTestContentText.ReadDecoded(bytes);
@@ -256,19 +254,17 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void RowGap_RejectsWhenGapsExceedContentWidthDuringRender() {
             var doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(120),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             }).Compose(compose =>
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row => {
                             row.Gap(global::OfficeIMO.OfficeLength.Points(90));
-                            row.PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("Left")));
-                            row.PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("Right")));
+                            row.PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("Left")));
+                            row.PercentColumn(50, column => column.AddParagraph(paragraph => paragraph.AddText("Right")));
                         }))));
 
             var exception = Assert.Throws<ArgumentException>(() => doc.ToBytes());
@@ -285,7 +281,7 @@ namespace OfficeIMO.Tests.Pdf {
                         content.Row(row => {
                             row.PercentColumn(40, column => column
                                 .H1("Left")
-                                .Paragraph(paragraph => paragraph.Text("Body")));
+                                .AddParagraph(paragraph => paragraph.AddText("Body")));
                             row.PercentColumn(60, column => column.H2("Right"));
                         }))));
 
@@ -303,19 +299,17 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void MixedColumnSizing_RendersFixedAutoAndRelativeColumns() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(400),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
                 .Compose(document => document.Content(content => content.Row(row => row
                     .Gap(global::OfficeIMO.OfficeLength.Points(10))
-                    .FixedColumn(global::OfficeIMO.OfficeLength.Points(80), column => column.Text("FixedMarker"))
-                    .AutoColumn(column => column.Text("ID"), maximum: global::OfficeIMO.OfficeLength.Points(60))
-                    .RelativeColumn(column => column.Text("RelativeMarker")))))
+                    .FixedColumn(global::OfficeIMO.OfficeLength.Points(80), column => column.AddParagraph("FixedMarker"))
+                    .AutoColumn(column => column.AddParagraph("ID"), maximum: global::OfficeIMO.OfficeLength.Points(60))
+                    .RelativeColumn(column => column.AddParagraph("RelativeMarker")))))
                 .ToBytes();
 
             using var parsed = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -333,10 +327,10 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void MixedColumnSizing_PreservesEverySizingIntentInTheModel() {
             var doc = PdfDocument.Create(document => document.Content(content => content.Row(row => row
-                .FixedColumn(global::OfficeIMO.OfficeLength.Points(72), column => column.Text("Fixed"))
-                .AutoColumn(column => column.Text("Auto"), minimum: global::OfficeIMO.OfficeLength.Points(24), maximum: global::OfficeIMO.OfficeLength.Points(96))
-                .RelativeColumn(column => column.Text("Primary"), weight: 3)
-                .PercentColumn(20, column => column.Text("Percent")))));
+                .FixedColumn(global::OfficeIMO.OfficeLength.Points(72), column => column.AddParagraph("Fixed"))
+                .AutoColumn(column => column.AddParagraph("Auto"), minimum: global::OfficeIMO.OfficeLength.Points(24), maximum: global::OfficeIMO.OfficeLength.Points(96))
+                .RelativeColumn(column => column.AddParagraph("Primary"), weight: 3)
+                .PercentColumn(20, column => column.AddParagraph("Percent")))));
 
             var row = Assert.IsType<RowBlock>(Assert.Single(doc.Blocks));
 
@@ -380,16 +374,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void CommittedColumnWidths_RejectOverflowDuringLayout() {
             PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(200),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             }).Compose(document => document.Content(content => content.Row(row => row
                 .Gap(global::OfficeIMO.OfficeLength.Points(10))
-                .FixedColumn(global::OfficeIMO.OfficeLength.Points(100), column => column.Text("Left"))
-                .FixedColumn(global::OfficeIMO.OfficeLength.Points(80), column => column.Text("Right")))));
+                .FixedColumn(global::OfficeIMO.OfficeLength.Points(100), column => column.AddParagraph("Left"))
+                .FixedColumn(global::OfficeIMO.OfficeLength.Points(80), column => column.AddParagraph("Right")))));
 
             var exception = Assert.Throws<ArgumentException>(() => doc.ToBytes());
             Assert.Contains("exceed the available row width", exception.Message, StringComparison.Ordinal);
@@ -398,16 +390,14 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void RelativeColumnRejectsAZeroWidthRemainder() {
             PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(200),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             }).Compose(document => document.Content(content => content.Row(row => row
                 .Gap(global::OfficeIMO.OfficeLength.Points(0))
-                .FixedColumn(global::OfficeIMO.OfficeLength.Points(160), column => column.Text("Fixed"))
-                .RelativeColumn(column => column.Text("Relative")))));
+                .FixedColumn(global::OfficeIMO.OfficeLength.Points(160), column => column.AddParagraph("Fixed"))
+                .RelativeColumn(column => column.AddParagraph("Relative")))));
 
             var exception = Assert.Throws<ArgumentException>(() => doc.ToBytes());
             Assert.Contains("require positive width", exception.Message, StringComparison.Ordinal);
@@ -416,20 +406,18 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void AutomaticColumnMeasuresPanelContentAndPadding() {
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(400),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
                 .Compose(document => document.Content(content => content.Row(row => row
                     .Gap(global::OfficeIMO.OfficeLength.Points(10))
-                    .AutoColumn(column => column.PanelParagraph(
-                        paragraph => paragraph.Text("LongPanelMarker"),
+                    .AutoColumn(column => column.AddPanelParagraph(
+                        paragraph => paragraph.AddText("LongPanelMarker"),
                         new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(18), PaddingY = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }))
-                    .RelativeColumn(column => column.Text("RelativeMarker")))))
+                    .RelativeColumn(column => column.AddParagraph("RelativeMarker")))))
                 .ToBytes();
 
             using var parsed = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -444,7 +432,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void RowColumn_UsesUniversalContentReceiverForAnnotations() {
             byte[] bytes = PdfDocument.Create(document => document.Content(content => content.Row(row => row
                     .RelativeColumn(column => column
-                        .Text("Column content")
+                        .AddParagraph("Column content")
                         .TextAnnotation("Column note")))))
                 .ToBytes();
 
@@ -465,9 +453,9 @@ namespace OfficeIMO.Tests.Pdf {
                             row.PercentColumn(100, column => column
                                 .Item(item => item
                                     .H2("Grouped heading")
-                                    .Paragraph(paragraph => paragraph.Text("Grouped paragraph")))
+                                    .AddParagraph(paragraph => paragraph.AddText("Grouped paragraph")))
                                 .Spacer(global::OfficeIMO.OfficeLength.Points(6))
-                                .Item(item => item.Bullets(new[] { "Grouped bullet" })))))));
+                                .Item(item => item.AddList(new[] { "Grouped bullet" })))))));
 
             var page = Assert.IsType<PageBlock>(Assert.Single(doc.Blocks));
             var row = Assert.IsType<RowBlock>(Assert.Single(page.Blocks));
@@ -492,7 +480,7 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfDocument.Create().Compose(compose =>
                     compose.Page(page =>
                         page.Content(content =>
-                            content.Row(row => row.PercentColumn(100, column => column.Paragraph(null!)))))));
+                            content.Row(row => row.PercentColumn(100, column => column.AddParagraph((Action<PdfParagraph>)null!)))))));
         }
 
         [Fact]
@@ -508,8 +496,8 @@ namespace OfficeIMO.Tests.Pdf {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row => {
-                            row.PercentColumn(50, column => column.Bullets(new[] { "Stable bullet", "Wrapped bullet" }, style: style));
-                            row.PercentColumn(50, column => column.Numbered(new[] { "First step", "Second step" }, startNumber: 3, style: style));
+                            row.PercentColumn(50, column => column.AddList(new[] { "Stable bullet", "Wrapped bullet" }, style: style));
+                            row.PercentColumn(50, column => column.AddNumberedList(new[] { "First step", "Second step" }, startNumber: 3, style: style));
                         }))));
 
             style.FontSize = global::OfficeIMO.OfficeLength.Points(20);
@@ -535,8 +523,8 @@ namespace OfficeIMO.Tests.Pdf {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.PanelParagraph(
-                                paragraph => paragraph.Bold("Callout").Text(": stable panel in a column"),
+                            row.PercentColumn(100, column => column.AddPanelParagraph(
+                                paragraph => { paragraph.AddText("Callout").SetBold(); paragraph.AddText(": stable panel in a column"); },
                                 new PdfPanelStyle {
                                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
@@ -564,8 +552,8 @@ namespace OfficeIMO.Tests.Pdf {
                         content.Row(row =>
                             row.PercentColumn(100, column => column.Panel(panel => panel
                                 .H3("Column Panel")
-                                .Paragraph(paragraph => paragraph.Text("Column-local composed panels reuse the same core primitive."))
-                                .Bullets(new[] { "Stable in row flow" })))))));
+                                .AddParagraph(paragraph => paragraph.AddText("Column-local composed panels reuse the same core primitive."))
+                                .AddList(new[] { "Stable in row flow" })))))));
 
             var page = Assert.IsType<PageBlock>(Assert.Single(doc.Blocks));
             var row = Assert.IsType<RowBlock>(Assert.Single(page.Blocks));
@@ -586,7 +574,7 @@ namespace OfficeIMO.Tests.Pdf {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(new[] {
+                            row.PercentColumn(100, column => column.AddTable(new[] {
                                 new[] { "Metric", "Value" },
                                 new[] { "Score", "98" }
                             }, style: style))))));
@@ -617,7 +605,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void ColumnRejectsDefaultWidthValue() {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfDocument.Create(document => document.Content(content => content.Row(row =>
-                    row.Column(default, column => column.Text("Invalid"))))));
+                    row.Column(default, column => column.AddParagraph("Invalid"))))));
         }
 
         [Fact]
@@ -625,7 +613,7 @@ namespace OfficeIMO.Tests.Pdf {
             var document = PdfDocument.Create(document => document.Content(content => content.Row(row =>
                 row.RelativeColumn(column => column.Element(element => element
                     .Padding(global::OfficeIMO.OfficeLength.Points(4))
-                    .Content(container => container.Text("Nested")))))));
+                    .Content(container => container.AddParagraph("Nested")))))));
             Assert.Contains("Nested", PdfReadDocument.Open(document.ToBytes()).ExtractText());
         }
     }

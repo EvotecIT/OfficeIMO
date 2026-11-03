@@ -30,8 +30,8 @@ public sealed class PdfParagraphImageAnchorsTests {
     [InlineData(true)]
     public void NonWrappingImageRetainsMarginAlignmentAndParagraphOffset(bool behind) {
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
-        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
         word.AddParagraph("Earlier text");
         var anchor = word.AddParagraph("Anchor text");
         using var source = new MemoryStream(OfficeRasterImageEncoder.Encode(

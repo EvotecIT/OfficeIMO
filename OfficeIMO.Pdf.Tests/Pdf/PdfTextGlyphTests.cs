@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfTextGlyphTests {
     [Fact]
     public void ReaderExposesImmutableGlyphCodesAndSpacingOrigins() {
-        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Glyph"))));
+        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(c => c.AddParagraph(p => p.AddText("Glyph"))));
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(document.ToBytes()).Pages[0].GetTextSpans());
         Assert.True(span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs));
         Assert.Equal(span.Text, string.Concat(glyphs.Select(glyph => glyph.Text)));

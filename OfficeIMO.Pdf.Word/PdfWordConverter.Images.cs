@@ -216,14 +216,14 @@ namespace OfficeIMO.Pdf.Word {
                                 ["ImagePaintOrder"] = placement.PaintOrder.ToString(CultureInfo.InvariantCulture)
                             });
                     }
-                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, Description = description });
+                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, AltText = description });
                     embeddedImage.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     embeddedImage.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     embeddedImage.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(PdfPointsToEmu(visual.Left));
                     embeddedImage.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(PdfPointsToEmu(visual.Top));
                     embeddedImage.ZOrder = imageContext.GetZOrder(placement);
                 } else {
-                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Description = description });
+                    embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { AltText = description });
                     if (placement != null && page.RotationDegrees != 0) {
                         embeddedImage.Rotation = page.RotationDegrees;
                     }
@@ -288,7 +288,7 @@ namespace OfficeIMO.Pdf.Word {
             string description = string.Join(" ", figure.Labels.Select(static label => label.Text.Trim()).Where(static text => text.Length > 0));
             using var stream = new MemoryStream(png);
             paragraph.AddImage(stream, "vector-figure-p" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ".png",
-                OfficeLength.Points(figure.Width), OfficeLength.Points(figure.Height), options: new WordImageOptions { Description = description });
+                OfficeLength.Points(figure.Width), OfficeLength.Points(figure.Height), options: new WordImageOptions { AltText = description });
             AddWarning(options, "pdf-vector-figure-rasterized", location,
                 "A vector drawing (such as a chart) was placed as a picture of its page region; its shapes and labels are not editable.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation,

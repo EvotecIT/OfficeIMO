@@ -124,20 +124,20 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Replaces text across all slides.
+        ///     Replaces literal text on every slide.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue, bool includeTables = true, bool includeNotes = false) {
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings and scope. <c>null</c> matches ordinally, ignoring case, inside or across words, in textboxes and tables but not notes.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>Matching follows <see cref="PowerPointSlide.ReplaceAll"/>: each textbox or table match lies within one text run.</remarks>
+        public int ReplaceAll(string text, string replacement, PowerPointTextSearchOptions? options = null) {
             ThrowIfDisposed();
-            if (oldValue == null) {
-                throw new ArgumentNullException(nameof(oldValue));
-            }
-            if (oldValue.Length == 0) {
-                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
-            }
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
 
             int count = 0;
             foreach (PowerPointSlide slide in Slides) {
-                count += slide.ReplaceText(oldValue, newValue, includeTables, includeNotes);
+                count += slide.ReplaceAll(text, replacement, options);
             }
             return count;
         }

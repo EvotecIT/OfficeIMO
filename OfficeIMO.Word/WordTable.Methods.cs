@@ -182,7 +182,7 @@ namespace OfficeIMO.Word {
                     cell.Borders.TopStyle = WordBorderStyle.Single;
                     cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.5);
                     // Let Word/consumers choose the default color; do not emit "auto" as an explicit hex.
-                    cell.Borders.TopColorHex = null;
+                    cell.Borders.TopColorValue = null;
                 }
             }
         }

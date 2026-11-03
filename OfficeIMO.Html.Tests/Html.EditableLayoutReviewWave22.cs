@@ -117,8 +117,8 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             .Where(imageItem => imageItem != null)
             .Cast<WordImage>()
             .ToList();
-        WordImage affected = Assert.Single(images, imageItem => imageItem.Description == "Affected");
-        WordImage clean = Assert.Single(images, imageItem => imageItem.Description == "Clean");
+        WordImage affected = Assert.Single(images, imageItem => imageItem.AltText == "Affected");
+        WordImage clean = Assert.Single(images, imageItem => imageItem.AltText == "Clean");
 
         Assert.Equal(60, affected.Transparency);
         Assert.True((affected.CropLeftRatio is double cropRatio2 ? (int?)System.Math.Round(cropRatio2 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue || (affected.CropRightRatio is double cropRatio4 ? (int?)System.Math.Round(cropRatio4 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue

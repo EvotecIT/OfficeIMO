@@ -110,7 +110,7 @@ public sealed class SetOfficeWordTextCommand : OfficeCmdlet
         if (BoundSwitch(nameof(Bold)) is bool bold) text.Bold = bold;
         if (BoundSwitch(nameof(Italic)) is bool italic) text.Italic = italic;
         if (Underline.HasValue) text.Underline = Underline.Value;
-        if (IsBound(nameof(Color))) { if (Color.HasValue) text.Color = Color; else text.ColorHex = string.Empty; }
+        if (IsBound(nameof(Color))) { if (Color.HasValue) text.Color = Color; else text.Color = null; }
         if (IsBound(nameof(Size))) text.FontSize = Size;
         if (IsBound(nameof(Font))) text.FontFamily = Font;
         if (Highlight.HasValue) text.Highlight = Highlight.Value;

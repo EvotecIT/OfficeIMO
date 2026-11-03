@@ -47,8 +47,10 @@ public sealed class PdfRunningPaintRecoveryTests {
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 2;
         shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 30, 20);
         shape.Transform = OfficeTransform.Translate(100, 0);
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(100),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(10), MarginRight = global::OfficeIMO.OfficeLength.Points(10), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20) })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(10), Right = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        } })
             .Compose(c => c.Page(p => p.Content(b => b.Shape(shape, linkUri: "https://example.com/shape")))).ToBytes();
         Match match = Regex.Match(Encoding.ASCII.GetString(bytes), @"/Rect\s*\[([^\]]+)\]");
         Assert.True(match.Success);
@@ -101,8 +103,10 @@ public sealed class PdfRunningPaintRecoveryTests {
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 2;
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 30, 20);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false,
-            PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(50), MarginBottom = global::OfficeIMO.OfficeLength.Points(30) }).Compose(c => c.Page(p => p.Content(b =>
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(50), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            } }).Compose(c => c.Page(p => p.Content(b =>
                 b.Shape(shape, linkUri: "https://example.com/shape")))).ToBytes();
         Match match = Regex.Match(Encoding.ASCII.GetString(bytes), @"/Rect\s*\[([^\]]+)\]");
         Assert.True(match.Success);
@@ -130,8 +134,11 @@ public sealed class PdfRunningPaintRecoveryTests {
     }
 
     private static byte[] Running(OfficeShape shape, PdfConversionReport report) =>
-        PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(100),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(10), MarginRight = global::OfficeIMO.OfficeLength.Points(10), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(0) }
+        PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(10), Right = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) },
+            Header = { Offset = global::OfficeIMO.OfficeLength.Points(0) }
+        } }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")).Compose(c => c.Page(p => {
                 p.Header(b => b.Shape(shape)); p.Content(b => b.Spacer(global::OfficeIMO.OfficeLength.Points(10)));
             })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

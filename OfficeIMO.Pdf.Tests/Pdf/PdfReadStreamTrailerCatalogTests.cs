@@ -64,7 +64,7 @@ public partial class PdfReadStreamTests {
     public void Open_PreservesActiveTrailerReferencePairsWhenTrailingDataContainsReferences() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Active trailer metadata")
-            .Paragraph(paragraph => paragraph.Text("Active trailer body"))
+            .Paragraph(paragraph => paragraph.AddText("Active trailer body"))
             .ToBytes();
         PdfDocumentSecurityInfo expected = PdfSyntax.ReadDocumentSecurityInfo(source);
         Assert.NotNull(expected.RootObjectNumber);

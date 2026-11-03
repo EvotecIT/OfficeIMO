@@ -60,7 +60,7 @@ public partial class Word {
         }
         ConfigurePartialColumnParagraph(paragraph);
         paragraph.KeepLinesTogetherOverride = true;
-        if (decoration == "shading") paragraph.ShadingFillColorHex = "00FFFF";
+        if (decoration == "shading") paragraph.ShadingFillColor = OfficeColor.Parse("00FFFF");
         if (decoration == "border") {
             paragraph.Borders.TopStyle = paragraph.Borders.BottomStyle =
                 paragraph.Borders.LeftStyle = paragraph.Borders.RightStyle = WordBorderStyle.Single;
@@ -171,7 +171,7 @@ public partial class Word {
         ConfigurePartialColumnParagraph(paragraph);
         paragraph.KeepLinesTogetherOverride = keepTogether;
         paragraph.AvoidWidowAndOrphanOverride = widowControl;
-        if (decoration == "shading") paragraph.ShadingFillColorHex = "00FFFF";
+        if (decoration == "shading") paragraph.ShadingFillColor = OfficeColor.Parse("00FFFF");
         if (decoration == "border") {
             paragraph.Borders.TopStyle = paragraph.Borders.BottomStyle =
                 paragraph.Borders.LeftStyle = paragraph.Borders.RightStyle = WordBorderStyle.Single;

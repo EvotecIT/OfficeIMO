@@ -38,7 +38,7 @@ public partial class Word {
     private static PdfCore.PdfDocumentReadResult CreateLogicalDocumentWithAllSemanticFamilies() {
         byte[] source = PdfCore.PdfDocument.Create()
             .H1("Selective heading")
-            .Paragraph(paragraph => paragraph.Text("Selective paragraph"))
+            .Paragraph(paragraph => paragraph.AddText("Selective paragraph"))
             .Bullets(new[] { "Selective list item" })
             .Table(new[] {
                 new[] { "Item", "Amount" },

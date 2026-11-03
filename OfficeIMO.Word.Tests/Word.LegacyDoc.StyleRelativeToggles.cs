@@ -80,9 +80,8 @@ public partial class Word {
             WordParagraph body = document.AddParagraph("BodyToggleMarker");
             Seed(body);
             Seed(document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].AddParagraph("TableToggleMarker", removeExistingParagraphs: true));
-            document.AddHeadersAndFooters();
-            Seed(document.Sections[0].Header.Default!.AddParagraph("HeaderToggleMarker"));
-            Seed(document.Sections[0].Footer.Default!.AddParagraph("FooterToggleMarker"));
+            Seed(document.Sections[0].PageSetup.Header.AddParagraph("HeaderToggleMarker"));
+            Seed(document.Sections[0].PageSetup.Footer.AddParagraph("FooterToggleMarker"));
             WordParagraph footnote = body.AddFootNote("FootnoteToggleMarker").Paragraph.FootNote!.Paragraphs![1];
             Seed(footnote);
             Seed(footnote.AddParagraph("LaterFootnoteToggleMarker"));
@@ -111,8 +110,8 @@ public partial class Word {
         WordSection section = loaded.Sections[0];
         WordParagraph[] markers = loaded.Paragraphs
             .Concat(loaded.Tables.SelectMany(table => table.Rows).SelectMany(row => row.Cells).SelectMany(cell => cell.Paragraphs))
-            .Concat(section.Header.Default!.Paragraphs)
-            .Concat(section.Footer.Default!.Paragraphs)
+            .Concat(section.PageSetup.Header.Paragraphs)
+            .Concat(section.PageSetup.Footer.Paragraphs)
             .Concat(loaded.FootNotes.SelectMany(note => note.Paragraphs!))
             .Concat(loaded.EndNotes.SelectMany(note => note.Paragraphs!))
             .Concat(loaded.Comments.SelectMany(comment => comment.Paragraphs))

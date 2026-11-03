@@ -8,7 +8,7 @@ public sealed class PdfSecurityAllSeverityBatch19Tests {
     public void AnnotationUpdateRejectsNullInkPathEntryAtPublicBoundary() {
         byte[] pdf = PdfDocument.Create()
             .TextAnnotation("note")
-            .Paragraph(paragraph => paragraph.Text("source"))
+            .Paragraph(paragraph => paragraph.AddText("source"))
             .ToBytes();
         int objectNumber = Assert.Single(
             PdfInspector.Inspect(pdf).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
@@ -26,7 +26,7 @@ public sealed class PdfSecurityAllSeverityBatch19Tests {
     [Fact]
     public void BookmarkEditorRejectsNonFiniteDestinationCoordinates() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("one page"))
+            .Paragraph(paragraph => paragraph.AddText("one page"))
             .ToBytes();
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>

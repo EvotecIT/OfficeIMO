@@ -45,17 +45,15 @@ public class PdfEngineRoadmapFoundationTests {
     public void ContextComponent_ReplaysThroughExistingDeferredPaginationPath() {
         var component = new PageAwareComponent();
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(200),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(200),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             CompressContentStreams = false
         });
 
         byte[] bytes = document
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .Spacer(100)
             .Component(component, new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) })
             .ToBytes();
@@ -67,7 +65,7 @@ public class PdfEngineRoadmapFoundationTests {
     [Fact]
     public void MutationPortfolio_UsesOnePreflightAcrossInteractivePlans() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Mutation portfolio"))
+            .Paragraph(paragraph => paragraph.AddText("Mutation portfolio"))
             .TextField("customer", value: "Ada")
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(bytes));
@@ -109,7 +107,7 @@ public class PdfEngineRoadmapFoundationTests {
     [Fact]
     public void RenderCompatibility_AssessesSameManifestUsedByPageExport() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Producer compatibility"))
+            .Paragraph(paragraph => paragraph.AddText("Producer compatibility"))
             .ToBytes();
 
         PdfRenderCompatibilityReport report = PdfDocument.Load(new System.IO.MemoryStream(bytes)).AssessRenderCompatibility();
@@ -130,7 +128,7 @@ public class PdfEngineRoadmapFoundationTests {
         using var output = new MemoryStream();
 
         PdfSaveResult result = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Bounded serialization evidence"))
+            .Paragraph(paragraph => paragraph.AddText("Bounded serialization evidence"))
             .SaveWithEvidence(output);
 
         PdfSerializationReport report = Assert.IsType<PdfSerializationReport>(result.Serialization);
@@ -430,7 +428,7 @@ public class PdfEngineRoadmapFoundationTests {
 
         public void Compose(PdfContentBuilder content, PdfFlowContext context) {
             Invocations++;
-            content.Paragraph(paragraph => paragraph.Text("Context page " + context.PageNumber));
+            content.AddParagraph(paragraph => paragraph.AddText("Context page " + context.PageNumber));
         }
     }
 }

@@ -125,7 +125,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     italic: faceRun.Italic,
                     strike: visual.Font.IsStrikethrough,
                     fontSize: global::OfficeIMO.OfficeLength.Points(visual.Font.Size * PointsPerCssPixel),
-                    font: MapFont(family, faceRun.Text, requestedStyle, webFonts),
+                    standardFont: MapFont(family, faceRun.Text, requestedStyle, webFonts),
                     linkUri: link,
                     linkContents: link == null ? null : runText,
                     linkDestinationName: linkDestination,

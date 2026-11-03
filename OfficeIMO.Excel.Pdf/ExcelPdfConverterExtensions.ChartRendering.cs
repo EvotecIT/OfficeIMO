@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel.Pdf {
             item.Drawing(rendering.Drawing, global::OfficeIMO.OfficeAlignment.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(2D), spacingAfter: global::OfficeIMO.OfficeLength.Points(6D));
             // The shared chart legend renders point fill, no-fill, hatch, and outline. A table cell
             // can only reproduce a solid fill, so keep the data table uncolored for styled radial charts.
-            item.Table(CreateChartLegendRows(snapshot), global::OfficeIMO.OfficeAlignment.Left,
+            item.AddTable(CreateChartLegendRows(snapshot), global::OfficeIMO.OfficeAlignment.Left,
                 CreateChartLegendStyle(useStyledRadialLegend ? 0 : GetChartLegendColorCount(snapshot), options.ChartStyle));
         }
 

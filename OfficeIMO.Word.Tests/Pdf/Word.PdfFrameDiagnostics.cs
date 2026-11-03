@@ -186,8 +186,8 @@ public partial class Word {
         switch (story) {
             case "body": return document.AddParagraph();
             case "table": return document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
-            case "header": return document.HeaderDefaultOrCreate.AddParagraph();
-            case "footer": return document.FooterDefaultOrCreate.AddParagraph();
+            case "header": return document.PageSetup.Header.AddParagraph();
+            case "footer": return document.PageSetup.Footer.AddParagraph();
             default:
                 WordParagraph body = document.AddParagraph("REFERENCE");
                 bool endnote = story == "endnote";

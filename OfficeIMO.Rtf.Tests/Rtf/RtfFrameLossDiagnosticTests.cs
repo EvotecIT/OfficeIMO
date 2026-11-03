@@ -74,11 +74,11 @@ public class RtfFrameLossDiagnosticTests {
         using WordDocument word = bridge.Value;
         if (story is "header" or "footer") {
             WordHeaderFooter runningStory = story == "header"
-                ? Assert.IsType<WordHeader>(word.Header?.Default)
-                : Assert.IsType<WordFooter>(word.Footer?.Default);
+                ? Assert.IsType<WordHeader>(word.PageSetup.GetHeader(WordHeaderFooterType.Default))
+                : Assert.IsType<WordFooter>(word.PageSetup.GetFooter(WordHeaderFooterType.Default));
             Assert.Contains("FRAMEDMARKER", string.Concat(runningStory.Paragraphs.Select(item => item.Text)), StringComparison.Ordinal);
             var section = Assert.Single(word.Sections);
-            Assert.False(section.DifferentFirstPage);
+            Assert.False(section.PageSetup.DifferentFirstPage);
             string relationshipId = story == "header"
                 ? Assert.Single(section._sectionProperties.Elements<W.HeaderReference>(),
                     reference => reference.Type?.Value == W.HeaderFooterValues.Default).Id!.Value!

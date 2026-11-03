@@ -8,8 +8,11 @@ public class OfficeTableOptions {
     /// <summary>Includes a first row containing the selected member names. Defaults to true.</summary>
     public bool IncludeHeaders { get; set; } = true;
 
-    /// <summary>Optional native table name or accessible title.</summary>
+    /// <summary>Optional native table name or identity, such as an Excel table name, a PowerPoint graphic-frame name or a Word table title. It is not rendered as visible text.</summary>
     public string? Name { get; set; }
+
+    /// <summary>Optional visible caption text shown with the table. Formats that have no visible table caption reject a non-null value.</summary>
+    public string? Caption { get; set; }
 
     /// <summary>Optional member names to include, matched without regard to case.</summary>
     public HashSet<string> Include { get; } = new(StringComparer.OrdinalIgnoreCase);

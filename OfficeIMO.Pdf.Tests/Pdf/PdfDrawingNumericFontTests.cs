@@ -15,7 +15,10 @@ public sealed class PdfDrawingNumericFontTests {
         byte[] regular = FontWithAdvance(500), medium = FontWithAdvance(1000);
         var fonts = new OfficeFontFaceCollection().Add("Scoped", regular, new OfficeFontFaceDescriptor(400))
             .Add("Scoped", medium, new OfficeFontFaceDescriptor(500));
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(100), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0) };
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+        } };
         options.UseRenderingProfile(new OfficeRenderingProfile("numeric", fonts));
         var drawing = new OfficeDrawing(200, 100);
         var font = new OfficeFontInfo("Scoped", 20, new OfficeFontFaceDescriptor(500));

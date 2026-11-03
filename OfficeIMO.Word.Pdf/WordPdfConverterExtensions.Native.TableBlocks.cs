@@ -102,7 +102,7 @@ namespace OfficeIMO.Word.Pdf {
                     });
 
                     global::OfficeIMO.OfficeColor? fill =
-                        ParseNativeColor(cell.ShadingFillColorHex) ??
+                        ParseNativeColor(cell.ShadingFillValue) ??
                         cellStyleDefaults.CellFill;
                     if (fill.HasValue) {
                         cellFills[(rowIndex, logicalColumnIndex)] = fill.Value;

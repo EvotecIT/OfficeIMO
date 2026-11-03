@@ -38,7 +38,7 @@ public partial class Word {
             for (int column = 0; column < 2; column++) {
                 var cell = table.Rows[row].Cells[column];
                 cell.Paragraphs[0].Text = $"gyp{row}{column}";
-                if (row == 1) cell.ShadingFillColorHex = "FFE6A0";
+                if (row == 1) cell.ShadingFillColor = OfficeColor.Parse("FFE6A0");
             }
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
@@ -97,7 +97,7 @@ public partial class Word {
         var cell = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Cell border pattern";
         cell.Borders.TopStyle = borderStyle;
-        cell.Borders.TopColorHex = "FF0000";
+        cell.Borders.TopColor = OfficeColor.Parse("FF0000");
         cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1.5);
         string raw = PdfOperatorSearchText.From(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains(pattern, raw, StringComparison.Ordinal);

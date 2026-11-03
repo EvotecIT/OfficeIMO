@@ -252,7 +252,7 @@ public partial class Html {
             "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII=");
         using var imageStream = new MemoryStream(pixels);
         WordParagraph paragraph = document.AddParagraph();
-        paragraph.AddImage(imageStream, "floating.png", OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(36), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = "Floating marker" });
+        paragraph.AddImage(imageStream, "floating.png", OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(36), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, AltText = "Floating marker" });
         WordImage image = Assert.IsType<WordImage>(paragraph.Image);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
@@ -278,10 +278,10 @@ public partial class Html {
     public void WordHtmlReview_ProjectsTrackedChangesAcrossStoriesWithoutMutatingSource() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Body ").AddInsertedText("new", "Reviewer").AddDeletedText("old", "Reviewer");
-        document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default)
+        document.Sections[0].PageSetup.Header
             .AddParagraph("Header ").AddInsertedText("new", "Reviewer").AddDeletedText("old", "Reviewer");
         string bodyXml = document._document.OuterXml;
-        string headerXml = document.Sections[0].Header.Default!._header!.OuterXml;
+        string headerXml = document.Sections[0].PageSetup.Header._header!.OuterXml;
 
         string finalHtml = document.ToHtml(new WordHtmlExportOptions {
             ExportHeadersAndFooters = true,
@@ -303,7 +303,7 @@ public partial class Html {
         Assert.Contains("<del", markupHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("data-officeimo-review-policy=\"markup\"", markupHtml, StringComparison.Ordinal);
         Assert.Equal(bodyXml, document._document.OuterXml);
-        Assert.Equal(headerXml, document.Sections[0].Header.Default!._header!.OuterXml);
+        Assert.Equal(headerXml, document.Sections[0].PageSetup.Header._header!.OuterXml);
     }
 
     [Fact]
@@ -313,7 +313,7 @@ public partial class Html {
         body.AddField(WordFieldType.Author);
         body.AddInsertedText("body revision", "Reviewer");
         WordParagraph header = document.Sections[0]
-            .GetOrCreateHeader(WordHeaderFooterType.Default)
+            .PageSetup.Header
             .AddParagraph("PRIVATE HEADER ");
         header._paragraph.Append(new SimpleField(new Run(new Text("PRIVATE HEADER RESULT"))) {
             Instruction = "PRIVATE_HEADER_FIELD"

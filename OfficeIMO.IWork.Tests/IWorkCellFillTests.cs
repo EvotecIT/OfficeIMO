@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
                 } else {
                     string hex = expected.GetProperty("rgbHex").GetString()!;
                     Assert.Equal(hex, fill.Color!.RgbHex);
-                    Assert.Equal(hex, target.ShadingFillColorHex);
+                    Assert.Equal(OfficeIMO.OfficeColor.Parse(hex), target.ShadingFillColor);
                 }
             }
         }
@@ -109,7 +109,7 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
         Assert.All(reopened.Tables[0].Rows[0].Cells, cell => {
             if (expected == null) Assert.Equal(OfficeIMO.Word.WordShadingPattern.Nil, cell.ShadingPattern);
-            else Assert.Equal(expected, cell.ShadingFillColorHex);
+            else Assert.Equal(OfficeIMO.OfficeColor.Parse(expected!), cell.ShadingFillColor);
         });
     }
 

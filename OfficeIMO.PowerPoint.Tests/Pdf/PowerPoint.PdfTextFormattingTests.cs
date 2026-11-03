@@ -45,7 +45,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         } else {
             paragraph = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40)).Paragraphs[0];
         }
-        paragraph.AddText(string.Empty, empty => empty.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(1.25));
+        paragraph.AddText(string.Empty).CharacterSpacing = global::OfficeIMO.OfficeLength.Points(1.25);
         var conversion = presentation.ConvertToPdfWithEvidence();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
         Assert.DoesNotContain(conversion.Report.Diagnostics,
@@ -176,8 +176,8 @@ public sealed class PowerPointPdfTextFormattingTests {
         authored.StrikeStyle = PowerPointStrikeStyle.Double;
         authored.SetSubscript();
         authored.Capitalization = PowerPointCapitalization.SmallCaps;
-        authored.Color = "336699";
-        authored.FontName = "Aptos";
+        authored.Color = OfficeColor.Parse("336699");
+        authored.FontFamily = "Aptos";
         authored.FontSize = global::OfficeIMO.OfficeLength.Points(14D);
 
         PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence();

@@ -125,7 +125,7 @@ internal static partial class PdfWriter {
     }
 
     private static PdfStandardFont ResolveFontForRun(PdfTextRun run, PdfStandardFont baseFont) {
-        PdfStandardFont runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
+        PdfStandardFont runBaseFont = run.StandardFont.HasValue ? ChooseNormal(run.StandardFont.Value) : baseFont;
         return (run.Bold && run.Italic)
             ? ChooseBoldItalic(runBaseFont)
             : run.Bold

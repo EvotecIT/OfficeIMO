@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddField(WordFieldType.Page);
 
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 RequireSectionHeader(document, 0, HeaderFooterValues.Default)
                     .AddParagraph("Header title: ")
                     .AddField(WordFieldType.Title);
@@ -230,12 +230,12 @@ namespace OfficeIMO.Tests {
             Assert.InRange(index, 0, document.Sections.Count - 1);
 
             var section = document.Sections[index];
-            if (type == HeaderFooterValues.Default && section.Header.Default == null) {
-                section.AddHeadersAndFooters();
+            if (type == HeaderFooterValues.Default && section.PageSetup.GetHeader(WordHeaderFooterType.Default) == null) {
+                _ = section.PageSetup.Header;
             }
 
             return type == HeaderFooterValues.Default
-                ? Assert.IsAssignableFrom<WordHeader>(section.Header.Default)
+                ? Assert.IsAssignableFrom<WordHeader>(section.PageSetup.GetHeader(WordHeaderFooterType.Default))
                 : throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
         }
 
@@ -244,12 +244,12 @@ namespace OfficeIMO.Tests {
             Assert.InRange(index, 0, document.Sections.Count - 1);
 
             var section = document.Sections[index];
-            if (type == HeaderFooterValues.Default && section.Footer.Default == null) {
-                section.AddHeadersAndFooters();
+            if (type == HeaderFooterValues.Default && section.PageSetup.GetFooter(WordHeaderFooterType.Default) == null) {
+                _ = section.PageSetup.Header;
             }
 
             return type == HeaderFooterValues.Default
-                ? Assert.IsAssignableFrom<WordFooter>(section.Footer.Default)
+                ? Assert.IsAssignableFrom<WordFooter>(section.PageSetup.GetFooter(WordHeaderFooterType.Default))
                 : throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
         }
     }

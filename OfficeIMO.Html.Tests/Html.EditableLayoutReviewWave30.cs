@@ -6,36 +6,6 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlEditableLayoutReviewWave30Tests {
     [Fact]
-    public void TextBoxRejectsInvalidDrawingFillWithoutMutation() {
-        using WordDocument document = WordDocument.Create();
-        WordTextBox textBox = document.AddTextBox("Transactional fill");
-        textBox.FillColorHex = "ABCDEF";
-
-        foreach (string? invalid in new[] { null, string.Empty, "red", "12345", "12345G" }) {
-            Assert.Throws<ArgumentException>(() => textBox.FillColorHex = invalid!);
-            Assert.Equal("ABCDEF", textBox.FillColorHex);
-        }
-
-        textBox.FillColorHex = "#abcdef";
-        Assert.Equal("ABCDEF", textBox.FillColorHex);
-    }
-
-    [Fact]
-    public void WordShapeRejectsInvalidDrawingFillWithoutMutation() {
-        using WordDocument document = WordDocument.Create();
-        WordShape shape = document.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
-        shape.FillColorHex = "ABCDEF";
-
-        foreach (string? invalid in new[] { null, string.Empty, "red", "12345", "12345G" }) {
-            Assert.Throws<ArgumentException>(() => shape.FillColorHex = invalid!);
-            Assert.Equal("ABCDEF", shape.FillColorHex);
-        }
-
-        shape.FillColorHex = "#abcdef";
-        Assert.Equal("ABCDEF", shape.FillColorHex);
-    }
-
-    [Fact]
     public void PreparedProjectionIntersectsCallerAndOwningNodeLimits() {
         var limits = new HtmlConversionLimits();
         limits.MaxHtmlNodes = 64;

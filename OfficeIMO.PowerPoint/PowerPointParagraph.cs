@@ -14,7 +14,6 @@ namespace OfficeIMO.PowerPoint {
         private readonly SlidePart? _initialSlidePart;
         private SlidePart? _slidePart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
         private readonly OpenXmlPartContainer? _initialOwnerPart;
-        private PowerPointTextRun? _insertedRun;
         private OpenXmlPartContainer? _ownerPart => Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
             .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
 
@@ -49,18 +48,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Adds a run to the paragraph and returns the paragraph for chaining.
+        /// Appends text as a new run and returns that run. Formatting the returned run formats only that text;
+        /// line breaks in <paramref name="text"/> stay part of the same run.
         /// </summary>
-        public PowerPointParagraph AddText(string text, Action<PowerPointTextRun>? configure = null) {
-            PowerPointTextRun wrapper = InsertRun(text);
-            configure?.Invoke(wrapper);
-            return this;
-        }
+        public PowerPointTextRun AddText(string text) => InsertRun(text);
 
         /// <summary>
-        /// Adds formatted text to the paragraph and returns the paragraph for chaining.
+        /// Appends text as a new run with basic formatting and returns that run.
         /// </summary>
-        public PowerPointParagraph AddFormattedText(string text, bool bold = false, bool italic = false,
+        public PowerPointTextRun AddFormattedText(string text, bool bold = false, bool italic = false,
             PowerPointUnderlineStyle? underline = null, bool strikethrough = false) {
             PowerPointTextRun wrapper = InsertRun(text);
             if (bold) {
@@ -75,51 +71,53 @@ namespace OfficeIMO.PowerPoint {
             if (strikethrough) {
                 wrapper.Strikethrough = true;
             }
-            return this;
+            return wrapper;
         }
 
         /// <summary>
-        /// Replaces text within the paragraph runs while preserving formatting.
+        /// Replaces literal text in the paragraph's runs.
         /// </summary>
-        public int ReplaceText(string oldValue, string newValue) {
-            if (oldValue == null) {
-                throw new ArgumentNullException(nameof(oldValue));
-            }
-            if (oldValue.Length == 0) {
-                throw new ArgumentException("Old value cannot be empty.", nameof(oldValue));
-            }
-
-            string replacement = newValue ?? string.Empty;
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>
+        /// Each match lies within one text run; text split across runs with different formatting is not matched. Replacement keeps each run's formatting. Word boundaries for <see cref="OfficeTextSearchOptions.WholeWords"/> take the adjacent runs into account.
+        /// </remarks>
+        public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
+            StringComparison comparison = OfficeTextSearch.GetComparison(options);
+            bool wholeWords = options?.WholeWords == true;
             int count = 0;
 
             foreach (A.Run run in Paragraph.Elements<A.Run>().ToArray()) {
                 string current = run.Text?.Text ?? string.Empty;
-                int occurrences = CountOccurrences(current, oldValue);
+                string? preceding = wholeWords ? GetAdjacentText(run.PreviousSibling()) : null;
+                string? following = wholeWords ? GetAdjacentText(run.NextSibling()) : null;
+                int occurrences = 0;
+                string updated = OfficeTextSearch.Replace(current, text, replacement, comparison, wholeWords, ref occurrences, preceding, following);
                 if (occurrences == 0) {
                     continue;
                 }
 
-                new PowerPointTextRun(run, _slidePart, _ownerPart).Text = current.Replace(oldValue, replacement);
+                new PowerPointTextRun(run, _slidePart, _ownerPart).Text = updated;
                 count += occurrences;
             }
 
             return count;
         }
 
+        private static string? GetAdjacentText(OpenXmlElement? sibling) => sibling switch {
+            A.Run run => run.Text?.Text,
+            A.Field field => field.Text?.Text,
+            _ => null
+        };
+
         /// <summary>
         /// Runs within the paragraph.
         /// </summary>
         public IReadOnlyList<PowerPointTextRun> Runs =>
             Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart, _ownerPart)).ToList();
-
-        /// <summary>
-        /// Adds a run to the paragraph.
-        /// </summary>
-        public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
-            PowerPointTextRun wrapper = InsertRun(text);
-            configure?.Invoke(wrapper);
-            return wrapper;
-        }
 
         /// <summary>
         /// Gets or sets paragraph alignment.
@@ -334,74 +332,74 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Sets the current run bold property and returns the paragraph for chaining.
+        /// Sets the bold property of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetBold(bool isBold = true) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Bold = isBold;
+            FormatRuns(run => run.Bold = isBold);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run italic property and returns the paragraph for chaining.
+        /// Sets the italic property of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetItalic(bool isItalic = true) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Italic = isItalic;
+            FormatRuns(run => run.Italic = isItalic);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run underline property and returns the paragraph for chaining.
+        /// Sets the underline property of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetUnderline(bool underline = true) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Underline = underline;
+            FormatRuns(run => run.Underline = underline);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run strikethrough property and returns the paragraph for chaining.
+        /// Sets the strikethrough property of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetStrikethrough(bool strikethrough = true) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Strikethrough = strikethrough;
+            FormatRuns(run => run.Strikethrough = strikethrough);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run font size and returns the paragraph for chaining.
+        /// Sets the font size of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
         public PowerPointParagraph SetFontSize(global::OfficeIMO.OfficeLength size) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.FontSize = size;
+            FormatRuns(run => run.FontSize = size);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run font name and returns the paragraph for chaining.
+        /// Sets the font family of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetFontName(string fontName) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.FontName = fontName;
+        public PowerPointParagraph SetFontFamily(string fontFamily) {
+            FormatRuns(run => run.FontFamily = fontFamily);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run color and returns the paragraph for chaining.
+        /// Sets the color of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetColor(string color) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.Color = color;
+        public PowerPointParagraph SetColor(global::OfficeIMO.OfficeColor color) {
+            FormatRuns(run => run.Color = color);
             return this;
         }
 
         /// <summary>
-        /// Sets the current run highlight color and returns the paragraph for chaining.
+        /// Sets the background (highlight) color of every run in the paragraph and returns the paragraph for chaining.
+        /// Use the run returned by <see cref="AddText(string)"/> to format a single run.
         /// </summary>
-        public PowerPointParagraph SetHighlightColor(string color) {
-            PowerPointTextRun run = GetDefaultRun();
-            run.HighlightColor = color;
+        public PowerPointParagraph SetBackgroundColor(global::OfficeIMO.OfficeColor color) {
+            FormatRuns(run => run.BackgroundColor = color);
             return this;
         }
 
@@ -531,24 +529,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// The text most recently written through this instance, otherwise the last run with the
-        /// preceding lines that share its formatting, which is how multi-line text is stored.
+        /// Applies <paramref name="format"/> to every run in the paragraph. A paragraph without runs gets one empty,
+        /// formatted run, as PowerPoint stores an empty formatted line.
         /// </summary>
-        internal PowerPointTextRun GetDefaultRun() {
-            A.Run? run = Paragraph.Elements<A.Run>().LastOrDefault();
-            if (run == null) return InsertRun(string.Empty);
-            if (ReferenceEquals(_insertedRun?.LastLine, run)) return _insertedRun!;
-
-            var lines = new List<OpenXmlElement>();
-            A.Run first = run;
-            while (first.PreviousSibling() is A.Break lineBreak
-                && lineBreak.PreviousSibling() is A.Run previous
-                && previous.RunProperties?.OuterXml == first.RunProperties?.OuterXml) {
-                lines.Insert(0, first);
-                lines.Insert(0, lineBreak);
-                first = previous;
+        internal void FormatRuns(Action<PowerPointTextRun> format) {
+            A.Run[] runs = Paragraph.Elements<A.Run>().ToArray();
+            if (runs.Length == 0) {
+                format(InsertRun(string.Empty));
+                return;
             }
-            return new PowerPointTextRun(first, _slidePart, _ownerPart, lines);
+            foreach (A.Run run in runs) {
+                format(new PowerPointTextRun(run, _slidePart, _ownerPart));
+            }
         }
 
         internal PowerPointTextRun InsertRun(string? text, A.RunProperties? properties = null) {
@@ -560,8 +552,7 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 Paragraph.Append(run);
             }
-            _insertedRun = new PowerPointTextRun(run, _slidePart, _ownerPart) { Text = text ?? string.Empty };
-            return _insertedRun;
+            return new PowerPointTextRun(run, _slidePart, _ownerPart) { Text = text ?? string.Empty };
         }
 
         private static void ClearBulletInternal(A.ParagraphProperties props) {
@@ -609,20 +600,6 @@ namespace OfficeIMO.PowerPoint {
 
         private A.ParagraphProperties EnsureParagraphProperties() {
             return Paragraph.ParagraphProperties ??= new A.ParagraphProperties();
-        }
-
-        private static int CountOccurrences(string value, string oldValue) {
-            int count = 0;
-            int index = 0;
-            while (true) {
-                index = value.IndexOf(oldValue, index, StringComparison.Ordinal);
-                if (index < 0) {
-                    break;
-                }
-                count++;
-                index += oldValue.Length;
-            }
-            return count;
         }
 
         private static int? ToTextCoordinate(global::OfficeIMO.OfficeLength? length) {

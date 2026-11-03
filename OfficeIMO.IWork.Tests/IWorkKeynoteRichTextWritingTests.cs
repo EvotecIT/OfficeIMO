@@ -102,11 +102,11 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         Assert.False(savedReset.Bold); Assert.False(savedReset.Italic);
         Assert.False(savedReset.Underline); Assert.False(savedReset.Strikethrough);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(24), savedReset.FontSize);
-        Assert.Equal("000000", savedReset.Color);
+        Assert.Equal(OfficeColor.Parse("000000"), savedReset.Color);
         PowerPointTextRun savedLast = Assert.Single(saved, run => run.Text == "Italic");
         Assert.True(savedLast.Italic); Assert.False(savedLast.Bold);
-        Assert.Equal("Times New Roman", savedLast.FontName);
-        Assert.Equal("008000", savedLast.Color);
+        Assert.Equal("Times New Roman", savedLast.FontFamily);
+        Assert.Equal(OfficeColor.Parse("008000"), savedLast.Color);
     }
 
     [Fact]

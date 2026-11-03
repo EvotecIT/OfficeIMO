@@ -238,12 +238,12 @@ namespace OfficeIMO.Word.Pdf {
                         AddNativeExportWarning(options, "native-endnote-content-approximated", "endnote",
                             "This endnote's content is outside the supported paragraph profile; visible text is retained in section flow.");
                     pdf.Paragraph(builder => {
-                        builder.Baseline(PdfCore.PdfTextBaseline.Superscript);
-                        builder.Text(footnote.Label);
-                        builder.Baseline(PdfCore.PdfTextBaseline.Normal);
+                        builder.RunDefaults.Baseline = PdfCore.PdfTextBaseline.Superscript;
+                        builder.AddText(footnote.Label);
+                        builder.RunDefaults.Baseline = PdfCore.PdfTextBaseline.Normal;
                         if (!string.IsNullOrWhiteSpace(footnote.Text)) {
-                            builder.Text(" ");
-                            builder.Text(NormalizeNativeDirectText(footnote.Text));
+                            builder.AddText(" ");
+                            builder.AddText(NormalizeNativeDirectText(footnote.Text));
                         }
                     });
                 }

@@ -78,7 +78,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!string.IsNullOrEmpty(legacyRun.ColorHex)) {
-                run.ColorHex = legacyRun.ColorHex!;
+                run.RunColorValue = legacyRun.ColorHex!;
             }
 
             if (!string.IsNullOrEmpty(legacyRun.FontFamily)) {

@@ -17,13 +17,10 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_PreservesLogicalRunColorSizeAndFontStyle() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
-                .FontSize(global::OfficeIMO.OfficeLength.Points(14))
-                .Bold("Bold red")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
-                .FontSize(global::OfficeIMO.OfficeLength.Points(9))
-                .Italic(" italic blue"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("Bold red").SetBold().SetColor(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)).SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
+                paragraph.AddText(" italic blue").SetItalic().SetColor(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255)).SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
+            })
             .ToBytes();
 
         using OfficeWordDocument imported = (LoadSemanticPdf(pdf).ConvertToWordWithEvidence()).Value;
@@ -52,12 +49,11 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_PreservesStyledListRunsWithoutRepeatingMarker() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph
-                .Text("\u2022 ")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
-                .Bold("Bold red")
-                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
-                .Italic(" italic blue"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("\u2022 ");
+                paragraph.AddText("Bold red").SetBold().SetColor(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0));
+                paragraph.AddText(" italic blue").SetItalic().SetColor(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255));
+            })
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
         PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
@@ -84,24 +80,22 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_PreservesClassifiedHeaderFooterCaptionAndBottomText() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(450),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(42),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(42),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(450)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(42), Bottom = global::OfficeIMO.OfficeLength.Points(42) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11)
             })
-            .Header(header => header.AlignLeft().Text("Import header {page}/{pages}"))
-            .Footer(footer => footer.AlignCenter().Text("Import footer {page}"))
+            .Header(header => header.Alignment(global::OfficeIMO.OfficeAlignment.Left).Text("Import header {page}/{pages}"))
+            .Footer(footer => footer.Alignment(global::OfficeIMO.OfficeAlignment.Center).Text("Import footer {page}"))
             .Canvas(canvas => canvas
                 .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(60D), alternativeText: "Data visualization")
                 .Text("Kort beskrivning", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(184D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(9D)))
             .Canvas(canvas => canvas.Text("1 Bottom annotation", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(415D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(7D)))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page body."))
+            .Paragraph(paragraph => paragraph.AddText("Second page body."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Third page body."))
+            .Paragraph(paragraph => paragraph.AddText("Third page body."))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
 
@@ -130,10 +124,10 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_ResultsKeepDiagnosticsScopedToEachConversion() {
         byte[] imagePdf = PdfCore.PdfDocument.Create()
-            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Operation-scoped image")
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, altText: "Operation-scoped image")
             .ToBytes();
         byte[] textPdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("A clean second conversion."))
+            .Paragraph(paragraph => paragraph.AddText("A clean second conversion."))
             .ToBytes();
         var options = new PdfWordExportOptions();
 
@@ -155,17 +149,15 @@ public partial class Word {
     public void PdfSemanticImport_SaveAsWord_ImportsEditableDocumentStructure() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "PDF semantic Word import", author: "OfficeIMO", subject: "Editable import", keywords: "pdf,word,semantic")
             .H1("PDF Semantic Import", linkUri: "https://example.com/pdf-semantic-import", linkContents: "PDF Semantic Import")
-            .Paragraph(paragraph => paragraph.Text("Logical paragraph survives as editable Word text."))
+            .Paragraph(paragraph => paragraph.AddText("Logical paragraph survives as editable Word text."))
             .Bullets(new[] { "Editable bullet item" })
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
@@ -177,7 +169,7 @@ public partial class Word {
                 CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
-            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Semantic import pixel")
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, altText: "Semantic import pixel")
             .PageBreak()
             .H1("Second Page")
             .TextField("Approval", width: global::OfficeIMO.OfficeLength.Points(120), value: "Ready")
@@ -246,12 +238,10 @@ public partial class Word {
         var shape = OfficeShape.Rectangle(60D, 20D);
         shape.FillColor = OfficeColor.Blue;
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20), Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .Table(new[] {
                 new[] { "Code", "Value" },
@@ -334,8 +324,7 @@ public partial class Word {
         var shape = OfficeShape.Rectangle(18D, 10D);
         shape.FillColor = OfficeColor.Blue;
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
+                PageSetup = { Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) }
             })
             .Table(new[] {
                 new[] { "Code", "Value" },
@@ -368,8 +357,7 @@ public partial class Word {
         line.StrokeColor = OfficeColor.Blue;
         line.StrokeWidth = 1D;
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(240),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180)
+                PageSetup = { Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) }
             })
             .Table(new[] {
                 new[] { "Code", "Value" },
@@ -400,17 +388,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_PageRanges_ImportsOnlySelectedPages() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .H1("First Page Marker")
             .PageBreak()
             .H1("Second Page Marker")
-            .Paragraph(paragraph => paragraph.Text("Only selected page body."))
+            .Paragraph(paragraph => paragraph.AddText("Only selected page body."))
             .ToBytes();
         var options = new PdfWordExportOptions();
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.LoadPageRanges(
@@ -433,17 +419,15 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_LoadedDocumentPageRanges_ImportsOnlySelectedPages() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .H1("Loaded First Page Marker")
             .PageBreak()
             .H1("Loaded Second Page Marker")
-            .Paragraph(paragraph => paragraph.Text("Loaded selected page body."))
+            .Paragraph(paragraph => paragraph.AddText("Loaded selected page body."))
             .ToBytes();
         PdfCore.PdfReadDocument readDocument = PdfCore.PdfReadDocument.Open(pdf);
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.FromPageRanges(
@@ -462,15 +446,13 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_UnsafeUriLinks_AreDiagnosticsNotActiveRelationships() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .H1("Unsafe Link", linkUri: "javascript:alert(1)", linkContents: "Unsafe Link")
-            .Paragraph(paragraph => paragraph.Text("The unsafe PDF action remains inert in Word."))
+            .Paragraph(paragraph => paragraph.AddText("The unsafe PDF action remains inert in Word."))
             .ToBytes();
         var options = new PdfWordExportOptions();
 
@@ -490,12 +472,10 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DisabledUriLinks_DoNotCreateActiveWordHyperlinks() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .H1("Disabled URI Link", linkUri: "https://example.com/disabled", linkContents: "Disabled URI Link")
             .ToBytes();
@@ -520,19 +500,17 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_InternalLinks_BecomeWordBookmarkHyperlinks() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 CreateOutlineFromHeadings = true
             })
             .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
-            .Paragraph(paragraph => paragraph.Text("Introductory text before the destination."))
+            .Paragraph(paragraph => paragraph.AddText("Introductory text before the destination."))
             .Bookmark("Details")
             .H2("Details")
-            .Paragraph(paragraph => paragraph.Text("Destination content survives as editable Word text."))
+            .Paragraph(paragraph => paragraph.AddText("Destination content survives as editable Word text."))
             .ToBytes();
         var options = new PdfWordExportOptions();
 
@@ -579,15 +557,13 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImport_DisabledImageImport_UsesEditablePlaceholder() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .H1("Image Placeholder Policy")
-            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Placeholder policy pixel")
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, altText: "Placeholder policy pixel")
             .ToBytes();
         var options = new PdfWordExportOptions {
             ImportImages = false,
@@ -885,8 +861,8 @@ public partial class Word {
     [Fact]
     public void PdfSemanticImportBoundsImageTextOverlapComparisons() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First visible line"))
-            .Paragraph(paragraph => paragraph.Text("Second visible line"))
+            .Paragraph(paragraph => paragraph.AddText("First visible line"))
+            .Paragraph(paragraph => paragraph.AddText("Second visible line"))
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24)
             .ToBytes();
         var options = new PdfWordExportOptions { MaxImageTextOverlapComparisons = 1 };
@@ -898,10 +874,10 @@ public partial class Word {
     public void PdfSemanticImportSharesImageTextOverlapBudgetAcrossPages() {
         byte[] image = PdfPngTestImages.CreateRgbPng(1, 1);
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page text"))
+            .Paragraph(paragraph => paragraph.AddText("First page text"))
             .Image(image, 24, 24)
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page text"))
+            .Paragraph(paragraph => paragraph.AddText("Second page text"))
             .Image(image, 24, 24)
             .ToBytes();
         var options = new PdfWordExportOptions { MaxImageTextOverlapComparisons = 1 };

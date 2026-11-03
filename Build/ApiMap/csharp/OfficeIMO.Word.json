@@ -6680,6 +6680,461 @@
       "category": "naming",
       "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.ColorHex / SetColorHex(string)",
+      "kind": "property",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordParagraph.Color : OfficeColor? / SetColor(OfficeColor)",
+      "replacement": "paragraph.Color = OfficeColor.Parse(\"FF0000\"); read paragraph.Color?.ToRgbHex(). Setting Color = null now removes the run colour; automatic ('auto') colour reads as null.",
+      "reason": "One colour value type; the hexadecimal string twin duplicated the typed property.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.RunShadingFillColor / RunShadingFillColorHex / SetRunShadingFillColorHex(string)",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordParagraph.BackgroundColor : OfficeColor? / SetBackgroundColor(OfficeColor)",
+      "replacement": "run.BackgroundColor = OfficeColor.Parse(\"FFF2CC\"). Highlight (WordHighlightColor) keeps the limited Word highlight palette.",
+      "reason": "Run shading fill is the arbitrary-colour text background; BackgroundColor is the shared name across Word and PowerPoint.",
+      "category": "naming"
+    },
+    {
+      "old": "Every *ColorHex / *Hex colour twin on WordParagraph (ShadingFillColorHex), WordTableCell (ShadingFillColorHex), WordBorders, WordParagraphBorders and WordTableCellBorder (<Side>ColorHex), WordLine.ColorHex, WordList.ColorHex, WordShape (FillColorHex, StrokeColorHex), WordStructuredDocumentTag (ColorHex, SetColorHex), WordWatermark.ColorHex, WordBackground.SetColorHex, WordImage (AlphaInversionColorHex, ColorChangeFromHex, ColorChangeToHex, ColorReplacementHex, DuotoneColor1Hex, DuotoneColor2Hex), WordTableStyleDetails (ShadingFillColorHex, ShadingColorHex)",
+      "kind": "property",
+      "action": "remove",
+      "new": "The typed OfficeColor twin with the same name minus 'Hex' (for example WordTableCell.ShadingFillColor, WordTableCellBorder.LeftColor, WordImage.ColorChangeFrom)",
+      "replacement": "Assign OfficeColor values (OfficeColor.Parse(\"#RRGGBB\") for text). Automatic ('auto') and missing values read as null; setting null removes the colour where the property is nullable.",
+      "reason": "One colour value type; the hexadecimal string twins duplicated the typed properties.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordBorders.<Side>Color : OfficeColor and WordTableCellBorder.<Side>Color : OfficeColor",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeColor? (Left/Right/Top/Bottom on WordBorders; Left/Right/Top/Bottom/Start/End/InsideHorizontal/InsideVertical/TopLeftToBottomRight/TopRightToBottomLeft on WordTableCellBorder)",
+      "replacement": "Read with border.LeftColor?.ToRgbHex(); a missing or automatic colour now reads as null instead of throwing InvalidOperationException/FormatException.",
+      "reason": "The removed hexadecimal twin was the only way to read a missing border colour; the typed property now carries that state.",
+      "category": "naming"
+    },
+    {
+      "old": "Hex-only colour members: WordBackground.Color : string?, WordSettings.BackgroundColor : string? / SetBackgroundColor(string), WordTextBox.FillColorHex, WordShapeGroupItem.FillColorHex / StrokeColorHex, WordParagraphStyleDefinition.ColorHex",
+      "kind": "property",
+      "action": "change",
+      "new": "WordBackground.Color : OfficeColor?, WordSettings.BackgroundColor : OfficeColor? / SetBackgroundColor(OfficeColor), WordTextBox.FillColor : OfficeColor?, WordShapeGroupItem.FillColor / StrokeColor : OfficeColor?, WordParagraphStyleDefinition.Color : OfficeColor?",
+      "replacement": "Assign OfficeColor values; parse text with OfficeColor.Parse. WordTextBox.FillColor = null removes the solid fill.",
+      "reason": "Members that only existed as strings take the typed value with the non-Hex name.",
+      "category": "naming"
+    },
+    {
+      "old": "Read-only snapshots: WordRunInfo.ColorHex / RunShadingFillColorHex, WordParagraphInfo.ShadingFillColorHex, WordTableCellInfo.ShadingFillColorHex, WordParagraphBorderInfo.ColorHex, WordTableCellBorderInfo.ColorHex, LegacyWordRunContent.ColorHex, LegacyWordStyleContent.ColorHex",
+      "kind": "property",
+      "action": "change",
+      "new": "WordRunInfo.Color / BackgroundColor, WordParagraphInfo.ShadingFillColor, WordTableCellInfo.ShadingFillColor, WordParagraphBorderInfo.Color, WordTableCellBorderInfo.Color, LegacyWordRunContent.Color, LegacyWordStyleContent.Color (all OfficeColor?)",
+      "replacement": "Use info.Color?.ToRgbHex() where text is needed. The automatic-colour keyword reads as null.",
+      "reason": "Snapshots expose the same colour value type as the live objects.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(side) -> (Style, Size, string? ColorHex)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(side) -> (Style, Size, OfficeColor? Color)",
+      "replacement": "var (style, size, color) = details.GetBorderProperties(side); color?.ToRgbHex().",
+      "reason": "One colour value type.",
+      "category": "naming"
+    },
+    {
+      "old": "Colour parameters: WordDocument/WordList.AddCustomBulletList(..., string fontName, OfficeColor? color = null, string? colorHex = null, ...) and (char symbol, string fontName, string colorHex, ...); WordList.AddListLevel (same shapes); WordSmartArt.ReplaceTexts/SetNodeText(string? colorHex); WordTable.ConditionalFormatting and WordTableConditionalFormattingBuilder.AddRule (string? matchFillColorHex, matchFontColorHex, noMatchFillColorHex, noMatchFontColorHex)",
+      "kind": "method",
+      "action": "merge",
+      "new": "Single overload per shape taking OfficeColor?: AddCustomBulletList/AddListLevel(..., string fontFamily, OfficeColor? color[ = null], OfficeLength? fontSize = null); ReplaceTexts/SetNodeText(OfficeColor? color); ConditionalFormatting/AddRule(OfficeColor? matchFillColor = null, OfficeColor? matchFontColor = null, OfficeColor? noMatchFillColor = null, OfficeColor? noMatchFontColor = null, ...)",
+      "replacement": "Pass OfficeColor values: colorHex: \"#FF0000\" becomes color: OfficeColor.Parse(\"#FF0000\"); matchFillColorHex: \"92D050\" becomes matchFillColor: OfficeColor.Parse(\"92D050\"). The typed ConditionalFormatting/AddRule overloads with a required matchFillColor merge into the optional form.",
+      "reason": "Removes parallel string and typed colour parameters.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordList.FontName : string and OfficeIMO.Word.WordParagraphStyleDefinition.FontName : string?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordList.FontFamily : string? and OfficeIMO.Word.WordParagraphStyleDefinition.FontFamily : string?",
+      "replacement": "Rename the property. WordList.FontFamily returns null (not an empty string) when no font is set.",
+      "reason": "FontFamily is the shared spelling for a font family name.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.PageSettings : WordPageSizes",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.Size : WordPageSizes",
+      "replacement": "section.PageSetup.Size",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.Margins : WordMargins",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.Margins : WordMargins",
+      "replacement": "section.PageSetup.Margins",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.PageOrientation : OfficePageOrientation",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.Orientation : OfficePageOrientation",
+      "replacement": "section.PageSetup.Orientation",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.DifferentFirstPage",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.DifferentFirstPage",
+      "replacement": "section.PageSetup.DifferentFirstPage",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.DifferentOddAndEvenPages",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.DifferentOddAndEvenPages",
+      "replacement": "section.PageSetup.DifferentOddAndEvenPages",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.Header : WordHeaders",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / FirstPageHeader / EvenPageHeader : WordHeader",
+      "replacement": "section.Header.Default -> section.PageSetup.Header (creates the default header and footer when missing); Header.First -> PageSetup.FirstPageHeader (enables DifferentFirstPage when missing); Header.Even -> PageSetup.EvenPageHeader (enables DifferentOddAndEvenPages when missing). To inspect without creating: section.PageSetup.GetHeader(WordHeaderFooterType.Default/First/Even), which returns null when absent.",
+      "reason": "Running content is reached through the section PageSetup with get-or-create properties; the WordHeaders slot collection is no longer public.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.Footer : WordFooters",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordPageSetup.Footer / FirstPageFooter / EvenPageFooter : WordFooter",
+      "replacement": "section.Footer.Default -> section.PageSetup.Footer; Footer.First -> PageSetup.FirstPageFooter; Footer.Even -> PageSetup.EvenPageFooter. To inspect without creating: section.PageSetup.GetFooter(type).",
+      "reason": "Running content is reached through the section PageSetup with get-or-create properties; the WordFooters slot collection is no longer public.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.GetHeader() / GetHeader(WordHeaderFooterType)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.GetHeader(WordHeaderFooterType) : WordHeader?",
+      "replacement": "section.PageSetup.GetHeader(type); the parameterless overload becomes GetHeader(WordHeaderFooterType.Default).",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.GetFooter() / GetFooter(WordHeaderFooterType)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.GetFooter(WordHeaderFooterType) : WordFooter?",
+      "replacement": "section.PageSetup.GetFooter(type); the parameterless overload becomes GetFooter(WordHeaderFooterType.Default).",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.GetOrCreateHeader(WordHeaderFooterType)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / FirstPageHeader / EvenPageHeader",
+      "replacement": "GetOrCreateHeader(Default/First/Even) -> section.PageSetup.Header / FirstPageHeader / EvenPageHeader.",
+      "reason": "The get-or-create properties on PageSetup are the single creating route.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.GetOrCreateFooter(WordHeaderFooterType)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPageSetup.Footer / FirstPageFooter / EvenPageFooter",
+      "replacement": "GetOrCreateFooter(Default/First/Even) -> section.PageSetup.Footer / FirstPageFooter / EvenPageFooter.",
+      "reason": "The get-or-create properties on PageSetup are the single creating route.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.AddHeadersAndFooters() : (WordHeader, WordFooter)",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / Footer",
+      "replacement": "Remove the call; section.PageSetup.Header or .Footer creates the default header and footer on first use and returns it.",
+      "reason": "Creation is implicit in the get-or-create PageSetup properties.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.SetMargins(WordMargin) : WordSection",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordMargins.Type",
+      "replacement": "section.PageSetup.Margins.Type = WordMargin.Narrow;",
+      "reason": "The margin preset setter applies the same preset; the method duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.SetMargins(WordSection, WordMargin) : WordSection",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordMargins.Type",
+      "replacement": "section.PageSetup.Margins.Type = preset;",
+      "reason": "The margin preset setter applies the same preset; the static helper duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.PageSettings : WordPageSizes",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Size",
+      "replacement": "document.PageSetup.Size",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Margins : WordMargins",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Margins",
+      "replacement": "document.PageSetup.Margins (no setter; edit the margin values or Margins.Type).",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.PageOrientation : OfficePageOrientation",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Orientation",
+      "replacement": "document.PageSetup.Orientation",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.DifferentFirstPage",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.DifferentFirstPage",
+      "replacement": "document.PageSetup.DifferentFirstPage",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.DifferentOddAndEvenPages",
+      "replacement": "document.PageSetup.DifferentOddAndEvenPages",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Header : WordHeaders?",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Header / FirstPageHeader / EvenPageHeader",
+      "replacement": "document.Header.Default -> document.PageSetup.Header; .First -> FirstPageHeader; .Even -> EvenPageHeader; inspect without creating with document.PageSetup.GetHeader(type).",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Footer : WordFooters?",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Footer / FirstPageFooter / EvenPageFooter",
+      "replacement": "document.Footer.Default -> document.PageSetup.Footer; .First -> FirstPageFooter; .Even -> EvenPageFooter; inspect without creating with document.PageSetup.GetFooter(type).",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.HeaderDefaultOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.Header",
+      "replacement": "document.PageSetup.Header",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.HeaderFirstOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.FirstPageHeader",
+      "replacement": "document.PageSetup.FirstPageHeader",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.HeaderEvenOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.EvenPageHeader",
+      "replacement": "document.PageSetup.EvenPageHeader",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.FooterDefaultOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.Footer",
+      "replacement": "document.PageSetup.Footer",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.FooterFirstOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.FirstPageFooter",
+      "replacement": "document.PageSetup.FirstPageFooter",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.FooterEvenOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.EvenPageFooter",
+      "replacement": "document.PageSetup.EvenPageFooter",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddHeadersAndFooters() : (WordHeader, WordFooter)",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / Footer",
+      "replacement": "Remove the call; document.PageSetup.Header or .Footer creates the default header and footer on first use and returns it.",
+      "reason": "Creation is implicit in the get-or-create PageSetup properties.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordHeadersAndFooters.AddHeadersAndFooters(this WordDocument) / (this WordSection)",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / Footer",
+      "replacement": "Remove the call; use document.PageSetup.Header/Footer or section.PageSetup.Header/Footer. The WordHeadersAndFooters class is no longer public.",
+      "reason": "Duplicate extension route for header/footer creation.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordHeaders",
+      "kind": "type",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup",
+      "replacement": "headers.Default/First/Even -> setup.GetHeader(WordHeaderFooterType.Default/First/Even) or the creating Header/FirstPageHeader/EvenPageHeader properties.",
+      "reason": "The slot collection is internal; PageSetup exposes each story directly.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordFooters",
+      "kind": "type",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup",
+      "replacement": "footers.Default/First/Even -> setup.GetFooter(type) or the creating Footer/FirstPageFooter/EvenPageFooter properties.",
+      "reason": "The slot collection is internal; PageSetup exposes each story directly.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.Description",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordImage.AltText",
+      "reason": "AltText is the shared alternative-text name for images in Word, PowerPoint and Markdown.",
+      "category": "accessibility"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImageOptions.Description",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordImageOptions.AltText",
+      "reason": "AltText is the shared alternative-text name for images.",
+      "category": "accessibility"
+    },
+    {
+      "old": "OfficeIMO.Word.WordInlineImageInfo.Description",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordInlineImageInfo.AltText",
+      "reason": "The inspection snapshot uses the same name as WordImage.AltText.",
+      "category": "accessibility"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTemplateImage.Description / WordTemplateImage(byte[] content, string fileName, OfficeLength? width = null, OfficeLength? height = null, string description = \"\")",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordTemplateImage.AltText / WordTemplateImage(..., string altText = \"\")",
+      "replacement": "Read AltText; pass altText: instead of description: when using a named argument.",
+      "reason": "The template image value uses the same name as WordImage.AltText.",
+      "category": "accessibility"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddTable(IEnumerable<object?> items, WordTableStyle style, bool includeHeader = true, WordTableLayoutMode? layout = null) : WordTable",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddTable(IEnumerable<object?> items, OfficeTableOptions? options) : WordTable",
+      "replacement": "document.AddTable(items, new WordTableOptions { Style = style, IncludeHeaders = includeHeader, LayoutMode = layout }). The runtime overload now also honours Include, Exclude, Order, HeaderRenames, HeaderTransform, Formatters, Alignments, Name and Caption, and rejects null rows before adding anything.",
+      "reason": "Runtime-object tables use the same options type as typed, matrix and text-row tables.",
+      "category": "tables"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions? options = null) / AddTable(object?[,] values, ...) / AddTable(IEnumerable<string[]> rows, ...) / AddTable(IEnumerable<IReadOnlyList<string>> rows, ...)",
+      "kind": "method",
+      "action": "change",
+      "new": "Same signatures",
+      "replacement": "OfficeTableOptions.Caption adds a visible paragraph immediately before the table; Name stays the table's accessible title. WordTableOptions.Style and LayoutMode are applied when given.",
+      "reason": "Caption is the visible caption; Name is the native identity.",
+      "category": "tables"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Find(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : List<WordParagraph>",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.Find(string text, OfficeTextSearchOptions? options = null) : WordSearchResult",
+      "replacement": "document.Find(text).Paragraphs for the former flat list; StringComparison.Ordinal becomes new OfficeTextSearchOptions { MatchCase = true }. Use MatchCount for the number of matches.",
+      "reason": "Literal and regex Find return the same WordSearchResult, and comparison is set through the shared search options.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentRegexExtensions.Find(this WordDocument document, Regex regex) : WordSearchResult",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.Find(Regex pattern) : WordSearchResult",
+      "replacement": "Call syntax is unchanged: document.Find(regex). Remove references to WordDocumentRegexExtensions.",
+      "reason": "One Find owner on the document for literal and regex search.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocumentRegexExtensions",
+      "kind": "type",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordDocument.Find(Regex pattern)",
+      "reason": "Its only member moved onto WordDocument.",
+      "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : int",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordDocument.ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) : int",
+      "replacement": "document.ReplaceAll(text, replacement); StringComparison.Ordinal becomes new OfficeTextSearchOptions { MatchCase = true }. WholeWords = true keeps matches inside one paragraph.",
+      "reason": "ReplaceAll is the shared name with PDF and PowerPoint, with the shared comparison options.",
+      "category": "search"
+    },
+    {
+      "old": "static OfficeIMO.Word.WordDocument.FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) : int",
+      "kind": "method",
+      "action": "rename",
+      "new": "static OfficeIMO.Word.WordDocument.ReplaceAll(List<WordParagraph> paragraphs, string text, string replacement, OfficeTextSearchOptions? options = null) : int",
+      "replacement": "WordDocument.ReplaceAll(cell.Paragraphs, text, replacement, options).",
+      "reason": "Paragraph-scoped replacement follows the document ReplaceAll name and options.",
+      "category": "search"
     }
   ],
   "packageMoves": [

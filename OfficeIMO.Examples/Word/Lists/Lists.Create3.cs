@@ -41,10 +41,10 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Lists count - before adding section: " + document.Lists.Count);
 
                 var section = document.AddSection();
-                section.PageSettings.Orientation = OfficePageOrientation.Landscape;
+                section.PageSetup.Size.Orientation = OfficePageOrientation.Landscape;
 
-                Console.WriteLine(document.Sections[0].PageSettings.Orientation);
-                Console.WriteLine(document.Sections[1].PageSettings.Orientation);
+                Console.WriteLine(document.Sections[0].PageSetup.Size.Orientation);
+                Console.WriteLine(document.Sections[1].PageSetup.Size.Orientation);
 
                 WordList wordList2 = document.AddList(WordListStyle.Numbered);
                 wordList2.AddItem("Section 1").SetCapsStyle(WordCapsStyle.SmallCaps);

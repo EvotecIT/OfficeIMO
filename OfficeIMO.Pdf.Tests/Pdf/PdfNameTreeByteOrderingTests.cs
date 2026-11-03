@@ -7,7 +7,7 @@ public class PdfNameTreeByteOrderingTests {
     [Fact]
     public void GeneratedAndEditedAttachmentsSortEncodedKeysAndKeepPayloads() {
         string[] names = { "ÿ", "’", "a1", "a", "space\u00A0key" };
-        byte[] bytes = PdfDocument.Create().Paragraph(p => p.Text("Attachments"))
+        byte[] bytes = PdfDocument.Create().Paragraph(p => p.AddText("Attachments"))
             .AttachFile(names[0], new byte[] { 1 })
             .AttachFile(names[1], new byte[] { 2 })
             .AttachFile(names[2], new byte[] { 3 })

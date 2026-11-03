@@ -265,16 +265,16 @@ public sealed class WordPdfRunningPictureWrapTests {
     private static WordDocument CreateDocument(bool footer, WordImageTextWrapping wrapping, out WordImage image, bool table = false) {
         WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(612D);
-        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(792D);
-        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
-        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(96D);
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(24D);
-        section.Header.Default!._header!.RemoveAllChildren();
-        section.Footer.Default!._footer!.RemoveAllChildren();
-        WordHeaderFooter story = footer ? section.Footer.Default! : section.Header.Default!;
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(612D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(792D);
+        section.PageSetup.Margins.Left = section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        section.PageSetup.Margins.Top = section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(96D);
+        section.PageSetup.Margins.HeaderDistance = section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(24D);
+        section.PageSetup.Header._header!.RemoveAllChildren();
+        section.PageSetup.Footer._footer!.RemoveAllChildren();
+        WordHeaderFooter story = footer ? section.PageSetup.Footer : section.PageSetup.Header;
         WordParagraph paragraph = table
             ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0]
             : story.AddParagraph();
