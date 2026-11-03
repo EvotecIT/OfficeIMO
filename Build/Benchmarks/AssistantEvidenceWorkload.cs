@@ -22,8 +22,8 @@ public sealed class AssistantEvidenceWorkload {
             for (int index = 1; index <= pages; index++) {
                 int pageNumber = index;
                 document.Page(page => page.Content(content => {
-                    content.Text("Evidence workload page " + pageNumber);
-                    for (int line = 0; line < 12; line++) content.Text("Invoice reference SAMPLE-2026. Quantity 12. Net total 42 EUR. Review the original document.");
+                    content.AddParagraph("Evidence workload page " + pageNumber);
+                    for (int line = 0; line < 12; line++) content.AddParagraph("Invoice reference SAMPLE-2026. Quantity 12. Net total 42 EUR. Review the original document.");
                 }));
             }
         }).ToBytes();

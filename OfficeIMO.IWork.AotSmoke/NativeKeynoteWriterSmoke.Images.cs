@@ -29,7 +29,7 @@ internal static partial class NativeKeynoteWriterSmoke {
         using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "NativeAOT image PPTX did not save/reopen correctly.");
         for (int i = 0; i < 3; i++) {
-            PowerPointPicture picture = saved.Slides[i].Pictures.Single();
+            PowerPointImage picture = saved.Slides[i].Images.Single();
             IWorkImageAsset image = projection.Slides[i].Images.Single();
             Require(picture.GetImageBytes().SequenceEqual(image.GetBytes()) && picture.AltText == image.AccessibilityDescription,
                 "NativeAOT saved image lost its payload or accessibility description.");

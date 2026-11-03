@@ -9,7 +9,7 @@ public partial class HtmlOfficeAdapters {
     [Theory]
     [InlineData("<p>{0}</p>")]
     [InlineData("{0}")]
-    public void PowerPointPictureLinksHonorAdapterPolicy(string wrapper) {
+    public void PowerPointImageLinksHonorAdapterPolicy(string wrapper) {
         const string image = "<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg=='>";
         var options = new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false };
         options.HyperlinkUrlPolicy.RestrictUrlSchemes = true;
@@ -19,7 +19,7 @@ public partial class HtmlOfficeAdapters {
         foreach (string target in new[] { "http://example.test/blocked", "https://example.test/reject", "https://example.test/allowed" }) {
             string html = string.Format(wrapper, "<a href='" + target + "'>" + image + "</a>");
             using var presentation = HtmlConversionDocument.Parse(html).ToPowerPointDocument(options);
-            var picture = Assert.Single(presentation.Slides.SelectMany(slide => slide.Pictures));
+            var picture = Assert.Single(presentation.Slides.SelectMany(slide => slide.Images));
             Assert.Equal(target.EndsWith("/allowed", StringComparison.Ordinal) ? "https://safe.example/rewritten" : null, picture.Hyperlink?.OriginalString);
         }
     }
@@ -55,7 +55,7 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(stream.ToArray()),
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
-        PowerPointPicture picture = Assert.Single(reopened.Slides.SelectMany(slide => slide.Pictures));
+        PowerPointImage picture = Assert.Single(reopened.Slides.SelectMany(slide => slide.Images));
         Assert.Equal("https://www.cdc.gov/", picture.Hyperlink?.AbsoluteUri);
         Assert.DoesNotContain(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted);
@@ -71,7 +71,7 @@ public partial class HtmlOfficeAdapters {
                 ImportEditableLayoutRegions = false
             });
         using PowerPointDocument presentation = result.RequireValue();
-        PowerPointPicture picture = Assert.Single(Assert.Single(presentation.Slides).Pictures);
+        PowerPointImage picture = Assert.Single(Assert.Single(presentation.Slides).Images);
 
         Assert.Equal("#slide-1", picture.Hyperlink?.OriginalString);
         Assert.DoesNotContain(result.Report.Diagnostics,

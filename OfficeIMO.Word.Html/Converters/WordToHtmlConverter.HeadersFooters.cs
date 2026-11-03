@@ -26,13 +26,13 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (headers) {
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Default, "header", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.First, "header", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Header.Even, "header", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetHeader(WordHeaderFooterType.Default), "header", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetHeader(WordHeaderFooterType.First), "header", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetHeader(WordHeaderFooterType.Even), "header", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
             } else {
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Default, "footer", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.First, "footer", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
-                AppendHeaderFooterRegion(htmlDoc, parent, section.Footer.Even, "footer", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetFooter(WordHeaderFooterType.Default), "footer", "default", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetFooter(WordHeaderFooterType.First), "footer", "first", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
+                AppendHeaderFooterRegion(htmlDoc, parent, section.PageSetup.GetFooter(WordHeaderFooterType.Even), "footer", "even", sectionIndex, appendParagraph, appendTable, resetParagraphFlow, options, cancellationToken);
             }
         }
 

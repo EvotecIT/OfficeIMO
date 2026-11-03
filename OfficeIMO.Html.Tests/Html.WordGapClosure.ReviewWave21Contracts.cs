@@ -28,7 +28,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTableCell cell = Assert.Single(Assert.Single(document.Tables).Rows).Cells[0];
 
-        Assert.Equal("800080", cell.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("800080"), cell.ShadingFillColor);
     }
 
     [Fact]
@@ -71,9 +71,9 @@ public partial class HtmlWordGapClosure {
         Assert.Null(middle.Borders.BottomStyle);
         Assert.Null(last.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, last.Borders.BottomStyle);
-        Assert.Equal("123456", lead.Borders.LeftColorHex);
-        Assert.Equal("123456", middle.Borders.LeftColorHex);
-        Assert.Equal("123456", last.Borders.RightColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), lead.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("123456"), middle.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("123456"), last.Borders.RightColor);
     }
 
     [Fact]

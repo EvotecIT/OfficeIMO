@@ -242,12 +242,12 @@ namespace OfficeIMO.Tests {
                 document.AddSection(WordSectionBreakType.NextPage).AddParagraph("Section " + index);
             }
             foreach (WordSection section in document.Sections) {
-                section.PageOrientation = OfficePageOrientation.Landscape;
-                section.PageSettings.PageSize = WordPageSize.Letter;
-                section.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
-                section.Margins.Right = global::OfficeIMO.OfficeLength.Points(60D);
-                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
-                section.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+                section.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                section.PageSetup.Size.PageSize = WordPageSize.Letter;
+                section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+                section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(60D);
+                section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
+                section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
             }
 
             string withoutMetadata = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
@@ -572,7 +572,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Body");
             WordSection firstSection = document.Sections[0];
-            firstSection.GetOrCreateHeader(WordHeaderFooterType.Default)
+            firstSection.PageSetup.Header
                 .AddParagraph(new string('H', 1024));
             string relationshipId = firstSection._sectionProperties
                 .GetFirstChild<HeaderReference>()!.Id!;
@@ -582,7 +582,7 @@ namespace OfficeIMO.Tests {
                     Type = HeaderFooterValues.Default,
                     Id = relationshipId
                 }, 0);
-                section.Header.Default = firstSection.Header.Default;
+                section.Headers.Default = firstSection.PageSetup.GetHeader(WordHeaderFooterType.Default);
                 section.AddParagraph("Section " + index);
             }
 
@@ -604,7 +604,7 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Body");
             WordSection firstSection = document.Sections[0];
             WordParagraph headerParagraph = firstSection
-                .GetOrCreateHeader(WordHeaderFooterType.Default)
+                .PageSetup.Header
                 .AddParagraph();
             headerParagraph._paragraph.Append(new Run(
                 new RunProperties(new RunFonts { Ascii = new string('F', 2048) }),
@@ -617,7 +617,7 @@ namespace OfficeIMO.Tests {
                     Type = HeaderFooterValues.Default,
                     Id = relationshipId
                 }, 0);
-                section.Header.Default = firstSection.Header.Default;
+                section.Headers.Default = firstSection.PageSetup.GetHeader(WordHeaderFooterType.Default);
                 section.AddParagraph("Section " + index);
             }
 

@@ -355,7 +355,7 @@ namespace OfficeIMO.Excel.Pdf {
                     italic: style?.Italic == true,
                     strike: style?.Strikethrough == true,
                     fontSize: ((double?)(fontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
-                    font: font,
+                    standardFont: font,
                     baseline: MapExcelPdfBaseline(style?.VerticalTextAlignment),
                     fontFamily: fontFamily,
                     underlineStyle: MapExcelPdfUnderline(style?.UnderlineStyle),

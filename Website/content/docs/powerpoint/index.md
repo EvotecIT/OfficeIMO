@@ -85,7 +85,7 @@ var title = slide.AddTitle(
 
 if (title.Paragraphs.Count > 0)
 {
-    PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
+    PowerPointTextStyle.Title.WithColor(OfficeColor.Parse("1F4E79")).Apply(title.Paragraphs[0]);
 }
 
 var agenda = slide.AddTextBox(
@@ -125,7 +125,7 @@ blocks known loss by default:
 using OfficeIMO.PowerPoint.LegacyPpt;
 
 using var presentation = PowerPointDocument.Load("legacy-deck.ppt");
-presentation.ReplaceText("Draft", "Approved");
+presentation.ReplaceAll("Draft", "Approved");
 
 LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 if (!report.CanWrite) {

@@ -10,16 +10,17 @@ public sealed class WordAllSeverityBatch19SecurityTests {
     public void AutomaticColorSentinelRemainsLowercaseAcrossPublicColorSetters() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("automatic");
-        paragraph.ColorHex = "AUTO";
+        paragraph.RunColorValue = "AUTO";
         document.Borders.LeftStyle = WordBorderStyle.Single;
-        document.Borders.LeftColorHex = "Auto";
+        document.Borders.LeftColorValue = "Auto";
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Borders.TopStyle = WordBorderStyle.Single;
-        cell.Borders.TopColorHex = "aUtO";
+        cell.Borders.TopColorValue = "aUtO";
 
-        Assert.Equal("auto", paragraph.ColorHex);
-        Assert.Equal("auto", document.Borders.LeftColorHex);
-        Assert.Equal("auto", cell.Borders.TopColorHex);
+        Assert.Equal("auto", paragraph.RunColorValue);
+        Assert.Null(paragraph.Color);
+        Assert.Equal("auto", document.Borders.LeftColorValue);
+        Assert.Equal("auto", cell.Borders.TopColorValue);
         Assert.Empty(new OpenXmlValidator().Validate(document._wordprocessingDocument));
     }
 }

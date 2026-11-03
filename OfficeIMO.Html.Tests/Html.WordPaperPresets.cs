@@ -16,12 +16,12 @@ public sealed class HtmlWordPaperPresetTests {
             DefaultPageSize = preset, DefaultOrientation = orientation
         });
         using WordDocument word = result.Value;
-        Assert.Equal(preset, word.Sections[0].PageSettings.PageSize);
+        Assert.Equal(preset, word.Sections[0].PageSetup.Size.PageSize);
         if (positioned) {
             Assert.Single(word.TextBoxes);
         } else {
             Assert.Empty(word.TextBoxes);
-            Assert.NotEmpty(word.Find("Preset region", StringComparison.Ordinal));
+            Assert.NotEmpty(word.Find("Preset region", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
             Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail != null && diagnostic.Detail.Contains("maximumPageHeight", StringComparison.Ordinal));
         }

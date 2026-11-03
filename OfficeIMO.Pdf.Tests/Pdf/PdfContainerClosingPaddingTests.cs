@@ -28,8 +28,10 @@ namespace OfficeIMO.Tests.Pdf {
 
         internal static byte[] CreateFixture(double bodyHeight, double padding, double lineAdvance) {
             var options = new PdfCreateOptions { BackgroundColor = null,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(bodyHeight + 40D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(bodyHeight + 40D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D)
             };
             var paragraphStyle = new PdfParagraphStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), WidowControl = false,
@@ -45,8 +47,8 @@ namespace OfficeIMO.Tests.Pdf {
                 FrameStartPaddingTopOverride = 0D, KeepTogether = true
             };
             return PdfDocument.Create(options)
-                .Panel(panel => panel.Paragraph(p => p.Text("First"), style: paragraphStyle), firstStyle)
-                .Panel(panel => panel.Paragraph(p => p.Text("Next"), style: new PdfParagraphStyle {
+                .Panel(panel => panel.AddParagraph(p => p.AddText("First"), style: paragraphStyle), firstStyle)
+                .Panel(panel => panel.AddParagraph(p => p.AddText("Next"), style: new PdfParagraphStyle {
                     FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D))
                 }), nextStyle).ToBytes();
         }

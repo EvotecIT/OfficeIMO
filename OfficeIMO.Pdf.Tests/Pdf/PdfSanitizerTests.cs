@@ -634,7 +634,7 @@ public partial class PdfSanitizerTests {
             PdfAssociatedFileRelationship.Data,
             "Sanitizer test payload");
         byte[] source = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Attachment quarantine"))
+            .Paragraph(paragraph => paragraph.AddText("Attachment quarantine"))
             .ToBytes();
         var policy = new PdfSanitizationOptions {
             EmbeddedFiles = PdfEmbeddedFileSanitizationMode.Quarantine

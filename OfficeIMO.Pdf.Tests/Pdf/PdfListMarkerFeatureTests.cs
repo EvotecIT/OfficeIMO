@@ -23,7 +23,7 @@ public sealed class PdfListMarkerFeatureTests {
         var items = new[] { new PdfListItem("body", marker: marker) };
         var style = new PdfListStyle { MarkerFontFamily = primary, MarkerFontSize = global::OfficeIMO.OfficeLength.Points(20D), MarkerGap = global::OfficeIMO.OfficeLength.Points(12D) };
         if (inRow) document.Compose(compose => compose.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.RichBullets(items, style: style))))));
+            content.Row(row => row.PercentColumn(100, column => column.AddList(items, style: style))))));
         else document.RichBullets(items, style: style);
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var letters = pdf.GetPage(1).Letters;
@@ -52,7 +52,7 @@ public sealed class PdfListMarkerFeatureTests {
         var document = PdfDocument.Create(options);
         if (inRow) {
             document.Compose(compose => compose.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.RichNumbered(items, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddNumberedList(items, style: style))))));
         } else {
             document.RichNumbered(items, style: style);
         }
@@ -83,7 +83,7 @@ public sealed class PdfListMarkerFeatureTests {
         var document = PdfDocument.Create(options);
         if (inRow) {
             document.Compose(compose => compose.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.RichBullets(items, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddList(items, style: style))))));
         } else {
             document.RichBullets(items, style: style);
         }

@@ -420,18 +420,25 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>Gets or sets the DrawingML text-box fill color as a six-digit RGB value.</summary>
-        public string FillColorHex {
+        /// <summary>Gets or sets the DrawingML text-box solid RGB fill color; <see langword="null"/> removes the solid fill.</summary>
+        public OfficeIMO.OfficeColor? FillColor {
             get {
                 A.RgbColorModelHex? rgb = DrawingShapeProperties?
                     .GetFirstChild<A.SolidFill>()?
                     .GetFirstChild<A.RgbColorModelHex>();
-                return rgb?.Val?.Value?.TrimStart('#').ToUpperInvariant() ?? string.Empty;
+                string? value = rgb?.Val?.Value;
+                return value != null && OfficeIMO.OfficeColor.TryParseHex(value, out OfficeIMO.OfficeColor color)
+                    ? color
+                    : null;
             }
             set {
-                string normalized = Helpers.NormalizeSixDigitRgb(value, nameof(value));
                 ShapeProperties? properties = DrawingShapeProperties;
                 if (properties == null) return;
+                if (!value.HasValue) {
+                    properties.RemoveAllChildren<A.SolidFill>();
+                    return;
+                }
+                string normalized = value.Value.ToRgbHex();
                 properties.RemoveAllChildren<A.NoFill>();
                 properties.RemoveAllChildren<A.SolidFill>();
                 properties.RemoveAllChildren<A.GradientFill>();

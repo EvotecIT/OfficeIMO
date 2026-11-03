@@ -109,7 +109,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         _ => string.Empty,
                     };
                     string textStyle = TextStyleFingerprint(shape);
-                    string picture = shape is PowerPointPicture image
+                    string picture = shape is PowerPointImage image
                         ? GoogleWorkspaceCheckpointFormat.Format($"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}")
                         : string.Empty;
                     string shapeStyle = GoogleWorkspaceCheckpointFormat.Format($"{shape.FillColor}|{shape.FillTransparency}|{shape.OutlineColor}|{shape.OutlineWidth?.ToPoints()}");

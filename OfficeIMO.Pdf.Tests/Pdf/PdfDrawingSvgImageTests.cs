@@ -18,8 +18,10 @@ public sealed class PdfDrawingSvgImageTests {
         for (int y = 0; y < 20; y++)
             for (int x = 20; x < 40; x++) pixels.SetPixel(x, y, OfficeColor.Blue);
         byte[] raster = OfficePngWriter.Encode(pixels);
-        byte[] Export(byte[] bytes) => PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(120), PageHeight = global::OfficeIMO.OfficeLength.Points(120),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0) }).Canvas(canvas =>
+        byte[] Export(byte[] bytes) => PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+        } }).Canvas(canvas =>
                 canvas.Image(bytes, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), new PdfImageStyle { Fit = fit,
                     SourceCrop = new PdfImageSourceCrop(.25D, 0D, 0D, 0D) },
                     rotationAngle: rotation, horizontalFlip: flip)).ToBytes();
@@ -121,6 +123,8 @@ public sealed class PdfDrawingSvgImageTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(30, 10));
     }
 
-    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(40D), PageHeight = global::OfficeIMO.OfficeLength.Points(30D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D) };
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(30D)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+    } };
 }

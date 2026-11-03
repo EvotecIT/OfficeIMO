@@ -62,7 +62,6 @@ internal static partial class PdfWriter {
                     case TableBlock { Style.BorderFrame: not null } framedTable:
                         PdfTableStyle framedStyle = ResolveContainedTableWidth(framedTable.Style!, frameWidth);
                         var capturedTable = new TableBlock(framedTable.Cells.Select(row => row.ToArray()), framedTable.Align, framedStyle);
-                        foreach (var link in framedTable.Links) capturedTable.AddLink(link.Key, link.Value);
                         keepWithNext = AppendFootnotePanel(new ContainerBlock(capturedTable), frameX, frameWidth, panels, units);
                         break;
                     case TableBlock table:

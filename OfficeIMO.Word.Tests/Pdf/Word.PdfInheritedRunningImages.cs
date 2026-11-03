@@ -19,8 +19,8 @@ public partial class Word {
         using WordDocument source = CreateInheritedRunningStoryControl(footer, kind, "next");
         WordSection first = source.Sections[0];
         WordHeaderFooter story = footer
-            ? kind == "first" ? first.Footer.First! : kind == "even" ? first.Footer.Even! : first.Footer.Default!
-            : kind == "first" ? first.Header.First! : kind == "even" ? first.Header.Even! : first.Header.Default!;
+            ? kind == "first" ? first.PageSetup.FirstPageFooter : kind == "even" ? first.PageSetup.EvenPageFooter : first.PageSetup.Footer
+            : kind == "first" ? first.PageSetup.FirstPageHeader : kind == "even" ? first.PageSetup.EvenPageHeader : first.PageSetup.Header;
         foreach (var child in story.ChildElements.ToArray()) child.Remove();
         WordTable table = CreateRunningStoryTable(story, "MARK", 48, WordTextDirection.LeftToRightTopToBottom);
         table.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));

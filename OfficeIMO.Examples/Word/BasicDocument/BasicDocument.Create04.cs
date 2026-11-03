@@ -12,10 +12,10 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with margins");
             string filePath = System.IO.Path.Combine(folderPath, "EmptyDocumentWithMargins.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(0.5D);
-                document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(30D);
-                document.Sections[0].Margins.Top = global::OfficeIMO.OfficeLength.Points(0.5D);
-                document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+                document.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(0.5D);
+                document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(30D);
+                document.Sections[0].PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(0.5D);
+                document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
 
                 document.Settings.FontFamily = "Arial";
                 document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(9);

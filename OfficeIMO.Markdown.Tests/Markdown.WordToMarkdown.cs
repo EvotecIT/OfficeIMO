@@ -190,10 +190,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_ToMarkdownDocument_Exports_Headers_And_Footers_As_Semantic_Blocks_When_Enabled() {
             using var doc = WordDocument.Create();
-            doc.AddHeadersAndFooters();
-            doc.Header!.Default!.AddParagraph("Header line");
+            doc.PageSetup.Header.AddParagraph("Header line");
             doc.AddParagraph("Body line");
-            doc.Footer!.Default!.AddParagraph("Footer line");
+            doc.PageSetup.Footer.AddParagraph("Footer line");
 
             var options = new WordMarkdownExportOptions {
                 IncludeHeadersAndFootersAsSemanticBlocks = true
@@ -589,10 +588,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_CreateReaderOptions_Parses_Header_And_Footer_Semantic_Blocks() {
             using var doc = WordDocument.Create();
-            doc.AddHeadersAndFooters();
-            doc.Header!.Default!.AddParagraph("Header line");
+            doc.PageSetup.Header.AddParagraph("Header line");
             doc.AddParagraph("Body line");
-            doc.Footer!.Default!.AddParagraph("Footer line");
+            doc.PageSetup.Footer.AddParagraph("Footer line");
 
             var options = new WordMarkdownExportOptions {
                 IncludeHeadersAndFootersAsSemanticBlocks = true
@@ -832,10 +830,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownToWord_LoadFromMarkdown_Restores_Header_And_Footer_Semantic_Blocks() {
             using var source = WordDocument.Create();
-            source.AddHeadersAndFooters();
-            source.Header!.Default!.AddParagraph("Header line");
+            source.PageSetup.Header.AddParagraph("Header line");
             source.AddParagraph("Body line");
-            source.Footer!.Default!.AddParagraph("Footer line");
+            source.PageSetup.Footer.AddParagraph("Footer line");
 
             string markdown = ((source.ToMarkdown(new WordMarkdownExportOptions {
                 IncludeHeadersAndFootersAsSemanticBlocks = true
@@ -843,8 +840,8 @@ namespace OfficeIMO.Tests {
 
             using var restored = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions()).ToWord();
 
-            Assert.Equal("Header line", restored.Header!.Default!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
-            Assert.Equal("Footer line", restored.Footer!.Default!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
+            Assert.Equal("Header line", restored.PageSetup.Header.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
+            Assert.Equal("Footer line", restored.PageSetup.Footer.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
             Assert.Contains(restored.Paragraphs, paragraph => paragraph.Text.Trim() == "Body line");
         }
 
@@ -858,11 +855,11 @@ namespace OfficeIMO.Tests {
 
             using var document = markdown.ToWord();
 
-            Assert.True(document.DifferentFirstPage);
-            Assert.True(document.DifferentOddAndEvenPages);
-            Assert.Equal("First header", document.Header!.First!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
-            Assert.Equal("Default header", document.Header!.Default!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
-            Assert.Equal("Even footer", document.Footer!.Even!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
+            Assert.True(document.PageSetup.DifferentFirstPage);
+            Assert.True(document.PageSetup.DifferentOddAndEvenPages);
+            Assert.Equal("First header", document.PageSetup.FirstPageHeader.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
+            Assert.Equal("Default header", document.PageSetup.Header.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
+            Assert.Equal("Even footer", document.PageSetup.EvenPageFooter.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Trim() == "Body line");
         }
 
@@ -951,7 +948,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_Emits_ExternalImages_As_Links_Instead_Of_Failing() {
             using var doc = WordDocument.Create();
-            doc.AddParagraph().AddImage(new Uri("cid:86dec9c7-5eda-46b3-b8fb-2e2b7b0d6fb8"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50), options: new OfficeIMO.Word.WordImageOptions { Description = "Linked image" });
+            doc.AddParagraph().AddImage(new Uri("cid:86dec9c7-5eda-46b3-b8fb-2e2b7b0d6fb8"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50), options: new OfficeIMO.Word.WordImageOptions { AltText = "Linked image" });
             var warnings = new List<string>();
 
             string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
@@ -968,7 +965,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             using (var stream = File.OpenRead(imagePath)) {
-                doc.AddParagraph().AddImage(stream, "Picture 1", width: OfficeIMO.OfficeLength.Pixels(32), height: OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Description = "Logo" });
+                doc.AddParagraph().AddImage(stream, "Picture 1", width: OfficeIMO.OfficeLength.Pixels(32), height: OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { AltText = "Logo" });
             }
 
             string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());

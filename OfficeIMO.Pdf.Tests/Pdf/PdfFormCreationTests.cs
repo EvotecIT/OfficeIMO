@@ -11,7 +11,7 @@ public class PdfFormCreationTests {
     public void TextField_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
             .Meta(title: "Generated form")
-            .Paragraph(p => p.Text("Generated field:"))
+            .Paragraph(p => p.AddText("Generated field:"))
             .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada Lovelace", spacingAfter: global::OfficeIMO.OfficeLength.Points(12))
             .ToBytes();
 
@@ -102,7 +102,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void CheckBox_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Generated checkbox:"))
+            .Paragraph(p => p.AddText("Generated checkbox:"))
             .CheckBox("AcceptTerms", isChecked: true, size: 16, spacingAfter: 12)
             .ToBytes();
 
@@ -166,8 +166,10 @@ public class PdfFormCreationTests {
     public void TableCellCheckBox_RendersInlineWithSingleLineText(double spacingBefore) {
         var runs = new[] { new PdfTextRun("Table approval") };
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
-                Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24))
+                PageSetup = {
+                    Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = OfficeIMO.OfficeLength.Points(24), Top = OfficeIMO.OfficeLength.Points(24), Right = OfficeIMO.OfficeLength.Points(24), Bottom = OfficeIMO.OfficeLength.Points(24) }
+                }
             })
             .Table(new[] {
                 new[] {
@@ -255,7 +257,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void RadioButtonGroup_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Generated radio buttons:"))
+            .Paragraph(p => p.AddText("Generated radio buttons:"))
             .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Cash", size: 16, gap: 5, spacingAfter: 12)
             .ToBytes();
 
@@ -434,7 +436,7 @@ public class PdfFormCreationTests {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Form Body Font", fontPath)
-            .Paragraph(paragraph => paragraph.Text("Embedded body font"))
+            .Paragraph(paragraph => paragraph.AddText("Embedded body font"))
             .TextField("Styled.Name", value: "Ada")
             .ChoiceField("Styled.Country", new[] { "Poland", "Germany" }, value: "Poland")
             .ToBytes();
@@ -773,7 +775,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void ChoiceField_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Generated choice:"))
+            .Paragraph(p => p.AddText("Generated choice:"))
             .ChoiceField("Country", new[] { "Poland", "Germany", "United States" }, value: "Germany", width: 180, height: 24, spacingAfter: 12)
             .ToBytes();
 
@@ -832,7 +834,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void MultiSelectChoiceField_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Generated multi-select choice:"))
+            .Paragraph(p => p.AddText("Generated multi-select choice:"))
             .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Poland", "United States" }, width: 190, height: 72)
             .ToBytes();
 
@@ -918,12 +920,10 @@ public class PdfFormCreationTests {
     [Fact]
     public void ComposeRowsAndItems_CanPlaceGeneratedFormFields() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(320)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .Compose(document => document.Page(page => page.Content(content => {
                 content.Item(item => item
@@ -933,11 +933,11 @@ public class PdfFormCreationTests {
                 content.Row(row => row
                     .Gap(global::OfficeIMO.OfficeLength.Points(24))
                     .PercentColumn(50, column => column
-                        .Paragraph(p => p.Text("Left column"))
+                        .AddParagraph(p => p.AddText("Left column"))
                         .TextField("Left.Email", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "left@example.com", spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
                         .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20)))
                     .PercentColumn(50, column => column
-                        .Paragraph(p => p.Text("Right column"))
+                        .AddParagraph(p => p.AddText("Right column"))
                         .CheckBox("Right.Enabled", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(14), align: OfficeAlignment.Center, spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
                         .MultiSelectChoiceField("Right.Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Germany" }, width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(44))
                         .RadioButtonGroup("Right.Contact", new[] { "Email", "Phone" }, value: "Phone", size: global::OfficeIMO.OfficeLength.Points(12), gap: global::OfficeIMO.OfficeLength.Points(4))));

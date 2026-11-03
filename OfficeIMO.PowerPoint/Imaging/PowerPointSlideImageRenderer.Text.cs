@@ -84,7 +84,7 @@ internal static partial class PowerPointSlideImageRenderer {
         }
 
         return new OfficeFontInfo(
-            firstRun?.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
+            firstRun?.FontFamily ?? textBox.FontFamily ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
             mapping.MapFontSize(firstRun?.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints() ?? 18),
             style);
     }

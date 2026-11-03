@@ -67,16 +67,15 @@ public class MarkdownSaveAsPdfOptionsTests {
             Style = MarkdownPdfStyle.Plain(),
             PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultFont = PdfCore.PdfStandardFont.TimesRoman,
-                HeaderFont = PdfCore.PdfStandardFont.Courier,
-                FooterFont = PdfCore.PdfStandardFont.Helvetica
+                PageSetup = { Header = { StandardFont = PdfCore.PdfStandardFont.Courier }, Footer = { StandardFont = PdfCore.PdfStandardFont.Helvetica } }
             }
         };
 
         PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("# Heading\n\nBody").ToPdf(options);
 
         Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, document.Options.DefaultFont);
-        Assert.Equal(PdfCore.PdfStandardFont.Courier, document.Options.HeaderFont);
-        Assert.Equal(PdfCore.PdfStandardFont.Helvetica, document.Options.FooterFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Courier, document.Options.PageSetup.Header.StandardFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Helvetica, document.Options.PageSetup.Footer.StandardFont);
     }
 
     [Fact]
@@ -135,12 +134,10 @@ public class MarkdownSaveAsPdfOptionsTests {
         byte[] bytes = document.ToPdf(new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             }
         }).ToBytes();
 
@@ -173,12 +170,10 @@ public class MarkdownSaveAsPdfOptionsTests {
 
         var options = new MarkdownPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(240)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             }
         };

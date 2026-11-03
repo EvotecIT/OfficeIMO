@@ -14,7 +14,7 @@ public static partial class WordPdfConverterExtensions {
             (child is W.FootnoteReferenceMark or W.EndnoteReferenceMark) && defaults.NoteBodyLabel != null ||
             (child is W.SeparatorMark or W.ContinuationSeparatorMark) && defaults.NoteContentSection != null);
 
-    private static bool TryAddNativeNoteRun(PdfCore.PdfParagraphBuilder builder, WordParagraph run,
+    private static bool TryAddNativeNoteRun(PdfCore.PdfParagraph builder, WordParagraph run,
         WordParagraph paragraph, NativeNoteNumbering notes, IReadOnlyList<WordTabStop> tabStops,
         ref int tabIndex, WordPdfExportOptions? options, NativeDocumentDefaults defaults, NativeFontMap fonts,
         ISet<int> emittedNoteTokens) {
@@ -23,7 +23,7 @@ public static partial class WordPdfConverterExtensions {
             if (child is W.RunProperties) continue;
             if (TryCreateNativeNoteMarker(child, run, paragraph, notes, defaults, fonts,
                 NativeTableRunStyleDefaults.Empty, false, out PdfCore.PdfTextRun? marker, out int? token)) {
-                if (marker != null) builder.Runs(new[] { marker });
+                if (marker != null) builder.AddRuns(new[] { marker });
                 if (token.HasValue) emittedNoteTokens.Add(token.Value);
             } else {
                 WordParagraph view = CreateNativeRunContentView(run, new[] { child });
@@ -78,7 +78,7 @@ public static partial class WordPdfConverterExtensions {
         marker = style.ApplyTo(new PdfCore.PdfTextRun(label, bold: style.Bold,
             underline: style.Underline, italic: style.Italic, strike: style.Strike,
             color: style.Color, fontSize: ((double?)(style.FontSize ?? (configuredTypography ? null : defaults.FontSize)) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
-            font: style.Font, fontFamily: style.FontFamily, baseline: style.Baseline,
+            standardFont: style.Font, fontFamily: style.FontFamily, baseline: style.Baseline,
             backgroundColor: style.BackgroundColor, underlineStyle: style.UnderlineStyle,
             strikeStyle: style.StrikeStyle, linkDestinationName: destination));
         if (definition != null) marker = marker.WithFootnoteReference(definition);

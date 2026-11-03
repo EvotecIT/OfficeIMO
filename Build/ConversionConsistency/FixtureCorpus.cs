@@ -15,7 +15,7 @@ internal static partial class FixtureCorpus {
         Directory.CreateDirectory(output);
         const string family = "Consistency Sans";
         using (var word = WordDocument.Create()) {
-            word.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
+            word.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
             for (int page = 1; page <= 2; page++) {
                 if (page > 1) word.AddPageBreak();
                 var heading = word.AddParagraph("SERVICE REVIEW " + page);

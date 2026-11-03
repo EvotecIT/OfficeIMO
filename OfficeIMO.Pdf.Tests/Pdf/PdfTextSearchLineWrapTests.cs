@@ -424,7 +424,7 @@ public sealed class PdfTextSearchLineWrapTests {
     [Fact]
     public void GeneratedWrappedParagraphFindsPhraseAcrossTheWrap() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text(string.Join(" ", Enumerable.Range(1, 60).Select(index => "Needle marker " + index + " appears"))))
+            .Paragraph(paragraph => paragraph.AddText(string.Join(" ", Enumerable.Range(1, 60).Select(index => "Needle marker " + index + " appears"))))
             .ToBytes();
         PdfTextSpan[] spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans()
             .Where(static span => !string.IsNullOrWhiteSpace(span.Text)).ToArray();

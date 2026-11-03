@@ -117,7 +117,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
             expectations.Add(new HtmlCapabilityGalleryExpectation("tables", HtmlCapabilityGalleryExpectationOutcome.Preserved, "semantic and visual HTML contain table cells"));
         }
 
-        if (slideList.Any(slide => slide.Pictures.Any())) {
+        if (slideList.Any(slide => slide.Images.Any())) {
             expectations.Add(new HtmlCapabilityGalleryExpectation("pictures", HtmlCapabilityGalleryExpectationOutcome.VisualProof, "semantic inventory plus positioned image data URI"));
         }
 

@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(paragraphs[1].Paragraph.ParagraphProperties?.GetFirstChild<CharacterBullet>());
                 Assert.True(paragraphs[1].Runs[0].Bold);
                 Assert.True(paragraphs[1].Runs[2].Italic);
-                Assert.Equal("Consolas", paragraphs[1].Runs[4].FontName);
+                Assert.Equal("Consolas", paragraphs[1].Runs[4].FontFamily);
                 Assert.NotNull(paragraphs[2].Paragraph.ParagraphProperties?.GetFirstChild<AutoNumberedBullet>());
                 Assert.Equal(new Uri("https://example.com"), paragraphs[2].Runs.Last().Hyperlink);
 

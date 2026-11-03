@@ -39,14 +39,14 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Border Left Style: " + wordTable.Rows[1].Cells[0].Borders.LeftStyle);
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
+                wordTable.Rows[1].Cells[1].Borders.LeftColor = OfficeIMO.OfficeColor.OrangeRed;
 
                 wordTable.Rows[2].Cells[1].Borders.LeftStyle = WordBorderStyle.Double;
                 wordTable.Rows[2].Cells[1].Borders.LeftColor = Color.Gold;
                 wordTable.Rows[2].Cells[1].Borders.LeftSize = OfficeLength.Points(3);
 
                 Console.WriteLine("Border Left Style: " + wordTable.Rows[1].Cells[1].Borders.LeftStyle);
-                Console.WriteLine("Border Left Color: " + wordTable.Rows[1].Cells[1].Borders.LeftColorHex);
+                Console.WriteLine("Border Left Color: " + wordTable.Rows[1].Cells[1].Borders.LeftColor);
 
                 wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightColor = Color.Aqua;
                 wordTable.Rows[2].Cells[1].Borders.TopLeftToBottomRightSize = OfficeLength.Points(3);

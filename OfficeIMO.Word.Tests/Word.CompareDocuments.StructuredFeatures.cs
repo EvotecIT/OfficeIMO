@@ -37,8 +37,7 @@ namespace OfficeIMO.Tests {
         public void CompareStructureSplitsUnmatchedFieldsAcrossParts() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_header_field_deleted.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
-                document.Header!.Default!._header!.Append(new Paragraph(
+                document.PageSetup.Header._header!.Append(new Paragraph(
                     new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
                     CreateComparisonSimpleField(" AUTHOR ", "Alice")));
                 document.Save();
@@ -68,8 +67,7 @@ namespace OfficeIMO.Tests {
         public void CompareStructureSplitsMatchingFieldsAcrossDistinctHeaderParts() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_default_header_field.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
-                document.Header!.Default!._header!.Append(new Paragraph(
+                document.PageSetup.Header._header!.Append(new Paragraph(
                     new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
                     CreateComparisonSimpleField(" AUTHOR ", "Alice")));
                 document.Save();
@@ -77,9 +75,9 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_first_header_field.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddHeadersAndFooters();
-                document.DifferentFirstPage = true;
-                document.Header!.First!._header!.Append(new Paragraph(
+                _ = document.PageSetup.Header;
+                document.PageSetup.DifferentFirstPage = true;
+                document.PageSetup.FirstPageHeader._header!.Append(new Paragraph(
                     new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
                     CreateComparisonSimpleField(" AUTHOR ", "Alice")));
                 document.Save();
@@ -260,8 +258,7 @@ namespace OfficeIMO.Tests {
                         new Run(new Text("Ready"))))));
             table.Rows[0].Cells[1].Paragraphs[0]._paragraph.Append(CreateComparisonSimpleField(tableFieldInstruction, tableFieldResult));
 
-            document.AddHeadersAndFooters();
-            document.Header!.Default!._header!.Append(new Paragraph(
+            document.PageSetup.Header._header!.Append(new Paragraph(
                 new Run(new Text("Header: ") { Space = SpaceProcessingModeValues.Preserve }),
                 CreateComparisonSimpleField(headerFieldInstruction, headerFieldResult)));
             document.Save();

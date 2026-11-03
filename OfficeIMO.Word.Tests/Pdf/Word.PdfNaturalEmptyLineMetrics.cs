@@ -49,8 +49,8 @@ public partial class Word {
         foreach (W.Style style in styles.Elements<W.Style>()) style.RemoveAllChildren<W.StyleParagraphProperties>();
         WordTableCell? cell = story == "cell" ? document.AddTable(1, 1).Rows[0].Cells[0] : null;
         WordHeaderFooter? running = story switch {
-            "header" => document.HeaderDefaultOrCreate,
-            "footer" => document.FooterDefaultOrCreate,
+            "header" => document.PageSetup.Header,
+            "footer" => document.PageSetup.Footer,
             _ => null
         };
         if (running != null) foreach (var element in running.ChildElements.ToArray()) element.Remove();

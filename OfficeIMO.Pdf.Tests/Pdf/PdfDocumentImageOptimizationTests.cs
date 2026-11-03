@@ -107,7 +107,7 @@ public class PdfDocumentImageOptimizationTests {
         byte[] jpeg = CreateJpeg(400, 200);
         PdfDocument document = PdfDocument.Create(_ => { });
         document.Compose(compose => compose.Page(page => page
-            .Content(content => content.Item(item => item.Image(jpeg, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(36))))));
+            .Content(content => content.Item(item => item.AddImage(jpeg, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(36))))));
         document.Compose(compose => compose.Settings(settings => settings.ImageOptimization = new PdfImageOptimizationOptions {
             Enabled = true,
             TargetDpi = 72,

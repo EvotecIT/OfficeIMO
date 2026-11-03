@@ -231,7 +231,7 @@ public class PdfPageExtractionCancellationTests {
     }
 
     private static byte[] CreatePdf() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("Page extraction cancellation"))
+        .Paragraph(paragraph => paragraph.AddText("Page extraction cancellation"))
         .ToBytes();
 
     private sealed class ChunkedNonSeekableStream : Stream {

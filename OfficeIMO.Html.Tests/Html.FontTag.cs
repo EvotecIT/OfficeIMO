@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("00FF00", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("00FF00"), run.Color);
             Assert.Equal(18, run.FontSize?.ToPoints());
         }
     }

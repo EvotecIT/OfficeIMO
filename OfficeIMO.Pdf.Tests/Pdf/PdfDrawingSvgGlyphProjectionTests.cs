@@ -39,12 +39,10 @@ public sealed class PdfDrawingSvgGlyphProjectionTests {
 
         Assert.NotEmpty(OfficeDrawingRasterRenderer.Render(drawing).GetPixels());
         var replayOptions = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(drawing.Width),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(drawing.Height),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+            }
         }.SetTextShapingProvider(new RejectReshaping());
         byte[] replay = PdfDocument.Create(replayOptions)
             .Drawing(drawing).ToBytes();

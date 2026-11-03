@@ -146,7 +146,7 @@ public sealed class MermaidDocumentTests {
         var image = Assert.Single(parsed.Document.DescendantsAndSelf().OfType<OfficeMarkupImageBlock>());
         Assert.Equal("Request approval", image.Caption);
         using var presentation = parsed.Document.ToPowerPointDocument();
-        var picture = Assert.Single(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>());
+        var picture = Assert.Single(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointImage>());
         Assert.Equal(image.Alt, picture.AltText);
         Assert.Equal("Approval flow", picture.AltText);
         var png = Convert.FromBase64String(image.Source.Substring(image.Source.IndexOf(',') + 1));
@@ -192,7 +192,7 @@ public sealed class MermaidDocumentTests {
             AllowDataUriImages = allowed,
             MaximumDataUriImageBytes = oversized ? 1 : 16L * 1024 * 1024
         });
-        Assert.Empty(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>());
+        Assert.Empty(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointImage>());
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
@@ -219,7 +219,7 @@ public sealed class MermaidDocumentTests {
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(uri, "Embedded image"));
         using var presentation = markup.ToPowerPointDocument();
-        Assert.Equal(bytes, Assert.Single(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>()).GetImageBytes());
+        Assert.Equal(bytes, Assert.Single(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointImage>()).GetImageBytes());
         markup.Profile = OfficeMarkupProfile.Document;
         using var word = markup.ToWordDocument();
         AssertWordImageFitsContent(word);
@@ -228,7 +228,7 @@ public sealed class MermaidDocumentTests {
     private static void AssertWordImageFitsContent(OfficeIMO.Word.WordDocument document) {
         var image = Assert.Single(document.Images);
         var section = document.Sections.First();
-        double available = ((double)checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - (double)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (double)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()))) / 15;
+        double available = ((double)checked((uint?)(section.PageSetup.Size.Width?.ToTwips()))!.Value - (double)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) - (double)checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips()))) / 15;
         Assert.InRange(image.Width!.Value.ToPixels(), 1, available + 0.001);
     }
 

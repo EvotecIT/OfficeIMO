@@ -1,9 +1,9 @@
 namespace OfficeIMO.PowerPoint;
 
-internal readonly struct PowerPointPictureCrop {
-    public static PowerPointPictureCrop None { get; } = new(0D, 0D, 0D, 0D);
+internal readonly struct PowerPointImageCrop {
+    public static PowerPointImageCrop None { get; } = new(0D, 0D, 0D, 0D);
 
-    public PowerPointPictureCrop(double left, double top, double right, double bottom) {
+    public PowerPointImageCrop(double left, double top, double right, double bottom) {
         Left = left;
         Top = top;
         Right = right;

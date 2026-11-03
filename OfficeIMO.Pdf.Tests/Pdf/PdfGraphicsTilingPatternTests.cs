@@ -108,6 +108,8 @@ public sealed class PdfGraphicsTilingPatternTests {
             12D, 10D, repeatX, repeatY, transform, originX: 3D, originY: 5D);
     }
 
-    private static PdfCreateOptions Options() => new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(90D), PageHeight = global::OfficeIMO.OfficeLength.Points(60D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D) };
+    private static PdfCreateOptions Options() => new PdfCreateOptions { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(60D)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+    } };
 }

@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             const string vp8 = "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoQABAAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=";
             using var document = WordDocument.Create();
             using (var image = new MemoryStream(Convert.FromBase64String(vp8))) {
-                document.AddParagraph().AddImage(image, "sample.webp", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Red sample" });
+                document.AddParagraph().AddImage(image, "sample.webp", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Red sample" });
             }
 
             using var packageStream = new MemoryStream(document.ToBytes());
@@ -217,8 +217,8 @@ namespace OfficeIMO.Tests {
 
             var image = Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg");
 
-            document.AddHeadersAndFooters();
-            document.DifferentOddAndEvenPages = true;
+            _ = document.PageSetup.Header;
+            document.PageSetup.DifferentOddAndEvenPages = true;
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var evenHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Even);
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
             var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
             var paragraphHeader = evenHeader.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
-                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "This is a test" });
+                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "This is a test" });
                 var headerImage = paragraphHeader.Image;
                 Assert.NotNull(headerImage);
                 Assert.True(headerImage!.CompressionQuality == WordImageCompressionQuality.Print);
@@ -275,16 +275,16 @@ namespace OfficeIMO.Tests {
             Assert.True(defaultHeader.Images.Count == 1);
             Assert.True(evenHeader.Images.Count == 1);
             Assert.True(evenHeader.Images[0].FileName == fileNameImageEvotec);
-            Assert.True(evenHeader.Images[0].Description == "This is a test");
+            Assert.True(evenHeader.Images[0].AltText == "This is a test");
 
             var headerEvenImage = evenHeader.Images[0];
             Assert.NotNull(headerEvenImage);
-            headerEvenImage!.Description = "Different description";
+            headerEvenImage!.AltText = "Different description";
             Assert.True(headerEvenImage.VerticalFlip == null);
             Assert.True(headerEvenImage.HorizontalFlip == null);
             headerEvenImage.VerticalFlip = true;
 
-            Assert.True(headerEvenImage.Description == "Different description");
+            Assert.True(headerEvenImage.AltText == "Different description");
             Assert.True(headerEvenImage.VerticalFlip == true);
             Assert.True(headerEvenImage.CompressionQuality == WordImageCompressionQuality.Print);
             headerEvenImage.CompressionQuality = WordImageCompressionQuality.HighQualityPrint;
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests {
             var paragraph = table.Rows[0].Cells[1].AddParagraph();
             paragraph.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var tableInHeader = defaultHeader.AddTable(2, 2);
@@ -838,15 +838,15 @@ namespace OfficeIMO.Tests {
 
             using (var reloaded = WordDocument.Load(filePath)) {
                 var img = reloaded.Images[0];
-                Assert.Equal("FF0000", img.AlphaInversionColorHex);
+                Assert.Equal(OfficeColor.Parse("FF0000"), img.AlphaInversionColor);
                 Assert.Equal(60, img.BlackWhiteThreshold);
                 Assert.Equal(2000, (img.BlurRadius?.ToEmus()));
                 Assert.True(img.BlurGrow == true);
-                Assert.Equal("97E4FE", img.ColorChangeFromHex);
-                Assert.Equal("FF3399", img.ColorChangeToHex);
-                Assert.Equal("00FF00", img.ColorReplacementHex);
-                Assert.Equal("000000", img.DuotoneColor1Hex);
-                Assert.Equal("FFFFFF", img.DuotoneColor2Hex);
+                Assert.Equal(OfficeColor.Parse("97E4FE"), img.ColorChangeFrom);
+                Assert.Equal(OfficeColor.Parse("FF3399"), img.ColorChangeTo);
+                Assert.Equal(OfficeColor.Parse("00FF00"), img.ColorReplacement);
+                Assert.Equal(OfficeColor.Parse("000000"), img.DuotoneColor1);
+                Assert.Equal(OfficeColor.Parse("FFFFFF"), img.DuotoneColor2);
                 Assert.True(img.GrayScale == true);
                 Assert.Equal(65, img.LuminanceBrightness);
                 Assert.Equal(30, img.LuminanceContrast);

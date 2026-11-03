@@ -35,14 +35,14 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2D);
 
         PowerPointTextBox title = slide.AddTextBox("PowerPoint PDF Visual Gate",global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(122),global::OfficeIMO.OfficeLength.Points(32));
-        title.FontName = "Georgia";
+        title.FontFamily = "Georgia";
         title.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-        title.Color = "123456";
+        title.Color = OfficeColor.Parse("123456");
         title.FillTransparency = 100;
 
         PowerPointTextBox body = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(52),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(30));
         body.FontSize = global::OfficeIMO.OfficeLength.Points(8);
-        body.Color = "334155";
+        body.Color = OfficeColor.Parse("334155");
         body.FillTransparency = 100;
         body.SetBullets(new[] { "Text placement", "Tables and charts" });
 
@@ -105,15 +105,15 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         background.OutlineColor = "FFFDF7";
 
         PowerPointTextBox title = slide.AddTextBox("Dense Layout Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(16),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(22));
-        title.FontName = "Arial";
+        title.FontFamily = "Arial";
         title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-        title.Color = "1A1F2B";
+        title.Color = OfficeColor.Parse("1A1F2B");
         title.Bold = true;
         title.FillTransparency = 100;
 
         PowerPointTextBox list = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(44),global::OfficeIMO.OfficeLength.Points(128),global::OfficeIMO.OfficeLength.Points(62));
         list.FontSize = global::OfficeIMO.OfficeLength.Points(8);
-        list.Color = "334155";
+        list.Color = OfficeColor.Parse("334155");
         list.FillTransparency = 100;
         list.SetBullets(
             new[] { "Explicit hanging indent", "Tight but readable prefix" },
@@ -134,7 +134,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         table.GetCell(1, 1).HorizontalAlignment = OfficeIMO.PowerPoint.PowerPointTextAlignment.Center;
 
         byte[] logoBytes = File.ReadAllBytes(System.IO.Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png"));
-        PowerPointPicture picture = slide.AddImage(new MemoryStream(logoBytes), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(220)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(64)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
+        PowerPointImage picture = slide.AddImage(new MemoryStream(logoBytes), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(220)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(64)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
         picture.AltText = "OfficeIMO visual gate logo";
 
         var chartData = new PowerPointChartData(

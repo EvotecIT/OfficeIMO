@@ -175,9 +175,9 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointSlide second = presentation.AddSlide();
         PowerPointSlide third = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBox("FIRST ",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(160));
-        box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(16);
+        box.FontFamily = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(16);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
-        box.Paragraphs[0].AddRun("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
+        box.Paragraphs[0].AddText("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
@@ -200,7 +200,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
-        PowerPointPicture picture = first.AddImage(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
+        PowerPointImage picture = first.AddImage(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
             OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40)).WithFrame(PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(40));
         picture.Rotation = 30; picture.SetHyperlink(second);
         PowerPointTableCell cell = first.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(90)).GetCell(0, 0);
@@ -227,7 +227,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         PowerPointSlide first = presentation.AddSlide(); PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBox("GROUP LINK",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
-        box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
+        box.FontFamily = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         PowerPointGroupShape group = first.GroupShapes(new PowerPointShape[] { box, first.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(110), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10)) });
         PdfCore.PdfLinkAnnotation original = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);

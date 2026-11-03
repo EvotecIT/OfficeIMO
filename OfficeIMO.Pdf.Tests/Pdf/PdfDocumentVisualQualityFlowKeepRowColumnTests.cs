@@ -16,18 +16,16 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnParagraph_KeepTogetherMovesWholeParagraphToNextPage() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Compose(document =>
@@ -35,12 +33,13 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p
-                                    .Text("ColumnKeepFirst")
-                                    .LineBreak()
-                                    .Text("ColumnKeepMiddle")
-                                    .LineBreak()
-                                    .Text("ColumnKeepLast"), style: new PdfParagraphStyle {
+                                .AddParagraph(p => {
+                                    p.AddText("ColumnKeepFirst");
+                                    p.AddLineBreak();
+                                    p.AddText("ColumnKeepMiddle");
+                                    p.AddLineBreak();
+                                    p.AddText("ColumnKeepLast");
+                                }, style: new PdfParagraphStyle {
                                         KeepTogether = true,
                                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                     }))))))
@@ -58,18 +57,16 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnList_KeepTogetherMovesWholeBulletListToNextPage() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Compose(document =>
@@ -77,7 +74,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Bullets(new[] {
+                                .AddList(new[] {
                                     "ColumnKeepListFirst",
                                     "ColumnKeepListMiddle",
                                     "ColumnKeepListLast"
@@ -99,18 +96,16 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnList_KeepWithNextMovesNumberedListWithFollowingParagraph() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(60)
             })
             .Compose(document =>
@@ -118,7 +113,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Numbered(new[] {
+                                .AddNumberedList(new[] {
                                     "ColumnKeepNumberOne",
                                     "ColumnKeepNumberTwo"
                                 }, style: new PdfListStyle {
@@ -126,7 +121,7 @@ public partial class PdfDocumentVisualQualityTests {
                                     ItemSpacing = global::OfficeIMO.OfficeLength.Points(0),
                                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                 })
-                                .Paragraph(p => p.Text("ColumnFollowingListBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingListBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -142,18 +137,16 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnParagraph_KeepWithNextMovesParagraphWithFollowingParagraph() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Compose(document =>
@@ -161,10 +154,10 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p.Text("ColumnKeepWithNextLabel"), style: new PdfParagraphStyle {
+                                .AddParagraph(p => p.AddText("ColumnKeepWithNextLabel"), style: new PdfParagraphStyle {
                                     KeepWithNext = true
                                 })
-                                .Paragraph(p => p.Text("ColumnFollowingBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -179,18 +172,16 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnParagraph_KeepWithNextMovesParagraphWithFollowingList() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
             })
             .Compose(document =>
@@ -198,10 +189,10 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p.Text("ColumnKeepWithListLabel"), style: new PdfParagraphStyle {
+                                .AddParagraph(p => p.AddText("ColumnKeepWithListLabel"), style: new PdfParagraphStyle {
                                     KeepWithNext = true
                                 })
-                                .Bullets(new[] { "ColumnFollowingBullet" }))))))
+                                .AddList(new[] { "ColumnFollowingBullet" }))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -216,18 +207,16 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnParagraph_KeepWithNextMeasuresFollowingHeadingChain() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(56)
             })
             .Compose(document =>
@@ -235,11 +224,11 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p.Text("ColumnChainKeepWithNext"), style: new PdfParagraphStyle {
+                                .AddParagraph(p => p.AddText("ColumnChainKeepWithNext"), style: new PdfParagraphStyle {
                                     KeepWithNext = true
                                 })
                                 .H3("ColumnFollowingHeading")
-                                .Paragraph(p => p.Text("ColumnFollowingHeadingBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingHeadingBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -257,12 +246,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnParagraph_LongKeepWithNextChainRendersWithBoundedMeasurement() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(400),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8)
             })
@@ -272,12 +259,12 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => {
                                 for (int i = 0; i < 768; i++) {
-                                    column.Paragraph(
-                                        paragraph => paragraph.Text("Keep" + i.ToString(CultureInfo.InvariantCulture)),
+                                    column.AddParagraph(
+                                        paragraph => paragraph.AddText("Keep" + i.ToString(CultureInfo.InvariantCulture)),
                                         style: new PdfParagraphStyle { KeepWithNext = true });
                                 }
 
-                                column.Paragraph(paragraph => paragraph.Text("KeepChainTail"));
+                                column.AddParagraph(paragraph => paragraph.AddText("KeepChainTail"));
                             })))))
             .ToBytes();
 
@@ -289,12 +276,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnHeading_KeepsWithFollowingParagraph() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -305,11 +290,11 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
+                                .AddParagraph(p => p.AddText("ColumnIntroMarker"), style: new PdfParagraphStyle {
                                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
                                 })
                                 .H3("ColumnSignalHeading")
-                                .Paragraph(p => p.Text("ColumnSignalBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnSignalBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -324,12 +309,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnParagraph_WidowControlAvoidsSingleLineAtPageBottom() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -340,15 +323,16 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p.Text("ColumnIntroMarker"), style: new PdfParagraphStyle {
+                                .AddParagraph(p => p.AddText("ColumnIntroMarker"), style: new PdfParagraphStyle {
                                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(70)
                                 })
-                                .Paragraph(p => p
-                                    .Text("ColumnWidowFirst")
-                                    .LineBreak()
-                                    .Text("ColumnWidowSecond")
-                                    .LineBreak()
-                                    .Text("ColumnWidowThird"), style: new PdfParagraphStyle {
+                                .AddParagraph(p => {
+                                    p.AddText("ColumnWidowFirst");
+                                    p.AddLineBreak();
+                                    p.AddText("ColumnWidowSecond");
+                                    p.AddLineBreak();
+                                    p.AddText("ColumnWidowThird");
+                                }, style: new PdfParagraphStyle {
                                         WidowControl = true,
                                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                     }))))))
@@ -366,18 +350,16 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RowColumnPanelParagraph_KeepWithNextMovesPanelWithFollowingParagraph() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(60)
             })
             .Compose(document =>
@@ -385,12 +367,12 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .PanelParagraph(p => p.Text("ColumnPanelKeepWithNext"), new PdfPanelStyle {
+                                .AddPanelParagraph(p => p.AddText("ColumnPanelKeepWithNext"), new PdfPanelStyle {
                                     KeepWithNext = true,
                                     PaddingY = global::OfficeIMO.OfficeLength.Points(5),
                                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                 })
-                                .Paragraph(p => p.Text("ColumnFollowingPanelBody")))))))
+                                .AddParagraph(p => p.AddText("ColumnFollowingPanelBody")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

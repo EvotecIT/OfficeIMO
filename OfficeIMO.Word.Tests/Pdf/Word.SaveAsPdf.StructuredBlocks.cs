@@ -1027,11 +1027,11 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTextWatermark.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             WordWatermark watermark = header.AddWatermark(WordWatermarkStyle.Text, "CONFIDENTIAL");
             watermark.FontFamily = "Arial";
-            watermark.ColorHex = "silver";
+            watermark.Color = OfficeColor.Parse("silver");
             watermark.Opacity = 0.35;
             document.AddParagraph("Native watermark body text");
 
@@ -1061,7 +1061,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             WordWatermark watermark = header.AddWatermark(WordWatermarkStyle.Image, imagePath);
             watermark.Opacity = 0.35;
@@ -1093,7 +1093,7 @@ public partial class Word {
 
         Assert.Equal(new[] { "Monospace VML text", "\n", "Next line" }, runs.Select(run => run.Text));
         Assert.All(runs, run => {
-            Assert.Equal(PdfStandardFont.Courier, run.Font);
+            Assert.Equal(PdfStandardFont.Courier, run.StandardFont);
             Assert.Equal(16D, (run.FontSize?.ToPoints()));
         });
     }
@@ -1126,7 +1126,7 @@ public partial class Word {
         PdfTextRun plain = Assert.Single(runs, run => run.Text == "Not underlined");
         Assert.False(plain.Underline);
         PdfTextRun textPath = Assert.Single(runs, run => run.Text == "TextPath cover label");
-        Assert.Equal(PdfStandardFont.Courier, textPath.Font);
+        Assert.Equal(PdfStandardFont.Courier, textPath.StandardFont);
         Assert.Equal(18D, (textPath.FontSize?.ToPoints()));
     }
 
@@ -1155,7 +1155,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterCellLineBreak.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordTable headerTable = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTable(1, 1, WordTableStyle.TableNormal);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "Native header first";
             headerTable.Rows[0].Cells[0].AddParagraph("Native header second");

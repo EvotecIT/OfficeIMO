@@ -64,9 +64,8 @@ namespace OfficeIMO.Examples.Word.Converters {
             document.Properties.Subject = "Word to Markdown conversion with visual fallback";
             document.Properties.Creator = "OfficeIMO";
 
-            document.AddHeadersAndFooters();
-            document.Header!.Default!.AddParagraph("OfficeIMO advanced Markdown conversion");
-            document.Footer!.Default!.AddParagraph("Generated from OfficeIMO.Word.Markdown");
+            document.PageSetup.Header.AddParagraph("OfficeIMO advanced Markdown conversion");
+            document.PageSetup.Footer.AddParagraph("Generated from OfficeIMO.Word.Markdown");
 
             var toc = document.AddTableOfContent(minLevel: 1, maxLevel: 3);
             toc.Text = "Contents";

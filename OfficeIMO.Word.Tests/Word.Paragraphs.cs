@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
                 paragraph.AddText(" this is more continuation").SetItalic().SetCapsStyle(WordCapsStyle.Caps);
 
-                Assert.True(document.Paragraphs[0].ColorHex == OfficeIMO.OfficeColor.Blue.ToRgbHex(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == OfficeIMO.OfficeColor.Blue, "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[0].Color == OfficeIMO.OfficeColor.Blue, "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[0].Bold == true, "Basic paragraph - Page 1");
                 Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[0].FontFamilyHighAnsi == null);
                 Assert.True(document.Paragraphs[0].FontFamilyComplexScript == null);
 
-                Assert.True(document.Paragraphs[1].ColorHex == OfficeIMO.OfficeColor.Yellow.ToRgbHex(), "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[1].Color);
+                Assert.True(document.Paragraphs[1].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[1].Color);
                 Assert.True(document.Paragraphs[1].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[1].Color);
 
                 Assert.True(document.Paragraphs[1].Bold == false, "2nd paragraph should not be bold");
@@ -80,11 +80,11 @@ namespace OfficeIMO.Tests {
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Paragraphs[0].Color == OfficeIMO.OfficeColor.Blue, "1st paragraph color should be the same");
-                Assert.True(document.Paragraphs[0].ColorHex == OfficeIMO.OfficeColor.Blue.ToRgbHex(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == OfficeIMO.OfficeColor.Blue, "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[0].Bold == true, "Basic paragraph - Page 1");
                 Assert.True(document.Paragraphs[0].FontFamily == "Tahoma", "1st paragraph should be set with Tahoma");
 
-                Assert.True(document.Paragraphs[1].ColorHex == OfficeIMO.OfficeColor.Yellow.ToRgbHex(), "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[1].Color);
+                Assert.True(document.Paragraphs[1].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[1].Color);
                 Assert.True(document.Paragraphs[1].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[1].Color);
 
                 Assert.True(document.Paragraphs[1].Bold == false, "2nd paragraph should not be bold");
@@ -109,13 +109,13 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.ColorHex = OfficeIMO.OfficeColor.Red.ToRgbHex();
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.ColorHex = OfficeIMO.OfficeColor.Yellow.ToRgbHex();
+                paragraph.Color = OfficeIMO.OfficeColor.Yellow;
 
                 Assert.True(paragraph.DoNotCheckSpellingOrGrammar == false, "DoNotCheckSpellingOrGrammar should not be set.");
                 paragraph.DoNotCheckSpellingOrGrammar = true;
@@ -149,20 +149,20 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs[2] == document.Paragraphs[2]);
 
                 Assert.True(document.Paragraphs[0].Color == OfficeIMO.OfficeColor.Red, "1st paragraph color should be the same");
-                Assert.True(document.Paragraphs[0].ColorHex == OfficeIMO.OfficeColor.Red.ToRgbHex(), "1st paragraph color should be the same");
+                Assert.True(document.Paragraphs[0].Color == OfficeIMO.OfficeColor.Red, "1st paragraph color should be the same");
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
                 Assert.True(document.Paragraphs[2].Color == OfficeIMO.OfficeColor.Yellow, "3rd paragraph color should be the same");
-                Assert.True(document.Paragraphs[2].ColorHex == OfficeIMO.OfficeColor.Yellow.ToRgbHex(), "3rd paragraph color should be the same");
+                Assert.True(document.Paragraphs[2].Color == OfficeIMO.OfficeColor.Yellow, "3rd paragraph color should be the same");
                 Assert.True(document.Paragraphs[2].DoNotCheckSpellingOrGrammar == true, "3rd paragraph DoNotCheckSpellingOrGrammar should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
                 Assert.True(document.Paragraphs[3].DoNotCheckSpellingOrGrammar == false, "4th paragraph DoNotCheckSpellingOrGrammar should not be set");
                 Assert.True(document.Paragraphs[4].Color == OfficeIMO.OfficeColor.Blue, "5th paragraph color should be the same");
-                Assert.True(document.Paragraphs[4].ColorHex == OfficeIMO.OfficeColor.Blue.ToRgbHex(), "5th paragraph color should be the same");
+                Assert.True(document.Paragraphs[4].Color == OfficeIMO.OfficeColor.Blue, "5th paragraph color should be the same");
                 Assert.True(document.Paragraphs[4].Bold == true, "5th paragraph should be bold");
                 Assert.True(document.Paragraphs[4].FontFamily == "Tahoma", "5th paragraph should be set with Tahoma");
 
                 Assert.True(document.Paragraphs[5].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[5].Color);
-                Assert.True(document.Paragraphs[5].ColorHex == OfficeIMO.OfficeColor.Yellow.ToRgbHex(), "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[5].Color);
+                Assert.True(document.Paragraphs[5].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[5].Color);
 
                 Assert.True(document.Paragraphs[5].Bold == false, "2nd paragraph should not be bold");
                 Assert.True(document.Paragraphs[5].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[5].FontFamily);
@@ -207,15 +207,15 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithParagraphsAndSomeStyles.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                var paragraph = document.AddParagraph().SetText("Basic paragraph - Page 1").SetColorHex("#FF0000").SetStrike();
+                var paragraph = document.AddParagraph().SetText("Basic paragraph - Page 1").SetColor(OfficeColor.Parse("#FF0000")).SetStrike();
 
                 document.AddPageBreak();
 
-                paragraph = document.AddParagraph().SetColorHex("#FFFF00").SetSpacing(OfficeLength.Points(1)).SetDoubleStrike();
+                paragraph = document.AddParagraph().SetColor(OfficeColor.Parse("#FFFF00")).SetSpacing(OfficeLength.Points(1)).SetDoubleStrike();
 
                 document.AddPageBreak();
 
-                paragraph = document.AddParagraph().SetColorHex("").SetStyle(WordParagraphStyles.Heading4).SetText("Style with Heading4").SetColorHex("#FFFF00");
+                paragraph = document.AddParagraph().SetStyle(WordParagraphStyles.Heading4).SetText("Style with Heading4").SetColor(OfficeColor.Parse("#FFFF00"));
 
                 Assert.True(document.Sections.Count() == 1, "Sections count doesn't match. Provided: " + document.Sections.Count);
                 Assert.True(document.Paragraphs.Count == 5, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);

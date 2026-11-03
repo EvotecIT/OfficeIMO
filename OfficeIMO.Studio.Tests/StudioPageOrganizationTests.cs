@@ -162,7 +162,7 @@ public sealed class StudioPageOrganizationTests {
         return PdfDocument.Create(compose => {
             for (int page = 1; page <= 6; page++) {
                 int number = page;
-                compose.Page(builder => builder.Content(content => content.Item(item => item.Text("Page " + number))));
+                compose.Page(builder => builder.Content(content => content.Item(item => item.AddParagraph("Page " + number))));
             }
         });
     }

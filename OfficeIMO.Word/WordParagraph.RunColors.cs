@@ -10,9 +10,9 @@ public partial class WordParagraph {
         var scheme = _document?._wordprocessingDocument.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
         OfficeColor literal = OfficeOpenXmlThemeColorResolver.ResolveSchemeColor(scheme, slot)
             ?? color.Resolve(_document?.EffectiveCreationTheme ?? OfficeTheme.Default);
-        ColorHex = literal.ToRgbHex();
+        RunColorValue = literal.ToRgbHex();
         if (slot == null) return;
-        // ColorHex owns run/SDT/hyperlink selection and clears any previous theme transforms.
+        // RunColorValue owns run/SDT/hyperlink selection and clears any previous theme transforms.
         var native = ScopedRunProperties!.Color!;
         native.ThemeColor = color.Role switch {
             OfficeColorRole.Accent1 => ThemeColorValues.Accent1,

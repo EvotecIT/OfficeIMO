@@ -48,7 +48,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(180));
         var slide = deck.AddSlide();
         var box = slide.AddTextBox("FIRST\nSECOND\nTAIL",global::OfficeIMO.OfficeLength.Points(-5),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(12));
-        box.FontName = "Helvetica";
+        box.FontFamily = "Helvetica";
         box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         box.TextAutoFit = PowerPointTextAutoFit.None;
         box.TextMarginLeft = global::OfficeIMO.OfficeLength.Points(15);

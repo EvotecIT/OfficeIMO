@@ -8,8 +8,8 @@ namespace OfficeIMO.Word.Html {
             int available = cell != null
                 ? (_tableCellContentWidths.TryGetValue(cell._tableCell, out int? cached) ? cached :
                     WordTable.EstimateCellContentWidthInDxa(document, cell._tableCell)) ?? 1
-                : Math.Max(1, (int)(checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
-                    - (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())));
+                : Math.Max(1, (int)(checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
+                    - (int)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
             int desired = available;
             if (table.Width?.LengthValue is { } length && length > global::OfficeIMO.OfficeLength.Zero) desired = checked((int)length.ToTwips());
             else if (table.Width?.PercentValue is double percent && percent > 0)

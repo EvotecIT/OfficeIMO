@@ -60,7 +60,7 @@ save-on-dispose behavior uses the same shared lifecycle options as Word and Exce
 
 ```csharp
 using var edited = PowerPointDocument.Load("deck.pptx");
-edited.ReplaceText("Draft", "Approved");
+edited.ReplaceAll("Draft", "Approved");
 edited.Save();
 
 using var inspected = PowerPointDocument.Load("deck.pptx",
@@ -81,7 +81,7 @@ Normal loading detects the OLE document streams, so callers do not need a separa
 using var presentation = PowerPointDocument.Load("legacy-deck.ppt");
 
 Console.WriteLine(presentation.SourceFormat); // Ppt
-presentation.ReplaceText("Draft", "Approved");
+presentation.ReplaceAll("Draft", "Approved");
 presentation.SaveCopy("updated.pptx");
 ```
 

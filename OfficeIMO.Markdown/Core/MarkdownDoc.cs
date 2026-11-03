@@ -363,28 +363,24 @@ public partial class MarkdownDocument : MarkdownObject {
         return this;
     }
 
-    /// <summary>Adds an MarkdownH1 heading.</summary>
-    public MarkdownDocument H1(string text) => Append(new HeadingBlock(1, text));
-    /// <summary>Adds an MarkdownH2 heading.</summary>
-    public MarkdownDocument H2(string text) => Append(new HeadingBlock(2, text));
-    /// <summary>Adds an MarkdownH3 heading.</summary>
-    public MarkdownDocument H3(string text) => Append(new HeadingBlock(3, text));
-    /// <summary>Adds an H4 heading.</summary>
-    public MarkdownDocument H4(string text) => Append(new HeadingBlock(4, text));
-    /// <summary>Adds an H5 heading.</summary>
-    public MarkdownDocument H5(string text) => Append(new HeadingBlock(5, text));
-    /// <summary>Adds an H6 heading.</summary>
-    public MarkdownDocument H6(string text) => Append(new HeadingBlock(6, text));
+    /// <summary>Adds a level 1 heading. Shortcut for <see cref="AddHeading(string, int)"/>.</summary>
+    public MarkdownDocument H1(string text) { AddHeading(text, 1); return this; }
+    /// <summary>Adds a level 2 heading. Shortcut for <see cref="AddHeading(string, int)"/>.</summary>
+    public MarkdownDocument H2(string text) { AddHeading(text, 2); return this; }
+    /// <summary>Adds a level 3 heading. Shortcut for <see cref="AddHeading(string, int)"/>.</summary>
+    public MarkdownDocument H3(string text) { AddHeading(text, 3); return this; }
+    /// <summary>Adds a level 4 heading. Shortcut for <see cref="AddHeading(string, int)"/>.</summary>
+    public MarkdownDocument H4(string text) { AddHeading(text, 4); return this; }
+    /// <summary>Adds a level 5 heading. Shortcut for <see cref="AddHeading(string, int)"/>.</summary>
+    public MarkdownDocument H5(string text) { AddHeading(text, 5); return this; }
+    /// <summary>Adds a level 6 heading. Shortcut for <see cref="AddHeading(string, int)"/>.</summary>
+    public MarkdownDocument H6(string text) { AddHeading(text, 6); return this; }
 
-    /// <summary>Adds a paragraph with plain text.</summary>
-    public MarkdownDocument P(string text) => Append(new ParagraphBlock(new InlineSequence().Text(text)));
+    /// <summary>Adds a paragraph with plain text. Shortcut for <see cref="AddParagraph(string)"/>.</summary>
+    public MarkdownDocument P(string text) { AddParagraph(text); return this; }
 
-    /// <summary>Adds a paragraph composed with the paragraph builder.</summary>
-    public MarkdownDocument P(Action<MarkdownParagraphBuilder> build) {
-        MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
-        build(builder);
-        return Append(new ParagraphBlock(builder.Inlines));
-    }
+    /// <summary>Adds a paragraph composed with the paragraph builder. Shortcut for <see cref="AddParagraph(Action{MarkdownParagraphBuilder})"/>.</summary>
+    public MarkdownDocument P(Action<MarkdownParagraphBuilder> build) { AddParagraph(build); return this; }
 
     /// <summary>Adds a simple block quote with a single line of text.</summary>
     public MarkdownDocument Quote(string text) => Append(new QuoteBlock(new[] { text ?? string.Empty }));
@@ -421,26 +417,14 @@ public partial class MarkdownDocument : MarkdownObject {
         return Append(new CalloutBlock(kind, title, body.Blocks));
     }
 
-    /// <summary>Adds an unordered list.</summary>
-    public MarkdownDocument Ul(Action<MarkdownUnorderedListBuilder> build) {
-        MarkdownUnorderedListBuilder builder = new MarkdownUnorderedListBuilder();
-        build(builder);
-        return Append(builder.Build());
-    }
+    /// <summary>Adds a bulleted list. Shortcut for <see cref="AddList(Action{MarkdownUnorderedListBuilder})"/>.</summary>
+    public MarkdownDocument Ul(Action<MarkdownUnorderedListBuilder> build) { AddList(build); return this; }
 
-    /// <summary>Adds an ordered list.</summary>
-    public MarkdownDocument Ol(Action<MarkdownOrderedListBuilder> build) {
-        MarkdownOrderedListBuilder builder = new MarkdownOrderedListBuilder();
-        build(builder);
-        return Append(builder.Build());
-    }
+    /// <summary>Adds a numbered list. Shortcut for <see cref="AddOrderedList(Action{MarkdownOrderedListBuilder})"/>.</summary>
+    public MarkdownDocument Ol(Action<MarkdownOrderedListBuilder> build) { AddOrderedList(build); return this; }
 
-    /// <summary>Adds a definition list.</summary>
-    public MarkdownDocument Dl(Action<MarkdownDefinitionListBuilder> build) {
-        MarkdownDefinitionListBuilder builder = new MarkdownDefinitionListBuilder();
-        build(builder);
-        return Append(builder.Build());
-    }
+    /// <summary>Adds a definition list. Shortcut for <see cref="AddDefinitionList(Action{MarkdownDefinitionListBuilder})"/>.</summary>
+    public MarkdownDocument Dl(Action<MarkdownDefinitionListBuilder> build) { AddDefinitionList(build); return this; }
 
     /// <summary>Adds a fenced code block.</summary>
     public MarkdownDocument Code(string language, string content) {
@@ -460,45 +444,34 @@ public partial class MarkdownDocument : MarkdownObject {
         return this;
     }
 
-    /// <summary>Adds an image block with optional alt text and title.</summary>
-    public MarkdownDocument Image(string path, string? alt, string? title)
-        => Append(new ImageBlock(path, alt, title));
-
-    /// <summary>Adds an image block with optional alt text, title, and physical display lengths.</summary>
-    public MarkdownDocument Image(string path, string? alt = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null)
-        => Append(new ImageBlock(path, alt, title, width, height));
-
-    /// <summary>Adds a table built with <see cref="MarkdownTableBuilder"/>.</summary>
-    public MarkdownDocument Table(Action<MarkdownTableBuilder> build) {
-        MarkdownTableBuilder tb = new MarkdownTableBuilder();
-        build(tb);
-        return Append(tb.Build());
+    /// <summary>Adds an image. Shortcut for <see cref="AddImage(string, string?, string?, OfficeLength?, OfficeLength?)"/>.</summary>
+    public MarkdownDocument Image(string path, string? altText = null, string? title = null, OfficeLength? width = null, OfficeLength? height = null) {
+        AddImage(path, altText, title, width, height);
+        return this;
     }
+
+    /// <summary>Adds a table. Shortcut for <see cref="AddTable(Action{MarkdownTableBuilder})"/>.</summary>
+    public MarkdownDocument Table(Action<MarkdownTableBuilder> build) { AddTable(build); return this; }
 
     /// <summary>
-    /// Builds a table via <see cref="MarkdownTableBuilder"/>, then applies auto-alignment heuristics if requested.
+    /// Adds a table with numeric/date alignment heuristics. Shortcut for
+    /// <see cref="AddTable(Action{MarkdownTableBuilder})"/> followed by the builder's AlignDatesCenter and AlignNumericRight.
     /// </summary>
     public MarkdownDocument TableAuto(Action<MarkdownTableBuilder> build, bool alignNumeric = true, bool alignDates = true) {
-        MarkdownTableBuilder tb = new MarkdownTableBuilder();
-        build(tb);
-        if (alignDates) tb.AlignDatesCenter();
-        if (alignNumeric) tb.AlignNumericRight();
-        return Append(tb.Build());
+        if (build == null) throw new ArgumentNullException(nameof(build));
+        AddTable(builder => {
+            build(builder);
+            if (alignDates) builder.AlignDatesCenter();
+            if (alignNumeric) builder.AlignNumericRight();
+        });
+        return this;
     }
 
-    /// <summary>Adds an unordered list from a sequence of items using ToString().</summary>
-    public MarkdownDocument Ul<T>(System.Collections.Generic.IEnumerable<T> items) {
-        MarkdownUnorderedListBuilder builder = new MarkdownUnorderedListBuilder();
-        builder.Items(items, null);
-        return Append(builder.Build());
-    }
+    /// <summary>Adds a bulleted list from item values. Shortcut for <see cref="AddList{T}(IEnumerable{T})"/>.</summary>
+    public MarkdownDocument Ul<T>(System.Collections.Generic.IEnumerable<T> items) { AddList(items); return this; }
 
-    /// <summary>Adds an ordered list from a sequence of items using ToString().</summary>
-    public MarkdownDocument Ol<T>(System.Collections.Generic.IEnumerable<T> items, int start = 1) {
-        MarkdownOrderedListBuilder builder = new MarkdownOrderedListBuilder().StartAt(start);
-        builder.Items(items, null);
-        return Append(builder.Build());
-    }
+    /// <summary>Adds a numbered list from item values. Shortcut for <see cref="AddOrderedList{T}(IEnumerable{T}, int)"/>.</summary>
+    public MarkdownDocument Ol<T>(System.Collections.Generic.IEnumerable<T> items, int start = 1) { AddOrderedList(items, start); return this; }
 
     /// <summary>Renders an embeddable HTML fragment. Wraps in &lt;article class="markdown-body"&gt; by default.</summary>
     internal string RenderHtmlFragment(MarkdownHtmlExportOptions? options = null) {

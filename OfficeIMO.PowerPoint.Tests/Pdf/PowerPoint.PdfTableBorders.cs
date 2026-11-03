@@ -18,7 +18,7 @@ public sealed class PowerPointPdfTableBorderTests {
             for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
                 var cell = table.GetCell(row, column);
                 cell.Text = row == 0 ? "Plain" : "Body";
-                cell.Color = "000000";
+                cell.Color = OfficeColor.Parse("000000");
                 cell.FillColor = "FFFFFF";
                 cell.SetBorders(PowerPointTableCellBorders.All, "000000", global::OfficeIMO.OfficeLength.Points(2));
             }

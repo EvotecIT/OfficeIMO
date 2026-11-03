@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel.Pdf {
             // so the room they have is the band between the header margin and the sheet.
             double headerMarginPoints = GetHeaderFooterMarginPoints(pageSetup, header: true);
             // Keep the line's descent and a small gap clear of the sheet below it.
-            double headerLineClearance = (options.RunningLineFontSize ?? options.PdfOptions?.HeaderFontSize.ToPoints() ?? DefaultHeaderFooterFontSize) * 0.25D + 3D;
+            double headerLineClearance = (options.RunningLineFontSize ?? options.PdfOptions?.PageSetup.Header.FontSize.ToPoints() ?? DefaultHeaderFooterFontSize) * 0.25D + 3D;
             FitHeaderFooterImagesToMargin(preparedImages, header: true, Math.Max(0D, pageMargins.Top.ToPoints() - headerMarginPoints - headerLineClearance) + HeaderTextAllowance, sheetName, options);
             double tallestHeaderImage = new[] { preparedImages.HeaderLeft, preparedImages.HeaderCenter, preparedImages.HeaderRight }
                 .Where(image => image != null).Select(image => image!.HeightPoints).DefaultIfEmpty(0D).Max();
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel.Pdf {
             bool hasEvenHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
             if (HasAnyText(headerZones) || hasFirstHeaderVariant || hasEvenHeaderVariant || preparedImages.HasHeaderImages) {
                 HeaderFooterLineStyle? headerStyle = WithBodyFont(ResolveSharedHeaderFooterStyle(new[] { headerZones, firstHeaderZones, evenHeaderZones }, sheetName, options, "header"), options);
-                double headerOffset = ResolveHeaderLineOffset(pageMargins.Top.ToPoints(), headerMarginPoints, headerStyle?.FontSize ?? options.PdfOptions?.HeaderFontSize.ToPoints(), tallestHeaderImage);
+                double headerOffset = ResolveHeaderLineOffset(pageMargins.Top.ToPoints(), headerMarginPoints, headerStyle?.FontSize ?? options.PdfOptions?.PageSetup.Header.FontSize.ToPoints(), tallestHeaderImage);
                 page.Header(header => {
                     ApplyHeaderFooterStyle(header, headerStyle);
                     header.Offset(OfficeLength.Points(headerOffset));
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Pdf {
             bool hasEvenFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
             if (HasAnyText(footerZones) || hasFirstFooterVariant || hasEvenFooterVariant || preparedImages.HasFooterImages) {
                 HeaderFooterLineStyle? footerStyle = WithBodyFont(ResolveSharedHeaderFooterStyle(new[] { footerZones, firstFooterZones, evenFooterZones }, sheetName, options, "footer"), options);
-                double footerOffset = ResolveHeaderFooterLineOffset(header: false, pageMargins.Bottom.ToPoints(), GetHeaderFooterMarginPoints(pageSetup, header: false), footerStyle?.FontSize ?? options.PdfOptions?.FooterFontSize.ToPoints(), footerImageOffset);
+                double footerOffset = ResolveHeaderFooterLineOffset(header: false, pageMargins.Bottom.ToPoints(), GetHeaderFooterMarginPoints(pageSetup, header: false), footerStyle?.FontSize ?? options.PdfOptions?.PageSetup.Footer.FontSize.ToPoints(), footerImageOffset);
                 page.Footer(footer => {
                     ApplyHeaderFooterStyle(footer, footerStyle);
                     footer.Offset(OfficeLength.Points(footerOffset));
@@ -438,7 +438,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (style.Font.HasValue) {
-                header.Font(style.Font.Value);
+                header.StandardFont(style.Font.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(style.FontFamilyName)) {
@@ -460,7 +460,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (style.Font.HasValue) {
-                footer.Font(style.Font.Value);
+                footer.StandardFont(style.Font.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(style.FontFamilyName)) {
@@ -622,7 +622,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>Gives header or footer text without its own font the workbook body font.</summary>
         private static HeaderFooterLineStyle? WithBodyFont(HeaderFooterLineStyle? style, ExcelPdfExportOptions options) {
             if (string.IsNullOrWhiteSpace(options.RunningLineFontFamily) ||
-                options.PdfOptions?.HeaderFontFamily != null || options.PdfOptions?.FooterFontFamily != null) return style;
+                options.PdfOptions?.PageSetup.Header.FontFamily != null || options.PdfOptions?.PageSetup.Footer.FontFamily != null) return style;
             // Text with its own font, or bold or italic text, keeps the existing font mapping.
             if (style != null && (!string.IsNullOrWhiteSpace(style.FontFamilyName) || style.FontFamily.HasValue || style.Bold || style.Italic)) return style;
             return new HeaderFooterLineStyle {

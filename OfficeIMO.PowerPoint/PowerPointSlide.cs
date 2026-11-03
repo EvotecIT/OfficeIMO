@@ -44,9 +44,9 @@ namespace OfficeIMO.PowerPoint {
         public IEnumerable<PowerPointTextBox> TextBoxes => ShapeList.OfType<PowerPointTextBox>();
 
         /// <summary>
-        ///     Enumerates all picture shapes on the slide.
+        ///     Enumerates all image shapes on the slide.
         /// </summary>
-        public IEnumerable<PowerPointPicture> Pictures => ShapeList.OfType<PowerPointPicture>();
+        public IEnumerable<PowerPointImage> Images => ShapeList.OfType<PowerPointImage>();
 
         /// <summary>
         ///     Enumerates all embedded audio and video media shapes on the slide.

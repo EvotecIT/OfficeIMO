@@ -45,7 +45,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "A", "B" },
                                         new[] { "1", "2" }
                                     }, style: style))))))
@@ -63,7 +63,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.Text("KeepWithNextPrelude"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("KeepWithNextPrelude"), style: new PdfParagraphStyle {
                     KeepWithNext = true
                 })
                 .Table(new[] {
@@ -203,7 +203,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "A", "B" },
                                         new[] { "1", "2" }
                                     }, style: style))))))
@@ -223,7 +223,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.Text("KeepWithNextPrelude"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("KeepWithNextPrelude"), style: new PdfParagraphStyle {
                     KeepWithNext = true
                 })
                 .Table(new[] {
@@ -271,7 +271,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "A", "B" },
                                         new[] { "1", "2" }
                                     }, style: style))))))
@@ -291,7 +291,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.Text("KeepWithNextPrelude"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("KeepWithNextPrelude"), style: new PdfParagraphStyle {
                     KeepWithNext = true
                 })
                 .Table(new[] {
@@ -319,7 +319,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "A", "B" },
                                         new[] { "1", "2" }
                                     }, style: style))))))
@@ -335,7 +335,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.Text("KeepWithNextPrelude"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("KeepWithNextPrelude"), style: new PdfParagraphStyle {
                     KeepWithNext = true
                 })
                 .Table(new[] {

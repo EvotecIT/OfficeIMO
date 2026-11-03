@@ -119,7 +119,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         CreateEpub(epub);
         string pdf = Path.Combine(scope.Path, "document.pdf");
         PdfDocument.Create(document => document.Page(page => page.Content(content =>
-            content.Item(item => item.Paragraph(paragraph => paragraph.Text("workflow provenance")))))).Save(pdf);
+            content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("workflow provenance")))))).Save(pdf);
         string html = scope.Write("document.html", "<!doctype html><html><body>workflow provenance</body></html>");
         string markdown = scope.Write("document.md", "# Workflow provenance");
         string png = Path.Combine(scope.Path, "image.png");

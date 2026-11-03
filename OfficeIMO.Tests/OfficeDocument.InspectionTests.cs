@@ -30,7 +30,7 @@ public sealed class OfficeDocumentInspectionTests {
                     break;
                 case ReaderInputKind.Pdf:
                     using (var document = PdfDocument.Create()) {
-                        document.Compose(builder => builder.Content(content => content.Text("Inspection content")));
+                        document.Compose(builder => builder.Content(content => content.AddParagraph("Inspection content")));
                         document.Save(path, new PdfSaveOptions { AllowLoss = true });
                     }
                     break;

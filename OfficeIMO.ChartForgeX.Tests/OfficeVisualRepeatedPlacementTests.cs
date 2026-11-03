@@ -43,7 +43,7 @@ public sealed partial class OfficeVisualIntegrationTests {
                 for (int index = 0; index < expected.Length; index++) {
                     var image = document.Images[index];
                     Assert.Equal(expected[index].GetPlacementBytes(), image.ToBytes());
-                    Assert.Equal(expected[index].AlternativeText, image.Description);
+                    Assert.Equal(expected[index].AlternativeText, image.AltText);
                     Assert.Equal(400D, (image.Width?.ToPixels())!.Value, 6);
                     Assert.Equal(240D, (image.Height?.ToPixels())!.Value, 6);
                 }
@@ -74,9 +74,9 @@ public sealed partial class OfficeVisualIntegrationTests {
             using (var presentation = PowerPointDocument.Load(presentationPath)) {
                 Assert.Equal(expected.Length, presentation.Slides.Count);
                 for (int index = 0; index < expected.Length; index++) {
-                    var image = Assert.Single(presentation.Slides[index].Pictures);
+                    var image = Assert.Single(presentation.Slides[index].Images);
                     Assert.Equal(expected[index].GetPlacementBytes(), image.GetImageBytes());
-                    Assert.Equal(expected[index].AlternativeText, image.Description);
+                    Assert.Equal(expected[index].AlternativeText, image.AltText);
                     Assert.Equal(300D, image.Width.ToPoints(), 6);
                     Assert.Equal(180D, image.Height.ToPoints(), 6);
                 }

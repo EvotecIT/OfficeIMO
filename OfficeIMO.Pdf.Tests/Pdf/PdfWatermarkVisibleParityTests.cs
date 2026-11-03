@@ -21,10 +21,10 @@ public partial class PdfDocumentVisualQualityTests {
     public void WatermarkVisibleParityPreservesSeparateFirstPageChoice(bool image, int start, int first) {
         byte[] png = PdfPngTestImages.CreateRgbPng(255, 0, 0);
         var document = PdfDocument.Create();
-        document.Section(page => page.Content(content => content.Text("S1")));
+        document.Section(page => page.Content(content => content.AddParagraph("S1")));
         document.Section(page => {
             page.PageNumberStart(start);
-            page.Options.UsePageNumberParityForHeaderFooter = true;
+            page.Options.PageSetup.UseVisiblePageNumberParity = true;
             if (image) {
                 page.EvenPagesImageWatermark(new PdfImageWatermark(png, width: global::OfficeIMO.OfficeLength.Points(22), height: global::OfficeIMO.OfficeLength.Points(22)));
                 if (first == 1) page.FirstPageImageWatermark(new PdfImageWatermark(png, width: global::OfficeIMO.OfficeLength.Points(31), height: global::OfficeIMO.OfficeLength.Points(31)));
@@ -34,7 +34,7 @@ public partial class PdfDocumentVisualQualityTests {
                 if (first == 1) page.FirstPageWatermark("FIRSTMARK", font: PdfStandardFont.TimesRoman);
                 else if (first == 2) page.SuppressFirstPageTextWatermark();
             }
-            page.Content(content => content.Text("S2A").PageBreak().Text("S2B"));
+            page.Content(content => content.AddParagraph("S2A").PageBreak().AddParagraph("S2B"));
         });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(3, pdf.NumberOfPages);

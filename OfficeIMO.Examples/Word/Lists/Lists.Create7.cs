@@ -129,8 +129,8 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Lists[0].AddItem("More then enough");
 
-                var defaultHeader = document.HeaderDefaultOrCreate;
-                var defaultFooter = document.FooterDefaultOrCreate;
+                var defaultHeader = document.PageSetup.Header;
+                var defaultFooter = document.PageSetup.Footer;
 
                 var listInHeader = defaultHeader.AddList(WordListStyle.Bulleted);
 

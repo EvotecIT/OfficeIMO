@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             var run = paragraph.GetRuns().First();
             // CSS pixels are 1/96 inch: 24px is 18pt.
             Assert.Equal(18, run.FontSize?.ToPoints());
-            Assert.Equal("123456", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("123456"), run.Color);
         }
 
         [Fact]
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Single, run.Underline);
             Assert.True(run.Strike);
             Assert.Equal(16, run.FontSize?.ToPoints());
-            Assert.Equal("008000", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("008000"), run.Color);
         }
 
         [Fact]
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("FF0080", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0080"), run.Color);
         }
 
         [Fact]
@@ -73,11 +73,11 @@ namespace OfficeIMO.Tests {
             string html = "<div style=\"color:#ff0000;font-size:20px;\">A<span style=\"font-size:10px;\">B</span><span>C</span></div>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
-            Assert.Equal("FF0000", runs[0].ColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), runs[0].Color);
             Assert.Equal(15D, runs[0].FontSize?.ToPoints());
-            Assert.Equal("FF0000", runs[1].ColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), runs[1].Color);
             Assert.Equal(7.5D, runs[1].FontSize?.ToPoints());
-            Assert.Equal("FF0000", runs[2].ColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), runs[2].Color);
             Assert.Equal(15D, runs[2].FontSize?.ToPoints());
         }
 
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("0000FF", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("0000FF"), run.Color);
         }
 
         [Fact]
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("ABCDEF", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("ABCDEF"), run.Color);
             Assert.Equal(8.5D, run.FontSize?.ToPoints());
         }
 
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
             var paragraph = doc.Paragraphs[0];
             var run = paragraph.GetRuns().First();
 
-            Assert.Equal("123456", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("123456"), run.Color);
             Assert.Null(paragraph.IndentationBefore?.ToPoints());
         }
     }

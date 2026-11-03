@@ -17,7 +17,7 @@ public class PowerPointTextInsetTests {
         var boxes = new[] { topLeft, bottomRight };
         foreach (var box in boxes) {
             box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            box.FontName = "Helvetica";
+            box.FontFamily = "Helvetica";
             if (explicitZero) {
                 box.TextMarginLeft = box.TextMarginRight = global::OfficeIMO.OfficeLength.Points(0D);
                 box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0D);

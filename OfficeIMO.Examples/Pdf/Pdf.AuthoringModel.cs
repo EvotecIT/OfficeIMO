@@ -10,8 +10,8 @@ namespace OfficeIMO.Examples.Pdf {
                 .Typography(OfficeRenderingProfile.Managed)
                 .Settings(options => {
                     options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
-                    options.PageSize = PdfPageSizes.A4;
-                    options.Margins = PdfPageMargins.Uniform(OfficeLength.Points(64));
+                    options.PageSetup.Size = PdfPageSizes.A4;
+                    options.PageSetup.Margins.Set(PdfPageMargins.Uniform(OfficeLength.Points(64)));
                     options.Language = "en-GB";
                 })
                 .Content(content => content
@@ -23,23 +23,23 @@ namespace OfficeIMO.Examples.Pdf {
                         .KeepTogether()
                         .Content(article => article
                             .H1("Operational summary")
-                            .Text("The same content receiver powers documents, pages, elements, components, and row columns.")
+                            .AddParagraph("The same content receiver powers documents, pages, elements, components, and row columns.")
                             .Spacer(global::OfficeIMO.OfficeLength.Points(10))
                             .Row(row => row
                                 .Gap(global::OfficeIMO.OfficeLength.Points(12))
                                 .FixedColumn(global::OfficeIMO.OfficeLength.Points(54), cell => cell
                                     .H3("ID")
-                                    .Text("A-104"))
+                                    .AddParagraph("A-104"))
                                 .AutoColumn(cell => cell
                                     .H3("Owner")
-                                    .Text("Operations"), maximum: global::OfficeIMO.OfficeLength.Points(100))
+                                    .AddParagraph("Operations"), maximum: global::OfficeIMO.OfficeLength.Points(100))
                                 .RelativeColumn(cell => cell
                                     .H3("Status")
-                                    .Text("Validated through explicit fixed, automatic, and relative sizing.")))))
+                                    .AddParagraph("Validated through explicit fixed, automatic, and relative sizing.")))))
                     .Spacer(global::OfficeIMO.OfficeLength.Points(12))
                     .Semantic(PdfSemanticRole.Section, section => section
                         .H2("Notes")
-                        .Text("Semantic groups feed the tagged-PDF structure tree without changing visual flow."))))
+                        .AddParagraph("Semantic groups feed the tagged-PDF structure tree without changing visual flow."))))
                 .Meta(title: "OfficeIMO.Pdf authoring model", author: "OfficeIMO")
                 .Save(path);
 

@@ -102,7 +102,6 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.UpdateFieldsOnOpen = true;
                 document.AddTableOfContent(tableOfContentStyle: WordTableOfContentsStyle.Template2);
-                document.AddHeadersAndFooters();
                 //var pageNumber = document.Header!.Default.AddPageNumber(WordPageNumberStyle.Circle);
                 var footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
                 var pageNumber = footer.AddPageNumber(WordPageNumberStyle.VerticalOutline2);

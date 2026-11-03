@@ -353,7 +353,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPicture`
+- `OfficeIMO.PowerPoint.PowerPointImage`
 
 ## RELATED LINKS
 

@@ -15,12 +15,12 @@ public class WordTableCellBorderColors {
         borders.LeftStyle = borders.RightStyle = borders.TopStyle = borders.BottomStyle =
             borders.InsideHorizontalStyle = borders.InsideVerticalStyle = borders.StartStyle = borders.EndStyle =
             borders.TopLeftToBottomRightStyle = borders.TopRightToBottomLeftStyle = WordBorderStyle.Single;
-        borders.LeftColorHex = borders.RightColorHex = borders.TopColorHex = borders.BottomColorHex =
-            borders.InsideHorizontalColorHex = borders.InsideVerticalColorHex = borders.StartColorHex = borders.EndColorHex =
-            borders.TopLeftToBottomRightColorHex = borders.TopRightToBottomLeftColorHex = "#123456";
-        borders.LeftColorHex = borders.RightColorHex = borders.TopColorHex = borders.BottomColorHex =
-            borders.InsideHorizontalColorHex = borders.InsideVerticalColorHex = borders.StartColorHex = borders.EndColorHex =
-            borders.TopLeftToBottomRightColorHex = borders.TopRightToBottomLeftColorHex = null;
+        borders.LeftColor = borders.RightColor = borders.TopColor = borders.BottomColor =
+            borders.InsideHorizontalColor = borders.InsideVerticalColor = borders.StartColor = borders.EndColor =
+            borders.TopLeftToBottomRightColor = borders.TopRightToBottomLeftColor = OfficeColor.Parse("#123456");
+        borders.LeftColor = borders.RightColor = borders.TopColor = borders.BottomColor =
+            borders.InsideHorizontalColor = borders.InsideVerticalColor = borders.StartColor = borders.EndColor =
+            borders.TopLeftToBottomRightColor = borders.TopRightToBottomLeftColor = null;
 
         using var artifact = new System.IO.MemoryStream(document.ToBytes());
         using var package = WordprocessingDocument.Open(artifact, false);

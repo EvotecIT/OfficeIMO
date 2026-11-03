@@ -110,8 +110,7 @@ public sealed class WordPdfReportedTabTests {
             document.AddParagraph("SEED");
             source = document.OpenXmlDocument.MainDocumentPart!.Document.Body!.Elements<W.Paragraph>().Last();
         } else {
-            document.AddHeadersAndFooters();
-            WordHeaderFooter story = container == "header" ? document.Header.Default! : document.Footer.Default!;
+            WordHeaderFooter story = container == "header" ? document.PageSetup.Header : document.PageSetup.Footer;
             story.AddParagraph("SEED");
             var main = document.OpenXmlDocument.MainDocumentPart!;
             source = container == "header"

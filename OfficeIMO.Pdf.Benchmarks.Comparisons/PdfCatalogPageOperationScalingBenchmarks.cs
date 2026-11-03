@@ -41,7 +41,7 @@ public class PdfCatalogPageOperationScalingBenchmarks {
                 if (FeatureMode == PdfCatalogFeatureMode.PerPageBookmark) {
                     content.Bookmark("Bookmark " + page.ToString("D4", System.Globalization.CultureInfo.InvariantCulture));
                 }
-                content.Paragraph(paragraph => paragraph.Text(Marker(page)));
+                content.AddParagraph(paragraph => paragraph.AddText(Marker(page)));
             }
         }), options);
 

@@ -395,7 +395,7 @@ public sealed class PdfTableDetectionValidationTests {
                 HeaderBold = false,
                 ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(220D) }
             })
-            .Paragraph(paragraph => paragraph.Text(narrative))
+            .Paragraph(paragraph => paragraph.AddText(narrative))
             .Table(new[] {
                 new[] { "Second owner", "Second status" },
                 new[] { "East region", "In progress" },

@@ -7,7 +7,7 @@ using OfficeIMO.PowerPoint;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class PowerPointPictureUpdate {
+    public class PowerPointImageUpdate {
         public static IEnumerable<object[]> ImageData => new[] {
             new object[] { "BackgroundImage.png", OfficeImageFormat.Png, "image/png" },
             new object[] { "Kulek.jpg", OfficeImageFormat.Jpeg, "image/jpeg" },
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointPicture picture = slide.AddImage(imagePath);
+            PowerPointImage picture = slide.AddImage(imagePath);
             var blip = slide.SlidePart.Slide!.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single();
             var vectorPart = slide.SlidePart.AddImagePart(DocumentFormat.OpenXml.Packaging.ImagePartType.Svg);
             using (var svg = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg'/>"))) vectorPart.FeedData(svg);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddImage(imagePath);
+                PowerPointImage picture = slide.AddImage(imagePath);
 
                 Assert.Equal(expectedContentType, picture.ContentType);
                 Assert.Equal(expectedContentType, picture.MimeType);
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
-                PowerPointPicture picture = Assert.Single(presentation.Slides.Single().Pictures);
+                PowerPointImage picture = Assert.Single(presentation.Slides.Single().Images);
                 Assert.Equal(expectedContentType, picture.ContentType);
                 Assert.Equal(expectedContentType, picture.MimeType);
             }
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using PowerPointDocument reopened = PowerPointDocument.Load(filePath);
-                PowerPointPicture pictureModel = Assert.Single(reopened.Slides.Single().Pictures);
+                PowerPointImage pictureModel = Assert.Single(reopened.Slides.Single().Images);
                 Assert.Null(pictureModel.ContentType);
                 Assert.Null(pictureModel.MimeType);
             } finally {
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddImage(originalImage);
+                PowerPointImage picture = slide.AddImage(originalImage);
                 using FileStream stream = new(newImagePath, FileMode.Open, FileAccess.Read);
                 picture.UpdateImage(stream, type);
                 Assert.Equal(expectedContentType, picture.ContentType);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
-                PowerPointPicture picture = slide.Pictures.First();
+                PowerPointImage picture = slide.Images.First();
                 Assert.Equal(expectedContentType, picture.ContentType);
                 Assert.Equal(expectedContentType, picture.MimeType);
             }
@@ -137,8 +137,8 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture original = slide.AddImage(originalImage);
-                PowerPointPicture duplicate = Assert.IsType<PowerPointPicture>(slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(250000), OfficeIMO.OfficeLength.Emus(0)));
+                PowerPointImage original = slide.AddImage(originalImage);
+                PowerPointImage duplicate = Assert.IsType<PowerPointImage>(slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(250000), OfficeIMO.OfficeLength.Emus(0)));
 
                 using FileStream stream = new(replacementImage, FileMode.Open, FileAccess.Read);
                 original.UpdateImage(stream, OfficeImageFormat.Jpeg);
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
-                PowerPointPicture[] pictures = presentation.Slides.Single().Pictures.ToArray();
+                PowerPointImage[] pictures = presentation.Slides.Single().Images.ToArray();
                 Assert.Equal(2, pictures.Length);
                 Assert.Contains(pictures, picture => picture.ContentType == "image/jpeg");
                 Assert.Contains(pictures, picture => picture.ContentType == "image/png");

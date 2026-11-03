@@ -13,8 +13,8 @@ public partial class Word {
     public void NativeDocCharacterScalePreservesStandardHeaderFooterStyles(bool footer, bool directReset) {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Body");
-        WordParagraph paragraph = footer ? source.FooterDefaultOrCreate.AddParagraph("Story width")
-            : source.HeaderDefaultOrCreate.AddParagraph("Story width");
+        WordParagraph paragraph = footer ? source.PageSetup.Footer.AddParagraph("Story width")
+            : source.PageSetup.Header.AddParagraph("Story width");
         string styleId = footer ? "Footer" : "Header";
         paragraph.SetStyleId(styleId);
         Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -27,7 +27,7 @@ public partial class Word {
         Assert.Empty(source.ValidateDocument());
 
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordParagraph actual = (footer ? loaded.Sections[0].Footer.Default!.Paragraphs : loaded.Sections[0].Header.Default!.Paragraphs)
+        WordParagraph actual = (footer ? loaded.Sections[0].PageSetup.Footer.Paragraphs : loaded.Sections[0].PageSetup.Header.Paragraphs)
             .Single(item => item.Text == "Story width");
         Style imported = loaded._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<Style>().Single(item => item.StyleId == actual.StyleId);
@@ -40,7 +40,7 @@ public partial class Word {
 
         loaded.AddParagraph("Edited body");
         using WordDocument savedAgain = WordDocument.Load(new MemoryStream(loaded.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordParagraph repeated = (footer ? savedAgain.Sections[0].Footer.Default!.Paragraphs : savedAgain.Sections[0].Header.Default!.Paragraphs)
+        WordParagraph repeated = (footer ? savedAgain.Sections[0].PageSetup.Footer.Paragraphs : savedAgain.Sections[0].PageSetup.Header.Paragraphs)
             .Single(item => item.Text == "Story width");
         Style repeatedStyle = savedAgain._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<Style>().Single(item => item.StyleId == repeated.StyleId);

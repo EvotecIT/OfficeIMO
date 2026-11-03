@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word
 
             using (WordDocument document = WordDocument.Load(filePath))
             {
-                foreach (var paragraph in document.Find("Second"))
+                foreach (var paragraph in document.Find("Second").Paragraphs)
                     Console.WriteLine($"Found: {paragraph.Text}");
                 foreach (var paragraph in document.Find(new System.Text.RegularExpressions.Regex("Sec.*")).BodyParagraphs)
                     Console.WriteLine($"Regex found: {paragraph.Text}");

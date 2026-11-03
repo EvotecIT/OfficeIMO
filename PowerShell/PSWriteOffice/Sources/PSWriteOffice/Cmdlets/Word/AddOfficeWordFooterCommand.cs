@@ -27,7 +27,12 @@ public sealed class AddOfficeWordFooterCommand : PSWriteOffice.Cmdlets.OfficeMut
     protected override void ProcessRecord() {
         var context = WordDslContext.Require(this);
         var section = context.RequireSection();
-        var footer = section.GetOrCreateFooter(Type);
+        var setup = section.PageSetup;
+        var footer = Type switch {
+            WordHeaderFooterType.First => setup.FirstPageFooter,
+            WordHeaderFooterType.Even => setup.EvenPageFooter,
+            _ => setup.Footer
+        };
 
         using (context.Push(footer)) {
             Content?.InvokeReturnAsIs();

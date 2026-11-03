@@ -24,7 +24,7 @@ public class PdfFlowGroupTests {
     public void KeepTogether_MovesMeasuredGroupAndCapturesFinalRegion() {
         var capture = new PdfLayoutPositionCapture();
         byte[] bytes = CreateShortPageDocument()
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .Spacer(105)
             .Flow(
                 item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
@@ -44,12 +44,12 @@ public class PdfFlowGroupTests {
         var capture = new PdfLayoutPositionCapture();
         int invocations = 0;
         byte[] bytes = CreateShortPageDocument()
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .Spacer(100)
             .Deferred(
                 context => {
                     invocations++;
-                    return item => item.Paragraph(paragraph => paragraph.Text("Deferred page " + context.PageNumber));
+                    return item => item.AddParagraph(paragraph => paragraph.AddText("Deferred page " + context.PageNumber));
                 },
                 new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) },
                 capture)
@@ -68,31 +68,31 @@ public class PdfFlowGroupTests {
             .Deferred(
                 _ => {
                     materialized = true;
-                    return item => item.Paragraph(paragraph => paragraph.Text("Hidden"));
+                    return item => item.AddParagraph(paragraph => paragraph.AddText("Hidden"));
                 },
                 new PdfFlowOptions { ShowIf = _ => false },
                 conditionalCapture)
-            .Paragraph(paragraph => paragraph.Text("Visible"))
+            .Paragraph(paragraph => paragraph.AddText("Visible"))
             .ToBytes();
 
         var skipCapture = new PdfLayoutPositionCapture();
         byte[] skipped = CreateShortPageDocument()
-            .Paragraph(paragraph => paragraph.Text("Before"))
+            .Paragraph(paragraph => paragraph.AddText("Before"))
             .Spacer(105)
             .Flow(
                 item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
                 new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.Skip },
                 skipCapture)
-            .Paragraph(paragraph => paragraph.Text("After skip"))
+            .Paragraph(paragraph => paragraph.AddText("After skip"))
             .ToBytes();
 
         byte[] stopped = CreateShortPageDocument()
-            .Paragraph(paragraph => paragraph.Text("Before"))
+            .Paragraph(paragraph => paragraph.AddText("Before"))
             .Spacer(105)
             .Flow(
                 item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
                 new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.StopDocument })
-            .Paragraph(paragraph => paragraph.Text("After stop"))
+            .Paragraph(paragraph => paragraph.AddText("After stop"))
             .ToBytes();
 
         Assert.False(materialized);
@@ -105,12 +105,10 @@ public class PdfFlowGroupTests {
 
     private static PdfDocument CreateShortPageDocument() {
         return PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(200),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(200),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            },
             CompressContentStreams = false
         });
     }
@@ -134,8 +132,8 @@ public class PdfFlowGroupTests {
         }
 
         public void Compose(PdfContentBuilder content) {
-            content.Paragraph(paragraph => paragraph.Text(_title))
-                .Paragraph(paragraph => paragraph.Text("The same engine owns component layout."));
+            content.AddParagraph(paragraph => paragraph.AddText(_title))
+                .AddParagraph(paragraph => paragraph.AddText("The same engine owns component layout."));
         }
     }
 }

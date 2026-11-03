@@ -23,10 +23,9 @@ namespace OfficeIMO.PowerPoint {
                 templateParagraph.Remove();
             }
 
-            PowerPointParagraph paragraph = AppendParagraph(textBody, text ?? string.Empty, templateParagraph);
-            PowerPointTextRun authoredRun = paragraph.GetDefaultRun();
+            PowerPointParagraph paragraph = AppendParagraph(textBody, text ?? string.Empty, templateParagraph, out PowerPointTextRun authoredRun);
             configure?.Invoke(paragraph);
-            run?.Invoke(authoredRun.Run.Parent != null ? authoredRun : paragraph.AddRun(text ?? string.Empty));
+            if (run != null) run(authoredRun.Run.Parent != null ? authoredRun : paragraph.AddText(text ?? string.Empty));
 
             return paragraph;
         }
@@ -85,7 +84,10 @@ namespace OfficeIMO.PowerPoint {
             return Cell.TextBody;
         }
 
-        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph) {
+        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph) =>
+            AppendParagraph(textBody, text, templateParagraph, out _);
+
+        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph, out PowerPointTextRun authoredRun) {
             A.Paragraph paragraph = new();
             if (templateParagraph?.ParagraphProperties != null) {
                 paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
@@ -105,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
 
             textBody.Append(paragraph);
             var wrapper = new PowerPointParagraph(paragraph, _slidePart, _ownerPart);
-            wrapper.InsertRun(text, templateRunProperties != null
+            authoredRun = wrapper.InsertRun(text, templateRunProperties != null
                 ? CleanRunProperties((A.RunProperties)templateRunProperties.CloneNode(true))
                 : new A.RunProperties { Language = PowerPointTableTextDefaults.Language });
             return wrapper;

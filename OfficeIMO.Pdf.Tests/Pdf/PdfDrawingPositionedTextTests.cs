@@ -30,8 +30,10 @@ public sealed class PdfDrawingPositionedTextTests {
             new OfficeFontUnicodeRangeSet(new[] { new OfficeFontUnicodeRange('A', 'A') }));
         Assert.NotEqual(family, Assert.Single(profileFonts.Faces).ResourceFamilyName);
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(100D), PageHeight = global::OfficeIMO.OfficeLength.Points(80D),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+            }
         }.UseRenderingProfile(new OfficeRenderingProfile("prepared-alias", profileFonts));
         byte[] bytes = PdfDocument.Create(options)
             .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D))).ToBytes();
@@ -62,7 +64,10 @@ public sealed class PdfDrawingPositionedTextTests {
         var drawing = new OfficeDrawing(100, 80).AddPositionedText("A", 10, 10, 80, 60,
             new OfficeFontInfo("Helvetica", 20), alignment: OfficeTextAlignment.Center, textAdvanceWidth: 50);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(80), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+            }
         }).Compose(c => c.Page(p => p.Content(content => content.Drawing(drawing)))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letter = Assert.Single(pdf.GetPage(1).Letters);
@@ -78,7 +83,10 @@ public sealed class PdfDrawingPositionedTextTests {
         var drawing = new OfficeDrawing(100, 80).AddPositionedText("AAAA" + separator + "A", 10, 10, 80, 60,
             new OfficeFontInfo("Helvetica", 20), alignment: alignment, lineHeight: 25);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(80), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+            }
         }).Compose(c => c.Page(p => p.Content(content => content.Drawing(drawing)))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters;

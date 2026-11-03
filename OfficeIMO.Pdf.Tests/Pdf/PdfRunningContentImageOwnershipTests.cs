@@ -32,21 +32,23 @@ public sealed class PdfRunningContentImageOwnershipTests {
     [InlineData(true)]
     public void Dynamic_story_image_payloads_are_shared_across_pages_and_variants(bool footer) {
         byte[] bytes = PdfPngTestImages.CreateRgbPng(2, 2);
-        var document = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(320),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+        var document = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40), Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24) }
+        },
             PageContentMemoryLimitBytes = 0 });
         Action<PdfContentBuilder> Compose(PdfRunningContentContext context) => content => {
             // New input arrays deliberately miss the source-array prepared-image cache.
             var cell = new PdfTableCell($"{context.PageNumber}/{context.DocumentPages}",
                 images: new[] { new PdfTableCellImage((byte[])bytes.Clone(), global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)) });
             var style = PdfTableStyles.Minimal(); style.HeaderRowCount = 0;
-            content.Table(new[] { new[] { cell } }, style: style);
+            content.AddTable(new[] { new[] { cell } }, style: style);
         };
         if (footer) document.Footer(builder => builder.Content(Compose, global::OfficeIMO.OfficeLength.Points(18)).FirstPageContent(Compose, global::OfficeIMO.OfficeLength.Points(18)).EvenPagesContent(Compose, global::OfficeIMO.OfficeLength.Points(18)));
         else document.Header(builder => builder.Content(Compose, global::OfficeIMO.OfficeLength.Points(18)).FirstPageContent(Compose, global::OfficeIMO.OfficeLength.Points(18)).EvenPagesContent(Compose, global::OfficeIMO.OfficeLength.Points(18)));
         for (int index = 0; index < 6; index++) {
             if (index > 0) document.PageBreak();
-            document.Paragraph(paragraph => paragraph.Text("BODY"));
+            document.Paragraph(paragraph => paragraph.AddText("BODY"));
         }
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
         var blocks = typeof(PdfDocument).GetField("_blocks", flags)!.GetValue(document);

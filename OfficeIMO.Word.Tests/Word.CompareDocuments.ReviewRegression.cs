@@ -76,8 +76,7 @@ namespace OfficeIMO.Tests {
         public void CompareStructureKeepsUnrelatedBookmarkChangesAcrossPartsSeparate() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_bookmark_cross_part_delete_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph("Header bookmark").AddBookmark("HeaderOnly");
+                document.PageSetup.Header.AddParagraph("Header bookmark").AddBookmark("HeaderOnly");
                 document.Save();
             }
 
@@ -171,7 +170,7 @@ namespace OfficeIMO.Tests {
         public void CompareStructureHonorsRevisionTextAndLocationIgnoreOptionsWhenMatching() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_revision_ignore_location_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 document.Sections[0].AddHeaderParagraph("Tracked header", removeExistingParagraphs: true)
                     .AddInsertedText("Header revision", "OfficeIMO Tests", new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
                 document.Save();
@@ -501,15 +500,13 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
+                document.PageSetup.Header.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph("Header remains");
+                document.PageSetup.Header.AddParagraph("Header remains");
                 document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
@@ -534,7 +531,7 @@ namespace OfficeIMO.Tests {
         public void CompareStructureInPlaceInsertsDeletedParagraphWhenTargetPartHasNoParagraphEntries() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 header.RemoveAllChildren();
                 header.Append(new Paragraph(new Run(new Text("Deleted header paragraph") { Space = SpaceProcessingModeValues.Preserve })));
@@ -543,7 +540,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 header.RemoveAllChildren();
                 header.Append(CreateSingleCellTable("Header table remains"));
@@ -669,15 +666,13 @@ namespace OfficeIMO.Tests {
         public void CompareStructureInPlaceInsertsDeletedContentControlsIntoOriginalPart() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph().AddStructuredDocumentTag("Header deleted", "Header", "HeaderTag");
+                document.PageSetup.Header.AddParagraph().AddStructuredDocumentTag("Header deleted", "Header", "HeaderTag");
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph("Header remains");
+                document.PageSetup.Header.AddParagraph("Header remains");
                 document.Save();
             }
 
@@ -1360,7 +1355,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(filePath);
             WordTableOfContent list = document.AddTableOfContent();
             AddGeneratedCaptionParagraph(document, "_BodyCaptionUnique", "Figure", "1", "Body deployment view");
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
             Footer footer = document._wordprocessingDocument.MainDocumentPart!.FooterParts.Single().Footer!;

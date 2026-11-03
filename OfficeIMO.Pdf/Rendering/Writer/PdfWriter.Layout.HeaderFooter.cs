@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
             VerticalFlip = style.VerticalFlip,
             RotationCenterX = targetX + targetWidth / 2D,
             RotationCenterY = targetBottomY + targetHeight / 2D,
-            AlternativeText = style.AlternativeText
+            AlternativeText = style.AltText
         };
     }
 

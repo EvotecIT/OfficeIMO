@@ -92,8 +92,8 @@ using OfficeIMO;
 using OfficeIMO.Word;
 
 using var document = WordDocument.Create("Letter.docx");
-document.HeaderDefaultOrCreate.AddParagraph("Northwind Traders");
-document.FooterDefaultOrCreate.AddParagraph("Page ").AddPageNumber(includeTotalPages: true);
+document.PageSetup.Header.AddParagraph("Northwind Traders");
+document.PageSetup.Footer.AddParagraph("Page ").AddPageNumber(includeTotalPages: true);
 
 document.AddImage("logo.png", width: OfficeLength.Centimeters(4));
 document.AddParagraph("Dear customer,");
@@ -106,10 +106,12 @@ document.Save();
 using OfficeIMO.Word;
 
 using var document = WordDocument.Load("Status.docx");
-int replaced = document.FindAndReplace("Northwind", "Contoso");
+int replaced = document.ReplaceAll("Northwind", "Contoso");
 document.AddParagraph($"Updated on {DateTime.Today:d}; {replaced} replacements.");
 document.Save("Status-updated.docx");
 ```
+
+`Find` and `ReplaceAll` match ordinally and ignore case by default; pass `new OfficeTextSearchOptions { MatchCase = true }` or `WholeWords = true` to change that. `Find` returns a `WordSearchResult` with the matching paragraphs per document part and the match count, for both literal text and a `Regex`.
 
 `Save()` writes to the path the document was created or loaded with; `Save(path)` writes a copy and keeps working on it. For files from outside your organization, load with `WordLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
 

@@ -24,12 +24,12 @@ public sealed class WordPdfImageTransformTests {
         document.AddParagraph("Body marker");
         WordParagraph paragraph = context switch {
             "table" => document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
-            "header" or "simple-header" => document.HeaderDefaultOrCreate.AddParagraph(),
-            "footer" or "simple-footer" => document.FooterDefaultOrCreate.AddParagraph(),
+            "header" or "simple-header" => document.PageSetup.Header.AddParagraph(),
+            "footer" or "simple-footer" => document.PageSetup.Footer.AddParagraph(),
             _ => document.AddParagraph()
         };
         using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        WordImage image = paragraph.AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Description = "Transformed picture" });
+        WordImage image = paragraph.AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { AltText = "Transformed picture" });
         image.CropLeftRatio = ((double?)(25000)) / 100000D; image.CropTopRatio = ((double?)(12500)) / 100000D;
         image.CropRightRatio = ((double?)(12500)) / 100000D; image.CropBottomRatio = ((double?)(25000)) / 100000D;
         image.Rotation = rotation;
@@ -52,7 +52,7 @@ public sealed class WordPdfImageTransformTests {
         string original = loaded._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
         if (context.StartsWith("simple-", StringComparison.Ordinal))
-            options.PdfOptions = new PdfCore.PdfCreateOptions { HeaderFontSize = global::OfficeIMO.OfficeLength.Points(10), FooterFontSize = global::OfficeIMO.OfficeLength.Points(10) };
+            options.PdfOptions = new PdfCore.PdfCreateOptions { PageSetup = { Header = { FontSize = global::OfficeIMO.OfficeLength.Points(10) }, Footer = { FontSize = global::OfficeIMO.OfficeLength.Points(10) } } };
         PdfCore.PdfDocumentConversionResult conversion = loaded.ConvertToPdfWithEvidence(options);
         byte[] pdf = conversion.ToBytes();
         PdfCore.PdfImagePlacement placement = Assert.Single(PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf));

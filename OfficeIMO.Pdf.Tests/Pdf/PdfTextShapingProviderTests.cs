@@ -24,7 +24,7 @@ public class PdfTextShapingProviderTests {
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.FontFamily(evidence.Family).Text(evidence.Text))
+                .Paragraph(paragraph => paragraph.AddText(evidence.Text).SetFontFamily(evidence.Family))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -53,12 +53,10 @@ public class PdfTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(180D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(240D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(240D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                }
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
@@ -155,8 +153,10 @@ public class PdfTextShapingProviderTests {
                 new OfficeFontInfo(evidence.Family, 20D, bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular));
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
-                CompressContentStreams = false, PageWidth = global::OfficeIMO.OfficeLength.Points(120D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+                CompressContentStreams = false, PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+                }
             }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
             .SetTextShapingProvider(provider)
@@ -257,12 +257,10 @@ public class PdfTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(140D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(200D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                }
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData));
@@ -333,12 +331,10 @@ public class PdfTextShapingProviderTests {
             PixelBounds svgBounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(svgDrawing!, rasterOptions));
 
             var pdfOptions = new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(600D),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(140D),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(140D)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+                    }
                 }
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
                 .SetLanguage(evidence.Language)
@@ -411,7 +407,7 @@ public class PdfTextShapingProviderTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Diagnosed lam-alef");
         if (explicitManaged) options.UseManagedTextShaping();
 
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping"
@@ -448,7 +444,7 @@ public class PdfTextShapingProviderTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Managed Marks");
         if (explicitManaged) options.UseManagedTextShaping();
 
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(report.HasLoss);
@@ -478,7 +474,7 @@ public class PdfTextShapingProviderTests {
         var options = new PdfCreateOptions().ReportDiagnosticsTo(report)
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Noto Arabic Marks", fontData));
         if (explicitManaged) options.UseManagedTextShaping();
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.FontFamily("Noto Arabic Marks").Text(text)).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(text).SetFontFamily("Noto Arabic Marks")).ToBytes();
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code is "unsupported-mark-positioning-or-joiner-shaping" or "unsupported-complex-script-shaping");
@@ -510,7 +506,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -542,7 +538,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -582,7 +578,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes();
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -620,7 +616,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(text))
+            .Paragraph(paragraph => paragraph.AddText(text))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -660,7 +656,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("office"))
+            .Paragraph(paragraph => paragraph.AddText("office"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -700,7 +696,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("AB"))
+            .Paragraph(paragraph => paragraph.AddText("AB"))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -743,7 +739,7 @@ public class PdfTextShapingProviderTests {
             .SetTextShapingProvider(provider);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Superscript("AB").Text("C"))
+            .Paragraph(paragraph => { paragraph.AddText("AB").SetSuperscript(); paragraph.AddText("C"); })
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);

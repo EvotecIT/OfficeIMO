@@ -18,20 +18,20 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.Language = "pl-PL";
 
                 var section0 = document.Sections[0];
-                section0.PageOrientation = OfficePageOrientation.Portrait;
+                section0.PageSetup.Orientation = OfficePageOrientation.Portrait;
                 section0.AddParagraph("Test Section0");
 
                 // Default header is created on demand; keep it simple
-                section0.GetOrCreateHeader(WordHeaderFooterType.Default)
+                section0.PageSetup.Header
                        .AddParagraph().SetText("Test Section 0 - Header");
 
                 // First/even require toggles; GetOrCreate does the rest
-                section0.DifferentFirstPage = true;
-                section0.GetOrCreateHeader(WordHeaderFooterType.First)
+                section0.PageSetup.DifferentFirstPage = true;
+                section0.PageSetup.FirstPageHeader
                        .AddParagraph().SetText("Test Section 0 - First Header");
 
-                section0.DifferentOddAndEvenPages = true;
-                section0.GetOrCreateHeader(WordHeaderFooterType.Even)
+                section0.PageSetup.DifferentOddAndEvenPages = true;
+                section0.PageSetup.EvenPageHeader
                        .AddParagraph().SetText("Test Section 0 - Even");
 
                 document.Sections[0].Paragraphs[0].AddComment("Przemysław Kłys", "PK", "This should be a comment");
@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
 
                 var section1Created = document.AddSection();
-                section1Created.PageOrientation = OfficePageOrientation.Landscape;
+                section1Created.PageSetup.Orientation = OfficePageOrientation.Landscape;
 
                 document.AddPageBreak();
                 document.AddPageBreak();
@@ -64,22 +64,22 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var section1 = document.Sections[1];
-                section1.GetOrCreateHeader(WordHeaderFooterType.Default)
+                section1.PageSetup.Header
                         .AddParagraph().SetText("Test Section 1 - Header");
 
-                section1.GetOrCreateFooter(WordHeaderFooterType.Default)
+                section1.PageSetup.Footer
                         .AddParagraph().SetText("Test Section 1 - Header");
 
-                section1.DifferentFirstPage = true;
-                section1.GetOrCreateHeader(WordHeaderFooterType.First)
+                section1.PageSetup.DifferentFirstPage = true;
+                section1.PageSetup.FirstPageHeader
                         .AddParagraph().SetText("Test Section 1 - First Header");
-                section1.GetOrCreateFooter(WordHeaderFooterType.First)
+                section1.PageSetup.FirstPageFooter
                         .AddParagraph().SetText("Test Section 1 - First Footer");
 
-                section1.DifferentOddAndEvenPages = true;
-                section1.GetOrCreateHeader(WordHeaderFooterType.Even)
+                section1.PageSetup.DifferentOddAndEvenPages = true;
+                section1.PageSetup.EvenPageHeader
                         .AddParagraph().SetText("Test Section 1 - Even Header");
-                section1.GetOrCreateFooter(WordHeaderFooterType.Even)
+                section1.PageSetup.EvenPageFooter
                         .AddParagraph().SetText("Test Section 1 - Even Footer");
 
                 document.Settings.ProtectionPassword = "ThisIsTest";

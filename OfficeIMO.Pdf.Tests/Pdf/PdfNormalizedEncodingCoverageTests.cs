@@ -39,8 +39,8 @@ public sealed class PdfNormalizedEncodingCoverageTests {
             .SetTextShapingMode(PdfTextShapingMode.OpenTypeLigatures)
             .ReportDiagnosticsTo(report);
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily(family);
-            paragraph.Text(source);
+            if (named) { paragraph.RunDefaults.FontFamily = family; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText(source);
         });
 
         Assert.Empty(document.AnalyzeTextEncoding());
@@ -59,7 +59,7 @@ public sealed class PdfNormalizedEncodingCoverageTests {
         var options = new PdfCreateOptions()
             .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Scalar encoding")
             .SetTextShapingMode(PdfTextShapingMode.UnicodeScalar);
-        PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(source));
+        PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(source));
 
         PdfTextEncodingDiagnostic diagnostic = Assert.Single(document.AnalyzeTextEncoding());
         Assert.Equal(1, diagnostic.Index);

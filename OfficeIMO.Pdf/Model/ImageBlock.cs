@@ -14,7 +14,7 @@ internal sealed class ImageBlock : IPdfBlock {
     public OfficeAlignment Align => (Style ?? new PdfImageStyle()).Align;
     public OfficeClipPath? ClipPath => Style?.ClipPath;
     public OfficeImageFit Fit => (Style ?? new PdfImageStyle()).Fit;
-    public string? AlternativeText => Style?.AlternativeText;
+    public string? AltText => Style?.AltText;
 
     public ImageBlock(byte[] data, double width, double height, OfficeImageInfo info, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, bool useDataSnapshot = false, PdfWriter.PdfImageStream? preparedStream = null) {
         Guard.NotNullOrEmpty(data, nameof(data));

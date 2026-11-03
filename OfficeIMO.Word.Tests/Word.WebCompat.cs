@@ -12,11 +12,11 @@ namespace OfficeIMO.Tests {
             var bodyTable = document.AddTable(2, 2);
             bodyTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5000) * 635)));
 
-            var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+            var header = document.Sections[0].PageSetup.Header;
             var headerTable = header.AddTable(1, 2);
             headerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
 
-            var footer = document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default);
+            var footer = document.Sections[0].PageSetup.Footer;
             var footerTable = footer.AddTable(1, 2);
             footerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             nestedTable.Rows[0].Cells[1].Paragraphs[0].Text = "Nested hidden";
             nestedTable.Rows[0].Cells[0].MergeHorizontally(1, copyParagraphs: true);
 
-            var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+            var header = document.Sections[0].PageSetup.Header;
             var headerTable = header.AddTable(1, 3);
             headerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4500) * 635)));
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "Header merged";

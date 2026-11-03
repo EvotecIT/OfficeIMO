@@ -10,9 +10,9 @@ public class PdfOptimizerAdvancedTests {
     public void MaximumCompression_EmitsDeterministicObjectAndXrefStreams() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Optimization profile")
-            .Paragraph(p => p.Text("Object stream proof"))
+            .Paragraph(p => p.AddText("Object stream proof"))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page proof"))
+            .Paragraph(p => p.AddText("Second page proof"))
             .ToBytes();
 
         PdfOptimizationActionResult first = PdfOptimizer.Optimize(source, PdfOptimizationProfile.MaximumCompression);
@@ -38,9 +38,9 @@ public class PdfOptimizerAdvancedTests {
     [Fact]
     public void WebProfile_EmitsDeterministicStandardsCompliantLinearization() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Web optimization proof"))
+            .Paragraph(p => p.AddText("Web optimization proof"))
             .PageBreak()
-            .Paragraph(p => p.Text("Second web page"))
+            .Paragraph(p => p.AddText("Second web page"))
             .ToBytes();
 
         PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, PdfOptimizationProfile.Web);
@@ -92,7 +92,7 @@ public class PdfOptimizerAdvancedTests {
     [Fact]
     public void WebProfile_StopsLinearizationAtTheConfiguredOutputLimit() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text(new string('W', 4096)))
+            .Paragraph(p => p.AddText(new string('W', 4096)))
             .ToBytes();
         PdfOptimizationOptions options = PdfOptimizationOptions.Create(PdfOptimizationProfile.Web);
         options.MaximumOutputBytes = 128L;

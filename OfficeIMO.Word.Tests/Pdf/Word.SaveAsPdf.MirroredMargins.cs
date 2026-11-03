@@ -21,9 +21,9 @@ public partial class Word {
         bool atTop, bool onRight, int startNumber, WordFileFormat format) {
         using WordDocument document = WordDocument.Create();
         var section = document.Sections[0];
-        section.PageSettings.PageSize = WordPageSize.Letter;
-        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); section.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
-        section.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(20D);
+        section.PageSetup.Size.PageSize = WordPageSize.Letter;
+        section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
+        section.PageSetup.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(20D);
         section.RtlGutter = onRight;
         section.AddPageNumbering(startNumber);
         document.Settings.MirrorMargins = true;

@@ -349,8 +349,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PreciseSelectionHonorsPagesCaseCancellationAndCandidateLimits() {
             PdfDocument source = PdfDocument.Create(pdf => {
-                pdf.Page(page => page.Content(content => content.Text("Alpha SECRET Omega")));
-                pdf.Page(page => page.Content(content => content.Text("Alpha SECRET Omega")));
+                pdf.Page(page => page.Content(content => content.AddParagraph("Alpha SECRET Omega")));
+                pdf.Page(page => page.Content(content => content.AddParagraph("Alpha SECRET Omega")));
             });
             PdfRedactionSearchOptions options = PreciseOptions().AddLiteral("secret");
             options.MaximumCandidates = 1;

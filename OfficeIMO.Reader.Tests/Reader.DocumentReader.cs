@@ -1093,16 +1093,14 @@ public sealed class ReaderDocumentReaderTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {
             var pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             });
             pdf.H1("PDF Title");
-            pdf.Paragraph(p => p.Text("This is a PDF body."));
+            pdf.Paragraph(p => p.AddText("This is a PDF body."));
             pdf.Save(path);
 
             var chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(path).ToList();

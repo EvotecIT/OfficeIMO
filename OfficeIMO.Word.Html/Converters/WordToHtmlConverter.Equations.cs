@@ -180,9 +180,9 @@ namespace OfficeIMO.Word.Html {
             if (options.IncludeRunColorStyles || options.IncludeRunHighlightStyles) {
                 var styles = new List<string>();
                 if (options.IncludeRunColorStyles &&
-                    !string.IsNullOrEmpty(run.ColorHex) &&
-                    !string.Equals(run.ColorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
-                    string? normalized = NormalizeSixDigitHexColor(run.ColorHex);
+                    !string.IsNullOrEmpty(run.RunColorValue) &&
+                    !string.Equals(run.RunColorValue, "auto", StringComparison.OrdinalIgnoreCase)) {
+                    string? normalized = NormalizeSixDigitHexColor(run.RunColorValue);
                     if (normalized != null) styles.Add($"color:#{normalized}");
                 }
                 if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {

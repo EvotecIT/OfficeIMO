@@ -98,7 +98,7 @@ public class PdfIncrementalInputLimitTests {
         string signedPath = Path.Combine(root, "signed.pdf");
         try {
             Directory.CreateDirectory(root);
-            byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Prepared signature budget")).ToBytes();
+            byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Prepared signature budget")).ToBytes();
             File.WriteAllBytes(sourcePath, source);
             var options = new PdfExternalSignatureOptions {
                 MaxInputBytes = source.LongLength,
@@ -130,7 +130,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void SignatureCompletionAdmitsGeneratedObjectsAndRevisionAtSourceLimits() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Tight signature source limits")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Tight signature source limits")).ToBytes();
         int sourceObjectCount = PdfSyntax.ParseObjects(source, null).Map.Count;
         var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
@@ -153,7 +153,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void AppendOnlyAnalysisAcceptsCallerLimitsForPathsAndStreams() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Caller limit for append-only analysis")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Caller limit for append-only analysis")).ToBytes();
         var tooSmall = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.LongLength - 1 } };
         var admitted = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.LongLength } };
         string path = Path.Combine(Path.GetTempPath(), "officeimo-append-analysis-" + Guid.NewGuid().ToString("N") + ".pdf");
@@ -170,7 +170,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void PersistedSignatureCompletionAdmitsGeneratedObjectsAndRevisionAtSourceLimits() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Persisted tight signature limits")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Persisted tight signature limits")).ToBytes();
         int sourceObjectCount = PdfSyntax.ParseObjects(source, null).Map.Count;
         var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
@@ -198,7 +198,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void PersistedSignatureCompletionDoesNotApplyGeneratedGrowthTwice() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Revision cap for completion")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Revision cap for completion")).ToBytes();
         byte[] revised = PdfIncrementalUpdater.UpdateMetadata(source, title: "Second revision");
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(revised);
         string root = Path.Combine(Path.GetTempPath(), "officeimo-signature-revision-cap-" + Guid.NewGuid().ToString("N"));
@@ -251,7 +251,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void PersistedSignatureCompletionAdmitsLargeContentsReservation() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Large reserved signature")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Large reserved signature")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source, new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 510_000 });
 
@@ -263,7 +263,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void PersistedSignatureCompletionEnforcesCallerStreamBudgetBeforePlaceholderScan() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature stream budget")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Signature stream budget")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source);
         var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxRawStreamBytes = 1 }
@@ -276,7 +276,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void PersistedSignatureCompletionDoesNotExpandNonSignatureObjectBudget() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Ordinary object budget")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Ordinary object budget")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source, new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 510_000 });
         byte[] oversizedObject = System.Text.Encoding.ASCII.GetBytes(
@@ -291,7 +291,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void PersistedSignatureCompletionDoesNotAdmitOversizedReasonBesideContents() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature dictionary budget")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Signature dictionary budget")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source, new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 510_000 });
         byte[] marker = System.Text.Encoding.ASCII.GetBytes("/Contents <");
@@ -311,7 +311,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void PersistedSignatureCompletionRejectsReservationLargerThanProducerLimit() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Bounded persisted reservation")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Bounded persisted reservation")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source);
         byte[] marker = System.Text.Encoding.ASCII.GetBytes("/Contents <");
         int markerOffset = preparation.PreparedPdf.AsSpan().IndexOf(marker);
@@ -404,7 +404,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void SignaturePreparationRejectsOutputBeyondItsConfiguredCompletionBudget() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Bound the prepared revision")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Bound the prepared revision")).ToBytes();
         var options = new PdfExternalSignatureOptions {
             MaxInputBytes = source.LongLength,
             MaxPreparedOutputBytes = source.LongLength
@@ -423,7 +423,7 @@ public class PdfIncrementalInputLimitTests {
 
     [Fact]
     public void SignaturePreparationCarriesTheAdmittedSourceLimitThroughVisibleReadback() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Visible signing read budget")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Visible signing read budget")).ToBytes();
         var tooSmallReadPolicy = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxInputBytes = source.LongLength - 1 }
         };
@@ -452,7 +452,7 @@ public class PdfIncrementalInputLimitTests {
     [Fact]
     public void IncrementalStreamEntrypointsContinueFromCallerPosition() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("incremental source"))
+            .Paragraph(paragraph => paragraph.AddText("incremental source"))
             .ToBytes();
         byte[] form = PdfDocument.Create()
             .TextField("Name", value: "Ada")

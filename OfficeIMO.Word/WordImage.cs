@@ -43,15 +43,15 @@ namespace OfficeIMO.Word {
         private bool? _noRotation;
         private bool? _noSelection;
         private int? _fixedOpacity;
-        private string? _alphaInversionColorHex;
+        private string? _alphaInversionColorValue;
         private int? _blackWhiteThreshold;
         private int? _blurRadius;
         private bool? _blurGrow;
-        private string? _colorChangeFromHex;
-        private string? _colorChangeToHex;
-        private string? _colorReplacementHex;
-        private string? _duotoneColor1Hex;
-        private string? _duotoneColor2Hex;
+        private string? _colorChangeFromValue;
+        private string? _colorChangeToValue;
+        private string? _colorReplacementValue;
+        private string? _duotoneColor1Value;
+        private string? _duotoneColor2Value;
         private bool? _grayScale;
         private int? _luminanceBrightness;
         private int? _luminanceContrast;
@@ -193,9 +193,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the image's description.
+        /// Gets or sets the image's alternative text.
         /// </summary>
-        public string? Description {
+        public string? AltText {
             get => _vmlShape != null ? _vmlShape.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "alt").Value : GetDocProperties()?.Description;
             set {
                 if (_vmlShape != null) {

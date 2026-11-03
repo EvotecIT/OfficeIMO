@@ -109,8 +109,7 @@ document.AddImage("watermark.png", width: OfficeLength.Pixels(200), height: Offi
     options: new WordImageOptions { Vml = true });
 
 // Add VML image to a header
-var (header, _) = document.AddHeadersAndFooters();
-header.AddParagraph().AddImage("header-logo.png", OfficeLength.Points(150), OfficeLength.Points(40),
+document.PageSetup.Header.AddParagraph().AddImage("header-logo.png", OfficeLength.Points(150), OfficeLength.Points(40),
     options: new WordImageOptions { Vml = true });
 ```
 

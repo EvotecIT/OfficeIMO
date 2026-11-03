@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfEncryptedSignatureTests {
     [Fact]
     public void EncryptedSigningHonorsOutputBudgetAndCancellationBeforeCallingSigner() {
-        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Protected signing content"))),
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.AddParagraph(p => p.AddText("Protected signing content"))),
             new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" })).ToBytes();
         PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });
         var signer = new UnexpectedSigner();
@@ -28,7 +28,7 @@ public class PdfEncryptedSignatureTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void EncryptedApprovalAndCountersignaturePreserveEncryptionAndVerifyDigests(PdfStandardEncryptionAlgorithm algorithm) {
-        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Protected signing content"))),
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.AddParagraph(p => p.AddText("Protected signing content"))),
             new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = algorithm,
                 AllowedPermissions = PdfStandardPermissions.Print

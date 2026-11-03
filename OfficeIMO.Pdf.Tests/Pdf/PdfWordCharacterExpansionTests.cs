@@ -114,8 +114,10 @@ namespace OfficeIMO.Tests.Pdf {
 
         private static byte[] Render(PdfTextRun[] runs, double width, bool distributed, byte[]? cff = null) {
             var options = new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(220D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width + 40D), global::OfficeIMO.OfficeLength.Points(220D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
             };
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Small Average",
@@ -125,7 +127,7 @@ namespace OfficeIMO.Tests.Pdf {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Unavailable Average",
                 ManagedTextShapingTestAssets.CreateWordCharacterAverageFont(null)));
             if (cff != null) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Cff Average", cff));
-            return PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(runs),
+            return PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(runs),
                 distributed ? OfficeAlignment.Justify : OfficeAlignment.Left,
                 style: new PdfParagraphStyle {
                     UseWordJustificationSpacing = true, JustificationMode = PdfJustificationMode.Characters,

@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNumPagesDocumentTotal.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 RequireSectionFooter(document, 0, HeaderFooterValues.Default)
                     .AddParagraph("First field footer ")
                     .AddPageNumber(includeTotalPages: true, separator: " / ");
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionPagesField.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 WordParagraph firstFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("First section ");
                 firstFooter.AddField(WordFieldType.Page);
                 firstFooter.AddText(" / ");
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFields.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native field footer ");
                 footerParagraph.AddPageNumber(includeTotalPages: true, separator: " / ");
                 document.AddParagraph("Native field footer first page");
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFieldFormats.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native roman field footer ");
                 footerParagraph.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.UpperRoman, separator: " / ");
                 document.AddParagraph("Native roman field footer first page");

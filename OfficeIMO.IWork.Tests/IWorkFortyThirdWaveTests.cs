@@ -97,7 +97,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
-        Assert.Single(result.Value.Slides[0].Pictures);
+        Assert.Single(result.Value.Slides[0].Images);
     }
 
     [Theory]

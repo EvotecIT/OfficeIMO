@@ -16,8 +16,8 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Body without heading style");
         WordParagraph paragraph = story switch {
-            "header" => source.HeaderDefaultOrCreate.AddParagraph("Story heading"),
-            "footer" => source.FooterDefaultOrCreate.AddParagraph("Story heading"),
+            "header" => source.PageSetup.Header.AddParagraph("Story heading"),
+            "footer" => source.PageSetup.Footer.AddParagraph("Story heading"),
             "footnote" => source.AddParagraph("Reference").AddFootNote("Story heading").Paragraph.FootNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
             "comment" => AddCharacterScaleComment(source),
             _ => source.AddParagraph("Reference").AddEndNote("Story heading").Paragraph.EndNote!.Paragraphs!.Single(item => item.Text == "Story heading")
@@ -69,8 +69,8 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Body").CharacterScale = 75;
         source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].AddText("Cell").CharacterScale = 100;
-        source.HeaderDefaultOrCreate.AddParagraph("Header").CharacterScale = 125;
-        source.FooterDefaultOrCreate.AddParagraph("Footer").CharacterScale = 150;
+        source.PageSetup.Header.AddParagraph("Header").CharacterScale = 125;
+        source.PageSetup.Footer.AddParagraph("Footer").CharacterScale = 150;
         source.AddParagraph("Reference").AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs!
             .Single(item => item.Text == "Footnote").CharacterScale = 50;
         source.AddParagraph("Reference").AddEndNote("Endnote").Paragraph.EndNote!.Paragraphs!
@@ -79,8 +79,8 @@ public partial class Word {
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(75, loaded.Paragraphs.Single(item => item.Text == "Body").CharacterScale);
         Assert.Equal(100, loaded.Tables[0].Rows[0].Cells[0].Paragraphs.Single(item => item.Text == "Cell").CharacterScale);
-        Assert.Equal(125, loaded.Sections[0].Header.Default!.Paragraphs.Single(item => item.Text == "Header").CharacterScale);
-        Assert.Equal(150, loaded.Sections[0].Footer.Default!.Paragraphs.Single(item => item.Text == "Footer").CharacterScale);
+        Assert.Equal(125, loaded.Sections[0].PageSetup.Header.Paragraphs.Single(item => item.Text == "Header").CharacterScale);
+        Assert.Equal(150, loaded.Sections[0].PageSetup.Footer.Paragraphs.Single(item => item.Text == "Footer").CharacterScale);
         Assert.Equal(50, Assert.Single(loaded.FootNotes).Paragraphs!.Single(item => item.Text == "Footnote").CharacterScale);
         Assert.Equal(200, Assert.Single(loaded.EndNotes).Paragraphs!.Single(item => item.Text == "Endnote").CharacterScale);
         WordParagraph link = Assert.Single(loaded.Paragraphs, item => item.IsHyperLink);

@@ -89,22 +89,17 @@ public class AdvancedDocumentTests : VerifyTestBase {
         listNumbered.AddItem("Different list number 4", 1);
 
         var section = document.AddSection();
-        section.PageOrientation = OfficePageOrientation.Landscape;
-        section.PageSettings.PageSize = WordPageSize.A4;
+        section.PageSetup.Orientation = OfficePageOrientation.Landscape;
+        section.PageSetup.Size.PageSize = WordPageSize.A4;
 
         wordListToc.AddItem("Adding headers / footers");
 
-        // lets add headers and footers
-        document.AddHeadersAndFooters();
-
         // adding text to default header
-        var headers = Assert.NotNull(document.Header);
-        var defaultHeader = Assert.IsType<WordHeader>(headers.Default);
-        defaultHeader.AddParagraph("Text added to header - Default");
+        document.PageSetup.Header.AddParagraph("Text added to header - Default");
 
         var section1 = document.AddSection();
-        section1.PageOrientation = OfficePageOrientation.Portrait;
-        section1.PageSettings.PageSize = WordPageSize.A5;
+        section1.PageSetup.Orientation = OfficePageOrientation.Portrait;
+        section1.PageSetup.Size.PageSize = WordPageSize.A5;
 
         wordListToc.AddItem("Adding custom properties and page numbers to document");
 
@@ -113,9 +108,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
         document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
         // add page numbers
-        var footers = Assert.NotNull(document.Footer);
-        var defaultFooter = Assert.IsType<WordFooter>(footers.Default);
-        defaultFooter.AddPageNumber(WordPageNumberStyle.PlainNumber);
+        document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
 
         // add watermark
         document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");

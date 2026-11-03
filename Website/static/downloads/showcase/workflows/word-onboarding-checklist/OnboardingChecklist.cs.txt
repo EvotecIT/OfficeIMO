@@ -64,7 +64,7 @@ internal static class OnboardingChecklist {
             for (int column = 0; column < 3; column++) {
                 table.Rows[0].Cells[column].Paragraphs[0].Text = headers[column];
                 table.Rows[0].Cells[column].Paragraphs[0].Bold = true;
-                table.Rows[0].Cells[column].ShadingFillColorHex = "E8EEF8";
+                table.Rows[0].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
             }
             for (int row = 0; row < tasks.Length; row++) {
                 table.Rows[row + 1].Cells[0].Paragraphs[0].Text = tasks[row].Task;

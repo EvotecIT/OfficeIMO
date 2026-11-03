@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void BodyReferenceSize_ComesFromRunningTextRatherThanChartLabels() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var options = PdfUnderstandingPipelineOptions.Structured();
         // A dashboard: 11 pt prose beside a chart whose 9 pt axis and legend labels outnumber the prose lines.
         options.GlyphDecoding = new FixedGlyphStage(new[] {
@@ -34,7 +34,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void NumberedLineInHeadingSize_IsHeadingWhileBodySizedStepsStayListItems() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("2. Revenue by region", "F1", 17D, 50D, 740D, 200D),
@@ -56,7 +56,7 @@ public partial class PdfUnderstandingPipelineTests {
 
     [Fact]
     public void WrappedTitleIsOneHeadingButAShortHeadingAboveALongerOneStaysSeparate() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("placeholder")).ToBytes();
         var options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Executive security", "F1", 28D, 64D, 740D, 233D),

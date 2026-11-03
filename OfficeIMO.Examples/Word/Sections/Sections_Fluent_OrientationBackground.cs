@@ -16,8 +16,8 @@ namespace OfficeIMO.Examples.Word
                 {
                     var section1 = document.Sections.Last();
                     section1 = document.AddSection();
-                    section1.PageSettings.Orientation = OfficePageOrientation.Landscape;
-                    document.Background.SetColorHex("FFD700");
+                    section1.PageSetup.Size.Orientation = OfficePageOrientation.Landscape;
+                    document.Background.SetColor(OfficeColor.Parse("FFD700"));
                     var paragraph2 = section1.AddParagraph();
                     paragraph2 = paragraph2.AddText("Landscape section with background");
                     document.Save();

@@ -16,7 +16,7 @@ public partial class HtmlOfficeAdapters {
         using (var source = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = dark ? OfficeTheme.Dark : OfficeTheme.Modern })) {
             var slide = source.AddSlide();
             slide.BackgroundColor = background;
-            slide.AddTextBox("Keep native colors").Paragraphs[0].Runs[0].Color = foreground;
+            slide.AddTextBox("Keep native colors").Paragraphs[0].Runs[0].Color = OfficeColor.Parse(foreground);
             source.Save(bytes);
         }
         bytes.Position = 0;

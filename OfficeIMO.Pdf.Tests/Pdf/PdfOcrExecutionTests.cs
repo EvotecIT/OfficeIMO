@@ -13,8 +13,8 @@ public class PdfOcrExecutionTests {
     [InlineData(false, 1)]
     public async Task Ocr_BoundsOutstandingPagesAndRetainsSelectionOrder(bool concurrent, int expectedOutstanding) {
         var engine = new ControlledEngine(concurrent);
-        var document = PdfDocument.Create().Paragraph(p => p.Text("One")).PageBreak()
-            .Paragraph(p => p.Text("Two")).PageBreak().Paragraph(p => p.Text("Three"));
+        var document = PdfDocument.Create().Paragraph(p => p.AddText("One")).PageBreak()
+            .Paragraph(p => p.AddText("Two")).PageBreak().Paragraph(p => p.AddText("Three"));
         Task<PdfOcrMergeResult> operation = document.ReadWithOcrAsync(engine, new PdfOcrMergeOptions {
             Dpi = 36,
             MaxConcurrentPages = 2,
@@ -43,7 +43,7 @@ public class PdfOcrExecutionTests {
     [Fact]
     public async Task Ocr_CancellationReachesOutstandingProviders() {
         var engine = new ControlledEngine(true);
-        var document = PdfDocument.Create().Paragraph(p => p.Text("One")).PageBreak().Paragraph(p => p.Text("Two"));
+        var document = PdfDocument.Create().Paragraph(p => p.AddText("One")).PageBreak().Paragraph(p => p.AddText("Two"));
         using var cancellation = new CancellationTokenSource();
         Task<PdfOcrMergeResult> operation = document.ReadWithOcrAsync(engine,
             new PdfOcrMergeOptions { Dpi = 36, MaxConcurrentPages = 2 }, cancellationToken: cancellation.Token);
@@ -59,7 +59,7 @@ public class PdfOcrExecutionTests {
         var engine = new DelegateOcrEngine("failure", (request, token) =>
             Task.FromException<OcrResult>(new InvalidOperationException("Provider unavailable")),
             new OcrEngineCapabilities { SupportsConcurrentRequests = true, SupportedMediaTypes = new[] { "image/png" } });
-        var document = PdfDocument.Create().Paragraph(p => p.Text("One")).PageBreak().Paragraph(p => p.Text("Two"));
+        var document = PdfDocument.Create().Paragraph(p => p.AddText("One")).PageBreak().Paragraph(p => p.AddText("Two"));
         var failure = await Assert.ThrowsAsync<OcrEngineExecutionException>(() => document.ReadWithOcrAsync(engine,
             new PdfOcrMergeOptions { Dpi = 36, MaxConcurrentPages = 2 }));
         Assert.Equal(OcrEngineFailureKind.ProviderFailure, failure.Kind);
@@ -69,7 +69,7 @@ public class PdfOcrExecutionTests {
 
     [Fact]
     public async Task Ocr_PreservesRenderWarningsWithProviderDiagnostics() {
-        var document = PdfDocument.Create().Paragraph(p => p.Text("Font fallback"));
+        var document = PdfDocument.Create().Paragraph(p => p.AddText("Font fallback"));
         string[] renderWarnings = document.Render.Pages().Single().Diagnostics.ToArray();
         Assert.NotEmpty(renderWarnings);
         var engine = new ControlledEngine(false, completeImmediately: true);
@@ -83,7 +83,7 @@ public class PdfOcrExecutionTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task Ocr_ClassifiesRenderDiagnosticLimitsAsOcrArtifacts(bool preview) {
-        var document = PdfDocument.Create().Paragraph(p => p.Text("Font fallback"));
+        var document = PdfDocument.Create().Paragraph(p => p.AddText("Font fallback"));
         var options = new PdfOcrMergeOptions { MaxDiagnosticCharactersPerPage = 1 };
 
         PdfReadLimitException exception = preview
@@ -118,8 +118,8 @@ public class PdfOcrExecutionTests {
     [Fact]
     public void Ocr_NativeSpanLimitsApplyToTheInteractionExtraction() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("First"))
-            .Paragraph(p => p.Text("Second"))
+            .Paragraph(p => p.AddText("First"))
+            .Paragraph(p => p.AddText("Second"))
             .ToBytes();
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
 
@@ -137,7 +137,7 @@ public class PdfOcrExecutionTests {
     [Fact]
     public void Ocr_NativeTextBudgetStopsDecodingBeforeTheBroaderReadLimit() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text(new string('A', 1000)))
+            .Paragraph(p => p.AddText(new string('A', 1000)))
             .ToBytes();
         PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedTextCharacters = 100 }
@@ -152,7 +152,7 @@ public class PdfOcrExecutionTests {
 
     [Fact]
     public void Ocr_NativeSpanExtractionHonorsCancellationBeforeParsing() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("Native text")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("Native text")).ToBytes();
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -164,7 +164,7 @@ public class PdfOcrExecutionTests {
     [Fact]
     public async Task Ocr_RejectsOversizedPngBeforeCallingProvider() {
         var engine = new ControlledEngine(false, completeImmediately: true);
-        var document = PdfDocument.Create().Paragraph(p => p.Text("Page"));
+        var document = PdfDocument.Create().Paragraph(p => p.AddText("Page"));
         await Assert.ThrowsAsync<PdfReadLimitException>(() => document.ReadWithOcrAsync(engine,
             new PdfOcrMergeOptions { MaxRenderedBytesPerPage = 8 }));
         Assert.Equal(0, engine.CallCount);

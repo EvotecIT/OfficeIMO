@@ -118,12 +118,10 @@ public partial class PdfDocumentVisualQualityTests {
 
         var leftIndentWidthException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(180),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                    }
                 })
                 .Table(new[] {
                     new[] { "Only" }
@@ -230,27 +228,13 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Column(column =>
-                                column.Item().Table(new[] {
+                                column.Item().AddTable(new[] {
                                     new[] { "A", "B" },
                                     new[] { "1", "2" }
                                 }, align: (OfficeAlignment)99)))))
                 .ToBytes());
 
         Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", composeTableAlignException.Message, StringComparison.Ordinal);
-
-        var tableWithLinksAlignException = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create()
-                .TableWithLinks(
-                    new[] {
-                        new[] { "A", "B" },
-                        new[] { "1", "2" }
-                    },
-                    new Dictionary<(int Row, int Col), string> {
-                        [(1, 0)] = "https://evotec.xyz"
-                    },
-                    align: OfficeAlignment.Justify));
-
-        Assert.Contains("Table alignment must be Left, Center, Right, Start, or End.", tableWithLinksAlignException.Message, StringComparison.Ordinal);
 
         var invalidCaptionAlign = PdfTableStyles.Minimal();
         invalidCaptionAlign.Caption = "Caption";

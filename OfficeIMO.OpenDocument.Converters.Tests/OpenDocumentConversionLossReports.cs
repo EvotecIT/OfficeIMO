@@ -281,7 +281,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void WordAutomaticColorsAndTiffImagesDoNotAbortConversion() {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph("Automatic color").ColorHex = "auto";
+        source.AddParagraph("Automatic color").RunColorValue = "auto";
         byte[] tiffBytes = OfficeTiffCodec.Encode(new OfficeRasterImage(
             1, 1, OfficeColor.FromRgb(12, 34, 56)));
         using var tiff = new MemoryStream(tiffBytes, writable: false);

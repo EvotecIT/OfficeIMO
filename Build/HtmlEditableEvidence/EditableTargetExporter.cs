@@ -55,8 +55,8 @@ internal static class EditableTargetExporter {
                 using (PowerPointDocument presentation = result.RequireValue()) presentation.Save(artifact);
                 using PowerPointDocument loaded = PowerPointDocument.Load(artifact);
                 return new EditableExport(result.Report, artifact, loaded.ToHtml(),
-                    PictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count()),
-                    LinkedPictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count(picture => picture.Hyperlink != null)),
+                    PictureCount: loaded.Slides.Sum(slide => slide.Images.Count()),
+                    LinkedPictureCount: loaded.Slides.Sum(slide => slide.Images.Count(picture => picture.Hyperlink != null)),
                     NativeTables: EditableNativeTableEvidence.FromPowerPoint(loaded));
             }
             case "onenote": {

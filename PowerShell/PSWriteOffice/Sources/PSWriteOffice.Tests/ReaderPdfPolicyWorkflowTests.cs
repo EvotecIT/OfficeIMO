@@ -17,8 +17,8 @@ public sealed class ReaderPdfPolicyWorkflowTests {
         try {
             string path = Path.Combine(root, "source.pdf");
             using (var document = PdfDocument.Create(pdf => {
-                pdf.Page(page => page.Content(content => content.Text("First omitted page")));
-                pdf.Page(page => page.Content(content => content.Text("Second selected page")));
+                pdf.Page(page => page.Content(content => content.AddParagraph("First omitted page")));
+                pdf.Page(page => page.Content(content => content.AddParagraph("Second selected page")));
             })) document.Save(path);
             var policy = new PdfLoadOptions {
                 ParsingMode = PdfParsingMode.Strict, Password = "captured-test-policy",
@@ -61,7 +61,7 @@ public sealed class ReaderPdfPolicyWorkflowTests {
         Directory.CreateDirectory(root);
         try {
             string path = Path.Combine(root, "source.pdf");
-            using (var document = PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.Text("OCR policy source")))))
+            using (var document = PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.AddParagraph("OCR policy source")))))
                 document.Save(path);
             var provider = new OfficeOcrOptions {
                 Provider = new ProcessOcrEngine(new ProcessOcrEngineOptions { FileName = Path.Combine(root, "not-a-provider") })
@@ -88,7 +88,7 @@ public sealed class ReaderPdfPolicyWorkflowTests {
         try {
             string path = Path.Combine(root, "source.pdf");
             using (var document = PdfDocument.Create()) {
-                document.Compose(builder => builder.Content(content => content.Text("Reader policy source text")));
+                document.Compose(builder => builder.Content(content => content.AddParagraph("Reader policy source text")));
                 document.Save(path);
             }
             var state = InitialSessionState.CreateDefault();

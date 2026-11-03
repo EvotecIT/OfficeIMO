@@ -46,8 +46,8 @@ public sealed class WordParagraphStyleDefinition {
         OutlineLevel = paragraph?.OutlineLevel?.Val?.Value;
 
         StyleRunProperties? run = style.StyleRunProperties;
-        FontName = run?.RunFonts?.Ascii?.Value ?? run?.RunFonts?.HighAnsi?.Value;
-        ColorHex = run?.Color?.Val?.Value;
+        FontFamily = run?.RunFonts?.Ascii?.Value ?? run?.RunFonts?.HighAnsi?.Value;
+        Color = Helpers.ParseNativeColor(run?.Color?.Val?.Value);
         FontSize = ReadHalfPoints(run?.FontSize?.Val?.Value);
         Bold = ReadOnOff(run?.Bold);
         Italic = ReadOnOff(run?.Italic);
@@ -66,13 +66,13 @@ public sealed class WordParagraphStyleDefinition {
     public string? NextStyleId { get; set; }
 
     /// <summary>Gets or sets the font family.</summary>
-    public string? FontName { get; set; }
+    public string? FontFamily { get; set; }
 
     /// <summary>Gets or sets the font size.</summary>
     public global::OfficeIMO.OfficeLength? FontSize { get; set; }
 
-    /// <summary>Gets or sets the six-digit RGB text color.</summary>
-    public string? ColorHex { get; set; }
+    /// <summary>Gets or sets the RGB text color; automatic colour reads as <see langword="null"/>.</summary>
+    public global::OfficeIMO.OfficeColor? Color { get; set; }
 
     /// <summary>Gets or sets whether text is bold.</summary>
     public bool? Bold { get; set; }
@@ -183,17 +183,17 @@ public sealed class WordParagraphStyleDefinition {
             paragraph.OutlineLevel = OutlineLevel.HasValue ? new OutlineLevel { Val = OutlineLevel.Value } : null;
         }
 
-        bool hasRunFormatting = !string.IsNullOrWhiteSpace(FontName) || FontSize.HasValue ||
-            !string.IsNullOrWhiteSpace(ColorHex) || Bold.HasValue || Italic.HasValue;
+        bool hasRunFormatting = !string.IsNullOrWhiteSpace(FontFamily) || FontSize.HasValue ||
+            Color.HasValue || Bold.HasValue || Italic.HasValue;
         StyleRunProperties? run = style.StyleRunProperties;
         if (hasRunFormatting) {
             run ??= style.StyleRunProperties = new StyleRunProperties();
-            if (!string.IsNullOrWhiteSpace(FontName)) {
+            if (!string.IsNullOrWhiteSpace(FontFamily)) {
                 run.RunFonts = new RunFonts {
-                    Ascii = FontName,
-                    HighAnsi = FontName,
-                    ComplexScript = FontName,
-                    EastAsia = FontName
+                    Ascii = FontFamily,
+                    HighAnsi = FontFamily,
+                    ComplexScript = FontFamily,
+                    EastAsia = FontFamily
                 };
             }
             if (FontSize.HasValue) {
@@ -202,8 +202,8 @@ public sealed class WordParagraphStyleDefinition {
                 run.FontSize = new FontSize { Val = halfPoints };
                 run.FontSizeComplexScript = new FontSizeComplexScript { Val = halfPoints };
             }
-            if (!string.IsNullOrWhiteSpace(ColorHex)) {
-                run.Color = new Color { Val = ColorHex!.Trim().TrimStart('#') };
+            if (Color.HasValue) {
+                run.Color = new Color { Val = Color.Value.ToRgbHex() };
             }
             SetChild(run, Bold.HasValue ? new Bold { Val = Bold.Value } : null);
             SetChild(run, Italic.HasValue ? new Italic { Val = Italic.Value } : null);

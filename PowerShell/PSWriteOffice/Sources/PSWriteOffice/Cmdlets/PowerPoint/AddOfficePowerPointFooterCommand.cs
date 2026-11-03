@@ -38,7 +38,7 @@ public sealed class AddOfficePowerPointFooterCommand : OfficeCmdlet {
         if (Alignment is not (OfficeAlignment.Left or OfficeAlignment.Center or OfficeAlignment.Right))
             throw new PSArgumentException("Choose Left, Center or Right for a footer slot.", nameof(Alignment));
         var body = document.CreateFooterTextBody();
-        if (Content == null) body.Box.Paragraphs[0].AddRun(Text);
+        if (Content == null) body.Box.Paragraphs[0].AddText(Text);
         else {
             using (OfficeDocumentContext.Push(new PowerPointFooterScope(document)))
             using (OfficeDocumentContext.Push(new PowerPointTextScope(document, body.Box))) Content.Invoke();

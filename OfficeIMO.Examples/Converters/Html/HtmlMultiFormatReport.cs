@@ -35,7 +35,7 @@ internal static partial class Html {
             SectionTagHandling = WordHtmlSectionTagHandling.Block
         }, out OfficeConversionReport wordReport);
 
-        word.Margins.Type = WordMargin.Narrow;
+        word.PageSetup.Margins.Type = WordMargin.Narrow;
         word.Save(stem + ".docx");
 
         HtmlToExcelResult excelResult = report.ToExcelDocumentResult(new HtmlExcelExportOptions {

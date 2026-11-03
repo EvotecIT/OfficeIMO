@@ -97,7 +97,7 @@ public class PdfReadbackCancellationOwnerTests {
 
     [Fact]
     public void LegacySecurityWriterAndReaderAcceptLongPasswordsWithoutFullByteMaterialization() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Legacy password proof")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Legacy password proof")).ToBytes();
         string userPassword = "\u03BB" + new string('x', 100_000);
         string ownerPassword = new string('\u00E9', 100_000) + "\u03BB";
         var encryption = new PdfStandardEncryptionOptions(userPassword) {

@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
 
-                var textBox = document.HeaderDefaultOrCreate.AddTextBox("My textbox in header");
+                var textBox = document.PageSetup.Header.AddTextBox("My textbox in header");
 
                 Console.WriteLine("Textbox (header) wraptext: " + textBox.WrapText);
 

@@ -15,7 +15,7 @@ public sealed partial class DocumentAssistantTests {
             Directory.CreateDirectory(services.Paths.Root);
             string path = Path.Combine(services.Paths.Root, "protected.pdf");
             const string password = "private-reader-password";
-            byte[] plain = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            byte[] plain = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("A source sentence.")))).ToBytes();
             File.WriteAllBytes(path, PdfDocument.Load(new System.IO.MemoryStream(plain)).Security.Encrypt(new(password) {
                 OwnerPassword = "private-owner-password", AllowedPermissions = PdfStandardPermissions.CopyContents
             }).Pdf);
@@ -68,7 +68,7 @@ public sealed partial class DocumentAssistantTests {
             var executor = new FixtureExecutor(connections.Profile(), async request => {
                 started.SetResult(); await finish.Task; return Answer(request);
             });
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("A source sentence.")))).ToBytes();
             bool current = true;
             using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => current),
                 _ => { }, services.Localizer, (_, _, _) => Task.FromResult<IOfficeAiExecutor>(executor));
@@ -91,7 +91,7 @@ public sealed partial class DocumentAssistantTests {
             var connections = services.AiConnections;
             connections.ProviderIndex = 3; connections.Model = "fixture"; connections.IsConnected = true;
             var executor = new FixtureExecutor(connections.Profile(), request => Task.FromResult(Answer(request)));
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("A source sentence.")))).ToBytes();
             int navigated = 0;
             using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => true),
                 page => navigated = page, services.Localizer, (_, _, _) => Task.FromResult<IOfficeAiExecutor>(executor));

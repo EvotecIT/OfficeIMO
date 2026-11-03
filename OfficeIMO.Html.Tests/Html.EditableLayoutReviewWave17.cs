@@ -72,7 +72,7 @@ public sealed class HtmlEditableLayoutReviewWave17Tests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Page owned", StringComparison.Ordinal));
+        Assert.NotEmpty(word.Find("Page owned", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null

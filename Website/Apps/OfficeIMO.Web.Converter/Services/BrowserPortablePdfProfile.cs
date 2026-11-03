@@ -95,8 +95,7 @@ internal static class BrowserPortablePdfProfile {
         FallbackFontData? fallback = Fallback;
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
-            HeaderFont = PdfStandardFont.Helvetica,
-            FooterFont = PdfStandardFont.Helvetica,
+            PageSetup = { Header = { StandardFont = PdfStandardFont.Helvetica }, Footer = { StandardFont = PdfStandardFont.Helvetica } },
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,

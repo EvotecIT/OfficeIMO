@@ -1,4 +1,4 @@
-#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
+#pragma warning disable RS0026 // The wrapper mirrors the PdfDocument operation overloads.
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -15,7 +15,7 @@ public sealed partial class PdfContentBuilder {
     /// <param name="options">Placement and optional separator flow, snapshotted during this call.</param>
     /// <returns>An immutable handle belonging to this document.</returns>
     public PdfFootnoteDefinition DefineFootnote(Action<PdfContentBuilder> build, PdfFootnoteOptions? options = null) => _doc.DefineFootnote(build, options);
-    internal PdfContentBuilder Heading(int level, string title, System.Action<PdfParagraphBuilder> build, OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfHeadingStyle? style) {
+    internal PdfContentBuilder Heading(int level, string title, System.Action<PdfParagraph> build, OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfHeadingStyle? style) {
         _doc.Heading(level, title, build, align, color, style);
         return this;
     }
@@ -61,14 +61,14 @@ public sealed partial class PdfContentBuilder {
     public PdfContentBuilder Row(System.Action<PdfRowBuilder> build) { _doc.Row(build); return this; }
     /// <summary>Adds a deferred simple-text table whose rows are materialized in bounded batches.</summary>
     /// <remarks>Minimum first-page and final-page body row groups can enlarge a batch so its pagination constraints remain intact.</remarks>
-    public PdfContentBuilder TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory, int batchSize = 256, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.TableDeferred(rowFactory, batchSize, align, style); return this; }
+    public PdfContentBuilder AddDeferredTable(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory, int batchSize = 256, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.AddDeferredTable(rowFactory, batchSize, align, style); return this; }
     /// <summary>Adds a deferred explicit-cell table whose rows are materialized in bounded batches.</summary>
     /// <remarks>Minimum first-page and final-page body row groups can enlarge a batch so its pagination constraints remain intact.</remarks>
-    public PdfContentBuilder TableDeferred(System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory, int batchSize = 256, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.TableDeferred(rowFactory, batchSize, align, style); return this; }
+    public PdfContentBuilder AddDeferredTable(System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory, int batchSize = 256, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.AddDeferredTable(rowFactory, batchSize, align, style); return this; }
     /// <summary>Adds a two-column key/value table.</summary>
-    public PdfContentBuilder KeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string?>> rows, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.KeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }
+    public PdfContentBuilder AddKeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string?>> rows, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.AddKeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }
     /// <summary>Adds a two-column key/value table with rich row values.</summary>
-    public PdfContentBuilder KeyValueTable(System.Collections.Generic.IEnumerable<PdfKeyValueRow> rows, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.KeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }
+    public PdfContentBuilder AddKeyValueTable(System.Collections.Generic.IEnumerable<PdfKeyValueRow> rows, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") { _doc.AddKeyValueTable(rows, align, style, includeHeader, keyHeader, valueHeader); return this; }
     /// <summary>Adds page-canvas drawing commands to the current flow.</summary>
     public PdfContentBuilder Canvas(System.Action<PdfPageCanvas> build) { _doc.Canvas(build); return this; }
     /// <summary>Starts a new page.</summary>
@@ -79,8 +79,8 @@ public sealed partial class PdfContentBuilder {
     public PdfContentBuilder Spacer(global::OfficeIMO.OfficeLength height) { _doc.Spacer(height.ToPoints()); return this; }
     /// <summary>Adds a heading at an authored level from 1 through 9.</summary>
     /// <remarks>Levels 7 through 9 retain their outline depth and use custom tagged roles mapped to H6.</remarks>
-    public PdfContentBuilder Heading(int level, string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
-        _doc.Heading(level, text, align, color, linkUri, style, linkContents, linkDestinationName);
+    public PdfContentBuilder AddHeading(string text, int level = 1, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+        _doc.AddHeading(text, level, align, color, linkUri, style, linkContents, linkDestinationName);
         return this;
     }
 
@@ -89,55 +89,44 @@ public sealed partial class PdfContentBuilder {
     /// <summary>Adds a subtitle paragraph in the theme accent colour.</summary>
     public PdfContentBuilder Subtitle(string text, OfficeAlignment align = OfficeAlignment.Left, OfficeColor? color = null) { _doc.Subtitle(text, align, color); return this; }
     /// <summary>Adds an H1 heading.</summary>
-    public PdfContentBuilder H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
+    public PdfContentBuilder H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.AddHeading(text, 1, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H1 heading with explicit alignment and color.</summary>
-    public PdfContentBuilder H1(string text, OfficeAlignment align, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H1(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
+    public PdfContentBuilder H1(string text, OfficeAlignment align, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.AddHeading(text, 1, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds an H2 heading.</summary>
-    public PdfContentBuilder H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H2(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
+    public PdfContentBuilder H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.AddHeading(text, 2, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H2 heading with explicit alignment and color.</summary>
-    public PdfContentBuilder H2(string text, OfficeAlignment align, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H2(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
+    public PdfContentBuilder H2(string text, OfficeAlignment align, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.AddHeading(text, 2, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
     /// <summary>Adds an H3 heading.</summary>
-    public PdfContentBuilder H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H3(text, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
+    public PdfContentBuilder H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _doc.AddHeading(text, 3, style: style, linkUri: linkUri, linkContents: linkContents, linkDestinationName: linkDestinationName); return this; }
     /// <summary>Adds an H3 heading with explicit alignment and color.</summary>
-    public PdfContentBuilder H3(string text, OfficeAlignment align, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.H3(text, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
-    /// <summary>Adds a plain paragraph using the current text defaults.</summary>
-    public PdfContentBuilder Text(string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfParagraphStyle? style = null) {
+    public PdfContentBuilder H3(string text, OfficeAlignment align, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _doc.AddHeading(text, 3, align, color, linkUri, style, linkContents, linkDestinationName); return this; }
+    /// <summary>Adds a paragraph with one text run. See <see cref="PdfDocument.AddParagraph(string, OfficeAlignment, OfficeColor?, PdfParagraphStyle?)"/>.</summary>
+    public PdfContentBuilder AddParagraph(string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfParagraphStyle? style = null) {
         Guard.NotNull(text, nameof(text));
-        _doc.Paragraph(paragraph => paragraph.Text(text), align, color, style);
+        _doc.AddParagraph(text, align, color, style);
         return this;
     }
-    /// <summary>Adds a paragraph built from styled text runs.</summary>
-    /// <param name="build">Paragraph content builder.</param>
-    /// <param name="align">Paragraph alignment.</param>
-    /// <param name="defaultColor">Optional default text color.</param>
-    /// <param name="style">Optional paragraph layout style.</param>
-    public PdfContentBuilder Paragraph(System.Action<PdfParagraphBuilder> build, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfParagraphStyle? style = null) { _doc.Paragraph(build, align, defaultColor, style); return this; }
-    /// <summary>Adds a simple bullet list.</summary>
-    public PdfContentBuilder Bullets(System.Collections.Generic.IEnumerable<string> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfListStyle? style = null) { _doc.Bullets(items, align, color, style); return this; }
-    /// <summary>Adds a bullet list whose items can contain rich inline text runs.</summary>
-    public PdfContentBuilder RichBullets(System.Collections.Generic.IEnumerable<PdfListItem> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfListStyle? style = null) { _doc.RichBullets(items, align, color, style); return this; }
-    /// <summary>Adds a simple numbered list.</summary>
-    public PdfContentBuilder Numbered(System.Collections.Generic.IEnumerable<string> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.Numbered(items, align, color, startNumber, style); return this; }
+    /// <summary>Adds a paragraph built from styled text runs. See <see cref="PdfDocument.AddParagraph(System.Action{PdfParagraph}, OfficeAlignment, OfficeColor?, PdfParagraphStyle?)"/>.</summary>
+    public PdfContentBuilder AddParagraph(System.Action<PdfParagraph> build, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfParagraphStyle? style = null) { _doc.AddParagraph(build, align, color, style); return this; }
+    /// <summary>Adds a bulleted list of plain items.</summary>
+    public PdfContentBuilder AddList(System.Collections.Generic.IEnumerable<string> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfListStyle? style = null) { _doc.AddList(items, align, color, style); return this; }
+    /// <summary>Adds a bulleted list whose items can contain rich inline text runs.</summary>
+    public PdfContentBuilder AddList(System.Collections.Generic.IEnumerable<PdfListItem> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, PdfListStyle? style = null) { _doc.AddList(items, align, color, style); return this; }
+    /// <summary>Adds a numbered list of plain items.</summary>
+    public PdfContentBuilder AddNumberedList(System.Collections.Generic.IEnumerable<string> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.AddNumberedList(items, align, color, startNumber, style); return this; }
     /// <summary>Adds a numbered list whose items can contain rich inline text runs.</summary>
-    public PdfContentBuilder RichNumbered(System.Collections.Generic.IEnumerable<PdfListItem> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.RichNumbered(items, align, color, startNumber, style); return this; }
-    /// <summary>Adds a simple text table.</summary>
-    /// <param name="rows">Sequence of row arrays.</param>
-    public PdfContentBuilder Table(System.Collections.Generic.IEnumerable<string[]> rows) { _doc.Table(rows, OfficeAlignment.Left, null); return this; }
-
-    /// <summary>Adds native text rows with explicit placement and styling.</summary>
-    public PdfContentBuilder Table(System.Collections.Generic.IEnumerable<string[]> rows, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.Table(rows, align, style); return this; }
-    /// <summary>Adds a table with explicit cells, including optional column spans.</summary>
-    /// <param name="rows">Sequence of rows made from explicit table cells.</param>
-    public PdfContentBuilder Table(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows) { _doc.Table(rows, OfficeAlignment.Left, null); return this; }
-
-    /// <summary>Adds native cell rows with explicit placement and styling.</summary>
-    public PdfContentBuilder Table(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.Table(rows, align, style); return this; }
-    /// <summary>Adds a simple text table and attaches link URIs to specific cells.</summary>
-    /// <param name="rows">Sequence of row arrays.</param>
-    /// <param name="links">Per-cell absolute or catalog-base-relative link URIs keyed by zero-based row and column.</param>
-    /// <param name="align">Table alignment.</param>
-    /// <param name="style">Optional table styling.</param>
-    public PdfContentBuilder TableWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.TableWithLinks(rows, links, align, style); return this; }
+    public PdfContentBuilder AddNumberedList(System.Collections.Generic.IEnumerable<PdfListItem> items, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.AddNumberedList(items, align, color, startNumber, style); return this; }
+    /// <summary>Adds a table of plain text rows with the document table style.</summary>
+    public PdfContentBuilder AddTable(System.Collections.Generic.IEnumerable<string[]> rows) { _doc.AddTable(rows); return this; }
+    /// <summary>Adds a table of explicit cells with the document table style.</summary>
+    public PdfContentBuilder AddTable(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows) { _doc.AddTable(rows); return this; }
+    /// <summary>Adds a table of plain text rows.</summary>
+    public PdfContentBuilder AddTable(System.Collections.Generic.IEnumerable<string[]> rows, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.AddTable(rows, align, style); return this; }
+    /// <summary>Adds a table of explicit cells, including spans, links, images, form fields and rich runs.</summary>
+    public PdfContentBuilder AddTable(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows, OfficeAlignment align = OfficeAlignment.Left, PdfTableStyle? style = null) { _doc.AddTable(rows, align, style); return this; }
+    /// <summary>Adds a table from typed rows. See <see cref="PdfDocument.AddTable{T}(System.Collections.Generic.IEnumerable{T}, OfficeTableOptions?)"/>.</summary>
+    public PdfContentBuilder AddTable<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties | System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields)] T>(
+        System.Collections.Generic.IEnumerable<T> rows, OfficeTableOptions? options = null) { _doc.AddTable(rows, options); return this; }
     /// <summary>Builds a visual and semantic envelope around nested flow content.</summary>
     /// <param name="build">Element layout, semantics, and content configuration.</param>
     public PdfContentBuilder Element(System.Action<PdfElementBuilder> build) {
@@ -192,35 +181,18 @@ public sealed partial class PdfContentBuilder {
     /// <param name="build">Paragraph content builder.</param>
     /// <param name="style">Panel style (padding, background, border, etc.).</param>
     /// <param name="align">Paragraph alignment.</param>
-    /// <param name="defaultColor">Optional default text color.</param>
-    public PdfContentBuilder PanelParagraph(System.Action<PdfParagraphBuilder> build, PdfPanelStyle? style = null, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? defaultColor = null) { _doc.PanelParagraph(build, style, align, defaultColor); return this; }
+    /// <param name="color">Optional text colour.</param>
+    public PdfContentBuilder AddPanelParagraph(System.Action<PdfParagraph> build, PdfPanelStyle? style = null, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null) { _doc.PanelParagraph(build, style, align, color); return this; }
     /// <summary>Adds a styled element while preserving its paragraphs, tables, links, and semantic structure.</summary>
     /// <param name="build">Panel content builder.</param>
     /// <param name="style">Panel style (padding, background, border, etc.).</param>
     public PdfContentBuilder Panel(System.Action<PdfContentBuilder> build, PdfPanelStyle? style = null) { _doc.Panel(build, style); return this; }
-    /// <summary>Adds a meaningful image from supported image bytes with alternate text.</summary>
-    public PdfContentBuilder Image(byte[] jpegBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
-        Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
+    /// <summary>Adds a meaningful image from supported image bytes with alternative text.</summary>
+    public PdfContentBuilder AddImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? altText) { _doc.AddImage(imageBytes, width, height, altText); return this; }
 
-    /// <summary>Adds a raster image supported by OfficeIMO.Drawing.</summary>
-    /// <param name="jpegBytes">Supported image bytes.</param>
-    /// <param name="width">Target width in points.</param>
-    /// <param name="height">Target height in points.</param>
-    /// <param name="align">Image alignment inside content width.</param>
-    /// <param name="clipPath">Optional local clipping path applied before drawing the image.</param>
-    /// <param name="fit">Image fitting mode inside the target box.</param>
-    /// <param name="spacingBefore">Top spacing (pt), inherited from the current default image style when omitted.</param>
-    /// <param name="spacingAfter">Bottom spacing (pt), inherited from the current default image style when omitted.</param>
-    /// <param name="style">Optional reusable image placement style.</param>
-    /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for an image link annotation.</param>
-    /// <param name="linkContents">Optional link annotation contents metadata.</param>
-    /// <param name="alternativeText">Optional alternate text for meaningful generated images.</param>
-    public PdfContentBuilder Image(byte[] jpegBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, global::OfficeIMO.OfficeLength? spacingBefore = null, global::OfficeIMO.OfficeLength? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null) {
-        Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
-        Guard.Positive(width.ToPoints(), nameof(width));
-        Guard.Positive(height.ToPoints(), nameof(height));
-
-        _doc.Image(jpegBytes, width.ToPoints(), height.ToPoints(), align, clipPath, fit, (spacingBefore?.ToPoints()), (spacingAfter?.ToPoints()), style, linkUri, linkContents, alternativeText);
+    /// <summary>Adds a raster image supported by OfficeIMO.Drawing. See <see cref="PdfDocument.AddImage(byte[], OfficeLength, OfficeLength, OfficeAlignment?, OfficeClipPath?, OfficeImageFit?, OfficeLength?, OfficeLength?, PdfImageStyle?, string?, string?, string?)"/>.</summary>
+    public PdfContentBuilder AddImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, global::OfficeIMO.OfficeLength? spacingBefore = null, global::OfficeIMO.OfficeLength? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? altText = null) {
+        _doc.AddImage(imageBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, altText);
         return this;
     }
 }

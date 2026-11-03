@@ -10,7 +10,7 @@ public class PdfMetadataSynchronizationTests {
 
         byte[] pdf = PdfDocument.Create()
             .Meta(title: title)
-            .Paragraph(paragraph => paragraph.Text("Metadata encoding"))
+            .Paragraph(paragraph => paragraph.AddText("Metadata encoding"))
             .ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         string raw = PdfEncoding.Latin1GetString(pdf);
@@ -30,7 +30,7 @@ public class PdfMetadataSynchronizationTests {
                 author: "Original author",
                 subject: "Preserved subject",
                 keywords: "first; second")
-            .Paragraph(paragraph => paragraph.Text("Full rewrite metadata synchronization"))
+            .Paragraph(paragraph => paragraph.AddText("Full rewrite metadata synchronization"))
             .ToBytes();
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(
@@ -67,7 +67,7 @@ public class PdfMetadataSynchronizationTests {
     public void FluentSynchronizeMetadata_CreatesXmpWhenMissing() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Info only", author: "Existing author")
-            .Paragraph(paragraph => paragraph.Text("Create synchronized XMP"))
+            .Paragraph(paragraph => paragraph.AddText("Create synchronized XMP"))
             .ToBytes();
 
         PdfDocument updated = PdfDocument.Load(source)
@@ -85,7 +85,7 @@ public class PdfMetadataSynchronizationTests {
     public void SynchronizeMetadata_CanPreserveMissingXmpByPolicy() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Info only")
-            .Paragraph(paragraph => paragraph.Text("No XMP creation"))
+            .Paragraph(paragraph => paragraph.AddText("No XMP creation"))
             .ToBytes();
 
         byte[] updated = PdfMetadataEditor.SynchronizeMetadata(
@@ -104,7 +104,7 @@ public class PdfMetadataSynchronizationTests {
             .SetElectronicInvoiceMetadata(new PdfElectronicInvoiceMetadata("ORDER", "invoice.xml", "1.0", "EN 16931"));
         byte[] source = PdfDocument.Create(options)
             .Meta(title: "Original", author: "Existing author")
-            .Paragraph(paragraph => paragraph.Text("Append-only synchronized metadata"))
+            .Paragraph(paragraph => paragraph.AddText("Append-only synchronized metadata"))
             .ToBytes();
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(
@@ -133,7 +133,7 @@ public class PdfMetadataSynchronizationTests {
     public void TrySynchronizeMetadata_SelectsAppendOnlyForAnExistingRevision() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Original")
-            .Paragraph(paragraph => paragraph.Text("Existing revision body"))
+            .Paragraph(paragraph => paragraph.AddText("Existing revision body"))
             .ToBytes();
         byte[] revised = PdfIncrementalUpdater.UpdateMetadata(source, author: "First revision");
 

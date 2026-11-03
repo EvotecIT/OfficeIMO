@@ -10,7 +10,7 @@ public sealed class PdfAesProviderPropagationTests {
     public void ValidatedMutationReadbackIsReusedForEncryptedReads() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128
-        })).Paragraph(paragraph => paragraph.Text("Cached mutation readback")).ToBytes();
+        })).Paragraph(paragraph => paragraph.AddText("Cached mutation readback")).ToBytes();
         var provider = new CountingAesProvider();
         var options = new PdfLoadOptions { Password = "owner", AesCryptographyProvider = provider };
         PdfDocument source = PdfDocument.Load(bytes, options);
@@ -28,8 +28,8 @@ public sealed class PdfAesProviderPropagationTests {
         var provider = new CountingAesProvider();
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128, AesCryptographyProvider = provider
-        })).Paragraph(paragraph => paragraph.Text("First cached page")).PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second cached page")).ToBytes();
+        })).Paragraph(paragraph => paragraph.AddText("First cached page")).PageBreak()
+            .Paragraph(paragraph => paragraph.AddText("Second cached page")).ToBytes();
         var options = new PdfLoadOptions { Password = "open", AesCryptographyProvider = provider };
         PdfDocument document = PdfDocument.Load(bytes, options);
         Assert.Equal(2, document.InspectGeometryForViewing().PageCount);
@@ -65,7 +65,7 @@ public sealed class PdfAesProviderPropagationTests {
             AesCryptographyProvider = provider
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text("Managed provider readback."));
+            .Paragraph(paragraph => paragraph.AddText("Managed provider readback."));
 
         _ = document.ToBytes();
         Assert.Same(provider, document.ReadOptions.AesCryptographyProvider);
@@ -90,7 +90,7 @@ public sealed class PdfAesProviderPropagationTests {
             AesCryptographyProvider = sourceProvider
         };
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(sourceEncryption))
-            .Paragraph(paragraph => paragraph.Text("Provider replacement proof."))
+            .Paragraph(paragraph => paragraph.AddText("Provider replacement proof."))
             .ToBytes();
         var outputEncryption = new PdfStandardEncryptionOptions("output-open") {
             OwnerPassword = "output-owner",

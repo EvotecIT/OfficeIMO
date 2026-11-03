@@ -362,10 +362,10 @@ public sealed class ReaderOfficeRichMappingTests {
                 new[] { new OfficeSeries("Hidden series", new[] { 1D }) }));
             hiddenChart.Hidden = true;
 
-            PowerPointPicture visiblePicture = slide.AddImage(
+            PowerPointImage visiblePicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             visiblePicture.AltText = "Visible direct picture";
-            PowerPointPicture hiddenPicture = slide.AddImage(
+            PowerPointImage hiddenPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenPicture.AltText = "Hidden direct picture";
             hiddenPicture.Hidden = true;
@@ -375,7 +375,7 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenImageFillId = hiddenImageFill.Id ?? throw new InvalidOperationException("Hidden image-fill shape has no id.");
 
             PowerPointTextBox hiddenGroupText = slide.AddTextBox("Hidden group guidance");
-            PowerPointPicture hiddenGroupPicture = slide.AddImage(
+            PowerPointImage hiddenGroupPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenGroupPicture.AltText = "Hidden group picture";
             PowerPointGroupShape hiddenGroup = slide.GroupShapes(
@@ -383,10 +383,10 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenGroup.Hidden = true;
 
             PowerPointTextBox visibleGroupText = slide.AddTextBox("Visible group guidance");
-            PowerPointPicture visibleGroupPicture = slide.AddImage(
+            PowerPointImage visibleGroupPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             visibleGroupPicture.AltText = "Visible group picture";
-            PowerPointPicture hiddenGroupChildPicture = slide.AddImage(
+            PowerPointImage hiddenGroupChildPicture = slide.AddImage(
                 new MemoryStream(png, writable: false), OfficeIMO.Drawing.OfficeImageFormat.Png);
             hiddenGroupChildPicture.AltText = "Hidden group child picture";
             hiddenGroupChildPicture.Hidden = true;

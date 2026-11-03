@@ -131,7 +131,7 @@ public sealed class WordSmartArtSharedPageTests {
     [InlineData(true, WordSmartArtType.CustomSmartArt2, "native-smart-art-persisted-layout")]
     public void HeaderAndFooterSmartArtEnterSharedRunningContent(bool footer, WordSmartArtType type, string warningCode) {
         using WordDocument document = WordDocument.Create();
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordSmartArt smartArt = story.AddParagraph().AddSmartArt(type);
         if (type == WordSmartArtType.BasicProcess)
             while (smartArt.NodeCount < 3) smartArt.AddNode("Node");

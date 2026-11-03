@@ -36,7 +36,7 @@ public partial class Word {
         W.Run run = body.Elements<W.Run>().First();
         run.RunProperties ??= new W.RunProperties();
         run.RunProperties.FontSize = new W.FontSize { Val = "288" };
-        DW.Anchor anchor = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!;
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!;
         anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
         SetAnchoredControlCyanFill(anchor);
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -61,7 +61,7 @@ public partial class Word {
         run.RunProperties.FontSize = new W.FontSize { Val = "24" };
         run.RunProperties.Highlight = new W.Highlight { Val = W.HighlightColorValues.Yellow };
         run.Elements<W.Text>().First().Text += " ORDINARY HIGHLIGHTED BODY PAINT";
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeHeight>();
         box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
@@ -104,7 +104,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_ForegroundRunningBoxWithUpwardExactBodyInkRetainsWarnedFlow(bool inheritedSpacing) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!;
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!;
         anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
         Wps.ShapeProperties shape = anchor.Descendants<Wps.ShapeProperties>().Single();
         shape.RemoveAllChildren<A.NoFill>();
@@ -143,7 +143,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_ForegroundRunningBoxOverNegativeBodyIndentRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeWidth>();
         box.Anchor.RemoveAllChildren<W14.RelativeHeight>();
         box.Width = box.Height = OfficeLength.Emus(571500L);
@@ -170,7 +170,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_DecorationOnlyNbspRunningBoxOverBodyRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         box.Anchor!.VerticalPosition!.PositionOffset!.Text = "914400";
         WordParagraph inner = box.Paragraphs.Single();
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();

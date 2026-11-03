@@ -413,7 +413,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     Kind: PowerPointMediaKind.Audio
                 };
             }
-            if (kind == LegacyPptShapeKind.Picture) return shape is PowerPointPicture;
+            if (kind == LegacyPptShapeKind.Picture) return shape is PowerPointImage;
             if (kind == LegacyPptShapeKind.OleObject) {
                 return shape is PowerPointOleObject;
             }
@@ -562,7 +562,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 get;
             }
 
-            internal PowerPointPicture? PictureFormatting { get; set; }
+            internal PowerPointImage? PictureFormatting { get; set; }
 
             internal PowerPointShape? ShapeTransform { get; set; }
 

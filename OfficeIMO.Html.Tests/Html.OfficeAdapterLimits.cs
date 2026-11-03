@@ -140,7 +140,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         using var presentation = result.Value;
 
         Assert.Equal(1, result.Pictures);
-        Assert.Single(Assert.Single(presentation.Slides).Pictures);
+        Assert.Single(Assert.Single(presentation.Slides).Images);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceDecodeFailed);
         Assert.DoesNotContain(result.Report.Diagnostics,

@@ -146,7 +146,7 @@ namespace OfficeIMO.PowerPoint {
 
     /// <summary>An image fitted to its content zone.</summary>
     public sealed class PowerPointLayoutImage : PowerPointLayoutBlock {
-        internal PowerPointPicture? NativePicture { get; set; }
+        internal PowerPointImage? NativePicture { get; set; }
         /// <summary>Creates content for the shared layout engine.</summary>
         public PowerPointLayoutImage(string path, string? alternativeText = null) {
             Path = path ?? throw new ArgumentNullException(nameof(path));
@@ -154,7 +154,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>The materialized picture owns the image payload; no source file is required.</summary>
-        internal PowerPointLayoutImage(PowerPointPicture picture) : this(string.Empty, picture.Description) {
+        internal PowerPointLayoutImage(PowerPointImage picture) : this(string.Empty, picture.AltText) {
             NativePicture = picture;
         }
 

@@ -226,6 +226,10 @@ public sealed partial class PdfCreateOptions {
             _defaultFontSizeAssignmentVersion;
         clone._pageSizeConfigurationVersion = _pageSizeConfigurationVersion;
         clone._pageNumberStart = _pageNumberStart;
+        clone._showFirstPageHeader = _showFirstPageHeader;
+        clone._showEvenPageHeader = _showEvenPageHeader;
+        clone._showFirstPageFooter = _showFirstPageFooter;
+        clone._showEvenPageFooter = _showEvenPageFooter;
         clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;
         if (_automaticHyphenation) clone.UseAutomaticHyphenation(_automaticHyphenationLanguage);
         return clone;

@@ -338,7 +338,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     }
 
     [Fact]
-    public void NegativePowerPointPictureCropIsExplicitLoss() {
+    public void NegativePowerPointImageCropIsExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
         byte[] png = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");

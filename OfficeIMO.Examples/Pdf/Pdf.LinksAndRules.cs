@@ -8,18 +8,9 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.LinksAndRules.pdf");
 
             var rows = new[] {
-                new [] { "Site", "Label", "Notes" },
-                new [] { "OfficeIMO", "Homepage", "Docs" },
-                new [] { "GitHub", "Repo", "Issues" }
-            };
-
-            var links = new Dictionary<(int Row, int Col), string> {
-                [(1, 0)] = "https://officeimo.com/",
-                [(1, 1)] = "https://officeimo.com/",
-                [(1, 2)] = "https://officeimo.com/docs",
-                [(2, 0)] = "https://github.com/EvotecIT/OfficeIMO",
-                [(2, 1)] = "https://github.com/EvotecIT/OfficeIMO",
-                [(2, 2)] = "https://github.com/EvotecIT/OfficeIMO/issues"
+                new[] { PdfTableCell.TextCell("Site"), PdfTableCell.TextCell("Label"), PdfTableCell.TextCell("Notes") },
+                new[] { PdfTableCell.TextCell("OfficeIMO", "https://officeimo.com/"), PdfTableCell.TextCell("Homepage", "https://officeimo.com/"), PdfTableCell.TextCell("Docs", "https://officeimo.com/docs") },
+                new[] { PdfTableCell.TextCell("GitHub", "https://github.com/EvotecIT/OfficeIMO"), PdfTableCell.TextCell("Repo", "https://github.com/EvotecIT/OfficeIMO"), PdfTableCell.TextCell("Issues", "https://github.com/EvotecIT/OfficeIMO/issues") }
             };
 
             var tableStyle = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
@@ -35,19 +26,21 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Links & Rules Demo", OfficeAlignment.Left, linkUri: "https://github.com/EvotecIT/OfficeIMO")
-                .Paragraph(p => p
-                    .Text("Visit ")
-                    .Link("OfficeIMO GitHub", "https://github.com/EvotecIT/OfficeIMO", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180))
-                    .Text(" and the ")
-                    .Link("project website", "https://officeimo.com/", OfficeColor.FromRgb(20, 90, 180))
-                    .Text(" for more details."))
+                .AddParagraph(p => {
+                    p.AddText("Visit ");
+                    p.AddLink("OfficeIMO GitHub", "https://github.com/EvotecIT/OfficeIMO", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180));
+                    p.AddText(" and the ");
+                    p.AddLink("project website", "https://officeimo.com/", OfficeColor.FromRgb(20, 90, 180));
+                    p.AddText(" for more details.");
+                })
                 .HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))
-                .TableWithLinks(rows, links, OfficeAlignment.Left, tableStyle)
-                .PanelParagraph(
-                    p => p
-                        .Text("You can also place links ")
-                        .Link("inside panels", "https://officeimo.com/", OfficeColor.FromRgb(20, 90, 180))
-                        .Text("."),
+                .AddTable(rows, OfficeAlignment.Left, tableStyle)
+                .AddPanelParagraph(
+                    p => {
+                        p.AddText("You can also place links ");
+                        p.AddLink("inside panels", "https://officeimo.com/", OfficeColor.FromRgb(20, 90, 180));
+                        p.AddText(".");
+                    },
                     new PdfPanelStyle {
                         Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
@@ -55,11 +48,10 @@ namespace OfficeIMO.Examples.Pdf {
                         PaddingX = global::OfficeIMO.OfficeLength.Points(9),
                         PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                     })), new PdfCreateOptions {
-                    HeaderFormat = "OfficeIMO.Pdf links and rules",
-                    HeaderAlign = OfficeAlignment.Left,
-                    ShowHeader = true,
-                    FooterAlign = OfficeAlignment.Right,
-                    ShowPageNumbers = true
+                    PageSetup = {
+                        Header = { Format = "OfficeIMO.Pdf links and rules", Alignment = OfficeAlignment.Left, Show = true },
+                        Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                    }
                 })
                 .Meta(title: "OfficeIMO.Pdf Links and Rules", author: "OfficeIMO")
                 .Save(path);

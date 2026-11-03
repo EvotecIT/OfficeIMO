@@ -87,7 +87,7 @@ namespace OfficeIMO.Word.Markdown {
                 paragraph.IndentationBefore = OfficeLength.Points(IndentTwipsPerLevel * quoteDepth / 20D);
                 // A quote reads as a quote, not just an indent: a rule on the left in the theme's border colour.
                 paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-                paragraph.Borders.LeftColorHex = OfficeTheme.Default.TableStyle.BorderColor.IsThemeRole
+                paragraph.Borders.LeftColorValue = OfficeTheme.Default.TableStyle.BorderColor.IsThemeRole
                     ? OfficeTheme.Default.TableStyle.BorderColor.Resolve(OfficeTheme.Default).ToRgbHex()
                     : OfficeTheme.Default.TableStyle.BorderColor.ToRgbHex();
                 paragraph.Borders.LeftSize = OfficeLength.Points(2.25D);
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word.Markdown {
                     continue;
                 }
 
-                run.SetColorHex(palette.Heading.ToRgbHex());
+                run.SetColor(palette.Heading);
             }
         }
 
@@ -124,18 +124,18 @@ namespace OfficeIMO.Word.Markdown {
 
             Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             if (palette.CodeBackground.A > 0) {
-                paragraph.ShadingFillColorHex = palette.CodeBackground.ToRgbHex();
+                paragraph.ShadingFillValue = palette.CodeBackground.ToRgbHex();
             }
 
             paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-            paragraph.Borders.LeftColorHex = palette.Border.ToRgbHex();
+            paragraph.Borders.LeftColorValue = palette.Border.ToRgbHex();
             paragraph.Borders.LeftSize = OfficeLength.Points(0.5D);
             // Keep the rule off the code and give the block room above and below.
             paragraph.Borders.LeftSpace = OfficeLength.Points(6);
             paragraph.LineSpacingBefore ??= OfficeLength.Points(6);
             paragraph.LineSpacingAfter ??= OfficeLength.Points(6);
             foreach (var run in paragraph.GetRuns()) {
-                run.SetColorHex(palette.Text.ToRgbHex());
+                run.SetColor(palette.Text);
             }
         }
 
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Markdown {
 
             string textHex = theme.PaletteSnapshot.Text.ToRgbHex();
             foreach (var run in paragraph.GetRuns()) {
-                run.SetColorHex(textHex);
+                run.SetColor(OfficeIMO.OfficeColor.Parse(textHex));
             }
         }
 
@@ -159,14 +159,14 @@ namespace OfficeIMO.Word.Markdown {
 
             Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             if (palette.Surface.A > 0) {
-                paragraph.ShadingFillColorHex = palette.Surface.ToRgbHex();
+                paragraph.ShadingFillValue = palette.Surface.ToRgbHex();
             }
 
             paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-            paragraph.Borders.LeftColorHex = palette.Accent.ToRgbHex();
+            paragraph.Borders.LeftColorValue = palette.Accent.ToRgbHex();
             paragraph.Borders.LeftSize = OfficeLength.Points(1);
             foreach (var run in paragraph.GetRuns()) {
-                run.SetColorHex(palette.Accent.ToRgbHex());
+                run.SetColor(palette.Accent);
                 run.SetBold();
             }
         }
@@ -201,8 +201,8 @@ namespace OfficeIMO.Word.Markdown {
                     cell.Borders.RightStyle = WordBorderStyle.None;
                     cell.Borders.TopSize = borderSize.HasValue ? WordBorderLengths.FromSize(borderSize.Value) : null;
                     cell.Borders.BottomSize = borderSize.HasValue ? WordBorderLengths.FromSize(borderSize.Value) : null;
-                    cell.Borders.TopColorHex = borderHex;
-                    cell.Borders.BottomColorHex = borderHex;
+                    cell.Borders.TopColorValue = borderHex;
+                    cell.Borders.BottomColorValue = borderHex;
                     cell.VerticalAlignment = WordTableVerticalAlignment.Center;
                     foreach (var cellParagraph in cell.Paragraphs) {
                         // Body spacing after would make every row tall with the text at the top.
@@ -242,7 +242,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void ApplyCellFillColor(WordTableCell cell, OfficeColor color) {
             if (color.A > 0) {
-                cell.ShadingFillColorHex = color.ToRgbHex();
+                cell.ShadingFillValue = color.ToRgbHex();
             }
         }
 
@@ -254,7 +254,7 @@ namespace OfficeIMO.Word.Markdown {
             string colorHex = color.ToRgbHex();
             foreach (var paragraph in cell.Paragraphs) {
                 foreach (var run in paragraph.GetRuns()) {
-                    run.SetColorHex(colorHex);
+                    run.SetColor(OfficeIMO.OfficeColor.Parse(colorHex));
                 }
             }
         }

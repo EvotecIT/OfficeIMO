@@ -23,10 +23,10 @@ internal static partial class RtfPdfConverter {
     /// <summary>Retains the established plain-story presentation when callers explicitly configure that projection.</summary>
     private static bool HasRunningStoryPresentationOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
-            ? options.FooterOffsetY.ToPoints() != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != global::OfficeIMO.OfficeAlignment.Center
-            : options.HeaderOffsetY.ToPoints() != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != global::OfficeIMO.OfficeAlignment.Center);
+            ? options.PageSetup.Footer.Offset.ToPoints() != 18D || options.PageSetup.Footer.HasExplicitStandardFont || options.PageSetup.Footer.FontFamily != null ||
+                options.PageSetup.Footer.FontSize.ToPoints() != 9D || options.PageSetup.Footer.Color.HasValue || options.PageSetup.Footer.Alignment != global::OfficeIMO.OfficeAlignment.Center
+            : options.PageSetup.Header.Offset.ToPoints() != 18D || options.PageSetup.Header.HasExplicitStandardFont || options.PageSetup.Header.FontFamily != null ||
+                options.PageSetup.Header.FontSize.ToPoints() != 9D || options.PageSetup.Header.Color.HasValue || options.PageSetup.Header.Alignment != global::OfficeIMO.OfficeAlignment.Center);
 
     /// <summary>Captures rich source stories once through the same document and paragraph/image owners used by ordinary flow.</summary>
     private static void ApplyHeaderFooterContent(RtfDocument document, RtfPageSetup setup, PdfCore.PdfDocument pdf,
@@ -63,9 +63,9 @@ internal static partial class RtfPdfConverter {
         }
         // Content builders enable their variant. Source flags remain the
         // authority, including explicitly empty and absent selected stories.
-        pageOptions.DifferentFirstPageHeaderFooter = setup.DifferentFirstPageHeaderFooter;
-        pageOptions.DifferentOddAndEvenPagesHeaderFooter = document.Settings.FacingPages == true;
-        pageOptions.UsePageNumberParityForHeaderFooter = true;
+        pageOptions.PageSetup.DifferentFirstPage = setup.DifferentFirstPageHeaderFooter;
+        pageOptions.PageSetup.DifferentOddAndEvenPages = document.Settings.FacingPages == true;
+        pageOptions.PageSetup.UseVisiblePageNumberParity = true;
 
         Action<PdfCore.PdfContentBuilder> CreateRunningStory(RtfHeaderFooter story) {
             PdfRenderState runningState = state.CreateRunningStoryState(document, pageOptions);
@@ -77,7 +77,7 @@ internal static partial class RtfPdfConverter {
                     AppendParagraphRuns(document, paragraph, runs, options, runningState, collectNotes: false,
                         context: PdfInlineProjectionContext.RunningStory);
                     EnsureParagraphLineBoxStrut(document, paragraph, runs, runningState);
-                    pdf.Paragraph(builder => builder.Runs(runs),
+                    pdf.Paragraph(builder => builder.AddRuns(runs),
                         RtfPdfMapping.ToPdfAlign(document.GetParagraphFormatting(paragraph).Alignment),
                         style: RtfPdfMapping.ToPdfParagraphStyle(document, paragraph, runs, pageOptions));
                 }

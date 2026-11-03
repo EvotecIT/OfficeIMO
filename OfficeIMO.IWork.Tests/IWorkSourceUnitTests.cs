@@ -104,8 +104,8 @@ public sealed partial class IWorkBoundaryTests {
         result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
-        Assert.Contains(reopened.Sections[0].Header.Default!.Paragraphs, paragraph => paragraph.Text == "First header");
-        Assert.DoesNotContain(reopened.Sections[1].Header.Default!.Paragraphs, paragraph => paragraph.Text == "Second header");
+        Assert.Contains(reopened.Sections[0].PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "First header");
+        Assert.DoesNotContain(reopened.Sections[1].PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "Second header");
     }
 
     private static IWorkSourceUnitCount Count(IWorkConversionReport report, IWorkSourceUnitKind kind) =>

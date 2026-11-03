@@ -41,18 +41,20 @@ public sealed class PdfMirroredMarginResourceTests {
 #endif
 
     private static PdfCreateOptions Options() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(70), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
-        MirrorMargins = true, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(200)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(70), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) },
+            MirrorMargins = true
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
     };
 
     private static byte[] BuildDocument(PdfCreateOptions options, int pages, bool nested, bool namedFont) {
         void AddPages(PdfContentBuilder content) {
             for (int page = 1; page <= pages; page++) {
                 if (page > 1) content.PageBreak();
-                content.Paragraph(paragraph => {
-                    if (namedFont) paragraph.FontFamily("Mirror Font");
-                    paragraph.Text("Marker" + page);
+                content.AddParagraph(paragraph => {
+                    if (namedFont) { paragraph.RunDefaults.FontFamily = "Mirror Font"; paragraph.RunDefaults.StandardFont = null; }
+                    paragraph.AddText("Marker" + page);
                 });
             }
         }

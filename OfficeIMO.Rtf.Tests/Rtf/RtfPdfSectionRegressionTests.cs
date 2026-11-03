@@ -13,7 +13,7 @@ public class RtfPdfSectionRegressionTests {
         document.AddSection().AddParagraph("First body");
         document.AddSection().AddParagraph("Second body");
         PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfPdfExportOptions {
-            PdfOptions = new PdfCore.PdfCreateOptions { ShowPageNumbers = true, FooterFormat = "Caller page {page}" }
+            PdfOptions = new PdfCore.PdfCreateOptions { PageSetup = { Footer = { Show = true, Format = "Caller page {page}" } } }
         })).ToBytes());
         Assert.Equal(2, read.Pages.Count);
         Assert.Contains("Caller page 1", read.Pages[0].ExtractText(), StringComparison.Ordinal);
@@ -35,16 +35,16 @@ public class RtfPdfSectionRegressionTests {
         third.AddParagraph("Fifth body");
         PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
-                ShowHeader = true,
-                ShowPageNumbers = true,
-                HeaderFormat = "Caller default header",
-                FooterFormat = "Caller default footer {page}",
-                DifferentFirstPageHeaderFooter = true,
-                FirstPageHeaderFormat = "Caller first header",
-                FirstPageFooterFormat = "Caller first footer {page}",
-                DifferentOddAndEvenPagesHeaderFooter = true,
-                EvenPageHeaderFormat = "Caller even header",
-                EvenPageFooterFormat = "Caller even footer {page}"
+                PageSetup = {
+                    DifferentFirstPage = true,
+                    DifferentOddAndEvenPages = true,
+                    Header = { Show = true, Format = "Caller default header" },
+                    FirstPageHeader = { Format = "Caller first header" },
+                    EvenPageHeader = { Format = "Caller even header" },
+                    Footer = { Show = true, Format = "Caller default footer {page}" },
+                    FirstPageFooter = { Format = "Caller first footer {page}" },
+                    EvenPageFooter = { Format = "Caller even footer {page}" }
+                }
             }
         })).ToBytes());
         Assert.Equal(5, read.Pages.Count);
@@ -93,7 +93,7 @@ public class RtfPdfSectionRegressionTests {
         document.AddSection().AddParagraph("First body");
         document.AddSection().AddParagraph("Second body");
         PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfPdfExportOptions {
-            PdfOptions = new PdfCore.PdfCreateOptions { ShowPageNumbers = true, FooterFormat = "{page}/{pages}" }
+            PdfOptions = new PdfCore.PdfCreateOptions { PageSetup = { Footer = { Show = true, Format = "{page}/{pages}" } } }
         })).ToBytes());
         Assert.Equal(2, read.Pages.Count);
         Assert.Contains("7/8", read.Pages[0].ExtractText(), StringComparison.Ordinal);
@@ -149,7 +149,10 @@ public class RtfPdfSectionRegressionTests {
         RtfSection third = document.AddSection();
         third.PageSetup.SetLandscape(false);
         third.AddParagraph("Explicit portrait body");
-        var caller = new PdfCore.PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(500), MarginLeft = global::OfficeIMO.OfficeLength.Points(17) };
+        var caller = new PdfCore.PdfCreateOptions { PageSetup = {
+            Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(17) }
+        } };
 
         byte[] bytes = (document.ToPdf(new RtfPdfExportOptions {
             PdfOptions = caller,
@@ -166,9 +169,9 @@ public class RtfPdfSectionRegressionTests {
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(36, read.GetPage(1).Letters[0].StartBaseLine.X, 1);
         Assert.Equal(72, read.GetPage(2).Letters[0].StartBaseLine.X, 1);
-        Assert.Equal(400, caller.PageWidth.ToPoints());
-        Assert.Equal(500, caller.PageHeight.ToPoints());
-        Assert.Equal(17, caller.MarginLeft.ToPoints());
+        Assert.Equal(400, caller.PageSetup.Size.Width.ToPoints());
+        Assert.Equal(500, caller.PageSetup.Size.Height.ToPoints());
+        Assert.Equal(17, caller.PageSetup.Margins.Left.ToPoints());
     }
 
     [Fact]

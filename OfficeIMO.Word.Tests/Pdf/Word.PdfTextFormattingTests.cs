@@ -20,7 +20,7 @@ public sealed class WordPdfTextFormattingTests {
         authored.DoubleStrike = true;
         authored.VerticalTextAlignment = WordVerticalTextPosition.Superscript;
         authored.CapsStyle = WordCapsStyle.Caps;
-        authored.ColorHex = "336699";
+        authored.Color = OfficeColor.Parse("336699");
         authored.FontFamily = "Aptos";
         authored.FontSize = global::OfficeIMO.OfficeLength.Points(14D);
 
@@ -41,7 +41,7 @@ public sealed class WordPdfTextFormattingTests {
         Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
         Assert.Equal(PdfTextBaseline.Superscript, run.Baseline);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), run.Color);
-        Assert.Equal(PdfStandardFont.Helvetica, run.Font);
+        Assert.Equal(PdfStandardFont.Helvetica, run.StandardFont);
         Assert.Null(run.FontFamily);
         Assert.Equal(14D, (run.FontSize?.ToPoints()));
     }

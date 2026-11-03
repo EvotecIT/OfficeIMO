@@ -40,19 +40,17 @@ public partial class PdfDocumentReadResultTests {
 
     private static byte[] BuildThreePageLogicalPdf() {
         return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("First logical page marker."))
+            .Paragraph(p => p.AddText("First logical page marker."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second logical page marker."))
+            .Paragraph(p => p.AddText("Second logical page marker."))
             .PageBreak()
-            .Paragraph(p => p.Text("Third logical page marker."))
+            .Paragraph(p => p.AddText("Third logical page marker."))
             .ToBytes();
     }
 

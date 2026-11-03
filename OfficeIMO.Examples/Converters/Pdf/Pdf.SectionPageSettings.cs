@@ -11,12 +11,12 @@ namespace OfficeIMO.Examples.Word {
             string docPath = Path.Combine(folderPath, "PdfSectionsPageSettings.docx");
             string pdfPath = Path.Combine(folderPath, "PdfSectionsPageSettings.pdf");
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-                document.Sections[0].PageSettings.Orientation = OfficePageOrientation.Landscape;
+                document.Sections[0].PageSetup.Size.PageSize = WordPageSize.A4;
+                document.Sections[0].PageSetup.Size.Orientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Section 1");
                 WordSection section2 = document.AddSection();
-                section2.PageSettings.PageSize = WordPageSize.A5;
-                section2.PageSettings.Orientation = OfficePageOrientation.Portrait;
+                section2.PageSetup.Size.PageSize = WordPageSize.A5;
+                section2.PageSetup.Size.Orientation = OfficePageOrientation.Portrait;
                 section2.AddParagraph("Section 2");
                 document.Save();
                 document.SaveAsPdf(pdfPath);

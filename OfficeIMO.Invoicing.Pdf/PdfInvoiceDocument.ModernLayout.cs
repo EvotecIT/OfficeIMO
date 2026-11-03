@@ -8,7 +8,7 @@ public sealed partial class PdfInvoiceDocument {
             row.Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(20D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(16D) })
                 .PercentColumn(44D, column => {
                     if (_layout.LogoBytesSnapshot != null) {
-                        column.Image(
+                        column.AddImage(
                             _layout.LogoBytesSnapshot,
                             global::OfficeIMO.OfficeLength.Points(_layout.LogoWidth),
                             global::OfficeIMO.OfficeLength.Points(_layout.LogoHeight),
@@ -20,24 +20,23 @@ public sealed partial class PdfInvoiceDocument {
                             style: null,
                             linkUri: null,
                             linkContents: null,
-                            alternativeText: _layout.LogoAlternativeText);
+                            altText: _layout.LogoAlternativeText);
                     } else {
                         column.H2(_invoice.Seller.Name, OfficeAlignment.Left, theme.Text, style: SectionHeadingStyle());
                     }
                 })
                 .PercentColumn(56D, column => {
-                    column.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(18D)).Bold(DocumentTitle, theme.Text), OfficeAlignment.Right, style: new PdfParagraphStyle {
+                    column.AddParagraph(p => p.AddText(DocumentTitle).SetBold().SetColor(theme.Text).SetFontSize(global::OfficeIMO.OfficeLength.Points(18D)), OfficeAlignment.Right, style: new PdfParagraphStyle {
                         SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(6D),
                         WidowControl = true
                     });
-                    column.Paragraph(p => p
-                        .Color(theme.MutedText)
-                        .Text(Label(InvoicePdfText.Issued) + ": ")
-                        .Bold(Date(_invoice.IssueDate), theme.Text)
-                        .Color(theme.MutedText)
-                        .Text("\n" + Label(InvoicePdfText.Due) + ": ")
-                        .Bold(Date(_invoice.DueDate), theme.Text), OfficeAlignment.Right);
+                    column.AddParagraph(p => {
+                        p.AddText(Label(InvoicePdfText.Issued) + ": ").SetColor(theme.MutedText);
+                        p.AddText(Date(_invoice.IssueDate)).SetBold().SetColor(theme.Text);
+                        p.AddText("\n" + Label(InvoicePdfText.Due) + ": ").SetColor(theme.MutedText);
+                        p.AddText(Date(_invoice.DueDate)).SetBold().SetColor(theme.Text);
+                    }, OfficeAlignment.Right);
                 });
         });
 
@@ -49,7 +48,7 @@ public sealed partial class PdfInvoiceDocument {
         var identity = new List<string[]> {
             new[] { Label(InvoicePdfText.Currency), _invoice.Currency, Label(InvoicePdfText.BuyerReference), _invoice.BuyerReference ?? "-" }
         };
-        content.Table(identity, style: new PdfTableStyle {
+        content.AddTable(identity, style: new PdfTableStyle {
             HeaderRowCount = 0,
             RowStripeFill = null,
             BorderColor = theme.Border,
@@ -71,11 +70,11 @@ public sealed partial class PdfInvoiceDocument {
 
     private void PartyCard(PdfContentBuilder content, string label, InvoiceParty party, InvoicePdfTheme theme) {
         content.Panel(card => {
-            card.Paragraph(p => p.Bold(label.ToUpperInvariant(), theme.Accent), style: new PdfParagraphStyle {
+            card.AddParagraph(p => p.AddText(label.ToUpperInvariant()).SetBold().SetColor(theme.Accent), style: new PdfParagraphStyle {
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(4D)
             });
-            card.Paragraph(p => p.Text(Party(party)), defaultColor: theme.Text, style: new PdfParagraphStyle {
+            card.AddParagraph(p => p.AddText(Party(party)), color: theme.Text, style: new PdfParagraphStyle {
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                 LineHeight = 1.25D
@@ -85,7 +84,7 @@ public sealed partial class PdfInvoiceDocument {
 
     private void ComposeModernLines(PdfContentBuilder content, InvoicePdfTheme theme) {
         if (_invoice.Lines.Count == 0) return;
-        content.Table(LineRows(), style: new PdfTableStyle {
+        content.AddTable(LineRows(), style: new PdfTableStyle {
             HeaderRowCount = 1,
             HeaderFill = theme.Text,
             HeaderTextColor = global::OfficeIMO.OfficeColor.White,
@@ -139,15 +138,16 @@ public sealed partial class PdfInvoiceDocument {
                 KeepTogether = paymentSummaryLength <= 600 && !paymentSummaryIsMultiline
             })
             .PercentColumn(55D, column => {
-                column.PanelParagraph(p => p
-                    .Bold(Label(InvoicePdfText.PaymentReference) + "\n", theme.Text)
-                    .Color(theme.MutedText)
-                    .Text(paymentReference)
-                    .Text(_invoice.PaymentTerms == null ? string.Empty : "\n" + _invoice.PaymentTerms),
+                column.AddPanelParagraph(p => {
+                    p.AddText(Label(InvoicePdfText.PaymentReference) + "\n").SetBold().SetColor(theme.Text);
+                    p.RunDefaults.Color = theme.MutedText;
+                    p.AddText(paymentReference);
+                    p.AddText(_invoice.PaymentTerms == null ? string.Empty : "\n" + _invoice.PaymentTerms);
+                },
                     CardStyle(theme));
             })
             .PercentColumn(45D, column => {
-                column.Table(summary, style: new PdfTableStyle {
+                column.AddTable(summary, style: new PdfTableStyle {
                     HeaderRowCount = 0,
                     FontSize = global::OfficeIMO.OfficeLength.Points(10D),
                     BorderColor = theme.Border,
@@ -180,7 +180,7 @@ public sealed partial class PdfInvoiceDocument {
                 Money(item.Amount)
             });
             content.H2(Label(InvoicePdfText.DocumentAdjustments), OfficeAlignment.Left, theme.Text, style: SectionHeadingStyle());
-            content.Table(adjustments, style: ModernFinancialTableStyle(theme, false,
+            content.AddTable(adjustments, style: ModernFinancialTableStyle(theme, false,
                 OfficeAlignment.Left, OfficeAlignment.Left, OfficeAlignment.Left, OfficeAlignment.Right));
         }
 
@@ -194,7 +194,7 @@ public sealed partial class PdfInvoiceDocument {
                 Money(tax.TaxAmount),
                 Join(tax.ExemptionReasonCode, tax.ExemptionReason)
             }));
-            content.Table(taxes, style: ModernFinancialTableStyle(theme, true,
+            content.AddTable(taxes, style: ModernFinancialTableStyle(theme, true,
                 OfficeAlignment.Left, OfficeAlignment.Right, OfficeAlignment.Right, OfficeAlignment.Left));
         }
     }
@@ -224,14 +224,14 @@ public sealed partial class PdfInvoiceDocument {
             row.Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(12D) });
             foreach (InvoicePdfApproval approval in _layout.Approvals) {
                 row.RelativeColumn(column => column.Panel(card => {
-                    card.Paragraph(p => p.Text(approval.Label.ToUpperInvariant()), defaultColor: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(9D) });
+                    card.AddParagraph(p => p.AddText(approval.Label.ToUpperInvariant()), color: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(9D) });
                     card.HR(global::OfficeIMO.OfficeLength.Points(0.8D), theme.Border, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(6D));
-                    card.Paragraph(p => p.Bold(approval.Name, theme.Text));
+                    card.AddParagraph(p => p.AddText(approval.Name).SetBold().SetColor(theme.Text));
                     string detail = string.Join(" · ", new[] {
                         approval.Role,
                         approval.Date.HasValue ? Date(approval.Date) : null
                     }.Where(value => !string.IsNullOrWhiteSpace(value)));
-                    if (detail.Length > 0) card.Paragraph(p => p.Text(detail), defaultColor: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) });
+                    if (detail.Length > 0) card.AddParagraph(p => p.AddText(detail), color: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) });
                 }, CardStyle(theme)), 1D);
             }
         });

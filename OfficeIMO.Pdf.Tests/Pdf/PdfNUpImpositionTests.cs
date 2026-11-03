@@ -6,12 +6,12 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfNUpImpositionTests {
     [Fact]
     public void TwoUpCreatesVectorSheetsWithSourceToCellMapping() {
-        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) })
-            .Paragraph(paragraph => paragraph.Text("First page"))
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } })
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Third page"));
+            .Paragraph(paragraph => paragraph.AddText("Third page"));
 
         PdfImpositionResult result = PdfDocument.Load(source.ToBytes()).Pages.ImposeNUp(
             new PdfNUpOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(400)), columns: 2, rows: 1));
@@ -33,7 +33,7 @@ public sealed class PdfNUpImpositionTests {
     [Fact]
     public void InteractiveSourceRequiresExplicitVisualOnlyPolicy() {
         byte[] source = PdfDocument.Create().TextAnnotation("Review note")
-            .Paragraph(paragraph => paragraph.Text("Annotated source")).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText("Annotated source")).ToBytes();
         PdfDocument document = PdfDocument.Load(source);
         var options = new PdfNUpOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(400)), 2, 1);
 
@@ -260,7 +260,7 @@ public sealed class PdfNUpImpositionTests {
     [Fact]
     public void UnselectedInteractivePagesDoNotRequireFeatureLossApproval() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Selected page"))
+            .Paragraph(paragraph => paragraph.AddText("Selected page"))
             .PageBreak()
             .TextAnnotation("Review note")
             .TextField("ReviewedBy", value: "Ada")
@@ -325,7 +325,7 @@ public sealed class PdfNUpImpositionTests {
 
     [Fact]
     public void EmbeddedFileLossRequiresExplicitApproval() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Sheet")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Sheet")).ToBytes();
         byte[] attached = PdfAttachmentEditor.Add(source,
             new PdfEmbeddedFile("payload.txt", System.Text.Encoding.UTF8.GetBytes("payload"))).ToBytes();
         PdfDocument document = PdfDocument.Load(attached);
@@ -342,7 +342,7 @@ public sealed class PdfNUpImpositionTests {
     [Fact]
     public void OutputIntentLossRequiresExplicitApproval() {
         PdfDocument document = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
-            .Paragraph(paragraph => paragraph.Text("Sheet")).ToBytes());
+            .Paragraph(paragraph => paragraph.AddText("Sheet")).ToBytes());
         var layout = new PdfNUpOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(400)), 2, 1);
 
         Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(layout));
@@ -357,7 +357,7 @@ public sealed class PdfNUpImpositionTests {
     public void OutlineOnlySourceRequiresExplicitLossApproval() {
         PdfDocument document = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Bookmark")
-            .Paragraph(paragraph => paragraph.Text("Sheet"))
+            .Paragraph(paragraph => paragraph.AddText("Sheet"))
             .ToBytes());
         Assert.True(PdfInspector.Inspect(document.ToBytes()).HasOutlines);
         var layout = new PdfNUpOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(400)), 2, 1);
@@ -409,7 +409,7 @@ public sealed class PdfNUpImpositionTests {
     public void EncryptedSourceRequiresExplicitApprovalBeforeCreatingUnencryptedSheets() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner"
-        })).Paragraph(paragraph => paragraph.Text("Confidential sheet")).ToBytes();
+        })).Paragraph(paragraph => paragraph.AddText("Confidential sheet")).ToBytes();
         PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });
         var layout = new PdfNUpOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(400)), 2, 1);
 
@@ -423,11 +423,11 @@ public sealed class PdfNUpImpositionTests {
 
     [Fact]
     public void BookletPadsToFourAndMapsBothSidesOfDuplexSheets() {
-        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) });
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } });
         for (int page = 1; page <= 5; page++) {
             if (page > 1) source.PageBreak();
             int current = page;
-            source.Paragraph(paragraph => paragraph.Text("Leaf " + current));
+            source.Paragraph(paragraph => paragraph.AddText("Leaf " + current));
         }
 
         PdfImpositionResult result = PdfDocument.Load(source.ToBytes()).Pages.ImposeBooklet(
@@ -446,11 +446,11 @@ public sealed class PdfNUpImpositionTests {
 
     [Fact]
     public void RightToLeftBookletReversesBothCellsOnEachSheetSide() {
-        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) });
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } });
         for (int page = 1; page <= 8; page++) {
             if (page > 1) source.PageBreak();
             int current = page;
-            source.Paragraph(paragraph => paragraph.Text("Leaf " + current));
+            source.Paragraph(paragraph => paragraph.AddText("Leaf " + current));
         }
 
         PdfImpositionResult result = PdfDocument.Load(source.ToBytes()).Pages.ImposeBooklet(
@@ -462,7 +462,7 @@ public sealed class PdfNUpImpositionTests {
 
     [Fact]
     public void SignedSourceRequiresExplicitUnsignedDerivativeForEitherImposition() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Signed sheet source")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Signed sheet source")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source, new PdfExternalSignatureOptions { FieldName = "Approval", ReservedSignatureContentsBytes = 512 });
         byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
@@ -524,7 +524,7 @@ public sealed class PdfNUpImpositionTests {
             AllowedPermissions = PdfStandardPermissions.Print
         };
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text("Restricted source")).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText("Restricted source")).ToBytes();
         PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "open" });
 
         Assert.Throws<PdfPermissionDeniedException>(() => document.Pages.ImposeNUp(

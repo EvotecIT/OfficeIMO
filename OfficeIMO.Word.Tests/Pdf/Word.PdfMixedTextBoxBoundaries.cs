@@ -17,7 +17,7 @@ public partial class Word {
     public void MixedTextBoxWrappedEquationsRetainSelectedSiblings(string wrapper, string scope) {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordParagraph paragraph = scope == "body" ? document.AddParagraph("PREFIX")
-            : document.HeaderDefaultOrCreate.AddParagraph("PREFIX");
+            : document.PageSetup.Header.AddParagraph("PREFIX");
         paragraph.AddText(string.Empty).AddTextBox("BOX", WordImageTextWrapping.Square);
         W.Run boxRun = paragraph._paragraph.Elements<W.Run>().Last();
         boxRun.Remove();
@@ -33,7 +33,7 @@ public partial class Word {
         paragraph._paragraph.Append(content);
         paragraph.AddText("ENDTEXT");
         if (scope != "body") {
-            document.HeaderDefaultOrCreate.AddParagraph().AddField(WordFieldType.SectionPages);
+            document.PageSetup.Header.AddParagraph().AddField(WordFieldType.SectionPages);
             document.AddParagraph("BODY");
         }
         document.AddParagraph("TARGET").AddBookmark("equation_target");
@@ -119,14 +119,14 @@ public partial class Word {
     public void MixedTextBoxEquationContentIsEmittedOnceInSourceOrder(string scope, bool equationOnlyPrefix) {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordParagraph paragraph = scope == "body" ? document.AddParagraph(equationOnlyPrefix ? "" : "PREFIX")
-            : document.HeaderDefaultOrCreate.AddParagraph(equationOnlyPrefix ? "" : "PREFIX");
+            : document.PageSetup.Header.AddParagraph(equationOnlyPrefix ? "" : "PREFIX");
         paragraph.AddEquation("<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>MATH</m:t></m:r></m:oMath>");
         // A box added to the original text run precedes the following math
         // element. Use the new run after the equation to author this order.
         paragraph.AddText(string.Empty).AddTextBox("BOX", WordImageTextWrapping.Square);
         paragraph.AddText("SUFFIX");
         if (scope != "body") {
-            document.HeaderDefaultOrCreate.AddParagraph().AddField(WordFieldType.SectionPages);
+            document.PageSetup.Header.AddParagraph().AddField(WordFieldType.SectionPages);
             document.AddParagraph("BODY");
         }
         Assert.Empty(document.ValidateDocument());
@@ -185,7 +185,7 @@ public partial class Word {
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
         WordShape shape = drawingMl ? paragraph.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D))
             : paragraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D), OfficeIMO.OfficeColor.Parse("#CCB399"));
-        shape.FillColorHex = "#CCB399";
+        shape.FillColor = OfficeColor.Parse("#CCB399");
         paragraph.AddText("SUFFIX");
         Assert.Empty(document.ValidateDocument());
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

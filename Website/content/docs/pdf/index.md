@@ -31,8 +31,8 @@ using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Status report")
-        .Paragraph(p => p.Text("Created with ").Bold("OfficeIMO.Pdf"))
-        .Table(new[] {
+        .AddParagraph(p => { p.AddText("Created with "); p.AddText("OfficeIMO.Pdf").SetBold(); })
+        .AddTable(new[] {
             new[] { "Area", "Status" },
             new[] { "Build", "Ready" }
         })))

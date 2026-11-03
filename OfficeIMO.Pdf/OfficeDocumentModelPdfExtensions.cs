@@ -166,7 +166,7 @@ internal static partial class OfficeDocumentModelPdfExtensions {
         } else if (ContainsOrdinalIgnoreCase(kind, "list")) {
             document.Bullets(new[] { block.Text });
         } else {
-            document.Paragraph(paragraph => paragraph.Text(block.Text));
+            document.Paragraph(paragraph => paragraph.AddText(block.Text));
         }
     }
 
@@ -210,13 +210,13 @@ internal static partial class OfficeDocumentModelPdfExtensions {
                 double height = pixelHeight * width / pixelWidth;
                 document.Image(imageBytes, width, height, style: new PdfImageStyle {
                     ScaleDownToFit = true,
-                    AlternativeText = label
+                    AltText = label
                 });
                 embedded++;
                 continue;
             }
 
-            document.Paragraph(paragraph => paragraph.Bold(label).Text(BuildAssetSuffix(asset)));
+            document.Paragraph(paragraph => { paragraph.AddText(label).SetBold(); paragraph.AddText(BuildAssetSuffix(asset)); });
             listed++;
             if (policy == PdfProjectionAssetPolicy.EmbedSupportedImages && asset.PayloadBytes != null) {
                 report.Add(Warning("pdf-projection-asset-listed-not-embedded", sourceLabel + "/" + label, "The asset payload is not part of the shared PDF raster contract and was represented as metadata."));
@@ -341,10 +341,10 @@ internal static partial class OfficeDocumentModelPdfExtensions {
             bool canPreserveUri = Uri.TryCreate(link.Uri, UriKind.RelativeOrAbsolute, out Uri? uri) &&
                 (uri.IsAbsoluteUri || allowRelativeUriLinks);
             if (policy == PdfProjectionLinkPolicy.PreserveUriLinks && canPreserveUri) {
-                document.Paragraph(paragraph => paragraph.Link(text, link.Uri!));
+                document.Paragraph(paragraph => paragraph.AddLink(text, link.Uri!));
             } else {
                 string target = link.DestinationName ?? link.RemoteDestinationName ?? link.RemoteFile ?? link.Uri ?? string.Empty;
-                document.Paragraph(paragraph => paragraph.Text(string.IsNullOrWhiteSpace(target) ? text : text + ": " + target));
+                document.Paragraph(paragraph => paragraph.AddText(string.IsNullOrWhiteSpace(target) ? text : text + ": " + target));
                 if (policy == PdfProjectionLinkPolicy.PreserveUriLinks) {
                     report.Add(Warning("pdf-projection-navigation-listed", sourceLabel + "/" + text, "A non-URI navigation target was represented as text."));
                 }

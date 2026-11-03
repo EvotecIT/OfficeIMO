@@ -66,7 +66,7 @@ public sealed class PdfDrawingFlowWidthTests {
         style.KeepWithNext = keepWithNext;
         document.Content.Columns(content => {
             content.Drawing(ImageDrawing(400, 800), style: style, linkUri: ObjectLink);
-            content.Paragraph(p => p.Text("Caption"), style: Paragraph());
+            content.AddParagraph(p => p.AddText("Caption"), style: Paragraph());
         }, UnequalColumns());
         byte[] bytes = document.ToBytes();
         PdfImagePlacement image = Assert.Single(PdfDocument.Load(bytes).Images.Placements());
@@ -86,7 +86,7 @@ public sealed class PdfDrawingFlowWidthTests {
         style.KeepWithNext = keepWithNext;
         document.Content.Columns(content => content.Panel(panel => {
             panel.Drawing(ImageDrawing(100, 40), style: style, linkUri: ObjectLink);
-            panel.Paragraph(p => p.Text("Caption"), style: Paragraph());
+            panel.AddParagraph(p => p.AddText("Caption"), style: Paragraph());
         }, PlainPanel(60)), UnequalColumns());
 
         byte[] bytes = document.ToBytes();
@@ -115,7 +115,7 @@ public sealed class PdfDrawingFlowWidthTests {
         document.Content.Columns(content => content.Panel(panel => {
             Action<PdfContentBuilder> addDrawing = target => {
                 target.Drawing(ImageDrawing(400, 800), style: drawingStyle, linkUri: ObjectLink);
-                target.Paragraph(p => p.Text("Caption"), style: Paragraph());
+                target.AddParagraph(p => p.AddText("Caption"), style: Paragraph());
             };
             if (nested) panel.Panel(addDrawing, PlainPanel(5));
             else addDrawing(panel);
@@ -166,7 +166,7 @@ public sealed class PdfDrawingFlowWidthTests {
         paragraphStyle.LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(230));
         document.Content.Columns(content => content.Panel(panel => {
             if (leadingBookmark) panel.Bookmark("panel-start");
-            panel.Paragraph(p => p.Text("Body"), style: paragraphStyle);
+            panel.AddParagraph(p => p.AddText("Body"), style: paragraphStyle);
         }, panelStyle), UnequalColumns());
 
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -182,7 +182,7 @@ public sealed class PdfDrawingFlowWidthTests {
         if (partialFirstPage) {
             PdfParagraphStyle prelude = Paragraph();
             prelude.FontSize = global::OfficeIMO.OfficeLength.Points(20);
-            document.Content.Paragraph(p => p.Text("Prelude"), style: prelude).Spacer(global::OfficeIMO.OfficeLength.Points(180));
+            document.Content.AddParagraph(p => p.AddText("Prelude"), style: prelude).Spacer(global::OfficeIMO.OfficeLength.Points(180));
         }
         PdfPanelStyle panelStyle = PlainPanel(10);
         panelStyle.KeepTogether = true;
@@ -190,7 +190,7 @@ public sealed class PdfDrawingFlowWidthTests {
         document.Content.Columns(content => content.Panel(panel => {
             for (int index = 0; index < drawingCount; index++)
                 panel.Drawing(drawing, style: Constrained(), linkUri: ObjectLink);
-            panel.Paragraph(p => p.Text("Caption"), style: Paragraph());
+            panel.AddParagraph(p => p.AddText("Caption"), style: Paragraph());
         }, panelStyle), UnequalColumns());
 
         byte[] bytes = document.ToBytes();
@@ -229,11 +229,11 @@ public sealed class PdfDrawingFlowWidthTests {
         if (partialFirstPage) {
             PdfParagraphStyle prelude = Paragraph();
             prelude.FontSize = global::OfficeIMO.OfficeLength.Points(20);
-            document.Content.Paragraph(p => p.Text("Prelude"), style: prelude).Spacer(global::OfficeIMO.OfficeLength.Points(180));
+            document.Content.AddParagraph(p => p.AddText("Prelude"), style: prelude).Spacer(global::OfficeIMO.OfficeLength.Points(180));
         }
         document.Content.Columns(content => content.Flow(flow => {
             flow.Drawing(ImageDrawing(400, 800), style: Constrained(), linkUri: ObjectLink);
-            flow.Paragraph(p => p.Text("Caption"), style: Paragraph());
+            flow.AddParagraph(p => p.AddText("Caption"), style: Paragraph());
         }, new PdfFlowOptions { KeepTogether = true }), UnequalColumns());
 
         byte[] bytes = document.ToBytes();
@@ -264,8 +264,8 @@ public sealed class PdfDrawingFlowWidthTests {
         document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(80));
         document.Content.Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(20)).Style(new PdfRowStyle { KeepTogether = true })
             .FixedColumn(global::OfficeIMO.OfficeLength.Points(100), content => content.Drawing(ImageDrawing(400, 320), style: Constrained(), linkUri: ObjectLink)
-                .Paragraph(p => p.Text("Caption"), style: Paragraph()))
-            .FixedColumn(global::OfficeIMO.OfficeLength.Points(100), content => content.Paragraph(p => p.Text("Adjacent"), style: Paragraph())));
+                .AddParagraph(p => p.AddText("Caption"), style: Paragraph()))
+            .FixedColumn(global::OfficeIMO.OfficeLength.Points(100), content => content.AddParagraph(p => p.AddText("Adjacent"), style: Paragraph())));
 
         byte[] bytes = document.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -282,12 +282,12 @@ public sealed class PdfDrawingFlowWidthTests {
     [Fact]
     public void KeepWithNextRemeasuresTheDrawingAndCaptionInTheDestinationColumn() {
         var document = PdfDocument.Create(Options(460, 300));
-        document.Content.Paragraph(p => p.Text("Prelude"), style: Paragraph()).Spacer(global::OfficeIMO.OfficeLength.Points(160));
+        document.Content.AddParagraph(p => p.AddText("Prelude"), style: Paragraph()).Spacer(global::OfficeIMO.OfficeLength.Points(160));
         PdfDrawingStyle style = Constrained();
         style.KeepWithNext = true;
         document.Content.Columns(content => {
             content.Drawing(ImageDrawing(200, 160), style: style);
-            content.Paragraph(p => p.Text("KeptCaption"), style: Paragraph());
+            content.AddParagraph(p => p.AddText("KeptCaption"), style: Paragraph());
         }, UnequalColumns());
 
         byte[] bytes = document.ToBytes();
@@ -335,7 +335,10 @@ public sealed class PdfDrawingFlowWidthTests {
     };
 
     private static PdfCreateOptions Options(double width, double height) => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(width), PageHeight = global::OfficeIMO.OfficeLength.Points(height), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        }
     };
 
     private static PdfParagraphStyle Paragraph() => new() {

@@ -67,8 +67,8 @@ public class RtfMergeSectionRegressionTests {
         using WordDocument word = destination.ToWordDocument();
         string[] errors = new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument).Select(item => item.Description + " " + item.Node?.OuterXml).ToArray();
         Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors));
-        Assert.Equal(OfficePageOrientation.Portrait, word.Sections[1].PageOrientation);
-        Assert.Equal("Source header", string.Concat(word.Sections[1].Header.Default!.Paragraphs.Select(item => item.Text)));
+        Assert.Equal(OfficePageOrientation.Portrait, word.Sections[1].PageSetup.Orientation);
+        Assert.Equal("Source header", string.Concat(word.Sections[1].PageSetup.Header.Paragraphs.Select(item => item.Text)));
         imported.AddParagraph("Attached after merge");
         Assert.Contains(destination.Paragraphs, item => item.ToPlainText() == "Attached after merge");
         Assert.DoesNotContain(source.Paragraphs, item => item.ToPlainText() == "Attached after merge");
@@ -98,9 +98,9 @@ public class RtfMergeSectionRegressionTests {
             Assert.False(reset.RtlGutter);
         }
         using WordDocument word = document.ToWordDocument();
-        Assert.Equal(OfficePageOrientation.Landscape, word.Sections[0].PageOrientation);
-        Assert.Equal(OfficePageOrientation.Portrait, word.Sections[1].PageOrientation);
-        Assert.False(word.Sections[1].DifferentFirstPage);
+        Assert.Equal(OfficePageOrientation.Landscape, word.Sections[0].PageSetup.Orientation);
+        Assert.Equal(OfficePageOrientation.Portrait, word.Sections[1].PageSetup.Orientation);
+        Assert.False(word.Sections[1].PageSetup.DifferentFirstPage);
         Assert.False(word.Sections[1].RtlGutter);
     }
 }

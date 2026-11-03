@@ -88,7 +88,7 @@ namespace OfficeIMO.Examples.Word {
             var tMergeTrueAuto = doc.AddTable(2, 4, WordTableStyle.TableGrid);
             tMergeTrueAuto.Rows[0].Cells[0].AddParagraph("Header spanning 4", true);
             tMergeTrueAuto.Rows[0].Cells[0].MergeHorizontally(3);
-            tMergeTrueAuto.Rows[0].Cells[0].ShadingFillColorHex = "e6e6e6";
+            tMergeTrueAuto.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("e6e6e6");
             tMergeTrueAuto.Rows[0].Cells[0].Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
             tMergeTrueAuto.Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
             tMergeTrueAuto.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
@@ -101,7 +101,7 @@ namespace OfficeIMO.Examples.Word {
             tMergeTrueFit.AutoFitToWindow();
             tMergeTrueFit.Rows[0].Cells[0].AddParagraph("Header spanning 4", true);
             tMergeTrueFit.Rows[0].Cells[0].MergeHorizontally(3);
-            tMergeTrueFit.Rows[0].Cells[0].ShadingFillColorHex = "e6e6e6";
+            tMergeTrueFit.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("e6e6e6");
             tMergeTrueFit.Rows[0].Cells[0].Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
             tMergeTrueFit.Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
             tMergeTrueFit.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;

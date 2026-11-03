@@ -207,7 +207,7 @@ public class HtmlTextFormattingConversionTests {
         WordParagraph authored = source.AddParagraph("Styled");
         authored.SetBold().SetItalic().SetUnderline(WordUnderlineStyle.WavyDouble)
             .SetDoubleStrike().SetSuperScript().SetSmallCaps()
-            .SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetColorHex("336699");
+            .SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetColor(OfficeColor.Parse("336699"));
 
         HtmlTextConversionResult export = source.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { IncludeFontStyles = true });
         Assert.Contains("data-officeimo-word-underline=\"WavyDouble\"", export.Value, StringComparison.Ordinal);
@@ -227,7 +227,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(WordVerticalTextPosition.Superscript, actual.VerticalTextAlignment);
         Assert.Equal(WordCapsStyle.SmallCaps, actual.CapsStyle);
         Assert.Equal("Aptos", actual.FontFamily);
-        Assert.Equal("336699", actual.ColorHex);
+        Assert.Equal(OfficeColor.Parse("336699"), actual.Color);
     }
 
     [Fact]
@@ -502,9 +502,9 @@ public class HtmlTextFormattingConversionTests {
         authored.StrikeStyle = PowerPointStrikeStyle.Double;
         authored.Capitalization = PowerPointCapitalization.SmallCaps;
         authored.BaselinePercent = 37.5D;
-        authored.FontName = "Aptos";
+        authored.FontFamily = "Aptos";
         authored.FontSize = global::OfficeIMO.OfficeLength.Points(14.5D);
-        authored.Color = "336699";
+        authored.Color = OfficeColor.Parse("336699");
 
         string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-underline=\"WavyDouble\"", html, StringComparison.Ordinal);
@@ -530,9 +530,9 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(PowerPointStrikeStyle.Double, actual.StrikeStyle);
         Assert.Equal(PowerPointCapitalization.SmallCaps, actual.Capitalization);
         Assert.Equal(37.5D, actual.BaselinePercent);
-        Assert.Equal("Aptos", actual.FontName);
+        Assert.Equal("Aptos", actual.FontFamily);
         Assert.Equal(14.5D, actual.FontSize?.ToPoints());
-        Assert.Equal("336699", actual.Color);
+        Assert.Equal(OfficeColor.Parse("336699"), actual.Color);
     }
 
     [Fact]
@@ -546,12 +546,12 @@ public class HtmlTextFormattingConversionTests {
         first.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
         first.Capitalization = PowerPointCapitalization.SmallCaps;
         first.Language = "pl-PL";
-        PowerPointTextRun second = paragraph.AddRun("Second");
+        PowerPointTextRun second = paragraph.AddText("Second");
         second.Italic = true;
         second.StrikeStyle = PowerPointStrikeStyle.Double;
         second.BaselinePercent = -25D;
-        second.FontName = "Aptos";
-        second.Color = "336699";
+        second.FontFamily = "Aptos";
+        second.Color = OfficeColor.Parse("336699");
         second.Hyperlink = new Uri("https://example.com/styled", UriKind.Absolute);
 
         string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
@@ -585,8 +585,8 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(runs[1].Italic);
         Assert.Equal(PowerPointStrikeStyle.Double, runs[1].StrikeStyle);
         Assert.Equal(-25D, runs[1].BaselinePercent);
-        Assert.Equal("Aptos", runs[1].FontName);
-        Assert.Equal("336699", runs[1].Color);
+        Assert.Equal("Aptos", runs[1].FontFamily);
+        Assert.Equal(OfficeColor.Parse("336699"), runs[1].Color);
         Assert.Equal(new Uri("https://example.com/styled", UriKind.Absolute), runs[1].Hyperlink);
     }
 
@@ -637,9 +637,9 @@ public class HtmlTextFormattingConversionTests {
             .Paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray();
 
         Assert.Contains(runs, run => run.Text.Contains("Bold", StringComparison.Ordinal)
-            && run.Bold && run.Color == "336699");
+            && run.Bold && run.Color == OfficeColor.Parse("336699"));
         Assert.Contains(runs, run => run.Text.Contains("linked", StringComparison.Ordinal)
-            && run.Color == "336699"
+            && run.Color == OfficeColor.Parse("336699")
             && run.Hyperlink == new Uri("https://example.com/linked", UriKind.Absolute));
     }
 
@@ -668,7 +668,7 @@ public class HtmlTextFormattingConversionTests {
         using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();
         paragraph.AddField("1", "slidenum", "{11111111-1111-1111-1111-111111111111}");
-        paragraph.AddRun(" after");
+        paragraph.AddText(" after");
 
         string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
@@ -694,8 +694,8 @@ public class HtmlTextFormattingConversionTests {
             run.Bold = true;
             run.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
             run.BaselinePercent = 30D;
-            run.FontName = "Aptos";
-            run.Color = "336699";
+            run.FontFamily = "Aptos";
+            run.Color = OfficeColor.Parse("336699");
             run.Hyperlink = new Uri("https://example.com/field", UriKind.Absolute);
         });
 
@@ -716,8 +716,8 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(formatting.Bold);
         Assert.Equal(PowerPointUnderlineStyle.WavyDouble, formatting.UnderlineStyle);
         Assert.Equal(30D, formatting.BaselinePercent);
-        Assert.Equal("Aptos", formatting.FontName);
-        Assert.Equal("336699", formatting.Color);
+        Assert.Equal("Aptos", formatting.FontFamily);
+        Assert.Equal(OfficeColor.Parse("336699"), formatting.Color);
         Assert.Equal(new Uri("https://example.com/field", UriKind.Absolute), formatting.Hyperlink);
     }
 
@@ -765,7 +765,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), excelHtml, StringComparison.Ordinal);
 
         using PowerPointDocument powerPoint = PowerPointDocument.Create();
-        powerPoint.AddSlide().AddTextBox("PowerPoint").Paragraphs[0].Runs[0].FontName = hostile;
+        powerPoint.AddSlide().AddTextBox("PowerPoint").Paragraphs[0].Runs[0].FontFamily = hostile;
         string powerPointHtml = powerPoint.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), powerPointHtml, StringComparison.Ordinal);
     }
@@ -917,7 +917,7 @@ public class HtmlTextFormattingConversionTests {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Styled").SetBold().SetItalic()
             .SetUnderline(WordUnderlineStyle.WavyDouble).SetDoubleStrike()
-            .SetSuperScript().SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(18)).SetColorHex("336699");
+            .SetSuperScript().SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(18)).SetColor(OfficeColor.Parse("336699"));
         OfficeImageExportFormat[] formats = {
             OfficeImageExportFormat.Png,
             OfficeImageExportFormat.Svg,

@@ -341,7 +341,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void LoadedPdfImageExport_SynthesizesTextNoteAppearance() {
         byte[] annotated = PdfDocument.Create()
             .TextAnnotation("Review note")
-            .Paragraph(paragraph => paragraph.Text("Page content"))
+            .Paragraph(paragraph => paragraph.AddText("Page content"))
             .ToBytes();
         PdfReadPage page = PdfReadDocument.Open(annotated).Pages[0];
 

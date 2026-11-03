@@ -256,7 +256,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         span.GetAttribute("data-officeimo-powerpoint-field-id"),
                         run => ApplyTargetSemanticRun(run, span, hyperlinkPolicy));
                 } else {
-                    PptCore.PowerPointTextRun target = paragraph.AddRun(span.TextContent);
+                    PptCore.PowerPointTextRun target = paragraph.AddText(span.TextContent);
                     ApplyTargetSemanticRun(target, span, hyperlinkPolicy);
                 }
             }
@@ -287,14 +287,14 @@ public static partial class HtmlPowerPointConverterExtensions {
             target.Capitalization = PptCore.PowerPointCapitalization.AllCaps;
         }
         string exactFontFamily = source.GetAttribute("data-officeimo-powerpoint-font-family") ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(exactFontFamily)) target.FontName = exactFontFamily;
-        else if (TryGetTargetCss(css, "font-family", out string family)) target.FontName = NormalizeSemanticFontName(family);
+        if (!string.IsNullOrWhiteSpace(exactFontFamily)) target.FontFamily = exactFontFamily;
+        else if (TryGetTargetCss(css, "font-family", out string family)) target.FontFamily = NormalizeSemanticFontName(family);
         if (TryParseSemanticPixels(TryGetTargetCss(css, "font-size", out string size) ? size : null, out double pixels)) {
             target.FontSize = global::OfficeIMO.OfficeLength.Points(Math.Max(1D, pixels * 0.75D));
         }
         if (TryGetTargetCss(css, "color", out string color)) {
             string normalized = NormalizeSemanticColor(color);
-            if (normalized.Length > 0) target.Color = normalized;
+            if (global::OfficeIMO.OfficeColor.TryParseHex(normalized, out global::OfficeIMO.OfficeColor parsedColor)) target.Color = parsedColor;
         }
         string language = source.GetAttribute("data-officeimo-powerpoint-language") ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(language)) target.Language = language;
@@ -428,7 +428,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         ApplySemanticRun(first, runs[0], hyperlinkPolicy);
         for (int index = 1; index < runs.Count; index++) {
             HtmlSemanticRun source = runs[index];
-            PptCore.PowerPointTextRun target = paragraph.AddRun(source.Text);
+            PptCore.PowerPointTextRun target = paragraph.AddText(source.Text);
             ApplySemanticRun(target, source, hyperlinkPolicy);
         }
     }
@@ -458,9 +458,9 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
         }
         string color = NormalizeSemanticColor(source.Style?.GetValue("color"));
-        if (color.Length > 0) target.Color = color;
+        if (global::OfficeIMO.OfficeColor.TryParseHex(color, out global::OfficeIMO.OfficeColor parsedColor)) target.Color = parsedColor;
         string fontName = NormalizeSemanticFontName(source.Style?.GetValue("font-family"));
-        if (fontName.Length > 0) target.FontName = fontName;
+        if (fontName.Length > 0) target.FontFamily = fontName;
         if (TryParseSemanticPixels(source.Style?.GetValue("font-size"), out double pixels)) {
             target.FontSize = global::OfficeIMO.OfficeLength.Points(Math.Max(1D, pixels * 0.75D));
         }

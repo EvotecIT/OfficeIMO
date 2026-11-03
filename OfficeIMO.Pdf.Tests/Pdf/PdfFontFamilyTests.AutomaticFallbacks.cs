@@ -25,7 +25,7 @@ public partial class PdfFontFamilyTests {
             options.EmbeddedFontFallbacks = null;
             Assert.Equal(callerFamilyCount, options.NamedFontFamilies.Count);
         }
-        Assert.Contains("AB", PdfReadDocument.Open(PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("AB")).ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("AB", PdfReadDocument.Open(PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("AB")).ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public partial class PdfFontFamilyTests {
         Assert.Equal(PdfCreateOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
         options.EmbeddedFontFallbacks = null;
         Assert.True(options.HasNamedFontFamily("Replacement"));
-        Assert.Contains("AB", PdfReadDocument.Open(PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("AB")).ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("AB", PdfReadDocument.Open(PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("AB")).ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -74,7 +74,7 @@ public partial class PdfFontFamilyTests {
         options.EmbeddedFontFallbacks = null;
 
         Assert.Equal(name, Assert.Single(options.NamedFontFamilies).Key);
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] {
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] {
             new PdfTextRun(styled ? "Q" : "AB", bold: styled, fontFamily: name)
         })).ToBytes();
         Assert.Contains(styled ? "Q" : "AB", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
@@ -89,7 +89,7 @@ public partial class PdfFontFamilyTests {
         PdfCreateOptions clone = options.Clone();
         options.EmbeddedFontFallbacks = null;
         Assert.Empty(options.NamedFontFamilies);
-        Assert.Contains("A▸B", PdfReadDocument.Open(PdfDocument.Create(clone).Paragraph(paragraph => paragraph.Text("A▸B")).ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("A▸B", PdfReadDocument.Open(PdfDocument.Create(clone).Paragraph(paragraph => paragraph.AddText("A▸B")).ToBytes()).ExtractText(), StringComparison.Ordinal);
         clone.EmbeddedFontFallbacks = null;
         Assert.Empty(clone.NamedFontFamilies);
     }
@@ -110,7 +110,7 @@ public partial class PdfFontFamilyTests {
         };
 
         Assert.True(options.RegisterAutomaticFontFallbackCandidates(candidates, Array.Empty<PdfStandardFont>()));
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("Aę▸B")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("Aę▸B")).ToBytes();
 
         Assert.Contains("Aę▸B", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
         foreach (PdfStandardFont slot in new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier }.Take(occupiedSlots)) {
@@ -133,8 +133,8 @@ public partial class PdfFontFamilyTests {
         Assert.True(options.RegisterAutomaticFontFallbackCandidates(
             new[] { new PdfEmbeddedFontFallbackCandidate("Symbols", symbols) }, Array.Empty<PdfStandardFont>()));
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun("Q", bold: true, fontFamily: "Symbols") }))
-            .Paragraph(paragraph => paragraph.Text("A▸B"))
+            .Paragraph(paragraph => paragraph.AddRuns(new[] { new PdfTextRun("Q", bold: true, fontFamily: "Symbols") }))
+            .Paragraph(paragraph => paragraph.AddText("A▸B"))
             .ToBytes();
 
         Assert.Contains("Q", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
@@ -159,6 +159,6 @@ public partial class PdfFontFamilyTests {
 
         Assert.Null(options.EmbeddedFontFallbacks);
         Assert.Equal(PdfCreateOptions.MaximumNamedFontFamilies, options.NamedFontFamilies.Count);
-        Assert.Contains("AB", PdfReadDocument.Open(PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("AB")).ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("AB", PdfReadDocument.Open(PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("AB")).ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 }

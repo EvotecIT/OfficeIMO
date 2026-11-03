@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
             PdfTextRun sourceRun = source[index];
             bool effectiveBold = bold;
             bool effectiveItalic = italic;
-            if (sourceRun.Font is PdfStandardFont selectedFont) {
+            if (sourceRun.StandardFont is PdfStandardFont selectedFont) {
                 PdfStandardFont selectedNormal = ChooseNormal(selectedFont);
                 effectiveBold = selectedFont == ChooseBold(selectedNormal) || selectedFont == ChooseBoldItalic(selectedNormal);
                 effectiveItalic = selectedFont == ChooseItalic(selectedNormal) || selectedFont == ChooseBoldItalic(selectedNormal);
@@ -191,7 +191,7 @@ internal static partial class PdfWriter {
 
             string segment = text.Substring(segmentStart, index - segmentStart);
             if (selectedFontCanWrite) {
-                runs.Add(CreateStyledTextRun(segment, run, run.Font));
+                runs.Add(CreateStyledTextRun(segment, run, run.StandardFont));
                 continue;
             }
 

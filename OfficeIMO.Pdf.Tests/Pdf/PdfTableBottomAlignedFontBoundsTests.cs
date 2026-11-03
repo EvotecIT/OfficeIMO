@@ -13,8 +13,10 @@ public sealed class PdfTableBottomAlignedFontBoundsTests {
     public void BottomAlignmentReservesNamedFontDescentWithoutChangingRowHeight(bool canvas, bool linked) {
         const string family = "Tall named table font";
         var report = new PdfConversionReport();
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24), Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24) }
+        },
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -400, 0, 400, 'A')));

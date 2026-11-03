@@ -60,7 +60,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         using var document = WordDocument.Create();
         var paragraph = document.AddParagraph("Retained text");
         paragraph.FontSize = OfficeLength.Points(14);
-        paragraph.ColorHex = "112233";
+        paragraph.Color = OfficeColor.Parse("112233");
         paragraph.LineSpacing = WordLineSpacing.Exact(OfficeLength.Points(18));
         paragraph.LineSpacingBefore = OfficeLength.Points(6);
         paragraph.IndentationBefore = OfficeLength.Points(18);
@@ -71,7 +71,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         shell.Invoke();
         Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
         Assert.Equal(14, paragraph.FontSize!.Value.ToPoints());
-        Assert.Equal("112233", paragraph.ColorHex);
+        Assert.Equal(OfficeColor.Parse("112233"), paragraph.Color);
         Assert.Equal(18, paragraph.LineSpacing!.Value.Height!.Value.ToPoints());
         shell.Commands.Clear();
         shell.AddCommand(command).AddParameter("Paragraph", paragraph).AddParameter(parameter, null);

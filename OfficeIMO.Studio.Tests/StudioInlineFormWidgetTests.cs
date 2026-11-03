@@ -22,12 +22,12 @@ public sealed class StudioInlineFormWidgetTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "choices.pdf"), output = Path.Combine(services.Paths.Root, "choices-filled.pdf");
             PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(520)).Margin(global::OfficeIMO.OfficeLength.Points(30)).Content(content => content
-                .Paragraph(p => p.Text("Project preferences"))
-                .Paragraph(p => p.Text("Delivery method"))
+                .AddParagraph(p => p.AddText("Project preferences"))
+                .AddParagraph(p => p.AddText("Delivery method"))
                 .RadioButtonGroup("Delivery", ["Email", "Post", "Collect"], value: "Email", size: global::OfficeIMO.OfficeLength.Points(24), gap: global::OfficeIMO.OfficeLength.Points(12))
-                .Paragraph(p => p.Text("Region"))
+                .AddParagraph(p => p.AddText("Region"))
                 .ChoiceField("Region", ["Europe", "Americas", "Asia Pacific"], "Europe", height: global::OfficeIMO.OfficeLength.Points(112), isComboBox: false)
-                .Paragraph(p => p.Text("Topics (select more than one)"))
+                .AddParagraph(p => p.AddText("Topics (select more than one)"))
                 .MultiSelectChoiceField("Topics", ["Design", "Engineering", "Research"], ["Design"], height: global::OfficeIMO.OfficeLength.Points(112)))))
                 .Save(source);
             string? evidence = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");

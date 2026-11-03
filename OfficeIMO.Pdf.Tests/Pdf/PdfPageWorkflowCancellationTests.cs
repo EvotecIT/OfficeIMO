@@ -283,8 +283,8 @@ public class PdfPageWorkflowCancellationTests {
     };
 
     private static byte[] CreateSource() => PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
-        .H1("First section").Paragraph(p => p.Text("First content"))
-        .PageBreak().H1("Second section").Paragraph(p => p.Text("Second content")).ToBytes();
+        .H1("First section").Paragraph(p => p.AddText("First content"))
+        .PageBreak().H1("Second section").Paragraph(p => p.AddText("Second content")).ToBytes();
 
     private sealed class ControlledInput : Stream {
         private readonly byte[] _bytes;

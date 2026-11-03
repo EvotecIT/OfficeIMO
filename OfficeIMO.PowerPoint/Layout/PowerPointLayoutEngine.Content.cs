@@ -584,7 +584,7 @@ namespace OfficeIMO.PowerPoint {
             double total = heights.Sum();
             PowerPointTable result = writer.Slide.AddTable(Math.Max(1, table.Rows.Count + (table.IncludeHeaders ? 1 : 0)), Math.Max(1, table.Headers.Count),
                 OfficeLength.Points(box.X), OfficeLength.Points(box.Y), OfficeLength.Points(width), OfficeLength.Points(total));
-            result.Description = PowerPointLayoutRun.FlattenBreaks(!string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
+            result.AltText = PowerPointLayoutRun.FlattenBreaks(!string.IsNullOrWhiteSpace(table.Caption) ? table.Caption :
                 "Table with " + table.Rows.Count.ToString(CultureInfo.InvariantCulture) + " data rows. Columns: " + string.Join(", ", table.Headers) + ".");
             A.Table element = result.TableElement;
             A.GraphicData data = (A.GraphicData)element.Parent!;
@@ -878,10 +878,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Pictures keep their aspect ratio: contained in the box (top-left) or cover-cropped around the focal point.</summary>
-        internal static PowerPointPicture RenderImage(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutImage image,
+        internal static PowerPointImage RenderImage(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutImage image,
             PowerPointLayoutRect box, bool cover) {
             if (image.NativePicture != null) return RenderNativeImage(context, writer, image, box, cover);
-            PowerPointPicture picture = writer.Slide.AddImage(image.Path, OfficeLength.Points(box.X), OfficeLength.Points(box.Y),
+            PowerPointImage picture = writer.Slide.AddImage(image.Path, OfficeLength.Points(box.X), OfficeLength.Points(box.Y),
                 OfficeLength.Points(box.Width), OfficeLength.Points(box.Height));
             if (PowerPointImageSize.TryRead(image.Path, out int pw, out int ph)) {
                 if (cover) {
@@ -899,7 +899,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.Description = image.AlternativeText;
+            if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.AltText = image.AlternativeText;
             RenderAnnotations(context, writer, picture, image);
             return picture;
         }
@@ -923,7 +923,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Numbered markers placed on the visible (cropped) picture, with their labels beside them.</summary>
-        private static void RenderAnnotations(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointPicture picture,
+        private static void RenderAnnotations(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointImage picture,
             PowerPointLayoutImage image) {
             if (image.Annotations.Count == 0) return;
             double left = picture.Left.ToPoints(), top = picture.Top.ToPoints();

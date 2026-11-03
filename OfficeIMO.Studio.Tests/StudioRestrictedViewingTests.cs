@@ -20,7 +20,7 @@ public sealed class StudioRestrictedViewingTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "multipage-restricted.pdf");
             PdfDocument.Create(document => {
-                for (int i = 0; i < 60; i++) document.Page(page => page.Content(content => content.Text("Needle and needle")));
+                for (int i = 0; i < 60; i++) document.Page(page => page.Content(content => content.AddParagraph("Needle and needle")));
             }, new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.Accessibility
             })).Save(source);
@@ -55,8 +55,8 @@ public sealed class StudioRestrictedViewingTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Restricted document.pdf");
             PdfDocument.Create(document => {
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Visible protected document")));
-                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Second protected page")));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.AddParagraph("Visible protected document")));
+                document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.AddParagraph("Second protected page")));
             }, new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = permissions
             })).Save(source);
@@ -139,7 +139,7 @@ public sealed class StudioRestrictedViewingTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "restricted.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("Visible protected document"))), new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+            PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("Visible protected document"))), new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = permissions
             })).Save(source);
             byte[] original = File.ReadAllBytes(source);

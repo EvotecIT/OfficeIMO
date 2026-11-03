@@ -17,7 +17,7 @@ public sealed class PdfHeaderFooterImage {
 
     /// <summary>Creates a header/footer image.</summary>
     public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align = OfficeAlignment.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null)
-        : this(data, width, height, align, new PdfImageStyle { Fit = fit, AlternativeText = alternativeText }) {
+        : this(data, width, height, align, new PdfImageStyle { Fit = fit, AltText = alternativeText }) {
     }
 
     /// <summary>Creates a header/footer image with source crop, rotation, mirrors and alternate text from a reusable style.</summary>
@@ -42,7 +42,7 @@ public sealed class PdfHeaderFooterImage {
         Align = align;
         Fit = _style.Fit;
         Info = prepared.Info;
-        AlternativeText = _style.AlternativeText;
+        AlternativeText = _style.AltText;
     }
 
     /// <summary>Image payload.</summary>

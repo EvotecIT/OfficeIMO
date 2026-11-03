@@ -19,12 +19,12 @@ public class PdfParagraphBuilderFeatureTests {
         options.RegisterNamedFontFamily(family);
         var fallback = new PdfEmbeddedFontFallbackSet(new[] { new PdfEmbeddedFontFallbackCandidate(family.FamilyName, font) });
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(builder => {
-            builder.FontFamily(family.FamilyName).FeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
+            builder.RunDefaults.FontFamily = family.FamilyName; builder.RunDefaults.StandardFont = null; builder.RunDefaults.FeatureSettings = OfficeTextFeatureSettings.Default.With("kern", 1);
             switch (kind) {
-                case "bold": builder.Bold("AB"); break;
-                case "link": builder.Link("AB", "https://example.com/"); break;
-                case "fallback": builder.FallbackText(fallback, "AB"); break;
-                default: builder.Text("AB"); break;
+                case "bold": builder.AddText("AB").SetBold(); break;
+                case "link": builder.AddLink("AB", "https://example.com/"); break;
+                case "fallback": builder.AddFallbackText(fallback, "AB"); break;
+                default: builder.AddText("AB"); break;
             }
         }).ToBytes());
         var letters = pdf.GetPage(1).Letters;
@@ -37,9 +37,13 @@ public class PdfParagraphBuilderFeatureTests {
         var on = OfficeTextFeatureSettings.Default.With("kern", 1);
         var off = OfficeTextFeatureSettings.Default.With("kern", 0);
         var prepared = new PdfTextRun("Prepared").WithFeatureSettings(off);
-        var builder = new PdfParagraphBuilder(OfficeAlignment.Left, null);
-        builder.FeatureSettings(on).Text("Current").Runs(new[] { prepared }).ResetFeatureSettings().Text("Reset");
-        var runs = builder.Build().Runs;
+        PdfParagraph paragraph = PdfDocument.Create().AddParagraph();
+        paragraph.RunDefaults.FeatureSettings = on;
+        paragraph.AddText("Current");
+        paragraph.AddRuns(new[] { prepared });
+        paragraph.RunDefaults.FeatureSettings = OfficeTextFeatureSettings.Default;
+        paragraph.AddText("Reset");
+        var runs = paragraph.Runs;
         Assert.Equal(on, runs[0].FeatureSettings);
         Assert.Equal(off, runs[1].FeatureSettings);
         Assert.Equal(OfficeTextFeatureSettings.Default, runs[2].FeatureSettings);
@@ -52,15 +56,18 @@ public class PdfParagraphBuilderFeatureTests {
     [InlineData(false, 0)]
     public void RichPageTextPreservesKerningForGlyphsFollowingRunsAndRightAlignment(bool header, int kern) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'B', -200, includeSpace: true);
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginRight = global::OfficeIMO.OfficeLength.Points(30) };
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(240)),
+            Margins = { Right = global::OfficeIMO.OfficeLength.Points(30) }
+        } };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Page features", font));
         var features = OfficeTextFeatureSettings.Default.With("kern", kern);
         var pair = new PdfTextRun("AB", fontSize: global::OfficeIMO.OfficeLength.Points(24), fontFamily: "Page features").WithFeatureSettings(features);
         var following = new PdfTextRun("A", fontSize: global::OfficeIMO.OfficeLength.Points(24), fontFamily: "Page features");
         var document = PdfDocument.Create(options);
-        if (header) document.Header(builder => builder.AlignRight().Text(text => text.Run(pair).Run(following)));
-        else document.Footer(builder => builder.AlignRight().Text(text => text.Run(pair).Run(following)));
-        using var pdf = PdfPigDocument.Open(document.Paragraph(builder => builder.Text("content")).ToBytes());
+        if (header) document.Header(builder => builder.Alignment(OfficeAlignment.Right).Text(text => text.Run(pair).Run(following)));
+        else document.Footer(builder => builder.Alignment(OfficeAlignment.Right).Text(text => text.Run(pair).Run(following)));
+        using var pdf = PdfPigDocument.Open(document.Paragraph(builder => builder.AddText("content")).ToBytes());
         var letters = pdf.GetPage(1).Letters;
         // Read only the authored page-text letters; body text has no A or B.
         var positions = new System.Collections.Generic.List<double>();
@@ -69,6 +76,6 @@ public class PdfParagraphBuilderFeatureTests {
         double pairWidth = kern == 1 ? 19.2D : 24D;
         Assert.Equal(kern == 1 ? 7.2D : 12D, positions[1] - positions[0], 3);
         Assert.Equal(pairWidth, positions[2] - positions[0], 3);
-        Assert.Equal(options.PageWidth.ToPoints() - options.MarginRight.ToPoints() - pairWidth - 12D, positions[0], 3);
+        Assert.Equal(options.PageSetup.Size.Width.ToPoints() - options.PageSetup.Margins.Right.ToPoints() - pairWidth - 12D, positions[0], 3);
     }
 }

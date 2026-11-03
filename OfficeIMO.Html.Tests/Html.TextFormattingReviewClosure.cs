@@ -34,7 +34,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         defaults.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" }));
         paragraphProperties.Append(defaults);
 
-        PowerPointTextRun directOff = paragraph.AddRun(" Plain");
+        PowerPointTextRun directOff = paragraph.AddText(" Plain");
         directOff.Run.RunProperties = new A.RunProperties {
             Bold = false,
             Italic = false,
@@ -73,8 +73,8 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         Assert.Equal(PowerPointCapitalization.SmallCaps, runs[0].Capitalization);
         Assert.Equal(30D, runs[0].BaselinePercent);
         Assert.Equal(OfficeLength.Points(18), runs[0].FontSize);
-        Assert.Equal("Aptos Display", runs[0].FontName);
-        Assert.Equal("336699", runs[0].Color);
+        Assert.Equal("Aptos Display", runs[0].FontFamily);
+        Assert.Equal(OfficeColor.Parse("336699"), runs[0].Color);
         Assert.Equal("pl-PL", runs[0].Language);
         Assert.False(runs[1].Bold);
         Assert.False(runs[1].Italic);
@@ -94,7 +94,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         run.RunProperties.Append(new A.SolidFill(new A.SchemeColor {
             Val = A.SchemeColorValues.Text1
         }));
-        PowerPointTextRun systemRun = paragraph.AddRun(" System text");
+        PowerPointTextRun systemRun = paragraph.AddText(" System text");
         systemRun.Run.RunProperties = new A.RunProperties();
         systemRun.RunProperties.Append(new A.SolidFill(new A.SystemColor {
             Val = A.SystemColorValues.WindowText,
@@ -142,7 +142,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         PowerPointTextRun eastAsian = paragraph.Runs[0];
         eastAsian.Run.RunProperties = new A.RunProperties { Language = "ja-JP" };
         eastAsian.RunProperties.Append(new A.EastAsianFont { Typeface = "+mj-ea" });
-        PowerPointTextRun complexScript = paragraph.AddRun(" العربية");
+        PowerPointTextRun complexScript = paragraph.AddText(" العربية");
         complexScript.Run.RunProperties = new A.RunProperties { Language = "ar-SA" };
         complexScript.RunProperties.Append(new A.ComplexScriptFont { Typeface = "+mn-cs" });
 
@@ -227,7 +227,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         PowerPointTextRun run = source.AddSlide().AddTextBox("Styled").Paragraphs.Single().Runs.Single();
         run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
         run.StrikeStyle = PowerPointStrikeStyle.Double;
-        run.FontName = "O'Brien Sans";
+        run.FontFamily = "O'Brien Sans";
 
         string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
@@ -242,7 +242,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         PowerPointTextRun actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs).Runs.Single();
         Assert.Equal(PowerPointUnderlineStyle.Wavy, actual.UnderlineStyle);
         Assert.Equal(PowerPointStrikeStyle.Double, actual.StrikeStyle);
-        Assert.Equal("O'Brien Sans", actual.FontName);
+        Assert.Equal("O'Brien Sans", actual.FontFamily);
     }
 
     [Fact]

@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox title = slide.AddTitle("Direct presentation editing",                    new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.6)));
                 title.FontSize = global::OfficeIMO.OfficeLength.Points(32);
-                title.Color = "1F4E79";
+                title.Color = OfficeColor.Parse("1F4E79");
 
                 PowerPointTextBox bullets = slide.AddTextBox(string.Empty,                    new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.1),OfficeIMO.OfficeLength.Centimeters(11.0),OfficeIMO.OfficeLength.Centimeters(4.0)));
                 bullets.AddBullet("One lifecycle owner");
@@ -46,13 +46,13 @@ namespace OfficeIMO.Examples.PowerPoint {
 
                 PowerPointSlide duplicate = presentation.DuplicateSlide(0);
                 duplicate.Hidden = true;
-                duplicate.ReplaceText("Direct presentation editing", "Hidden duplicate");
+                duplicate.ReplaceAll("Direct presentation editing", "Hidden duplicate");
                 presentation.MoveSlide(1, presentation.Slides.Count - 1);
                 presentation.Save();
             }
 
             using (PowerPointDocument edited = PowerPointDocument.Load(filePath)) {
-                edited.ReplaceText("One lifecycle owner", "One consistent lifecycle owner");
+                edited.ReplaceAll("One lifecycle owner", "One consistent lifecycle owner");
                 edited.Save();
             }
 

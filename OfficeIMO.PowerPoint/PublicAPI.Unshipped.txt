@@ -1,4 +1,7 @@
 #nullable enable
+*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
+*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasLoss.get -> bool
+*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.RequireNoLoss() -> void
 OfficeIMO.PowerPoint.PowerPointCardContent.ImagePath.get -> string?
 OfficeIMO.PowerPoint.PowerPointCardContent.ImagePath.set -> void
 OfficeIMO.PowerPoint.PowerPointCardContent.Text.get -> string?
@@ -28,8 +31,41 @@ OfficeIMO.PowerPoint.PowerPointDeckContinuationOptions.ContinuationTitleFormat.g
 OfficeIMO.PowerPoint.PowerPointDeckPlan.AddContent(string? title, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>! blocks, OfficeIMO.PowerPoint.PowerPointLayout layout = OfficeIMO.PowerPoint.PowerPointLayout.Auto, string? subtitle = null) -> OfficeIMO.PowerPoint.PowerPointDeckPlan!
 OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Content = 15 -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
 OfficeIMO.PowerPoint.PowerPointDocument.ApplyTheme(OfficeIMO.OfficeTheme! theme, int? masterIndex = null) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.BuiltinDocumentProperties.get -> OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties!
 OfficeIMO.PowerPoint.PowerPointDocument.GetTheme(int masterIndex = 0) -> OfficeIMO.OfficeTheme!
+OfficeIMO.PowerPoint.PowerPointDocument.ImportSlides(OfficeIMO.PowerPoint.PowerPointDocument! sourcePresentation, System.Collections.Generic.IEnumerable<int>! sourceIndices, int? insertAt = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlide!>!
+OfficeIMO.PowerPoint.PowerPointDocument.Properties.get -> OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties!
+OfficeIMO.PowerPoint.PowerPointDocument.ReplaceAll(string! text, string! replacement, OfficeIMO.PowerPoint.PowerPointTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.ReplaceText(string! oldValue, string! newValue, bool includeTables = true, bool includeNotes = false) -> int
 OfficeIMO.PowerPoint.PowerPointDocument.SetThemeName(string! name, int masterIndex = 0) -> void
+OfficeIMO.PowerPoint.PowerPointImage
+OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold.get -> int?
+OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.ContentType.get -> string?
+OfficeIMO.PowerPoint.PowerPointImage.Crop(double leftPercent, double topPercent, double rightPercent, double bottomPercent) -> void
+OfficeIMO.PowerPoint.PowerPointImage.CropBottomRatio.get -> double
+OfficeIMO.PowerPoint.PowerPointImage.CropLeftRatio.get -> double
+OfficeIMO.PowerPoint.PowerPointImage.CropRightRatio.get -> double
+OfficeIMO.PowerPoint.PowerPointImage.CropTopRatio.get -> double
+OfficeIMO.PowerPoint.PowerPointImage.FitToBox() -> void
+OfficeIMO.PowerPoint.PowerPointImage.FitToBox(bool crop) -> void
+OfficeIMO.PowerPoint.PowerPointImage.FitToBox(double imageWidth, double imageHeight, bool crop = true) -> void
+OfficeIMO.PowerPoint.PowerPointImage.GetImageBytes() -> byte[]!
+OfficeIMO.PowerPoint.PowerPointImage.GrayScale.get -> bool
+OfficeIMO.PowerPoint.PowerPointImage.GrayScale.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.LuminanceBrightness.get -> int?
+OfficeIMO.PowerPoint.PowerPointImage.LuminanceBrightness.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.LuminanceContrast.get -> int?
+OfficeIMO.PowerPoint.PowerPointImage.LuminanceContrast.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.MimeType.get -> string?
+OfficeIMO.PowerPoint.PowerPointImage.RecolorColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointImage.RecolorColor.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.ResetClassicEffects() -> void
+OfficeIMO.PowerPoint.PowerPointImage.ResetCrop() -> void
+OfficeIMO.PowerPoint.PowerPointImage.TransparentColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointImage.TransparentColor.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.UpdateImage(System.IO.Stream! newImage, OfficeIMO.Drawing.OfficeImageFormat type) -> void
+OfficeIMO.PowerPoint.PowerPointImage.UpdateImage(string! imagePath) -> void
 OfficeIMO.PowerPoint.PowerPointKpiDirection
 OfficeIMO.PowerPoint.PowerPointKpiDirection.Down = 1 -> OfficeIMO.PowerPoint.PowerPointKpiDirection
 OfficeIMO.PowerPoint.PowerPointKpiDirection.Up = 0 -> OfficeIMO.PowerPoint.PowerPointKpiDirection
@@ -141,27 +177,131 @@ OfficeIMO.PowerPoint.PowerPointMetric.Change.get -> string?
 OfficeIMO.PowerPoint.PowerPointMetric.Change.set -> void
 OfficeIMO.PowerPoint.PowerPointMetric.Color.get -> string?
 OfficeIMO.PowerPoint.PowerPointMetric.Color.set -> void
-OfficeIMO.PowerPoint.PowerPointPicture.FitToBox() -> void
-OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(bool crop) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(string! text, bool bold = false, bool italic = false, OfficeIMO.PowerPoint.PowerPointUnderlineStyle? underline = null, bool strikethrough = false) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(string! text, bool bold = false, bool italic = false, OfficeIMO.PowerPoint.PowerPointUnderlineStyle? underline = null, bool strikethrough = false) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceText(string! oldValue, string! newValue) -> int
+OfficeIMO.PowerPoint.PowerPointParagraph.SetBackgroundColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetFontFamily(string! fontFamily) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetFontName(string! fontName) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetHighlightColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.BlackWhiteThreshold.get -> int?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.BlackWhiteThreshold.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.ContentType.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.Crop(double leftPercent, double topPercent, double rightPercent, double bottomPercent) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.CropBottomRatio.get -> double
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.CropLeftRatio.get -> double
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.CropRightRatio.get -> double
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.CropTopRatio.get -> double
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(double imageWidth, double imageHeight, bool crop = true) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.GetImageBytes() -> byte[]!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.GrayScale.get -> bool
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.GrayScale.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.LuminanceBrightness.get -> int?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.LuminanceBrightness.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.LuminanceContrast.get -> int?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.LuminanceContrast.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.MimeType.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.RecolorColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.RecolorColor.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.ResetClassicEffects() -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.ResetCrop() -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.TransparentColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.TransparentColor.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(System.IO.Stream! newImage, OfficeIMO.Drawing.OfficeImageFormat type) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(string! imagePath) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Description.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Description.set -> void
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(OfficeIMO.PowerPoint.PowerPointImageAsset! asset, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(OfficeIMO.PowerPoint.PowerPointImageAsset! asset, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointPicture!
 OfficeIMO.PowerPoint.PowerPointSlide.ClearBackground() -> void
+OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointImage!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointPicture!>!
+OfficeIMO.PowerPoint.PowerPointSlide.GetImage(string! name) -> OfficeIMO.PowerPoint.PowerPointImage?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(string! name) -> OfficeIMO.PowerPoint.PowerPointPicture?
+OfficeIMO.PowerPoint.PowerPointSlide.Images.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointImage!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.Pictures.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointPicture!>!
+OfficeIMO.PowerPoint.PowerPointSlide.ReplaceAll(string! text, string! replacement, OfficeIMO.PowerPoint.PowerPointTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.ReplaceText(string! oldValue, string! newValue, bool includeTables = true, bool includeNotes = false) -> int
 OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundColor(OfficeIMO.OfficeColor color) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTableCell.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTableCell.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTableCell.FontFamily.get -> string?
+OfficeIMO.PowerPoint.PowerPointTableCell.FontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FontName.set -> void
+OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceText(string! oldValue, string! newValue) -> int
+OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextBox.FontFamily.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextBox.FontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.FontName.set -> void
+OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceText(string! oldValue, string! newValue) -> int
+OfficeIMO.PowerPoint.PowerPointTextRun.BackgroundColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointTextRun.BackgroundColor.set -> void
+OfficeIMO.PowerPoint.PowerPointTextRun.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextRun.FontFamily.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextRun.FontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.FontName.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.HighlightColor.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextRun.HighlightColor.set -> void
+OfficeIMO.PowerPoint.PowerPointTextRun.SetBackgroundColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetBold(bool isBold = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetFontFamily(string! fontFamily) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetFontSize(OfficeIMO.OfficeLength size) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetItalic(bool isItalic = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetStrikethrough(bool strikethrough = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextRun.SetUnderline(bool underline = true) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.IncludeNotes.get -> bool
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.IncludeNotes.set -> void
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.IncludeTables.get -> bool
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.IncludeTables.set -> void
+OfficeIMO.PowerPoint.PowerPointTextSearchOptions.PowerPointTextSearchOptions() -> void
+OfficeIMO.PowerPoint.PowerPointTextStyle.BackgroundColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointTextStyle.Color.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextStyle.FontFamily.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.HighlightColor.get -> string?
+OfficeIMO.PowerPoint.PowerPointTextStyle.PowerPointTextStyle(OfficeIMO.OfficeLength? fontSize = null, string? fontFamily = null, OfficeIMO.OfficeColor? color = null, bool? bold = null, bool? italic = null, bool? underline = null, OfficeIMO.OfficeColor? backgroundColor = null, bool? strikethrough = null) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.PowerPointTextStyle(OfficeIMO.OfficeLength? fontSize = null, string? fontName = null, string? color = null, bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null, bool? strikethrough = null) -> void
 OfficeIMO.PowerPoint.PowerPointTextStyle.UnderlineStyle.get -> OfficeIMO.PowerPoint.PowerPointUnderlineStyle?
+OfficeIMO.PowerPoint.PowerPointTextStyle.WithBackgroundColor(OfficeIMO.OfficeColor? backgroundColor) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+OfficeIMO.PowerPoint.PowerPointTextStyle.WithColor(OfficeIMO.OfficeColor? color) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.WithColor(string? color) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontFamily(string? fontFamily) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontName(string? fontName) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.WithHighlightColor(string? highlightColor) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithUnderlineStyle(OfficeIMO.PowerPoint.PowerPointUnderlineStyle? underlineStyle) -> OfficeIMO.PowerPoint.PowerPointTextStyle
-override OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
-static OfficeIMO.PowerPoint.PowerPointLayoutKpi.FromDelta(string! value, string! label, double delta, string? unit = null, OfficeIMO.PowerPoint.PowerPointKpiDirection goodDirection = OfficeIMO.PowerPoint.PowerPointKpiDirection.Up, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.PowerPoint.PowerPointLayoutKpi!
-OfficeIMO.PowerPoint.PowerPointDocument.ImportSlides(OfficeIMO.PowerPoint.PowerPointDocument! sourcePresentation, System.Collections.Generic.IEnumerable<int>! sourceIndices, int? insertAt = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlide!>!
-*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
-*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasLoss.get -> bool
-*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.RequireNoLoss() -> void
-*REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.BuiltinDocumentProperties.get -> OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties!
-OfficeIMO.PowerPoint.PowerPointDocument.Properties.get -> OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties!
 override OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasLoss.get -> bool
-
-*REMOVED*static OfficeIMO.PowerPoint.PowerPointDocument.SignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
+override OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
 static OfficeIMO.PowerPoint.PowerPointDocument.SignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
-
-*REMOVED*static OfficeIMO.PowerPoint.PowerPointDocument.TrySignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointDocument.SignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 static OfficeIMO.PowerPoint.PowerPointDocument.TrySignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
-
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointDocument.TrySignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 *REMOVED*static OfficeIMO.PowerPoint.PowerPointDocument.ValidatePackageSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
 static OfficeIMO.PowerPoint.PowerPointDocument.ValidateSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
+static OfficeIMO.PowerPoint.PowerPointLayoutKpi.FromDelta(string! value, string! label, double delta, string? unit = null, OfficeIMO.PowerPoint.PowerPointKpiDirection goodDirection = OfficeIMO.PowerPoint.PowerPointKpiDirection.Up, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.PowerPoint.PowerPointLayoutKpi!

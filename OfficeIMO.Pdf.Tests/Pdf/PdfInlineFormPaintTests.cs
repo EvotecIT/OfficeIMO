@@ -25,7 +25,7 @@ public sealed class PdfInlineFormPaintTests {
             }), checkedRun, uncheckedRun);
         var widget = new PdfInlineFormWidget(field, 12, 12, sourceRun: checkedRun);
         byte[] bytes = PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>
-            content.Paragraph(paragraph => paragraph.Runs(new[] {
+            content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
                 PdfTextRun.Normal(precedingSpace ? "LEAD " : "LEAD"), PdfTextRun.Inline(widget), PdfTextRun.Normal(" TAIL")
             }))))).ToBytes();
 
@@ -92,13 +92,15 @@ public sealed class PdfInlineFormPaintTests {
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.Text("Italic", cached, cached,
             0, 0, 1, 16, 16, style, style));
         byte[] Create(bool inline) {
-            PdfTextRun run = PdfTextRun.Normal(cached, fontSize: global::OfficeIMO.OfficeLength.Points(16), font: PdfStandardFont.TimesItalic);
+            PdfTextRun run = PdfTextRun.Normal(cached, fontSize: global::OfficeIMO.OfficeLength.Points(16), standardFont: PdfStandardFont.TimesItalic);
             if (inline) run = run.WithFormField(field);
             return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.TimesRoman, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(16)
-            }).Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(paragraph =>
-                paragraph.Runs(new[] { PdfTextRun.Normal("LEAD "), run, PdfTextRun.Normal("       TAIL") }))))).ToBytes();
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(120)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                }, DefaultFont = PdfStandardFont.TimesRoman, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(16)
+            }).Compose(compose => compose.Page(page => page.Content(content => content.AddParagraph(paragraph =>
+                paragraph.AddRuns(new[] { PdfTextRun.Normal("LEAD "), run, PdfTextRun.Normal("       TAIL") }))))).ToBytes();
         }
 
         byte[] source = Create(true);
@@ -138,12 +140,14 @@ public sealed class PdfInlineFormPaintTests {
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.Text("Underlined", "OLD", cached,
             0, 0, 1, 10, 10, style, style));
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
-        }).Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(paragraph =>
-            paragraph.Runs(new[] {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(120)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+            }, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
+        }).Compose(compose => compose.Page(page => page.Content(content => content.AddParagraph(paragraph =>
+            paragraph.AddRuns(new[] {
                 PdfTextRun.Normal("LEAD "),
-                new PdfTextRun(cached, underline: true, fontSize: global::OfficeIMO.OfficeLength.Points(10), font: PdfStandardFont.Helvetica)
+                new PdfTextRun(cached, underline: true, fontSize: global::OfficeIMO.OfficeLength.Points(10), standardFont: PdfStandardFont.Helvetica)
                     .WithFormField(field),
                 PdfTextRun.Normal(" TAIL")
             }))))).ToBytes();
@@ -189,8 +193,10 @@ public sealed class PdfInlineFormPaintTests {
         const string family = "Toggle outline control";
         const double size = 20D, pageWidth = 300D, pageHeight = 120D;
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(pageHeight)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(24), Right = global::OfficeIMO.OfficeLength.Points(24), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+            }, DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphOutlines('A', 'B')));
         var checkedRun = PdfTextRun.Italicized("A", fontSize: global::OfficeIMO.OfficeLength.Points(size), fontFamily: family);
@@ -204,7 +210,7 @@ public sealed class PdfInlineFormPaintTests {
         var widget = new PdfInlineFormWidget(field, metrics.Width, metrics.Ascent + metrics.Descent,
             -metrics.Descent, sourceRun: checkedRun);
         byte[] source = PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>
-            content.Paragraph(paragraph => paragraph.Runs(new[] {
+            content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
                 PdfTextRun.Normal("LEFT"), PdfTextRun.Inline(widget),
                 PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D))), PdfTextRun.Normal("RIGHT")
             }))))).ToBytes();

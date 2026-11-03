@@ -36,7 +36,7 @@ public sealed class PdfAllSeverityBatch17SecurityTests {
         const string decoy =
             "endstream\n<< /Type /Sig /ByteRange [0 0 0 0] /Contents <0000> >>\nendobj";
         byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
-            .Paragraph(paragraph => paragraph.Text(decoy))
+            .Paragraph(paragraph => paragraph.AddText(decoy))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,

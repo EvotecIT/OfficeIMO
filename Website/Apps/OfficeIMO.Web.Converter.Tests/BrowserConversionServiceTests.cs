@@ -732,7 +732,7 @@ public sealed class BrowserConversionServiceTests {
     public void PowerPointConversion_UsesThePortableTaggedPdfProfile() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Delivery readiness", OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(64));
-        textBox.FontName = "Calibri";
+        textBox.FontFamily = "Calibri";
         byte[] bytes = presentation.ToBytes();
         var document = new SelectedDocument("readiness.pptx", ".pptx", "PPTX", bytes.LongLength, bytes);
 

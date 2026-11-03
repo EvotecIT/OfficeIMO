@@ -180,8 +180,8 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_FieldCache_InactiveStoredRunningFieldDoesNotReportMissingCache() {
         using WordDocument document = CreateFieldCacheDiagnosticDocument();
-        document.DifferentFirstPage = true;
-        document.AddHeadersAndFooters();
+        document.PageSetup.DifferentFirstPage = true;
+        _ = document.PageSetup.Header;
         WordHeader target = RequireSectionHeader(document, 0, W.HeaderFooterValues.First);
         WordParagraph paragraph = target.AddParagraph();
         AppendDiagnosticField(paragraph, complex: true, " LISTNUM CustomHeadings \\l 5 ", "missing");
@@ -335,8 +335,8 @@ public partial class Word {
     private static WordParagraph AddFieldCacheDiagnosticParagraph(WordDocument document, string story) => story switch {
         "body" => document.AddParagraph(),
         "table" => document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
-        "header" => document.HeaderDefaultOrCreate.AddParagraph(),
-        "footer" => document.FooterDefaultOrCreate.AddParagraph(),
+        "header" => document.PageSetup.Header.AddParagraph(),
+        "footer" => document.PageSetup.Footer.AddParagraph(),
         _ => throw new ArgumentOutOfRangeException(nameof(story))
     };
 

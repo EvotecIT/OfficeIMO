@@ -24,12 +24,14 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { PdfTableCell.TextCell("AfterSpan"), PdfTableCell.TextCell("AfterNeighbour") }
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(120)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         });
         if (inRowColumn)
             document.Compose(builder => builder.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         else document.Table(rows, style: style);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
         var words = pdf.GetPages().SelectMany(page => page.GetWords().Select(word => (page.Number, Word: word))).ToArray();
@@ -65,12 +67,14 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { PdfTableCell.TextCell("Neighbour2") }
         };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(120)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         });
         if (inRowColumn)
             document.Compose(builder => builder.Page(page => page.Content(content =>
-                content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         else document.Table(rows, style: style);
         byte[] bytes = document.ToBytes();
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

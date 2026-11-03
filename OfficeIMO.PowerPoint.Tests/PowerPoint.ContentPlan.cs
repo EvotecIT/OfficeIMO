@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 var result = document.Compose(new PowerPointDeckPlan().AddContent("Evidence", new PowerPointLayoutBlock[] {
                     new PowerPointLayoutCard("Review", "Keep the image and the narrative.", image: path)
                 }), Options());
-                Assert.Single(result.Slides.SelectMany(slide => slide.Pictures));
+                Assert.Single(result.Slides.SelectMany(slide => slide.Images));
                 Assert.Contains(result.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("Keep the image"));
             } finally { File.Delete(path); }
         }

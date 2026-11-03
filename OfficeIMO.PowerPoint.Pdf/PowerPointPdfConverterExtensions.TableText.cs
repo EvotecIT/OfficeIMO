@@ -105,7 +105,7 @@ public static partial class PowerPointPdfConverterExtensions {
             italic: resolvedItalic ?? false,
             strike: strike.HasValue && strike.Value != A.TextStrikeValues.NoStrike,
             fontSize: ((double?)(ReadRunFontSize(sources) ?? fallbackFontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
-            font: MapFont(fontFamily),
+            standardFont: MapFont(fontFamily),
             linkUri: hyperlink is { IsAbsoluteUri: true } ? hyperlink.AbsoluteUri : null,
             linkDestinationName: destination,
             baseline: MapPowerPointBaseline(baseline.HasValue ? baseline.Value / 1000D : (double?)null, options, slideNumber),

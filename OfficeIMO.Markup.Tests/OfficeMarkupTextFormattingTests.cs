@@ -174,7 +174,7 @@ public class OfficeMarkupTextFormattingTests {
         Assert.All(paragraphs.Where(item => item.Text.Contains("Nested", StringComparison.Ordinal)), paragraph => {
             WordRunInfo run = Assert.Single(paragraph.Runs);
             Assert.True(run.Italic);
-            Assert.Equal("336699", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("336699"), run.Color);
         });
     }
 
@@ -197,8 +197,8 @@ public class OfficeMarkupTextFormattingTests {
         Assert.True(run.DoubleStrike);
         Assert.Equal("Superscript", run.VerticalTextAlignment);
         Assert.Equal("SmallCaps", run.CapsStyle);
-        Assert.Equal("336699", run.ColorHex);
-        Assert.Equal("FFF2CC", run.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("336699"), run.Color);
+        Assert.Equal(OfficeColor.Parse("FFF2CC"), run.BackgroundColor);
     }
 
     [Fact]
@@ -259,8 +259,8 @@ public class OfficeMarkupTextFormattingTests {
         Assert.Equal(PowerPointStrikeStyle.Double, run.StrikeStyle);
         Assert.True(run.BaselinePercent < 0D);
         Assert.Equal(PowerPointCapitalization.SmallCaps, run.Capitalization);
-        Assert.Equal("336699", run.Color);
-        Assert.Equal("FFF2CC", run.HighlightColor);
+        Assert.Equal(OfficeColor.Parse("336699"), run.Color);
+        Assert.Equal(OfficeColor.Parse("FFF2CC"), run.BackgroundColor);
     }
 
     private static void AddCommonStyle(IDictionary<string, string> attributes, string underline, string baseline, string textCase) {

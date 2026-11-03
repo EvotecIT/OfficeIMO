@@ -115,7 +115,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
         var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeLength.Points(320), OfficeLength.Points(120));
         var box = presentation.AddSlide().AddTextBox("Pinned fonts", OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(280), OfficeLength.Points(60));
-        box.FontName = "Calibri";
+        box.FontFamily = "Calibri";
         return presentation;
     }
 

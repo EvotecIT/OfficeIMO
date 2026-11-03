@@ -122,10 +122,10 @@ internal static class ReaderComparisonCorpus {
     private static ReaderComparisonCase CreatePdf() {
         PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content
             .H1("PDF evidence heading")
-            .Paragraph(value => value.Text("PDF first-page retention marker."))
+            .AddParagraph(value => value.AddText("PDF first-page retention marker."))
             .PageBreak()
             .H1("PDF second page")
-            .Paragraph(value => value.Text("PDF second-page retention marker."))));
+            .AddParagraph(value => value.AddText("PDF second-page retention marker."))));
 
         return Case("pdf", "evidence-report.pdf", document.ToBytes(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "PDF evidence heading"),

@@ -19,18 +19,20 @@ public partial class PdfDocumentVisualQualityTests {
             style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
             style.ConsumesVerticalFlow = consumesVerticalFlow;
             PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             });
             if (rowColumn) {
                 document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
                     row.PercentColumn(100, column => {
-                        column.Table(new[] { new[] { "Floating" } }, align: OfficeAlignment.Right, style: style);
-                        column.Paragraph(paragraph => paragraph.Text("Following"));
+                        column.AddTable(new[] { new[] { "Floating" } }, align: OfficeAlignment.Right, style: style);
+                        column.AddParagraph(paragraph => paragraph.AddText("Following"));
                     })))));
             } else {
                 document.Table(new[] { new[] { "Floating" } }, align: OfficeAlignment.Right, style: style);
-                document.Paragraph(paragraph => paragraph.Text("Following"));
+                document.Paragraph(paragraph => paragraph.AddText("Following"));
             }
             using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
             return pdf.GetPage(1).Letters.First(letter => letter.Value == "F" && letter.BoundingBox.Left < 50).BoundingBox.Bottom;
@@ -49,15 +51,17 @@ public partial class PdfDocumentVisualQualityTests {
         style.ConsumesVerticalFlow = false;
         style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(38) };
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260), PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            }
         });
         document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
             row.PercentColumn(100, column => {
-                column.Table(new[] {
+                column.AddTable(new[] {
                     new[] { "R1" }, new[] { "R2" }, new[] { "R3" }, new[] { "R4" }, new[] { "R5" }
                 }, style: style);
-                column.Paragraph(paragraph => paragraph.Text("Following"));
+                column.AddParagraph(paragraph => paragraph.AddText("Following"));
             })))));
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
@@ -73,12 +77,10 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void ExactHeightTableRowsDoNotEmitClippedHiddenText(bool rowColumn) {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -104,7 +106,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }
@@ -123,12 +125,10 @@ public partial class PdfDocumentVisualQualityTests {
     public void NoWrapTableRunLinksStayInsideCellClip(bool rowColumn) {
         const string uri = "https://example.com/no-wrap";
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
@@ -151,7 +151,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }
@@ -167,12 +167,10 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true)]
     public void NoWrapTableParagraphTextDoesNotPaintAcrossAdjacentCells(bool rowColumn) {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         };
@@ -197,7 +195,7 @@ public partial class PdfDocumentVisualQualityTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.PercentColumn(100, column => column.Table(rows, style: style))))));
+                            row.PercentColumn(100, column => column.AddTable(rows, style: style))))));
         } else {
             document.Table(rows, style: style);
         }
@@ -220,12 +218,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RightAlignedNoWrapTableParagraphRemainsVisibleInsideItsCell() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var style = PdfTableStyles.Minimal();

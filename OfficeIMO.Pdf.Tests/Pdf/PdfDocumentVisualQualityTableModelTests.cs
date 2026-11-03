@@ -57,7 +57,6 @@ public partial class PdfDocumentVisualQualityTests {
             body
         }, OfficeAlignment.Left, style);
 
-        block.AddLink((1, 0), "https://evotec.xyz");
         body[0] = "Mutated";
         body[1] = "AlsoMutated";
         style.BorderWidth = global::OfficeIMO.OfficeLength.Points(5);
@@ -73,7 +72,6 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.False(block.Rows is List<string[]>);
         Assert.False(block.Cells is List<IReadOnlyList<PdfTableCell>>);
-        Assert.False(block.Links is Dictionary<(int Row, int Col), string>);
         Assert.Equal("Original", block.Rows[1][0]);
         Assert.Equal(string.Empty, block.Rows[1][1]);
         Assert.Equal(2, block.ColumnCount);
@@ -90,8 +88,6 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(1.4, block.Style.FooterSeparatorWidth.ToPoints());
         Assert.Equal(160, block.Style.MaxWidth?.ToPoints());
         Assert.Equal(18, block.Style.LeftIndent.ToPoints());
-        Assert.True(block.Links.TryGetValue((1, 0), out string? uri));
-        Assert.Equal("https://evotec.xyz", uri);
     }
 
     [Fact]
@@ -100,24 +96,22 @@ public partial class PdfDocumentVisualQualityTests {
             PdfPngTestImages.CreateRgbaPng(24, 48, 72, 255),
             global::OfficeIMO.OfficeLength.Points(12),
             global::OfficeIMO.OfficeLength.Points(12),
-            new PdfImageStyle { AlternativeText = "Original logo" });
+            new PdfImageStyle { AltText = "Original logo" });
         PdfTableCell cell = PdfTableCell.WithImages("Logo", new[] { image });
         var block = new TableBlock(new[] { new[] { cell } }, OfficeAlignment.Left, null);
 
-        cell.Images[0].Style!.AlternativeText = "Changed logo";
+        cell.Images[0].Style!.AltText = "Changed logo";
 
-        Assert.Equal("Original logo", block.Cells[0][0].Images[0].Style!.AlternativeText);
+        Assert.Equal("Original logo", block.Cells[0][0].Images[0].Style!.AltText);
     }
 
     [Fact]
     public void PdfDocument_DefaultTableStyleAppliesToFollowingTablesAndSnapshotsInput() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -139,18 +133,16 @@ public partial class PdfDocumentVisualQualityTests {
 
         double markerX = FindWordStartX(page, "DefaultPad");
 
-        Assert.True(markerX - options.MarginLeft.ToPoints() >= 20, $"Expected fluent default table style padding to affect following tables and snapshot caller input. Marker x: {markerX:0.##}, margin: {options.MarginLeft.ToPoints():0.##}.");
+        Assert.True(markerX - options.PageSetup.Margins.Left.ToPoints() >= 20, $"Expected fluent default table style padding to affect following tables and snapshot caller input. Marker x: {markerX:0.##}, margin: {options.PageSetup.Margins.Left.ToPoints():0.##}.");
     }
 
     [Fact]
     public void PdfDocument_ExplicitTableStyleOverridesDefaultTableStyle() {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
@@ -172,7 +164,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         double markerX = FindWordStartX(page, "ExplicitPad");
 
-        Assert.True(markerX - options.MarginLeft.ToPoints() <= 6, $"Expected explicit table style padding to override the document default. Marker x: {markerX:0.##}, margin: {options.MarginLeft.ToPoints():0.##}.");
+        Assert.True(markerX - options.PageSetup.Margins.Left.ToPoints() <= 6, $"Expected explicit table style padding to override the document default. Marker x: {markerX:0.##}, margin: {options.PageSetup.Margins.Left.ToPoints():0.##}.");
     }
 
     [Fact]
@@ -180,26 +172,6 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().DefaultTableStyle((PdfTableStyle)null!));
         Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().DefaultTableStyle((string)null!));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().DefaultTableStyle("Missing Table Style"));
-    }
-
-    [Fact]
-    public void TableWithLinks_SnapshotsInputLinkDictionaryBeforeRendering() {
-        var links = new Dictionary<(int Row, int Col), string> {
-            [(1, 0)] = "https://evotec.xyz"
-        };
-
-        var doc = PdfDocument.Create()
-            .TableWithLinks(
-                new[] { new[] { "Name" }, new[] { "OfficeIMO" } },
-                links);
-
-        links[(1, 0)] = "https://example.com";
-
-        byte[] bytes = doc.ToBytes();
-        string content = Encoding.ASCII.GetString(bytes);
-
-        Assert.Contains("(https://evotec.xyz)", content);
-        Assert.DoesNotContain("(https://example.com)", content);
     }
 
 

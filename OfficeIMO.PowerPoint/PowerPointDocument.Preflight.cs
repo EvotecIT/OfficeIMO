@@ -80,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
                     shape is PowerPointTextBox textBox) {
                     InspectText(textBox, reportShapeIndex, slideIndex, options, findings);
                 }
-                if (options.DetectMissingVisualAssets && shape is PowerPointPicture picture) {
+                if (options.DetectMissingVisualAssets && shape is PowerPointImage picture) {
                     InspectPicture(picture, reportShapeIndex, slideIndex, findings);
                 }
                 if (shape is PowerPointGroupShape groupShape) {
@@ -198,18 +198,18 @@ namespace OfficeIMO.PowerPoint {
             for (int paragraphIndex = 0; paragraphIndex < textBox.Paragraphs.Count; paragraphIndex++) {
                 IReadOnlyList<PowerPointTextRun> runs = textBox.Paragraphs[paragraphIndex].Runs;
                 for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
-                    if (!string.IsNullOrWhiteSpace(runs[runIndex].FontName)) {
+                    if (!string.IsNullOrWhiteSpace(runs[runIndex].FontFamily)) {
                         return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                            runs[runIndex].FontName, runs[runIndex].OwnerPart) ?? "Aptos";
+                            runs[runIndex].FontFamily, runs[runIndex].OwnerPart) ?? "Aptos";
                     }
                 }
             }
 
-            return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(textBox.FontName,
+            return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(textBox.FontFamily,
                 textBox.RelationshipOwnerPart) ?? "Aptos";
         }
 
-        private static void InspectPicture(PowerPointPicture picture, int shapeIndex, int slideIndex,
+        private static void InspectPicture(PowerPointImage picture, int shapeIndex, int slideIndex,
             IList<PowerPointDeckPreflightFinding> findings) {
             try {
                 if (string.IsNullOrWhiteSpace(picture.ContentType)) {

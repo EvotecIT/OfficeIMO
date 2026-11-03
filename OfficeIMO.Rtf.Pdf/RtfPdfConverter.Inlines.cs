@@ -81,7 +81,7 @@ internal static partial class RtfPdfConverter {
         EnsureParagraphLineBoxStrut(document, source, snapshot, state);
         runs.Clear();
         PdfCore.PdfParagraphStyle style = RtfPdfMapping.ToPdfParagraphStyle(document, source, snapshot, state.FontOptions);
-        pdf.Paragraph(paragraph => paragraph.Runs(snapshot), align, style: style);
+        pdf.Paragraph(paragraph => paragraph.AddRuns(snapshot), align, style: style);
     }
 
     /// <summary>Keeps empty and control-only source lines' available character boxes without introducing visible text.</summary>
@@ -94,7 +94,7 @@ internal static partial class RtfPdfConverter {
             // Tabs retain their source character formatting. Keep that known
             // box even when wrapping discards their unpainted trailing advance.
             strut = new PdfCore.PdfTextRun(string.Empty, bold: controlStyle.Bold, italic: controlStyle.Italic,
-                fontSize: controlStyle.FontSize, font: controlStyle.Font, fontFamily: controlStyle.FontFamily,
+                fontSize: controlStyle.FontSize, standardFont: controlStyle.StandardFont, fontFamily: controlStyle.FontFamily,
                 baseline: controlStyle.Baseline);
         } else {
             // RtfBreak carries no character state. Use only the source defaults
@@ -103,7 +103,7 @@ internal static partial class RtfPdfConverter {
                 UseDefaultCharacterFormatting = source.UseParsedParagraphDefaults
             });
             strut = new PdfCore.PdfTextRun(string.Empty, bold: inherited.Bold, italic: inherited.Italic,
-                fontSize: inherited.FontSize.HasValue ? OfficeLength.Points(inherited.FontSize.Value) : null, font: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
+                fontSize: inherited.FontSize.HasValue ? OfficeLength.Points(inherited.FontSize.Value) : null, standardFont: state.ResolveFont(inherited.FontId, inherited.Bold, inherited.Italic),
                 fontFamily: state.ResolveFontFamily(inherited.FontId));
         }
         strut.IsLineBoxStrut = true;
@@ -116,7 +116,7 @@ internal static partial class RtfPdfConverter {
                 // label before the body must not become a break's fallback size.
                 runs[index] = new PdfCore.PdfTextRun(control.Text, bold: strut.Bold,
                     underline: control.Underline, color: control.Color, italic: strut.Italic,
-                    strike: control.Strike, fontSize: global::OfficeIMO.OfficeLength.Points(sourceSize), font: strut.Font,
+                    strike: control.Strike, fontSize: global::OfficeIMO.OfficeLength.Points(sourceSize), standardFont: strut.StandardFont,
                     linkUri: control.LinkUri, linkContents: control.LinkContents,
                     baseline: strut.Baseline, linkDestinationName: control.LinkDestinationName,
                     tabLeader: control.TabLeader, tabAlignment: control.TabAlignment,
@@ -230,7 +230,7 @@ internal static partial class RtfPdfConverter {
             italic: run.Italic,
             strike: run.Strike || run.DoubleStrike,
             fontSize: ((double?)(run.FontSize) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null),
-            font: font,
+            standardFont: font,
             fontFamily: state.ResolveFontFamily(run.FontId),
             linkUri: linkUri,
             linkContents: linkContents,
@@ -319,6 +319,6 @@ internal static partial class RtfPdfConverter {
             ? document.GetRunFormatting(paragraph, firstRun) : firstRun;
         runs.Add(new PdfCore.PdfTextRun(marker.Text + marker.Separator,
             fontSize: text.FontSize.HasValue ? OfficeLength.Points(text.FontSize.Value) : null,
-            font: state.ResolveFont(text.FontId, bold: false, italic: false), fontFamily: state.ResolveFontFamily(text.FontId)));
+            standardFont: state.ResolveFont(text.FontId, bold: false, italic: false), fontFamily: state.ResolveFontFamily(text.FontId)));
     }
 }

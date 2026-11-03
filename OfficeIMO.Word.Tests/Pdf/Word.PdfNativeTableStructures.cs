@@ -67,8 +67,8 @@ public partial class Word {
     [InlineData("footer", true)]
     public void SaveAsPdf_ContentControlCellsRetainTableGridAndStoryText(string storyKind, bool wrappedRow) {
         using WordDocument document = WordDocument.Create();
-        WordHeaderFooter? story = storyKind == "header" ? document.HeaderDefaultOrCreate :
-            storyKind == "footer" ? document.FooterDefaultOrCreate : null;
+        WordHeaderFooter? story = storyKind == "header" ? document.PageSetup.Header :
+            storyKind == "footer" ? document.PageSetup.Footer : null;
         WordTable table = story == null ? document.AddTable(1, 2, WordTableStyle.TableGrid) : story.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 4000);
         table.GridColumnWidth = new List<int> { 1600, 2400 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();

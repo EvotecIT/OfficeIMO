@@ -52,7 +52,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void Plan_ChoosesFullRewriteForOrdinaryMetadataMutation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Planner metadata source"))
+            .Paragraph(paragraph => paragraph.AddText("Planner metadata source"))
             .ToBytes();
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.UpdateMetadata);
@@ -96,7 +96,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void ActiveContentBlocksMetadataButFormFillAppendsAndPreservesIt() {
         byte[] metadataSource = WithCatalogAction(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Active metadata source")).ToBytes());
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Active metadata source")).ToBytes());
         byte[] formSource = WithCatalogAction(
             PdfDocument.Create().TextField("Account", value: "before").ToBytes());
 
@@ -131,7 +131,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void GoToEActionBlocksAppendOnlyMetadataMutation() {
         byte[] source = WithCatalogAction(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Embedded target action")).ToBytes(),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Embedded target action")).ToBytes(),
             "GoToE");
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.UpdateMetadata);
@@ -210,7 +210,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void Plan_ChoosesFullRewriteForAuthorizedEncryptedMutation() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted planner source"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted planner source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "open" };
 
@@ -228,7 +228,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void Plan_ChoosesEncryptedAppendWithOwnerAuthorization() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted owner planner source"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted owner planner source"))
             .ToBytes();
         var ownerOptions = new PdfLoadOptions { Password = "owner" };
 
@@ -265,7 +265,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void TryMergeWith_UsesMergePolicyForFormBearingPrimary() {
         byte[] primary = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
-        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Incoming")).ToBytes();
 
         PdfOperationResult<PdfDocument> result = PdfDocument.Load(primary).MergeWithResult(incoming);
 
@@ -279,7 +279,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void TryPageImports_UseImportPolicyForFormBearingTarget() {
         byte[] target = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
-        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
+        byte[] incoming = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Incoming")).ToBytes();
 
         PdfOperationResult<PdfDocument> appended = PdfDocument.Load(target).Pages.AppendResult(incoming);
         PdfOperationResult<PdfDocument> prepended = PdfDocument.Load(target).Pages.PrependResult(incoming);
@@ -300,14 +300,14 @@ public class PdfMutationPlannerTests {
             AllowedPermissions = PdfStandardPermissions.None
         };
         byte[] target = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text("Target one"))
+            .Paragraph(paragraph => paragraph.AddText("Target one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Target two"))
+            .Paragraph(paragraph => paragraph.AddText("Target two"))
             .ToBytes();
         byte[] incoming = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Incoming one"))
+            .Paragraph(paragraph => paragraph.AddText("Incoming one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Incoming two"))
+            .Paragraph(paragraph => paragraph.AddText("Incoming two"))
             .ToBytes();
         var targetReadOptions = new PdfLoadOptions {
             Password = "open",
@@ -340,7 +340,7 @@ public class PdfMutationPlannerTests {
 
     [Fact]
     public void Plan_StreamStopsBufferingAtConfiguredInputLimit() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Bounded planner stream")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Bounded planner stream")).ToBytes();
         byte[] padded = new byte[1024 * 1024];
         source.CopyTo(padded, 0);
         using var stream = new ChunkedNonSeekableStream(padded, 256);
@@ -404,7 +404,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void Plan_ChoosesAppendOnlyForExternalSignaturePreparation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Signature planner source"))
+            .Paragraph(paragraph => paragraph.AddText("Signature planner source"))
             .ToBytes();
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.PrepareExternalSignature);
@@ -421,7 +421,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void Plan_AllowsAuthenticatedEncryptedExternalSignaturePreparation() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted signature source"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted signature source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };
 
@@ -440,7 +440,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void ExternalSignatureFinalizationUsesReservedPatchContract() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Signature finalization planner source"))
+            .Paragraph(paragraph => paragraph.AddText("Signature finalization planner source"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -469,7 +469,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void ExternalSignatureFinalizationIgnoresContentsTextInsideMetadataStrings() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Signature contents lexical parsing"))
+            .Paragraph(paragraph => paragraph.AddText("Signature contents lexical parsing"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -493,7 +493,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void ExternalSignatureFinalizationIgnoresObjectHeadersInsideMetadataStrings() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Signature object-boundary lexical parsing"))
+            .Paragraph(paragraph => paragraph.AddText("Signature object-boundary lexical parsing"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -519,7 +519,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void DocumentMutationPlanningRetainsBytesForSignatureReservationValidation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Document signature planning source"))
+            .Paragraph(paragraph => paragraph.AddText("Document signature planning source"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -544,7 +544,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void ExternalSignatureFinalizationRejectsByteRangeThatDoesNotMatchReservation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Signature reservation validation"))
+            .Paragraph(paragraph => paragraph.AddText("Signature reservation validation"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -581,7 +581,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void ExternalSignatureFinalizationRejectsEmptyAndAmbiguousRawCompletion() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Signature finalization ambiguity source"))
+            .Paragraph(paragraph => paragraph.AddText("Signature finalization ambiguity source"))
             .ToBytes();
         PdfExternalSignaturePreparation first = PdfIncrementalUpdater.PrepareExternalSignature(
             source,
@@ -605,7 +605,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void Plan_ExposesSharedCapabilityRecordsForAffectedStructures() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Capability record source"))
+            .Paragraph(paragraph => paragraph.AddText("Capability record source"))
             .ToBytes();
 
         PdfMutationPlan pagePlan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ModifyPageTree);
@@ -628,7 +628,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void ExplicitAppendWorkflowRequiresAppendOnlyEvenForOrdinaryInput() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Explicit append source"))
+            .Paragraph(paragraph => paragraph.AddText("Explicit append source"))
             .ToBytes();
 
         PdfOperationResult<PdfDocument> result = PdfDocument.Load(source)
@@ -644,9 +644,9 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void PageEditingWorkflowUsesPlannerAndBlocksSignedIncrementalInput() {
         byte[] ordinary = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First"))
+            .Paragraph(paragraph => paragraph.AddText("First"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second"))
+            .Paragraph(paragraph => paragraph.AddText("Second"))
             .ToBytes();
 
         PdfOperationResult<PdfDocument> ordinaryResult = PdfDocument.Load(ordinary)
@@ -666,7 +666,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void EncryptedPageExtractionRetainsSourceEncryption() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted extraction"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted extraction"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "open" };
 
@@ -687,7 +687,7 @@ public class PdfMutationPlannerTests {
             AllowedPermissions = PdfStandardPermissions.None
         };
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text("Restricted extraction"))
+            .Paragraph(paragraph => paragraph.AddText("Restricted extraction"))
             .ToBytes();
         var userOptions = new PdfLoadOptions { Password = "open" };
         var ownerOptions = new PdfLoadOptions { Password = "owner" };

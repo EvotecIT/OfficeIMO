@@ -6,15 +6,14 @@ It supports different headers/footers for first page, even page, and odd page.
 
 ```csharp
 using (WordDocument document = WordDocument.Create(filePath)) {
-    document.Sections[0].PageOrientation = PageOrientationValues.Landscape;
+    document.Sections[0].PageSetup.Orientation = PageOrientationValues.Landscape;
     document.AddParagraph("Test Section0");
-    document.AddHeadersAndFooters();
-    document.DifferentFirstPage = true;
-    document.DifferentOddAndEvenPages = true;
+    document.PageSetup.DifferentFirstPage = true;
+    document.PageSetup.DifferentOddAndEvenPages = true;
 
-    document.Sections[0].Header.First.AddParagraph().SetText("Test Section 0 - First Header");
-    document.Sections[0].Header.Default.AddParagraph().SetText("Test Section 0 - Header");
-    document.Sections[0].Header.Even.AddParagraph().SetText("Test Section 0 - Even");
+    document.Sections[0].PageSetup.FirstPageHeader.AddParagraph().SetText("Test Section 0 - First Header");
+    document.Sections[0].PageSetup.Header.AddParagraph().SetText("Test Section 0 - Header");
+    document.Sections[0].PageSetup.EvenPageHeader.AddParagraph().SetText("Test Section 0 - Even");
 
     document.AddPageBreak();
     document.AddPageBreak();
@@ -22,12 +21,11 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     document.AddPageBreak();
 
     var section1 = document.AddSection();
-    section1.PageOrientation = PageOrientationValues.Portrait;
+    section1.PageSetup.Orientation = PageOrientationValues.Portrait;
     section1.AddParagraph("Test Section1");
-    section1.AddHeadersAndFooters();
-    section1.Header.Default.AddParagraph().SetText("Test Section 1 - Header");
-    section1.DifferentFirstPage = true;
-    section1.Header.First.AddParagraph().SetText("Test Section 1 - First Header");
+    section1.PageSetup.Header.AddParagraph().SetText("Test Section 1 - Header");
+    section1.PageSetup.DifferentFirstPage = true;
+    section1.PageSetup.FirstPageHeader.AddParagraph().SetText("Test Section 1 - First Header");
 
     document.AddPageBreak();
     document.AddPageBreak();
@@ -36,16 +34,14 @@ using (WordDocument document = WordDocument.Create(filePath)) {
 
     var section2 = document.AddSection();
     section2.AddParagraph("Test Section2");
-    section2.PageOrientation = PageOrientationValues.Landscape;
-    section2.AddHeadersAndFooters();
-    section2.Header.Default.AddParagraph().SetText("Test Section 2 - Header");
+    section2.PageSetup.Orientation = PageOrientationValues.Landscape;
+    section2.PageSetup.Header.AddParagraph().SetText("Test Section 2 - Header");
 
     document.AddParagraph("Test Section2 - Paragraph 1");
 
     var section3 = document.AddSection();
     section3.AddParagraph("Test Section3");
-    section3.AddHeadersAndFooters();
-    section3.Header.Default.AddParagraph().SetText("Test Section 3 - Header");
+    section3.PageSetup.Header.AddParagraph().SetText("Test Section 3 - Header");
 
     Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Paragraphs[0].Text);
     Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Paragraphs[0].Text);
@@ -53,9 +49,9 @@ using (WordDocument document = WordDocument.Create(filePath)) {
     Console.WriteLine("Section 2 - Text 1: " + document.Sections[2].Paragraphs[1].Text);
     Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Paragraphs[0].Text);
 
-    Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].Header.Default.Paragraphs[0].Text);
-    Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].Header.Default.Paragraphs[0].Text);
-    Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].Header.Default.Paragraphs[0].Text);
-    Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].Header.Default.Paragraphs[0].Text);
+    Console.WriteLine("Section 0 - Text 0: " + document.Sections[0].PageSetup.Header.Paragraphs[0].Text);
+    Console.WriteLine("Section 1 - Text 0: " + document.Sections[1].PageSetup.Header.Paragraphs[0].Text);
+    Console.WriteLine("Section 2 - Text 0: " + document.Sections[2].PageSetup.Header.Paragraphs[0].Text);
+    Console.WriteLine("Section 3 - Text 0: " + document.Sections[3].PageSetup.Header.Paragraphs[0].Text);
     document.Save(true);
 ```

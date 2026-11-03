@@ -382,7 +382,7 @@ namespace OfficeIMO.Word.Pdf {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (info == null) {
                 return textStyle.ApplyTo(new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
-                    italic: textStyle.Italic, fontSize: ((double?)(textStyle.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null), font: textStyle.Font,
+                    italic: textStyle.Italic, fontSize: ((double?)(textStyle.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null), standardFont: textStyle.Font,
                     fontFamily: textStyle.FontFamily));
             }
 
@@ -393,7 +393,7 @@ namespace OfficeIMO.Word.Pdf {
                 italic: info.Value.MarkerItalic ?? textStyle.Italic,
                 strike: textStyle.Strike,
                 fontSize: ((double?)(info.Value.MarkerFontSize ?? textStyle.FontSize) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
-                font: ResolveNativeListMarkerFont(info.Value, marker, textStyle, nativeFontMap),
+                standardFont: ResolveNativeListMarkerFont(info.Value, marker, textStyle, nativeFontMap),
                 fontFamily: nativeFontMap != null
                     ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
                     : textStyle.FontFamily, strikeStyle: textStyle.StrikeStyle) { ContributesLineBoxDescent = false }, textStyle.EffectiveFontSize);

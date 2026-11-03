@@ -153,8 +153,8 @@ public sealed class HtmlWordChartTests {
     public void Export_ReviewProjectionPreservesMixedAliasesOfSharedStoryRoots(bool header) {
         using var document = WordDocument.Create();
         var first = document.Sections[0];
-        var region = header ? (WordHeaderFooter)first.GetOrCreateHeader(WordHeaderFooterType.Default)
-            : first.GetOrCreateFooter(WordHeaderFooterType.Default);
+        var region = header ? (WordHeaderFooter)first.PageSetup.Header
+            : first.PageSetup.Footer;
         region.AddParagraph().AddChart(OfficeChartType.ColumnClustered,Data());
         var paragraph = document.AddParagraph("Revision");
         var run = paragraph.GetRuns().Single()._run!; run.Remove();
@@ -162,11 +162,11 @@ public sealed class HtmlWordChartTests {
         var second = document.AddSection();
         var third = document.AddSection();
         if (header) {
-            second.Header.Default = new WordHeader(document, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default, region._header!, second);
-            third.Header.Default = first.Header.Default;
+            second.Headers.Default = new WordHeader(document, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default, region._header!, second);
+            third.Headers.Default = first.PageSetup.GetHeader(WordHeaderFooterType.Default);
         } else {
-            second.Footer.Default = new WordFooter(document, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default, region._footer!, second);
-            third.Footer.Default = first.Footer.Default;
+            second.Footers.Default = new WordFooter(document, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default, region._footer!, second);
+            third.Footers.Default = first.PageSetup.GetFooter(WordHeaderFooterType.Default);
         }
         var options = new WordHtmlExportOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup };
         for (var attempt = 0; attempt < 2; attempt++) {
@@ -184,8 +184,8 @@ public sealed class HtmlWordChartTests {
     [InlineData(false, WordTrackedChangeExportPolicy.Original)]
     public void Export_ReviewProjectionPreservesHeaderFooterChartOwnership(bool header, WordTrackedChangeExportPolicy policy) {
         using var document = WordDocument.Create();
-        var region = header ? (WordHeaderFooter)document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default)
-            : document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default);
+        var region = header ? (WordHeaderFooter)document.Sections[0].PageSetup.Header
+            : document.Sections[0].PageSetup.Footer;
         var chart = region.AddParagraph().AddChart(OfficeChartType.ColumnClustered,Data());
         var paragraph = document.AddParagraph("Revision");
         var run = paragraph.GetRuns().Single()._run!; run.Remove();
@@ -337,7 +337,7 @@ public sealed class HtmlWordChartTests {
     public void Export_DiagnosesUnsupportedExtendedChartsIncludingChartOnlyHeaders(bool header) {
         using var document = WordDocument.Create();
         var chart = header
-            ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().AddChart(OfficeChartType.ColumnClustered,Data())
+            ? document.Sections[0].PageSetup.Header.AddParagraph().AddChart(OfficeChartType.ColumnClustered,Data())
             : document.AddChart(OfficeChartType.ColumnClustered,Data());
         var reference = chart.Drawing!.Descendants<C.ChartReference>().Single();
         var extended = new DocumentFormat.OpenXml.OpenXmlUnknownElement("cx", "chart", "http://schemas.microsoft.com/office/drawing/2014/chartex");
@@ -353,7 +353,7 @@ public sealed class HtmlWordChartTests {
     public void Export_ElementBudgetIncludesChartPartsBeforeSnapshotReading(bool header) {
         using var document = WordDocument.Create();
         var chart = header
-            ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().AddChart(OfficeChartType.ColumnClustered,Data())
+            ? document.Sections[0].PageSetup.Header.AddParagraph().AddChart(OfficeChartType.ColumnClustered,Data())
             : document.AddChart(OfficeChartType.ColumnClustered,Data());
         var space = chart.ChartPart!.ChartSpace!;
         var native = space.GetFirstChild<C.Chart>()!;
@@ -433,7 +433,7 @@ public sealed class HtmlWordChartTests {
         document.AddChart(OfficeChartType.ColumnClustered, Data(), new OfficeIMO.Word.WordChartOptions { Title = "First chart" });
         document.AddChart(OfficeChartType.Doughnut, Data(), new OfficeIMO.Word.WordChartOptions { Title = "Second chart" });
         using var pixels = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII="));
-        document.AddParagraph().AddImage(pixels, "marker.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), options: new OfficeIMO.Word.WordImageOptions { Description = "Picture marker" });
+        document.AddParagraph().AddImage(pixels, "marker.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), options: new OfficeIMO.Word.WordImageOptions { AltText = "Picture marker" });
         var runs = document.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Select(run => run._run!).ToArray();
         var secondDrawing = runs[1].GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
         var pictureDrawing = runs[2].GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
@@ -467,7 +467,7 @@ public sealed class HtmlWordChartTests {
         using var document = WordDocument.Create();
         document.AddChart(OfficeChartType.ColumnClustered,Data());
         var source = document.Paragraphs.Single().GetRuns().Single()._run!;
-        var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        var header = document.Sections[0].PageSetup.Header.AddParagraph();
         header._paragraph.Append(source.CloneNode(true));
         var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
         var dom = new HtmlParser().ParseDocument(result.RequireValue());
@@ -482,7 +482,7 @@ public sealed class HtmlWordChartTests {
     public void Export_UsesTheNativeHeaderOrFooterChartPart(bool footer) {
         using var document = WordDocument.Create();
         var bodyChart = document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Body", new[] { 1d }, null, OfficeColor.Parse("#224466")) }), new OfficeIMO.Word.WordChartOptions { Title = "Body" });
-        WordHeaderFooter region = footer ? document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default) : document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        WordHeaderFooter region = footer ? document.Sections[0].PageSetup.Footer : document.Sections[0].PageSetup.Header;
         var regionChart = region.AddParagraph().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "B" }, new[] { new OfficeSeries("Region", new[] { 9d }, null, OfficeColor.Parse("#D97706")) }), new OfficeIMO.Word.WordChartOptions { Title = "Region" });
         var owner = footer ? (DocumentFormat.OpenXml.Packaging.OpenXmlPart)region._footer!.FooterPart! : region._header!.HeaderPart!;
         const string id = "rIdChartCollision";

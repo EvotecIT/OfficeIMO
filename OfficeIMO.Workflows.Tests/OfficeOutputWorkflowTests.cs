@@ -397,7 +397,7 @@ public sealed class OfficeOutputWorkflowTests {
         await File.WriteAllBytesAsync(
             input,
             PdfDocument.Create(
-                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Protected assembly"))))),
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Protected assembly"))))),
                 new PdfCreateOptions().SetEncryption("open", "owner"))
                 .ToBytes());
         string output = Path.Combine(scope.Path, "assembled.pdf");
@@ -1310,7 +1310,7 @@ public sealed class OfficeOutputWorkflowTests {
         };
         PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item =>
-                    item.Paragraph(paragraph => paragraph.Text("Printable, not copyable"))))),
+                    item.AddParagraph(paragraph => paragraph.AddText("Printable, not copyable"))))),
                 new PdfCreateOptions().SetEncryption(encryption))
             .Save(input);
 
@@ -1330,7 +1330,7 @@ public sealed class OfficeOutputWorkflowTests {
         string input = Path.Combine(scope.Path, "protected-no-print.pdf");
         PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item =>
-                    item.Paragraph(paragraph => paragraph.Text("Not printable"))))),
+                    item.AddParagraph(paragraph => paragraph.AddText("Not printable"))))),
                 new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                     OwnerPassword = "owner",
                     AllowedPermissions = PdfStandardPermissions.None
@@ -1353,7 +1353,7 @@ public sealed class OfficeOutputWorkflowTests {
         string input = Path.Combine(scope.Path, "owner-print.pdf");
         PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item =>
-                    item.Paragraph(paragraph => paragraph.Text("Owner printable"))))),
+                    item.AddParagraph(paragraph => paragraph.AddText("Owner printable"))))),
                 new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                     OwnerPassword = "owner",
                     AllowedPermissions = PdfStandardPermissions.None
@@ -1374,7 +1374,7 @@ public sealed class OfficeOutputWorkflowTests {
         string input = Path.Combine(scope.Path, "override-print.pdf");
         PdfDocument.Create(
                 compose => compose.Page(page => page.Content(content => content.Item(item =>
-                    item.Paragraph(paragraph => paragraph.Text("Authorized override"))))),
+                    item.AddParagraph(paragraph => paragraph.AddText("Authorized override"))))),
                 new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
                     OwnerPassword = "owner",
                     AllowedPermissions = PdfStandardPermissions.None
@@ -1568,7 +1568,7 @@ public sealed class OfficeOutputWorkflowTests {
         string path = Path.Combine(root, fileName);
         PdfDocument.Create(compose => {
             foreach (string text in pages) {
-                compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))));
+                compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text)))));
             }
         }).Save(path);
         return path;
@@ -1585,7 +1585,7 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     private static byte[] CreatePng(string text) => PdfDocument.Create(compose =>
-            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text))))))
+            compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text))))))
         .ExportImages(OfficeImageExportFormat.Png)
         .Single()
         .Bytes;

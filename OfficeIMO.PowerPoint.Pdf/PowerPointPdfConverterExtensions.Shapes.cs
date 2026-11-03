@@ -29,7 +29,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RenderShapeContent(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape, double x, double y, double width, double height, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfExportOptions options, bool warnInvalidBounds, int groupDepth) {
-        if (shape is not PptCore.PowerPointPicture && shape.Hyperlink is { IsAbsoluteUri: true })
+        if (shape is not PptCore.PowerPointImage && shape.Hyperlink is { IsAbsoluteUri: true })
             AddWarning(options, slideNumber, "shape-hyperlink-omitted", "The PowerPoint shape hyperlink was not exported as a PDF annotation.", lossKind: OfficeConversionLossKind.Omission);
         if (shape is PptCore.PowerPointTextBox textBox) {
             bool renderedGeometry = false;
@@ -43,7 +43,7 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
-        if (shape is PptCore.PowerPointPicture picture) {
+        if (shape is PptCore.PowerPointImage picture) {
             if (options.IncludePictures) {
                 RenderPicture(canvas, picture, x, y, width, height, slideNumber, options);
             }

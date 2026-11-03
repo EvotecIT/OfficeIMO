@@ -97,7 +97,7 @@ public sealed class PdfInvoiceExternalProofTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif");
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => {
             PdfDocument document = PdfDocument.Create(options);
-            document.Content.Paragraph(p => p.Text("Reduced profile strict gate regression"));
+            document.Content.AddParagraph(p => p.AddText("Reduced profile strict gate regression"));
             document.ToBytes();
         });
         Assert.Contains("einvoice-xml-reduced-profile", error.Message);
@@ -125,7 +125,7 @@ public sealed class PdfInvoiceExternalProofTests {
             .SetEmbeddedFileModificationDate("factur-x.xml", DateTimeOffset.UtcNow)
             .EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif");
         PdfDocument document = PdfDocument.Create(options);
-        document.Content.Paragraph(p => p.Text("MINIMUM optional totals regression"));
+        document.Content.AddParagraph(p => p.AddText("MINIMUM optional totals regression"));
         byte[] pdf = document.ToBytes();
         PdfDocument saved = PdfDocument.Load(new System.IO.MemoryStream(pdf));
         Assert.Empty(saved.AssessCompliance(PdfComplianceProfile.FacturX).MissingRequirements);

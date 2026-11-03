@@ -10,8 +10,8 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with advanced formatted hyperlinks");
             string filePath = Path.Combine(folderPath, "FormattedHyperLinksAdvanced.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var defaultHeader = document.HeaderDefaultOrCreate;
-                var defaultFooter = document.FooterDefaultOrCreate;
+                var defaultHeader = document.PageSetup.Header;
+                var defaultFooter = document.PageSetup.Footer;
 
                 var paragraph = document.AddParagraph("Visit ");
                 var google = paragraph.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true).Paragraph;

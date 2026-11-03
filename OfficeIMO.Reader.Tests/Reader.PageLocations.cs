@@ -439,16 +439,14 @@ public sealed class ReaderPageLocationTests {
     [Fact]
     public void PdfReader_ExposesNativePageSearchAndPageMarkedMarkdown() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
-            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Needle on native page two."))
+            .Paragraph(paragraph => paragraph.AddText("Needle on native page two."))
             .ToBytes();
 
         OfficeDocumentReadResult document = PdfReaderAdapter.ReadDocument(

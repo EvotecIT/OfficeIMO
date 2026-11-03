@@ -72,10 +72,10 @@ public class PdfFormStampInputLimitTests {
     [InlineData(true)]
     public void PageStampStreamsApplyTheImportedSourcesOwnInputLimit(bool underlay) {
         byte[] target = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Target"))
+            .Paragraph(paragraph => paragraph.AddText("Target"))
             .ToBytes();
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Imported source"))
+            .Paragraph(paragraph => paragraph.AddText("Imported source"))
             .ToBytes();
         using var targetStream = new MemoryStream(target);
         using var sourceStream = new ChunkedNonSeekableStream(source, maximumChunkSize: 3);
@@ -98,7 +98,7 @@ public class PdfFormStampInputLimitTests {
     [InlineData(true)]
     public void ImageStampStreamsApplyTheEncodedImageInputLimit(bool watermark) {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Image target"))
+            .Paragraph(paragraph => paragraph.AddText("Image target"))
             .ToBytes();
         byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);
         using var imageStream = new ChunkedNonSeekableStream(image, maximumChunkSize: 3);

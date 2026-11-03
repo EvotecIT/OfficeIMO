@@ -180,8 +180,8 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ProjectsGeneratedPdfContentToSharedDrawingAndImages() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Managed raster page"))
-            .Image(PdfPngTestImages.CreateRgbPng(255, 0, 0), 24, 18, alternativeText: "Proof pixel")
+            .Paragraph(p => p.AddText("Managed raster page"))
+            .Image(PdfPngTestImages.CreateRgbPng(255, 0, 0), 24, 18, altText: "Proof pixel")
             .ToBytes();
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -4503,12 +4503,10 @@ public partial class PdfPageImageRendererTests {
         rectangle.ClipPath = OfficeClipPath.Rectangle(45, 20);
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(rectangle)
             .ToBytes();
@@ -4527,12 +4525,10 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ProjectsGeneratedImageClipPathAsCroppedProjection() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(220),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Image(PdfPngTestImages.CreateRgbPng(2, 2), 24, 24, clipPath: OfficeClipPath.Rectangle(12, 12))
             .ToBytes();
@@ -4925,7 +4921,7 @@ public partial class PdfPageImageRendererTests {
 
     [Fact]
     public void RenderPage_RejectsInvalidInputs() {
-        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("Page one")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.AddText("Page one")).ToBytes();
 
         Assert.Throws<ArgumentNullException>(() => PdfPageImageRenderer.RenderPage((byte[])null!));
         Assert.Throws<ArgumentNullException>(() => PdfPageImageRenderer.RenderPage((Stream)null!));

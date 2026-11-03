@@ -32,7 +32,7 @@ internal static class ProjectCharter {
                 var paragraph = table.Rows[row].Cells[column].Paragraphs[0];
                 paragraph.Text = values[row, column];
                 paragraph.Bold = row == 0;
-                if (row == 0) table.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
+                if (row == 0) table.Rows[row].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
             }
         }
         document.AddParagraph("Success measure").Style = WordParagraphStyles.Heading2;

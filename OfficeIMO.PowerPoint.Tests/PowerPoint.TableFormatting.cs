@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                     header.Text = "Header";
                     header.Bold = true;
                     header.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-                    header.Color = "FFFFFF";
+                    header.Color = OfficeColor.Parse("FFFFFF");
 
                     presentation.Save();
                 }

@@ -25,7 +25,7 @@ public static partial class WordPdfConverterExtensions {
         style.RotationAngle = -(image.Rotation ?? 0);
         style.HorizontalFlip = image.HorizontalFlip ?? false;
         style.VerticalFlip = image.VerticalFlip ?? false;
-        style.AlternativeText = string.IsNullOrWhiteSpace(image.Description) ? null : image.Description;
+        style.AltText = string.IsNullOrWhiteSpace(image.AltText) ? null : image.AltText;
         return style;
     }
 }

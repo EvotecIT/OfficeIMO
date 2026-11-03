@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph();
                 paragraph.AddText("Before ");
                 WordParagraph redRun = paragraph.AddText("Red");
-                redRun.ColorHex = "FF0000";
+                redRun.Color = OfficeColor.Parse("FF0000");
                 paragraph.AddText("After");
 
                 document.Save();
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.Color = new Color { Val = "000000" };
                 WordParagraph paragraph = document.AddParagraph();
-                paragraph.AddText("Red first").SetColorHex("FF0000");
+                paragraph.AddText("Red first").SetColor(OfficeColor.Parse("FF0000"));
                 paragraph.AddText(" then automatic");
 
                 document.Save();
@@ -598,7 +598,7 @@ namespace OfficeIMO.Tests {
             string marker = "WordBackgroundPdfMarker";
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.Background.SetColorHex("EAF4FF");
+                document.Background.SetColor(OfficeColor.Parse("EAF4FF"));
                 document.AddParagraph(marker);
 
                 document.Save();

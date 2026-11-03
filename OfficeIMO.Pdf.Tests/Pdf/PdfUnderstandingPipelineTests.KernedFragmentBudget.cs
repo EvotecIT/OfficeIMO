@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void KernedFragmentJoinsChargeRepeatedCopyWorkBeforeAllocation() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("placeholder")).ToBytes();
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         var context = new PdfUnderstandingPageContext(page, 1, new PdfTextLayoutOptions(),
             maxTextCharactersPerPage: 100_000, maxWordsPerPage: 100_000, maxWorkUnitsPerPage: 10_000);

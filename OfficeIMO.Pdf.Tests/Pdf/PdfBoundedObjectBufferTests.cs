@@ -177,7 +177,7 @@ public class PdfBoundedObjectBufferTests {
         using var output = new MemoryStream();
 
         PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Bounded object output"))
+            .Paragraph(paragraph => paragraph.AddText("Bounded object output"))
             .SaveWithEvidence(output);
 
         byte[] bytes = output.ToArray();
@@ -194,7 +194,7 @@ public class PdfBoundedObjectBufferTests {
         };
         PdfDocument document = PdfDocument.Create(options);
         for (int page = 1; page <= pageCount; page++) {
-            document.Paragraph(paragraph => paragraph.Text("Bounded page " + page));
+            document.Paragraph(paragraph => paragraph.AddText("Bounded page " + page));
             if (page < pageCount) document.PageBreak();
         }
         using var output = new MemoryStream();
@@ -218,7 +218,7 @@ public class PdfBoundedObjectBufferTests {
         using var output = new MemoryStream();
 
         PdfSaveResult result = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Bounded encrypted output"))
+            .Paragraph(paragraph => paragraph.AddText("Bounded encrypted output"))
             .SaveWithEvidence(output);
 
         PdfSerializationReport serialization = Assert.IsType<PdfSerializationReport>(result.Serialization);

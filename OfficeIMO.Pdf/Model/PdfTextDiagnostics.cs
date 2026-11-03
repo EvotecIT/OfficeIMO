@@ -1093,7 +1093,7 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static PdfStandardFont ResolveRunFont(PdfStandardFont baseFont, PdfTextRun run) {
-        PdfStandardFont font = run.Font ?? baseFont;
+        PdfStandardFont font = run.StandardFont ?? baseFont;
         if (run.Bold && run.Italic) {
             return PdfStandardFontMapper.GetStyledFont(font, bold: true, italic: true);
         }

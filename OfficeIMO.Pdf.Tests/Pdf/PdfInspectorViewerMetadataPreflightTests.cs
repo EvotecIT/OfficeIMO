@@ -104,7 +104,7 @@ public partial class PdfInspectorTests {
             .TaggedPdfCatalogMarkers()
             .Language("en-US")
             .H1("Tagged heading")
-            .Paragraph(p => p.Text("Tagged paragraph."))
+            .Paragraph(p => p.AddText("Tagged paragraph."))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
@@ -180,7 +180,7 @@ public partial class PdfInspectorTests {
                 .SetPdfUaIdentification()
                 .SetElectronicInvoiceMetadata("BASIC"))
             .Meta(title: "XMP readback", author: "OfficeIMO", subject: "Metadata stream", keywords: "alpha, beta;gamma")
-            .Paragraph(p => p.Text("Generated XMP readback."))
+            .Paragraph(p => p.AddText("Generated XMP readback."))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
@@ -477,7 +477,7 @@ public partial class PdfInspectorTests {
     [Fact]
     public void Inspect_ReadsGeneratedOutputIntentProfileMetadata() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetSrgbOutputIntent())
-            .Paragraph(p => p.Text("Output intent readback."))
+            .Paragraph(p => p.AddText("Output intent readback."))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);

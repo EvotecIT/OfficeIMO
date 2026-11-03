@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Header_AddHtml_PlacesContentInHeader() {
             using WordDocument document = WordDocument.Create();
-            document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Header content</p>"));
+            document.Sections.Last().PageSetup.Header.AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Header content</p>"));
             using var ms = new System.IO.MemoryStream();
             document.Save(ms);
             ms.Position = 0;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Header_AddHtml_InlineQuoteStaysInHeader() {
             using WordDocument document = WordDocument.Create();
-            document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse("<q>Quoted header</q>"));
+            document.Sections.Last().PageSetup.Header.AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse("<q>Quoted header</q>"));
 
             string innerText = GetHeaderInnerText(document, WordHeaderFooterType.Default);
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Footer_AddHtml_PlacesContentInFooter() {
             using WordDocument document = WordDocument.Create();
-            document.Sections.Last().GetOrCreateFooter(WordHeaderFooterType.Default).AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Footer content</p>"));
+            document.Sections.Last().PageSetup.Footer.AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Footer content</p>"));
             using var ms = new System.IO.MemoryStream();
             document.Save(ms);
             ms.Position = 0;
@@ -44,22 +44,22 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Footer_AddHtml_InsertsIntoFirstFooter() {
-            AssertFooterCreated(WordHeaderFooterType.First, "Sync first footer", doc => doc.DifferentFirstPage = true);
+            AssertFooterCreated(WordHeaderFooterType.First, "Sync first footer", doc => doc.PageSetup.DifferentFirstPage = true);
         }
 
         [Fact]
         public void Footer_AddHtml_InsertsIntoEvenFooter() {
-            AssertFooterCreated(WordHeaderFooterType.Even, "Sync even footer", doc => doc.DifferentOddAndEvenPages = true);
+            AssertFooterCreated(WordHeaderFooterType.Even, "Sync even footer", doc => doc.PageSetup.DifferentOddAndEvenPages = true);
         }
 
         [Fact]
         public void Header_AddHtml_InsertsIntoFirstHeader() {
-            AssertHeaderCreated(WordHeaderFooterType.First, "Sync first header", doc => doc.DifferentFirstPage = true);
+            AssertHeaderCreated(WordHeaderFooterType.First, "Sync first header", doc => doc.PageSetup.DifferentFirstPage = true);
         }
 
         [Fact]
         public void Header_AddHtml_InsertsIntoEvenHeader() {
-            AssertHeaderCreated(WordHeaderFooterType.Even, "Sync even header", doc => doc.DifferentOddAndEvenPages = true);
+            AssertHeaderCreated(WordHeaderFooterType.Even, "Sync even header", doc => doc.PageSetup.DifferentOddAndEvenPages = true);
         }
 
         private static void AssertFooterCreated(WordHeaderFooterType footerType, string expectedText, Action<WordDocument> configure) {
@@ -67,12 +67,9 @@ namespace OfficeIMO.Tests {
             configure(document);
 
             string html = $"<p>{expectedText}</p>";
-            document.Sections.Last().GetOrCreateFooter(footerType).AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse(html));
+            document.Sections.Last().PageSetup.GetOrCreateFooter(footerType).AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse(html));
 
-            var section = document.Sections.Last();
-            var footers = section.Footer;
-            Assert.NotNull(footers);
-            Assert.NotNull(ResolveFooter(footers!, footerType));
+            Assert.NotNull(document.Sections.Last().PageSetup.GetFooter(footerType));
 
             string innerText = GetFooterInnerText(document, footerType);
             Assert.Contains(expectedText, innerText);
@@ -83,12 +80,9 @@ namespace OfficeIMO.Tests {
             configure(document);
 
             string html = $"<p>{expectedText}</p>";
-            document.Sections.Last().GetOrCreateHeader(headerType).AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse(html));
+            document.Sections.Last().PageSetup.GetOrCreateHeader(headerType).AddHtml(OfficeIMO.Html.HtmlConversionDocument.Parse(html));
 
-            var section = document.Sections.Last();
-            var headers = section.Header;
-            Assert.NotNull(headers);
-            Assert.NotNull(ResolveHeader(headers!, headerType));
+            Assert.NotNull(document.Sections.Last().PageSetup.GetHeader(headerType));
 
             string innerText = GetHeaderInnerText(document, headerType);
             Assert.Contains(expectedText, innerText);

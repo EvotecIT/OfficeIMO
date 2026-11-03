@@ -83,17 +83,17 @@ namespace OfficeIMO.Examples.Word {
                 listNumbered.AddItem("Different list number 4", 1);
 
                 var section = document.AddSection();
-                section.PageOrientation = OfficePageOrientation.Landscape;
-                section.PageSettings.PageSize = WordPageSize.A4;
+                section.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                section.PageSetup.Size.PageSize = WordPageSize.A4;
 
                 wordListToc.AddItem("Adding headers / footers");
 
                 // add header text without null checks
-                document.HeaderDefaultOrCreate.AddParagraph("Text added to header - Default");
+                document.PageSetup.Header.AddParagraph("Text added to header - Default");
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = OfficePageOrientation.Portrait;
-                section1.PageSettings.PageSize = WordPageSize.A5;
+                section1.PageSetup.Orientation = OfficePageOrientation.Portrait;
+                section1.PageSetup.Size.PageSize = WordPageSize.A5;
 
                 wordListToc.AddItem("Adding custom properties and page numbers to document");
 
@@ -102,7 +102,7 @@ namespace OfficeIMO.Examples.Word {
                 document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
                 // add page numbers
-                document.FooterDefaultOrCreate.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
 
                 // add watermark
                 document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");

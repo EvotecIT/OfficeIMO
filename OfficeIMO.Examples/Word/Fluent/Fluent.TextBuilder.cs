@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word
                     paragraph1 = paragraph1.AddText(" World");
                     paragraph1.SetBold();
                     paragraph1.SetItalic();
-                    paragraph1.SetColorHex("#ff0000");
+                    paragraph1.SetColor(OfficeColor.Parse("#ff0000"));
                     paragraph1 = paragraph1.AddText(" Formatting");
                     paragraph1.SetUnderline(WordUnderlineStyle.Single);
                     paragraph1.SetHighlight(WordHighlightColor.Yellow);

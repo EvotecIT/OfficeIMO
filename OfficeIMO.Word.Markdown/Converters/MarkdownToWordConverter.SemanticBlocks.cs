@@ -164,8 +164,8 @@ namespace OfficeIMO.Word.Markdown {
             var slot = block.FenceInfo.GetAttribute("slot");
             var type = ResolveHeaderFooterType(slot, options, block);
             target = isHeader
-                ? document.Sections[0].GetOrCreateHeader(type)
-                : document.Sections[0].GetOrCreateFooter(type);
+                ? document.Sections[0].PageSetup.GetOrCreateHeader(type)
+                : document.Sections[0].PageSetup.GetOrCreateFooter(type);
             return true;
         }
 

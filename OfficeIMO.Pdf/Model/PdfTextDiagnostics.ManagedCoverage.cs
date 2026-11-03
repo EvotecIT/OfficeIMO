@@ -21,7 +21,7 @@ internal static partial class PdfTextDiagnostics {
             return AnalyzeGeneratedText(text, options, font, source);
         // Complete normalization and retained source controls need the effective
         // writer descriptor. Reuse the existing generated-run font resolver.
-        PdfTextRun run = new PdfTextRun(text, font: font)
+        PdfTextRun run = new PdfTextRun(text, standardFont: font)
             .WithFeatureSettings(options.ResolveTextFeatureSettings(featureSettings))
             .WithTextDirection(direction).WithPaintedGlyphPreservation(preservesPaintedGlyphs);
         return AnalyzeGeneratedTextRuns(new[] { run }, options, font, source);

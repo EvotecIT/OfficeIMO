@@ -272,8 +272,7 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = WordDocument.Create(filePath);
                 document.AddParagraph("Replacement");
-                document.AddHeadersAndFooters();
-                document.Sections[0].Header.Default!.AddParagraph("Selected tab header");
+                document.Sections[0].PageSetup.Header.AddParagraph("Selected tab header");
                 var bodies = new List<string>();
                 const string state = "{\"documentId\":\"doc-tab-header\",\"title\":\"Tabbed\",\"revisionId\":\"revision-1\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"tab-a\",\"title\":\"One\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":0,\"endIndex\":1,\"sectionBreak\":{}},{\"startIndex\":1,\"endIndex\":5,\"paragraph\":{}}]}}},{\"tabProperties\":{\"tabId\":\"tab-b\",\"title\":\"Two\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":0,\"endIndex\":1,\"sectionBreak\":{}},{\"startIndex\":1,\"endIndex\":5,\"paragraph\":{}}]}}}]}";
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
@@ -321,8 +320,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("First section");
                 WordSection secondSection = document.AddSection();
                 secondSection.AddParagraph("Second section");
-                secondSection.AddHeadersAndFooters();
-                secondSection.Header.Default!.AddParagraph("Second section header");
+                secondSection.PageSetup.Header.AddParagraph("Second section header");
 
                 var bodies = new List<string>();
                 const string state = "{\"documentId\":\"doc-later-header\",\"title\":\"Later header\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":10,\"paragraph\":{}},{\"startIndex\":10,\"endIndex\":11,\"sectionBreak\":{}},{\"startIndex\":11,\"endIndex\":30,\"paragraph\":{}}]}}";

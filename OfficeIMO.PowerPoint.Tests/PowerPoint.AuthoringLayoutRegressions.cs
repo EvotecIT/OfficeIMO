@@ -30,7 +30,7 @@ public sealed class PowerPointAuthoringLayoutRegressions {
         native.Text = "Native title";
         native.Bounds = new PowerPointLayoutBox(OfficeLength.Points(60), OfficeLength.Points(48), OfficeLength.Points(600), OfficeLength.Points(80));
         native.FontSize = OfficeLength.Points(31);
-        native.Color = "123456";
+        native.Color = OfficeColor.Parse("123456");
         var layoutShape = (P.Shape)native.Element;
         if (inherited) {
             var master = template.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster;

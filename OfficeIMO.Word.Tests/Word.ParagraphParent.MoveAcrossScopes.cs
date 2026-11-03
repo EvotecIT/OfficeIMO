@@ -11,19 +11,18 @@ namespace OfficeIMO.Tests {
             var section = doc.AddSection();
 
             // Ensure headers/footers exist
-            doc.AddHeadersAndFooters();
 
             // Body paragraph
             var bodyParagraph = section.AddParagraph("Body paragraph");
             Assert.IsType<WordSection>(bodyParagraph.Parent);
 
             // Create in header and verify parent (use document-level accessors)
-            var docHeader = doc.Header!.Default!;
+            var docHeader = doc.PageSetup.Header;
             var headerParagraph = docHeader.AddParagraph("Header paragraph");
             Assert.Same(docHeader, headerParagraph.Parent);
 
             // Create in footer and verify parent
-            var docFooter = doc.Footer!.Default!;
+            var docFooter = doc.PageSetup.Footer;
             var footerParagraph = docFooter.AddParagraph("Footer paragraph");
             Assert.Same(docFooter, footerParagraph.Parent);
         }
@@ -88,8 +87,7 @@ namespace OfficeIMO.Tests {
 
             Assert.All(bodyTextBox.Paragraphs, paragraph => Assert.IsType<WordTextBox>(paragraph.Parent));
 
-            doc.AddHeadersAndFooters();
-            var headerTextBox = doc.Header!.Default!.AddTextBox("Header textbox");
+            var headerTextBox = doc.PageSetup.Header.AddTextBox("Header textbox");
             headerTextBox.Paragraphs[0].AddParagraph("Header textbox second");
 
             Assert.All(headerTextBox.Paragraphs, paragraph => Assert.IsType<WordTextBox>(paragraph.Parent));

@@ -21,7 +21,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             ConfigureNativeInputTable(table, 6400);
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-        } else paragraph = storyKind == "footer" ? document.FooterDefaultOrCreate.AddParagraph() : document.AddParagraph();
+        } else paragraph = storyKind == "footer" ? document.PageSetup.Footer.AddParagraph() : document.AddParagraph();
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(20D);
@@ -72,8 +72,8 @@ public partial class Word {
             ConfigureNativeInputTable(table, 6400);
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         } else {
-            paragraph = storyKind == "header" ? document.HeaderDefaultOrCreate.AddParagraph() :
-                storyKind == "footer" ? document.FooterDefaultOrCreate.AddParagraph() : document.AddParagraph();
+            paragraph = storyKind == "header" ? document.PageSetup.Header.AddParagraph() :
+                storyKind == "footer" ? document.PageSetup.Footer.AddParagraph() : document.AddParagraph();
         }
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
@@ -123,7 +123,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             ConfigureNativeInputTable(table, 6400);
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-        } else paragraph = storyKind == "footer" ? document.FooterDefaultOrCreate.AddParagraph() : document.AddParagraph();
+        } else paragraph = storyKind == "footer" ? document.PageSetup.Footer.AddParagraph() : document.AddParagraph();
         paragraph.Text = "BEFORE";
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
@@ -146,7 +146,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_RunningPositionalTabsAlignMaterializedPageFields(bool footer) {
         using WordDocument document = WordDocument.Create();
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph paragraph = story.AddParagraph();
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);

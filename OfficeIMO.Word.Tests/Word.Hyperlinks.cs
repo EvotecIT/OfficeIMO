@@ -464,7 +464,7 @@ namespace OfficeIMO.Tests {
         public void Test_InsertFormattedHyperlinkInHeaderAndFooter() {
             string filePath = Path.Combine(_directoryWithFiles, "FormattedHeaderFooter.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var paraHeader = header.AddParagraph("Search using ");
                 paraHeader.AddHyperLink("Google", new Uri("https://google.com"), addStyle: true);

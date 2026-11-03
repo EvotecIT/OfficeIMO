@@ -12,14 +12,14 @@ namespace OfficeIMO.Tests {
             string html = "<table style=\"border:2px solid #ff0000\"><tr style=\"background-color:#00ff00\"><td style=\"border:1px dashed #0000ff\">Cell</td></tr></table>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var table = doc.Tables[0];
-            var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
+            var (style, size, color) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
             Assert.Equal(WordBorderStyle.Single, style);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), size);
-            Assert.Equal("FF0000", colorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), color);
             var cell = table.Rows[0].Cells[0];
-            Assert.Equal("00FF00", cell.ShadingFillColorHex);
+            Assert.Equal(OfficeColor.Parse("00FF00"), cell.ShadingFillColor);
             Assert.Equal(WordBorderStyle.Dashed, cell.Borders.TopStyle);
-            Assert.Equal("0000FF", cell.Borders.TopColorHex);
+            Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.TopColor);
         }
 
         [Fact]
@@ -28,17 +28,17 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
             var table = doc.Tables[0];
-            var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Left);
+            var (style, size, color) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Left);
             Assert.Equal(WordBorderStyle.Double, style);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(2.25), size);
-            Assert.Equal("112233", colorHex);
+            Assert.Equal(OfficeColor.Parse("112233"), color);
             var cell = table.Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.Dotted, cell.Borders.BottomStyle);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), cell.Borders.BottomSize);
-            Assert.Equal("445566", cell.Borders.BottomColorHex);
+            Assert.Equal(OfficeColor.Parse("445566"), cell.Borders.BottomColor);
             Assert.Equal(WordBorderStyle.Dashed, cell.Borders.RightStyle);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.75), cell.Borders.RightSize);
-            Assert.Equal("778899", cell.Borders.RightColorHex);
+            Assert.Equal(OfficeColor.Parse("778899"), cell.Borders.RightColor);
         }
 
         [Fact]

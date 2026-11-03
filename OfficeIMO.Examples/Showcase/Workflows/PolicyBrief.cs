@@ -30,18 +30,18 @@ internal static class PolicyBrief {
                 WordTableCell cell = table.Rows[row].Cells[column];
                 cell.Paragraphs[0].Text = rules[row][column];
                 if (row == 0) {
-                    cell.ShadingFillColorHex = "2F5597";
+                    cell.ShadingFillColor = OfficeColor.Parse("2F5597");
                     cell.Paragraphs[0].Bold = true;
-                    cell.Paragraphs[0].SetColorHex("FFFFFF");
+                    cell.Paragraphs[0].SetColor(OfficeColor.Parse("FFFFFF"));
                 }
             }
         }
 
         WordParagraph reminder = document.AddParagraph("Release a booking as soon as plans change. Unused space is returned to the pool automatically after the release time.");
         reminder.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D);
-        reminder.ShadingFillColorHex = "EAF1FB";
+        reminder.ShadingFillColor = OfficeColor.Parse("EAF1FB");
         reminder.Borders.LeftStyle = WordBorderStyle.Single;
-        reminder.Borders.LeftColorHex = "2F5597";
+        reminder.Borders.LeftColor = OfficeColor.Parse("2F5597");
         reminder.Borders.LeftSize = OfficeLength.Points(3);
         document.AddParagraph("Leave it ready for the next person").Style = WordParagraphStyles.Heading2;
         WordList actions = document.AddList(WordListStyle.Bulleted);

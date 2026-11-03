@@ -287,7 +287,7 @@ public sealed partial class OfficeVisualIntegrationTests {
                 Assert.Single(workbook.Sheets[0].Images);
             }
             using (PowerPointDocument presentation = PowerPointDocument.Load(powerPointPath)) {
-                Assert.Single(presentation.Slides[0].Pictures);
+                Assert.Single(presentation.Slides[0].Images);
             }
             byte[] pdf = File.ReadAllBytes(pdfPath);
             Assert.True(pdf.Length > 100);
@@ -339,7 +339,7 @@ public sealed partial class OfficeVisualIntegrationTests {
     }
 
     [Fact]
-    public void DecorativeArtifactMarksPowerPointPictureWithoutInformativeMetadata() {
+    public void DecorativeArtifactMarksPowerPointImageWithoutInformativeMetadata() {
         VisualArtifact artifact = CreateArtifact();
         artifact.Accessibility.AsDecorative();
         OfficeVisualConversionResult visual = artifact.ToOfficeVisual(new OfficeVisualConversionOptions { WidthPoints = 300D });
@@ -347,16 +347,16 @@ public sealed partial class OfficeVisualIntegrationTests {
         string wordPath = Path.ChangeExtension(path, ".docx");
         try {
             using var presentation = PowerPointDocument.Create(path);
-            PowerPointPicture picture = presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
+            PowerPointImage picture = presentation.AddSlide().AddVisualArtifact(visual, 36D, 54D);
 
             Assert.True(picture.Decorative);
             Assert.Null(picture.Title);
-            Assert.Null(picture.Description);
+            Assert.Null(picture.AltText);
 
             using var document = WordDocument.Create(wordPath);
             WordImage image = document.AddParagraph().AddVisualArtifact(visual);
             Assert.Null(image.Title);
-            Assert.True(string.IsNullOrEmpty(image.Description));
+            Assert.True(string.IsNullOrEmpty(image.AltText));
         } finally {
             if (File.Exists(path)) File.Delete(path);
             if (File.Exists(wordPath)) File.Delete(wordPath);
@@ -370,8 +370,8 @@ public sealed partial class OfficeVisualIntegrationTests {
         try {
             using (var presentation = PowerPointDocument.Create(path)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture first = slide.AddVisualArtifact(visual, -24D, -12D);
-                PowerPointPicture second = slide.AddVisualArtifact(visual, 36D, 54D);
+                PowerPointImage first = slide.AddVisualArtifact(visual, -24D, -12D);
+                PowerPointImage second = slide.AddVisualArtifact(visual, 36D, 54D);
 
                 Assert.NotEqual(first.Name, second.Name);
                 Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddVisualArtifact(visual, double.NaN, 0D));
@@ -379,7 +379,7 @@ public sealed partial class OfficeVisualIntegrationTests {
             }
 
             using PowerPointDocument loaded = PowerPointDocument.Load(path);
-            PowerPointPicture[] pictures = loaded.Slides[0].Pictures.ToArray();
+            PowerPointImage[] pictures = loaded.Slides[0].Images.ToArray();
             Assert.Equal(2, pictures.Length);
             Assert.Equal(-24D, pictures[0].Left.ToPoints(), 6);
             Assert.Equal(-12D, pictures[0].Top.ToPoints(), 6);

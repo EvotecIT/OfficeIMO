@@ -360,7 +360,7 @@ public partial class Html {
         var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
         Assert.Single(doc.Images);
-        Assert.Equal("Company logo", doc.Images[0].Description);
+        Assert.Equal("Company logo", doc.Images[0].AltText);
 
         string roundTrip = doc.ToHtml();
         Assert.Contains("alt=\"Company logo\"", roundTrip, StringComparison.OrdinalIgnoreCase);

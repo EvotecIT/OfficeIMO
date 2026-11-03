@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var list = document.AddCustomList();
                 WordListLevel first = list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", OfficeIMO.OfficeColor.Red, fontSize: global::OfficeIMO.OfficeLength.Points(14));
-                WordListLevel fifth = list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: global::OfficeIMO.OfficeLength.Points(10));
+                WordListLevel fifth = list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", color: OfficeColor.Parse("#00FF00"), fontSize: global::OfficeIMO.OfficeLength.Points(10));
                 first.IndentationLeft = OfficeIMO.OfficeLength.Points(36);
                 Assert.Throws<OverflowException>(() => first.IndentationLeft = OfficeIMO.OfficeLength.Emus(long.MaxValue));
                 Assert.Equal(OfficeIMO.OfficeLength.Points(36), first.IndentationLeft);

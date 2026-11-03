@@ -17,7 +17,7 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public void OpenedPdfHtmlConversionAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancelled HTML conversion must not start semantic reading"))
+            .Paragraph(paragraph => paragraph.AddText("Cancelled HTML conversion must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
@@ -32,7 +32,7 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public void OpenedPdfHtmlResultAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancelled HTML result must not start semantic reading"))
+            .Paragraph(paragraph => paragraph.AddText("Cancelled HTML result must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
@@ -47,7 +47,7 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public async Task OpenedPdfHtmlExportAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancelled HTML export must not start semantic reading"))
+            .Paragraph(paragraph => paragraph.AddText("Cancelled HTML export must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
@@ -71,7 +71,7 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public void SynchronousPdfImportsPassMethodCancellationIntoTheInitialSemanticRead() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancellation must reach the semantic read"))
+            .Paragraph(paragraph => paragraph.AddText("Cancellation must reach the semantic read"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -90,7 +90,7 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public void InspectionAndTableContinuationOwnersExposeCancellation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancellation must reach inspection and table grouping"))
+            .Paragraph(paragraph => paragraph.AddText("Cancellation must reach inspection and table grouping"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult logical = document.Read();

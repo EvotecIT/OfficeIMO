@@ -25,7 +25,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         using WordDocument document = result.Value;
 
         Assert.Empty(document.TextBoxes);
-        Assert.NotEmpty(document.Find("First-page region", StringComparison.Ordinal));
+        Assert.NotEmpty(document.Find("First-page region", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "forcedPageBreakAfter=true; semanticFlow=true");
@@ -146,7 +146,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
 
         Assert.Empty(document.TextBoxes);
         WordImage image = Assert.Single(document.Images);
-        Assert.Equal("Remote region", image.Description);
+        Assert.Equal("Remote region", image.AltText);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "unrenderedRegionImage=true; semanticFlow=true");

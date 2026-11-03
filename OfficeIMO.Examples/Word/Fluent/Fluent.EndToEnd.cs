@@ -18,14 +18,14 @@ namespace OfficeIMO.Examples.Word
                 {
                     document.Properties.Title = "Quarterly Review";
                     document.Properties.Creator = "OfficeIMO";
-                    document.PageOrientation = OfficePageOrientation.Portrait;
-                    document.PageSettings.PageSize = WordPageSize.A4;
-                    document.Sections[0].SetMargins(WordMargin.Normal);
+                    document.PageSetup.Orientation = OfficePageOrientation.Portrait;
+                    document.PageSetup.Size.PageSize = WordPageSize.A4;
+                    document.Sections[0].PageSetup.Margins.Type = WordMargin.Normal;
                     var paragraph1 = document.AddParagraph();
                     paragraph1 = paragraph1.AddText("Hello ");
                     paragraph1 = paragraph1.AddText("World");
                     paragraph1.SetBold();
-                    paragraph1.SetColorHex("#ff0000");
+                    paragraph1.SetColor(OfficeColor.Parse("#ff0000"));
                     paragraph1 = paragraph1.AddText("!");
                     var list2 = document.AddList(WordListStyle.Numbered);
                     int level3 = 0;
@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Word
                     var image9 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"));
                     image9.Width = OfficeIMO.OfficeLength.Pixels(100);
                     image9.Title = "Chart";
-                    image9.Description = "Quarterly chart";
+                    image9.AltText = "Quarterly chart";
                     document.Save();
                 }
             }

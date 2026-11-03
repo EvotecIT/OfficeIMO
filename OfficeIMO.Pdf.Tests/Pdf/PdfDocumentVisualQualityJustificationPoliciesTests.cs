@@ -14,8 +14,11 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(true, true)]
     public void ParagraphJustificationKeepsExplicitBreakAndFinalLinePoliciesIndependent(bool explicitBreak, bool finalLine) {
         var style = new PdfParagraphStyle { JustifyExplicitLineBreaks = explicitBreak, JustifyLastLine = finalLine };
-        byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph
-            .Text("Alpha beta gamma").LineBreak().Text("Short final words"), OfficeAlignment.Justify, style: style).ToBytes();
+        byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => {
+            paragraph.AddText("Alpha beta gamma");
+            paragraph.AddLineBreak();
+            paragraph.AddText("Short final words");
+        }, OfficeAlignment.Justify, style: style).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         List<List<Letter>> lines = GetNonWhitespaceLetterLines(pdf.GetPage(1));
         Assert.Equal(2, lines.Count);
@@ -26,8 +29,11 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void ParagraphJustificationCapturesCharacterAndLinePoliciesBeforeCallerMutation() {
         var style = CharacterJustificationPolicy();
-        var document = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph
-            .Text("Alpha beta gamma").LineBreak().Text("Short final words"), OfficeAlignment.Justify, style: style);
+        var document = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => {
+            paragraph.AddText("Alpha beta gamma");
+            paragraph.AddLineBreak();
+            paragraph.AddText("Short final words");
+        }, OfficeAlignment.Justify, style: style);
         style.JustificationMode = PdfJustificationMode.Words;
         style.JustifyExplicitLineBreaks = false;
         style.JustifyLastLine = false;
@@ -99,7 +105,7 @@ public partial class PdfDocumentVisualQualityTests {
         // real PDF show: two unchanged CIDs and one adjustment at their sole boundary.
         double adjustment = Assert.Single(JustificationTextAdjustments(actualBytes));
         double natural = shaped.TotalAdvanceWidth1000 * options.DefaultFontSize.ToPoints() / 1000D;
-        double spare = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints() - natural;
+        double spare = options.PageSetup.Size.Width.ToPoints() - options.PageSetup.Margins.Left.ToPoints() - options.PageSetup.Margins.Right.ToPoints() - natural;
         Assert.Equal(spare, -adjustment * options.DefaultFontSize.ToPoints() / 1000D, 3);
         AssertJustificationPolicyWidth(actual.ToList(), expanded: true);
     }
@@ -126,7 +132,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void CharacterJustificationKeepsAnExplicitTabAnchorAndExpandsOnlyItsTrailingWordSeparators() {
         var style = CharacterJustificationPolicy();
         style.TabStops.Add(new PdfTabStop(global::OfficeIMO.OfficeLength.Points(120)));
-        byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph.Text("Alpha one\tBeta last words"),
+        byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph.AddText("Alpha one\tBeta last words"),
             OfficeAlignment.Justify, style: style).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Letter[] letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
@@ -161,7 +167,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void CharacterJustificationRetainsInlineBoxGeometryWhileDistributingItsNeighbors() {
-        byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph.Runs(new[] {
+        byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph.AddRuns(new[] {
             new PdfTextRun("A"), PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0, 1, 0))), new PdfTextRun("B")
         }), OfficeAlignment.Justify, style: CharacterJustificationPolicy()).ToBytes();
         Letter[] letters = ReadJustificationPolicyLetters(bytes);
@@ -175,14 +181,16 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static PdfCreateOptions JustificationPolicyOptions() => new() {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false
     };
     private static PdfParagraphStyle CharacterJustificationPolicy() => new() {
         JustificationMode = PdfJustificationMode.Characters, JustifyExplicitLineBreaks = true, JustifyLastLine = true
     };
     private static byte[] RenderJustificationPolicyRuns(PdfCreateOptions options, PdfTextRun[] runs, bool distributed) =>
-        PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(runs), distributed ? OfficeAlignment.Justify : OfficeAlignment.Left,
+        PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(runs), distributed ? OfficeAlignment.Justify : OfficeAlignment.Left,
             style: distributed ? CharacterJustificationPolicy() : new PdfParagraphStyle()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     private static Letter[] ReadJustificationPolicyLetters(byte[] bytes) {
         using var pdf = PdfPigDocument.Open(bytes);

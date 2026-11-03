@@ -73,9 +73,9 @@ namespace OfficeIMO.Word {
         }
 
         private double GetSectionPageContentWidthPoints(WordSection section) {
-            double gutter = _document.Settings.GutterAtTop ? 0D : checked((uint)(section.Margins.Gutter.GetValueOrDefault().ToTwips()));
-            return ((checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
-                - (double)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())) - gutter) / 20D;
+            double gutter = _document.Settings.GutterAtTop ? 0D : checked((uint)(section.PageSetup.Margins.Gutter.GetValueOrDefault().ToTwips()));
+            return ((checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
+                - (double)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) - checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips())) - gutter) / 20D;
         }
 
         private double GetSectionColumnContentWidthPoints(WordSection section) {

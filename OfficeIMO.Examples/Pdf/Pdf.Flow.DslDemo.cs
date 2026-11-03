@@ -12,17 +12,18 @@ namespace OfficeIMO.Examples.Pdf {
                 document.Page(page => {
                     page.Size(PdfPageSizes.A5);
                     page.Margin(OfficeLength.Points(36), OfficeLength.Points(42), OfficeLength.Points(36), OfficeLength.Points(42));
-                    page.Header(h => h.AlignLeft().Text("OfficeIMO.Pdf composition"));
+                    page.Header(h => h.Alignment(OfficeAlignment.Left).Text("OfficeIMO.Pdf composition"));
 
                     page.Content(c => c
                         .Column(column => {
                             column.Item().H1("Compose DSL");
-                            column.Item().Paragraph(p => p.Text("A compact report composed from pages, columns and styled text."));
-                            column.Item().PanelParagraph(
-                                p => p
-                                    .Bold("Report structure")
-                                    .LineBreak()
-                                    .Text("Each page combines text, panels and lists with a shared header and page count."),
+                            column.Item().AddParagraph(p => p.AddText("A compact report composed from pages, columns and styled text."));
+                            column.Item().AddPanelParagraph(
+                                p => {
+                                    p.AddText("Report structure").SetBold();
+                                    p.AddLineBreak();
+                                    p.AddText("Each page combines text, panels and lists with a shared header and page count.");
+                                },
                                 new PdfPanelStyle {
                                     Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
@@ -32,26 +33,27 @@ namespace OfficeIMO.Examples.Pdf {
                             column.Item().PageBreak();
 
                             column.Item().H2("Operational Notes");
-                            column.Item().Bullets(new[] {
+                            column.Item().AddList(new[] {
                                 "Each section starts on its own page.",
                                 "The same theme carries through all three pages.",
                                 "Page numbers include the complete report."
                             }, color: OfficeColor.FromRgb(55, 65, 81));
                             column.Item().HR(OfficeLength.Points(0.8), OfficeColor.FromRgb(183, 194, 207), OfficeLength.Points(8), OfficeLength.Points(8));
-                            column.Item().Paragraph(p => p
-                                .Text("Status: ")
-                                .Bold("ready for review. ")
-                                .Color(OfficeColor.FromRgb(20, 90, 180)).Text("All sections are complete."));
+                            column.Item().AddParagraph(p => {
+                                p.AddText("Status: ");
+                                p.AddText("ready for review. ").SetBold();
+                                p.AddText("All sections are complete.").SetColor(OfficeColor.FromRgb(20, 90, 180));
+                            });
                             column.Item().PageBreak();
 
                             column.Item().H2("Color Sections");
-                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(185, 28, 28)).Text("Critical items should remain readable when colored inline."));
-                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)).Text("Healthy items should use calm green without overpowering the page."));
-                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("Informational items should keep good contrast on white backgrounds."));
-                            column.Item().Paragraph(p => p.Text("End of compose DSL sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
+                            column.Item().AddParagraph(p => p.AddText("Critical items should remain readable when colored inline.").SetColor(global::OfficeIMO.OfficeColor.FromRgb(185, 28, 28)));
+                            column.Item().AddParagraph(p => p.AddText("Healthy items should use calm green without overpowering the page.").SetColor(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)));
+                            column.Item().AddParagraph(p => p.AddText("Informational items should keep good contrast on white backgrounds.").SetColor(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)));
+                            column.Item().AddParagraph(p => p.AddText("End of compose DSL sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                         }));
 
-                    page.Footer(f => f.AlignCenter().Text(t => t
+                    page.Footer(f => f.Alignment(OfficeAlignment.Center).Text(t => t
                         .Text("Page ")
                         .CurrentPage()
                         .Text(" of ")

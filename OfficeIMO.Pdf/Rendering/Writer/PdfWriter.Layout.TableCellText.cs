@@ -54,7 +54,7 @@ internal static partial class PdfWriter {
                 run.Italic,
                 run.Strike,
                 ((double?)(scaledFontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
-                run.Font,
+                run.StandardFont,
                 run.LinkUri,
                 run.LinkContents,
                 run.Baseline,

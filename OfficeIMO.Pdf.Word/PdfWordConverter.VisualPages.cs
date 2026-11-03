@@ -107,17 +107,17 @@ internal static partial class PdfWordConverter {
                 if (!TryGetEditablePageSizeTwips(width, height, out uint widthTwips, out uint heightTwips))
                     throw new NotSupportedException("The selected PDF page is outside Word's supported physical page-size range.");
                 WordSection section = index == 0 ? target.Sections[0] : target.AddSection(WordSectionBreakType.NextPage);
-                section.PageSettings.Orientation = width > height ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-                section.PageSettings.Width = OfficeLength.Points(widthTwips / 20D);
-                section.PageSettings.Height = OfficeLength.Points(heightTwips / 20D);
-                section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Zero;
-                section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Zero;
-                section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Zero;
+                section.PageSetup.Size.Orientation = width > height ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
+                section.PageSetup.Size.Width = OfficeLength.Points(widthTwips / 20D);
+                section.PageSetup.Size.Height = OfficeLength.Points(heightTwips / 20D);
+                section.PageSetup.Margins.Left = section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Zero;
+                section.PageSetup.Margins.Top = section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Zero;
+                section.PageSetup.Margins.HeaderDistance = section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph paragraph = target.AddParagraph();
                 paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacing = WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(1));
                 using var stream = new MemoryStream(bytes, writable: false);
-                WordImage image = paragraph.AddImage(stream, "page-" + page.PageNumber + ".png", OfficeIMO.OfficeLength.Pixels(width * 96D / 72D), OfficeIMO.OfficeLength.Pixels(height * 96D / 72D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText, Description = "PDF page " + page.PageNumber });
+                WordImage image = paragraph.AddImage(stream, "page-" + page.PageNumber + ".png", OfficeIMO.OfficeLength.Pixels(width * 96D / 72D), OfficeIMO.OfficeLength.Pixels(height * 96D / 72D), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText, AltText = "PDF page " + page.PageNumber });
                 image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                 image.HorizontalPositionOffset = image.VerticalPositionOffset = OfficeLength.Zero;

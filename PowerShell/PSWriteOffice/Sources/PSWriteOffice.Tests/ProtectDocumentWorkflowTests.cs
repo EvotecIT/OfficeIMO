@@ -288,7 +288,7 @@ public sealed class ProtectDocumentWorkflowTests {
     public void LivePdfPermissionsReturnCallerOwnedReplacementWithoutRequiringAFileDestination() {
         using var files = new ProtectionFiles();
         using var live = PdfDocument.Create();
-        live.Content.Paragraph(paragraph => paragraph.Text("MARKER"));
+        live.Content.AddParagraph(paragraph => paragraph.AddText("MARKER"));
         using var owner = Password("owner-secret");
         using var runspace = OpenRunspace();
         Set(runspace, ("live", live), ("owner", owner));
@@ -583,7 +583,7 @@ public sealed class ProtectDocumentWorkflowTests {
                 case WordDocument word: word.AddParagraph("MARKER"); word.Save(path); break;
                 case ExcelDocument excel: excel.AddSheet("Data").Cell(1, 1).SetValue("MARKER"); excel.Save(path); break;
                 case PowerPointDocument presentation: presentation.AddSlide(); presentation.Save(path); break;
-                case PdfDocument pdf: pdf.Content.Paragraph(paragraph => paragraph.Text("MARKER")); pdf.Save(path); break;
+                case PdfDocument pdf: pdf.Content.AddParagraph(paragraph => paragraph.AddText("MARKER")); pdf.Save(path); break;
             }
             return path;
         }

@@ -7,7 +7,7 @@ using PSWriteOffice.Services.PowerPoint;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Replaces text in the selected slide or document, including tables by default.</summary>
-/// <para>Uses the current slide inside PowerPointSlide and the current document inside an open document block. Notes are included only with IncludeNotes.</para>
+/// <para>Uses the current slide inside PowerPointSlide and the current document inside an open document block. Matching is case-sensitive. Notes are included only with IncludeNotes.</para>
 /// <example><summary>Update tokens across an existing deck.</summary>
 /// <code>Open-OfficePowerPoint -Path .\Account-Review.pptx {
 ///     Update-OfficePowerPointText '{{Customer}}' 'Northwind Traders' -IncludeNotes
@@ -47,10 +47,11 @@ public sealed class UpdateOfficePowerPointTextCommand : OfficeMutationCmdlet {
             var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>();
             var slide = Slide?.Resolve(document);
             if (Slide == null && Document == null) slide = PowerPointContentScope.Current?.NativeSlide;
+            var options = new PowerPointTextSearchOptions { MatchCase = true, IncludeTables = !NoTables, IncludeNotes = IncludeNotes };
             int replacements = slide != null
-                ? slide.ReplaceText(OldValue, NewValue ?? string.Empty, !NoTables, IncludeNotes)
+                ? slide.ReplaceAll(OldValue, NewValue ?? string.Empty, options)
                 : (document ?? throw new ArgumentException("Supply Document or Slide, or invoke this command inside a PowerPoint content block."))
-                    .ReplaceText(OldValue, NewValue ?? string.Empty, !NoTables, IncludeNotes);
+                    .ReplaceAll(OldValue, NewValue ?? string.Empty, options);
             WritePassThru(replacements);
         } catch (Exception error) {
             if (error is PipelineStoppedException or ActionPreferenceStopException) throw;

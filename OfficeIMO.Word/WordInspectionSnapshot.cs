@@ -159,8 +159,8 @@ namespace OfficeIMO.Word {
         internal string? LineSpacingRule { get; set; }
         /// <summary>Gets directly authored spacing in line multiples or physical height.</summary>
         public WordLineSpacing? LineSpacing { get; internal set; }
-        /// <summary>Gets the authored OOXML paragraph-shading fill token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
-        public string? ShadingFillColorHex { get; internal set; }
+        /// <summary>Gets the authored paragraph-shading fill color; automatic fills read as <see langword="null"/>.</summary>
+        public OfficeColor? ShadingFillColor { get; internal set; }
         /// <summary>Paragraph shading pattern, when explicitly authored.</summary>
         public WordShadingPattern? ShadingPattern { get; internal set; }
         /// <summary>Gets the left paragraph border.</summary>
@@ -256,12 +256,12 @@ namespace OfficeIMO.Word {
         public OfficeLength? FontSize { get; internal set; }
         /// <summary>Gets the font family authored directly on the run, without resolving inherited styles.</summary>
         public string? FontFamily { get; internal set; }
-        /// <summary>Gets the OOXML text-color token authored directly on the run.</summary>
-        public string? ColorHex { get; internal set; }
+        /// <summary>Gets the text color authored directly on the run; automatic color reads as <see langword="null"/>.</summary>
+        public OfficeColor? Color { get; internal set; }
         /// <summary>Gets the named Word highlight color.</summary>
         public string? HighlightColor { get; internal set; }
-        /// <summary>Gets the OOXML run-shading fill token authored directly on the run.</summary>
-        public string? RunShadingFillColorHex { get; internal set; }
+        /// <summary>Gets the background (run-shading fill) color authored directly on the run.</summary>
+        public OfficeColor? BackgroundColor { get; internal set; }
         /// <summary>Run shading pattern, when explicitly authored.</summary>
         public WordShadingPattern? RunShadingPattern { get; internal set; }
         /// <summary>Gets vertical alignment such as superscript or subscript.</summary>
@@ -332,7 +332,7 @@ namespace OfficeIMO.Word {
         /// <summary>Gets embedded image bytes, or null for external images and snapshots that explicitly omit image payloads.</summary>
         public byte[]? Bytes { get; internal set; }
         /// <summary>Gets image alternative text.</summary>
-        public string? Description { get; internal set; }
+        public string? AltText { get; internal set; }
         /// <summary>Gets the image title.</summary>
         public string? Title { get; internal set; }
         /// <summary>Gets the rendered image width.</summary>
@@ -433,8 +433,8 @@ namespace OfficeIMO.Word {
         public int ColumnSpan { get; internal set; } = 1;
         /// <summary>Gets the number of logical rows occupied by the cell.</summary>
         public int RowSpan { get; internal set; } = 1;
-        /// <summary>Gets the authored OOXML cell-shading fill token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
-        public string? ShadingFillColorHex { get; internal set; }
+        /// <summary>Gets the authored cell-shading fill color; automatic fills read as <see langword="null"/>.</summary>
+        public OfficeColor? ShadingFillColor { get; internal set; }
         /// <summary>Gets the left cell border.</summary>
         public WordTableCellBorderInfo? LeftBorder { get; internal set; }
         /// <summary>Gets the right cell border.</summary>
@@ -460,8 +460,8 @@ namespace OfficeIMO.Word {
     public sealed class WordTableCellBorderInfo {
         /// <summary>Gets the authored Word border style.</summary>
         public string? Style { get; internal set; }
-        /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
-        public string? ColorHex { get; internal set; }
+        /// <summary>Gets the authored border color; automatic color reads as <see langword="null"/>.</summary>
+        public OfficeColor? Color { get; internal set; }
         /// <summary>Gets the physical border width.</summary>
         public OfficeLength? Size { get; internal set; }
     }
@@ -470,8 +470,8 @@ namespace OfficeIMO.Word {
     public sealed class WordParagraphBorderInfo {
         /// <summary>Gets the authored Word border style.</summary>
         public string? Style { get; internal set; }
-        /// <summary>Gets the authored OOXML border-color token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
-        public string? ColorHex { get; internal set; }
+        /// <summary>Gets the authored border color; automatic color reads as <see langword="null"/>.</summary>
+        public OfficeColor? Color { get; internal set; }
         /// <summary>Gets the physical border width.</summary>
         public OfficeLength? Size { get; internal set; }
         /// <summary>Gets spacing between the border and paragraph.</summary>

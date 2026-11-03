@@ -52,10 +52,10 @@ internal static class RealWorldWorkflowShowcase {
         AddStatusTable(document, NextSteps, 40, 24, 18, 18);
 
         WordParagraph decision = document.AddParagraph("Decision requested: approve the delivery notes so the improvement backlog can start next sprint.");
-        decision.ShadingFillColorHex = "EAF1FB";
+        decision.ShadingFillColor = OfficeColor.Parse("EAF1FB");
         decision.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
         decision.Borders.LeftStyle = WordBorderStyle.Single;
-        decision.Borders.LeftColorHex = "235FB4";
+        decision.Borders.LeftColor = OfficeColor.Parse("235FB4");
         decision.Borders.LeftSize = OfficeLength.Points(3);
         #endregion
 
@@ -93,7 +93,7 @@ internal static class RealWorldWorkflowShowcase {
         heading.Style = size > 20 ? WordParagraphStyles.Heading1 : WordParagraphStyles.Heading2;
         heading.FontSize = global::OfficeIMO.OfficeLength.Points(size);
         heading.Bold = true;
-        heading.SetColorHex("17365D");
+        heading.SetColor(OfficeColor.Parse("17365D"));
         heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(before);
         heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(5D);
         return heading;
@@ -103,9 +103,9 @@ internal static class RealWorldWorkflowShowcase {
         WordParagraph label = document.AddParagraph(eyebrow);
         label.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         label.Bold = true;
-        label.SetColorHex("235FB4");
+        label.SetColor(OfficeColor.Parse("235FB4"));
         AddHeading(document, title, 28, 4);
-        document.AddParagraph(subtitle).SetColorHex("526179");
+        document.AddParagraph(subtitle).SetColor(OfficeColor.Parse("526179"));
     }
 
     private static void AddKpiStrip(WordDocument document, params (string Value, string Label)[] kpis) {
@@ -113,16 +113,16 @@ internal static class RealWorldWorkflowShowcase {
         strip.SetWidthPercentage(100);
         for (int i = 0; i < kpis.Length; i++) {
             WordTableCell cell = strip.Rows[0].Cells[i];
-            cell.ShadingFillColorHex = "EAF1FB";
+            cell.ShadingFillColor = OfficeColor.Parse("EAF1FB");
             cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
             cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
             cell.Paragraphs[0].Text = kpis[i].Value;
             cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(22);
             cell.Paragraphs[0].Bold = true;
-            cell.Paragraphs[0].SetColorHex("17365D");
+            cell.Paragraphs[0].SetColor(OfficeColor.Parse("17365D"));
             WordParagraph label = cell.AddParagraph(kpis[i].Label);
             label.FontSize = global::OfficeIMO.OfficeLength.Points(9);
-            label.SetColorHex("526179");
+            label.SetColor(OfficeColor.Parse("526179"));
         }
     }
 
@@ -135,14 +135,14 @@ internal static class RealWorldWorkflowShowcase {
                 cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.12D);
                 cell.Paragraphs[0].Text = rows[row][column];
                 if (row == 0) {
-                    cell.ShadingFillColorHex = "17365D";
+                    cell.ShadingFillColor = OfficeColor.Parse("17365D");
                     cell.Paragraphs[0].Bold = true;
-                    cell.Paragraphs[0].SetColorHex("FFFFFF");
+                    cell.Paragraphs[0].SetColor(OfficeColor.Parse("FFFFFF"));
                 } else if (column == widths.Length - 1) {
-                    cell.ShadingFillColorHex = rows[row][column] is "Accepted" or "Complete" ? "E7F6ED" : "FFF4CC";
+                    cell.ShadingFillColor = OfficeColor.Parse(rows[row][column] is "Accepted" or "Complete" ? "E7F6ED" : "FFF4CC");
                     cell.Paragraphs[0].Bold = true;
                 } else if (row % 2 == 0) {
-                    cell.ShadingFillColorHex = "F5F8FC";
+                    cell.ShadingFillColor = OfficeColor.Parse("F5F8FC");
                 }
             }
         }

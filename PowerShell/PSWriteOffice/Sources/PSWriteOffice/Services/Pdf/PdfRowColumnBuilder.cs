@@ -67,7 +67,7 @@ internal static class PdfRowColumnBuilder
                 break;
             case "panel":
             case "callout":
-                column.PanelParagraph(p => p.Text(GetRequiredString(specification, "Text", "Panel")), align: GetAlign(specification), defaultColor: GetColor(specification, "Color"));
+                column.AddPanelParagraph(p => p.AddText(GetRequiredString(specification, "Text", "Panel")), align: GetAlign(specification), color: GetColor(specification, "Color"));
                 break;
             case "list":
             case "bullets":
@@ -75,7 +75,7 @@ internal static class PdfRowColumnBuilder
                 AddList(column, specification, string.Equals(Normalize(type!), "numbered", StringComparison.Ordinal));
                 break;
             case "table":
-                column.Table(GetTableRows(specification), GetAlign(specification), PdfTableStyleBuilder.CreateFromSpecification(specification));
+                column.AddTable(GetTableRows(specification), GetAlign(specification), PdfTableStyleBuilder.CreateFromSpecification(specification));
                 break;
             case "rule":
             case "hr":
@@ -108,16 +108,16 @@ internal static class PdfRowColumnBuilder
 
         if (TryGetRuns(specification, out var runs))
         {
-            column.Paragraph(p => PdfRichTextRunBuilder.ApplyRuns(p, runs), GetAlign(specification), GetColor(specification, "Color"));
+            column.AddParagraph(p => PdfRichTextRunBuilder.ApplyRuns(p, runs), GetAlign(specification), GetColor(specification, "Color"));
         }
         else if (TryGetString(specification, out var paragraph, "Paragraph", "Text"))
         {
-            column.Paragraph(p => p.Text(paragraph), GetAlign(specification), GetColor(specification, "Color"));
+            column.AddParagraph(p => p.AddText(paragraph), GetAlign(specification), GetColor(specification, "Color"));
         }
 
         if (TryGetString(specification, out var panel, "Panel", "Callout"))
         {
-            column.PanelParagraph(p => p.Text(panel), align: GetAlign(specification), defaultColor: GetColor(specification, "PanelColor", "Color"));
+            column.AddPanelParagraph(p => p.AddText(panel), align: GetAlign(specification), color: GetColor(specification, "PanelColor", "Color"));
         }
 
         if (TryGetValue(specification, out var listValue, "List", "Bullets", "Items"))
@@ -127,7 +127,7 @@ internal static class PdfRowColumnBuilder
 
         if (TryGetValue(specification, out _, "Table", "Rows", "InputObject"))
         {
-            column.Table(GetTableRows(specification), GetAlign(specification), PdfTableStyleBuilder.CreateFromSpecification(specification));
+            column.AddTable(GetTableRows(specification), GetAlign(specification), PdfTableStyleBuilder.CreateFromSpecification(specification));
         }
 
         if (GetBool(specification, "Rule", "HorizontalRule", "Hr"))
@@ -166,11 +166,11 @@ internal static class PdfRowColumnBuilder
     {
         if (TryGetRuns(specification, out var runs))
         {
-            column.Paragraph(p => PdfRichTextRunBuilder.ApplyRuns(p, runs), GetAlign(specification), GetColor(specification, "Color"));
+            column.AddParagraph(p => PdfRichTextRunBuilder.ApplyRuns(p, runs), GetAlign(specification), GetColor(specification, "Color"));
             return;
         }
 
-        column.Paragraph(p => p.Text(GetRequiredString(specification, "Text", "Paragraph")), GetAlign(specification), GetColor(specification, "Color"));
+        column.AddParagraph(p => p.AddText(GetRequiredString(specification, "Text", "Paragraph")), GetAlign(specification), GetColor(specification, "Color"));
     }
 
     private static void AddList(PdfContentBuilder column, object specification, bool numbered, object? explicitValue = null)
@@ -178,11 +178,11 @@ internal static class PdfRowColumnBuilder
         var items = GetStringArray(explicitValue ?? GetValue(specification, "List", "Bullets", "Items"));
         if (numbered || GetBool(specification, "Numbered"))
         {
-            column.Numbered(items, GetAlign(specification), GetColor(specification, "Color"), GetInt(specification, "StartNumber") ?? 1);
+            column.AddNumberedList(items, GetAlign(specification), GetColor(specification, "Color"), GetInt(specification, "StartNumber") ?? 1);
         }
         else
         {
-            column.Bullets(items, GetAlign(specification), GetColor(specification, "Color"));
+            column.AddList(items, GetAlign(specification), GetColor(specification, "Color"));
         }
     }
 

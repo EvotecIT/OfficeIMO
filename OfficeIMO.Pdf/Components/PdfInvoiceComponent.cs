@@ -106,7 +106,7 @@ public sealed class PdfInvoiceComponent : IPdfComponent {
     public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
         content.H1("Invoice " + InvoiceNumber)
-            .Table(new[] {
+            .AddTable(new[] {
                 new[] { "Seller", Seller.ToDisplayText(), "Customer", Customer.ToDisplayText() },
                 new[] { "Issued", IssueDate.ToString("d", _culture), "Due", DueDate?.ToString("d", _culture) ?? string.Empty }
             }, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(12) });
@@ -121,11 +121,17 @@ public sealed class PdfInvoiceComponent : IPdfComponent {
             line.TaxRate.ToString("P0", _culture),
             Money(line.Total)
         }));
-        content.Table(rows, style: new PdfTableStyle { HeaderRowCount = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
-        content.Paragraph(paragraph => paragraph
-            .Bold("Subtotal: ").Text(Money(Subtotal))
-            .LineBreak().Bold("Tax: ").Text(Money(Tax))
-            .LineBreak().Bold("Total: ").Text(Money(Total)), OfficeAlignment.Right);
+        content.AddTable(rows, style: new PdfTableStyle { HeaderRowCount = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
+        content.AddParagraph(paragraph => {
+            paragraph.AddText("Subtotal: ").SetBold();
+            paragraph.AddText(Money(Subtotal));
+            paragraph.AddLineBreak();
+            paragraph.AddText("Tax: ").SetBold();
+            paragraph.AddText(Money(Tax));
+            paragraph.AddLineBreak();
+            paragraph.AddText("Total: ").SetBold();
+            paragraph.AddText(Money(Total));
+        }, OfficeAlignment.Right);
     }
 
     private string Money(decimal value) => value.ToString("N2", _culture) + " " + CurrencyCode;

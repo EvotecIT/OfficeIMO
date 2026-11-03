@@ -34,16 +34,16 @@ namespace OfficeIMO.Pdf.Word {
 
             double maximumMargin = Math.Max(0D, (Math.Min(pageWidth, pageHeight) - 1D) / 2D);
             double margin = Math.Min(options.EditablePageMarginPoints, maximumMargin);
-            section.PageSettings.Orientation = pageWidth > pageHeight
+            section.PageSetup.Size.Orientation = pageWidth > pageHeight
                 ? OfficePageOrientation.Landscape
                 : OfficePageOrientation.Portrait;
-            section.PageSettings.Width = OfficeLength.Points((pageWidthTwips) / 20D);
-            section.PageSettings.Height = OfficeLength.Points((pageHeightTwips) / 20D);
+            section.PageSetup.Size.Width = OfficeLength.Points((pageWidthTwips) / 20D);
+            section.PageSetup.Size.Height = OfficeLength.Points((pageHeightTwips) / 20D);
             uint marginTwips = checked((uint)Math.Round(margin * 20D));
-            section.Margins.Left = OfficeLength.Points((marginTwips) / 20D);
-            section.Margins.Right = OfficeLength.Points((marginTwips) / 20D);
-            section.Margins.Top = OfficeLength.Points((checked((int)marginTwips)) / 20D);
-            section.Margins.Bottom = OfficeLength.Points((checked((int)marginTwips)) / 20D);
+            section.PageSetup.Margins.Left = OfficeLength.Points((marginTwips) / 20D);
+            section.PageSetup.Margins.Right = OfficeLength.Points((marginTwips) / 20D);
+            section.PageSetup.Margins.Top = OfficeLength.Points((checked((int)marginTwips)) / 20D);
+            section.PageSetup.Margins.Bottom = OfficeLength.Points((checked((int)marginTwips)) / 20D);
             return true;
         }
 

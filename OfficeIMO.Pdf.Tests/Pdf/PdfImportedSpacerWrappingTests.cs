@@ -15,11 +15,13 @@ public class PdfImportedSpacerWrappingTests {
         const string text = "a-a-a-a-a-a-a-a-a-a-a-a";
         var cell = new PdfTableCell(new[] {
             PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(spacerWidth), global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D)) { IsTextSpacer = true }),
-            PdfTextRun.Normal(text, fontSize: global::OfficeIMO.OfficeLength.Points(1D), font: PdfStandardFont.Helvetica)
+            PdfTextRun.Normal(text, fontSize: global::OfficeIMO.OfficeLength.Points(1D), standardFont: PdfStandardFont.Helvetica)
         });
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(40D), MarginRight = global::OfficeIMO.OfficeLength.Points(40D), MarginTop = global::OfficeIMO.OfficeLength.Points(40D), MarginBottom = global::OfficeIMO.OfficeLength.Points(40D)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(200D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(40D), Right = global::OfficeIMO.OfficeLength.Points(40D), Top = global::OfficeIMO.OfficeLength.Points(40D), Bottom = global::OfficeIMO.OfficeLength.Points(40D) }
+            }
         };
         var style = new PdfTableStyle {
             HeaderRowCount = 0, ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(5D) },

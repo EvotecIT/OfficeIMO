@@ -22,7 +22,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 AddVisualPanel(slide, box, metrics, "OfficeIMO Markup Image Panel");
             }
 
-            PowerPointPicture picture;
+            PowerPointImage picture;
             if (embedded) {
                 using var stream = new MemoryStream(bytes, writable: false);
                 var placement = IsStretchFit(GetAttribute(image.Attributes, "fit"))
@@ -143,7 +143,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
     }
 
-    private static PowerPointPicture AddImage(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {
+    private static PowerPointImage AddImage(PowerPointSlide slide, string path, LayoutCursor box, string? fit) {
         switch (Normalize(fit ?? string.Empty)) {
             case "fill":
             case "stretch":
@@ -154,7 +154,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
     }
 
-    private static PowerPointPicture AddPictureContained(PowerPointSlide slide, string path, LayoutCursor box) {
+    private static PowerPointImage AddPictureContained(PowerPointSlide slide, string path, LayoutCursor box) {
         var placement = TryReadImageSize(path, out var pixelWidth, out var pixelHeight)
             ? ContainPicture(box, pixelWidth, pixelHeight) : box;
         return slide.AddImage(path,global::OfficeIMO.OfficeLength.Inches(placement.Left),global::OfficeIMO.OfficeLength.Inches(placement.Top),global::OfficeIMO.OfficeLength.Inches(placement.Width),global::OfficeIMO.OfficeLength.Inches(placement.Height));

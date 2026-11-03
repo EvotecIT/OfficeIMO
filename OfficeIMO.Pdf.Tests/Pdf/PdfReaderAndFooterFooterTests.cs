@@ -17,14 +17,11 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void Footer_UsesConfiguredFooterFont() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
-            ShowPageNumbers = true,
-            FooterFormat = "Footer check",
-            FooterFont = PdfStandardFont.HelveticaBold,
-            FooterAlign = OfficeAlignment.Left
+            PageSetup = { Footer = { Show = true, Format = "Footer check", StandardFont = PdfStandardFont.HelveticaBold, Alignment = OfficeAlignment.Left } }
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Body text only."))
+            .Paragraph(p => p.AddText("Body text only."))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -49,12 +46,11 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void FooterFontResource_IsNotEmittedWhenFooterIsDisabled() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
-            FooterFont = PdfStandardFont.CourierBold,
-            ShowPageNumbers = false
+            PageSetup = { Footer = { StandardFont = PdfStandardFont.CourierBold, Show = false } }
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Body text only."))
+            .Paragraph(p => p.AddText("Body text only."))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(bytes);
@@ -68,17 +64,17 @@ public partial class PdfReaderAndFooterRegressionTests {
     public void FooterSegments_RenderWithoutShowPageNumbersFlag() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
-            FooterFont = PdfStandardFont.HelveticaBold,
-            FooterAlign = OfficeAlignment.Left,
-            FooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+            PageSetup = {
+                Footer = { StandardFont = PdfStandardFont.HelveticaBold, Alignment = OfficeAlignment.Left, Segments = new System.Collections.Generic.List<PdfFooterSegment> {
                 new PdfFooterSegment(PdfFooterSegmentKind.Text, "Direct footer"),
                 new PdfFooterSegment(PdfFooterSegmentKind.Text, " "),
                 new PdfFooterSegment(PdfFooterSegmentKind.PageNumber)
+            } }
             }
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Body text only."))
+            .Paragraph(p => p.AddText("Body text only."))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -92,16 +88,17 @@ public partial class PdfReaderAndFooterRegressionTests {
     [Fact]
     public void FooterSegments_ValidateFooterPlacementWithoutShowPageNumbersFlag() {
         var options = new PdfCreateOptions {
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
-            FooterOffsetY = global::OfficeIMO.OfficeLength.Points(21),
-            FooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+            PageSetup = {
+                Margins = { Bottom = global::OfficeIMO.OfficeLength.Points(20) },
+                Footer = { Offset = global::OfficeIMO.OfficeLength.Points(21), Segments = new System.Collections.Generic.List<PdfFooterSegment> {
                 new PdfFooterSegment(PdfFooterSegmentKind.Text, "Direct footer")
+            } }
             }
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Body text only."))
+                .Paragraph(p => p.AddText("Body text only."))
                 .ToBytes());
 
         Assert.Contains("PDF footer offset must not exceed the bottom margin when footer content is enabled.", exception.Message, StringComparison.Ordinal);

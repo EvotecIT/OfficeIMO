@@ -73,14 +73,14 @@ public sealed class OpenDocumentConversionContracts {
         paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(6D);
         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
-        paragraph.ShadingFillColorHex = "EAF2F8";
+        paragraph.ShadingFillColor = OfficeColor.Parse("EAF2F8");
         paragraph.Bold = true;
         paragraph.Italic = true;
         paragraph.Underline = WordUnderlineStyle.Single;
         paragraph.Strike = true;
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         paragraph.FontFamily = "Aptos";
-        paragraph.ColorHex = "123456";
+        paragraph.Color = OfficeColor.Parse("123456");
         paragraph.Highlight = WordHighlightColor.Yellow;
 
         OdfConversionResult<OdtDocument> toOdt = source.ToOpenDocumentResult();
@@ -116,14 +116,14 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal(12, converted.IndentFirstLine!.Value.ToPoints(), 3);
         Assert.Equal(6, converted.SpaceAbove!.Value.ToPoints(), 3);
         Assert.Equal(8, converted.SpaceBelow!.Value.ToPoints(), 3);
-        Assert.Equal("EAF2F8", converted.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("EAF2F8"), converted.ShadingFillColor);
         Assert.True(run.Bold);
         Assert.True(run.Italic);
         Assert.True(run.Underline);
         Assert.True(run.Strike);
         Assert.Equal(13, run.FontSize?.ToPoints());
         Assert.Equal("Aptos", run.FontFamily);
-        Assert.Equal("123456", run.ColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), run.Color);
         Assert.Equal("Yellow", run.HighlightColor);
     }
 
@@ -450,9 +450,9 @@ public sealed class OpenDocumentConversionContracts {
         run.Underline = true;
         run.Strikethrough = true;
         run.FontSize = global::OfficeIMO.OfficeLength.Points(18);
-        run.FontName = "Aptos";
-        run.Color = "123456";
-        run.HighlightColor = "FFF200";
+        run.FontFamily = "Aptos";
+        run.Color = OfficeColor.Parse("123456");
+        run.BackgroundColor = OfficeColor.Parse("FFF200");
 
         OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
         OdpRun odpRun = Assert.Single(Assert.IsType<OdpTextBox>(Assert.Single(toOdp.Value.Slides[0].Shapes))
@@ -475,9 +475,9 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(converted.Underline);
         Assert.True(converted.Strikethrough);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(18), converted.FontSize);
-        Assert.Equal("Aptos", converted.FontName);
-        Assert.Equal("123456", converted.Color);
-        Assert.Equal("FFF200", converted.HighlightColor);
+        Assert.Equal("Aptos", converted.FontFamily);
+        Assert.Equal(OfficeColor.Parse("123456"), converted.Color);
+        Assert.Equal(OfficeColor.Parse("FFF200"), converted.BackgroundColor);
     }
 
     [Fact]
@@ -488,7 +488,7 @@ public sealed class OpenDocumentConversionContracts {
             .GetCell(0, 0);
         IReadOnlyList<PowerPointParagraph> sourceParagraphs = sourceCell.SetParagraphs(new[] { "Bold", "Second" });
         sourceParagraphs[0].Runs[0].Bold = true;
-        PowerPointTextRun linkedRun = sourceParagraphs[0].AddRun(" link");
+        PowerPointTextRun linkedRun = sourceParagraphs[0].AddText(" link");
         linkedRun.Italic = true;
         linkedRun.SetHyperlink("https://example.com/table");
         sourceParagraphs[1].Runs[0].Underline = true;
@@ -629,8 +629,8 @@ public sealed class OpenDocumentConversionContracts {
         OdfConversionResult<PowerPointDocument> conversion = reopened.ToPowerPointDocumentResult();
         using PowerPointDocument target = conversion.Value;
         IReadOnlyList<PowerPointTextRun> runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
-        Assert.Equal("FFFF00", runs[0].HighlightColor);
-        Assert.Null(runs[1].HighlightColor);
+        Assert.Equal(OfficeColor.Parse("FFFF00"), runs[0].BackgroundColor);
+        Assert.Null(runs[1].BackgroundColor);
     }
 
     [Fact]

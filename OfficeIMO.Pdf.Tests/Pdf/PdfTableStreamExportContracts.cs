@@ -96,12 +96,12 @@ public class PdfTableStreamExportContracts {
                 .Size(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(595D))
                 .Margin(global::OfficeIMO.OfficeLength.Points(36D))
                 .Content(content => content.Column(column =>
-                    column.Item().Paragraph(paragraph => paragraph.Text("Small invoice page")))));
+                    column.Item().AddParagraph(paragraph => paragraph.AddText("Small invoice page")))));
             composer.Page(page => page
                 .Size(global::OfficeIMO.OfficeLength.Points(612D), global::OfficeIMO.OfficeLength.Points(792D))
                 .Margin(global::OfficeIMO.OfficeLength.Points(36D))
                 .Content(content => content.Column(column =>
-                    column.Item().Paragraph(paragraph => paragraph.Text("Letter invoice page")))));
+                    column.Item().AddParagraph(paragraph => paragraph.AddText("Letter invoice page")))));
         }).ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -324,12 +324,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void ExcelCurrencyFormatsPreserveAffixPlacementAndSpacing() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(420D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(420D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                },
                 // Supply a ruled source table; this test measures spreadsheet value/format semantics.
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
@@ -458,12 +456,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void ExcelKeepsCurrencyAffixedPercentValuesAsText() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(240D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(240D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                },
                 // Supply a ruled source table; this test measures spreadsheet value/format semantics.
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11),
@@ -603,7 +599,7 @@ public class PdfTableStreamExportContracts {
         using PdfDocument source = CreateSourceDocument();
         PdfDocumentReadResult logical = source.Read();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Opened cancellation proof"))
+            .Paragraph(paragraph => paragraph.AddText("Opened cancellation proof"))
             .ToBytes()));
         using var methodCancellation = new CancellationTokenSource();
         methodCancellation.Cancel();
@@ -629,12 +625,10 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void TableScopeAnalysisReportsIncompleteClassificationWhenBudgetIsExhausted() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
@@ -799,9 +793,9 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void SelectedPageTableScopeDoesNotCountFormsOnlyOnOtherPages() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         byte[] withForm = PdfAcroFormEditor.Edit(source, edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "SecondPageOnly",
@@ -843,9 +837,9 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void SelectedPageConversionsDoNotReportOpenActionTargetingExcludedPage() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetOpenAction(pageNumber: 2))
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult full = opened.Read();
@@ -999,7 +993,7 @@ public class PdfTableStreamExportContracts {
 
 
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice"))
             .ToBytes()))
             .UpdateProperties(title: "Invoice");
         PdfWordExportOptions visualOptions = PdfWordExportOptions.CreateVisualPages();
@@ -1015,7 +1009,7 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void WordAndHtmlReportUnsupportedInfoAndXmpMetadata() {
         PdfDocumentReadResult infoMetadata = PdfDocumentReadResult.Load(PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Metadata source"))
+            .Paragraph(paragraph => paragraph.AddText("Metadata source"))
             .ToBytes());
         infoMetadata.Metadata.CreationDate = new DateTimeOffset(2026, 9, 16, 0, 0, 0, TimeSpan.Zero);
         PdfWordConversionResult word = infoMetadata.ConvertToWordWithEvidence(new PdfWordExportOptions());
@@ -1031,7 +1025,7 @@ public class PdfTableStreamExportContracts {
             warning.LossKind == OfficeConversionLossKind.Omission);
 
         byte[] xmpSource = PdfDocument.Create(new PdfCreateOptions().SetPdfAIdentification(3, "B"))
-            .Paragraph(paragraph => paragraph.Text("XMP source"))
+            .Paragraph(paragraph => paragraph.AddText("XMP source"))
             .ToBytes();
         PdfDocumentReadResult xmp = PdfDocumentReadResult.Load(xmpSource);
         Assert.NotNull(xmp.XmpMetadata);
@@ -1050,7 +1044,7 @@ public class PdfTableStreamExportContracts {
     [Fact]
     public void TableAndPowerPointConversionsReportOmittedDocumentMetadata() {
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.Text("Invoice metadata source"))
+                .Paragraph(paragraph => paragraph.AddText("Invoice metadata source"))
                 .ToBytes()))
             .UpdateProperties(title: "Invoice", author: "Accounts payable");
         PdfDocumentReadResult logical = opened.Read();
@@ -1485,7 +1479,7 @@ public class PdfTableStreamExportContracts {
 
     private static PdfDocument CreateSourceDocument() {
         return PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Non-seekable table export proof"));
+            .Paragraph(paragraph => paragraph.AddText("Non-seekable table export proof"));
     }
 
     private static byte[] BuildPatternWithClippedForm(bool hiddenByClip) {

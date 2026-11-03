@@ -138,14 +138,17 @@ public partial class PdfDocumentVisualQualityTests {
             new[] { new PdfTableCell("gypC"), new PdfTableCell("gypD") }
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(520), PageHeight = global::OfficeIMO.OfficeLength.Points(220), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(520), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             CompressContentStreams = false
         });
         document.Compose(root => root.Page(page => page.Content(content => {
             switch (surface) {
-                case "flow": content.Table(rows, style: style); break;
-                case "row": content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))); break;
-                case "columns": content.Columns(inner => inner.Table(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
+                case "flow": content.AddTable(rows, style: style); break;
+                case "row": content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))); break;
+                case "columns": content.Columns(inner => inner.AddTable(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
                 case "canvas": content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(40), style)); break;
                 default: throw new ArgumentException("Unknown surface", nameof(surface));
             }

@@ -48,8 +48,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         var paragraph = source.AddParagraph("Main body");
         if (location == "header") {
-            source.AddHeadersAndFooters();
-            paragraph = source.Header.Default!.AddParagraph("Header");
+            paragraph = source.PageSetup.Header.AddParagraph("Header");
         }
         if (location is "body" or "header") {
             paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(0) * 635)));
@@ -125,8 +124,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Main body");
         if (withHeader) {
-            source.AddHeadersAndFooters();
-            source.Header.Default!.AddParagraph("Header");
+            source.PageSetup.Header.AddParagraph("Header");
         }
         byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] document = ReadCompoundStream(bytes, "WordDocument");

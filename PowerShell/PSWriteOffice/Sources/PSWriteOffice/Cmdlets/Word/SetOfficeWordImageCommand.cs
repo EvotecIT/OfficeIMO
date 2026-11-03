@@ -93,7 +93,7 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
         if (MyInvocation.BoundParameters.ContainsKey(nameof(HorizontalFlip))) Image.HorizontalFlip = HorizontalFlip;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(VerticalFlip))) Image.VerticalFlip = VerticalFlip;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Title))) Image.Title = Title;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Description))) Image.Description = Description;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Description))) Image.AltText = Description;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Hidden))) Image.Hidden = Hidden;
 
         if (PassThru.IsPresent)

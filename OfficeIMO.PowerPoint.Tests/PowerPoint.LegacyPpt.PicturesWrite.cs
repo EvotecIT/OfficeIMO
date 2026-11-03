@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 using (var first = new MemoryStream(image, writable: false)) {
-                    PowerPointPicture picture = slide.AddImage(first,
+                    PowerPointImage picture = slide.AddImage(first,
                         OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(158750), global::OfficeIMO.OfficeLength.Emus(317500), global::OfficeIMO.OfficeLength.Emus(635000), global::OfficeIMO.OfficeLength.Emus(476250));
                     picture.Crop(10D, 20D, 5D, 15D);
                 }
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(bytes, writable: false);
             using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
-            PowerPointPicture[] projectedPictures = projected.Slides[0].Pictures
+            PowerPointImage[] projectedPictures = projected.Slides[0].Images
                 .OrderBy(picture => picture.Left.ToEmus())
                 .ToArray();
             Assert.Equal(2, projectedPictures.Length);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointPicture picture;
+                PowerPointImage picture;
                 using (var stream = new MemoryStream(image,
                            writable: false)) {
                     picture = slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png,
@@ -124,8 +124,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide projectedSlide = projected.Slides[0];
             PowerPointGroupShape projectedGroup = Assert.Single(
                 projectedSlide.Shapes.OfType<PowerPointGroupShape>());
-            PowerPointPicture projectedPicture = Assert.Single(
-                projectedSlide.GetGroupPictures(projectedGroup));
+            PowerPointImage projectedPicture = Assert.Single(
+                projectedSlide.GetGroupImages(projectedGroup));
             Assert.Equal(image, projectedPicture.GetImageBytes());
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(bytes,
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument effectPresentation = PowerPointDocument
                 .Create();
             using (var stream = new MemoryStream(png, writable: false)) {
-                PowerPointPicture picture = effectPresentation
+                PowerPointImage picture = effectPresentation
                     .AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png);
                 P.Picture element = Assert.IsType<P.Picture>(picture.Element);
@@ -180,16 +180,16 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointPicture first = AddImage(slide, image, 0);
+                PowerPointImage first = AddImage(slide, image, 0);
                 first.LuminanceBrightness = 25;
                 first.LuminanceContrast = -30;
-                PowerPointPicture second = AddImage(slide, image, 700000);
+                PowerPointImage second = AddImage(slide, image, 700000);
                 second.LuminanceContrast = 40;
-                PowerPointPicture third = AddImage(slide, image, 1400000);
+                PowerPointImage third = AddImage(slide, image, 1400000);
                 third.GrayScale = true;
-                PowerPointPicture fourth = AddImage(slide, image, 2100000);
+                PowerPointImage fourth = AddImage(slide, image, 2100000);
                 fourth.BlackWhiteThreshold = 50;
-                PowerPointPicture fifth = AddImage(slide, image, 2800000);
+                PowerPointImage fifth = AddImage(slide, image, 2800000);
                 fifth.TransparentColor = OfficeColor.CornflowerBlue;
                 fifth.Rotation = 15D;
                 fifth.HorizontalFlip = true;
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
                 fifth.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(2D),
                     distance: OfficeIMO.OfficeLength.Points(2D), angleDegrees: 90D,
                     transparencyPercent: 40);
-                PowerPointPicture sixth = AddImage(slide, image, 3500000);
+                PowerPointImage sixth = AddImage(slide, image, 3500000);
                 sixth.RecolorColor = OfficeColor.Orange;
 
                 LegacyPptWritePreflightReport preflight = source
@@ -236,8 +236,8 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(bytes, writable: false);
             using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
-            PowerPointPicture[] projectedPictureModels = projected.Slides[0]
-                .Pictures
+            PowerPointImage[] projectedPictureModels = projected.Slides[0]
+                .Images
                 .OrderBy(picture => picture.Left.ToEmus())
                 .ToArray();
             P.Picture[] projectedPictures = projectedPictureModels
@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             Assert.Equal(emf,
-                Assert.Single(projected.Slides[0].Pictures).GetImageBytes());
+                Assert.Single(projected.Slides[0].Images).GetImageBytes());
             Assert.Empty(projected.ValidateDocument());
             Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
             return result;
         }
 
-        private static PowerPointPicture AddImage(PowerPointSlide slide,
+        private static PowerPointImage AddImage(PowerPointSlide slide,
             byte[] image, long left) {
             using var stream = new MemoryStream(image, writable: false);
             return slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(left), global::OfficeIMO.OfficeLength.Emus(0),

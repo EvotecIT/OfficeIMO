@@ -57,16 +57,16 @@ public sealed class PdfReportComponent : IPdfComponent {
     public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
         content.H1(Title).HR();
-        if (!string.IsNullOrWhiteSpace(Summary)) content.Paragraph(paragraph => paragraph.Text(Summary!));
+        if (!string.IsNullOrWhiteSpace(Summary)) content.AddParagraph(paragraph => paragraph.AddText(Summary!));
         if (_facts.Length > 0) {
-            content.Table(
+            content.AddTable(
                 _facts.Select(static fact => new[] { fact.Key, fact.Value ?? string.Empty }),
                 style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
         }
         foreach (PdfReportSection section in _sections) {
             content.H2(section.Title);
-            if (!string.IsNullOrWhiteSpace(section.Body)) content.Paragraph(paragraph => paragraph.Text(section.Body!));
-            if (section.Bullets.Count > 0) content.Bullets(section.Bullets);
+            if (!string.IsNullOrWhiteSpace(section.Body)) content.AddParagraph(paragraph => paragraph.AddText(section.Body!));
+            if (section.Bullets.Count > 0) content.AddList(section.Bullets);
         }
     }
 }

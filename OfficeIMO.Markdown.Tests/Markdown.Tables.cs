@@ -58,20 +58,20 @@ Narrative body text.
             using var doc = WordDocument.Load(saved);
 
             var heading = doc.Paragraphs.First(p => p.Text == "Report Theme");
-            Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "064e3b", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(heading.GetRuns(), run => run.Color == OfficeColor.Parse("064e3b"));
             var body = doc.Paragraphs.First(p => p.Text == "Narrative body text.");
-            Assert.Contains(body.GetRuns(), run => string.Equals(run.ColorHex, "102030", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(body.GetRuns(), run => run.Color == OfficeColor.Parse("102030"));
 
             var table = doc.Tables[0];
-            Assert.Equal("FEDCBA", table.Rows[0].Cells[0].ShadingFillColorHex);
-            Assert.Equal("123456", table.Rows[0].Cells[0].Borders.TopColorHex);
+            Assert.Equal(OfficeColor.Parse("FEDCBA"), table.Rows[0].Cells[0].ShadingFillColor);
+            Assert.Equal(OfficeColor.Parse("123456"), table.Rows[0].Cells[0].Borders.TopColor);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.25), table.Rows[0].Cells[0].Borders.TopSize);
             Assert.Equal((short?)180, checked((short?)(table.Rows[0].Cells[0].MarginLeft?.ToTwips())));
             Assert.Equal((short?)180, checked((short?)(table.Rows[0].Cells[0].MarginRight?.ToTwips())));
             Assert.Equal((short?)80, checked((short?)(table.Rows[0].Cells[0].MarginTop?.ToTwips())));
             Assert.Equal((short?)80, checked((short?)(table.Rows[0].Cells[0].MarginBottom?.ToTwips())));
-            Assert.Contains(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => string.Equals(run.ColorHex, "010203", System.StringComparison.OrdinalIgnoreCase));
-            Assert.Equal("F0F9FF", table.Rows[2].Cells[0].ShadingFillColorHex);
+            Assert.Contains(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => run.Color == OfficeColor.Parse("010203"));
+            Assert.Equal(OfficeColor.Parse("F0F9FF"), table.Rows[2].Cells[0].ShadingFillColor);
         }
 
         [Fact]
@@ -86,7 +86,7 @@ Narrative body text.
                 .Where(run => run.IsHyperLink && run.Text == "Documentation")
                 .ToArray();
             Assert.NotEmpty(linkRuns);
-            Assert.All(linkRuns, run => Assert.Equal("DC2626", run.ColorHex));
+            Assert.All(linkRuns, run => Assert.Equal(OfficeColor.Parse("DC2626"), run.Color));
         }
 
         [Fact]
@@ -100,9 +100,9 @@ Narrative body text.
             using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions());
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
-            Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "111827", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(heading.GetRuns(), run => run.Color == OfficeColor.Parse("111827"));
             var body = doc.Paragraphs.First(p => p.Text == "Narrative body text.");
-            Assert.Contains(body.GetRuns(), run => string.Equals(run.ColorHex, "1f2937", System.StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(body.GetRuns(), run => run.Color == OfficeColor.Parse("1f2937"));
         }
 
         [Fact]
@@ -116,9 +116,9 @@ Narrative body text.
             using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { ApplyDefaultTheme = false });
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
-            Assert.DoesNotContain(heading.GetRuns(), run => !string.IsNullOrWhiteSpace(run.ColorHex));
+            Assert.DoesNotContain(heading.GetRuns(), run => run.Color.HasValue);
             var body = doc.Paragraphs.First(p => p.Text == "Narrative body text.");
-            Assert.DoesNotContain(body.GetRuns(), run => !string.IsNullOrWhiteSpace(run.ColorHex));
+            Assert.DoesNotContain(body.GetRuns(), run => run.Color.HasValue);
         }
 
         [Fact]
@@ -156,10 +156,10 @@ Narrative body text.
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.None, cell.Borders.TopStyle);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(0), cell.Borders.TopSize);
-            Assert.True(string.IsNullOrEmpty(cell.Borders.TopColorHex));
+            Assert.Null(cell.Borders.TopColor);
             Assert.Equal(WordBorderStyle.None, cell.Borders.BottomStyle);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(0), cell.Borders.BottomSize);
-            Assert.True(string.IsNullOrEmpty(cell.Borders.BottomColorHex));
+            Assert.Null(cell.Borders.BottomColor);
         }
 
         [Fact]
@@ -175,7 +175,7 @@ Console.WriteLine("ready");
             using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var codeParagraph = doc.Paragraphs.First(p => p.Text.Contains("Console.WriteLine", System.StringComparison.Ordinal));
-            Assert.True(string.IsNullOrEmpty(codeParagraph.ShadingFillColorHex));
+            Assert.Null(codeParagraph.ShadingFillColor);
         }
 
         [Fact]
@@ -196,9 +196,9 @@ Console.WriteLine("ready");
             using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var table = doc.Tables[0];
-            Assert.True(string.IsNullOrEmpty(table.Rows[0].Cells[0].ShadingFillColorHex));
-            Assert.DoesNotContain(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => string.Equals(run.ColorHex, "000000", System.StringComparison.OrdinalIgnoreCase));
-            Assert.True(string.IsNullOrEmpty(table.Rows[2].Cells[0].ShadingFillColorHex));
+            Assert.Null(table.Rows[0].Cells[0].ShadingFillColor);
+            Assert.DoesNotContain(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => run.Color == OfficeColor.Parse("000000"));
+            Assert.Null(table.Rows[2].Cells[0].ShadingFillColor);
         }
 
         [Fact]
@@ -213,7 +213,7 @@ Console.WriteLine("ready");
             using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions { Theme = theme });
 
             var title = doc.Paragraphs.First(p => p.Text == "Heads up");
-            Assert.True(string.IsNullOrEmpty(title.ShadingFillColorHex));
+            Assert.Null(title.ShadingFillColor);
         }
 
         [Fact]

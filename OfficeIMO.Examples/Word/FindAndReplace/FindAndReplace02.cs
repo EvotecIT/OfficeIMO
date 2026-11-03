@@ -38,9 +38,9 @@ namespace OfficeIMO.Examples.Word {
                 document.CleanupDocument();
 
                 var listFound = document.Find("Test Section");
-                Console.WriteLine("Find (should be 5): " + listFound.Count);
+                Console.WriteLine("Find (should be 5): " + listFound.Paragraphs.Count);
 
-                var replacedCount = document.FindAndReplace("Test Section", "Production Section");
+                var replacedCount = document.ReplaceAll("Test Section", "Production Section");
                 Console.WriteLine("Replaced (should be 5): " + replacedCount);
 
                 document.Save();

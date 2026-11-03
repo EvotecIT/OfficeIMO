@@ -69,17 +69,15 @@ namespace OfficeIMO.Tests.Pdf {
             };
 
             byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(80),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(180),
-                    MarginLeft = global::OfficeIMO.OfficeLength.Points(18),
-                    MarginRight = global::OfficeIMO.OfficeLength.Points(18),
-                    MarginTop = global::OfficeIMO.OfficeLength.Points(24),
-                    MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
+                    PageSetup = {
+                        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(180)),
+                        Margins = { Left = global::OfficeIMO.OfficeLength.Points(18), Right = global::OfficeIMO.OfficeLength.Points(18), Top = global::OfficeIMO.OfficeLength.Points(24), Bottom = global::OfficeIMO.OfficeLength.Points(24) }
+                    },
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
                     CompressContentStreams = false
                 })
                 .TextLineBreaks(callback)
-                .Paragraph(paragraph => paragraph.Text("alphaomega"))
+                .Paragraph(paragraph => paragraph.AddText("alphaomega"))
                 .ToBytes();
 
             string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -115,7 +113,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .SetTextLineBreaks(token => token == text ? new[] { 4 } : Array.Empty<int>());
 
             byte[] bytes = PdfDocument.Create(options)
-                .Paragraph(paragraph => paragraph.Text(text))
+                .Paragraph(paragraph => paragraph.AddText(text))
                 .ToBytes();
 
             string extracted = PdfReadDocument.Open(bytes).ExtractText();

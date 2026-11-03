@@ -18,7 +18,7 @@ public sealed class PdfImportedLineFrameFitTests {
                 horizontalOffset: Pt(150D), verticalOffset: Pt(4D))
         };
         var document = PdfDocument.Create(Options(107D)).Table(new[] { new[] { "T" } }, style: tableStyle)
-            .Paragraph(p => p.Text("A\nB\nC\nD"), style: new PdfParagraphStyle {
+            .Paragraph(p => p.AddText("A\nB\nC\nD"), style: new PdfParagraphStyle {
                 FontSize = Pt(10D), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D), KeepTogether = keep,
                 LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D)
             });
@@ -46,14 +46,14 @@ public sealed class PdfImportedLineFrameFitTests {
         var spacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D);
         var document = PdfDocument.Create(Options(bodyHeight));
         string text = count == 1 ? "A" : "A\nB\nC\nD";
-        if (kind == "heading") document.Content.Heading(1, text, style: new PdfHeadingStyle {
+        if (kind == "heading") document.Content.AddHeading(text, 1, style: new PdfHeadingStyle {
             FontSize = Pt(10D), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D), LineSpacing = spacing, KeepWithNext = false
         });
-        else if (kind == "list") document.Content.Numbered(new[] { text }, style: new PdfListStyle {
+        else if (kind == "list") document.Content.AddNumberedList(new[] { text }, style: new PdfListStyle {
             FontSize = Pt(10D), MarkerFontSize = Pt(10D), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D),
             LineSpacing = spacing, KeepTogether = keep
         });
-        else document.Paragraph(p => p.Text(text), style: new PdfParagraphStyle {
+        else document.Paragraph(p => p.AddText(text), style: new PdfParagraphStyle {
             FontSize = Pt(10D), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D), LineSpacing = spacing, KeepTogether = keep
         });
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -74,7 +74,7 @@ public sealed class PdfImportedLineFrameFitTests {
             "minimum" => PdfLineSpacing.AtLeast(Pt(28D)).WithFontLineBoxBaseline(1.4D),
             _ => PdfLineSpacing.Multiple(2.8D)
         };
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(107D)).Paragraph(p => p.Text("A\nB\nC\nD"),
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(107D)).Paragraph(p => p.AddText("A\nB\nC\nD"),
             style: new PdfParagraphStyle { FontSize = Pt(10D), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D), LineSpacing = spacing }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal("ABC", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
@@ -83,7 +83,7 @@ public sealed class PdfImportedLineFrameFitTests {
 
     [Fact]
     public void ImportedFrameFittingStillRejectsAnOversizedVisibleFontBox() {
-        var document = PdfDocument.Create(Options(20D)).Paragraph(p => p.FontSize(Pt(30D)).Text("A"),
+        var document = PdfDocument.Create(Options(20D)).Paragraph(p => p.AddText("A").SetFontSize(Pt(30D)),
             style: new PdfParagraphStyle { FontSize = Pt(10D), SpacingAfter = Pt(0D),
                 LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D) });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -99,7 +99,7 @@ public sealed class PdfImportedLineFrameFitTests {
     [InlineData("section-heading", 0D, 0D, false)]
     public void ImportedStrictContainerMovesTheFinalAdvanceBeforeOpeningItsDecoration(
         string kind, double padding, double inset, bool nested) {
-        var document = PdfDocument.Create(Options(50D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        var document = PdfDocument.Create(Options(50D)).Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(30D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
         });
         var panelStyle = StrictPanel(padding, inset);
@@ -128,7 +128,7 @@ public sealed class PdfImportedLineFrameFitTests {
     [InlineData("list")]
     public void ImportedStrictContainerMovesKeptMultilineContentIntact(string kind) {
         var document = PdfDocument.Create(Options(70D)).Panel(panel => {
-            panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+            panel.AddParagraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
                 FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(20D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
             });
             AddImportedText(panel, kind, "A\nB", keep: true);
@@ -159,7 +159,7 @@ public sealed class PdfImportedLineFrameFitTests {
 
     [Fact]
     public void ImportedStrictContainerDoesNotReserveClosingAdvanceForASectionHeadingBeforeItsBody() {
-        var document = PdfDocument.Create(Options(50D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        var document = PdfDocument.Create(Options(50D)).Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(30D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
         }).Panel(panel => panel.Section("A", section => AddImportedText(section, "paragraph", "B"),
             new PdfSectionOptions { StartOnNewPage = false, HeadingStyle = ImportedHeadingStyle() }), StrictPanel(1D));
@@ -172,7 +172,7 @@ public sealed class PdfImportedLineFrameFitTests {
 
     [Fact]
     public void ImportedRepeatingContainerRetainsItsFontBoxFittingPolicy() {
-        var document = PdfDocument.Create(Options(50D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        var document = PdfDocument.Create(Options(50D)).Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(30D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
         }).Panel(panel => AddImportedText(panel, "paragraph", "A"), new PdfPanelStyle {
             PaddingX = Pt(0D), PaddingY = Pt(0D), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D), RepeatFragmentDecoration = true
@@ -187,9 +187,9 @@ public sealed class PdfImportedLineFrameFitTests {
     public void ImportedStrictContainerReservesItsFinalAdvanceWhenAdmittingHeaderAndFooterStories() {
         var document = PdfDocument.Create(Options(70D));
         document.Header(header => header.Text("HEADER TEXT").Content(
-            content => content.Table(new[] { new[] { "FLOWHEADER" } }, style: RunningTableStyle(32D)), Pt(18D)));
+            content => content.AddTable(new[] { new[] { "FLOWHEADER" } }, style: RunningTableStyle(32D)), Pt(18D)));
         document.Footer(footer => footer.Content(
-            content => content.Table(new[] { new[] { "FLOWFOOTER" } }, style: RunningTableStyle(20D)), Pt(18D)));
+            content => content.AddTable(new[] { new[] { "FLOWFOOTER" } }, style: RunningTableStyle(20D)), Pt(18D)));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
         document.Panel(panel => AddImportedText(panel, "paragraph", "A"), StrictPanel(0D));
 
@@ -209,9 +209,9 @@ public sealed class PdfImportedLineFrameFitTests {
     [Fact]
     public void StrictContainerMovesItsFirstKeptListBeforeOpeningItsDecoration() {
         var spacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D);
-        var document = PdfDocument.Create(Options(70D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        var document = PdfDocument.Create(Options(70D)).Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(30D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
-        }).Panel(panel => panel.Numbered(new[] { "A\nB" }, style: new PdfListStyle {
+        }).Panel(panel => panel.AddNumberedList(new[] { "A\nB" }, style: new PdfListStyle {
             FontSize = Pt(10D), MarkerFontSize = Pt(10D), LineSpacing = spacing, KeepTogether = true,
             SpacingBefore = Pt(0D), SpacingAfter = Pt(0D), ItemSpacing = Pt(0D)
         }), StrictPanel(1D));
@@ -232,7 +232,7 @@ public sealed class PdfImportedLineFrameFitTests {
     [InlineData(1D, 1D)]
     public void StrictContainerReservesTerminalSplitTableSpacingWithNoUnreservedPadding(double padding, double inset) {
         var document = PdfDocument.Create(Options(60D + padding + inset)).Panel(
-            panel => panel.Table(new[] { new[] { "A\nB\nC\nD\nE\nF" } }, style: new PdfTableStyle {
+            panel => panel.AddTable(new[] { new[] { "A\nB\nC\nD\nE\nF" } }, style: new PdfTableStyle {
                 HeaderRowCount = 0, FontSize = Pt(10D), LineHeight = 2D, CellPaddingX = Pt(0D), CellPaddingY = Pt(0D),
                 SpacingBefore = Pt(0D), SpacingAfter = Pt(5D), BorderWidth = Pt(0D),
                 RowAllowBreakAcrossPages = new System.Collections.Generic.List<bool?> { true }
@@ -250,9 +250,9 @@ public sealed class PdfImportedLineFrameFitTests {
     [Fact]
     public void StrictContainerMovesItsFirstWholeTableWithTerminalSpacingBeforeDecoration() {
         const double padding = 1D, inset = 1D;
-        var document = PdfDocument.Create(Options(60D + padding + inset)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        var document = PdfDocument.Create(Options(60D + padding + inset)).Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(35D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
-        }).Panel(panel => panel.Table(new[] { new[] { "A" } }, style: new PdfTableStyle {
+        }).Panel(panel => panel.AddTable(new[] { new[] { "A" } }, style: new PdfTableStyle {
             HeaderRowCount = 0, FontSize = Pt(10D), LineHeight = 2D, CellPaddingX = Pt(0D), CellPaddingY = Pt(0D),
             SpacingBefore = Pt(0D), SpacingAfter = Pt(10D), BorderWidth = Pt(0D),
             RowAllowBreakAcrossPages = new System.Collections.Generic.List<bool?> { false }
@@ -268,9 +268,9 @@ public sealed class PdfImportedLineFrameFitTests {
 
     [Fact]
     public void StrictContainerMovesItsFirstKeptTableBeforeOpeningItsDecoration() {
-        var document = PdfDocument.Create(Options(70D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        var document = PdfDocument.Create(Options(70D)).Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(30D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
-        }).Panel(panel => panel.Table(new[] { new[] { "A" }, new[] { "B" } }, style: new PdfTableStyle {
+        }).Panel(panel => panel.AddTable(new[] { new[] { "A" }, new[] { "B" } }, style: new PdfTableStyle {
             HeaderRowCount = 0, FontSize = Pt(10D), LineHeight = 2D, CellPaddingX = Pt(0D), CellPaddingY = Pt(0D),
             SpacingBefore = Pt(0D), SpacingAfter = Pt(5D), BorderWidth = Pt(0D), KeepTogether = true
         }), StrictPanel(1D));
@@ -289,12 +289,12 @@ public sealed class PdfImportedLineFrameFitTests {
     public void StrictContainerReservesItsTerminalRowSpacing(
         string text, double leadHeight, double rowSpacingAfter, string firstPageText, string secondPageText) {
         var document = PdfDocument.Create(Options(60D));
-        if (leadHeight > 0D) document.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        if (leadHeight > 0D) document.Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(leadHeight)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
         });
         document.Panel(panel => panel.Row(row => row.Style(new PdfRowStyle {
             Gap = Pt(0D), SpacingBefore = Pt(0D), SpacingAfter = Pt(rowSpacingAfter), KeepTogether = false
-        }).PercentColumn(100D, column => column.Paragraph(p => p.Text(text), style: new PdfParagraphStyle {
+        }).PercentColumn(100D, column => column.AddParagraph(p => p.AddText(text), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(20D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D),
             KeepTogether = false, WidowControl = false
         }))), StrictPanel(0D));
@@ -314,10 +314,10 @@ public sealed class PdfImportedLineFrameFitTests {
     [InlineData(false, false)]
     [InlineData(true, true)]
     public void ImportedStrictContainerStartsOversizedKeptListBeforeDecoration(bool nested, bool splitPages) {
-        var document = PdfDocument.Create(Options(70D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        var document = PdfDocument.Create(Options(70D)).Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(30D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
         });
-        void AddList(PdfContentBuilder content) => content.Numbered(new[] { "A\nB\nC" }, style: new PdfListStyle {
+        void AddList(PdfContentBuilder content) => content.AddNumberedList(new[] { "A\nB\nC" }, style: new PdfListStyle {
             FontSize = Pt(10D), MarkerFontSize = Pt(10D), KeepTogether = true,
             LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D),
             SpacingBefore = Pt(0D), SpacingAfter = Pt(0D), ItemSpacing = Pt(0D),
@@ -346,7 +346,7 @@ public sealed class PdfImportedLineFrameFitTests {
     [InlineData("column-paragraph")]
     [InlineData("column-table")]
     public void KeptContentIsAdmittedByItsDestinationFrameNotItsSpacingBefore(string kind) {
-        var document = PdfDocument.Create(Options(60D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+        var document = PdfDocument.Create(Options(60D)).Paragraph(p => p.AddText("Lead"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(20D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
         });
         var table = new PdfTableStyle {
@@ -362,14 +362,14 @@ public sealed class PdfImportedLineFrameFitTests {
             column.Spacer(Pt(5D));
             content(column);
         }));
-        if (kind == "table") document.Content.Table(new[] { new[] { "A" } }, style: table);
+        if (kind == "table") document.Content.AddTable(new[] { new[] { "A" } }, style: table);
         else if (kind == "row") document.Content.Row(row => row.Style(new PdfRowStyle {
             Gap = Pt(0D), SpacingBefore = Pt(30D), SpacingAfter = Pt(0D), KeepTogether = true
-        }).PercentColumn(100D, column => column.Paragraph(p => p.Text("A"), style: new PdfParagraphStyle {
+        }).PercentColumn(100D, column => column.AddParagraph(p => p.AddText("A"), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = PdfLineSpacing.Exact(Pt(50D)), SpacingBefore = Pt(0D), SpacingAfter = Pt(0D)
         })));
-        else if (kind == "column-paragraph") Row(column => column.Paragraph(p => p.Text("A"), style: paragraph));
-        else Row(column => column.Table(new[] { new[] { "A" } }, style: table));
+        else if (kind == "column-paragraph") Row(column => column.AddParagraph(p => p.AddText("A"), style: paragraph));
+        else Row(column => column.AddTable(new[] { new[] { "A" } }, style: table));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
@@ -395,15 +395,15 @@ public sealed class PdfImportedLineFrameFitTests {
 
     private static void AddImportedText(PdfContentBuilder content, string kind, string text, bool keep = false) {
         var spacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D);
-        if (kind == "heading") content.Heading(1, text, style: ImportedHeadingStyle());
+        if (kind == "heading") content.AddHeading(text, 1, style: ImportedHeadingStyle());
         else if (kind == "section-heading") content.Section(text, _ => { }, new PdfSectionOptions {
             StartOnNewPage = false, HeadingStyle = ImportedHeadingStyle()
         });
-        else if (kind == "list") content.Numbered(new[] { text }, style: new PdfListStyle {
+        else if (kind == "list") content.AddNumberedList(new[] { text }, style: new PdfListStyle {
             FontSize = Pt(10D), MarkerFontSize = Pt(10D), LineSpacing = spacing,
             SpacingBefore = Pt(0D), SpacingAfter = Pt(0D), ItemSpacing = Pt(0D), KeepTogether = keep
         });
-        else content.Paragraph(p => p.Text(text), style: new PdfParagraphStyle {
+        else content.AddParagraph(p => p.AddText(text), style: new PdfParagraphStyle {
             FontSize = Pt(10D), LineSpacing = spacing, SpacingBefore = Pt(0D), SpacingAfter = Pt(0D),
             KeepTogether = keep, WidowControl = false
         });
@@ -415,8 +415,8 @@ public sealed class PdfImportedLineFrameFitTests {
     };
 
     private static PdfCreateOptions Options(double bodyHeight) => new() {
-        PageWidth = Pt(200D), PageHeight = Pt(bodyHeight + 40D), DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = Pt(10D), MarginTop = Pt(20D), MarginBottom = Pt(20D), MarginLeft = Pt(20D), MarginRight = Pt(20D)
+        PageSetup = { Size = new PdfPageSize(Pt(200D), Pt(bodyHeight + 40D)), Margins = { Top = Pt(20D), Bottom = Pt(20D), Left = Pt(20D), Right = Pt(20D) } }, DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = Pt(10D)
     };
 
     private static global::OfficeIMO.OfficeLength Pt(double points) => global::OfficeIMO.OfficeLength.Points(points);

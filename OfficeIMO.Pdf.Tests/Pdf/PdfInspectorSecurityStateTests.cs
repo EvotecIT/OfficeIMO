@@ -8,7 +8,7 @@ public partial class PdfInspectorTests {
     [Fact]
     public void UnsignedDocumentHasNoSignatureMarkersOrByteRange() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Unsigned security state."))
+            .Paragraph(paragraph => paragraph.AddText("Unsigned security state."))
             .ToBytes();
 
         PdfDocumentSecurityInfo rawSecurity = PdfSyntax.ReadDocumentSecurityInfo(pdf, includeParsedDetails: false);
@@ -147,7 +147,7 @@ public partial class PdfInspectorTests {
     public void Preflight_ExposesAppendOnlyPolicyForUnsignedPdf() {
         byte[] pdf = PdfDocument.Create()
             .Meta(title: "Append-only policy")
-            .Paragraph(paragraph => paragraph.Text("Unsigned append-only policy proof."))
+            .Paragraph(paragraph => paragraph.AddText("Unsigned append-only policy proof."))
             .ToBytes();
 
         PdfDocumentPreflight report = PdfInspector.Preflight(pdf);

@@ -31,7 +31,7 @@ public sealed class PdfNestedColumnBalancingTests {
             else if (wrapper == "flow") columns.Flow(compose);
             else columns.Panel(compose, PanelStyle());
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true, BalanceTableRowLines = true })
-            .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle());
+            .Paragraph(p => p.AddText("AfterColumns"), style: ParagraphStyle());
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         int finalPage = count == 21 ? 1 : 2;
         int firstFinal = count == 21 ? 1 : wrapper == "panel" ? 31 : 33;
@@ -51,11 +51,11 @@ public sealed class PdfNestedColumnBalancingTests {
             columns.Semantic(PdfSemanticRole.Section, section => {
                 section.Flow(flow => {
                     AddContent(flow, "paragraph", 37);
-                    flow.Paragraph(p => p.Text("FlowSibling"), style: ParagraphStyle());
+                    flow.AddParagraph(p => p.AddText("FlowSibling"), style: ParagraphStyle());
                 });
-                section.Paragraph(p => p.Text("SectionSibling"), style: ParagraphStyle());
+                section.AddParagraph(p => p.AddText("SectionSibling"), style: ParagraphStyle());
             });
-            columns.Paragraph(p => p.Text("RootSibling"), style: ParagraphStyle());
+            columns.AddParagraph(p => p.AddText("RootSibling"), style: ParagraphStyle());
         }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(2, pdf.NumberOfPages);
@@ -85,8 +85,8 @@ public sealed class PdfNestedColumnBalancingTests {
     [Fact]
     public void Columns_NestedPanelMeasurementUsesItsMaximumWidthAndHorizontalPadding() {
         var style = PanelStyle(); style.MaxWidth = global::OfficeIMO.OfficeLength.Points(100); style.PaddingX = global::OfficeIMO.OfficeLength.Points(10); style.Align = OfficeAlignment.Center;
-        byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Panel(panel => panel.Paragraph(p =>
-            p.Text(string.Join(" ", Enumerable.Range(1, 21).Select(index => $"Marker{index:D3}"))), style: ParagraphStyle()), style),
+        byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Panel(panel => panel.AddParagraph(p =>
+            p.AddText(string.Join(" ", Enumerable.Range(1, 21).Select(index => $"Marker{index:D3}"))), style: ParagraphStyle()), style),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
@@ -100,7 +100,7 @@ public sealed class PdfNestedColumnBalancingTests {
     [InlineData("panel")]
     public void Columns_KeepsAnEntireConstrainedNestedGroupInOneColumn(string wrapper) {
         byte[] bytes = PdfDocument.Create(Options()).Columns(columns => {
-            columns.Paragraph(p => p.Text("Prelude1\nPrelude2\nPrelude3"), style: ParagraphStyle());
+            columns.AddParagraph(p => p.AddText("Prelude1\nPrelude2\nPrelude3"), style: ParagraphStyle());
             if (wrapper == "flow") columns.Flow(content => AddContent(content, "paragraph", 5), new PdfFlowOptions { KeepTogether = true });
             else {
                 var style = PanelStyle(); style.KeepTogether = true;
@@ -121,7 +121,7 @@ public sealed class PdfNestedColumnBalancingTests {
             LineHeight = 20D / 12D, BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0 };
         byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Semantic(PdfSemanticRole.Section,
-            section => section.Panel(panel => panel.Table(new[] { new[] { new PdfTableCell(string.Join("\n",
+            section => section.Panel(panel => panel.AddTable(new[] { new[] { new PdfTableCell(string.Join("\n",
                 Enumerable.Range(1, 43).Select(index => $"Marker{index:D3}"))) } }, style: style), PanelStyle())),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true, BalanceTableRowLines = true }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
@@ -137,7 +137,7 @@ public sealed class PdfNestedColumnBalancingTests {
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(12),
             lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepTogether: true) });
         var panel = PanelStyle(); panel.PaddingY = global::OfficeIMO.OfficeLength.Points(20);
-        byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Panel(content => content.Table(new[] { new[] { cell } },
+        byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Panel(content => content.AddTable(new[] { new[] { cell } },
             style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D,
                 BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0 }), panel),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true, BalanceTableRowLines = true }).ToBytes();
@@ -150,11 +150,11 @@ public sealed class PdfNestedColumnBalancingTests {
 
     private static void AddContent(PdfContentBuilder content, string kind, int count) {
         string[] markers = Enumerable.Range(1, count).Select(index => $"Marker{index:D3}").ToArray();
-        if (kind == "paragraph") content.Paragraph(p => p.Text(string.Join("\n", markers)), style: ParagraphStyle());
-        else if (kind == "list") content.RichNumbered(markers.Select(marker => new PdfListItem(marker)), style: new PdfListStyle {
+        if (kind == "paragraph") content.AddParagraph(p => p.AddText(string.Join("\n", markers)), style: ParagraphStyle());
+        else if (kind == "list") content.AddNumberedList(markers.Select(marker => new PdfListItem(marker)), style: new PdfListStyle {
             LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         });
-        else content.Table(markers.Select(marker => new[] { new PdfTableCell(marker) }), style: new PdfTableStyle {
+        else content.AddTable(markers.Select(marker => new[] { new PdfTableCell(marker) }), style: new PdfTableStyle {
             HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D,
             BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0
@@ -171,8 +171,10 @@ public sealed class PdfNestedColumnBalancingTests {
     private static double Y(PdfPigDocument pdf, int page, string marker) => Word(pdf, page, marker).BoundingBox.Bottom;
     private static UglyToad.PdfPig.Content.Word Word(PdfPigDocument pdf, int page, string marker) =>
         pdf.GetPage(page).GetWords().Single(word => word.Text == marker || word.Text.EndsWith("." + marker, StringComparison.Ordinal));
-    private static PdfCreateOptions Options() => new() { PageWidth = global::OfficeIMO.OfficeLength.Points(500), PageHeight = global::OfficeIMO.OfficeLength.Points(400), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-        MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false };
+    private static PdfCreateOptions Options() => new() { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(400)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+    }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12), CompressContentStreams = false };
     private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
         SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
     private static PdfPanelStyle PanelStyle() => new() { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };

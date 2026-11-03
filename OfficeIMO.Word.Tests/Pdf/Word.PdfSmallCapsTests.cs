@@ -101,10 +101,10 @@ public sealed class WordPdfSmallCapsTests {
         WordTable? table = route == "cell" ? document.AddTable(1, 1, WordTableStyle.TableGrid) : null;
         WordParagraph paragraph = route switch {
             "cell" => table!.Rows[0].Cells[0].Paragraphs[0],
-            "header" => document.HeaderDefaultOrCreate.AddParagraph(),
-            "footer" => document.FooterDefaultOrCreate.AddParagraph(),
+            "header" => document.PageSetup.Header.AddParagraph(),
+            "footer" => document.PageSetup.Footer.AddParagraph(),
             "body-textbox" => document.AddParagraph().AddTextBox(string.Empty, WordImageTextWrapping.Square).Paragraphs.Single(),
-            "header-textbox" => document.HeaderDefaultOrCreate.AddParagraph().AddTextBox(string.Empty, WordImageTextWrapping.Square).Paragraphs.Single(),
+            "header-textbox" => document.PageSetup.Header.AddParagraph().AddTextBox(string.Empty, WordImageTextWrapping.Square).Paragraphs.Single(),
             _ => document.AddParagraph()
         };
         WordParagraph run = paragraph.AddText("Aa");
