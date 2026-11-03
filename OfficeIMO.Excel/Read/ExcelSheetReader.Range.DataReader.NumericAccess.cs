@@ -1,10 +1,29 @@
 using System.Buffers.Text;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices;
+#endif
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelXmlRangeDataReader {
+            /// <summary>
+            /// Accesses a cache slot after the caller's open-row and ordinal checks.
+            /// Every cache array is readonly and allocated with the fixed field
+            /// count in the constructor. The ordinal has already been checked
+            /// against that same count before reaching this helper.
+            /// Legacy runtimes retain ordinary array indexing.
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static ref T GetValidatedOrdinalSlot<T>(T[] values, int ordinal) {
+#if NET8_0_OR_GREATER
+                return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(values), ordinal);
+#else
+                return ref values[ordinal];
+#endif
+            }
+
             /// <summary>
             /// Reads a validated indexed number directly into the existing primitive
             /// cache. Successful unloaded primitives have no object reference to clear.
@@ -19,16 +38,17 @@ namespace OfficeIMO.Excel {
                 }
 
                 value = default;
-                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null
-                    || _currentValueLoaded[ordinal] || _owner._opt.NumericAsDecimal
+                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null) return false;
+                ref bool loaded = ref _currentValueLoaded[ordinal];
+                if (loaded || _owner._opt.NumericAsDecimal
                     || _owner._opt.CellValueConverter != null
                     || !_utf8Source.TryGetNumber(ordinal + _utf8SourceOrdinalOffset, out value, out bool dateStyle)) {
                     return false;
                 }
 
-                _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.Double;
-                _currentDoubleValues[ordinal] = value;
-                _currentValueLoaded[ordinal] = !dateStyle;
+                GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Double;
+                GetValidatedOrdinalSlot(_currentDoubleValues, ordinal) = value;
+                loaded = !dateStyle;
                 return true;
             }
 
@@ -45,16 +65,17 @@ namespace OfficeIMO.Excel {
                 }
 
                 value = default;
-                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null
-                    || _currentValueLoaded[ordinal] || _owner._opt.NumericAsDecimal
+                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null) return false;
+                ref bool loaded = ref _currentValueLoaded[ordinal];
+                if (loaded || _owner._opt.NumericAsDecimal
                     || _owner._opt.CellValueConverter != null
                     || !_utf8Source.TryGetDateTime(ordinal + _utf8SourceOrdinalOffset, out value)) {
                     return false;
                 }
 
-                _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.DateTime;
-                _currentDateTimeValues[ordinal] = value;
-                _currentValueLoaded[ordinal] = true;
+                GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.DateTime;
+                GetValidatedOrdinalSlot(_currentDateTimeValues, ordinal) = value;
+                loaded = true;
                 return true;
             }
 
@@ -71,16 +92,17 @@ namespace OfficeIMO.Excel {
                 }
 
                 value = default;
-                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null
-                    || _currentValueLoaded[ordinal] || _owner._opt.NumericAsDecimal
+                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null) return false;
+                ref bool loaded = ref _currentValueLoaded[ordinal];
+                if (loaded || _owner._opt.NumericAsDecimal
                     || _owner._opt.CellValueConverter != null
                     || !_utf8Source.TryGetExactInt32(ordinal + _utf8SourceOrdinalOffset, out value)) {
                     return false;
                 }
 
-                _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.Double;
-                _currentDoubleValues[ordinal] = value;
-                _currentValueLoaded[ordinal] = true;
+                GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Double;
+                GetValidatedOrdinalSlot(_currentDoubleValues, ordinal) = value;
+                loaded = true;
                 return true;
             }
         }
