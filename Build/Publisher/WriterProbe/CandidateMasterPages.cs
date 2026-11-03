@@ -1,10 +1,11 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Authors the independent multiple-master controls through the canonical public page and story model.</summary>
 internal static class CandidateMasterPages {
-    internal static CandidatePublicationSpec Create(bool paired) => CandidateModelProjection.MultipleMasters(Author(paired));
+    internal static PublisherNativeCreationPlan Create(bool paired) => PublisherNativeCreationProjection.MultipleMasters(Author(paired));
 
     internal static PublisherDocument Author(bool paired) {
         PublisherDocument document = PublisherDocument.Create(612, 792);

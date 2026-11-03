@@ -1,10 +1,11 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects one ordinary caption with inherited last-run typing style and optional explicit language.</summary>
 internal static class CandidateCaptionTyping {
-    internal static CandidatePublicationSpec Create(string? text, uint? languageId) {
+    internal static PublisherNativeCreationPlan Create(string? text, uint? languageId) {
         PublisherDocument document = PublisherDocument.Create(612, 792);
         PublisherPage master = document.AddMasterPage("Master Page A");
         uint page = document.Pages[0].Id;
@@ -15,6 +16,6 @@ internal static class CandidateCaptionTyping {
                     .WithLanguageId(languageId)
             }, lineHeight: 18)
         });
-        return CandidateModelProjection.FrameLayouts(document);
+        return PublisherNativeCreationProjection.FrameLayouts(document);
     }
 }

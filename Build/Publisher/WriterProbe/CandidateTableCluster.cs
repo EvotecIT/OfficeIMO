@@ -1,10 +1,11 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Authors the dense comparison grids through the same table/story model as other specimens.</summary>
 internal static class CandidateTableCluster {
-    internal static CandidatePublicationSpec Create(int size, bool edited) {
+    internal static PublisherNativeCreationPlan Create(int size, bool edited) {
         PublisherDocument document = PublisherDocument.Create(612, 792);
         PublisherPage master = document.AddMasterPage("Master Page A");
         uint page = document.Pages[0].Id;
@@ -25,7 +26,7 @@ internal static class CandidateTableCluster {
         }
         for (int row = 0; row <= size; row++) document.SetTableBorderStyle(table.Id, row, 0, row, size, side);
         for (int column = 0; column <= size; column++) document.SetTableBorderStyle(table.Id, 0, column, size, column, side);
-        return CandidateModelProjection.Tables(document);
+        return PublisherNativeCreationProjection.Tables(document);
     }
 
     private static OfficeRichTextParagraph[] Paragraphs(string text, double size, bool bold, double? lineHeight) => new[] {

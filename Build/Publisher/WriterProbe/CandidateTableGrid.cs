@@ -1,14 +1,15 @@
 using System.Globalization;
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Authors legible rectangular and empty grid specimens through the canonical table/story model.</summary>
 internal static class CandidateTableGrid {
-    internal static CandidatePublicationSpec Create(string? dimensions, bool empty = false) =>
-        CandidateModelProjection.Tables(Author(dimensions, empty));
+    internal static PublisherNativeCreationPlan Create(string? dimensions, bool empty = false) =>
+        PublisherNativeCreationProjection.Tables(Author(dimensions, empty));
 
-    internal static CandidatePublicationSpec CreateEdited(string? dimensions) {
+    internal static PublisherNativeCreationPlan CreateEdited(string? dimensions) {
         PublisherDocument document = Author(dimensions);
         PublisherPage page = document.Pages[0];
         PublisherTable table = page.Tables.Single();
@@ -17,7 +18,7 @@ internal static class CandidateTableGrid {
         document.SetTextFrameBounds(caption.Id, 72, 48, 432, 42);
         document.ReplaceTableCellParagraphs(table.Id, table.RowCount - 1, table.ColumnCount - 1, Paragraphs("Final\nCell", table.RowCount == 1));
         document.SetPageObjectOrder(page.Id, new[] { table.Id, caption.Id });
-        return CandidateModelProjection.Tables(document);
+        return PublisherNativeCreationProjection.Tables(document);
     }
 
     internal static PublisherDocument Author(string? dimensions, bool empty = false) {

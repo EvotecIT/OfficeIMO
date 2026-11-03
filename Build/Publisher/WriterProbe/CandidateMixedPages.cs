@@ -1,10 +1,11 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Authors overlapping object kinds in different append orders on separated physical pages.</summary>
 internal static class CandidateMixedPages {
-    internal static CandidatePublicationSpec Create(byte[] image) => CandidateModelProjection.SingleMasterContent(Author(image));
+    internal static PublisherNativeCreationPlan Create(byte[] image) => PublisherNativeCreationProjection.SingleMasterContent(Author(image));
 
     internal static PublisherDocument Author(byte[] image) {
         PublisherDocument document = PublisherDocument.Create(612, 792);

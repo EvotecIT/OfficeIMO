@@ -1,10 +1,11 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Authors one newsletter combining the qualified native object, text-layout and table profiles.</summary>
 internal static class CandidateNewsletter {
-    internal static CandidatePublicationSpec Create(byte[] image) => CandidateModelProjection.ComposedContent(Author(image));
+    internal static PublisherNativeCreationPlan Create(byte[] image) => PublisherNativeCreationProjection.ComposedContent(Author(image));
 
     internal static PublisherDocument Author(byte[] image) {
         PublisherDocument document = PublisherDocument.Create(612, 792);

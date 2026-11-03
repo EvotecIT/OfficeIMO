@@ -1,11 +1,12 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects a public-model chain whose order differs from physical page order.</summary>
 internal static class CandidateLinkedStory {
-    internal static CandidatePublicationSpec Create(bool overflow, uint? languageId = null) =>
-        CandidateModelProjection.LinkedStories(Author(overflow, languageId));
+    internal static PublisherNativeCreationPlan Create(bool overflow, uint? languageId = null) =>
+        PublisherNativeCreationProjection.LinkedStories(Author(overflow, languageId));
 
     internal static PublisherDocument Author(bool overflow, uint? languageId = null) {
         PublisherDocument document = PublisherDocument.Create(612, 792);

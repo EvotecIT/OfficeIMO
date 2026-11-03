@@ -1,10 +1,11 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Authors one populated master and page-owned foreground without duplicating the master objects.</summary>
 internal static class CandidateMasterContent {
-    internal static CandidatePublicationSpec Create(byte[] image) => CandidateModelProjection.SingleMasterContent(Author(image));
+    internal static PublisherNativeCreationPlan Create(byte[] image) => PublisherNativeCreationProjection.SingleMasterContent(Author(image));
 
     internal static PublisherDocument Author(byte[] image) {
         PublisherDocument document = PublisherDocument.Create(612, 792);

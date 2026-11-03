@@ -1,47 +1,47 @@
 using OfficeIMO.Drawing;
 
-namespace OfficeIMO.Publisher.WriterProbe;
+namespace OfficeIMO.Publisher.Internal;
 
 /// <summary>Projects qualified source-free specimens from their final authoring models into codec inputs.</summary>
-internal static class CandidateModelProjection {
+internal static class PublisherNativeCreationProjection {
     /// <summary>Retains complete story identity and chain order independently of physical page and drawing order.</summary>
-    internal static CandidatePublicationSpec LinkedStories(PublisherDocument document) {
+    internal static PublisherNativeCreationPlan LinkedStories(PublisherDocument document) {
         PublisherPage master = EmptySingleMaster(document);
         var frames = document.Pages.SelectMany((page, pageIndex) => FramePage(page)
             .Select(frame => (Frame: frame, PageIndex: pageIndex))).ToDictionary(item => item.Frame.Id);
         var ordered = document.Pages.Select(page => new Queue<PublisherTextFrame>(
             page.ObjectIds.Select(id => frames[id].Frame))).ToArray();
-        var stories = new Dictionary<uint, CandidateStorySpec>();
-        var objects = new List<CandidateObjectSpec>();
+        var stories = new Dictionary<uint, PublisherNativeCreationStory>();
+        var objects = new List<PublisherNativeCreationObject>();
         // Keep the existing cross-page allocation slots; each page's final
         // object order supplies their current occupants.
         foreach (var slot in frames.Values.OrderBy(item => item.Frame.Id)) {
             PublisherTextFrame frame = ordered[slot.PageIndex].Dequeue();
             PlainFrameLayout(frame);
-            if (!stories.TryGetValue(frame.StoryId, out CandidateStorySpec? story)) {
-                story = CandidateStorySpec.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
+            if (!stories.TryGetValue(frame.StoryId, out PublisherNativeCreationStory? story)) {
+                story = PublisherNativeCreationStory.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
                 stories.Add(frame.StoryId, story);
             }
-            objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
-                new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height), story,
+            objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.TextBox,
+                new PublisherNativeCreationPlacement(frame.X, frame.Y, frame.Width, frame.Height), story,
                 PageIndex: slot.PageIndex, ColumnSpacing: frame.ColumnSpacing, FrameOrder: frame.Order));
         }
         return SingleMasterSpecification(document, master, objects);
     }
 
     /// <summary>Projects the qualified unlinked column, inset and Top/Center/Bottom frame profile.</summary>
-    internal static CandidatePublicationSpec FrameLayouts(PublisherDocument document) {
+    internal static PublisherNativeCreationPlan FrameLayouts(PublisherDocument document) {
         PublisherPage master = EmptySingleMaster(document);
-        var objects = new List<CandidateObjectSpec>();
+        var objects = new List<PublisherNativeCreationObject>();
         for (int index = 0; index < document.Pages.Count; index++) {
             PublisherPage page = document.Pages[index];
             var frames = FramePage(page).ToDictionary(frame => frame.Id);
             foreach (uint id in page.ObjectIds) {
                 PublisherTextFrame frame = frames[id];
                 UnlinkedFrameLayout(frame);
-                objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
-                    new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
-                    CandidateStorySpec.Styled(document.TextStories.Single(story => story.Id == frame.StoryId)),
+                objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.TextBox,
+                    new PublisherNativeCreationPlacement(frame.X, frame.Y, frame.Width, frame.Height),
+                    PublisherNativeCreationStory.Styled(document.TextStories.Single(story => story.Id == frame.StoryId)),
                     PageIndex: index, FrameLayout: frame));
             }
         }
@@ -49,7 +49,7 @@ internal static class CandidateModelProjection {
     }
 
     /// <summary>Projects one complete unmerged borderless table and ordinary captions in final drawing order.</summary>
-    internal static CandidatePublicationSpec Tables(PublisherDocument document) {
+    internal static PublisherNativeCreationPlan Tables(PublisherDocument document) {
         PublisherPage master = EmptySingleMaster(document);
         if (document.Pages.Count != 1 || document.Pages[0].Tables.Count != 1
             || document.Pages[0].Pictures.Count != 0 || document.Pages[0].Shapes.Count != 0)
@@ -58,15 +58,15 @@ internal static class CandidateModelProjection {
         PublisherTable table = page.Tables[0];
         CompleteTable(table);
         var frames = page.TextFrames.ToDictionary(frame => frame.Id);
-        var objects = new List<CandidateObjectSpec>();
+        var objects = new List<PublisherNativeCreationObject>();
         foreach (uint id in page.ObjectIds) {
             if (id == table.Id) {
-                objects.Add(new CandidateObjectSpec(CandidateObjectKind.Table,
-                    new CandidatePlacement(table.X, table.Y, table.Width, table.Height),
-                    CandidateStorySpec.Table(table, document.TextStories.Single(story => story.Id == table.StoryId)), Table: table));
+                objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Table,
+                    new PublisherNativeCreationPlacement(table.X, table.Y, table.Width, table.Height),
+                    PublisherNativeCreationStory.Table(table, document.TextStories.Single(story => story.Id == table.StoryId)), Table: table));
             } else if (frames.TryGetValue(id, out PublisherTextFrame? frame)) {
-                objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
-                    new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
+                objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.TextBox,
+                    new PublisherNativeCreationPlacement(frame.X, frame.Y, frame.Width, frame.Height),
                     OrdinaryStory(document, frame), ColumnSpacing: frame.ColumnSpacing));
             } else throw new NotSupportedException("An owned table-page object has no qualified projection.");
         }
@@ -74,7 +74,7 @@ internal static class CandidateModelProjection {
     }
 
     /// <summary>Projects the existing text-only two-centered-master or centered/left/right-master profiles.</summary>
-    internal static CandidatePublicationSpec MultipleMasters(PublisherDocument document) {
+    internal static PublisherNativeCreationPlan MultipleMasters(PublisherDocument document) {
         PublisherPage[] masters = document.MasterPages.ToArray();
         bool paired = masters.Length == 3 && masters[0].MasterSide == PublisherMasterPageSide.Single
             && masters[1].MasterSide == PublisherMasterPageSide.Left && masters[2].MasterSide == PublisherMasterPageSide.Right
@@ -86,11 +86,11 @@ internal static class CandidateModelProjection {
         var indices = masters.Select((master, index) => (master.Id, index)).ToDictionary(item => item.Id, item => item.index);
         int?[] assignments = document.Pages.Select(page => page.MasterPageId is { } id && indices.TryGetValue(id, out int index)
             ? (int?)index : throw new NotSupportedException("The master specimen requires a defined master on every physical page.")).ToArray();
-        var objects = new List<CandidateObjectSpec>();
+        var objects = new List<PublisherNativeCreationObject>();
         for (int index = 0; index < masters.Length; index++) AddPage(masters[index], index, true);
         for (int index = 0; index < document.Pages.Count; index++) AddPage(document.Pages[index], index, false);
-        return new CandidatePublicationSpec(612 * 12700, 792 * 12700, objects, document.Pages.Count,
-            masters.Select((master, index) => new CandidateMasterSpec(index == 0 ? "A" : paired ? "P" : "B",
+        return new PublisherNativeCreationPlan(612 * 12700, 792 * 12700, objects, document.Pages.Count,
+            masters.Select((master, index) => new PublisherNativeCreationMaster(index == 0 ? "A" : paired ? "P" : "B",
                 master.Name, master.MasterSide!.Value)).ToArray(), assignments);
 
         void AddPage(PublisherPage page, int index, bool onMaster) {
@@ -100,27 +100,27 @@ internal static class CandidateModelProjection {
             foreach (uint id in page.ObjectIds) {
                 if (!frames.TryGetValue(id, out PublisherTextFrame? frame) || frame.ColumnSpacing != 0)
                     throw new NotSupportedException("The multiple-master text specimen requires ordinary frames with the default column gap.");
-                objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
-                    new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
+                objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.TextBox,
+                    new PublisherNativeCreationPlacement(frame.X, frame.Y, frame.Width, frame.Height),
                     OrdinaryStory(document, frame), PageIndex: index, OnMaster: onMaster));
             }
         }
     }
 
     /// <summary>Projects ordinary single-master content, preserving each specimen's named or unnamed native picture profile.</summary>
-    internal static CandidatePublicationSpec SingleMasterContent(PublisherDocument document, bool includePictureNames = true) =>
+    internal static PublisherNativeCreationPlan SingleMasterContent(PublisherDocument document, bool includePictureNames = true) =>
         Content(document, includePictureNames, composeProfiles: false);
 
     /// <summary>Combines ordinary master artwork with physical-page linked/layout text and one qualified table.</summary>
-    internal static CandidatePublicationSpec ComposedContent(PublisherDocument document) =>
+    internal static PublisherNativeCreationPlan ComposedContent(PublisherDocument document) =>
         Content(document, includePictureNames: true, composeProfiles: true);
 
-    private static CandidatePublicationSpec Content(PublisherDocument document, bool includePictureNames, bool composeProfiles) {
+    private static PublisherNativeCreationPlan Content(PublisherDocument document, bool includePictureNames, bool composeProfiles) {
         PublisherPage master = SingleMaster(document);
         if (composeProfiles && (master.Tables.Count != 0 || document.Pages.Sum(page => page.Tables.Count) > 1))
             throw new NotSupportedException("The composed specimen supports at most one physical-page table and no master table.");
-        var objects = new List<CandidateObjectSpec>();
-        var stories = new Dictionary<uint, CandidateStorySpec>();
+        var objects = new List<PublisherNativeCreationObject>();
+        var stories = new Dictionary<uint, PublisherNativeCreationStory>();
         AddPage(master, 0, true);
         for (int index = 0; index < document.Pages.Count; index++) AddPage(document.Pages[index], index, false);
         return SingleMasterSpecification(document, master, objects);
@@ -134,25 +134,25 @@ internal static class CandidateModelProjection {
             foreach (uint id in page.ObjectIds) {
                 if (frames.TryGetValue(id, out PublisherTextFrame? frame)) {
                     bool hasLayout = composeProfiles && !onMaster && !frame.PreviousFrameId.HasValue && !frame.NextFrameId.HasValue;
-                    CandidateStorySpec story;
+                    PublisherNativeCreationStory story;
                     if (!composeProfiles || onMaster) story = OrdinaryStory(document, frame);
                     else {
                         if (hasLayout) UnlinkedFrameLayout(frame); else PlainFrameLayout(frame);
                         if (!stories.TryGetValue(frame.StoryId, out story!)) {
-                            story = CandidateStorySpec.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
+                            story = PublisherNativeCreationStory.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
                             stories.Add(frame.StoryId, story);
                         }
                     }
-                    objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
-                        new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
+                    objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.TextBox,
+                        new PublisherNativeCreationPlacement(frame.X, frame.Y, frame.Width, frame.Height),
                         story, PageIndex: index, ColumnSpacing: frame.ColumnSpacing, OnMaster: onMaster,
                         FrameOrder: frame.Order, FrameLayout: hasLayout ? frame : null));
                 } else if (pictures.TryGetValue(id, out PublisherPicture? picture)) {
                     if (!picture.CanEdit || !picture.ImageId.HasValue)
                         throw new NotSupportedException("The picture has no qualified image and placement model.");
                     PublisherImage image = document.Images.Single(asset => asset.Id == picture.ImageId);
-                    objects.Add(new CandidateObjectSpec(CandidateObjectKind.Picture,
-                        new CandidatePlacement(picture.X, picture.Y, picture.Width, picture.Height),
+                    objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Picture,
+                        new PublisherNativeCreationPlacement(picture.X, picture.Y, picture.Width, picture.Height),
                         Image: image.GetBytes(), PageIndex: index, Paint: picture.CreatePaint(),
                         ImageName: includePictureNames ? "Image" + image.Id + (image.ContentType == "image/png" ? ".png" : ".jpg") : null,
                         Crop: picture.Crop, ImageId: image.Id, OnMaster: onMaster));
@@ -160,25 +160,25 @@ internal static class CandidateModelProjection {
                     OfficeShape paint = shape.CreateShape();
                     if (paint.Kind != OfficeShapeKind.Rectangle)
                         throw new NotSupportedException("The single-master artwork specimen requires rectangles.");
-                    objects.Add(new CandidateObjectSpec(CandidateObjectKind.Rectangle,
-                        new CandidatePlacement(shape.X, shape.Y, shape.Width, shape.Height),
+                    objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Rectangle,
+                        new PublisherNativeCreationPlacement(shape.X, shape.Y, shape.Width, shape.Height),
                         PageIndex: index, Paint: paint, OnMaster: onMaster));
                 } else if (tables.TryGetValue(id, out PublisherTable? table)) {
                     CompleteTable(table);
-                    objects.Add(new CandidateObjectSpec(CandidateObjectKind.Table,
-                        new CandidatePlacement(table.X, table.Y, table.Width, table.Height),
-                        CandidateStorySpec.Table(table, document.TextStories.Single(story => story.Id == table.StoryId)),
+                    objects.Add(new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Table,
+                        new PublisherNativeCreationPlacement(table.X, table.Y, table.Width, table.Height),
+                        PublisherNativeCreationStory.Table(table, document.TextStories.Single(story => story.Id == table.StoryId)),
                         PageIndex: index, Table: table));
                 } else throw new NotSupportedException("An owned object has no supported model projection.");
             }
         }
     }
 
-    private static CandidateStorySpec OrdinaryStory(PublisherDocument document, PublisherTextFrame frame) {
+    private static PublisherNativeCreationStory OrdinaryStory(PublisherDocument document, PublisherTextFrame frame) {
         if (frame.PreviousFrameId.HasValue || frame.NextFrameId.HasValue)
             throw new NotSupportedException("Linked frames require their separate writer profile.");
         PlainFrameLayout(frame);
-        return CandidateStorySpec.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
+        return PublisherNativeCreationStory.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
     }
 
     private static void PlainFrameLayout(PublisherTextFrame frame) {
@@ -225,8 +225,8 @@ internal static class CandidateModelProjection {
         return master;
     }
 
-    private static CandidatePublicationSpec SingleMasterSpecification(PublisherDocument document, PublisherPage master,
-        IReadOnlyList<CandidateObjectSpec> objects) => new(612 * 12700, 792 * 12700, objects, document.Pages.Count,
-            new[] { new CandidateMasterSpec("A", master.Name, PublisherMasterPageSide.Single) },
+    private static PublisherNativeCreationPlan SingleMasterSpecification(PublisherDocument document, PublisherPage master,
+        IReadOnlyList<PublisherNativeCreationObject> objects) => new(612 * 12700, 792 * 12700, objects, document.Pages.Count,
+            new[] { new PublisherNativeCreationMaster("A", master.Name, PublisherMasterPageSide.Single) },
             Enumerable.Repeat<int?>(0, document.Pages.Count).ToArray());
 }

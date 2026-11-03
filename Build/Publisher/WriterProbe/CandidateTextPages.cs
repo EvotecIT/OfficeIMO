@@ -1,10 +1,11 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Exercises the existing public authoring model with independent stories on the first and last physical pages.</summary>
 internal static class CandidateTextPages {
-    internal static CandidatePublicationSpec Create(string? value) => CandidateModelProjection.SingleMasterContent(Author(value));
+    internal static PublisherNativeCreationPlan Create(string? value) => PublisherNativeCreationProjection.SingleMasterContent(Author(value));
 
     internal static PublisherDocument Author(string? value) {
         if (!int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int count)

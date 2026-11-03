@@ -1,11 +1,12 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects public column, inset and vertical-alignment authoring into the native creation specimen.</summary>
 internal static class CandidateFrameLayout {
-    internal static CandidatePublicationSpec Create(bool edited, uint? languageId = null) =>
-        CandidateModelProjection.FrameLayouts(Author(edited, languageId));
+    internal static PublisherNativeCreationPlan Create(bool edited, uint? languageId = null) =>
+        PublisherNativeCreationProjection.FrameLayouts(Author(edited, languageId));
 
     internal static PublisherDocument Author(bool edited, uint? languageId = null) {
         PublisherDocument document = PublisherDocument.Create(612, 792);

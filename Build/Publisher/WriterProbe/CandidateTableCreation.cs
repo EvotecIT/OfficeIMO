@@ -1,12 +1,13 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects the public table model, including its complete story and rectangular or merged cell boundaries.</summary>
 internal static class CandidateTableCreation {
-    internal static CandidatePublicationSpec Create(bool edited) => CandidateModelProjection.Tables(Author(edited));
+    internal static PublisherNativeCreationPlan Create(bool edited) => PublisherNativeCreationProjection.Tables(Author(edited));
 
-    internal static CandidatePublicationSpec CreateDecorated(bool edited) {
+    internal static PublisherNativeCreationPlan CreateDecorated(bool edited) {
         PublisherDocument document = Author(false);
         uint id = document.Pages[0].Tables[0].Id;
         document.SetTableCellFillColor(id, 0, 0, edited ? OfficeColor.FromRgb(192, 224, 192) : OfficeColor.FromRgb(255, 224, 160));
@@ -18,12 +19,12 @@ internal static class CandidateTableCreation {
         document.SetTableBorderStyle(id, 1, 0, 1, 1, new OfficeBorderSide(OfficeColor.FromRgb(128, 0, 128), edited ? 3 : 1));
         document.SetTableBorderStyle(id, 1, 2, 2, 2, new OfficeBorderSide(OfficeColor.FromRgb(255, 0, 255), 4));
         document.SetTableBorderStyle(id, 2, 1, 2, 2, new OfficeBorderSide(OfficeColor.FromRgb(0, 255, 255), 2));
-        return CandidateModelProjection.Tables(document);
+        return PublisherNativeCreationProjection.Tables(document);
     }
 
-    internal static CandidatePublicationSpec CreateMerged() => CandidateModelProjection.Tables(AuthorMerged());
+    internal static PublisherNativeCreationPlan CreateMerged() => PublisherNativeCreationProjection.Tables(AuthorMerged());
 
-    internal static CandidatePublicationSpec CreateMergedDecorated() {
+    internal static PublisherNativeCreationPlan CreateMergedDecorated() {
         PublisherDocument document = AuthorMerged();
         uint id = document.Pages[0].Tables.Single().Id;
         document.SetTableCellFillColor(id, 0, 0, OfficeColor.FromRgb(255, 224, 160));
@@ -42,7 +43,7 @@ internal static class CandidateTableCreation {
         foreach (var range in ranges)
             document.SetTableBorderStyle(id, range.FirstRow, range.FirstColumn, range.LastRow, range.LastColumn, side);
         document.SetTableBorderStyle(id, 1, 2, 2, 2, new OfficeBorderSide(OfficeColor.Black, 0.5));
-        return CandidateModelProjection.Tables(document);
+        return PublisherNativeCreationProjection.Tables(document);
     }
 
     internal static PublisherDocument AuthorMerged() {

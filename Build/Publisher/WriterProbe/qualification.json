@@ -116,12 +116,30 @@
       "observationRuntime": "Existing isolated Python 3.13.15 / Frida 17.19.0; not a product dependency.",
       "method": "Current native-operation scripts with bounded five-second pre/post Open gates. Unchanged COM calls, arguments and macro security 3. Exact PID, creation time, worker ancestry, image hash and instruction prefixes checked before attachment. Per-phase hook readiness, explicit drain acknowledgement, paired same-thread load/validation intervals and canonical process closure required.",
       "sites": [
-        { "rva": "0x93544", "role": "Normal load entry/return" },
-        { "rva": "0x93849", "role": "Completed maximum-severity reset" },
-        { "rva": "0x82FF4", "role": "Validation wrapper entry/return and continuation DWORD" },
-        { "rva": "0x191266", "role": "Validation-consent branch entry" },
-        { "rva": "0x85379C", "role": "GK diagnostic entry/return" },
-        { "rva": "0x23F840", "role": "Generic numeric-message request/return" }
+        {
+          "rva": "0x93544",
+          "role": "Normal load entry/return"
+        },
+        {
+          "rva": "0x93849",
+          "role": "Completed maximum-severity reset"
+        },
+        {
+          "rva": "0x82FF4",
+          "role": "Validation wrapper entry/return and continuation DWORD"
+        },
+        {
+          "rva": "0x191266",
+          "role": "Validation-consent branch entry"
+        },
+        {
+          "rva": "0x85379C",
+          "role": "GK diagnostic entry/return"
+        },
+        {
+          "rva": "0x23F840",
+          "role": "Generic numeric-message request/return"
+        }
       ],
       "nativeBlankCompatibility": {
         "inputSha256": "3fa503f65bc861c4184685a6fcfb0d52dee10708b49cd68c1024f39cd3083efe",
@@ -140,16 +158,29 @@
         "mutation": "Disposable native-blank copy only: Quill/QuillSub/CONTENTS offset 0 (file offset 14848), signature byte 0x43 to 0x42; exactly one file byte changed.",
         "stage": "Inspect",
         "outcome": "Expected native rejection with one correlated severity-4 diagnostic; no successful ordinary-operation claim.",
-        "maximumSeverityBeforeAfter": [0, 4],
-        "strictFailureBeforeAfter": [0, 1],
-        "diagnosticCountBeforeAfter": [0, 1],
+        "maximumSeverityBeforeAfter": [
+          0,
+          4
+        ],
+        "strictFailureBeforeAfter": [
+          0,
+          1
+        ],
+        "diagnosticCountBeforeAfter": [
+          0,
+          1
+        ],
         "validationReturn": "0x80040065",
         "traceSha256": "7fd9c501a2941e90af8376c1af1e6b837fa341558c338a1526a8feba62d70956",
         "repairPositive": false
       },
       "exactCombinedCandidate": {
         "inputSha256": "37e0e91a36c900f2b1a7c73fe3cb606b477464787e60a70375d8985ebd520bcf",
-        "phases": ["OpenCandidateReadOnly", "OpenSnapshotWritable", "ReopenNativeResave"],
+        "phases": [
+          "OpenCandidateReadOnly",
+          "OpenSnapshotWritable",
+          "ReopenNativeResave"
+        ],
         "ordinaryOperations": 7,
         "eventsPerPhaseIncludingReadyAndDrain": 7,
         "diagnostics": 0,
@@ -30305,7 +30336,11 @@
     "nativeTextControlSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
     "candidate": {
       "openedBeforeNativeResave": true,
-      "visibleContent": ["Styled text", "Red rectangle", "Embedded multicolour image"],
+      "visibleContent": [
+        "Styled text",
+        "Red rectangle",
+        "Embedded multicolour image"
+      ],
       "pageCount": 1,
       "repairOrRecoveryPromptAccepted": false,
       "fileProblemWarningObserved": false,
@@ -30742,7 +30777,12 @@
       "edited": {
         "opened": true,
         "physicalPages": 4,
-        "pagesInspected": [1, 2, 3, 4],
+        "pagesInspected": [
+          1,
+          2,
+          3,
+          4
+        ],
         "observations": [
           "Updated lead, table paragraphs and layout, changed columns, replacement JPEG and linked continuation are visible.",
           "The fourth page contains only the recurring master heading, image and rule."
@@ -38919,6 +38959,194 @@
       "Managed/native font and baseline parity",
       "Positive recovery control, repair-free native acceptance and public source-free native creation"
     ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
+  },
+  "objectStateColdPath": {
+    "sourceBaseCommit": "e3763f1fbb34d239eea92a839f80c084bfb8a12c",
+    "scope": "Bounded follow-up of the original object-state helper cold branches and subordinate materialization path; static evidence only.",
+    "nativeBinary": {
+      "version": "16.0.20527.20112",
+      "sha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a"
+    },
+    "analysisInput": {
+      "classification": "Derived byte-exact native pages in a synthetic offline-only PE32+ DLL; never executed",
+      "sha256": "7298b66e759f91b9fe1fc12186614ef838693ee63f4ecf9bbc2a3035963a3299",
+      "mappedPageRvas": [
+        "0x90000",
+        "0x110000",
+        "0x120000",
+        "0x143000",
+        "0x158000"
+      ],
+      "payloadBytes": 20480,
+      "provenance": "Native source offsets and page hashes checked against the immutable original. Original imports, relocations, unwind directory and external data are not mapped."
+    },
+    "provider": {
+      "id": "ghidra",
+      "name": "Ghidra",
+      "version": "12.1.4"
+    },
+    "analysisProfileDigest": "dcc676845881c04a2d22833fb35d26569462e033daee5e99a95edac5aa61ac05",
+    "main": {
+      "rva": "0x905f8",
+      "evidenceId": "ev_7af0827e56d79b1531c3a0317b3cd031dd7749b54f12890cf836e73e8a79026e",
+      "observedBody": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x1400905f8",
+            "end": "0x1400906e3"
+          },
+          {
+            "start": "0x140158c3c",
+            "end": "0x140158c62"
+          }
+        ],
+        "total_bytes": 275,
+        "span_bytes": 820843,
+        "non_contiguous": true,
+        "contains_entry": true
+      },
+      "observation": "Original chained cold fragment0x158c3c-0x158c64 has no calls. It returns E_FAIL0x80004005 or rewrites only the low two state bits and returns zero. Mapped main pseudocode no longer reports bad-instruction truncation."
+    },
+    "subordinate": {
+      "rva": "0x110400",
+      "evidenceId": "ev_ccdf5160a18e46f2721f6f97cc598f984a65d9ca049efd8d543cc7dbcf3de592",
+      "observedBody": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x140110400",
+            "end": "0x1401104d0"
+          },
+          {
+            "start": "0x1401104d2",
+            "end": "0x1401104f5"
+          },
+          {
+            "start": "0x1401439dd",
+            "end": "0x1401439eb"
+          },
+          {
+            "start": "0x140143a23",
+            "end": "0x140143a2c"
+          }
+        ],
+        "total_bytes": 270,
+        "span_bytes": 210477,
+        "non_contiguous": true,
+        "contains_entry": true
+      },
+      "observation": "Fast path returns the slot+0x10 pointer when flags&0x803 is nonzero. State0x1000 slow path calls unmapped0xc8f08; a negative result propagates. Represented alternatives return a stored pointer or E_FAIL.",
+      "boundaryLimit": "Ghidra reports a terminal call at0x1104ed to0x1439ec; the reason and complete exception/nonreturn semantics remain unestablished."
+    },
+    "interpretation": "Object-state/materialization is an inference from the represented slot flags and pointer paths. A function label, E_FAIL or return1 is not a recovery-specific predicate.",
+    "limits": [
+      "Application meaning of numeric decision0x66c2 and response1, and actual runtime binding between the materializer failure and this retry wrapper",
+      "Cause of Ghidra terminal flow into0x1439ec and complete exception/nonreturn semantics",
+      "Unknown indirect callers and descriptor callback targets",
+      "Validator branch0x120928 to0x139800 is outside mapped pages",
+      "Native positive recovery control, recovery-path qualification and repair-free acceptance"
+    ],
+    "lifecycle": {
+      "imports": 1,
+      "containmentQueries": 2,
+      "dossiers": 2,
+      "wholeExeImports": 0,
+      "publisherRuns": 0,
+      "evidenceExported": true,
+      "snapshotExported": true,
+      "targetAndProviderRunClosed": true,
+      "cancelledControlUntouched": true
+    },
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false,
+    "originalMaterializer": {
+      "hotHalfOpenRvaRange": [
+        "0xc8f08",
+        "0xc95bb"
+      ],
+      "coldHalfOpenRvaRange": [
+        "0x14364c",
+        "0x143742"
+      ],
+      "instructions": 482,
+      "unwind": "Primary and sole chained cold fragment have no EH/UH handler.",
+      "statusPolicies": [
+        "Source/table-header +0x58 bit0x10 can suppress status0x80040043 from selected callees.",
+        "Slot type0x6a separately tolerates0x80040042/43."
+      ],
+      "contextFlag": "No explicit +0x1a88 access; indirect callee effects remain unknown."
+    },
+    "originalRetryCaller": {
+      "wrapperRva": "0x344ed8",
+      "decisionCalleeRva": "0x23f840",
+      "numericArgument": "0x66c2",
+      "wrapperResponse": "Return1 writes same context +0x1a88=1 and returns0x40053; other decisions produce0x80040052. The wrapper itself does not retry.",
+      "callerHalfOpenRvaRange": [
+        "0x1a2c28",
+        "0x1a3156"
+      ],
+      "callerSha256": "bdbbdae031ca09af81c1dbb8fcc0e0eea541f66d75ddebd8c162a0a6e3cbbc0d",
+      "directCallSites": [
+        "0x1a3053",
+        "0x1a308a"
+      ],
+      "instructions": 330,
+      "observedRetry": "Both caller paths consume0x40053 by decrementing and then incrementing the item index before looping. Context pointer is retained; item pointer is reacquired by index.",
+      "qualification": "Static same-context/same-item-index retry, not a native accepted recovery control."
+    }
+  },
+  "canonicalNativeCreationOwner": {
+    "sourceBaseCommit": "e3763f1fbb34d239eea92a839f80c084bfb8a12c",
+    "scope": "Move the existing modern native specimen codec and model projection into the canonical internal Publisher owner, with operation budgets and cancellation. Public source-free saving remains gated.",
+    "implementation": "OfficeIMO.Publisher/Internal/NativeCreation",
+    "probeBoundary": "WriterProbe retains corpus factories, CLI/file access, comparisons and source-derived helpers; only its create command calls the internal codec.",
+    "publicSaveFailureCode": "PUB_NATIVE_SOURCE_REQUIRED",
+    "operationContract": {
+      "settings": "Explicit PublisherReadOptions, maximum complete output bytes and cancellation token; options cloned once.",
+      "admission": "Semantic physical/master pages, objects, unique stories, table items, explicit master names, generated tabs and unique encoded image assets are checked before stream construction.",
+      "sourceInspection": "Generated fields and tabs do not consume MaxRecords; existing source Rewrite record accounting is unchanged.",
+      "output": "Existing OfficeCompoundFileWriter enforces the complete CFB bound before final output allocation.",
+      "cancellation": "Same context/token traverses graph, Quill, artwork, table utilities, shared-image equality and final compound serialization."
+    },
+    "validation": {
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "net472",
+        "netstandard2.0"
+      ],
+      "frameworkBuildWarnings": 0,
+      "frameworkBuildErrors": 0,
+      "focusedTests": 10,
+      "fullNet10Tests": 1217,
+      "affectedNet8Tests": 289,
+      "affectedNet472Tests": 289,
+      "failed": 0,
+      "skipped": 0,
+      "defaultByteIdentity": {
+        "profiles": 41,
+        "allExact": true,
+        "baseline": "Frozen pre-move runtime and independent-producer-qualified existing specimens",
+        "scope": "Default accepted output bytes; no new native acceptance inferred."
+      },
+      "powerShellSourceBuild": "net8.0, zero warnings/errors",
+      "consumer": "Current-source PSWriteOffice imports successfully; public managed restoration of the native-edited merged table saves/reloads seven logical cells and converts to PDF through ConvertTo-OfficeDocument."
+    },
+    "review": {
+      "structuralFullPasses": 1,
+      "structuralTargetedConfirmations": 1,
+      "structuralFinding": "Two System.Index uses were replaced by guarded Count-1 indexing for maintained framework compatibility.",
+      "resourceFullPasses": 1,
+      "resourceTargetedConfirmations": 0,
+      "remainingActionableFindings": 0
+    },
+    "newRuntimeDependency": false,
+    "newPublicApi": false,
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
   }

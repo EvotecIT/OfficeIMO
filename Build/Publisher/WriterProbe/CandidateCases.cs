@@ -1,10 +1,12 @@
+using OfficeIMO.Publisher.Internal;
+
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Maps semantic CLI cases to the single creation specification consumed by all codecs.</summary>
 internal static class CandidateCases {
-    private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
+    private static readonly PublisherNativeCreationPlacement DefaultPlacement = new(72, 72, 288, 108);
 
-    internal static CandidatePublicationSpec Create(string kind, string? value, string? secondValue = null) {
+    internal static PublisherNativeCreationPlan Create(string kind, string? value, string? secondValue = null) {
         if (kind is "caption-typing" or "caption-typing-language") {
             if (secondValue != null) throw new ArgumentException("The caption specimen accepts one text value.");
             return CandidateCaptionTyping.Create(value, kind == "caption-typing-language" ? 1033U : null);
@@ -74,25 +76,25 @@ internal static class CandidateCases {
         if (kind == "blank-pages") {
             if (!int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int count)
                 || count < 1 || count > 16) throw new ArgumentException("The blank-pages case requires a page count from 1 to 16.");
-            return new CandidatePublicationSpec(612 * 12700, 792 * 12700, Array.Empty<CandidateObjectSpec>(), count);
+            return new PublisherNativeCreationPlan(612 * 12700, 792 * 12700, Array.Empty<PublisherNativeCreationObject>(), count);
         }
         if (kind is not ("blank" or "text" or "styled-text" or "shape" or "image" or "combined")) throw new ArgumentException("Unknown candidate kind.");
         if (kind == "styled-text" && value != null) throw new ArgumentException("The styled-text case uses its fixed three-run sample.");
-        CandidateObjectSpec[] objects = kind switch {
-            "blank" => Array.Empty<CandidateObjectSpec>(),
-            "text" => new[] { new CandidateObjectSpec(CandidateObjectKind.TextBox, DefaultPlacement,
-                CandidateStorySpec.Plain(value ?? "Template-free Publisher writer probe\r")) },
-            "styled-text" => new[] { new CandidateObjectSpec(CandidateObjectKind.TextBox, DefaultPlacement,
-                CandidateStorySpec.Styled(CandidateStyledText.Create())) },
-            "shape" => new[] { new CandidateObjectSpec(CandidateObjectKind.Rectangle, DefaultPlacement, CandidateStorySpec.Plain("\r")) },
+        PublisherNativeCreationObject[] objects = kind switch {
+            "blank" => Array.Empty<PublisherNativeCreationObject>(),
+            "text" => new[] { new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.TextBox, DefaultPlacement,
+                PublisherNativeCreationStory.Plain(value ?? "Template-free Publisher writer probe\r")) },
+            "styled-text" => new[] { new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.TextBox, DefaultPlacement,
+                PublisherNativeCreationStory.Styled(CandidateStyledText.Create())) },
+            "shape" => new[] { new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Rectangle, DefaultPlacement, PublisherNativeCreationStory.Plain("\r")) },
             "combined" => new[] {
-                new CandidateObjectSpec(CandidateObjectKind.TextBox, DefaultPlacement, CandidateStorySpec.Styled(CandidateStyledText.Create())),
-                new CandidateObjectSpec(CandidateObjectKind.Rectangle, new CandidatePlacement(72, 216, 144, 72), CandidateStorySpec.Plain("\r")),
-                new CandidateObjectSpec(CandidateObjectKind.Picture, new CandidatePlacement(330, 216, 96, 96), Image: ReadImage(value))
+                new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.TextBox, DefaultPlacement, PublisherNativeCreationStory.Styled(CandidateStyledText.Create())),
+                new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Rectangle, new PublisherNativeCreationPlacement(72, 216, 144, 72), PublisherNativeCreationStory.Plain("\r")),
+                new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Picture, new PublisherNativeCreationPlacement(330, 216, 96, 96), Image: ReadImage(value))
             },
-            _ => new[] { new CandidateObjectSpec(CandidateObjectKind.Picture, DefaultPlacement, Image: ReadImage(value)) }
+            _ => new[] { new PublisherNativeCreationObject(PublisherNativeCreationObjectKind.Picture, DefaultPlacement, Image: ReadImage(value)) }
         };
-        return new CandidatePublicationSpec(612 * 12700, 792 * 12700, objects);
+        return new PublisherNativeCreationPlan(612 * 12700, 792 * 12700, objects);
     }
 
     private static byte[] ReadImage(string? path) {

@@ -4,8 +4,11 @@ This opt-in contributor tool inventories native publications and synthesizes
 small, template-free PUB files. It stays outside the normal solution and does
 not expose a public Publisher creation API. Public bounded source saving belongs
 to [OfficeIMO.Publisher](../../../OfficeIMO.Publisher/README.md#save-a-native-publication);
-this probe remains a contributor tool for codec qualification. It references the existing
-Publisher, PDF and shared binary codecs without adding runtime dependencies.
+this probe remains a contributor tool for codec qualification. Native creation
+codecs and model projection live in [OfficeIMO.Publisher/Internal/NativeCreation](../../../OfficeIMO.Publisher/Internal/NativeCreation).
+The probe retains specimen factories, CLI/file I/O, comparisons and source-input
+derivation helpers. It references the existing Publisher, PDF and shared binary
+codecs without adding runtime dependencies.
 Template-free creation never reads a source publication or directory template.
 
 Build with the repository's pinned SDK:
@@ -388,7 +391,7 @@ and preserves the original 18×18 table for an independent inventory comparison:
 ## Creation cases
 
 All cases use Letter-size physical pages and the same ordered
-`CandidatePublicationSpec`. Most use one master; the multiple/paired-master
+`PublisherNativeCreationPlan`. Most use one master; the multiple/paired-master
 specimens carry their explicitly authored definitions. Object IDs, story keys, layout identifiers and SPIDs
 are assigned once and shared by the Contents, OfficeArt and Quill serializers.
 Text boxes and rectangles each own an independent story; pictures have no story.
@@ -437,6 +440,16 @@ master content, so unsupported formatting cannot be silently dropped.
 
 ## Native codec structure
 
+`PublisherNativeCreationCodec` consumes the internal plan produced by
+`PublisherNativeCreationProjection`. Graph, OfficeArt and Quill encoders belong to
+the same library implementation; typed field encodings use `PublisherOplWriter`.
+Its internal `Create(plan, options, maxOutputBytes, token)` entry point snapshots
+`PublisherReadOptions`, validates operation budgets and observes cancellation
+through encoding. The shared compound-file writer enforces `maxOutputBytes` on the
+complete CFB output, including storage overhead. The public native save path
+continues to require a loaded source and reports `PUB_NATIVE_SOURCE_REQUIRED` for
+source-free documents.
+
 `create` never reads a PUB or invokes Publisher. The Contents stream has a typed
 header and class catalog, with native record identifiers starting at 256. The
 canonical compound writer serializes a fresh directory model carrying the
@@ -446,7 +459,7 @@ header provide the native recognition metadata. The Internal header contains
 version `0x00010000`, a reserved zero WORD, zero context flags at unaligned offset
 6 and a zero following-byte count at offset 10.
 
-`CandidateModelProjection` derives the text-page, master-content, mixed-page, object/image-page,
+`PublisherNativeCreationProjection` derives the text-page, master-content, mixed-page, object/image-page,
 linked-story, frame-layout, table, newsletter and multiple/paired-master codec inputs from the final `PublisherDocument`;
 none maintains a second editable object list. Current picture bounds, source
 crops, referenced image bytes and model asset identities supply the codec. Named
@@ -1127,10 +1140,21 @@ the independent decorated-table control. This is retained malformed structure,
 not successful repair or proof that the generated writer output is repair-free.
 
 Bounded REA/Ghidra analyses use exact native code windows in synthetic offline
-PE envelopes. Their headers and missing external mappings are explicit; one
-object-reader window omits cold branches and reports truncated control flow.
-These observations guide further controls without qualifying an accepted
-recovery path. Public native creation remains gated.
+PE envelopes. Their headers and missing external mappings are explicit. The earlier
+"object-reader" label is shorthand for selected object-state/materialization
+helpers; its initial partial window omitted cold branches and reported truncated
+control flow. The `objectStateColdPath` record maps the main cold fragment: it
+returns E_FAIL or changes local low state bits without additional calls. The
+mapped main body has no bad-instruction truncation; subordinate terminal-flow and
+external-call semantics retain explicit limits.
+
+Selected slow-path and original wrapper/caller analysis also establishes a
+same-context, same-item-index retry after the wrapper's flag-setting return.
+The caller reacquires the item by index; arbitrary pointer identity is not
+established. The meaning of dispatcher argument `0x66C2` and its decision remains
+unqualified, as does the runtime connection from a particular materializer failure
+to that wrapper. These static observations do not supply a positive recovery
+control or repair-free acceptance. Public native creation remains gated.
 
 `observations.laterLoadRecovery` extends the capture to the object parser return,
 object loader return and three decoded suppression/retry boundaries. The native

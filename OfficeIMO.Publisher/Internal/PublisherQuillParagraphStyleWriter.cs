@@ -11,7 +11,19 @@ internal static class PublisherQuillParagraphStyleWriter {
         || before.SuppressAutomaticHyphenation != after.SuppressAutomaticHyphenation;
 
     internal static byte[]? Rewrite(PublisherBinaryData source, PublisherQuillSourceSpan span,
-        OfficeRichTextParagraph before, OfficeRichTextParagraph after, PublisherParseContext context) {
+        OfficeRichTextParagraph before, OfficeRichTextParagraph after, PublisherParseContext context) =>
+        RewriteCore(source, span, before, after, context, authored: false);
+
+    /// <summary>Encodes an authored paragraph above empty native fields without charging generated tabs as inspected source records.</summary>
+    internal static byte[]? Create(OfficeRichTextParagraph before, OfficeRichTextParagraph after, PublisherParseContext context) {
+        context.Token.ThrowIfCancellationRequested();
+        byte[] empty = Chunk();
+        return RewriteCore(new PublisherBinaryData(empty, "authored paragraph"), new PublisherQuillSourceSpan(0, empty.Length),
+            before, after, context, authored: true);
+    }
+
+    private static byte[]? RewriteCore(PublisherBinaryData source, PublisherQuillSourceSpan span,
+        OfficeRichTextParagraph before, OfficeRichTextParagraph after, PublisherParseContext context, bool authored) {
         if (!HasChanges(before, after)) {
             var copy = new byte[span.Length]; Buffer.BlockCopy(source.Bytes, span.Offset, copy, 0, span.Length); return copy;
         }
@@ -88,7 +100,11 @@ internal static class PublisherQuillParagraphStyleWriter {
         bool WriteTabs(out byte[]? replacement) {
             var entries = new List<byte[]>(); replacement = null;
             foreach (OfficeTextTabStop stop in tabs.Stops) {
-                context.Record();
+                if (authored) {
+                    context.Token.ThrowIfCancellationRequested();
+                    if (entries.Count >= context.Options.Limits.MaxItems)
+                        throw new InvalidDataException("Publisher authored tab item limit exceeded.");
+                } else context.Record();
                 if (!Scale(stop.Position, 12700, 0, int.MaxValue, out long position)) return false;
                 entries.Add(Nested((byte)entries.Count, 0x88, UInt32(0, (uint)position, 0x20)));
             }

@@ -1,11 +1,12 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects a closed source-free shape/picture specimen without manufacturing a semantic text story.</summary>
 internal static class CandidateObjectPages {
-    internal static CandidatePublicationSpec Create(byte[] image) =>
-        CandidateModelProjection.SingleMasterContent(Author(image), includePictureNames: false);
+    internal static PublisherNativeCreationPlan Create(byte[] image) =>
+        PublisherNativeCreationProjection.SingleMasterContent(Author(image), includePictureNames: false);
 
     internal static PublisherDocument Author(byte[] image) {
         PublisherDocument document = PublisherDocument.Create(612, 792);

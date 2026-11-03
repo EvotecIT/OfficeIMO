@@ -1,10 +1,12 @@
+using OfficeIMO.Publisher.Internal;
+
 namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects two distinct public-model assets on separated physical pages.</summary>
 internal static class CandidateImagePages {
-    internal static CandidatePublicationSpec Create(byte[] firstImage, byte[] lastImage, bool includeNativeNames = false,
+    internal static PublisherNativeCreationPlan Create(byte[] firstImage, byte[] lastImage, bool includeNativeNames = false,
         OfficeIMO.Drawing.OfficeImageSourceCrop crop = default, bool shareFirstImage = false) =>
-        CandidateModelProjection.SingleMasterContent(Author(firstImage, lastImage, crop, shareFirstImage), includeNativeNames);
+        PublisherNativeCreationProjection.SingleMasterContent(Author(firstImage, lastImage, crop, shareFirstImage), includeNativeNames);
 
     internal static PublisherDocument Author(byte[] firstImage, byte[] lastImage,
         OfficeIMO.Drawing.OfficeImageSourceCrop crop = default, bool shareFirstImage = false) {

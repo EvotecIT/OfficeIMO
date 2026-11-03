@@ -56,11 +56,18 @@ rejection control. A malformed drawing-wide saved-shape count, changed from 17
 to 18, survives native save/reopen unchanged despite matching cell/grid/style
 inventories and native PDF exports. No selected diagnostic or consent request
 occurs. This is another retained-data boundary, not successful structural repair.
-Bounded code-window analysis retains explicit missing external/cold-path context;
-repair-positive recovery and public native creation acceptance remain open.
+Selected static object-state/materialization analysis resolves the main cold
+fragment's local state/E_FAIL handling. An original wrapper/caller flow establishes
+a same-context, same-item-index retry, while the dispatcher decision's meaning and
+the runtime connection from a particular materializer failure remain unqualified.
+These observations supply no recovery-positive control or repair-free acceptance.
 
-The opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
-separately qualifies source-free closed specimens. Its two-image page profile
+The internal codec in `OfficeIMO.Publisher/Internal/NativeCreation` is qualified
+through the opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
+for bounded source-free specimens. Its operation uses a `PublisherReadOptions`
+snapshot and explicit cancellation token and complete compound-output byte limit.
+The public native save path still requires a loaded source and retains
+the `PUB_NATIVE_SOURCE_REQUIRED` gate. The two-image page profile
 retains distinct embedded PNGs and their page bindings through native resave;
 moving and resizing the second picture through the public source-save API leaves
 the first picture and image payloads unchanged. Public template-free native save,

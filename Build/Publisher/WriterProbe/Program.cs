@@ -30,22 +30,23 @@ internal static class Program {
                 return 0;
             }
             if (args.Length is >= 3 and <= 5 && args[0] == "create") {
-                CandidatePublicationSpec specification = CandidateCases.Create(args[1], args.Length >= 4 ? args[3] : null,
+                PublisherNativeCreationPlan specification = CandidateCases.Create(args[1], args.Length >= 4 ? args[3] : null,
                     args.Length == 5 ? args[4] : null);
-                byte[] bytes = CandidateWriter.Create(specification);
+                byte[] bytes = PublisherNativeCreationCodec.Create(specification, new PublisherReadOptions(),
+                    new PublisherSaveOptions().MaxOutputBytes, CancellationToken.None);
                 WriteNew(args[2], bytes);
                 Console.WriteLine(JsonSerializer.Serialize(new {
                     schema = "officeimo.publisher.writer-probe.candidate.v1",
                     profile = specification.PhysicalPageCount == 1 ? "template-free-one-page-probe" : "template-free-" + args[1] + "-probe",
                     hypothesis = args[0],
                     kind = args[1],
-                    rootClassId = CandidateWriter.PublicationClassId,
+                    rootClassId = PublisherNativeCreationCodec.PublicationClassId,
                     pageGraph = new {
-                        orderedReferences = NativePublicationGraph.GetOrderedPageCount(specification),
-                        dpgMaster = NativePublicationGraph.GetMasterPageCount(specification),
-                        dpgSpecial = NativePublicationGraph.SpecialPageBoundary,
-                        firstPhysicalIndex = NativePublicationGraph.GetMasterPageCount(specification),
-                        lastPhysicalIndex = NativePublicationGraph.GetOrderedPageCount(specification) - NativePublicationGraph.SpecialPageBoundary
+                        orderedReferences = PublisherNativeCreationGraph.GetOrderedPageCount(specification),
+                        dpgMaster = PublisherNativeCreationGraph.GetMasterPageCount(specification),
+                        dpgSpecial = PublisherNativeCreationGraph.SpecialPageBoundary,
+                        firstPhysicalIndex = PublisherNativeCreationGraph.GetMasterPageCount(specification),
+                        lastPhysicalIndex = PublisherNativeCreationGraph.GetOrderedPageCount(specification) - PublisherNativeCreationGraph.SpecialPageBoundary
                     },
                     output = Path.GetFullPath(args[2]),
                     bytes = bytes.Length,
