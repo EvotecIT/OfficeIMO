@@ -3162,7 +3162,7 @@ Describe 'Excel DSL surface' {
         $updated.Count | Should -Be 2
 
         $firstRule = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B2' | Where-Object Range -EQ 'B2:B3')[0]
-        $secondRule = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B4' | Where-Object Range -EQ 'B4:B4')[0]
+        $secondRule = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B4' | Where-Object Range -EQ 'B4')[0]
 
         $firstRule.PromptTitle | Should -Be 'North sales'
         $firstRule.Prompt | Should -Be 'Shared prompt'
@@ -3199,7 +3199,7 @@ Describe 'Excel DSL surface' {
         $worksheet = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $validations = @($worksheet.GetElementsByTagName('dataValidation', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'))
         $hiddenRule = @($validations | Where-Object { $_.sqref -eq 'B2:B3' })[0]
-        $newMessageRule = @($validations | Where-Object { $_.sqref -eq 'B4:B4' })[0]
+        $newMessageRule = @($validations | Where-Object { $_.sqref -eq 'B4' })[0]
 
         $hiddenRule.promptTitle | Should -Be 'Hidden sales'
         $hiddenRule.prompt | Should -Be 'Shared prompt'
@@ -3565,7 +3565,7 @@ Describe 'Excel DSL surface' {
         $conditionalRules.Count | Should -Be 4
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
-        ($worksheetXml | Select-String 'sqref="F2:F2"' -AllMatches).Matches.Count | Should -Be 4
+        ($worksheetXml | Select-String 'sqref="F2"' -AllMatches).Matches.Count | Should -Be 4
     }
 
     It 'saves pivot and sparkline workbooks with reopenable package parts' {
