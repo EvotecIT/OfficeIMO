@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CompatibilityReportKeepsAutomationOptInAndExternalLanesExplicit() {
+        public void CompatibilityReportKeepsLocalAndExternalLanesExplicit() {
             string presentationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string output = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPointCompatibility", Guid.NewGuid().ToString("N"));
             try {
@@ -162,8 +162,6 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PowerPointCompatibilityStatus.Passed,
                     report.Lanes.Single(lane => lane.Lane == "OpenXml").Status);
                 Assert.Equal(PowerPointCompatibilityStatus.NotRun,
-                    report.Lanes.Single(lane => lane.Lane == "PowerPointDesktop").Status);
-                Assert.Equal(PowerPointCompatibilityStatus.NotRun,
                     report.Lanes.Single(lane => lane.Lane == "LibreOffice").Status);
                 Assert.Equal(PowerPointCompatibilityStatus.NotRun,
                     report.Lanes.Single(lane => lane.Lane == "Keynote").Status);
@@ -173,7 +171,7 @@ namespace OfficeIMO.Tests {
                     "Authenticated import completed without repair prompts.");
                 Assert.Equal(PowerPointCompatibilityStatus.Passed,
                     report.Lanes.Single(lane => lane.Lane == "GoogleSlides").Status);
-                Assert.Contains("\"lane\":\"PowerPointDesktop\"", report.ToJson(), StringComparison.Ordinal);
+                Assert.Contains("\"lane\":\"GoogleSlides\"", report.ToJson(), StringComparison.Ordinal);
 
                 PowerPointCompatibilityReport localTools = PowerPointCompatibilityInspector.Inspect(
                     presentationPath, new PowerPointCompatibilityOptions {

@@ -1,18 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
-namespace OfficeIMO.PowerPoint {
+namespace OfficeIMO.Verification.PowerPoint {
     /// <summary>Outcome of an opt-in PowerPoint Desktop reference render.</summary>
-    public enum PowerPointReferenceRenderStatus {
+    internal enum PowerPointReferenceRenderStatus {
         /// <summary>The caller did not opt in.</summary>
         Disabled,
         /// <summary>The requested renderer is unavailable on this machine.</summary>
@@ -24,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>Result returned by the opt-in PowerPoint Desktop reference renderer.</summary>
-    public sealed class PowerPointReferenceRenderResult {
+    internal sealed class PowerPointReferenceRenderResult {
         internal PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus status, string message,
             IEnumerable<string>? imagePaths = null) {
             Status = status;
@@ -46,10 +47,8 @@ namespace OfficeIMO.PowerPoint {
     /// Explicit PowerPoint Desktop reference-render lane. Office automation is never invoked unless
     /// the method's <c>enabled</c> argument is true and is not used by ordinary image, HTML, PDF, or save operations.
     /// </summary>
-    public static class PowerPointDesktopReferenceRenderer {
+    internal static class PowerPointDesktopReferenceRenderer {
         /// <summary>Attempts to export each slide to PNG through locally installed PowerPoint Desktop.</summary>
-        [RequiresUnreferencedCode("PowerPoint Desktop rendering uses late-bound COM automation. Use OfficeIMO's in-process renderers for trimmed deployments.")]
-        [RequiresDynamicCode("PowerPoint Desktop rendering uses late-bound COM automation and is not a NativeAOT deployment path.")]
         public static PowerPointReferenceRenderResult TryRender(string presentationPath, string outputDirectory,
             bool enabled = false) {
             if (!enabled) {
@@ -89,7 +88,7 @@ namespace OfficeIMO.PowerPoint {
                 expectedSlideCount = source.Slides.Count;
                 slidesWithVisibleContent = source.Slides
                     .Select(slide => HasExpectedVisibleContent(
-                        slide,
+                        source, slide,
                         new PowerPointImageExportOptions()))
                     .ToArray();
             } catch (Exception ex) {
@@ -209,24 +208,25 @@ namespace OfficeIMO.PowerPoint {
             return true;
         }
 
-        internal static bool HasExpectedVisibleContent(PowerPointSlide slide) {
-            return HasExpectedVisibleContent(slide, new PowerPointImageExportOptions());
+        internal static bool HasExpectedVisibleContent(PowerPointDocument presentation, PowerPointSlide slide) {
+            return HasExpectedVisibleContent(presentation, slide, new PowerPointImageExportOptions());
         }
 
         internal static bool HasExpectedVisibleContent(
-            PowerPointSlide slide,
+            PowerPointDocument presentation, PowerPointSlide slide,
             PowerPointImageExportOptions options) {
+            ArgumentNullException.ThrowIfNull(presentation);
             ArgumentNullException.ThrowIfNull(slide);
             ArgumentNullException.ThrowIfNull(options);
             if (slide.SmartArts.Any(smartArt => !smartArt.Hidden
-                    && IsPotentiallyVisibleOnSlide(slide, smartArt)
+                    && IsPotentiallyVisibleOnSlide(presentation, smartArt)
                     && !smartArt.TryGetOfficeDiagramSnapshot(out _))) {
                 return true;
             }
             OfficeImageExportResult rendered = slide.ExportImage(
                 OfficeImageExportFormat.Png,
                 options);
-            if (HasVisibleOmittedContent(slide, rendered.Diagnostics)) {
+            if (HasVisibleOmittedContent(presentation, slide, rendered.Diagnostics)) {
                 return true;
             }
             return OfficePngReader.TryDecode(rendered.Bytes,
@@ -235,7 +235,7 @@ namespace OfficeIMO.PowerPoint {
                    && HasMeaningfulNonWhiteContent(image);
         }
 
-        private static bool HasVisibleOmittedContent(PowerPointSlide slide,
+        private static bool HasVisibleOmittedContent(PowerPointDocument presentation, PowerPointSlide slide,
             IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) {
             bool HasOmissionContaining(string text) => diagnostics.Any(
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission
@@ -244,35 +244,51 @@ namespace OfficeIMO.PowerPoint {
 
             if (HasOmissionContaining("PowerPoint chart")
                 && slide.Charts.Any(chart => IsPotentiallyVisibleOnSlide(
-                    slide, chart))) {
+                    presentation, chart))) {
                 return true;
             }
 
             if (HasOmissionContaining("PowerPoint OLE object")
                 && slide.OleObjects.Any(ole => IsPotentiallyVisibleOnSlide(
-                    slide, ole))) {
+                    presentation, ole))) {
                 return true;
             }
 
             return HasOmissionContaining("custom geometry")
                 && slide.Shapes.Any(shape =>
-                    IsPotentiallyVisibleOnSlide(slide, shape)
-                    && shape.Element.Descendants<A.CustomGeometry>().Any());
+                    IsPotentiallyVisibleOnSlide(presentation, shape)
+                    && HasCustomGeometry(presentation, slide, shape));
         }
 
-        private static bool IsPotentiallyVisibleOnSlide(PowerPointSlide slide,
+        private static bool IsPotentiallyVisibleOnSlide(PowerPointDocument presentation,
             PowerPointShape shape) {
             if (shape.Hidden || shape.Width.ToEmus() <= 0L || shape.Height.ToEmus() <= 0L) {
                 return false;
             }
-            P.SlideSize? size = slide.SlidePart.GetParentParts()
-                .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>()
-                .FirstOrDefault()?.Presentation?.SlideSize;
+            P.SlideSize? size = presentation.OpenXmlDocument.PresentationPart?.Presentation?.SlideSize;
             long width = size?.Cx?.Value ?? 0L;
             long height = size?.Cy?.Value ?? 0L;
             if (width <= 0L || height <= 0L) return true;
             return shape.Left.ToEmus() < width && shape.Top.ToEmus() < height
                 && shape.Right.ToEmus() > 0L && shape.Bottom.ToEmus() > 0L;
+        }
+
+        // Resolve native geometry through the existing public package, without product friend access.
+        private static bool HasCustomGeometry(PowerPointDocument presentation, PowerPointSlide slide,
+            PowerPointShape shape) {
+            if (shape.Id is not uint shapeId) return false;
+            int index = presentation.Slides.ToList().IndexOf(slide);
+            PresentationPart? part = presentation.OpenXmlDocument.PresentationPart;
+            string? relationshipId = index < 0 ? null
+                : part?.Presentation?.SlideIdList?.Elements<P.SlideId>()
+                    .ElementAtOrDefault(index)?.RelationshipId?.Value;
+            if (relationshipId == null || part == null ||
+                part.GetPartById(relationshipId) is not SlidePart slidePart) return false;
+            P.Slide sourceSlide = slidePart.Slide
+                ?? throw new InvalidDataException("The reference slide has no XML content.");
+            return sourceSlide.Descendants<P.NonVisualDrawingProperties>().Any(properties =>
+                properties.Id?.Value == shapeId &&
+                properties.Parent?.Parent?.Descendants<A.CustomGeometry>().Any() == true);
         }
 
         private static bool HasMeaningfulNonWhiteContent(OfficeRasterImage image) {
@@ -315,7 +331,6 @@ namespace OfficeIMO.PowerPoint {
             try { InvokeMethod(application, "Quit"); } catch { }
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Late-bound COM members are supplied by installed PowerPoint Desktop and are outside the managed trimming graph.")]
         internal static void SetRequiredProperty(object target, string name,
             object value) {
             target.GetType().InvokeMember(name, BindingFlags.SetProperty,
@@ -343,12 +358,10 @@ namespace OfficeIMO.PowerPoint {
             return root.Message;
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Late-bound COM members are supplied by installed PowerPoint Desktop and are outside the managed trimming graph.")]
         private static object GetProperty(object target, string name) =>
             target.GetType().InvokeMember(name, BindingFlags.GetProperty, null, target, null)
             ?? throw new MissingMemberException("PowerPoint COM property '" + name + "' returned null.");
 
-        [UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Late-bound COM members are supplied by installed PowerPoint Desktop and are outside the managed trimming graph.")]
         private static object InvokeMethod(object target, string name, params object[] arguments) =>
             target.GetType().InvokeMember(name, BindingFlags.InvokeMethod, null, target, arguments)
             ?? target;

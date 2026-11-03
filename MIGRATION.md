@@ -2631,7 +2631,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>595 changes</summary>
+<summary>600 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3214,10 +3214,15 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.PowerPoint.LegacyPpt.Model` | Internal | &mdash; | Reach PPT through PowerPointDocument.Load. |
 | Visibility | `OfficeIMO.PowerPoint.PowerPointCompatibilityCatalog` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.PowerPoint.PowerPointCompatibilityInspector` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| Visibility | `OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop` | Removed | &mdash; | Remove this property from compatibility options. The inspector no longer runs or prepopulates the PowerPointDesktop lane. Attach independently produced native proof with PowerPointCompatibilityReport.RecordExternal("PowerPointDesktop", ...); other compatibility lanes remain unchanged. |
 | Visibility | `OfficeIMO.PowerPoint.PowerPointDeckPlanLimits` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| Visibility | `OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer` | Removed | &mdash; | Use PowerPointSlide.ExportImage(...) or ToImage() for managed runtime rendering. Native Office rendering lives only in the opt-in development source under Build/Verification/PowerPoint, linked by PowerPoint tests and the non-packable ChartForgeX example. |
+| Visibility | `OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.TryRender(string presentationPath, string outputDirectory, bool enabled = false)` | Removed | &mdash; | Use PowerPointSlide.ExportImage(...) or ToImage() in applications. For native Office proof on Windows, run the opt-in PowerPoint tests or the ChartForgeX example with --native-powerpoint; both reuse Build/Verification/PowerPoint. |
 | Visibility | `OfficeIMO.PowerPoint.PowerPointFormatCatalog` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.PowerPoint.PowerPointImageExportDiagnosticCodes` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.PowerPoint.PowerPointNumberingFormatter` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| Visibility | `OfficeIMO.PowerPoint.PowerPointReferenceRenderResult` | Removed | &mdash; | Native reference-render results belong to the development verifier under Build/Verification/PowerPoint. Record independently produced native evidence with PowerPointCompatibilityReport.RecordExternal(...). |
+| Visibility | `OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus` | Removed | &mdash; | Use the development verifier status only for opt-in native verification. Product compatibility evidence uses PowerPointCompatibilityStatus with PowerPointCompatibilityReport.RecordExternal(...). |
 | accessibility | `OfficeIMO.PowerPoint.PowerPointShape.Description` | Removed | `OfficeIMO.PowerPoint.PowerPointShape.AltText` | Use AltText. It reads and writes the same OOXML descr value. Description trimmed surrounding whitespace; trim the value yourself if you relied on that. |
 | images | `OfficeIMO.PowerPoint.PowerPointPicture` | Renamed | `OfficeIMO.PowerPoint.PowerPointImage` | Use PowerPointImage wherever PowerPointPicture was declared, cast or pattern-matched. Members (UpdateImage, Crop, Fit, effects, image bytes) are unchanged. |
 | images | `OfficeIMO.PowerPoint.PowerPointSlide.AddImage(...) : PowerPointPicture` | Changed | `OfficeIMO.PowerPoint.PowerPointSlide.AddImage(...) : PowerPointImage` | Return type follows the PowerPointPicture -&gt; PowerPointImage rename; parameters are unchanged. |
