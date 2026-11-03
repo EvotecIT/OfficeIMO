@@ -22,7 +22,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph().AddImage(webp, "image.webp", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
-        OdfConversionResult<WordDocument> omitted = source.ToWordDocumentResult(
+        OdfConversionResult<WordDocument> omitted = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length - 1 });
         using (WordDocument word = omitted.Value) {
             Assert.Empty(word.OpenXmlDocument.MainDocumentPart!.ImageParts);
@@ -30,7 +30,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         Assert.Contains(omitted.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Skipped);
 
-        OdfConversionResult<WordDocument> included = source.ToWordDocumentResult(
+        OdfConversionResult<WordDocument> included = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length });
         using WordDocument includedWord = included.Value;
         Assert.Equal(png.Length, Assert.Single(includedWord.OpenXmlDocument.MainDocumentPart!.ImageParts).GetStream().Length);
@@ -44,7 +44,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         source.AddParagraph().AddImage(png, "invalid-dimensions.png", OdfLength.Parse("1%"), OdfLength.Centimeters(1));
         source.AddParagraph().AddImage(png, "valid.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult(
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length });
         using WordDocument word = conversion.Value;
         Assert.Single(word.OpenXmlDocument.MainDocumentPart!.ImageParts);
@@ -63,7 +63,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         header.Element.Add(new XElement(image.Element));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult(
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length });
         using WordDocument word = conversion.Value;
         Assert.Single(word.OpenXmlDocument.MainDocumentPart!.ImageParts);
@@ -82,7 +82,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
         source.PageLayout.EnsureFirstFooter();
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult(
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length });
         using WordDocument word = conversion.Value;
         Assert.Contains(word.Sections[0].Header.Default!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()),
@@ -108,7 +108,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         section.GetOrCreateHeader(WordHeaderFooterType.Even).AddParagraph("Even header");
         section.GetOrCreateFooter(WordHeaderFooterType.Even).AddParagraph("Even footer");
 
-        OdfConversionResult<OdtDocument> conversion = word.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = word.ConvertToOpenDocumentWithEvidence();
         OdtDocument odt = OdtDocument.Load(new MemoryStream(conversion.Value.ToBytes()));
         Assert.Equal("Odd header", Assert.Single(odt.PageLayout.Header.Paragraphs).Text);
         Assert.Equal("Odd footer", Assert.Single(odt.PageLayout.Footer.Paragraphs).Text);
@@ -118,11 +118,11 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         Assert.Equal("Even footer", Assert.Single(odt.PageLayout.LeftFooter!.Paragraphs).Text);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "alternate-headers-footers" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        word.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
+        word.ConvertToOpenDocumentWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         });
 
-        using WordDocument reopened = WordDocument.Load(new MemoryStream(odt.ToWordDocument().ToBytes()));
+        using WordDocument reopened = WordDocument.Load(new MemoryStream(odt.ToWord().ToBytes()));
         WordSection roundTrip = reopened.Sections[0];
         Assert.True(roundTrip.DifferentFirstPage);
         Assert.True(roundTrip.DifferentOddAndEvenPages);
@@ -132,7 +132,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         Assert.Equal("Odd footer", Assert.Single(roundTrip.Footer.Default!.Paragraphs).Text);
         Assert.Equal("First footer", Assert.Single(roundTrip.Footer.First!.Paragraphs).Text);
         Assert.Equal("Even footer", Assert.Single(roundTrip.Footer.Even!.Paragraphs).Text);
-        odt.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+        odt.ConvertToWordWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         }).Value.Dispose();
     }
@@ -145,7 +145,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         odt.PageLayout.EnsureFirstHeader();
         odt.PageLayout.EnsureLeftHeader();
 
-        using WordDocument word = odt.ToWordDocument();
+        using WordDocument word = odt.ToWord();
         WordSection section = word.Sections[0];
         Assert.True(section.DifferentFirstPage);
         Assert.True(section.DifferentOddAndEvenPages);
@@ -167,12 +167,12 @@ public sealed class WordOdtAlternateHeaderFooterTests {
                     new XElement(OdfNamespaces.Text + "p", "Unmapped table text")))));
         odt.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = odt.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = odt.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.Equal("Visible first header", Assert.Single(word.Sections[0].Header.First!.Paragraphs).Text);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "header-footer-blocks" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => odt.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+        Assert.Throws<OdfConversionLossException>(() => odt.ConvertToWordWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         }));
     }
@@ -198,7 +198,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         }
         using WordDocument source = WordDocument.Load(new MemoryStream(stream.ToArray()));
         Assert.False(source.Sections[0].DifferentFirstPage);
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("Default header", Assert.Single(conversion.Value.PageLayout.Header.Paragraphs).Text);
         Assert.Null(conversion.Value.PageLayout.FirstHeader);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "alternate-headers-footers" &&
@@ -252,7 +252,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         source.PageLayout.EnsureLeftHeader().AddParagraph("Hidden even");
         source.PageLayout.LeftHeader!.IsDisplayed = false;
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.True(word.Sections[0].DifferentFirstPage);
         Assert.True(word.Sections[0].DifferentOddAndEvenPages);
@@ -261,7 +261,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         Assert.DoesNotContain(word.Sections[0].Header.Even!.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "hidden-header-footer-content" &&
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 3);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         }));
     }
@@ -275,7 +275,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         source.PageLayout.EnsureFirstHeader().AddParagraph("First header");
         source.PageLayout.EnsureLeftFooter().AddParagraph("Even footer");
 
-        using WordDocument word = WordDocument.Load(new MemoryStream(source.ToWordDocument().ToBytes()));
+        using WordDocument word = WordDocument.Load(new MemoryStream(source.ToWord().ToBytes()));
         WordSection section = word.Sections[0];
         Assert.True(section.DifferentFirstPage);
         Assert.True(section.DifferentOddAndEvenPages);
@@ -283,7 +283,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         Assert.Equal("Default footer", Assert.Single(section.Footer.First!.Paragraphs).Text);
         Assert.Equal("Default header", Assert.Single(section.Header.Even!.Paragraphs).Text);
         Assert.Equal("Even footer", Assert.Single(section.Footer.Even!.Paragraphs).Text);
-        source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+        source.ConvertToWordWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         }).Value.Dispose();
 
@@ -293,7 +293,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         reverse.PageLayout.Footer.AddParagraph("Default footer");
         reverse.PageLayout.EnsureFirstFooter().AddParagraph("First footer");
         reverse.PageLayout.EnsureLeftHeader().AddParagraph("Even header");
-        using WordDocument reversed = WordDocument.Load(new MemoryStream(reverse.ToWordDocument().ToBytes()));
+        using WordDocument reversed = WordDocument.Load(new MemoryStream(reverse.ToWord().ToBytes()));
         Assert.Equal("Default header", Assert.Single(reversed.Sections[0].Header.First!.Paragraphs).Text);
         Assert.Equal("First footer", Assert.Single(reversed.Sections[0].Footer.First!.Paragraphs).Text);
         Assert.Equal("Even header", Assert.Single(reversed.Sections[0].Header.Even!.Paragraphs).Text);
@@ -333,7 +333,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         source.PageLayout.Header.AddParagraph().AddHyperlink("Link", "https://example.test/");
         source.PageLayout.EnsureFirstFooter().AddParagraph("First footer");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Assert.Equal("Link", target.Sections[0].Header.First!.Paragraphs.Single().Text);
         Assert.Contains(conversion.Report.ForFeature("hyperlinks"), mapping =>
@@ -351,7 +351,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
             new XAttribute(OdfNamespaces.Text + "outline-level", "2"), "Heading"));
         source.Package.MarkXmlDirty("styles.xml");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Assert.Equal(WordParagraphStyles.Heading2,
             target.Sections[0].Header.First!.Paragraphs.Single().Style);
@@ -363,13 +363,13 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         source.AddHeading("Body heading", 10);
         source.PageLayout.EnsureFirstHeader().AddHeading("Header heading", 10);
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Assert.Equal(WordParagraphStyles.Heading9,
             target.Sections[0].Header.First!.Paragraphs.Single().Style);
         Assert.Contains(conversion.Report.ForFeature("heading-levels"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 2);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -396,7 +396,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         source.PageLayout.Header.AddParagraph().AddFootnote("Header note");
         source.PageLayout.EnsureFirstFooter().AddParagraph("First footer");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("note-headers-footers"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -408,7 +408,7 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         source.AddParagraph("Body");
         source.PageLayout.EnsureFirstHeader().AddParagraph().AddField(OdtFieldKind.PageNumber, "7");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         Assert.DoesNotContain(conversion.Report.ForFeature("source-text-fields"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -427,10 +427,10 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         later.AddHeadersAndFooters();
         later.GetOrCreateHeader(WordHeaderFooterType.Default);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.ForFeature("section-headers-footers"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count >= 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
         }));
     }
@@ -445,10 +445,10 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         later.AddParagraph("Second body");
         later.DifferentFirstPage = true;
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.ForFeature("alternate-headers-footers"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 
@@ -463,10 +463,10 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         section.GetOrCreateHeader(WordHeaderFooterType.Even).AddParagraph("Even header");
         section.AddPageNumbering(startNumber: 2);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.ForFeature("page-numbering"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 
@@ -478,10 +478,10 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         later.AddParagraph("Second body");
         later.AddPageNumbering(startNumber: 1);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.ForFeature("page-numbering"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 
@@ -514,14 +514,14 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         var inherited = source.Inspect().Sections[1];
         Assert.NotNull(inherited.EvenHeader);
         Assert.False(inherited.HasExplicitEvenHeader);
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(conversion.Report.ForFeature("alternate-headers-footers"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         var first = source.Inspect().Sections[0];
         int firstStoryBlocks = new[] { first.DefaultHeader, first.DefaultFooter, first.FirstHeader,
                 first.FirstFooter, first.EvenHeader, first.EvenFooter }
             .Where(part => part != null).Sum(part => part!.Elements.Count);
-        OdfConversionResult<OdtDocument> omitted = source.ToOpenDocumentResult(
+        OdfConversionResult<OdtDocument> omitted = source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { IncludeHeadersAndFooters = false });
         Assert.Equal(firstStoryBlocks, Assert.Single(omitted.Report.ForFeature("headers-footers")).Count);
     }

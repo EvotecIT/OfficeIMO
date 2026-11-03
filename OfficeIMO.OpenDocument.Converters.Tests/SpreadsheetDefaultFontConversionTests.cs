@@ -23,7 +23,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
         serialized.Position = 0;
         OdsDocument loaded = OdsDocument.Load(serialized);
 
-        using ExcelDocument imported = loaded.ToExcelDocument();
+        using ExcelDocument imported = loaded.ToExcel();
 
         Font font = imported.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         Assert.Equal(expectedPoints, font.FontSize!.Val!.Value, 6);
@@ -54,7 +54,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
         Assert.Equal(14D, defaults.FontSize!.Value.ToPoints(), 6);
         Assert.False(reopened.Sheets[0].Cell(0, 0).Bold);
         Assert.False(reopened.Sheets[0].Cell(0, 0).Italic);
-        using var roundTrip = reopened.ToExcelDocument();
+        using var roundTrip = reopened.ToExcel();
         Font restored = roundTrip.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         Assert.Equal("Column Face", restored.FontName!.Val!.Value);
         Assert.Equal(14D, restored.FontSize!.Val!.Value);

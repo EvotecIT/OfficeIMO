@@ -26,7 +26,7 @@ public sealed class OpenDocumentParagraphAlignmentConversionTests {
         paragraph.Alignment = alignment;
         paragraph.WritingMode = "rl-tb";
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
@@ -37,7 +37,7 @@ public sealed class OpenDocumentParagraphAlignmentConversionTests {
             mapping.Feature == "paragraph-formatting" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
 
-        OdtParagraph roundTrip = Assert.Single(target.ToOpenDocumentResult().Value.Paragraphs);
+        OdtParagraph roundTrip = Assert.Single(target.ConvertToOpenDocumentWithEvidence().Value.Paragraphs);
         Assert.Equal(alignment, roundTrip.Alignment);
         Assert.True(roundTrip.IsRightToLeft);
     }

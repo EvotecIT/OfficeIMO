@@ -17,7 +17,7 @@ public sealed class WordOdtEndnotePlacementLossTests {
         if (referencedNote) paragraph.AddEndNote("Endnote body");
         if (authoredPosition) source.AddEndnoteProperties(position: WordEndnotePosition.SectionEnd);
 
-        var conversion = source.ToOpenDocumentResult();
+        var conversion = source.ConvertToOpenDocumentWithEvidence();
         bool reportsPlacement = conversion.Report.Mappings.Any(mapping => mapping.Feature == "note-numbering-placement");
         Assert.Equal(authoredPosition, reportsPlacement);
         Assert.Equal(authoredPosition ? WordEndnotePosition.SectionEnd : WordEndnotePosition.DocumentEnd,

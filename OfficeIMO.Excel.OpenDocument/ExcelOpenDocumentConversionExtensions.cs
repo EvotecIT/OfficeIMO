@@ -9,12 +9,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO Excel and native OpenDocument spreadsheet models.</summary>
 public static partial class ExcelOpenDocumentConversionExtensions {
-    /// <summary>Converts an Excel workbook to an in-memory ODS document.</summary>
-    public static OdsDocument ToOpenDocument(this ExcelDocument source,
-        ExcelOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
-
-    /// <summary>Converts an Excel workbook to an in-memory ODS document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdsDocument> ToOpenDocumentResult(this ExcelDocument source,
+    internal static OdfConversionResult<OdsDocument> ConvertToOpenDocumentWithEvidence(this ExcelDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
@@ -398,12 +393,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return new OdfConversionResult<OdsDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
-    /// <summary>Converts an ODS document to an in-memory Excel workbook.</summary>
-    public static ExcelDocument ToExcelDocument(this OdsDocument source,
-        ExcelOpenDocumentConversionOptions? options = null) => source.ToExcelDocumentResult(options).Value;
-
-    /// <summary>Converts an ODS document to an in-memory Excel workbook and reports every lossy mapping.</summary>
-    public static OdfConversionResult<ExcelDocument> ToExcelDocumentResult(this OdsDocument source,
+    internal static OdfConversionResult<ExcelDocument> ConvertToExcelWithEvidence(this OdsDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();

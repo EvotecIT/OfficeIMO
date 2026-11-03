@@ -12,7 +12,7 @@ public static partial class OdsPdfConversionExtensions {
     private static PdfCore.PdfDocumentConversionResult ConvertToPdfCore(this OdsDocument source, ExcelOpenDocumentConversionOptions? conversionOptions = null, ExcelPdf.ExcelPdfExportOptions? pdfOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
-        OdfConversionResult<OfficeIMO.Excel.ExcelDocument> conversion = source.ToExcelDocumentResult(conversionOptions);
+        OdfConversionResult<OfficeIMO.Excel.ExcelDocument> conversion = source.ConvertToExcelWithEvidence(conversionOptions);
         using (conversion.Value) {
             PdfCore.PdfDocumentConversionResult result = ExcelPdf.ExcelPdfConverterExtensions.ConvertToPdfWithEvidence(conversion.Value, pdfOptions, cancellationToken);
             return result.WithSourceConversionReport(conversion.Report);
@@ -25,7 +25,7 @@ public static partial class OdsPdfConversionExtensions {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PdfExcel.PdfExcelTableImportResult pdf = PdfExcel.PdfExcelTableConverterExtensions.ConvertToExcelWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
-            OdfConversionResult<OdsDocument> ods = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            OdfConversionResult<OdsDocument> ods = pdf.Value.ConvertToOpenDocumentWithEvidence(openDocumentOptions);
             cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdsConversionResult(
                 ods.Value,
@@ -39,7 +39,7 @@ public static partial class OdsPdfConversionExtensions {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PdfExcel.PdfExcelTableImportResult pdf = PdfExcel.PdfExcelTableConverterExtensions.ConvertToExcelWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
-            OdfConversionResult<OdsDocument> ods = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            OdfConversionResult<OdsDocument> ods = pdf.Value.ConvertToOpenDocumentWithEvidence(openDocumentOptions);
             cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdsConversionResult(
                 ods.Value,

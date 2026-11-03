@@ -12,7 +12,7 @@ public static partial class OdpPdfConversionExtensions {
     private static PdfCore.PdfDocumentConversionResult ConvertToPdfCore(this OdpPresentation source, PowerPointOpenDocumentConversionOptions? conversionOptions = null, PowerPointPdf.PowerPointPdfExportOptions? pdfOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
-        OdfConversionResult<OfficeIMO.PowerPoint.PowerPointDocument> conversion = source.ToPowerPointDocumentResult(conversionOptions);
+        OdfConversionResult<OfficeIMO.PowerPoint.PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence(conversionOptions);
         using (conversion.Value) {
             PdfCore.PdfDocumentConversionResult result = PowerPointPdf.PowerPointPdfConverterExtensions.ConvertToPdfWithEvidence(conversion.Value, pdfOptions, cancellationToken);
             return result.WithSourceConversionReport(conversion.Report);
@@ -26,7 +26,7 @@ public static partial class OdpPdfConversionExtensions {
         PdfPowerPoint.PdfPowerPointConversionResult pdf =
             PdfPowerPoint.PdfPowerPointConverterExtensions.ConvertToPowerPointWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
-            OdfConversionResult<OdpPresentation> odp = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            OdfConversionResult<OdpPresentation> odp = pdf.Value.ConvertToOpenDocumentWithEvidence(openDocumentOptions);
             cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdpConversionResult(
                 odp.Value,
@@ -42,7 +42,7 @@ public static partial class OdpPdfConversionExtensions {
         PdfPowerPoint.PdfPowerPointConversionResult pdf =
             PdfPowerPoint.PdfPowerPointConverterExtensions.ConvertToPowerPointWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
-            OdfConversionResult<OdpPresentation> odp = pdf.Value.ToOpenDocumentResult(openDocumentOptions);
+            OdfConversionResult<OdpPresentation> odp = pdf.Value.ConvertToOpenDocumentWithEvidence(openDocumentOptions);
             cancellationToken.ThrowIfCancellationRequested();
             return new PdfOdpConversionResult(
                 odp.Value,

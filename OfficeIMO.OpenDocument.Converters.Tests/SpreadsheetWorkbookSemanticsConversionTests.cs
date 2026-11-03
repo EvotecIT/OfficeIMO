@@ -15,7 +15,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
         source.SetNamedRange("\\Rate", "'Data'!A1", save: false,
             validationMode: ExcelDefinedNameValidationMode.Strict);
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         OdsNamedRange namedRange = Assert.Single(conversion.Value.NamedRanges);
         Assert.Equal("\\Rate", namedRange.Name);
@@ -37,7 +37,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
         north.SetInternalLink(1, 2, "LocalData", "North data");
         south.SetInternalLink(1, 3, "LocalData", "South data");
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Equal("#LocalData", FindHyperlink(conversion.Value.GetSheet("North")!, 0, 1));
         Assert.Equal("#LocalData__South", FindHyperlink(conversion.Value.GetSheet("South")!, 0, 2));
@@ -56,7 +56,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
         ExcelCellInfo authored = Assert.Single(source.Inspect().Worksheets.Single().Cells);
         Assert.Equal("Open docs", authored.Hyperlink!.Tooltip);
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Equal("https://example.test/docs", FindHyperlink(conversion.Value.Sheets.Single(), 0, 0));
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "hyperlink-tooltips"
@@ -74,13 +74,13 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
             PreserveShowMessageFlags = true
         });
 
-        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> toOds = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal(OdsValidationDisplayList.None, Assert.Single(toOds.Value.Validations).DisplayList);
 
         OdsDocument persisted = OdsDocument.Load(new MemoryStream(toOds.Value.ToBytes()));
         Assert.True(persisted.Validate().IsValid);
         Assert.Equal(OdsValidationDisplayList.None, Assert.Single(persisted.Validations).DisplayList);
-        using ExcelDocument roundTrip = persisted.ToExcelDocumentResult().Value;
+        using ExcelDocument roundTrip = persisted.ConvertToExcelWithEvidence().Value;
         Assert.True(Assert.Single(roundTrip.Sheets.Single().GetDataValidations()).SuppressDropDown);
     }
 
@@ -92,7 +92,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
         validation.DisplayList = OdsValidationDisplayList.SortAscending;
         source.AddSheet("Data").Cell(0, 0).ValidationName = validation.Name;
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.False(Assert.Single(target.Sheets.Single().GetDataValidations()).SuppressDropDown);
@@ -113,7 +113,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
         Assert.Equal("Alice", ods.Properties.Creator);
         Assert.Equal("Forecast", ods.Properties.Subject);
 
-        using ExcelDocument roundTrip = ods.ToExcelDocument();
+        using ExcelDocument roundTrip = ods.ToExcel();
         Assert.Equal("Quarterly report", roundTrip.Properties.Title);
         Assert.Equal("Alice", roundTrip.Properties.Creator);
         Assert.Equal("Forecast", roundTrip.Properties.Subject);
@@ -126,7 +126,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
         ExcelSheet second = source.AddSheet("Second");
         source.SetActiveWorksheet(second);
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "worksheet-views"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);

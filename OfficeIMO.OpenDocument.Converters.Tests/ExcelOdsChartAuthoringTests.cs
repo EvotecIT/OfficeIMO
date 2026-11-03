@@ -25,7 +25,7 @@ public sealed class ExcelOdsChartAuthoringTests {
             new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });
         sheet.AddChart(type, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(300), Title = "Sales" });
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
         Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
@@ -47,14 +47,14 @@ public sealed class ExcelOdsChartAuthoringTests {
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(result.Value.ToBytes()));
         Assert.True(reopened.Validate().IsValid);
         Assert.Single(reopened.GetSheet("Summary")!.Charts);
-        OdfConversionResult<ExcelDocument> back = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> back = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument roundTrip = back.Value;
         ExcelChart converted = Assert.Single(roundTrip["Summary"].Charts);
         Assert.Equal(type, converted.ChartType);
         Assert.True(converted.TryGetData(out ExcelChartData actual));
         Assert.Equal(new[] { "Jan", "Feb" }, actual.Categories);
         Assert.Equal(new[] { 10d, 20d }, Assert.Single(actual.Series).Values);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -83,7 +83,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 drawing.Save();
             }
             using ExcelDocument imported = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
             Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -110,7 +110,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 frame.Ancestors<Xdr.WorksheetDrawing>().Single().Save();
             }
             using ExcelDocument imported = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
             Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
@@ -140,7 +140,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 drawing.Save();
             }
             using ExcelDocument imported = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
             Assert.Single(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -165,7 +165,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 source.Save();
             }
             using ExcelDocument imported = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = imported.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = imported.ConvertToOpenDocumentWithEvidence();
             Assert.Single(result.Value.GetSheet("Summary")!.Charts);
             Assert.DoesNotContain(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -184,7 +184,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 OfficeChartAxisGroup.Secondary)
         }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -199,7 +199,7 @@ public sealed class ExcelOdsChartAuthoringTests {
         ExcelChartDataRange range = chart.DataRange!;
         source[range.SheetName].Cell(range.SeriesStartRow, range.SeriesStartColumn).SetValue("not numeric");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -235,7 +235,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 space.Save();
             }
             using ExcelDocument reloaded = ExcelDocument.Load(path);
-            OdfConversionResult<OdsDocument> result = reloaded.ToOpenDocumentResult();
+            OdfConversionResult<OdsDocument> result = reloaded.ConvertToOpenDocumentWithEvidence();
             Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -266,7 +266,7 @@ public sealed class ExcelOdsChartAuthoringTests {
                 space.Save();
             }
             using ExcelDocument reloaded = ExcelDocument.Load(path);
-            OdsChart chart = Assert.Single(reloaded.ToOpenDocumentResult().Value.GetSheet("Summary")!.Charts);
+            OdsChart chart = Assert.Single(reloaded.ConvertToOpenDocumentWithEvidence().Value.GetSheet("Summary")!.Charts);
             SpreadsheetRangeReference address = SpreadsheetRangeReference.Parse(
                 chart.CategoriesAddress!, SpreadsheetAddressDialect.OpenDocument);
             Assert.Equal(dataSheet, address.Start.SheetName);

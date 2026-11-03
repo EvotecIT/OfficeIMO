@@ -10,12 +10,7 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 /// <summary>Explicit conversions between OfficeIMO PowerPoint and native OpenDocument presentation models.</summary>
 public static partial class PowerPointOpenDocumentConversionExtensions {
     private const int MaximumOdpSlideNameLength = 128;
-    /// <summary>Converts a PowerPoint presentation to an in-memory ODP document.</summary>
-    public static OdpPresentation ToOpenDocument(this PowerPointDocument source,
-        PowerPointOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
-
-    /// <summary>Converts a PowerPoint presentation to an in-memory ODP document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointDocument source,
+    internal static OdfConversionResult<OdpPresentation> ConvertToOpenDocumentWithEvidence(this PowerPointDocument source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
@@ -296,12 +291,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return new OdfConversionResult<OdpPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
-    /// <summary>Converts an ODP document to an in-memory PowerPoint presentation.</summary>
-    public static PowerPointDocument ToPowerPointDocument(this OdpPresentation source,
-        PowerPointOpenDocumentConversionOptions? options = null) => source.ToPowerPointDocumentResult(options).Value;
-
-    /// <summary>Converts an ODP document to an in-memory PowerPoint presentation and reports every lossy mapping.</summary>
-    public static OdfConversionResult<PowerPointDocument> ToPowerPointDocumentResult(this OdpPresentation source,
+    internal static OdfConversionResult<PowerPointDocument> ConvertToPowerPointWithEvidence(this OdpPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);

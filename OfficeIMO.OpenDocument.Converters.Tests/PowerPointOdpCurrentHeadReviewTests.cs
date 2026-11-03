@@ -38,7 +38,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     public void AuthoredNotesBodyPlaceholderAppearanceIsExplicitLoss(string kind) {
         using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].Notes.Text = "Body note";
-        Assert.DoesNotContain(source.ToOpenDocumentResult().Report.ForFeature("notes-slide-appearance"),
+        Assert.DoesNotContain(source.ConvertToOpenDocumentWithEvidence().Report.ForFeature("notes-slide-appearance"),
             mapping => mapping.Status == OdfConversionMappingStatus.Unsupported);
         Shape body = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .NotesSlidePart!.NotesSlide!.Descendants<Shape>().First(shape =>
@@ -121,7 +121,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void AuthoredPresentationThumbnailIsExplicitLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        Assert.DoesNotContain(source.ToOpenDocumentResult().Report.ForFeature("presentation-thumbnail"),
+        Assert.DoesNotContain(source.ConvertToOpenDocumentWithEvidence().Report.ForFeature("presentation-thumbnail"),
             mapping => mapping.Status == OdfConversionMappingStatus.Unsupported);
         ThumbnailPart thumbnail = source.OpenXmlDocument.ThumbnailPart!;
         using (Stream stream = thumbnail.GetStream(FileMode.Create, FileAccess.Write)) {
@@ -152,7 +152,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         table.SetAttributeValue(OdfNamespaces.Table + "use-first-row-styles", "true");
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("table-appearance"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -166,7 +166,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         line.FillColor = null;
         line.StrokeColor = OdfColor.Parse("#336699");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.DoesNotContain(conversion.Report.ForFeature("shape-appearance"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -185,7 +185,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         PowerPointTable result = target.Slides[0].Tables.Single();
         Assert.Equal("Repeated", result.GetCell(0, 0).Paragraphs[0].Runs[0].Text);
@@ -202,7 +202,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.Package.MarkXmlDirty("content.xml");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            source.ToPowerPointDocumentResult(new PowerPointOpenDocumentConversionOptions {
+            source.ConvertToPowerPointWithEvidence(new PowerPointOpenDocumentConversionOptions {
                 MaxTableRows = 2
             }));
         Assert.Contains("configured conversion limit", exception.Message);
@@ -316,12 +316,12 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         PowerPointTextBox box = source.Slides[0].AddTextBox("Open agenda",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         box.Paragraphs[0].Runs[0].SetHyperlink(destination);
 
-        OdpPresentation target = source.ToOpenDocumentResult().Value;
+        OdpPresentation target = source.ConvertToOpenDocumentWithEvidence().Value;
         XElement link = target.Package.GetXml("content.xml")
             .Descendants(OdfNamespaces.Text + "a").Single();
         Assert.Equal("#Agenda", (string?)link.Attribute(OdfNamespaces.XLink + "href"));
 
-        using PowerPointDocument reopened = target.ToPowerPointDocumentResult().Value;
+        using PowerPointDocument reopened = target.ConvertToPowerPointWithEvidence().Value;
         Assert.Equal("#slide-2", reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].Hyperlink?.OriginalString);
     }
 
@@ -334,7 +334,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.Slides[0].AddTextBox("Open second agenda",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].SetHyperlink(destination);
 
-        OdpPresentation target = source.ToOpenDocumentResult().Value;
+        OdpPresentation target = source.ConvertToOpenDocumentWithEvidence().Value;
         XElement link = target.Package.GetXml("content.xml")
             .Descendants(OdfNamespaces.Text + "a").Single();
         Assert.Equal("#Agenda_2", (string?)link.Attribute(OdfNamespaces.XLink + "href"));
@@ -349,7 +349,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.Slides[0].AddTextBox("Open slide",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].SetHyperlink(destination);
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal("Slide2", conversion.Value.Slides[1].Name);
         XElement link = conversion.Value.Package.GetXml("content.xml")
             .Descendants(OdfNamespaces.Text + "a").Single();
@@ -370,7 +370,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         box.AddParagraph("One").StyleName = style.Name;
         box.AddParagraph("Two").StyleName = style.Name;
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.ForFeature("paragraph-layout"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
@@ -449,7 +449,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.AddSlide();
         source.Properties.Generator = "External editor";
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "document-metadata" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -502,7 +502,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void StockPowerPointRootAndApplicationMetadataAreNotLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
             (mapping.Feature == "presentation-settings" || mapping.Feature == "document-metadata") &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -516,7 +516,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         root.RightToLeft = false;
         root.ShowSpecialPlaceholderOnTitleSlide = true;
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "presentation-settings" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
@@ -529,7 +529,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             .Descendants<Shape>().Single().ShapeProperties!;
         Assert.NotNull(properties.GetFirstChild<A.NoFill>());
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "shape-appearance" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
@@ -570,11 +570,11 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
                 new XElement(OdfNamespaces.Text + "p", "Nested item"))));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-lists" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -643,7 +643,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-column").Single()
             .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", columns);
         source.Package.MarkXmlDirty("content.xml");
-        using PowerPointDocument converted = source.ToPowerPointDocumentResult().Value;
+        using PowerPointDocument converted = source.ConvertToPowerPointWithEvidence().Value;
         Assert.Equal(columns, converted.Slides[0].Tables.Single().Columns);
         using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(converted.ToBytes()));
         Assert.Equal(columns, reopened.Slides[0].Tables.Single().Columns);
@@ -656,7 +656,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Table + "table-column").Single()
             .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", "257");
         source.Package.MarkXmlDirty("content.xml");
-        Assert.Throws<InvalidDataException>(() => source.ToPowerPointDocumentResult());
+        Assert.Throws<InvalidDataException>(() => source.ConvertToPowerPointWithEvidence());
     }
 
     [Fact]
@@ -690,7 +690,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         slide.SlideLayoutPart!.SlideMasterPart!.SlideMaster!.CommonSlideData!.Background =
             new Background(new BackgroundProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
         slide.Slide!.CommonSlideData!.Background = new Background(new BackgroundProperties(new A.GradientFill()));
-        OdpPresentation converted = source.ToOpenDocumentResult().Value;
+        OdpPresentation converted = source.ConvertToOpenDocumentWithEvidence().Value;
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(converted.ToBytes()));
         XElement page = reopened.Package.GetXml("content.xml").Descendants(OdfNamespaces.Draw + "page").Single();
         Assert.Equal("#336699", reopened.MasterPages[0].BackgroundColor?.ToString());
@@ -699,7 +699,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             .Single(style => (string?)style.Attribute(OdfNamespaces.Style + "name") == pageStyle)
             .Element(OdfNamespaces.Style + "drawing-page-properties")!;
         Assert.Equal("false", (string?)properties.Attribute(OdfNamespaces.Presentation + "background-visible"));
-        using PowerPointDocument back = reopened.ToPowerPointDocumentResult().Value;
+        using PowerPointDocument back = reopened.ConvertToPowerPointWithEvidence().Value;
         Assert.Null(back.Slides[0].GetBackground().Color);
     }
 
@@ -710,19 +710,19 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     }
 
     private static void AssertOdpLoss(OdpPresentation source, string feature) {
-        OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToPowerPointDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
     private static void AssertPowerPointLoss(PowerPointDocument source, string feature) {
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == feature &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 }
