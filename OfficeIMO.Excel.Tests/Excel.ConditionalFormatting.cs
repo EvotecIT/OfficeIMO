@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1).SetValue(5d);
                 sheet.Cell(2, 1).SetValue(15d);
-                sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan, "10");
+                sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10");
                 document.Save();
             }
 
@@ -49,22 +49,15 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 1).SetValue(1d);
                 sheet.Cell(2, 1).SetValue(2d);
                 sheet.Cell(3, 1).SetValue(3d);
-                sheet.Range("A1:A3").ConditionalFormatting
-                    .ColorScale(OfficeColor.Red, OfficeColor.Lime)
-                    .ConditionalFormatting
-                    .DataBar(OfficeColor.Blue)
-                    .ConditionalFormatting
-                    .Top(1)
-                    .ConditionalFormatting
-                    .DuplicateValues("FCE4D6")
-                    .ConditionalFormatting
-                    .UniqueValues("DBEAFE")
-                    .ConditionalFormatting
-                    .AboveAverage("C6EFCE")
-                    .ConditionalFormatting
-                    .BelowAverage("FEE2E2", equalAverage: true)
-                    .ConditionalFormatting
-                    .ContainsText("2", "FFF2CC");
+                var rules = sheet.Range("A1:A3").ConditionalFormat();
+                rules.ColorScale(OfficeColor.Red, OfficeColor.Lime);
+                rules.DataBar(OfficeColor.Blue);
+                rules.TopBottom(1);
+                rules.DuplicateValues("FCE4D6");
+                rules.UniqueValues("DBEAFE");
+                rules.AboveAverage(fillColor: "C6EFCE");
+                rules.AboveAverage(aboveAverage: false, equalAverage: true, fillColor: "FEE2E2");
+                rules.Text(ExcelConditionalFormatType.ContainsText, "2", "FFF2CC");
                 document.Save();
             }
 
@@ -129,12 +122,12 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 3).SetValue(new System.DateTime(2026, 6, 22));
                 sheet.Cell(2, 3).SetValue(new System.DateTime(2026, 6, 21));
 
-                sheet.AddConditionalUniqueValuesRule("A1:A3");
-                sheet.AddConditionalTextRule("A1:A3", ExcelConditionalFormatType.ContainsText, "Ready");
-                sheet.AddConditionalBlanksRule("D1:D3");
-                sheet.AddConditionalErrorsRule("E1:E3", containsErrors: false);
-                sheet.AddConditionalAboveAverageRule("B1:B3", aboveAverage: false, equalAverage: true, standardDeviation: 1);
-                sheet.AddConditionalTimePeriodRule("C1:C3", ExcelConditionalTimePeriod.Today);
+                sheet.Range("A1:A3").ConditionalFormat().UniqueValues();
+                sheet.Range("A1:A3").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "Ready");
+                sheet.Range("D1:D3").ConditionalFormat().Blanks();
+                sheet.Range("E1:E3").ConditionalFormat().Errors(containsErrors: false);
+                sheet.Range("B1:B3").ConditionalFormat().AboveAverage(aboveAverage: false, equalAverage: true, standardDeviation: 1);
+                sheet.Range("C1:C3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Today);
                 document.Save();
             }
 
@@ -164,67 +157,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_AddConditionalColorScale() {
-            string filePath = Path.Combine(_directoryWithFiles, "ConditionalColorScale.xlsx");
-            using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddSheet("Data");
-                sheet.Cell(1, 1).SetValue(1d);
-                sheet.Cell(2, 1).SetValue(2d);
-                sheet.Cell(3, 1).SetValue(3d);
-                sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Lime);
-                document.Save();
-            }
-
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                var workbookPart = spreadsheet.WorkbookPart!;
-                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
-                ConditionalFormatting? cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
-                Assert.NotNull(cf);
-                ConditionalFormattingRule rule = cf!.Elements<ConditionalFormattingRule>().First();
-                Assert.Equal(ConditionalFormatValues.ColorScale, rule.Type!.Value);
-                ColorScale? colorScale = rule.GetFirstChild<ColorScale>();
-                Assert.NotNull(colorScale);
-                var colors = colorScale!.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().ToList();
-                Assert.Equal("FFFF0000", colors[0].Rgb!.Value);
-                Assert.Equal("FF00FF00", colors[1].Rgb!.Value);
-            }
-
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                Assert.Empty(document.ValidateOpenXml());
-            }
-        }
-
-        [Fact]
-        public void Test_AddConditionalDataBar() {
-            string filePath = Path.Combine(_directoryWithFiles, "ConditionalDataBar.xlsx");
-            using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddSheet("Data");
-                sheet.Cell(1, 1).SetValue(1d);
-                sheet.Cell(2, 1).SetValue(2d);
-                sheet.Cell(3, 1).SetValue(3d);
-                sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
-                document.Save();
-            }
-
-            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                var workbookPart = spreadsheet.WorkbookPart!;
-                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
-                ConditionalFormatting? cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
-                Assert.NotNull(cf);
-                ConditionalFormattingRule rule = cf!.Elements<ConditionalFormattingRule>().First();
-                Assert.Equal(ConditionalFormatValues.DataBar, rule.Type!.Value);
-                DataBar? dataBar = rule.GetFirstChild<DataBar>();
-                Assert.NotNull(dataBar);
-                var color = dataBar!.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().First();
-                Assert.Equal("FF0000FF", color.Rgb!.Value);
-            }
-
-            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                Assert.Empty(document.ValidateOpenXml());
-            }
-        }
-
-        [Fact]
         public void Test_AddConditionalIconSet() {
             string filePath = Path.Combine(_directoryWithFiles, "ConditionalIconSet.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
@@ -232,7 +164,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 1).SetValue(1d);
                 sheet.Cell(2, 1).SetValue(2d);
                 sheet.Cell(3, 1).SetValue(3d);
-                sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: false, reverseIconOrder: true);
+                sheet.Range("A1:A3").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: false, reverseIconOrder: true);
                 document.Save();
             }
 
@@ -276,9 +208,9 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(3, 1).SetValue(3d);
 
                 var tasks = new Task[] {
-                    Task.Run(() => sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "2")),
-                    Task.Run(() => sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Blue)),
-                    Task.Run(() => sheet.AddConditionalDataBar("A1:A3", OfficeColor.Green))
+                    Task.Run(() => sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "2")),
+                    Task.Run(() => sheet.Range("A1:A3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Blue)),
+                    Task.Run(() => sheet.Range("A1:A3").ConditionalFormat().DataBar(OfficeColor.Green))
                 };
                 await Task.WhenAll(tasks);
                 document.Save();

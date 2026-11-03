@@ -59,7 +59,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (!translated.IsSuccessful || !translated.Formula.StartsWith("=", StringComparison.Ordinal)) return false;
         string formula = ExcelDocument.ReplaceSheetNameReferences(translated.Formula.Substring(1), sheetNameMap);
         if (formula.Length > ExcelSheet.MaximumDataValidationFormulaLength) return false;
-        sheet.ValidationCustomFormula(range!, formula, validation.AllowEmptyCell);
+        sheet.CreateDataValidationCustomFormula(range!, formula, validation.AllowEmptyCell);
         return true;
     }
 

@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
             if (part != null) {
                 if (!part.IsRootElementLoaded) ValidateInCellImageMetadataPart(part, "Cell metadata");
                 Metadata? metadata = part.Metadata;
-                foreach (Cell cell in ExcelWorksheetScan.Cells(WorksheetRoot)) {
+                foreach (Cell cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
                     if (ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value != CellFormulaValues.Array
                         || cell.CellMetaIndex == null
                         || CreateFormulaArrayInfo(cell, metadata)?.IsDynamic != true

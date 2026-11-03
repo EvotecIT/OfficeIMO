@@ -83,7 +83,7 @@ internal static partial class DocumentFeatureShowcase {
             sheet.Cell(row, 5).SetValue(index % 2 == 0 ? "Main store" : "Annex");
         }
         sheet.AddTable("A4:E10", hasHeader: true, name: "Inventory", style: ExcelTableStyle.TableStyleMedium2);
-        sheet.Freeze(topRows: 4, leftCols: 1);
+        sheet.View.Freeze(topRows: 4, leftColumns: 1);
         SaveExcelExample(document, sheet, folder, "A1:F13");
     }
 
@@ -113,7 +113,7 @@ internal static partial class DocumentFeatureShowcase {
                 sheet.Cell(team + 5, day + 2).SetValue(25 + ((team * 17 + day * 23) % 76));
             }
         }
-        sheet.AddConditionalColorScale("B5:F9", OfficeColor.Parse("#FDE8E7"), OfficeColor.Parse("#16A34A"));
+        sheet.Range("B5:F9").ConditionalFormat().ColorScale(OfficeColor.Parse("#FDE8E7"), OfficeColor.Parse("#16A34A"));
         SaveExcelExample(document, sheet, folder, "A1:F12");
     }
 
@@ -131,9 +131,9 @@ internal static partial class DocumentFeatureShowcase {
             sheet.Cell(row, 4).SetValue(index < 2 ? "Complete" : "Planned");
             sheet.Cell(row, 5).SetValue(index + 1);
         }
-        sheet.ValidationList("C5:C10", new[] { "Low", "Normal", "High" });
-        sheet.ValidationList("D5:D10", new[] { "Planned", "In progress", "Complete" });
-        sheet.ValidationWholeNumber("E5:E10", ExcelDataValidationOperator.Between, 1, 20);
+        sheet.Range("C5:C10").Validation().List(new[] { "Low", "Normal", "High" });
+        sheet.Range("D5:D10").Validation().List(new[] { "Planned", "In progress", "Complete" });
+        sheet.Range("E5:E10").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 20);
         sheet.AddTable("A4:E10", hasHeader: true, name: "Requests", style: ExcelTableStyle.TableStyleMedium2);
         SaveExcelExample(document, sheet, folder, "A1:F13");
     }

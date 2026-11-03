@@ -17,10 +17,8 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
             ExcelSheet sheet = authored.AddSheet("Data");
-            sheet.ValidationDate("A1", ExcelDataValidationOperator.Between,
-                new DateTime(2024, 2, 29), new DateTime(2024, 12, 31));
-            sheet.ValidationTime("B1", ExcelDataValidationOperator.Between,
-                new TimeSpan(8, 30, 0), new TimeSpan(17, 0, 0));
+            sheet.Range("A1").Validation().Date(ExcelDataValidationOperator.Between, new DateTime(2024, 2, 29), new DateTime(2024, 12, 31));
+            sheet.Range("B1").Validation().Time(ExcelDataValidationOperator.Between, new TimeSpan(8, 30, 0), new TimeSpan(17, 0, 0));
             package = authored.ToBytes();
         }
 
@@ -65,8 +63,8 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
             ExcelSheet sheet = authored.AddSheet("Data");
-            sheet.ValidationDate("A1", ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
-            sheet.ValidationTime("B1", ExcelDataValidationOperator.Equal, new TimeSpan(8, 30, 0));
+            sheet.Range("A1").Validation().Date(ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
+            sheet.Range("B1").Validation().Time(ExcelDataValidationOperator.Equal, new TimeSpan(8, 30, 0));
             package = authored.ToBytes();
         }
 
@@ -100,10 +98,9 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         using (ExcelDocument authored = ExcelDocument.Create()) {
             ExcelSheet sheet = authored.AddSheet("Data");
             for (int index = 0; index < 3; index++) {
-                sheet.ValidationDate(((char)('A' + index)).ToString() + "1",
-                    ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
+                sheet.Range(((char)('A' + index)).ToString() + "1").Validation().Date(ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
             }
-            sheet.ValidationDate("D1", ExcelDataValidationOperator.Equal, new DateTime(9957, 1, 1));
+            sheet.Range("D1").Validation().Date(ExcelDataValidationOperator.Equal, new DateTime(9957, 1, 1));
             package = authored.ToBytes();
         }
 
@@ -159,9 +156,8 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         using ExcelDocument source = ExcelDocument.Create();
         source.DateSystem = dateSystem;
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.ValidationDate("A1:A3", ExcelDataValidationOperator.Between,
-            firstDate, secondDate, allowBlank: false);
-        sheet.ValidationTime("B1:B3", ExcelDataValidationOperator.Equal, time);
+        sheet.Range("A1:A3").Validation().Date(ExcelDataValidationOperator.Between, firstDate, secondDate, allowBlank: false);
+        sheet.Range("B1:B3").Validation().Time(ExcelDataValidationOperator.Equal, time);
 
         OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
         Assert.DoesNotContain(toOds.Report.Mappings, mapping => mapping.Feature == "validations"
@@ -233,8 +229,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
 
         using ExcelDocument excel = ExcelDocument.Create();
-        excel.AddSheet("Data").ValidationTime("A1", ExcelDataValidationOperator.Equal,
-            TimeSpan.FromMilliseconds(500));
+        excel.AddSheet("Data").Range("A1").Validation().Time(ExcelDataValidationOperator.Equal, TimeSpan.FromMilliseconds(500));
         OdfConversionResult<OdsDocument> toOds = excel.ToOpenDocumentResult();
         Assert.Empty(toOds.Value.Validations);
         Assert.Contains(toOds.Report.Mappings, mapping => mapping.Feature == "validations"

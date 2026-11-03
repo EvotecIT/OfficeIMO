@@ -21,14 +21,14 @@ public partial class Excel {
         sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
         sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-        sheet.SetMargins(OfficeLength.Inches(0.5), OfficeLength.Inches(1), OfficeLength.Inches(0.75), OfficeLength.Inches(1.25));
-        sheet.SetPageSetup(paperSize: ExcelPaperSize.Letter, scale: 50);
+        sheet.PageSetup.SetMargins(OfficeLength.Inches(0.5), OfficeLength.Inches(1), OfficeLength.Inches(0.75), OfficeLength.Inches(1.25));
+        sheet.PageSetup.PaperSize = ExcelPaperSize.Letter; sheet.PageSetup.Scale = 50;
         sheet.Range("A1:B2").SetFillColor("FFCC33");
-        sheet.SetPrintOptions(horizontalCentered: false, verticalCentered: false);
+        sheet.PageSetup.HorizontalCentered = false; sheet.PageSetup.VerticalCentered = false;
         byte[] originalPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var original = PdfPigDocument.Open(originalPdf);
         var pngOriginal = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
-        sheet.SetPrintOptions(horizontalCentered: horizontal, verticalCentered: vertical);
+        sheet.PageSetup.HorizontalCentered = horizontal; sheet.PageSetup.VerticalCentered = vertical;
         byte[] centeredPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var centered = PdfPigDocument.Open(centeredPdf);
         var pngCentered = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];

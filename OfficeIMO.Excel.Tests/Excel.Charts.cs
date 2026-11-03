@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using Xunit;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using A = DocumentFormat.OpenXml.Drawing;

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
             document.AddSheet("Report").Cell(1, 1).SetValue("Data");
-            ExcelProperties properties = document.Properties;
+            var properties = document.Properties;
             properties.Title = "Before save";
             var options = new ExcelSaveOptions { DisableFastPackageWriter = standardWriter };
             SaveRetainedMetadataFixture(document, stream, options, fileSave);

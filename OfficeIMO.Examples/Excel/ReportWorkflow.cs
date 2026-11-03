@@ -62,8 +62,8 @@ namespace OfficeIMO.Examples.Excel
                 sheet.Cell(totalRow, 6).SetNumberFormat("0.0%");
                 // Table style, a colour scale on margin %, and a frozen header.
                 sheet.AddTable($"A4:F{lastRow}", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
-                sheet.AddConditionalColorScale($"F5:F{lastRow}", "F8D7DA", "C9ECD3");
-                sheet.Freeze(topRows: 4);
+                sheet.Range($"F5:F{lastRow}").ConditionalFormat().ColorScale("F8D7DA", "C9ECD3");
+                sheet.View.Freeze(topRows: 4);
                 // A SUMIF summary by region feeds the chart; the pivot reads the same table.
                 string[] regions =
                 {

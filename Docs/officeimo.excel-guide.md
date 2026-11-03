@@ -24,14 +24,16 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 
 ## Returned authoring objects
 
-Conditional-format Add methods return `ExcelConditionalFormattingInfo`, the same
-editable model used by `AddConditionalFormattingRule`. Edit the returned model
-and call `sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
+`range.ConditionalFormat()` adds rules; each call returns the attached
+`ExcelConditionalFormattingInfo`, the same editable model used by
+`AddConditionalFormattingRule`. Edit the returned model and call
+`sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
 `RemoveConditionalFormattingRule` to remove that exact rule. Pivot conditional
-formats follow the same contract.
+formats use the pivot's output range: `sheet.Range(sheet.GetPivotTableRange(name)).ConditionalFormat()`.
 
-`AddAutoFilter` returns an `ExcelAutoFilter` range handle. Its `Inspect()` method
-reads current criteria and table ownership. Creating the handle preserves deferred
+`range.AutoFilter()` returns the `ExcelAutoFilter` on that range. `Column(header)` or
+`Column(offset)` sets criteria, `Clear()` removes the filter and `Inspect()` reads
+current criteria and table ownership. Creating the handle preserves deferred
 workbook exports. `AddTableOfContents` returns the sheet it creates, and
 `AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
 
@@ -906,8 +908,8 @@ to use `Load`.
 using var document = ExcelDocument.Load("input.xlsx");
 var sheet = document["Data"];
 
-sheet.ValidationList("C2:C100", new[] { "New", "Processed", "Hold" });
-sheet.Range("D2:D100").Validate.WholeNumberBetween(1, 10, errorMessage: "Use 1 through 10");
+sheet.Range("C2:C100").Validation().List("New", "Processed", "Hold");
+sheet.Range("D2:D100").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10, errorMessage: "Use 1 through 10");
 
 List<RowModel> rows = sheet.RowsAs<RowModel>("A1:C100").ToList();
 
@@ -1005,7 +1007,7 @@ record RevenueTrend(string Week, decimal Revenue);
 ```
 
 ```csharp
-sheet.SetMargins(OfficeLength.Inches(0.7), OfficeLength.Inches(0.7),
+sheet.PageSetup.SetMargins(OfficeLength.Inches(0.7), OfficeLength.Inches(0.7),
     OfficeLength.Inches(0.75), OfficeLength.Inches(0.75));
 ExcelChart styledChart = sheet.AddChartFromRange("A1:B5", row: 1, column: 5,
     width: OfficeLength.Centimeters(16), height: OfficeLength.Centimeters(9), title: "Revenue");
@@ -1038,6 +1040,7 @@ references, and sources beyond the format-resolution work bounds report
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 
 using var document = ExcelDocument.Create("dashboard.xlsx");
 var sheet = document.AddSheet("Summary");
@@ -1885,8 +1888,8 @@ var sheet = document["Data"];
 sheet.SetComment("A1", "Review total", author: "Alice", initials: "AA");
 sheet.UpdateComments(new ExcelCommentFilter { TextContains = "total" }, "Total reviewed", author: "Carol", initials: "CC");
 
-sheet.AddConditionalColorScale("C2:C100", "#FFF0F0", "#70AD47");
-sheet.Range("D2:D100").ConditionalFormat.DataBar("#5B9BD5");
+sheet.Range("C2:C100").ConditionalFormat().ColorScale("#FFF0F0", "#70AD47");
+sheet.Range("D2:D100").ConditionalFormat().DataBar("#5B9BD5");
 
 // The same lifecycle covers imported classic and Office extension rules.
 var rules = sheet.GetConditionalFormattingRules("C2:D100");
@@ -2134,15 +2137,15 @@ Both resolve the first workbook view's `activeTab` in workbook-tab order. A miss
 
 ## Worksheet print areas
 
-Set one or several local A1 selections with `ExcelDocument.SetPrintArea`. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
+Set one or several local A1 selections with `sheet.PageSetup.PrintArea`; setting `null` removes it. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
 
 ```csharp
-document.SetPrintArea(sheet, "B2:D20,F2:H20");
-IReadOnlyList<string> areas = sheet.GetPrintAreas();
-string? definedNameText = sheet.GetPrintArea();
+sheet.PageSetup.PrintArea = "B2:D20,F2:H20";
+IReadOnlyList<string> areas = sheet.PageSetup.PrintAreas;
+string? definedNameText = sheet.PageSetup.PrintArea;
 ```
 
-`GetPrintAreas()` returns the individual stored references. `GetPrintArea()` returns the complete defined-name text. The setter validates all areas before replacing the previous selection and rejects references to another worksheet or workbook.
+`PrintAreas` returns the individual stored references and `PrintArea` the complete defined-name text. The setter validates all areas before replacing the previous selection and rejects references to another worksheet or workbook.
 
 Explicit row heights and `AutoFitRow`/`AutoFitRows` results are stored in points. Generated worksheets retain a neutral sheet view so desktop Excel reads those heights consistently. Clearing frozen panes retains other view settings and removes the pane and its selections. Auto-fit no longer inflates stored heights by 1.5; existing stored workbook heights remain unchanged when loaded.
 

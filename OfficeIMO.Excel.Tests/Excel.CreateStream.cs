@@ -233,11 +233,9 @@ namespace OfficeIMO.Tests {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
                 var sheet = document.AddSheet("Orders");
                 string range = sheet.AddTable(orders, new OfficeIMO.Excel.ExcelTableOptions { Name = "OrdersExport", Style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, IncludeAutoFilter = true }, row: 1, column: 1).Range!;
-                sheet.AddAutoFilter(range, new Dictionary<uint, IEnumerable<string>> {
-                    { 3U, new[] { "Open" } }
-                });
-                sheet.ValidationList("D2:D4", new[] { "Open", "Closed", "Hold" });
-                sheet.Freeze(topRows: 1, leftCols: 0);
+                sheet.Range(range).AutoFilter().Column(3U).Equals(new[] { "Open" });
+                sheet.Range("D2:D4").Validation().List(new[] { "Open", "Closed", "Hold" });
+                sheet.View.Freeze(topRows: 1, leftColumns: 0);
                 sheet.AutoFitColumns();
             }
 
@@ -283,10 +281,8 @@ namespace OfficeIMO.Tests {
                 sheet.WriteData(rows, ("Id", item => item.Id), ("Region", item => item.Region), ("CreatedOn", item => item.CreatedOn), ("Amount", item => item.Amount));
                 sheet.SortUsedRangeByHeader("Amount", ascending: false);
                 sheet.AddTable("A1:D4", hasHeader: true, name: "SalesExport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddAutoFilter("A1:D4", new Dictionary<uint, IEnumerable<string>> {
-                    { 1U, new[] { "West", "South" } }
-                });
-                sheet.Freeze(topRows: 1, leftCols: 0);
+                sheet.Range("A1:D4").AutoFilter().Column(1U).Equals(new[] { "West", "South" });
+                sheet.View.Freeze(topRows: 1, leftColumns: 0);
                 sheet.AutoFitColumns();
             }
 

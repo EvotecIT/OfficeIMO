@@ -21,6 +21,17 @@ namespace OfficeIMO.Excel {
                 int rowIndex = declaredRowIndex.HasValue && (declaredRowIndex.Value < 1U || declaredRowIndex.Value > ExcelA1.MaxRows)
                     ? 0
                     : ExcelWorksheetCoordinates.GetRowIndex(row, ref previousRowIndex);
+                // Stored cells sit on their row in column order; the row's DOM cells are read without merging them in.
+                bool stored = row is ExcelStoredRow storedRow && storedRow.IsStoreAvailable && storedRow.HasOrderedCells;
+                if (stored && rowIndex > 0) {
+                    var storedCells = ((ExcelStoredRow)row).Cells!;
+                    int firstColumn = storedCells[0].Column, lastColumn = storedCells[((ExcelStoredRow)row).StoredCount - 1].Column;
+                    if (rowIndex < minRow) minRow = rowIndex;
+                    if (rowIndex > maxRow) maxRow = rowIndex;
+                    if (firstColumn < minCol) minCol = firstColumn;
+                    if (lastColumn > maxCol) maxCol = lastColumn;
+                }
+                using var rawAccess = ExcelStoredRow.BeginRawAccessIf(stored);
                 if (!row.HasChildren) continue;
 
                 int cellOrdinal = 0;

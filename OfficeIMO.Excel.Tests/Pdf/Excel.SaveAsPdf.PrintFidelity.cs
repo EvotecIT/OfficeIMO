@@ -114,8 +114,8 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1).SetValue("FirstRow");
-        sheet.SetHeaderFooter(headerCenter: "Logo Header");
-        sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateMinimalRgbPng(), "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(40));
+        sheet.PageSetup.Header.Center.Text = "Logo Header";
+        sheet.PageSetup.Header.Center.SetImage(CreateMinimalRgbPng(), "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(40));
 
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeLength.Points(420), OfficeLength.Points(320)),

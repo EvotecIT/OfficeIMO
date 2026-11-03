@@ -105,13 +105,14 @@ namespace OfficeIMO.Tests {
                 }
             }
 
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D));
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
-            sheet.SetHeaderFooter(headerLeft: "&BHeader/Footer Image Baseline", footerCenter: "Rendered on page &P");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterHeaderLogoPng(), "image/png", width: OfficeLength.Points(72D), height: OfficeLength.Points(24D));
-            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, CreateHeaderFooterFooterLogoPng(), "image/png", width: OfficeLength.Points(56D), height: OfficeLength.Points(18D));
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D));
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.Header.Left.Text = "&BHeader/Footer Image Baseline";
+            sheet.PageSetup.Footer.Center.Text = "Rendered on page &P";
+            sheet.PageSetup.Header.Center.SetImage(CreateHeaderFooterHeaderLogoPng(), "image/png", width: OfficeLength.Points(72D), height: OfficeLength.Points(24D));
+            sheet.PageSetup.Footer.Right.SetImage(CreateHeaderFooterFooterLogoPng(), "image/png", width: OfficeLength.Points(56D), height: OfficeLength.Points(18D));
             sheet.AddManualRowPageBreak(2, save: false);
             return new ExcelBaselineFixture(document, sheet);
         }
@@ -124,7 +125,7 @@ namespace OfficeIMO.Tests {
             sheet.Range("A" + row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":D" + row.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .SetFillColor(row == 2 ? "F8FAFC" : "FFFFFF");
             sheet.Cell(row, 3).SetFillColor(stateFill).SetFontColor(stateText).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
-            sheet.Cell(row, 4).Percent(0).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+            sheet.Cell(row, 4).SetNumberFormat("0%").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
             sheet.Cell(row, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
         }
 

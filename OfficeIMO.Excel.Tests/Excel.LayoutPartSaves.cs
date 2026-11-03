@@ -27,14 +27,14 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
                 sheet.SetColumnHidden(3, true);
                 sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> { [2] = ExcelColumnWidth.Characters(14) });
-                sheet.SetOrientation(OfficePageOrientation.Landscape);
-                sheet.SetPaperSize(ExcelPaperSize.A4);
-                sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
-                sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
-                sheet.SetGridlinesVisible(false);
-                sheet.SetRowColumnHeadingsVisible(false);
-                sheet.SetZeroValuesVisible(false);
-                sheet.SetRightToLeft(true);
+                sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
+                sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
+                sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0;
+                sheet.View.ShowGridlines = false;
+                sheet.View.ShowRowColumnHeadings = false;
+                sheet.View.ShowZeros = false;
+                sheet.View.RightToLeft = true;
                 sheet.SetTabColor("FF0000");
 
                 Assert.Equal(0, saves());
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddSheet("Styled");
                     for (int column = 1; column <= 3; column++) {
                         sheet.Cell(1, column).SetValue("Header " + column);
-                        sheet.Cell(1, column).HeaderStyle();
+                        sheet.Cell(1, column).SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
                     }
                     Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!);
                     if (batch) {

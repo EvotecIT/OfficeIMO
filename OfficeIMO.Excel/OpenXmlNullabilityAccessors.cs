@@ -45,19 +45,19 @@ namespace OfficeIMO.Excel {
             set => _excelDocument.WorkbookRoot = value;
         }
 
-        private Worksheet WorksheetRoot {
+        internal Worksheet WorksheetRoot {
             get {
                 if (!_worksheetPart.IsRootElementLoaded) LoadWorksheetRoot();
                 return _worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null.");
             }
-            set => _worksheetPart.Worksheet = value;
+            private set => _worksheetPart.Worksheet = value;
         }
 
         private void LoadWorksheetRoot() {
             CaptureOriginalDynamicSpillFingerprintIfSafe();
             if (_worksheetPart.IsRootElementLoaded || !_excelDocument.AllowsWorksheetGridLoader) return;
             lock (_worksheetPart) {
-                if (!_worksheetPart.IsRootElementLoaded) ExcelWorksheetGridLoader.TryLoad(_worksheetPart);
+                if (!_worksheetPart.IsRootElementLoaded && ExcelWorksheetGridLoader.TryLoad(_worksheetPart, storeCells: true)) Persistence.UsesCellStore = true;
             }
         }
 

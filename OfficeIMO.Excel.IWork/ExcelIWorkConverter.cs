@@ -235,7 +235,7 @@ public static partial class ExcelIWorkConverter {
                                 IWorkCellVerticalAlignment.Middle => ExcelVerticalAlignment.Center,
                                 _ => ExcelVerticalAlignment.Bottom
                             });
-                            if (isDuration && cell.Value is double) targetCell.DurationHours();
+                            if (isDuration && cell.Value is double) targetCell.SetNumberFormat(ExcelNumberFormats.Get(ExcelNumberPreset.DurationHours));
                             if (cell.NumberFormat is { } numberFormat)
                                 sheet.Cell(cell.Row, cell.Column).SetNumberFormat(numberFormat.ToSpreadsheetFormatCode());
                         }

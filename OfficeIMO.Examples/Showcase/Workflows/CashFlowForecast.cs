@@ -26,10 +26,10 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 for (int column = 2; column <= 6; column++) sheet.Cell(row, column).SetNumberFormat("#,##0");
             }
             sheet.AddTable("A4:F10", true, "CashForecast", ExcelTableStyle.TableStyleMedium2);
-            sheet.ValidationWholeNumber("C5:D10", ExcelDataValidationOperator.Between, 0, 1000000);
+            sheet.Range("C5:D10").Validation().WholeNumber(ExcelDataValidationOperator.Between, 0, 1000000);
             sheet.Range("A12:F12").Merge(); sheet.Cell(12, 1).SetValue("Edit receipts and payments; closing cash rolls into the following month.");
             sheet.Range("A13:F13").Merge(); sheet.Cell(13, 1).SetValue("Planning example only. Tax, financing and bank reconciliation are excluded.");
-            sheet.SetGridlinesVisible(false);
+            sheet.View.ShowGridlines = false;
             for (int row = 1; row <= 16; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 6; column++) {

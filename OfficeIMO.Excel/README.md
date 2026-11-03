@@ -7,14 +7,16 @@ Create, edit, read and save Excel workbooks (`.xlsx`, and the supported subset o
 
 ## Returned authoring objects
 
-Conditional-format Add methods return `ExcelConditionalFormattingInfo`, the same
-editable model used by `AddConditionalFormattingRule`. Edit the returned model
-and call `sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
+`range.ConditionalFormat()` adds rules; each call returns the attached
+`ExcelConditionalFormattingInfo`, the same editable model used by
+`AddConditionalFormattingRule`. Edit the returned model and call
+`sheet.UpdateConditionalFormattingRule(rule)` to apply it, or pass it to
 `RemoveConditionalFormattingRule` to remove that exact rule. Pivot conditional
-formats follow the same contract.
+formats use the pivot's output range: `sheet.Range(sheet.GetPivotTableRange(name)).ConditionalFormat()`.
 
-`AddAutoFilter` returns an `ExcelAutoFilter` range handle. Its `Inspect()` method
-reads current criteria and table ownership. Creating the handle preserves deferred
+`range.AutoFilter()` returns the `ExcelAutoFilter` on that range. `Column(header)` or
+`Column(offset)` sets criteria, `Clear()` removes the filter and `Inspect()` reads
+current criteria and table ownership. Creating the handle preserves deferred
 workbook exports. `AddTableOfContents` returns the sheet it creates, and
 `AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
 
@@ -131,8 +133,8 @@ sheet.Cell("B4").SetFormula("SUM(B2:B3)");
 
 sheet.Range("A1:B1").SetBold().SetFillColor("D9EAF7");
 sheet.Range("B2:B4").SetNumberFormat("#,##0.00");
-sheet.AddConditionalDataBar("B2:B3", OfficeColor.Accent1);
-sheet.Freeze(topRows: 1);
+sheet.Range("B2:B3").ConditionalFormat().DataBar(OfficeColor.Accent1);
+sheet.View.Freeze(topRows: 1);
 sheet.AutoFitColumns();
 
 book.Save();

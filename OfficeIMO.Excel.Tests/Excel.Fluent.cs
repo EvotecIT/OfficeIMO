@@ -204,9 +204,10 @@ namespace OfficeIMO.Tests
                     sheet13.Cell(nextRow14, 1).SetValue("Bob");
                     sheet13.Cell(nextRow14, 2).SetValue(2);
                     nextRow14++;
-                    sheet13.AddAutoFilter("A1:B3", criteria);
-                    sheet13.AddConditionalColorScale("B2:B3", OfficeColor.Red, OfficeColor.Lime);
-                    sheet13.AddConditionalDataBar("B2:B3", OfficeColor.Blue);
+                    sheet13.Range("A1:B3").AutoFilter();
+                    foreach (var criterion in criteria) sheet13.Range("A1:B3").AutoFilter().Column(criterion.Key).Equals(criterion.Value);
+                    sheet13.Range("B2:B3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
+                    sheet13.Range("B2:B3").ConditionalFormat().DataBar(OfficeColor.Blue);
                     sheet13.AutoFitColumns();
                     sheet13.AutoFitRows();
                     document.Save();

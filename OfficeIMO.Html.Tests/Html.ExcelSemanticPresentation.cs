@@ -19,7 +19,7 @@ public class HtmlExcelSemanticPresentation {
         sheet.Cell(3, 3).SetValue(new DateTime(2026, 10, 29)).SetNumberFormat("yyyy-mm-dd");
         sheet.Cell(3, 4).SetValue(true);
         sheet.Cell(4, 2).SetValue(0.9).SetNumberFormat("0.0%");
-        sheet.AddConditionalColorScale("B3:B4", "F8D7DA", "C9ECD3");
+        sheet.Range("B3:B4").ConditionalFormat().ColorScale("F8D7DA", "C9ECD3");
         return workbook;
     }
 

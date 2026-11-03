@@ -10,128 +10,111 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         // -------- AutoFilter --------
 
-        /// <summary>
-        /// Attaches an AutoFilter to the given A1 range (e.g., "A1:C200").
-        /// </summary>
-        public void AutoFilterAdd(string a1Range) {
-            if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                // Remove existing AutoFilter, if any
-                var existing = ws.Elements<AutoFilter>().FirstOrDefault();
-                existing?.Remove();
+        /// <summary>Returns the AutoFilter on the range, keeping its criteria when it already exists.</summary>
+        internal ExcelAutoFilter EnsureAutoFilter(string range) {
+            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
+            if (_excelDocument.TryApplyDirectWorksheetAutoFilterMetadata(this, range)) {
+                return new ExcelAutoFilter(this, range);
+            }
 
-                ws.InsertAfter(new AutoFilter { Reference = a1Range }, ws.GetFirstChild<SheetData>());
-            });
+            bool exists = Locking.ExecuteRead(_excelDocument.EnsureLock(), () => TryFindAutoFilter(range, out _, out _));
+            return exists ? new ExcelAutoFilter(this, range) : AddAutoFilterCore(range);
         }
 
-        /// <summary>
-        /// Clears any AutoFilter from the worksheet.
-        /// </summary>
-        public void AutoFilterClear() {
-            WriteLock(() => {
-                var ws = WorksheetRoot;
-                var existing = ws.Elements<AutoFilter>().FirstOrDefault();
-                existing?.Remove();
-            });
-        }
+        private bool TryFindAutoFilter(string range, out AutoFilter? autoFilter, out Table? tableOwner) {
+            AutoFilter? worksheetFilter = WorksheetRoot.GetFirstChild<AutoFilter>();
+            if (worksheetFilter != null && AutoFilterRangesMatch(worksheetFilter.Reference?.Value, range)) {
+                autoFilter = worksheetFilter;
+                tableOwner = null;
+                return true;
+            }
 
-        /// <summary>
-        /// Applies an AutoFilter equals filter to a column resolved by header within the current AutoFilter range.
-        /// Ensures an AutoFilter exists over the sheet's UsedRange when none is present.
-        /// When the header is missing the operation is skipped.
-        /// </summary>
-        public void AutoFilterByHeaderEquals(string header, IEnumerable<string> values) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (values == null) throw new ArgumentNullException(nameof(values));
-
-            WriteLock(() => {
-                if (!TryGetColumnIndexByHeader(header, out var colIndex))
-                    return;
-                var ws = WorksheetRoot;
-                var af = ws.Elements<AutoFilter>().FirstOrDefault();
-                if (af == null) {
-                    var used = GetUsedRangeA1();
-                    af = new AutoFilter { Reference = used };
-                    ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
+            foreach (var tablePart in _worksheetPart.TableDefinitionParts) {
+                Table? table = tablePart.Table;
+                AutoFilter? tableFilter = table?.GetFirstChild<AutoFilter>();
+                if (table != null && tableFilter != null
+                    && (AutoFilterRangesMatch(table.Reference?.Value, range) || AutoFilterRangesMatch(tableFilter.Reference?.Value, range))) {
+                    autoFilter = tableFilter;
+                    tableOwner = table;
+                    return true;
                 }
+            }
 
-                var (r1, c1, r2, c2) = ExcelA1.ParseRange(af.Reference!);
-                if (colIndex < c1 || colIndex > c2)
-                    throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
+            autoFilter = null;
+            tableOwner = null;
+            return false;
+        }
 
-                // ColumnId is zero-based within the AutoFilter range
-                uint columnId = (uint)(colIndex - c1);
+        /// <summary>Criteria and removals edit the worksheet, so a deferred direct export materializes first, as AddAutoFilter with criteria did.</summary>
+        private void MaterializeDeferredAutoFilterWorkbook() {
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) _excelDocument.MaterializeDeferredDataSetImport();
+        }
 
-                // Remove existing filter for this ColumnId
-                var existingColumn = af.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
+        /// <summary>Removes the worksheet or table AutoFilter that covers the range.</summary>
+        internal bool RemoveAutoFilter(string range) {
+            MaterializeDeferredAutoFilterWorkbook();
+            bool removed = false;
+            WriteLock(() => {
+                if (!TryFindAutoFilter(range, out AutoFilter? autoFilter, out Table? tableOwner)) return;
+                autoFilter!.Remove();
+                DeferAutoFilterOwner(tableOwner);
+                removed = true;
+            });
+            return removed;
+        }
+
+        /// <summary>Removes the criteria of one zero-based AutoFilter column offset.</summary>
+        internal bool ClearAutoFilterColumn(string range, uint columnOffset) {
+            MaterializeDeferredAutoFilterWorkbook();
+            bool removed = false;
+            WriteLock(() => {
+                if (!TryFindAutoFilter(range, out AutoFilter? autoFilter, out Table? tableOwner)) return;
+                FilterColumn? column = autoFilter!.Elements<FilterColumn>()
+                    .FirstOrDefault(item => item.ColumnId?.Value == columnOffset);
+                if (column == null) return;
+                column.Remove();
+                DeferAutoFilterOwner(tableOwner);
+                removed = true;
+            });
+            return removed;
+        }
+
+        /// <summary>Resolves a header in the first row of the AutoFilter range to its zero-based column offset.</summary>
+        internal uint ResolveAutoFilterColumnOffset(string range, string header) {
+            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
+            var (r1, c1, _, c2) = ExcelA1.ParseRange(range);
+            string wanted = ExcelHeaderNameHelper.NormalizeHeader(header, true);
+            for (int column = c1; column <= c2; column++) {
+                if (TryGetCellText(r1, column, out string text)
+                    && string.Equals(ExcelHeaderNameHelper.NormalizeHeader(text, true), wanted, StringComparison.OrdinalIgnoreCase)) {
+                    return (uint)(column - c1);
+                }
+            }
+
+            throw new ArgumentException($"Header '{header}' was not found in the first row of AutoFilter range {range}.", nameof(header));
+        }
+
+        internal void ApplyAutoFilterValueCriteria(string range, uint columnId, IEnumerable<string> values) {
+            MaterializeDeferredAutoFilterWorkbook();
+            if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
+            if (values == null) throw new ArgumentNullException(nameof(values));
+            range = ValidateAutoFilterColumnOffset(range, columnId);
+            List<string> filterValues = BuildDistinctFilterValues(values);
+
+            WriteLock(() => {
+                AutoFilter autoFilter = GetOrReplaceAutoFilter(WorksheetRoot, range, out Table? tableOwner);
+                FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
+                if (existingColumn != null && FilterColumnMatchesValues(existingColumn, filterValues)) return;
                 existingColumn?.Remove();
 
-                var fcNew = new FilterColumn { ColumnId = columnId };
+                var filterColumn = new FilterColumn { ColumnId = columnId };
                 var filters = new Filters();
-                foreach (var v in values.Distinct(StringComparer.OrdinalIgnoreCase)) {
-                    if (v == null) continue;
-                    filters.Append(new Filter { Val = v });
+                foreach (string value in filterValues) {
+                    filters.Append(new Filter { Val = value });
                 }
-                fcNew.Append(filters);
-                af.Append(fcNew);
-            });
-        }
-
-        /// <summary>
-        /// Applies equals filters for multiple headers at once (AND semantics across columns, OR semantics within a column).
-        /// Headers that cannot be resolved are ignored.
-        /// </summary>
-        public void AutoFilterByHeadersEquals(params (string Header, IEnumerable<string> Values)[] filters) {
-            if (filters == null || filters.Length == 0) throw new ArgumentException("At least one filter must be provided.", nameof(filters));
-            WriteLock(() => {
-                var toApply = new List<(int ColumnIndex, IEnumerable<string> Values)>();
-                var headerMap = GetHeaderMapCached(DefaultHeaderReadOptions);
-                foreach (var (header, values) in filters) {
-                    if (string.IsNullOrWhiteSpace(header)) continue;
-                    if (!headerMap.TryGetValue(header, out var colIndex)) continue;
-                    toApply.Add((colIndex, values ?? Array.Empty<string>()));
-                }
-                if (toApply.Count == 0) return;
-
-                var ws = WorksheetRoot;
-                var af = ws.Elements<AutoFilter>().FirstOrDefault();
-                if (af == null) {
-                    var used = GetUsedRangeA1();
-                    af = new AutoFilter { Reference = used };
-                    ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
-                }
-
-                var (r1, c1, r2, c2) = ExcelA1.ParseRange(af.Reference!);
-                var existingColumns = new Dictionary<uint, FilterColumn>();
-                foreach (var existing in af.Elements<FilterColumn>()) {
-                    if (existing.ColumnId?.Value is uint existingColumnId) {
-                        existingColumns[existingColumnId] = existing;
-                    }
-                }
-
-                foreach (var (colIndex, values) in toApply) {
-                    if (colIndex < c1 || colIndex > c2) continue;
-                    uint columnId = (uint)(colIndex - c1);
-                    var filterValues = BuildDistinctFilterValues(values);
-
-                    if (existingColumns.TryGetValue(columnId, out var existingColumn)) {
-                        if (FilterColumnMatchesValues(existingColumn, filterValues)) {
-                            continue;
-                        }
-
-                        existingColumn.Remove();
-                    }
-
-                    var fcNew = new FilterColumn { ColumnId = columnId };
-                    var filtersNode = new Filters();
-                    foreach (var v in filterValues) {
-                        filtersNode.Append(new Filter { Val = v });
-                    }
-                    fcNew.Append(filtersNode);
-                    af.Append(fcNew);
-                    existingColumns[columnId] = fcNew;
-                }
+                filterColumn.Append(filters);
+                autoFilter.Append(filterColumn);
+                DeferAutoFilterOwner(tableOwner);
             });
         }
 
@@ -165,111 +148,6 @@ namespace OfficeIMO.Excel {
             }
 
             return index == values.Count;
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter text contains filter to a column resolved by header within the current AutoFilter range.
-        /// Uses wildcard pattern matching ("*text*") via CustomFilters with Equal operator.
-        /// When the header is missing the operation is skipped.
-        /// </summary>
-        public void AutoFilterByHeaderContains(string header, string containsText) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (containsText is null) throw new ArgumentNullException(nameof(containsText));
-
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.Equal, "*" + containsText + "*");
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter text does-not-contain filter to a column resolved by header within the current AutoFilter range.
-        /// Uses wildcard pattern matching ("*text*") via CustomFilters with NotEqual operator.
-        /// </summary>
-        public void AutoFilterByHeaderDoesNotContain(string header, string containsText) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (containsText is null) throw new ArgumentNullException(nameof(containsText));
-
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.NotEqual, "*" + containsText + "*");
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter text starts-with filter to a column resolved by header within the current AutoFilter range.
-        /// Uses wildcard pattern matching ("text*") via CustomFilters with Equal operator.
-        /// </summary>
-        public void AutoFilterByHeaderStartsWith(string header, string startsWithText) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (startsWithText is null) throw new ArgumentNullException(nameof(startsWithText));
-
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.Equal, startsWithText + "*");
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter text ends-with filter to a column resolved by header within the current AutoFilter range.
-        /// Uses wildcard pattern matching ("*text") via CustomFilters with Equal operator.
-        /// </summary>
-        public void AutoFilterByHeaderEndsWith(string header, string endsWithText) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (endsWithText is null) throw new ArgumentNullException(nameof(endsWithText));
-
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.Equal, "*" + endsWithText);
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter numeric greater-than-or-equal filter to a column resolved by header within the current AutoFilter range.
-        /// </summary>
-        public void AutoFilterByHeaderGreaterThanOrEqual(string header, double value) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.GreaterThanOrEqual, InvariantNumberText.Get(value));
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter numeric not-equal filter to a column resolved by header within the current AutoFilter range.
-        /// </summary>
-        public void AutoFilterByHeaderNotEqual(string header, double value) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.NotEqual, InvariantNumberText.Get(value));
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter numeric less-than-or-equal filter to a column resolved by header within the current AutoFilter range.
-        /// </summary>
-        public void AutoFilterByHeaderLessThanOrEqual(string header, double value) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.LessThanOrEqual, InvariantNumberText.Get(value));
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter numeric inclusive range filter to a column resolved by header within the current AutoFilter range.
-        /// </summary>
-        public void AutoFilterByHeaderBetween(string header, double minimumInclusive, double maximumInclusive) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (maximumInclusive < minimumInclusive) throw new ArgumentOutOfRangeException(nameof(maximumInclusive), "The maximum value must be greater than or equal to the minimum value.");
-
-            ApplyDualCustomAutoFilterByHeader(
-                header,
-                matchAll: true,
-                firstOperator: FilterOperatorValues.GreaterThanOrEqual,
-                firstValue: InvariantNumberText.Get(minimumInclusive),
-                secondOperator: FilterOperatorValues.LessThanOrEqual,
-                secondValue: InvariantNumberText.Get(maximumInclusive));
-        }
-
-        /// <summary>
-        /// Applies an AutoFilter numeric outside-range filter to a column resolved by header within the current AutoFilter range.
-        /// Values lower than <paramref name="minimumExclusive"/> or higher than <paramref name="maximumExclusive"/> remain visible.
-        /// </summary>
-        public void AutoFilterByHeaderNotBetween(string header, double minimumExclusive, double maximumExclusive) {
-            if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (maximumExclusive < minimumExclusive) throw new ArgumentOutOfRangeException(nameof(maximumExclusive), "The maximum value must be greater than or equal to the minimum value.");
-
-            ApplyDualCustomAutoFilterByHeader(
-                header,
-                matchAll: false,
-                firstOperator: FilterOperatorValues.LessThan,
-                firstValue: InvariantNumberText.Get(minimumExclusive),
-                secondOperator: FilterOperatorValues.GreaterThan,
-                secondValue: InvariantNumberText.Get(maximumExclusive));
         }
 
         // -------- Find/Replace --------
@@ -503,86 +381,12 @@ namespace OfficeIMO.Excel {
             return sb.ToString();
         }
 
-        private void ApplyCustomAutoFilterByHeader(string header, FilterOperatorValues filterOperator, string value) {
-            WriteLock(() => {
-                if (!TryGetColumnIndexByHeader(header, out var colIndex))
-                    return;
-                var ws = WorksheetRoot;
-                var af = ws.Elements<AutoFilter>().FirstOrDefault();
-                if (af == null) {
-                    var used = GetUsedRangeA1();
-                    af = new AutoFilter { Reference = used };
-                    ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
-                }
-
-                var (r1, c1, r2, c2) = ExcelA1.ParseRange(af.Reference!);
-                if (colIndex < c1 || colIndex > c2)
-                    throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
-
-                uint columnId = (uint)(colIndex - c1);
-                var existingColumn = af.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
-                existingColumn?.Remove();
-
-                var filterColumn = new FilterColumn { ColumnId = columnId };
-                var customFilters = new CustomFilters();
-                customFilters.Append(new CustomFilter {
-                    Operator = filterOperator,
-                    Val = value,
-                });
-                filterColumn.Append(customFilters);
-                af.Append(filterColumn);
-            });
-        }
-
-        private void ApplyDualCustomAutoFilterByHeader(
-            string header,
-            bool matchAll,
-            FilterOperatorValues firstOperator,
-            string firstValue,
-            FilterOperatorValues secondOperator,
-            string secondValue) {
-            WriteLock(() => {
-                if (!TryGetColumnIndexByHeader(header, out var colIndex))
-                    return;
-                var ws = WorksheetRoot;
-                var af = ws.Elements<AutoFilter>().FirstOrDefault();
-                if (af == null) {
-                    var used = GetUsedRangeA1();
-                    af = new AutoFilter { Reference = used };
-                    ws.InsertAfter(af, ws.GetFirstChild<SheetData>());
-                }
-
-                var (r1, c1, r2, c2) = ExcelA1.ParseRange(af.Reference!);
-                if (colIndex < c1 || colIndex > c2)
-                    throw new ArgumentOutOfRangeException(nameof(header), $"Header '{header}' is outside the AutoFilter range {af.Reference}.");
-
-                uint columnId = (uint)(colIndex - c1);
-                var existingColumn = af.Elements<FilterColumn>().FirstOrDefault(fc => fc.ColumnId?.Value == columnId);
-                existingColumn?.Remove();
-
-                var filterColumn = new FilterColumn { ColumnId = columnId };
-                var customFilters = new CustomFilters {
-                    And = matchAll,
-                };
-                customFilters.Append(new CustomFilter {
-                    Operator = firstOperator,
-                    Val = firstValue,
-                });
-                customFilters.Append(new CustomFilter {
-                    Operator = secondOperator,
-                    Val = secondValue,
-                });
-
-                filterColumn.Append(customFilters);
-                af.Append(filterColumn);
-            });
-        }
-
         internal void ApplyAutoFilterCustomCriteria(
             string range,
             uint columnId,
             bool matchAll,
             IReadOnlyList<(FilterOperatorValues Operator, string Value)> conditions) {
+            MaterializeDeferredAutoFilterWorkbook();
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             if (conditions == null || conditions.Count == 0) throw new ArgumentException("At least one condition is required.", nameof(conditions));
             range = ValidateAutoFilterColumnOffset(range, columnId);
@@ -614,6 +418,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void ApplyAutoFilterBlankCriteria(string range, uint columnId) {
+            MaterializeDeferredAutoFilterWorkbook();
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             range = ValidateAutoFilterColumnOffset(range, columnId);
 
@@ -637,6 +442,7 @@ namespace OfficeIMO.Excel {
             ushort value,
             bool isTop,
             bool isPercent) {
+            MaterializeDeferredAutoFilterWorkbook();
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             ushort maximumValue = isPercent ? (ushort)100 : (ushort)500;
             if (value < 1 || value > maximumValue) {

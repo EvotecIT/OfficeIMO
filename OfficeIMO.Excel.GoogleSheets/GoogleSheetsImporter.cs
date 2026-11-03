@@ -172,13 +172,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static void ApplySheetProperties(ExcelSheet sheet, GoogleSheetsNativeSheetProperties properties) {
             if (properties.Hidden) sheet.SetHidden(true);
-            if (properties.RightToLeft) sheet.SetRightToLeft(true);
+            if (properties.RightToLeft) sheet.View.RightToLeft = true;
             if (properties.TabColor != null) sheet.SetTabColor(ToHex(properties.TabColor));
             if (properties.GridProperties != null) {
                 if (properties.GridProperties.FrozenRowCount > 0 || properties.GridProperties.FrozenColumnCount > 0) {
-                    sheet.Freeze(properties.GridProperties.FrozenRowCount, properties.GridProperties.FrozenColumnCount);
+                    sheet.View.Freeze(properties.GridProperties.FrozenRowCount, properties.GridProperties.FrozenColumnCount);
                 }
-                sheet.SetGridlinesVisible(!properties.GridProperties.HideGridlines);
+                sheet.View.ShowGridlines = !properties.GridProperties.HideGridlines;
             }
         }
 

@@ -832,9 +832,9 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(3, 1).SetValue("North");
             sheet.Cell(3, 2).SetValue(0.94);
-            sheet.Cell(3, 2).Percent(0);
+            sheet.Cell(3, 2).SetNumberFormat("0%");
             sheet.Cell(3, 3).SetValue("Ready");
-            sheet.Cell(3, 3).Success();
+            sheet.Cell(3, 3).SetFillColor("E7F6E7").SetFontColor("226B22");
             sheet.Cell(3, 4).SetValue("Wrapped cell text stays centered and readable");
             sheet.Range(3, 4, 3, 4).SetWrapText();
             sheet.Cell(3, 4).SetVerticalAlignment(ExcelVerticalAlignment.Center);
@@ -842,19 +842,19 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(4, 1).SetValue("West");
             sheet.Cell(4, 2).SetValue(0.71);
-            sheet.Cell(4, 2).Percent(0);
+            sheet.Cell(4, 2).SetNumberFormat("0%");
             sheet.Cell(4, 3).SetValue("Watch");
-            sheet.Cell(4, 3).Warning();
+            sheet.Cell(4, 3).SetFillColor("FFF4CC").SetFontColor("7A4D00");
             sheet.Cell(4, 4).SetValue("Narrative stays bounded beside the chart");
-            sheet.Cell(4, 4).MutedText();
+            sheet.Cell(4, 4).SetFontColor("666666");
             sheet.Range(4, 4, 4, 4).SetWrapText();
             sheet.Cell(4, 4).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
             sheet.Cell(5, 1).SetValue("South");
             sheet.Cell(5, 2).SetValue(0.82);
-            sheet.Cell(5, 2).Percent(0);
+            sheet.Cell(5, 2).SetNumberFormat("0%");
             sheet.Cell(5, 3).SetValue("Risk");
-            sheet.Cell(5, 3).Error();
+            sheet.Cell(5, 3).SetFillColor("FCE4E4").SetFontColor("9C0006");
             sheet.Cell(5, 4).SetValue("Bottom aligned note");
             sheet.Cell(5, 4).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
             sheet.Cell(5, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
@@ -920,19 +920,19 @@ namespace OfficeIMO.Tests
 
             sheet.Cell(3, 1).SetValue("North");
             sheet.Cell(3, 2).SetValue("Ready");
-            sheet.Cell(3, 2).Success();
+            sheet.Cell(3, 2).SetFillColor("E7F6E7").SetFontColor("226B22");
             sheet.Cell(3, 3).SetValue("Reviewer");
             sheet.Cell(3, 4).SetValue("Open");
             sheet.SetComment("D3", "Ready for leadership review.\nCallout stays readable without hiding the table.", "Reviewer");
 
             sheet.Cell(4, 1).SetValue("West");
             sheet.Cell(4, 2).SetValue("Watch");
-            sheet.Cell(4, 2).Warning();
+            sheet.Cell(4, 2).SetFillColor("FFF4CC").SetFontColor("7A4D00");
             sheet.Cell(4, 3).SetValue("Planner");
 
             sheet.Cell(5, 1).SetValue("South");
             sheet.Cell(5, 2).SetValue("Risk");
-            sheet.Cell(5, 2).Error();
+            sheet.Cell(5, 2).SetFillColor("FCE4E4").SetFontColor("9C0006");
             sheet.Cell(5, 3).SetValue("Owner");
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
@@ -1220,11 +1220,11 @@ namespace OfficeIMO.Tests
                 sheet.Cell(row, 7).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
             }
 
-            sheet.AddConditionalColorScale("B3:B7", OfficeColor.FromRgb(254, 202, 202), OfficeColor.FromRgb(34, 197, 94));
-            sheet.AddConditionalDataBar("C3:C7", OfficeColor.FromRgb(99, 179, 237));
-            sheet.AddConditionalDataBar("D3:D7", OfficeColor.FromRgb(124, 58, 237));
-            sheet.AddConditionalIconSet("F3:F7");
-            sheet.AddConditionalRule("G3:G7", ExcelConditionalFormattingOperator.GreaterThan, "15", fillColor: "C6EFCE");
+            sheet.Range("B3:B7").ConditionalFormat().ColorScale(OfficeColor.FromRgb(254, 202, 202), OfficeColor.FromRgb(34, 197, 94));
+            sheet.Range("C3:C7").ConditionalFormat().DataBar(OfficeColor.FromRgb(99, 179, 237));
+            sheet.Range("D3:D7").ConditionalFormat().DataBar(OfficeColor.FromRgb(124, 58, 237));
+            sheet.Range("F3:F7").ConditionalFormat().IconSet();
+            sheet.Range("G3:G7").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15", fillColor: "C6EFCE");
             return new ExcelBaselineFixture(document, sheet);
         }
 
@@ -1272,10 +1272,10 @@ namespace OfficeIMO.Tests
                 }
             }
 
-            sheet.AddConditionalIconSet("B3:B7", ExcelIconSet.FiveArrows, showValue: true, reverseIconOrder: false);
-            sheet.AddConditionalIconSet("D3:D7", ExcelIconSet.FourTrafficLights, showValue: true, reverseIconOrder: false);
-            sheet.AddConditionalIconSet("F3:F7", ExcelIconSet.FiveRating, showValue: true, reverseIconOrder: false);
-            sheet.AddConditionalIconSet("G3:G7", ExcelIconSet.FiveQuarters, showValue: true, reverseIconOrder: false);
+            sheet.Range("B3:B7").ConditionalFormat().IconSet(ExcelIconSet.FiveArrows, showValue: true, reverseIconOrder: false);
+            sheet.Range("D3:D7").ConditionalFormat().IconSet(ExcelIconSet.FourTrafficLights, showValue: true, reverseIconOrder: false);
+            sheet.Range("F3:F7").ConditionalFormat().IconSet(ExcelIconSet.FiveRating, showValue: true, reverseIconOrder: false);
+            sheet.Range("G3:G7").ConditionalFormat().IconSet(ExcelIconSet.FiveQuarters, showValue: true, reverseIconOrder: false);
             return new ExcelBaselineFixture(document, sheet);
         }
 

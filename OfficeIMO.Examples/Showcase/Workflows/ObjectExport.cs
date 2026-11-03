@@ -120,7 +120,7 @@ internal static class ObjectExport
         }
 
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Freeze(topRows: 1);
+        sheet.View.Freeze(topRows: 1);
         for (int column = 1; column <= 6; column++)
             sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(18));
         for (int row = 2; row <= assets.Length + 1; row++)

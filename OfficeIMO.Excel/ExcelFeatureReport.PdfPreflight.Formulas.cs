@@ -19,9 +19,9 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            IReadOnlyList<string> areas = sheet.GetPrintAreas();
+            IReadOnlyList<string> areas = sheet.GetPrintAreaParts();
             if (areas.Count == 0) return true;
-            ExcelPrintTitles titles = sheet.GetPrintTitles();
+            ExcelPrintTitles titles = sheet.ReadPrintTitles();
             foreach (string area in areas) {
                 // Invalid metadata is reported separately; remain conservative about cached formula results.
                 if (!sheet.TryParsePrintAreaReference(area, out ExcelReference? reference) || reference == null) return true;

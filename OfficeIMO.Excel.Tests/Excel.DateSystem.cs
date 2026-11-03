@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
                     var sheet = document.AddSheet("Data");
                     sheet.Cell(1, 1).SetValue(date);
-                    sheet.ValidationDate("A1:A10", ExcelDataValidationOperator.Between, minimum, maximum);
+                    sheet.Range("A1:A10").Validation().Date(ExcelDataValidationOperator.Between, minimum, maximum);
                     document.Save();
                 }
 

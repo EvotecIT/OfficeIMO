@@ -135,24 +135,24 @@ namespace OfficeIMO.Tests {
 
             sheet.AddTable("A1:P2", true, "Wide", ExcelTableStyle.TableStyleMedium2);
 
-            ExcelSheetPageSetup pageSetup = sheet.GetPageSetup()!;
+            ExcelSheetPageSetup pageSetup = sheet.PageSetup!;
             Assert.Equal(OfficePageOrientation.Landscape, pageSetup.Orientation);
             Assert.Equal(1U, pageSetup.FitToWidth);
-            ExcelPrintTitles titles = sheet.GetPrintTitles();
+            ExcelPrintTitles titles = sheet.PageSetup.PrintTitles;
             Assert.Equal(1, titles.FirstRow);
             Assert.Equal(1, titles.LastRow);
 
             // The caller's choice wins and stops further defaults.
-            sheet.SetOrientation(OfficePageOrientation.Portrait);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Portrait;
             sheet.AutoFitColumns();
-            Assert.Equal(OfficePageOrientation.Portrait, sheet.GetPageSetup()!.Orientation);
+            Assert.Equal(OfficePageOrientation.Portrait, sheet.PageSetup!.Orientation);
         }
 
         [Fact]
         public void AddTable_LeavesNarrowTablesWithoutPageSetup() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = CreateOrdersTable(document, 2);
-            Assert.Null(sheet.GetPageSetup()?.Orientation);
+            Assert.Null(sheet.PageSetup?.Orientation);
         }
 
         [Fact]

@@ -95,8 +95,7 @@ public sealed class AddOfficeExcelConditionalIconSetCommand : PSCmdlet
 
         var sheet = ResolveSheet();
         string targetRange = ExcelTargetRangeResolver.Resolve(sheet, Range, HeaderName, TableName, HeaderRow, IncludeHeader.IsPresent, PivotTableName, !PivotWholeTable.IsPresent);
-        sheet.AddConditionalIconSet(
-            targetRange,
+        sheet.Range(targetRange).ConditionalFormat().IconSet(
             IconSet,
             showValue: ShowValue,
             reverseIconOrder: Reverse,

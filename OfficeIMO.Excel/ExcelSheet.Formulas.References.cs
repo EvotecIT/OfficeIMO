@@ -82,21 +82,21 @@ namespace OfficeIMO.Excel {
             row = 0;
             column = 0;
 
-            if (!TrySplitQualifiedReference(token, out string? sheetName, out string reference)) {
+            FormulaReferenceSyntax syntax = GetFormulaReferenceSyntax(token);
+            if (!syntax.Split) {
                 return false;
             }
 
-            if (sheetName != null) {
-                if (!TryGetFormulaReferenceSheet(sheetName, out sheet)) {
+            if (syntax.SheetName != null) {
+                if (!TryGetFormulaReferenceSheet(syntax.SheetName, out sheet)) {
                     return false;
                 }
             } else if (defaultSheet != null) {
                 sheet = defaultSheet;
             }
 
-            var cellRef = ExcelA1.ParseCellRef(reference.Replace("$", string.Empty));
-            row = cellRef.Row;
-            column = cellRef.Col;
+            row = syntax.CellRow;
+            column = syntax.CellColumn;
             return row > 0
                 && column > 0
                 && row <= ExcelA1.MaxRows
@@ -114,19 +114,60 @@ namespace OfficeIMO.Excel {
             r2 = 0;
             c2 = 0;
 
-            if (!TrySplitQualifiedReference(token, out string? sheetName, out string reference)) {
+            FormulaReferenceSyntax syntax = GetFormulaReferenceSyntax(token);
+            if (!syntax.Split) {
                 return false;
             }
 
-            if (sheetName != null) {
-                if (!TryGetFormulaReferenceSheet(sheetName, out sheet)) {
+            if (syntax.SheetName != null) {
+                if (!TryGetFormulaReferenceSheet(syntax.SheetName, out sheet)) {
                     return false;
                 }
             } else if (defaultSheet != null) {
                 sheet = defaultSheet;
             }
 
-            return ExcelA1.TryParseRange(reference.Replace("$", string.Empty), out r1, out c1, out r2, out c2);
+            r1 = syntax.R1;
+            c1 = syntax.C1;
+            r2 = syntax.R2;
+            c2 = syntax.C2;
+            return syntax.IsRange;
+        }
+
+        /// <summary>The sheet qualifier and coordinates a reference token spells; it depends on the text alone.</summary>
+        internal readonly struct FormulaReferenceSyntax {
+            internal FormulaReferenceSyntax(string token) {
+                Split = TrySplitQualifiedReference(token, out string? sheetName, out string reference);
+                SheetName = sheetName;
+                CellRow = CellColumn = R1 = C1 = R2 = C2 = 0;
+                IsRange = false;
+                if (!Split) return;
+                string unanchored = reference.IndexOf('$') >= 0 ? reference.Replace("$", string.Empty) : reference;
+                (CellRow, CellColumn) = ExcelA1.ParseCellRef(unanchored);
+                IsRange = ExcelA1.TryParseRange(unanchored, out R1, out C1, out R2, out C2);
+            }
+
+            internal readonly bool Split;
+            internal readonly string? SheetName;
+            internal readonly int CellRow, CellColumn;
+            internal readonly bool IsRange;
+            internal readonly int R1, C1, R2, C2;
+        }
+
+        /// <summary>
+        /// Parses a reference token once per pass when its text needs new strings to parse, as a qualified or absolute
+        /// reference does; a plain relative reference parses without allocating and is not kept.
+        /// </summary>
+        private FormulaReferenceSyntax GetFormulaReferenceSyntax(string token) {
+            if (_formulaCalculationContext is not { IsDisposed: false } context
+                || (token.IndexOf('!') < 0 && token.IndexOf('$') < 0)) {
+                return new FormulaReferenceSyntax(token);
+            }
+            if (!context.ReferenceSyntax.TryGetValue(token, out FormulaReferenceSyntax syntax)) {
+                syntax = new FormulaReferenceSyntax(token);
+                if (context.ReferenceSyntax.Count < 65536) context.ReferenceSyntax.Add(token, syntax);
+            }
+            return syntax;
         }
 
         private bool TryParseQualifiedFormulaWholeRange(
@@ -737,7 +778,8 @@ namespace OfficeIMO.Excel {
         }
 
         private FormulaArgumentValue ResolveCellArgument(int row, int column) {
-            var cell = TryGetExistingCell(row, column);
+            // Only a formula cell needs its element here, and a stored cell is never one.
+            var cell = TryGetDomCell(row, column);
             bool unresolvedFormula = false;
             if ((cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) != null && _formulaEvaluationCache != null) {
                 if (TryEvaluateFormulaCellValue(cell!, out FormulaArgumentValue formulaResult)) {
@@ -777,7 +819,7 @@ namespace OfficeIMO.Excel {
                 _formulaEvaluationDepthFrames.Peek().IncludeChild(1);
             }
 
-            var cachedType = value.HasFormula ? TryGetExistingCell(row, column)?.DataType?.Value : null;
+            var cachedType = value.HasFormula ? TryGetDomCell(row, column)?.DataType?.Value : null;
             if (value.Kind == ExcelCellDataKind.Error
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
@@ -820,7 +862,8 @@ namespace OfficeIMO.Excel {
         // The dominant operands: numeric and shared-text cells need no typed snapshot, boxed value or error-literal check.
         private bool TryResolvePlainNumberCell(int row, int column, out FormulaArgumentValue value) {
             value = default;
-            Cell? cell = TryGetExistingCell(row, column);
+            Cell? cell = ProbeCell(row, column, out ExcelStoredRow? storedRow, out int storedIndex);
+            if (storedRow != null) return TryResolveStoredPlainNumberCell(storedRow.CellAt(storedIndex), out value);
             if (cell == null) return false;
             string? text = ExcelWorksheetScan.FindValue(cell)?.Text;
             if (cell.DataType == null || cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {

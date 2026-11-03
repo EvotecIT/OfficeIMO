@@ -11,7 +11,7 @@ Creates discoverable renderer and reconstruction settings for general conversion
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeConversionOptions [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-HtmlOptions <HtmlPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfPdfExportOptions>] [-TextOptions <PdfTextImportOptions>] [-DrawOptions <OdgPdfExportOptions>] [-VisioOptions <VisioPdfExportOptions>] [-XpsOptions <XpsPdfExportOptions>] [-ChmOptions <ChmConversionOptions>] [-DjVuOptions <DjVuPdfExportOptions>] [-PublisherLoadOptions <PublisherLoadOptions>] [-PublisherPdfOptions <PdfCreateOptions>] [-CompressPdfOutput] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-PdfHtmlProfile <PdfHtmlProfile>] [-ThrowIfLoss] [-AllowLegacyImportLoss] [-PageRange <string>] [-PdfWordMode <WordPdfImportMode>] [-PdfPowerPointMode <PowerPointPdfImportMode>] [-RasterDpi <Double>] [<CommonParameters>]
+New-OfficeConversionOptions [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-HtmlOptions <HtmlPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfPdfExportOptions>] [-TextOptions <PdfTextImportOptions>] [-DrawOptions <OdgPdfExportOptions>] [-VisioOptions <VisioPdfExportOptions>] [-XpsOptions <XpsPdfExportOptions>] [-ChmOptions <ChmConversionOptions>] [-DjVuOptions <DjVuPdfExportOptions>] [-PublisherLoadOptions <PublisherLoadOptions>] [-PublisherPdfOptions <PdfCreateOptions>] [-CompressPdfOutput] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-PdfHtmlProfile <PdfHtmlProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-PageRange <string>] [-PdfWordMode <WordPdfImportMode>] [-PdfPowerPointMode <PowerPointPdfImportMode>] [-RasterDpi <Double>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Format-specific options apply only to their matching routes.
 
 ### EXAMPLE 1
 ```powershell
-$options = New-OfficeConversionOptions -ThrowIfLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
+$options = New-OfficeConversionOptions -FailOnLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
 ConvertTo-OfficeDocument -InputPath ./report.xlsx -OutputPath ./report.pdf -ConversionOptions $options
 ```
 
@@ -113,6 +113,22 @@ Excel-to-PDF settings from New-OfficeExcelPdfOptions.
 
 ```yaml
 Type: ExcelPdfExportOptions
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FailOnLoss
+Reject any reduction reported by the selected route.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -273,22 +289,6 @@ Resolution of rendered PDF pages, when applicable.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ThrowIfLoss
-Reject any reduction reported by the selected route.
-
-```yaml
-Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

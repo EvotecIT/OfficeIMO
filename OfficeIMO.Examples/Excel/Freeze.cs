@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.Cell(1, 2).SetValue("Header2");
                 sheet.Cell(2, 1).SetValue("Value1");
                 sheet.Cell(2, 2).SetValue("Value2");
-                sheet.Freeze(topRows: 1, leftCols: 1);
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
                 document.Save();
                 if (openExcel) document.OpenInApplication();
             }

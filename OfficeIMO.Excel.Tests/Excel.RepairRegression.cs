@@ -79,10 +79,11 @@ namespace OfficeIMO.Tests
                 summary.SetComment(2, 2, "Line 1\nLine 2", author: "Tester", initials: "TT");
                 summary.SetHyperlink(3, 1, "https://example.org", display: "Example");
                 summary.SetInternalLink(4, 1, "'Summary'!A1", display: "Back to top");
-                summary.SetHeaderFooter(headerCenter: "Repair Regression", headerRight: "Page &P of &N");
+                summary.PageSetup.Header.Center.Text = "Repair Regression";
+                summary.PageSetup.Header.Right.Text = "Page &P of &N";
                 if (File.Exists(logoPath))
                 {
-                    summary.SetHeaderImage(ExcelHeaderFooterPosition.Center, File.ReadAllBytes(logoPath), "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(32));
+                    summary.PageSetup.Header.Center.SetImage(File.ReadAllBytes(logoPath), "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(32));
                 }
 
                 var data = document.AddSheet("Data");
@@ -102,7 +103,7 @@ namespace OfficeIMO.Tests
                 data.Cell(4, 2).SetValue(15);
                 data.Cell(4, 3).SetValue(5d);
                 data.Cell(4, 4).SetValue(7d);
-                data.AddAutoFilter("A1:D4");
+                data.Range("A1:D4").AutoFilter();
                 data.AddTable("A1:D4", hasHeader: true, name: "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
                 data.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
                 data.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 7, Column = 1, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220) });

@@ -22,7 +22,7 @@ public partial class Excel {
         sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = columnBreak ? 2 : 22, Column = columnBreak ? 22 : 2, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(180), Title = "SecondChart" });
         if (cellPosition == 1) sheet.Cell(1, 1).SetValue("EarlyCell");
         if (cellPosition == 2) sheet.Cell(columnBreak ? 2 : 31, columnBreak ? 31 : 2).SetValue("LateCell");
-        sheet.SetPageSetup(fitToWidth: columnBreak ? 0U : 1U, fitToHeight: columnBreak ? 1U : 0U);
+        sheet.PageSetup.FitToWidth = columnBreak ? 0U : 1U; sheet.PageSetup.FitToHeight = columnBreak ? 1U : 0U;
         if (columnBreak) sheet.AddManualColumnPageBreak(21);
         else sheet.AddManualRowPageBreak(21);
         using var package = new MemoryStream(workbook.ToBytes());
@@ -51,7 +51,7 @@ public partial class Excel {
         sheet.Cell(5, 1).SetValue("Anchor");
         sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A", "B" },
             new[] { new ExcelChartSeries("Values", new[] { 1D, 2D }) }), new ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(180), Title = "CompactChart" });
-        sheet.SetPageSetup(fitToWidth: fit ? 1U : 0U, fitToHeight: fit ? 1U : 0U);
+        sheet.PageSetup.FitToWidth = fit ? 1U : 0U; sheet.PageSetup.FitToHeight = fit ? 1U : 0U;
         using PdfCore.PdfDocument converted = workbook.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
             PageSize = new PdfCore.PdfPageSize(OfficeLength.Points(2000), OfficeLength.Points(800)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeLength.Points(20))
@@ -77,9 +77,9 @@ public partial class Excel {
         sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(200), Height = OfficeLength.Pixels(180), Title = "TopRight" });
         sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 22, Column = 1, Width = OfficeLength.Pixels(200), Height = OfficeLength.Pixels(180), Title = "BottomLeft" });
         sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 22, Column = 2, Width = OfficeLength.Pixels(200), Height = OfficeLength.Pixels(180), Title = "BottomRight" });
-        if (titles) workbook.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1);
+        if (titles) sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: 1, lastColumn: 1);
         sheet.AddManualColumnPageBreak(1); sheet.AddManualRowPageBreak(21);
-        sheet.SetPageSetup(fitToWidth: 0U, fitToHeight: 0U, pageOrder: order);
+        sheet.PageSetup.FitToWidth = 0U; sheet.PageSetup.FitToHeight = 0U; sheet.PageSetup.PageOrder = order;
         using PdfCore.PdfDocument converted = workbook.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
             PageSize = new PdfCore.PdfPageSize(OfficeLength.Points(titles ? 2000 : 500), OfficeLength.Points(800)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeLength.Points(20))

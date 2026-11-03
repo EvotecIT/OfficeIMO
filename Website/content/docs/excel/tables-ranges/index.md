@@ -67,10 +67,12 @@ sheet.AddTable("MyTable", "A1:C5", ExcelTableStyle.TableStyleMedium2,
 
 Tables automatically include AutoFilter (drop-down filters on each column header). When you create a table, filtering is enabled by default.
 
-For standalone AutoFilter without a formal table:
+For standalone AutoFilter without a formal table, add it to the range and set criteria by header:
 
 ```csharp
-sheet.SetAutoFilter("A1:C10");
+sheet.Range("A1:C10").AutoFilter()
+    .Column("Region").Equals("North", "South")
+    .Column("Amount").GreaterThanOrEqual(1000);
 ```
 
 ## Add a typed table
@@ -94,22 +96,15 @@ Apply data validation rules to cells to restrict user input:
 
 ```csharp
 // Dropdown list validation
-sheet.AddDataValidation("B2:B100",
-    DataValidationType.List,
-    formula: "\"High,Medium,Low\"");
+sheet.Range("B2:B100").Validation().List("High", "Medium", "Low");
 
 // Numeric range validation
-sheet.AddDataValidation("C2:C100",
-    DataValidationType.Whole,
-    minimum: "0",
-    maximum: "100",
+sheet.Range("C2:C100").Validation().WholeNumber(ExcelDataValidationOperator.Between, 0, 100,
     errorMessage: "Value must be between 0 and 100");
 
 // Date validation
-sheet.AddDataValidation("D2:D100",
-    DataValidationType.Date,
-    minimum: "2025-01-01",
-    maximum: "2025-12-31");
+sheet.Range("D2:D100").Validation().Date(ExcelDataValidationOperator.Between,
+    new DateTime(2025, 1, 1), new DateTime(2025, 12, 31));
 ```
 
 ## Conditional Formatting
@@ -118,30 +113,26 @@ Apply visual formatting rules based on cell values:
 
 ```csharp
 // Highlight cells greater than a threshold
-sheet.AddConditionalFormatting("B2:B100",
-    ConditionalFormattingRuleType.CellIs,
-    operatorValue: ConditionalFormattingOperator.GreaterThan,
-    formula: "10000",
-    backgroundColor: "92D050");  // Green
+sheet.Range("B2:B100").ConditionalFormat()
+    .CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10000", fillColor: "92D050");
 
 // Highlight cells with specific text
-sheet.AddConditionalFormatting("A2:A100",
-    ConditionalFormattingRuleType.ContainsText,
-    text: "Urgent",
-    backgroundColor: "FF0000",   // Red background
-    fontColor: "FFFFFF");        // White text
+sheet.Range("A2:A100").ConditionalFormat()
+    .Text(ExcelConditionalFormatType.ContainsText, "Urgent", fillColor: "FF0000");
 
 // Color scale (gradient from red to green)
-sheet.AddColorScale("C2:C100",
-    minColor: "FF0000",   // Red for low values
-    maxColor: "00FF00");  // Green for high values
+sheet.Range("C2:C100").ConditionalFormat().ColorScale("FF0000", "00FF00");
 
 // Data bars
-sheet.AddDataBars("D2:D100", color: "4472C4");
+sheet.Range("D2:D100").ConditionalFormat().DataBar("4472C4");
 
 // Icon sets
-sheet.AddIconSet("E2:E100", IconSetType.ThreeArrows);
+sheet.Range("E2:E100").ConditionalFormat().IconSet(ExcelIconSet.ThreeArrows);
 ```
+
+Each call returns the rule it added. List, update, reorder and remove existing rules with
+`sheet.GetConditionalFormattingRules`, `UpdateConditionalFormattingRule`, `ReorderConditionalFormattingRules`,
+`RemoveConditionalFormattingRule` and `ClearConditionalFormatting`.
 
 ## DataTable Import
 

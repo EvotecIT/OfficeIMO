@@ -1,4 +1,4 @@
-namespace OfficeIMO.Excel {
+namespace OfficeIMO.Excel.Reports {
     /// <summary>
     /// Describes a generated subtotal summary block.
     /// </summary>

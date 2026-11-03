@@ -1388,7 +1388,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("View");
-                sheet.SetGridlinesVisible(false);
+                sheet.View.ShowGridlines = false;
 
                 var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
                 var workbookViews = workbook.GetFirstChild<BookViews>();
@@ -1432,7 +1432,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("View");
-                sheet.SetGridlinesVisible(false);
+                sheet.View.ShowGridlines = false;
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -1478,7 +1478,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddSheet("Freeze");
-                sheet.Freeze(topRows: 1, leftCols: 1);
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPartValue", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);

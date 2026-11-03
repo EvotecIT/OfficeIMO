@@ -16,11 +16,11 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFilterCriteria_PreserveEquivalentImportedRangeState() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.AutoFilterBlanks("A1:C10", 0);
+            sheet.Range("A1:C10").AutoFilter().Column(0).Blanks();
             AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
             autoFilter.Reference = "$A$1:$C$10";
 
-            sheet.AutoFilterBlanks("A1:C10", 1);
+            sheet.Range("A1:C10").AutoFilter().Column(1).Blanks();
 
             ExcelAutoFilterInfo state = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("$A$1:$C$10", state.Range);

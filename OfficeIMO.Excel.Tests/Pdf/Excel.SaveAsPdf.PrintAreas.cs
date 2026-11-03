@@ -16,7 +16,7 @@ public partial class Excel {
         ExcelSheet sheet = document.Sheets[0];
         sheet.Cell(1, 1).SetValue("Target");
         sheet.SetInternalLink(2, 1, "A1", display: "Back to target");
-        document.SetPrintArea(sheet, "A1:A2,A1:A3");
+        sheet.PageSetup.PrintArea = "A1:A2,A1:A3";
 
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout
@@ -39,7 +39,7 @@ public partial class Excel {
         sheet.Cell(1, 1).SetValue("First");
         sheet.Cell(3, 3).SetValue("Second");
         sheet.Cell(row, column).SetFormula("UNIQUE(A1:A1)");
-        document.SetPrintArea(sheet, "A1:B2,C3:D4");
+        sheet.PageSetup.PrintArea = "A1:B2,C3:D4";
         Assert.Equal(canExport, document.InspectFeatures().Can(ExcelPreflightCapability.ExportPdfReport));
     }
 
@@ -53,10 +53,13 @@ public partial class Excel {
         sheet.Cell(1, 1).SetValue("FirstArea");
         sheet.Cell(1, 3).SetValue("SecondArea");
         sheet.Cell(1, 5).SetValue("ThirdArea");
-        sheet.SetHeaderFooter(headerCenter: "OddHeader", footerCenter: "Page &P of &N");
-        sheet.SetFirstPageHeaderFooter(headerCenter: "FirstHeader", footerCenter: "Page &P of &N");
-        sheet.SetEvenPageHeaderFooter(headerCenter: "EvenHeader", footerCenter: "Page &P of &N");
-        document.SetPrintArea(sheet, "A1,C1,E1");
+        sheet.PageSetup.Header.Center.Text = "OddHeader";
+        sheet.PageSetup.Footer.Center.Text = "Page &P of &N";
+        sheet.PageSetup.FirstPageHeader.Center.Text = "FirstHeader";
+        sheet.PageSetup.FirstPageFooter.Center.Text = "Page &P of &N";
+        sheet.PageSetup.EvenPageHeader.Center.Text = "EvenHeader";
+        sheet.PageSetup.EvenPageFooter.Center.Text = "Page &P of &N";
+        sheet.PageSetup.PrintArea = "A1,C1,E1";
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -101,13 +104,13 @@ public partial class Excel {
                 Height = OfficeIMO.OfficeLength.Pixels(12),
                 Name = "Excluded image"
             });
-            document.SetPrintArea(sheet, "B2:C3,'Report, O''Brien'!$D$5:$E$6", save: false);
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            Assert.Equal(2, sheet.GetPrintAreas().Count);
+            sheet.PageSetup.PrintArea = "B2:C3,'Report, O''Brien'!$D$5:$E$6";
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
+            Assert.Equal(2, sheet.PageSetup.PrintAreas.Count);
             document.Save();
         }
         using ExcelDocument reopened = ExcelDocument.Load(path);
-        Assert.Equal(2, reopened.Sheets[0].GetPrintAreas().Count);
+        Assert.Equal(2, reopened.Sheets[0].PageSetup.PrintAreas.Count);
         byte[] bytes = reopened.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -138,7 +141,7 @@ public partial class Excel {
         sheet.Cell(rows ? 2 : 1, rows ? 1 : 2).SetValue("FirstArea");
         sheet.Cell(rows ? 4 : 1, rows ? 1 : 4).SetValue("SecondArea");
         sheet.Cell(rows ? 3 : 1, rows ? 1 : 3).SetValue("ExcludedBetween");
-        document.SetPrintArea(sheet, rows ? "2:2,4:4" : "B:B,D:D");
+        sheet.PageSetup.PrintArea = rows ? "2:2,4:4" : "B:B,D:D";
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -158,9 +161,9 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "InvalidPrintArea.xlsx");
         using ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" });
         ExcelSheet sheet = document.Sheets[0];
-        document.SetPrintArea(sheet, "A1");
-        string? before = sheet.GetPrintArea();
-        Assert.ThrowsAny<ArgumentException>(() => document.SetPrintArea(sheet, area));
-        Assert.Equal(before, sheet.GetPrintArea());
+        sheet.PageSetup.PrintArea = "A1";
+        string? before = sheet.PageSetup.PrintArea;
+        Assert.ThrowsAny<ArgumentException>(() => sheet.PageSetup.PrintArea = area);
+        Assert.Equal(before, sheet.PageSetup.PrintArea);
     }
 }

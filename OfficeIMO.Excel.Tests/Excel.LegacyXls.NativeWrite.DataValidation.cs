@@ -24,9 +24,9 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(1, 3).SetValue("Code");
                     sheet.Cell(2, 1).SetValue(5d);
 
-                    sheet.ValidationDate("B2:B5", ExcelDataValidationOperator.Between, minimumDate, maximumDate, errorTitle: "Invalid date", errorMessage: "Use a date in 2024.");
-                    sheet.ValidationTextLength("C2:C5", ExcelDataValidationOperator.LessThanOrEqual, 12, errorTitle: "Invalid code", errorMessage: "Use at most 12 characters.");
-                    sheet.ValidationCustomFormula("A2:A5", "A2>0", errorTitle: "Invalid amount", errorMessage: "Use a positive amount.");
+                    sheet.Range("B2:B5").Validation().Date(ExcelDataValidationOperator.Between, minimumDate, maximumDate, errorTitle: "Invalid date", errorMessage: "Use a date in 2024.");
+                    sheet.Range("C2:C5").Validation().TextLength(ExcelDataValidationOperator.LessThanOrEqual, 12, errorTitle: "Invalid code", errorMessage: "Use at most 12 characters.");
+                    sheet.Range("A2:A5").Validation().CustomFormula("A2>0", errorTitle: "Invalid amount", errorMessage: "Use a positive amount.");
 
                     document.Save(xlsOutputPath);
                 }
@@ -91,11 +91,11 @@ namespace OfficeIMO.Tests {
                     options.Cell(1, 1).SetValue("Open");
                     options.Cell(2, 1).SetValue("Closed");
                     options.Cell(3, 1).SetValue("Pending");
-                    options.ValidationListRange("B1:B3", "A1:A3");
+                    options.Range("B1:B3").Validation().ListRange("A1:A3");
 
                     document.SetNamedRange("StatusOptions", "'Options'!A1:A3", save: false);
-                    input.ValidationListRange("B2:B5", "A1:A3", "Options");
-                    input.ValidationListNamedRange("C2:C5", "StatusOptions");
+                    input.Range("B2:B5").Validation().ListRange("A1:A3", "Options");
+                    input.Range("C2:C5").Validation().ListNamedRange("StatusOptions");
 
                     document.Save(xlsOutputPath);
                 }
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(1, 1).SetValue("Open");
                     sheet.Cell(2, 1).SetValue("Closed");
                     sheet.Cell(3, 1).SetValue("Pending");
-                    sheet.ValidationListRange("B1:B10", "A1:A3");
+                    sheet.Range("B1:B10").Validation().ListRange("A1:A3");
 
                     document.Save(xlsOutputPath);
                 }
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("SingleDv");
                     sheet.Cell(1, 1).SetValue(3d);
-                    sheet.ValidationWholeNumber("A1", ExcelDataValidationOperator.Between, 1, 5);
+                    sheet.Range("A1").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 5);
 
                     document.Save(xlsOutputPath);
                 }
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
                     secondRegion.Cell(1, 1).SetValue("South");
                     secondRegion.Cell(2, 1).SetValue("West");
 
-                    input.ValidationListRange("A1:A5", "$A$1:$A$2", "Region 1:Region 2");
+                    input.Range("A1:A5").Validation().ListRange("$A$1:$A$2", "Region 1:Region 2");
 
                     document.Save(xlsOutputPath);
                 }
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksOversizedDataValidationTextPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation text payload lengths outside BIFF8 limits", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Validated");
-                sheet.ValidationCustomFormula("A1:A1", "A1<>\"\"", errorMessage: new string('A', 33000));
+                sheet.Range("A1:A1").Validation().CustomFormula("A1<>\"\"", errorMessage: new string('A', 33000));
             });
         }
     }

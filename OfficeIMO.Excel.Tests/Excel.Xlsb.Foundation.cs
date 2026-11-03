@@ -1355,7 +1355,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30D)));
             sheet.SetRowHidden(3, true);
             sheet.SetRowOutline(4, 2, collapsed: true);
-            sheet.Freeze(topRows: 1, leftCols: 1);
+            sheet.View.Freeze(topRows: 1, leftColumns: 1);
             sheet.Range("A1:C1").Merge();
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
@@ -1537,8 +1537,8 @@ namespace OfficeIMO.Tests {
             document.AddSheet("Summary");
             document.SetNamedRange("RevenueData", "'Data Sheet'!A1:B3", save: false, hidden: true);
             data.SetNamedRange("LocalCell", "C2", save: false);
-            document.SetPrintArea(data, "A1:C10", save: false);
-            document.SetPrintTitles(data, firstRow: 1, lastRow: 2, firstCol: 1, lastCol: 1, save: false);
+            data.PageSetup.PrintArea = "A1:C10";
+            data.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 2, firstColumn: 1, lastColumn: 1);
             DefinedName revenueName = Assert.Single(
                 document.WorkbookRoot.DefinedNames!.Elements<DefinedName>(),
                 name => name.Name?.Value == "RevenueData");
@@ -1576,8 +1576,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet reloadedData = Assert.Single(reloaded.Sheets, sheet => sheet.Name == "Data Sheet");
             Assert.Equal("'Data Sheet'!$A$1:$B$3", reloaded.GetNamedRangeText("RevenueData"));
             Assert.Equal("$C$2", reloadedData.GetNamedRangeText("LocalCell"));
-            Assert.Equal("$A$1:$C$10", reloadedData.GetPrintArea());
-            ExcelPrintTitles titles = reloadedData.GetPrintTitles();
+            Assert.Equal("$A$1:$C$10", reloadedData.PageSetup.PrintArea);
+            ExcelPrintTitles titles = reloadedData.PageSetup.PrintTitles;
             Assert.Equal(1, titles.FirstRow);
             Assert.Equal(2, titles.LastRow);
             Assert.Equal(1, titles.FirstColumn);
@@ -1592,7 +1592,7 @@ namespace OfficeIMO.Tests {
             byte[] rewritten = reloaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using ExcelDocument rewrittenDocument = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
             Assert.Equal("'Data Sheet'!$A$1:$B$3", rewrittenDocument.GetNamedRangeText("RevenueData"));
-            Assert.Equal("$A$1:$C$10", rewrittenDocument.Sheets[0].GetPrintArea());
+            Assert.Equal("$A$1:$C$10", rewrittenDocument.Sheets[0].PageSetup.PrintArea);
         }
 
         [Fact]
@@ -1605,9 +1605,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 2).SetValue(12.5D);
             sheet.Cell(3, 1).SetValue("Closed");
             sheet.Cell(3, 2).SetValue(8D);
-            sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
-                [0U] = new[] { "Open", "Closed" }
-            });
+            sheet.Range("A1:B3").AutoFilter().Column(0U).Equals(new[] { "Open", "Closed" });
             sheet.Protect(new ExcelSheetProtectionOptions {
                 LegacyPasswordHash = "CAFE",
                 AllowSelectLockedCells = true,
@@ -1617,20 +1615,10 @@ namespace OfficeIMO.Tests {
                 ProtectObjects = true,
                 ProtectScenarios = false
             });
-            sheet.SetPrintOptions(
-                printGridLines: true,
-                printHeadings: true,
-                horizontalCentered: true,
-                verticalCentered: false,
-                save: false);
-            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.45D), OfficeLength.Inches(0.55D), OfficeLength.Inches(0.2D), OfficeLength.Inches(0.3D));
-            sheet.SetPageSetup(
-                fitToWidth: 1U,
-                fitToHeight: 0U,
-                scale: 80U,
-                pageOrder: ExcelPageOrder.OverThenDown,
-                paperSize: ExcelPaperSize.Letter);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
+            sheet.PageSetup.PrintGridLines = true; sheet.PageSetup.PrintHeadings = true; sheet.PageSetup.HorizontalCentered = true; sheet.PageSetup.VerticalCentered = false;
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.45D), OfficeLength.Inches(0.55D), OfficeLength.Inches(0.2D), OfficeLength.Inches(0.3D));
+            sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U; sheet.PageSetup.Scale = 80U; sheet.PageSetup.PageOrder = ExcelPageOrder.OverThenDown; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
             sheet.SetTabColor("336699");
             sheet.SetOutlineSummary(summaryBelow: false, summaryRight: true);
             SheetProperties properties = Assert.IsType<SheetProperties>(
@@ -1647,16 +1635,16 @@ namespace OfficeIMO.Tests {
             setup.Draft = true;
             setup.CellComments = CellCommentsValues.AtEnd;
             setup.Errors = PrintErrorValues.Dash;
-            sheet.SetHeaderFooter(
-                headerLeft: "Quarterly",
-                headerCenter: "Report",
-                footerRight: "Page &P of &N",
-                differentFirstPage: true,
-                differentOddEven: true,
-                alignWithMargins: true,
-                scaleWithDoc: true);
-            sheet.SetFirstPageHeaderFooter(headerCenter: "First page", footerCenter: "Confidential");
-            sheet.SetEvenPageHeaderFooter(headerCenter: "Even page", footerRight: "Page &P");
+            sheet.PageSetup.Header.Left.Text = "Quarterly";
+            sheet.PageSetup.Header.Center.Text = "Report";
+            sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
+            sheet.PageSetup.AlignHeaderFooterWithMargins = true;
+            sheet.PageSetup.ScaleHeaderFooterWithDocument = true;
+            // Writing first-page and even-page text turns those variants on without copying the running text.
+            sheet.PageSetup.FirstPageHeader.Center.Text = "First page";
+            sheet.PageSetup.FirstPageFooter.Center.Text = "Confidential";
+            sheet.PageSetup.EvenPageHeader.Center.Text = "Even page";
+            sheet.PageSetup.EvenPageFooter.Right.Text = "Page &P";
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using (var archive = new ZipArchive(new MemoryStream(package, writable: false), ZipArchiveMode.Read)) {
@@ -1735,7 +1723,7 @@ namespace OfficeIMO.Tests {
                     && name.LocalSheetId?.Value == 0U
                     && name.Text == "'Report'!$A$1:$B$3");
 
-            ExcelSheetPrintOptions projectedPrintOptions = reloadedSheet.GetPrintOptions();
+            ExcelSheetPageSetup projectedPrintOptions = reloadedSheet.PageSetup;
             Assert.True(projectedPrintOptions.PrintGridLines);
             Assert.True(projectedPrintOptions.PrintHeadings);
             Assert.True(projectedPrintOptions.HorizontalCentered);

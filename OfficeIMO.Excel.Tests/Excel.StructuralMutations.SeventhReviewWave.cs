@@ -149,9 +149,9 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFilterCriteria_NormalizeEquivalentLocalRanges() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.AutoFilterBlanks("A1:C3", 0);
+            sheet.Range("A1:C3").AutoFilter().Column(0).Blanks();
 
-            sheet.AutoFilterTopBottom("  $A$1:$C$3  ", 2, 5);
+            sheet.Range("  $A$1:$C$3  ").AutoFilter().Column(2).TopBottom(5);
 
             ExcelAutoFilterInfo filter = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", filter.Range);

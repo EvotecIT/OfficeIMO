@@ -514,15 +514,15 @@ internal static class ExcelReadProfileRunner {
     private static int OfficeImoAutoFilterByHeadersLoaded(ExcelSheet sheet) {
         int appliedFilters = 0;
         for (int i = 0; i < HeaderOperationIterations; i++) {
-            sheet.AutoFilterByHeadersEquals(
-                ("Id", new[] { "1" }),
-                ("Region", new[] { "North" }),
-                ("Owner", new[] { "Owner 1", "Owner 2" }),
-                ("CreatedOn", new[] { "2024-01-01" }),
-                ("Amount", new[] { "100" }),
-                ("Units", new[] { "3" }),
-                ("Active", new[] { "TRUE" }),
-                ("Notes", new[] { "Note 1" }));
+            sheet.UsedRange.AutoFilter()
+                .Column("Id").Equals("1")
+                .Column("Region").Equals("North")
+                .Column("Owner").Equals("Owner 1", "Owner 2")
+                .Column("CreatedOn").Equals("2024-01-01")
+                .Column("Amount").Equals("100")
+                .Column("Units").Equals("3")
+                .Column("Active").Equals("TRUE")
+                .Column("Notes").Equals("Note 1");
             appliedFilters += 8;
         }
 

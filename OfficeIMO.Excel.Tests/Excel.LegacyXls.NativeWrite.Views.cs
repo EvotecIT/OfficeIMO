@@ -166,10 +166,10 @@ namespace OfficeIMO.Tests {
                 ExcelSheet loadedSheet = loaded.Sheets.Single();
 
                 Assert.True(loaded.SourceFormat == ExcelFileFormat.Xls);
-                ExcelWorksheetViewInfo view = loadedSheet.GetViewInfo();
+                ExcelWorksheetViewInfo view = loadedSheet.View.Inspect();
                 Assert.False(view.ShowGridlines);
-                Assert.False(loadedSheet.RowColumnHeadingsVisible);
-                Assert.False(loadedSheet.ZeroValuesVisible);
+                Assert.False(loadedSheet.View.ShowRowColumnHeadings);
+                Assert.False(loadedSheet.View.ShowZeros);
                 Assert.True(view.RightToLeft);
                 Assert.Equal(125U, view.ZoomScale);
                 Assert.Equal(90U, view.ZoomScaleNormal);

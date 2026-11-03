@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets page orientation (Portrait or Landscape) on the sheet's PageSetup.
         /// </summary>
-        public void SetOrientation(OfficePageOrientation orientation) {
+        internal void SetOrientationCore(OfficePageOrientation orientation) {
             Persistence.OwnsTablePrintDefaults = false;
             WriteLock(() => {
                 var ws = WorksheetRoot;
@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets a known worksheet paper size on the sheet's PageSetup.
         /// </summary>
-        public void SetPaperSize(ExcelPaperSize paperSize) {
+        internal void SetPaperSizeCore(ExcelPaperSize paperSize) {
             ValidatePaperSize(paperSize);
             WriteLock(() => {
                 var ws = WorksheetRoot;
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets physical page margins. Omitted header/footer margins are 0.3 inches.
         /// </summary>
-        public void SetMargins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom, OfficeLength? header = null, OfficeLength? footer = null) {
+        internal void SetMarginsCore(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom, OfficeLength? header = null, OfficeLength? footer = null) {
             header ??= OfficeLength.Inches(0.3);
             footer ??= OfficeLength.Inches(0.3);
             if (left < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(left));
@@ -73,22 +73,63 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a preset set of margins.
         /// </summary>
-        public void SetMarginsPreset(ExcelMarginPreset preset) {
+        internal void SetMarginsPresetCore(ExcelMarginPreset preset) {
             // Values approximate Excel's presets in inches
             switch (preset) {
                 case ExcelMarginPreset.Narrow:
-                    SetMargins(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5), header: OfficeLength.Inches(0.3), footer: OfficeLength.Inches(0.3));
+                    SetMarginsCore(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5), header: OfficeLength.Inches(0.3), footer: OfficeLength.Inches(0.3));
                     break;
                 case ExcelMarginPreset.Moderate:
-                    SetMargins(left: OfficeLength.Inches(0.75), right: OfficeLength.Inches(0.75), top: OfficeLength.Inches(1.0), bottom: OfficeLength.Inches(1.0), header: OfficeLength.Inches(0.5), footer: OfficeLength.Inches(0.5));
+                    SetMarginsCore(left: OfficeLength.Inches(0.75), right: OfficeLength.Inches(0.75), top: OfficeLength.Inches(1.0), bottom: OfficeLength.Inches(1.0), header: OfficeLength.Inches(0.5), footer: OfficeLength.Inches(0.5));
                     break;
                 case ExcelMarginPreset.Wide:
-                    SetMargins(left: OfficeLength.Inches(1.0), right: OfficeLength.Inches(1.0), top: OfficeLength.Inches(1.0), bottom: OfficeLength.Inches(1.0), header: OfficeLength.Inches(0.5), footer: OfficeLength.Inches(0.5));
+                    SetMarginsCore(left: OfficeLength.Inches(1.0), right: OfficeLength.Inches(1.0), top: OfficeLength.Inches(1.0), bottom: OfficeLength.Inches(1.0), header: OfficeLength.Inches(0.5), footer: OfficeLength.Inches(0.5));
                     break;
                 default:
-                    SetMargins(left: OfficeLength.Inches(0.7), right: OfficeLength.Inches(0.7), top: OfficeLength.Inches(0.75), bottom: OfficeLength.Inches(0.75), header: OfficeLength.Inches(0.3), footer: OfficeLength.Inches(0.3));
+                    SetMarginsCore(left: OfficeLength.Inches(0.7), right: OfficeLength.Inches(0.7), top: OfficeLength.Inches(0.75), bottom: OfficeLength.Inches(0.75), header: OfficeLength.Inches(0.3), footer: OfficeLength.Inches(0.3));
                     break;
             }
+        }
+
+        /// <summary>Sets or removes one fit-to-page dimension; fit-to-page stays on while either dimension is stored.</summary>
+        internal void SetFitToPageDimension(bool width, uint? value) {
+            Persistence.OwnsTablePrintDefaults = false;
+            WriteLock(() => {
+                Worksheet worksheet = WorksheetRoot;
+                PageSetup pageSetup = GetOrCreatePageSetup(worksheet);
+                if (width) {
+                    pageSetup.FitToWidth = value;
+                    if (!value.HasValue) pageSetup.RemoveAttribute("fitToWidth", string.Empty);
+                } else {
+                    pageSetup.FitToHeight = value;
+                    if (!value.HasValue) pageSetup.RemoveAttribute("fitToHeight", string.Empty);
+                }
+
+                bool fit = pageSetup.FitToWidth != null || pageSetup.FitToHeight != null;
+                SheetProperties? sheetProperties = worksheet.GetFirstChild<SheetProperties>();
+                PageSetupProperties? properties = sheetProperties?.GetFirstChild<PageSetupProperties>();
+                if (fit) {
+                    if (sheetProperties == null) {
+                        sheetProperties = new SheetProperties();
+                        worksheet.InsertAt(sheetProperties, 0);
+                    }
+
+                    properties ??= sheetProperties.AppendChild(new PageSetupProperties());
+                    properties.FitToPage = true;
+                } else if (properties != null) {
+                    properties.FitToPage = null;
+                    properties.RemoveAttribute("fitToPage", string.Empty);
+                }
+            });
+        }
+
+        /// <summary>Removes one stored page setup attribute, returning the setting to Excel's default.</summary>
+        internal void ClearPageSetupAttribute(string localName) {
+            Persistence.OwnsTablePrintDefaults = false;
+            WriteLock(() => {
+                PageSetup? pageSetup = WorksheetRoot.GetFirstChild<PageSetup>();
+                pageSetup?.RemoveAttribute(localName, string.Empty);
+            });
         }
 
         internal void SetFitToPage(bool fitToPage, bool save = false) {

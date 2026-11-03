@@ -680,7 +680,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     checked((ushort)(mergedRange.EndColumn - 1))));
             }
 
-            ExcelWorksheetViewInfo viewInfo = sheet.GetViewInfo();
+            ExcelWorksheetViewInfo viewInfo = sheet.ReadViewInfo();
             IReadOnlyList<SheetView> sheetViews = sheet.WorksheetPart.Worksheet!
                 .GetFirstChild<SheetViews>()?
                 .Elements<SheetView>()
@@ -729,8 +729,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 frozenColumnCount,
                 sheetView?.ShowFormulas?.Value == true,
                 sheetView?.ShowGridLines?.Value ?? (primary ? viewInfo.ShowGridlines : true),
-                sheetView?.ShowRowColHeaders?.Value ?? (primary ? sheet.RowColumnHeadingsVisible : true),
-                sheetView?.ShowZeros?.Value ?? (primary ? sheet.ZeroValuesVisible : true),
+                sheetView?.ShowRowColHeaders?.Value ?? (primary ? sheet.RowColumnHeadingsVisibleCore : true),
+                sheetView?.ShowZeros?.Value ?? (primary ? sheet.ZeroValuesVisibleCore : true),
                 sheetView?.RightToLeft?.Value ?? (primary && viewInfo.RightToLeft),
                 sheetView?.DefaultGridColor?.Value ?? true,
                 GetWindow2GridLineColorIndex(sheetView?.DefaultGridColor?.Value ?? true, sheetView?.ColorId?.Value),
@@ -1440,8 +1440,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static LegacyXlsWorksheetPageSetup ExtractPageSetup(ExcelSheet sheet) {
-            ExcelSheetPageSetup pageSetup = sheet.GetPageSetup();
-            ExcelSheetPrintOptions printOptions = sheet.GetPrintOptions();
+            ExcelSheetPageSetup pageSetup = sheet.PageSetup;
+            ExcelSheetPrintOptions printOptions = sheet.ReadPrintOptions();
             ExcelSheet.ExcelHeaderFooterInfo headerFooter = sheet.GetHeaderFooter();
             Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
             PageSetup? storedPageSetup = worksheet.GetFirstChild<PageSetup>();

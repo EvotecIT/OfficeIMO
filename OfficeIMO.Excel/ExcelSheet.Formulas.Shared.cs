@@ -119,7 +119,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                 BuildSharedFormulaDefinitions(effectiveCoordinates);
             var formulas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (Cell cell in ExcelWorksheetScan.Cells(WorksheetRoot).Where(candidate => ExcelWorksheetScan.FindFormula(candidate) != null)) {
+            foreach (Cell cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
                 if (effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     formulas[BuildCellReference(coordinate.Row, coordinate.Column)] =
                         ResolveCellFormulaText(cell, sharedFormulaDefinitions, effectiveCoordinates);

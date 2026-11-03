@@ -10,6 +10,7 @@ using OfficeIMO.AsciiDoc;
 using OfficeIMO.AsciiDoc.Markdown;
 using OfficeIMO.AsciiDoc.Pdf;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -2439,8 +2440,8 @@ public sealed class PdfConversionScenarioManifestTests {
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(16));
-            sheet.AddConditionalColorScale("B4:B7", "FFFFF2CC", "FF70AD47");
-            sheet.AddConditionalDataBar("C4:C7", "FF5B9BD5");
+            sheet.Range("B4:B7").ConditionalFormat().ColorScale("FFFFF2CC", "FF70AD47");
+            sheet.Range("C4:C7").ConditionalFormat().DataBar("FF5B9BD5");
             sheet.AddImage(10, 1, PdfPngTestImages.CreateRgbPng(2, 2), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(36),
@@ -2455,9 +2456,10 @@ public sealed class PdfConversionScenarioManifestTests {
                     new ExcelChartSeries("Target", new[] { 120D, 105D, 70D, 65D }, OfficeChartType.Line, DrawingCore.OfficeChartAxisGroup.Secondary)
                 });
             sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(190), Title = "KPI Trend" });
-            sheet.SetHeaderFooter(headerCenter: "Excel Dashboard PDF Gate", footerRight: "Page &P of &N");
-            sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
-            document.SetPrintArea(sheet, "A1:H14", save: false);
+            sheet.PageSetup.Header.Center.Text = "Excel Dashboard PDF Gate";
+            sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
+            sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 1U;
+            sheet.PageSetup.PrintArea = "A1:H14";
             document.Save();
 
             return (document.ToPdf(new ExcelPdfExportOptions {

@@ -7,8 +7,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<string> tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (tokens.Count < 3 || tokens.Count > 4 || tokens.Any(string.IsNullOrWhiteSpace)) return false;
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
-            if (!TryResolveFormulaRange(tokens[0], out List<FormulaArgumentValue> outcomes, ref remainingCellBudget)
-                || !TryResolveFormulaRange(tokens[1], out List<FormulaArgumentValue> probabilities, ref remainingCellBudget)) return false;
+            if (!TryResolveFormulaRange(tokens[0], out IReadOnlyList<FormulaArgumentValue> outcomes, ref remainingCellBudget)
+                || !TryResolveFormulaRange(tokens[1], out IReadOnlyList<FormulaArgumentValue> probabilities, ref remainingCellBudget)) return false;
             if (!TryResolveFormulaValueArgument(tokens[2], out FormulaArgumentValue lower)) return false;
             FormulaArgumentValue upper = lower;
             if (tokens.Count == 4 && !TryResolveFormulaValueArgument(tokens[3], out upper)) return false;

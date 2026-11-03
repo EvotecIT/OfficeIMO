@@ -207,8 +207,11 @@ public sealed class PublicApiNamingContracts {
             method.Name == "AddImageAsync" && method.GetParameters().Any(parameter => parameter.ParameterType == typeof(Uri)));
         Assert.DoesNotContain(sheetMethods, static method =>
             method.Name == "AddImage" && method.GetParameters().Any(parameter => parameter.ParameterType == typeof(Uri)));
-        Assert.Contains(sheetMethods, static method => method.Name == "SetHeaderImageFromUrlAsync");
-        Assert.Contains(sheetMethods, static method => method.Name == "SetFooterImageFromUrlAsync");
+        MethodInfo[] sectionMethods = typeof(ExcelHeaderFooterSection).GetMethods(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        Assert.Contains(sectionMethods, static method => method.Name == "SetImageFromUrlAsync");
+        Assert.DoesNotContain(sectionMethods, static method => method.Name.Contains("Url", StringComparison.Ordinal)
+            && !method.Name.EndsWith("Async", StringComparison.Ordinal));
         Assert.DoesNotContain(sheetMethods, static method =>
             (method.Name.Contains("Image", StringComparison.Ordinal) || method.Name.Contains("Logo", StringComparison.Ordinal))
             && method.Name.Contains("Url", StringComparison.Ordinal)

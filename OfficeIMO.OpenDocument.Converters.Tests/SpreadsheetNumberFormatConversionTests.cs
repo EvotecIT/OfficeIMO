@@ -18,11 +18,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     public void WholeNumberValidationWithNonIntegerLexicalOperandIsReportedUnsupported() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            authored.AddSheet("Data").ValidationWholeNumber(
-                "A1",
-                ExcelDataValidationOperator.GreaterThan,
-                1,
-                allowBlank: true);
+            authored.AddSheet("Data").Range("A1").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 1, allowBlank: true);
             package = authored.ToBytes();
         }
         using (var stream = new MemoryStream(package)) {
@@ -69,7 +65,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     public void ScalarAndListValidationsRoundTripThroughTypedOdfConditions() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 10, allowBlank: false);
+        sheet.Range("B2:B3").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10, allowBlank: false);
         sheet.SetDataValidationMessages("B2:B3", new ExcelDataValidationMessageOptions {
             PromptTitle = "Allowed values",
             Prompt = "Enter 1 through 10.",
@@ -80,7 +76,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             ErrorStyle = ExcelDataValidationErrorStyle.Warning,
             PreserveShowMessageFlags = true
         });
-        sheet.ValidationList("C2:C3", new[] { "New", "On \"Hold\"", "Done" });
+        sheet.Range("C2:C3").Validation().List(new[] { "New", "On \"Hold\"", "Done" });
 
         OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
         Assert.Equal(2, toOds.Value.Validations.Count);
@@ -115,7 +111,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     public void EmptyValidationMessagesPreserveDisplayFlagsAndErrorStyle() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.ValidationWholeNumber("A1", ExcelDataValidationOperator.GreaterThan, 0);
+        sheet.Range("A1").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 0);
         sheet.SetDataValidationMessages("A1", new ExcelDataValidationMessageOptions {
             ShowInputMessage = true,
             ShowErrorMessage = false,
@@ -148,8 +144,8 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     public void OverlappingExcelValidationsRetainLaterRuleAndReportTheConflict() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.ValidationWholeNumber("A1:A2", ExcelDataValidationOperator.GreaterThan, 0);
-        sheet.ValidationDecimal("A2:A3", ExcelDataValidationOperator.LessThan, 10);
+        sheet.Range("A1:A2").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 0);
+        sheet.Range("A2:A3").Validation().Decimal(ExcelDataValidationOperator.LessThan, 10);
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsSheet converted = conversion.Value.Sheets.Single();

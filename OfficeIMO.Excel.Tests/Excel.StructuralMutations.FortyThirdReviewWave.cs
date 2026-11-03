@@ -98,10 +98,10 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue(1);
             sheet.Cell(1, 3).SetValue(9);
-            sheet.ValidationList("A1", new[] { "source" });
-            sheet.ValidationList("C1", new[] { "destination" });
-            sheet.AddConditionalFormulaRule("A1", "A1=1");
-            sheet.AddConditionalFormulaRule("C1", "C1=9");
+            sheet.Range("A1").Validation().List(new[] { "source" });
+            sheet.Range("C1").Validation().List(new[] { "destination" });
+            sheet.Range("A1").ConditionalFormat().Formula("A1=1");
+            sheet.Range("C1").ConditionalFormat().Formula("C1=9");
             sheet.Protect();
             sheet.SetAllowedEditRange("Source", new[] { "A1" });
             sheet.SetAllowedEditRange("Destination", new[] { "C1" });

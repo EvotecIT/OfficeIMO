@@ -17,10 +17,10 @@ namespace OfficeIMO.Tests {
             sheet.Cell(3, 1).SetValue("US");
             sheet.Cell(3, 2).SetValue(20);
             sheet.Cell(3, 3).SetValue(2);
-            sheet.AutoFilterAdd("A1:C3");
-            sheet.AutoFilterByHeaderEquals("Region", new[] { "EU", "US" });
-            sheet.AutoFilterByHeaderBetween("Amount", 10, 20);
-            sheet.AutoFilterTopBottom("A1:C3", 2, 1, top: true, percent: false);
+            sheet.Range("A1:C3").AutoFilter();
+            sheet.Range("A1:C3").AutoFilter().Column("Region").Equals(new[] { "EU", "US" });
+            sheet.Range("A1:C3").AutoFilter().Column("Amount").Between(10, 20);
+            sheet.Range("A1:C3").AutoFilter().Column(2).TopBottom(1, percent: false);
 
             ExcelAutoFilterInfo state = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", state.Range);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             Assert.True(top.Top);
             Assert.False(top.Percent);
             Assert.Equal(1d, top.TopValue);
-            Assert.True(sheet.ClearAutoFilterColumn(2));
+            sheet.Range("A1:C3").AutoFilter().Column(2).Clear();
             Assert.Equal(2, Assert.Single(sheet.GetAutoFilters()).Columns.Count);
         }
     }

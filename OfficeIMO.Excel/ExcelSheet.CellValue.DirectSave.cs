@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             foreach (var child in WorksheetRoot.ChildElements) {
                 switch (child) {
                     case SheetData sheetData:
-                        if (sheetData.Elements<Row>().Any(row => row.Elements<Cell>().Any())) {
+                        if (sheetData.Elements<Row>().Any(row => row is ExcelStoredRow { StoredCount: > 0 } || row.Elements<Cell>().Any())) {
                             return false;
                         }
 

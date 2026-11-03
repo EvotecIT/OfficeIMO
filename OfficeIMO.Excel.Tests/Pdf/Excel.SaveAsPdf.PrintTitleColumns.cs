@@ -16,8 +16,8 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
         for (int column = 1; column <= 8; column++) sheet.Cell(1, column).SetValue("Column" + column);
-        document.SetPrintArea(sheet, "A1:H2");
-        document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 4);
+        sheet.PageSetup.PrintArea = "A1:H2";
+        sheet.PageSetup.SetPrintTitles(firstRow: null, lastRow: null, firstColumn: 3, lastColumn: 4);
         sheet.AddManualColumnPageBreak(firstBreak); sheet.AddManualColumnPageBreak(6);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
@@ -79,7 +79,7 @@ public partial class Excel {
             sheet.Cell(row, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20D)));
         }
-        sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 2);
+        sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 2;
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             HeaderRowCount = 0, WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable,
             PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(300)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
@@ -101,8 +101,8 @@ public partial class Excel {
         sheet.Cell(1, 1).SetBold().SetFillColor("DDEEFF").SetFontColor("112233");
         sheet.Cell(1, 3).SetValue("First page"); sheet.Cell(1, 5).SetValue("Second page");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
-        document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 2);
-        document.SetPrintArea(sheet, "A1:F2");
+        sheet.PageSetup.SetPrintTitles(firstRow: null, lastRow: null, firstColumn: 1, lastColumn: 2);
+        sheet.PageSetup.PrintArea = "A1:F2";
         sheet.AddManualColumnPageBreak(3);
         PdfCore.PdfDocument pdf = document.ToPdf(new ExcelPdfExportOptions {
             HeaderRowCount = 0, WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable
@@ -132,8 +132,8 @@ public partial class Excel {
         sheet.Cell(3, 1).SetValue("BottomLeft"); sheet.Cell(3, 3).SetValue("BottomRight");
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(20));
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-        sheet.SetPageSetup(pageOrder: order, fitToWidth: fit ? 2U : null, fitToHeight: fit ? 2U : null);
-        document.SetPrintArea(sheet, "A1:D4");
+        sheet.PageSetup.PageOrder = order; sheet.PageSetup.FitToWidth = fit ? 2U : null; sheet.PageSetup.FitToHeight = fit ? 2U : null;
+        sheet.PageSetup.PrintArea = "A1:D4";
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0,
             PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(275),OfficeIMO.OfficeLength.Points(105)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
@@ -161,9 +161,9 @@ public partial class Excel {
         sheet.Cell(2, 3).SetValue("First value");
         sheet.Cell(1, 5).SetValue("Second heading");
         sheet.SetInternalLink(2, 5, "A2", display: "Back to row label");
-        document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1);
+        sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: 1, lastColumn: 1);
         sheet.AddManualColumnPageBreak(3);
-        document.SetPrintArea(sheet, titlesOutsideArea ? "C2:F3" : "A1:F3");
+        sheet.PageSetup.PrintArea = titlesOutsideArea ? "C2:F3" : "A1:F3";
 
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,

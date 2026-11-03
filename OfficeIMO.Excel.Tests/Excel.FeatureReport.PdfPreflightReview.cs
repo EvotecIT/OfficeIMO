@@ -80,7 +80,8 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Headers");
                 sheet.Cell(1, 1).SetValue("Report");
-                sheet.SetHeaderFooter(headerLeft: "&BTotal", headerCenter: "Page &P");
+                sheet.PageSetup.Header.Left.Text = "&BTotal";
+                sheet.PageSetup.Header.Center.Text = "Page &P";
                 document.Save();
             }
 
@@ -103,7 +104,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Headers");
                 sheet.Cell(1, 1).SetValue("Report");
-                sheet.SetHeaderFooter(headerCenter: "&\"UnmappedFont\"Report");
+                sheet.PageSetup.Header.Center.Text = "&\"UnmappedFont\"Report";
                 document.Save();
             }
 
@@ -130,7 +131,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.Cell(2, 2).SetValue(10d);
                 sheet.Cell(5, 4).SetFormula("B2+1");
-                document.SetPrintArea(sheet, "A1:B2", save: false);
+                sheet.PageSetup.PrintArea = "A1:B2";
                 document.Save();
             }
 
@@ -178,7 +179,7 @@ namespace OfficeIMO.Tests {
                 sheet.Cell(1, 2).SetValue("Value");
                 sheet.Cell(2, 1).SetValue("North");
                 sheet.Cell(2, 2).SetValue(10d);
-                document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1, save: false);
+                sheet.PageSetup.SetPrintTitles(firstRow: null, lastRow: null, firstColumn: 1, lastColumn: 1);
                 document.Save();
             }
 

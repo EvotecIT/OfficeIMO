@@ -100,8 +100,8 @@ namespace OfficeIMO.Examples.Excel
                 v.AutoFormatDecimals = 2;
             }).Range!;
             // Link only the Domain column in the summary table to its detail sheet (styled)
-            // Use non-throwing variant to avoid exceptions if headers change
-            overview.Sheet.TryLinkByHeaderToInternalSheetsInRange(rangeA1: summaryRange, header: "Domain", targetA1: "A1", styled: true);
+            // A missing header is reported in the result instead of throwing
+            overview.Sheet.LinkByHeader("Domain", ExcelLinkTarget.Sheet(), new ExcelLinkByHeaderOptions { Range = summaryRange });
             // Make summary presentable for printing
             overview.PrintDefaults(showGridlines: false, fitToWidth: 1, fitToHeight: 0, printAreaA1: summaryRange).Orientation(OfficePageOrientation.Landscape).Margins(ExcelMarginPreset.Narrow).RepeatHeaderRows(1, 1);
             // Pretty legend (Status | Meaning | Recommended Action) using reusable SectionLegend
@@ -124,8 +124,8 @@ namespace OfficeIMO.Examples.Excel
             var idx = doc["Index"];
             if (idx != null)
             {
-                idx.SetHeaderFooter(headerRight: "Page &P of &N");
-                await idx.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition.Left, logoUrl, width: OfficeLength.Points(96), height: OfficeLength.Points(32));
+                idx.PageSetup.Header.Right.Text = "Page &P of &N";
+                await idx.PageSetup.Header.Left.SetImageFromUrlAsync(logoUrl, width: OfficeLength.Points(96), height: OfficeLength.Points(32));
             }
 
             var errors = doc.ValidateOpenXml();

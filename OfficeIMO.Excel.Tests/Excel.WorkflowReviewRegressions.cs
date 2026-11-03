@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using Xunit;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
@@ -88,7 +89,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1).SetValue(new DateTime(2026, 6, 22));
-                sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today);
+                sheet.Range("A1:A3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Today);
                 document.Save();
             }
 
@@ -168,9 +169,9 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
                 sheet.Cell(1, 1).SetValue("Region");
-                document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
+                sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: 1, lastColumn: 1);
 
-                sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+                sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
                     Preset = ExcelPrintLayoutPreset.Worksheet
                 });
                 document.Save();
@@ -465,16 +466,16 @@ namespace OfficeIMO.Tests {
             using var destination = new MemoryStream();
             using (var document = ExcelDocument.Load(source)) {
                 ExcelSheet sheet = document["Report"];
-                document.SetPrintArea(sheet, "A1:B2", save: false);
-                document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
+                sheet.PageSetup.PrintArea = "A1:B2";
+                sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: 1, lastColumn: 1);
                 document.Save(destination);
             }
 
             destination.Position = 0;
             using var loaded = ExcelDocument.Load(destination, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             ExcelSheet loadedSheet = loaded["Report"];
-            Assert.Equal("$A$1:$B$2", loadedSheet.GetPrintArea());
-            ExcelPrintTitles titles = loadedSheet.GetPrintTitles();
+            Assert.Equal("$A$1:$B$2", loadedSheet.PageSetup.PrintArea);
+            ExcelPrintTitles titles = loadedSheet.PageSetup.PrintTitles;
             Assert.Equal(1, titles.FirstRow);
             Assert.Equal(1, titles.LastRow);
             Assert.Equal(1, titles.FirstColumn);
@@ -509,11 +510,11 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Report");
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
                 Preset = ExcelPrintLayoutPreset.Worksheet,
                 Scale = 1U
             }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
                 Preset = ExcelPrintLayoutPreset.Worksheet,
                 Scale = 401U
             }));

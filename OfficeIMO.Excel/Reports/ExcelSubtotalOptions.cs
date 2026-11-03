@@ -1,4 +1,4 @@
-namespace OfficeIMO.Excel {
+namespace OfficeIMO.Excel.Reports {
     /// <summary>
     /// Options for creating a reusable subtotal summary block from worksheet rows.
     /// </summary>

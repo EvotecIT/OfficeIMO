@@ -96,7 +96,7 @@ namespace OfficeIMO.Examples.Excel
                     sheet5.Cell(nextRow6, 2).SetValue(76);
                     sheet5.Cell(nextRow6, 3).SetValue("Sales");
                     nextRow6++;
-                    sheet5.AddAutoFilter("A1:C4");
+                    sheet5.Range("A1:C4").AutoFilter();
                     document3.Save();
                 }
 
@@ -128,7 +128,7 @@ namespace OfficeIMO.Examples.Excel
                     sheet7.Cell(nextRow8, 3).SetValue("Sales");
                     nextRow8++;
                     sheet7.AddTable("A1:C4", true, "DataTable", includeAutoFilter: false);
-                    sheet7.AddAutoFilter("A1:C4");
+                    sheet7.Range("A1:C4").AutoFilter();
                     document4.Save();
                 }
 
@@ -159,7 +159,7 @@ namespace OfficeIMO.Examples.Excel
                     sheet9.Cell(nextRow10, 2).SetValue(76);
                     sheet9.Cell(nextRow10, 3).SetValue("Sales");
                     nextRow10++;
-                    sheet9.AddAutoFilter("A1:C4");
+                    sheet9.Range("A1:C4").AutoFilter();
                     sheet9.AddTable("A1:C4", true, "DataTable");
                     document5.Save();
                 }

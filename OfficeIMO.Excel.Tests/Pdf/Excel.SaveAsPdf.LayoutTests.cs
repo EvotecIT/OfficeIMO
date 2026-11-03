@@ -27,13 +27,13 @@ public partial class Excel {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(32));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
-            sheet.SetPageSetup(scale: 50);
+            sheet.PageSetup.Scale = 50;
 
             IReadOnlyList<ExcelColumnInfo> columns = sheet.GetColumnDefinitions();
             Assert.Equal(3, columns.Count);
             Assert.Equal(32, (columns[1].Width?.CharacterCount));
             Assert.True(columns[1].CustomWidth);
-            Assert.Equal((uint)50, sheet.GetPageSetup().Scale);
+            Assert.Equal((uint)50, sheet.PageSetup.Scale);
 
             document.Save();
 

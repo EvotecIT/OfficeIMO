@@ -18,7 +18,7 @@ public sealed class PdfOpenLifecycleWorkflowTests : IDisposable {
         using var runspace = Open();
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
-        shell.AddScript("param($file, $output) $file | Open-OfficePdf -OutputPath $output -PassThru -Content { Remove-OfficePdfPage -Page 2; PdfDocumentProperties -Title 'Reviewed'; Remove-OfficePdfPage -Page last }")
+        shell.AddScript("param($file, $output) $file | Open-OfficePdf -OutputPath $output -PassThru -Content { Remove-OfficePdfPage -Page 2; PdfMetadata -Title 'Reviewed'; Remove-OfficePdfPage -Page last }")
             .AddArgument(new FileInfo(source)).AddArgument(output);
         var results = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
@@ -82,7 +82,7 @@ public sealed class PdfOpenLifecycleWorkflowTests : IDisposable {
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
         runspace.SessionStateProxy.SetVariable("entered", false);
-        shell.AddScript("param($files, $output) $files | Open-OfficePdf -OutputPath $output -Content { $global:entered = $true; PdfDocumentProperties -Title 'Must not publish' }")
+        shell.AddScript("param($files, $output) $files | Open-OfficePdf -OutputPath $output -Content { $global:entered = $true; PdfMetadata -Title 'Must not publish' }")
             .AddArgument(new[] { new FileInfo(first), new FileInfo(second) }).AddArgument(output);
         Exception? error = Record.Exception(() => shell.Invoke());
         Assert.True(error != null || shell.HadErrors);

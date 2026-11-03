@@ -23,8 +23,8 @@ public partial class Excel {
             Height = OfficeIMO.OfficeLength.Pixels(16)
         });
         sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "One", "Two" }, new[] { new ExcelChartSeries("Values", new double[] { 1, 2 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 3, Column = anchorColumn, Width = OfficeLength.Pixels(120), Height = OfficeLength.Pixels(80), Title = "RetainedChart" });
-        document.SetPrintArea(sheet, "A1:F4");
-        document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 3);
+        sheet.PageSetup.PrintArea = "A1:F4";
+        sheet.PageSetup.SetPrintTitles(firstRow: null, lastRow: null, firstColumn: 3, lastColumn: 3);
         sheet.AddManualColumnPageBreak(2);
 
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -62,7 +62,7 @@ public partial class Excel {
             Width = OfficeIMO.OfficeLength.Pixels(24),
             Height = OfficeIMO.OfficeLength.Pixels(16)
         });
-        document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1);
+        sheet.PageSetup.SetPrintTitles(firstRow: null, lastRow: null, firstColumn: 1, lastColumn: 1);
         sheet.AddManualColumnPageBreak(10);
 
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {

@@ -217,11 +217,11 @@ namespace OfficeIMO.Excel {
                     else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec))
                         _sheet.ColumnStyleByHeader(hdr).Number(dec);
                     if (viz.DataBars.TryGetValue(hdr, out var color))
-                        _sheet.AddConditionalDataBar(colRange, color);
+                        _sheet.CreateConditionalDataBar(colRange, color);
                     if (viz.IconSets.TryGetValue(hdr, out var icon))
-                        _sheet.AddConditionalIconSet(colRange, icon.IconSet, icon.ShowValue, icon.ReverseOrder, icon.PercentThresholds, icon.NumberThresholds);
+                        _sheet.CreateConditionalIconSet(colRange, icon.IconSet, icon.ShowValue, icon.ReverseOrder, icon.PercentThresholds, icon.NumberThresholds);
                     else if (viz.IconSetColumns.Contains(hdr))
-                        _sheet.AddConditionalIconSet(colRange);
+                        _sheet.CreateConditionalIconSet(colRange, ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false, percentThresholds: null, numberThresholds: null);
                 }
 
                 // Track used width for adaptive column placement

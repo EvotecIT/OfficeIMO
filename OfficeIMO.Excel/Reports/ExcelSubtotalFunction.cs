@@ -1,4 +1,4 @@
-namespace OfficeIMO.Excel {
+namespace OfficeIMO.Excel.Reports {
     /// <summary>
     /// Aggregation function used by worksheet subtotal summary rows.
     /// </summary>

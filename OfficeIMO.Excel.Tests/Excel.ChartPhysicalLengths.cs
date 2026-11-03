@@ -41,8 +41,7 @@ public sealed class ExcelChartPhysicalLengthTests {
         using var bytes = new MemoryStream();
         using (var book = ExcelDocument.Create()) {
             var sheet = book.AddSheet("Report");
-            sheet.SetMargins(OfficeLength.Centimeters(2.54), OfficeLength.Inches(0.5),
-                OfficeLength.Points(36), OfficeLength.Points(18));
+            sheet.PageSetup.SetMargins(OfficeLength.Centimeters(2.54), OfficeLength.Inches(0.5), OfficeLength.Points(36), OfficeLength.Points(18));
             var chart = sheet.AddChart(OfficeChartType.Line, new ExcelChartData(new[] { "First", "Next" },
                 new[] { new ExcelChartSeries("Revenue", new[] { 12.5, 19.75 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Emus(4750001), Height = OfficeLength.Points(150.25), Title = "Revenue" });
             chart.SetTitleTextStyle(fontSize: OfficeLength.Points(12.345), color: OfficeColor.Accent1);

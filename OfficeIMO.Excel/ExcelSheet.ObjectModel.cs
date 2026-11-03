@@ -46,8 +46,8 @@ namespace OfficeIMO.Excel {
 
         internal ExcelCellData GetCellValueSnapshot(int row, int column) {
             MaterializeDeferredDataSetImportIfNeeded();
-            var cell = TryGetExistingCell(row, column);
-            return GetCellValueSnapshot(cell);
+            Cell? cell = ProbeCell(row, column, out ExcelStoredRow? storedRow, out int storedIndex);
+            return storedRow != null ? GetStoredCellValueSnapshot(storedRow.CellAt(storedIndex)) : GetCellValueSnapshot(cell);
         }
 
         private ExcelCellData GetCellValueSnapshot(Cell? cell) {
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, ExcelWorksheetScan.FindFormula(cell)!.Text, cached);
             }
 
-            if (ExcelWorksheetScan.FindValue(cell) == null && cell.InlineString == null) {
+            if (ExcelWorksheetScan.FindValue(cell) == null && ExcelWorksheetScan.FindInlineString(cell) == null) {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 

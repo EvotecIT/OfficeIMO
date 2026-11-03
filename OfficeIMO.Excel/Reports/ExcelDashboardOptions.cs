@@ -1,4 +1,4 @@
-namespace OfficeIMO.Excel {
+namespace OfficeIMO.Excel.Reports {
     /// <summary>
     /// Options for building a dashboard table and chart from tabular data.
     /// </summary>

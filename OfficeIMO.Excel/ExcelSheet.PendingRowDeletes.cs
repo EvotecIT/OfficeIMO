@@ -48,7 +48,7 @@ namespace OfficeIMO.Excel {
 
             foreach (OpenXmlElement child in WorksheetRoot.ChildElements) {
                 if (child is not (SheetProperties or SheetDimension or SheetViews or SheetFormatProperties
-                    or Columns or SheetData or PageMargins or PageSetup or PrintOptions or HeaderFooter or TableParts)) return false;
+                    or Columns or SheetData or PageMargins or DocumentFormat.OpenXml.Spreadsheet.PageSetup or PrintOptions or HeaderFooter or TableParts)) return false;
             }
 
             WorksheetPart edited = _worksheetPart;
@@ -81,6 +81,8 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 while (cursor < deleted.Length && deleted[cursor] < rowIndex) cursor++;
                 if (cursor < deleted.Length && deleted[cursor] == rowIndex) {
+                    // Stored cells hold no value metadata, so a deleted row drops them without building their DOM form.
+                    if (row is ExcelStoredRow stored && stored.IsStoreAvailable) stored.ClearStoredCells();
                     foreach (Cell cell in row.Elements<Cell>().ToList()) RemoveCellWithValueMetadataCleanup(cell);
                     row.Remove();
                 } else if (cursor > 0) {

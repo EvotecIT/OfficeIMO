@@ -126,7 +126,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
             .Descendants<DocumentFormat.OpenXml.Drawing.Spreadsheet.FromMarker>().Single();
         marker.RowId!.Text = "0";
         marker.ColumnId!.Text = "0";
-        if (printArea) document.SetPrintArea(sheet, "B2:C3");
+        if (printArea) sheet.PageSetup.PrintArea = "B2:C3";
         Assert.True(chart.TryGetSnapshot(out var snapshot));
         OfficeColor color = OfficeColor.Parse(snapshot.Data.Series[0].SeriesColorArgb!);
         Assert.Equal(printArea ? 0 : 2, PdfBubbleDiameters(document.ToPdf(WideBubblePage()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), color).Length);

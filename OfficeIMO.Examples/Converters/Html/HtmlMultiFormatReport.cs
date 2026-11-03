@@ -52,8 +52,8 @@ internal static partial class Html {
                 for (int row = firstRow; row <= lastRow; row++) sheet.Cell(row, firstColumn).SetVerticalAlignment(ExcelVerticalAlignment.Top);
             }
             sheet.AutoFitRows();
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.A4);
-            sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
+            sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
         }
         excel.Save(stem + ".xlsx");
 
