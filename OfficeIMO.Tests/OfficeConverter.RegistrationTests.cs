@@ -17,7 +17,7 @@ public sealed class OfficeConverterRegistrationTests {
         const string password = "synthetic-rtf-password";
         OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, OfficeDocumentFormat.Rtf, output, OfficeDocumentFormat.Pdf,
             new OfficeConversionOptions { CompressPdfOutput = compress, RegisteredSettings = new OfficeWorkflowRouteSettings {
-                Rtf = new RtfToPdfOptions { PdfOptions = new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions(password)) }
+                Rtf = new RtfPdfExportOptions { PdfOptions = new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions(password)) }
             } });
         Assert.Equal(1, report.ItemsWritten);
         Assert.Equal(compress, report.Diagnostics.Any(item => item.Code == OfficeDiagnosticCodes.PdfOutputCompressed));
@@ -35,7 +35,7 @@ public sealed class OfficeConverterRegistrationTests {
             var options = new OfficeBatchOptions { InputPaths = new[] { source }, OutputDirectory = output,
                 ResumeFrom = Path.Combine(output, ".batch.json"), TargetExtension = ".pdf",
                 ConversionOptions = new OfficeConversionOptions { RegisteredSettings = new OfficeWorkflowRouteSettings {
-                    Rtf = new RtfToPdfOptions { PdfOptions = new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(14), Theme = OfficeTheme.Modern,
+                    Rtf = new RtfPdfExportOptions { PdfOptions = new PdfCreateOptions { DefaultFontSize = OfficeLength.Points(14), Theme = OfficeTheme.Modern,
                         DefaultTextColor = OfficeColor.FromNormalizedRgb(0.123456, 0.3, 0.6) } }
                 } } };
             OfficeBatchReport first = await OfficeConverter.ConvertAsync(options);

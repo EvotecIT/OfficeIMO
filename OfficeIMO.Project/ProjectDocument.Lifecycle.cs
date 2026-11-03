@@ -12,7 +12,7 @@ public sealed partial class ProjectDocument {
     }
 
     /// <summary>Creates a document associated with an XML, MPP, or MPT path; creation does not write a file.</summary>
-    public static ProjectDocument Create(string path, DocumentCreateOptions? options = null) {
+    public static ProjectDocument Create(string path, ProjectCreateOptions? options = null) {
         var format = FormatFromPath(path);
         var document = Create();
         document._path = Path.GetFullPath(path);
@@ -22,12 +22,12 @@ public sealed partial class ProjectDocument {
     }
 
     /// <summary>Creates a document associated with a caller-owned writable seekable stream.</summary>
-    public static ProjectDocument Create(Stream stream, DocumentCreateOptions? options = null) {
+    public static ProjectDocument Create(Stream stream, ProjectCreateOptions? options = null) {
         OfficeDocumentLifecycle.EnsureAssociatedDestination(stream, nameof(stream));
         var document = Create(); document._associatedStream = stream; document.SetCreateOptions(options); return document;
     }
 
-    private void SetCreateOptions(DocumentCreateOptions? options) {
+    private void SetCreateOptions(ProjectCreateOptions? options) {
         _persistenceMode = options?.PersistenceMode ?? DocumentPersistenceMode.Explicit;
         if (!Enum.IsDefined(typeof(DocumentPersistenceMode), _persistenceMode)) throw new ArgumentOutOfRangeException(nameof(options));
     }

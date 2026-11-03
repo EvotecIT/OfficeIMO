@@ -12,29 +12,29 @@ public sealed class PdfEditCancellationTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         CancellationToken token = cancellation.Token;
-        var text = new PdfTextStampOptions { CancellationToken = token };
-        var image = new PdfImageStampOptions { CancellationToken = token };
-        var overlay = new PdfPageOverlayOptions { CancellationToken = token };
-        var canvas = new PdfCanvasStampOptions { CancellationToken = token };
+        var text = new PdfTextStampOptions();
+        var image = new PdfImageStampOptions();
+        var overlay = new PdfPageOverlayOptions();
+        var canvas = new PdfCanvasStampOptions();
         using var imageInput = new TrackingInput(new byte[] { 1, 2, 3 });
         using var pdfInput = new TrackingInput(source);
         int callbacks = 0;
         Action[] routes = {
-            () => target.Stamp.Text("Draft", text),
-            () => target.Stamp.TextResult("Draft", text),
-            () => target.Stamp.TextWatermark("Draft", text),
-            () => target.Stamp.TextWatermarkResult("Draft", text),
-            () => target.Stamp.Image(imageInput, image),
-            () => target.Stamp.ImageResult(imageInput, image),
-            () => target.Stamp.ImageWatermark(imageInput, image),
-            () => target.Stamp.ImageWatermarkResult(imageInput, image),
-            () => target.Stamp.OverlayPage(pdfInput, overlay),
-            () => target.Stamp.OverlayPageResult(pdfInput, overlay),
-            () => target.Stamp.UnderlayPage(pdfInput, overlay),
-            () => target.Stamp.UnderlayPageResult(pdfInput, overlay),
-            () => target.Stamp.Content(_ => callbacks++, canvas),
-            () => target.Stamp.ContentResult((_, _) => callbacks++, canvas),
-            () => target.Stamp.Watermark(new PdfWatermarkOptions { CancellationToken = token }),
+            () => target.Stamp.Text("Draft", text, cancellationToken: token),
+            () => target.Stamp.TextResult("Draft", PdfOperationCancellation.Bind(text, createWhenNull: true, token)!),
+            () => target.Stamp.TextWatermark("Draft", text, cancellationToken: token),
+            () => target.Stamp.TextWatermarkResult("Draft", PdfOperationCancellation.Bind(text, createWhenNull: true, token)!),
+            () => target.Stamp.Image(imageInput, image, cancellationToken: token),
+            () => target.Stamp.ImageResult(imageInput, PdfOperationCancellation.Bind(image, createWhenNull: true, token)!),
+            () => target.Stamp.ImageWatermark(imageInput, image, cancellationToken: token),
+            () => target.Stamp.ImageWatermarkResult(imageInput, PdfOperationCancellation.Bind(image, createWhenNull: true, token)!),
+            () => target.Stamp.OverlayPage(pdfInput, overlay, cancellationToken: token),
+            () => target.Stamp.OverlayPageResult(pdfInput, PdfOperationCancellation.Bind(overlay, createWhenNull: true, token)!),
+            () => target.Stamp.UnderlayPage(pdfInput, overlay, cancellationToken: token),
+            () => target.Stamp.UnderlayPageResult(pdfInput, PdfOperationCancellation.Bind(overlay, createWhenNull: true, token)!),
+            () => target.Stamp.Content(_ => callbacks++, canvas, cancellationToken: token),
+            () => target.Stamp.ContentResult((_, _) => callbacks++, PdfOperationCancellation.Bind(canvas, createWhenNull: true, token)!),
+            () => target.Stamp.Watermark(new PdfWatermarkOptions(), cancellationToken: token),
             () => target.Stamp.ReadWatermarks(null, token)
         };
         foreach (Action route in routes) {
@@ -58,15 +58,15 @@ public sealed class PdfEditCancellationTests {
         using var input = new TrackingInput(pdf, cancellation.Cancel);
         using var output = new MemoryStream();
         output.WriteByte(42);
-        var text = new PdfTextStampOptions { CancellationToken = cancellation.Token };
-        var image = new PdfImageStampOptions { CancellationToken = cancellation.Token };
+        var text = new PdfTextStampOptions();
+        var image = new PdfImageStampOptions();
         byte[] png = PdfPngTestImages.CreateRgbPng(255, 0, 0);
 
         Assert.ThrowsAny<OperationCanceledException>(() => {
-            if (operation == "text") PdfStamper.StampText(input, output, "Draft", text);
-            else if (operation == "text-watermark") PdfStamper.WatermarkText(input, output, "Draft", text);
-            else if (operation == "image") PdfStamper.StampImage(input, output, png, image);
-            else PdfStamper.WatermarkImage(input, output, png, image);
+            if (operation == "text") PdfStamper.StampText(input, output, "Draft", text, cancellationToken: cancellation.Token);
+            else if (operation == "text-watermark") PdfStamper.WatermarkText(input, output, "Draft", text, cancellationToken: cancellation.Token);
+            else if (operation == "image") PdfStamper.StampImage(input, output, png, image, cancellationToken: cancellation.Token);
+            else PdfStamper.WatermarkImage(input, output, png, image, cancellationToken: cancellation.Token);
         });
 
         Assert.InRange(input.BytesRead, 1, pdf.Length - 1);
@@ -103,9 +103,9 @@ public sealed class PdfEditCancellationTests {
         using var cancellation = new CancellationTokenSource();
         using var cancelledInput = new TrackingInput(source, cancellation.Cancel);
         options.SourceReadOptions = exact;
-        options.CancellationToken = cancellation.Token;
         Assert.ThrowsAny<OperationCanceledException>(() => {
-            if (underlay) target.Stamp.UnderlayPage(cancelledInput, options); else target.Stamp.OverlayPage(cancelledInput, options);
+            if (underlay) target.Stamp.UnderlayPage(cancelledInput, options, cancellationToken: cancellation.Token);
+            else target.Stamp.OverlayPage(cancelledInput, options, cancellationToken: cancellation.Token);
         });
         Assert.InRange(cancelledInput.BytesRead, 1, source.Length - 1);
         Assert.True(cancelledInput.CanRead);
@@ -122,7 +122,7 @@ public sealed class PdfEditCancellationTests {
         }).ToBytes();
         PdfDocument target = PdfDocument.Load(source);
         using var cancellation = new CancellationTokenSource();
-        var options = new PdfCanvasStampOptions { CancellationToken = cancellation.Token };
+        var options = new PdfCanvasStampOptions();
         int callbacks = 0;
         void Build(PdfPageCanvas canvas, PdfStampPageContext _) {
             callbacks++;
@@ -130,7 +130,7 @@ public sealed class PdfEditCancellationTests {
             cancellation.Cancel();
         }
         Assert.ThrowsAny<OperationCanceledException>(() => {
-            if (resultRoute) target.Stamp.ContentResult(Build, options); else target.Stamp.Content(Build, options);
+            if (resultRoute) target.Stamp.ContentResult(Build, PdfOperationCancellation.Bind(options, createWhenNull: true, cancellation.Token)!); else target.Stamp.Content(Build, options, cancellationToken: cancellation.Token);
         });
         Assert.Equal(1, callbacks);
         Assert.Equal(source, target.ToBytes());
@@ -146,12 +146,12 @@ public sealed class PdfEditCancellationTests {
         cancellation.Cancel();
         CancellationToken token = cancellation.Token;
         Action[] routes = {
-            () => target.Annotations.Add(new PdfAnnotationCreateOptions { CancellationToken = token }),
-            () => target.Annotations.AddStamp(new PdfStampAnnotationOptions { CancellationToken = token }),
-            () => target.Annotations.Update(number, new PdfAnnotationUpdateOptions { Contents = "Changed", CancellationToken = token }),
-            () => target.Annotations.Remove(new PdfAnnotationRemovalOptions { CancellationToken = token }),
-            () => target.Annotations.Flatten(new PdfAnnotationFlattenOptions { CancellationToken = token }),
-            () => target.Annotations.AddReply(number, "Reply", new PdfAnnotationReplyOptions { CancellationToken = token }),
+            () => target.Annotations.Add(new PdfAnnotationCreateOptions(), cancellationToken: token),
+            () => target.Annotations.AddStamp(new PdfStampAnnotationOptions(), cancellationToken: token),
+            () => target.Annotations.Update(number, new PdfAnnotationUpdateOptions { Contents = "Changed" }, cancellationToken: token),
+            () => target.Annotations.Remove(new PdfAnnotationRemovalOptions(), cancellationToken: token),
+            () => target.Annotations.Flatten(new PdfAnnotationFlattenOptions(), cancellationToken: token),
+            () => target.Annotations.AddReply(number, "Reply", new PdfAnnotationReplyOptions(), cancellationToken: token),
             () => target.Annotations.Move(number, 5D, 5D, token),
             () => target.Annotations.Resize(number, new PdfPageRectangle(10D, 10D, 60D, 60D), token),
             () => target.Annotations.MoveMany(new[] { number }, 5D, 5D, token),
@@ -187,9 +187,9 @@ public sealed class PdfEditCancellationTests {
             File.WriteAllBytes(output, sentinel);
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
-            Assert.ThrowsAny<OperationCanceledException>(() => PdfStamper.StampText(input, output, "Draft", new PdfTextStampOptions { CancellationToken = cancellation.Token }));
+            Assert.ThrowsAny<OperationCanceledException>(() => PdfStamper.StampText(input, output, "Draft", new PdfTextStampOptions(), cancellationToken: cancellation.Token));
             Assert.Equal(sentinel, File.ReadAllBytes(output));
-            Assert.ThrowsAny<OperationCanceledException>(() => PdfAnnotationEditor.RemoveAnnotations(input, output, new PdfAnnotationRemovalOptions { CancellationToken = cancellation.Token }));
+            Assert.ThrowsAny<OperationCanceledException>(() => PdfAnnotationEditor.RemoveAnnotations(input, output, new PdfAnnotationRemovalOptions(), cancellationToken: cancellation.Token));
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             Assert.Equal(2, Directory.GetFiles(directory).Length);
         } finally {
@@ -211,7 +211,7 @@ public sealed class PdfEditCancellationTests {
         using var cancellation = new CancellationTokenSource();
         using var output = new CancellingOutput(cancellation);
         Assert.ThrowsAny<OperationCanceledException>(() => PdfStamper.StampText(CreatePdf(), output, "Draft",
-            new PdfTextStampOptions { CancellationToken = cancellation.Token }));
+            new PdfTextStampOptions(), cancellationToken: cancellation.Token));
         Assert.True(output.Length > 0);
         Assert.True(output.CanWrite);
     }
@@ -233,7 +233,7 @@ public sealed class PdfEditCancellationTests {
         }
         if (!cancelDuringEnumeration) cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => PdfBatesNumberer.Apply(Inputs(),
-            new PdfBatesNumberingOptions { CancellationToken = cancellation.Token }));
+            new PdfBatesNumberingOptions(), cancellationToken: cancellation.Token));
         Assert.Equal(cancelDuringEnumeration ? 2 : 0, enumerated);
         Assert.Equal(source, input.GetBytes());
     }

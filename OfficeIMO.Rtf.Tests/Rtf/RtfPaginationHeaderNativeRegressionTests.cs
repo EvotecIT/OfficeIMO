@@ -81,7 +81,7 @@ public class RtfPaginationHeaderNativeRegressionTests {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "PaginationHeaderControls", id + ".rtf");
         byte[] original = File.ReadAllBytes(path);
         RtfReadResult read = RtfDocument.LoadResult(original);
-        string before = read.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string before = read.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         var parse = new RtfConversionReport();
         parse.AddReadDiagnostics(read.Diagnostics, path);
         byte[]? mappedDocx = null;
@@ -114,7 +114,7 @@ public class RtfPaginationHeaderNativeRegressionTests {
                 .AppendLine("HasLoss=" + saved.HasLoss)
                 .AppendLine("SourceBytesUnchanged=" + original.SequenceEqual(File.ReadAllBytes(path)))
                 .AppendLine("LosslessBytesUnchanged=" + original.SequenceEqual(read.ToBytesLossless()))
-                .AppendLine("LoadedModelUnchanged=" + (before == read.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })));
+                .AppendLine("LoadedModelUnchanged=" + (before == read.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false })));
             foreach (var diagnostic in read.Diagnostics) report.AppendLine("Parse: " + diagnostic);
             foreach (var diagnostic in saved.ConversionDiagnostics) {
                 report.AppendLine($"Fidelity: {diagnostic.Format}|{diagnostic.Code}|{diagnostic.LossKind}|{diagnostic.Location}|{diagnostic.Message}");
@@ -134,7 +134,7 @@ public class RtfPaginationHeaderNativeRegressionTests {
         saved.RequireSuccess();
         Assert.Equal(original, File.ReadAllBytes(path));
         Assert.Equal(original, read.ToBytesLossless());
-        Assert.Equal(before, read.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        Assert.Equal(before, read.Document.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
         return bytes;
     }
 

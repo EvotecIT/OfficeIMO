@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Markdown {
         public static void Example_MarkdownCodeBlocks(string folderPath, bool openWord) {
             string markdown = "```csharp\nConsole.WriteLine(\"Hello\");\n```";
 
-            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new MarkdownWordExportOptions());
             var codeParagraph = doc.Paragraphs[0];
             Console.WriteLine($"Detected language style: {codeParagraph.StyleId}");
 

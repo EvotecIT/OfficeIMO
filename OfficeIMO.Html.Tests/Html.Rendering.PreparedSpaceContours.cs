@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlDirectionalProvider_EmptyGlyphsKeepTextAndLinksInsideAPathClip(bool linked) {
         const string text = "אבג";
         const string uri = "https://example.test/empty-glyphs";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlDirectionalProvider_EmptySpaceContoursRetainLogicalTextWithoutPdfLoss() {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss,

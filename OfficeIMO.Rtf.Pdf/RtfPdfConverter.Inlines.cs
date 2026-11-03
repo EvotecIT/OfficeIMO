@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+    private static void RenderParagraph(RtfDocument document, RtfParagraph paragraph, PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state) {
         RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
         RecordParagraphBarTabDiagnostic(document, paragraph, options);
         if (RtfPdfMapping.HasPageBreakBefore(document, paragraph)) {
@@ -144,7 +144,7 @@ internal static partial class RtfPdfConverter {
 
     private enum PdfInlineProjectionContext { Text, RunningStory }
 
-    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null, PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
+    private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfPdfExportOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null, PdfInlineProjectionContext context = PdfInlineProjectionContext.Text) {
         RecordParagraphFrameDiagnostic(document, paragraph, options, "Paragraph/Frame");
         AppendListMarker(document, paragraph, runs, state, options);
         for (int inlineIndex = 0; inlineIndex < paragraph.Inlines.Count; inlineIndex++) {
@@ -190,7 +190,7 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
+    private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.PdfTextRun> runs, RtfPdfExportOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
         if (run.Hidden && !options.IncludeHiddenText) {
             AddConversionWarning(
                 options,
@@ -245,7 +245,7 @@ internal static partial class RtfPdfConverter {
         runs.Add(pdfRun);
     }
 
-    private static void ReportUnsupportedRunFormatting(RtfRun run, RtfToPdfOptions options) {
+    private static void ReportUnsupportedRunFormatting(RtfRun run, RtfPdfExportOptions options) {
         var features = new List<string>();
         if (run.Hidden && options.IncludeHiddenText) features.Add("hidden-visibility");
         if ((run.UnderlineStyle != RtfUnderlineStyle.None && run.UnderlineStyle != RtfUnderlineStyle.Single)
@@ -303,7 +303,7 @@ internal static partial class RtfPdfConverter {
         AppendPlainText(text, runs, state);
     }
 
-    private static void AppendListMarker(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfToPdfOptions options) {
+    private static void AppendListMarker(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfPdfExportOptions options) {
         RtfListMarker? marker = state.NextListMarker(paragraph);
         if (marker == null) return;
         if (!marker.IsNumberFormatSupported) AddConversionWarning(options, "ListNumberFormatFlattened", "Paragraph/List", "The requested numbering format was represented by decimal marker text.", RtfConversionAction.Flattened);

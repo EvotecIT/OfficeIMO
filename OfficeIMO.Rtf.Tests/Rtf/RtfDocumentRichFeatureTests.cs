@@ -22,7 +22,7 @@ public partial class RtfDocumentRichFeatureTests {
         item.AddText("Docs at ");
         item.AddText("OfficeIMO").SetStyle(2).SetHyperlink(new Uri("https://github.com/EvotecIT/OfficeIMO"));
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.DoesNotContain(read.Diagnostics, diagnostic => diagnostic.Severity == RtfDiagnosticSeverity.Error);
@@ -73,7 +73,7 @@ public partial class RtfDocumentRichFeatureTests {
         monospace.CodePage = 1250;
         document.AddParagraph().AddText("Code").FontId = monospaceFontId;
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.StartsWith(@"{\rtf1\ansi\deff1", rtf, StringComparison.Ordinal);
@@ -111,7 +111,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.StyleId = style.Id;
         paragraph.AddText(" text").FontId = fontId;
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\uc2", rtf, StringComparison.Ordinal);
@@ -135,7 +135,7 @@ public partial class RtfDocumentRichFeatureTests {
         hyperlink.Shade = 25;
         document.AddParagraph().AddText("Accent").ForegroundColorIndex = accentIndex;
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\colortbl;\red68\green114\blue196\caccentone\ctint40;\red5\green99\blue193\chyperlink\cshade25;}", rtf, StringComparison.Ordinal);
@@ -162,8 +162,8 @@ public partial class RtfDocumentRichFeatureTests {
         network.OperatingSystemNumber = 42;
         document.AddParagraph("Body");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.ParseResult(rtf, RtfReadOptions.CreateCompatibilityProfile());
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf, RtfLoadOptions.CreateCompatibilityProfile());
 
         Assert.Contains(@"{\*\filetbl{\file\fid0\frelative18\fvalidntfs C:\\Private\\Resume\\Edu\\File2.docx}{\file\fid1\fosnum42\fvalidntfs\fnetwork \\\\Server\\Share\\Linked.docx}}", rtf, StringComparison.Ordinal);
         Assert.Collection(read.Document.FileReferences,
@@ -191,7 +191,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddXmlNamespace(1, "http://schemas.example.test/word");
         document.AddParagraph("Body");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\xmlnstbl{\xmlns1 http://schemas.example.test/word;}{\xmlns2 urn:contoso:custom;}}", rtf, StringComparison.Ordinal);
@@ -235,7 +235,7 @@ public partial class RtfDocumentRichFeatureTests {
         character.LinkedStyleId = 1;
         document.AddParagraph("Heading").SetStyle(1);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\stylesheet{\s1{\*\keycode\shift\ctrl n}\sbasedon0\snext1\slink2\sautoupd\shidden\slocked\spersonal\scompose\sreply\ssemihidden\sunhideused\sqformat\spriority9\styrsid123 Heading 1;}{\*\cs2\slink1\additive Character Link;}}", rtf, StringComparison.Ordinal);
@@ -281,7 +281,7 @@ public partial class RtfDocumentRichFeatureTests {
         style.HighlightColorIndex = yellow;
         document.AddParagraph("Styled").SetStyle(style.Id);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\stylesheet{\s7\b\i\uldb\fs31\f1\cf1\highlight2 Accent;}}", rtf, StringComparison.Ordinal);
@@ -343,7 +343,7 @@ public partial class RtfDocumentRichFeatureTests {
         style.ParagraphAlignment = RtfTextAlignment.Justify;
         document.AddParagraph("Styled").SetStyle(style.Id);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\stylesheet{\s8\pagebb\keepn\keep\noline\hyphpar\contextualspace0\adjustright\nosnaplinegrid\nowidctlpar\outlinelevel3\ltrpar\absw3600\absh0\phmrg\posnegx-180\pvpara\posy720\abslock\absnoovrlp1\nowrap\dxfrtext120\dfrmtxtx240\dfrmtxty360\overlay\dropcapli2\dropcapt1\tldot\tqr\tx2880\li720\ri360\fi-180\sb120\sa240\sbauto0\saauto1\sl360\slmult1\cbpat1\cfpat2\shading5000\bgdkhoriz\brdrt\brdrs\brdrw12\brdrcf1\brdrl\brdrdb\brdrw8\brdrcf2\brdrb\brdrdot\brdrr\brdrdash\qj Block;}}", rtf, StringComparison.Ordinal);
@@ -448,7 +448,7 @@ public partial class RtfDocumentRichFeatureTests {
         cell.TopBorder.ColorIndex = blue;
         document.AddParagraph("Body");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\stylesheet{\*\ts9\tsrowd\trkeep\trkeepfollow\trautofit0\rtlrow\trrh360\trgaph120\trleft720\trftsWidth3\trwWidth5000\trcbpat1\trcfpat2\trpat5\trshdng6250\trbgdkhor\trpaddt120\trpaddft3\trpaddl180\trpaddfl3\trspdt20\trspdft3\tabsnoovrlp\tphpg\tpvpara\tposx1440\tposyb\tdfrmtxtLeft80\trqc\trbrdrt\brdrs\brdrw12\brdrcf1\clftsWidth3\clwWidth2400\clNoWrap\clFitText\clcbpat1\clcfpat2\clshdng3750\clbgdkhor\clvertalc\cltxlrtbv\clbrdrt\brdrdb\brdrw8\brdrcf2\clpadt60\clpadft3\cellx2400 Table Grid;}}", rtf, StringComparison.Ordinal);

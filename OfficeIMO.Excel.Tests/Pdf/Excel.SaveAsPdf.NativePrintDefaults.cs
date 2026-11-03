@@ -29,7 +29,7 @@ public partial class Excel {
                 for (int column = 1; column <= 3; column++) sheet.Cell(row, column).SetValue("Cell");
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.A4);
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             workbook.Save();
         }
         // Native Excel omits dimensions that equal the format defaults and
@@ -47,7 +47,7 @@ public partial class Excel {
             worksheet.Save();
         }
         using var loaded = ExcelDocument.Load(path);
-        ExcelSheetPageSetup pageSetup = loaded.Sheets[0].GetPageSetup();
+        ExcelSheetPageSetup pageSetup = loaded.Sheets[0].PageSetup;
         Assert.Equal(fitWidth, pageSetup.FitToWidth);
         Assert.Equal(fitHeight, pageSetup.FitToHeight);
         PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(loaded.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

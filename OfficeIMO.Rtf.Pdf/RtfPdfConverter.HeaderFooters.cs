@@ -30,7 +30,7 @@ internal static partial class RtfPdfConverter {
 
     /// <summary>Captures rich source stories once through the same document and paragraph/image owners used by ordinary flow.</summary>
     private static void ApplyHeaderFooterContent(RtfDocument document, RtfPageSetup setup, PdfCore.PdfDocument pdf,
-        PdfCore.PdfCreateOptions pageOptions, RtfToPdfOptions options, PdfRenderState state,
+        PdfCore.PdfCreateOptions pageOptions, RtfPdfExportOptions options, PdfRenderState state,
         IReadOnlyList<RtfHeaderFooter> declarations, Action<Action<PdfCore.PdfHeaderBuilder>> configureHeader,
         Action<Action<PdfCore.PdfFooterBuilder>> configureFooter) {
         if (!options.IncludeHeaderFooters || declarations.Count == 0) return;
@@ -104,7 +104,7 @@ internal static partial class RtfPdfConverter {
     private static double GetRunningStoryDistance(int? twips) => Math.Max(0D, (twips ?? 720) / 20D);
 
     /// <summary>Reports unsupported running controls before static capture; no warning depends on pagination replay.</summary>
-    private static void RecordRunningParagraphDiagnostics(RtfDocument document, RtfParagraph paragraph, RtfToPdfOptions options) {
+    private static void RecordRunningParagraphDiagnostics(RtfDocument document, RtfParagraph paragraph, RtfPdfExportOptions options) {
         if (!options.DiagnosedRunningParagraphs.Add(paragraph)) return;
         RecordParagraphFrameDiagnostic(document, paragraph, options, "HeaderFooter/Paragraph/Frame");
         RecordParagraphBarTabDiagnostic(document, paragraph, options);
@@ -139,7 +139,7 @@ internal static partial class RtfPdfConverter {
 
     /// <summary>Detects replaced rich destinations and edge geometry even when their flattened text is unchanged.</summary>
     private static bool RunningStoriesDiffer(RtfDocument document, RtfSection currentSection, RtfSection requestedSection,
-        RtfToPdfOptions options, bool isFooter) {
+        RtfPdfExportOptions options, bool isFooter) {
         if (!options.IncludeHeaderFooters || HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter)) return false;
         IReadOnlyList<RtfHeaderFooter> current = document.GetEffectiveHeaderFooters(currentSection);
         IReadOnlyList<RtfHeaderFooter> requested = document.GetEffectiveHeaderFooters(requestedSection);

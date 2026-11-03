@@ -121,7 +121,7 @@ public class RtfFrameLossDiagnosticTests {
     public void FrameWarningsAreScopedToEachConversionAndDirectSaveReport() {
         RtfDocument source = RtfDocument.Create();
         source.AddParagraph("FRAMEDMARKER").Frame.WidthTwips = 3600;
-        var options = new RtfToPdfOptions();
+        var options = new RtfPdfExportOptions();
         for (int index = 0; index < 2; index++) {
             using var output = new MemoryStream();
             PdfCore.PdfSaveResult saved = source.ConvertToPdfWithEvidence(options).Save(output);
@@ -144,7 +144,7 @@ public class RtfFrameLossDiagnosticTests {
         source.AddHeader(RtfHeaderFooterKind.FirstHeader).AddParagraph("INACTIVE").Frame.WidthTwips = 3600;
         source.AddHeader().AddParagraph("SKIPPED").Frame.WidthTwips = 3600;
 
-        Assert.DoesNotContain(source.ConvertToPdfWithEvidence(new RtfToPdfOptions { IncludeHeaderFooters = false }).Warnings,
+        Assert.DoesNotContain(source.ConvertToPdfWithEvidence(new RtfPdfExportOptions { IncludeHeaderFooters = false }).Warnings,
             warning => warning.Code == "ParagraphFrameFlattened");
         Assert.Single(source.ConvertToPdfWithEvidence().Warnings, warning => warning.Code == "ParagraphFrameFlattened");
     }

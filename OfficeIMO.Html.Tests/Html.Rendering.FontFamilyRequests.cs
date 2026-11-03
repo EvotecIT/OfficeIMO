@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
         string request = "\"" + family.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
         string html = "<style>body,p{margin:0}body{font-family:" + request
             + ";font-size:20px;line-height:24px}</style><p>BB</p><div style='margin-left:3ch'>B</div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Continuous,
             AllowSystemFontFallback = false,
             FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,

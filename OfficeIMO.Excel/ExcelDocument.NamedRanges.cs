@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel {
         /// Sets the print area for a given sheet by creating a sheet-local defined name _xlnm.Print_Area.
         /// Separate areas with commas; commas inside quoted worksheet names are preserved.
         /// </summary>
-        public void SetPrintArea(ExcelSheet sheet, string range, bool save = true) {
+        internal void SetPrintAreaCore(ExcelSheet sheet, string range, bool save = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
 
@@ -263,6 +263,25 @@ namespace OfficeIMO.Excel {
             throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
         }
 
+        /// <summary>Removes the sheet-local print area.</summary>
+        internal void RemovePrintArea(ExcelSheet sheet, bool save = true) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            DefinedNames? definedNames = WorkbookRoot.DefinedNames;
+            if (definedNames == null) return;
+            ushort sheetPos = GetSheetPositionIndex(sheet);
+            bool removed = false;
+            foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == "_xlnm.Print_Area").ToList()) {
+                if (dn.LocalSheetId != null && dn.LocalSheetId.Value == sheetPos) {
+                    dn.Remove();
+                    removed = true;
+                }
+            }
+
+            if (!removed) return;
+            MarkPackageDirty();
+            SaveWorkbookScopedChange(save);
+        }
+
         /// <summary>
         /// Sets rows/columns to repeat at top/left when printing a specific sheet by creating a sheet-local
         /// defined name _xlnm.Print_Titles. Pass nulls to clear existing print titles.
@@ -273,7 +292,7 @@ namespace OfficeIMO.Excel {
         /// <param name="firstCol">First column to repeat (1-based), or null.</param>
         /// <param name="lastCol">Last column to repeat (1-based), or null.</param>
         /// <param name="save">Whether to save the workbook after the change.</param>
-        public void SetPrintTitles(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) {
+        internal void SetPrintTitlesCore(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 
             var workbook = WorkbookRoot;

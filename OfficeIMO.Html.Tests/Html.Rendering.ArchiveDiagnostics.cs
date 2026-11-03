@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlArchive_RetainsPdfOmissionWhenSourceDiagnosticsAreInformational(HtmlRenderEncoder encoder, string? source) {
         const string html = "<style>.icon::before{font-family:MissingIcon;content:'\\F42B'}</style>"
             + "<p class='icon'>Voyager Overview</p>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         };

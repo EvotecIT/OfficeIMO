@@ -17,7 +17,7 @@ public sealed class OfficeConverterConversionTests {
         using var source = new MemoryStream(pdf.ToBytes());
         using var output = new MemoryStream();
         var policy = new PdfLoadOptions { Profile = PdfReadProfile.Fast, PageSelection = PdfPageSelection.Parse("2") };
-        var html = adapterOverride ? new OfficeIMO.Html.Pdf.PdfToHtmlOptions {
+        var html = adapterOverride ? new OfficeIMO.Html.Pdf.PdfHtmlExportOptions {
             ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("1") }
         } : null;
         OfficeConverter.Convert(source, OfficeDocumentFormat.Pdf, output, OfficeDocumentFormat.Html,

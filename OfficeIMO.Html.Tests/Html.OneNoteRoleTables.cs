@@ -124,7 +124,7 @@ public class HtmlOneNoteRoleTables {
         limits.MaxTableCells = 3;
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(
-            new HtmlToOneNoteOptions { Limits = limits });
+            new HtmlOneNoteExportOptions { Limits = limits });
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -176,7 +176,7 @@ public class HtmlOneNoteRoleTables {
         var limits = new HtmlImportLimits(); limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<table><caption><a href='https://example.org/" + new string('x', 300)
             + "'>Retained caption</a></caption><tr><td>Cell</td></tr></table>")
-            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+            .ToOneNoteSectionResult(new HtmlOneNoteExportOptions { Limits = limits });
         var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         var caption = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteParagraph>());
         Assert.Equal("Retained caption", string.Concat(caption.Runs.Select(r => r.Text)));
@@ -191,7 +191,7 @@ public class HtmlOneNoteRoleTables {
         string link = "https://example.org/" + (oversized ? new string('x', 300) : "source");
         var limits = new HtmlImportLimits(); limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<a href='" + link + "'><img src='data:image/png;base64," + png + "' alt='Photo'></a>")
-            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+            .ToOneNoteSectionResult(new HtmlOneNoteExportOptions { Limits = limits });
         var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         var image = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteImage>());
         Assert.Equal("Photo", image.AltText);

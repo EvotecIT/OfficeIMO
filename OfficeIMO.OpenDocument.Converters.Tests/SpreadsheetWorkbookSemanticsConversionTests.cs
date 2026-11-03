@@ -68,7 +68,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     public void ValidationDropdownVisibilityRoundTripsThroughTypedOdfDisplayList() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.ValidationList("A1", new[] { "One", "Two" });
+        sheet.Range("A1").Validation().List(new[] { "One", "Two" });
         sheet.SetDataValidationMessages("A1", new ExcelDataValidationMessageOptions {
             SuppressDropDown = true,
             PreserveShowMessageFlags = true

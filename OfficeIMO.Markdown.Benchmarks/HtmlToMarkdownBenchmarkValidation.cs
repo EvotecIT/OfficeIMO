@@ -28,7 +28,7 @@ internal static class HtmlToMarkdownBenchmarkValidation {
     }
 
     internal static void AssertAllDefaultComparisons() {
-        var officeOptions = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
+        var officeOptions = HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
         var reverseConverter = new ReverseMarkdown.Converter();
         foreach (string corpusName in HtmlToMarkdownBenchmarkCorpus.ComparisonNames) {
             string html = HtmlToMarkdownBenchmarkCorpus.Get(corpusName);

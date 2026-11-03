@@ -16,7 +16,7 @@ namespace OfficeIMO.Word.Html {
         private void ApplyTextBackground(
             WordParagraph run,
             TextFormatting formatting,
-            WordHtmlImportOptions options) {
+            HtmlWordExportOptions options) {
             if (string.IsNullOrEmpty(formatting.BackgroundColorHex)) {
                 return;
             }

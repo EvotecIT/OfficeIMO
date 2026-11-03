@@ -40,7 +40,7 @@ public partial class Html {
             "<div role='row'><div role='cell'>C</div><div role='cell'>D</div></div></div>";
 
         var exception = Assert.Throws<HtmlConversionLimitException>(() =>
-            HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { MaxTableCells = 3 }));
+            HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions { MaxTableCells = 3 }));
 
         Assert.Equal("table-size-limit-exceeded", exception.Code);
         Assert.Equal(4, exception.Actual);
@@ -103,7 +103,7 @@ public partial class Html {
         const string html = "<div role='table'><div role='row'><div role='cell'></div></div></div>";
 
         using WordDocument document = HtmlConversionDocument.Parse(html)
-            .ToWord(new WordHtmlImportOptions { MaxHtmlDepth = 5 });
+            .ToWord(new HtmlWordExportOptions { MaxHtmlDepth = 5 });
 
         Assert.Single(document.Tables);
     }

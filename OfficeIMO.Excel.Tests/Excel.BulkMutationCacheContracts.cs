@@ -99,7 +99,8 @@ namespace OfficeIMO.Tests {
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
                 void Edit(ExcelSheet target) {
                     for (int row = 1; row <= 20; row++) {
-                        target.SetViewOptions(zoomScale: (uint)(100 + row), rightToLeft: true);
+                        target.View.ZoomScale = (uint)(100 + row);
+                        target.View.RightToLeft = true;
                         target.Protect(new ExcelSheetProtectionOptions { AllowFormatCells = true });
                         Assert.Equal(1, target.ReplaceAll($"Old{row:D2}", $"New{row:D2}"));
                     }
@@ -113,8 +114,8 @@ namespace OfficeIMO.Tests {
 
             using var reopened = ExcelDocument.Load(stream);
             ExcelSheet saved = reopened.Sheets[0];
-            Assert.Equal(120U, saved.GetZoomScale());
-            Assert.True(saved.RightToLeft);
+            Assert.Equal(120U, saved.View.ZoomScale);
+            Assert.True(saved.View.RightToLeft);
             Assert.True(saved.IsProtected);
             for (int row = 1; row <= 20; row++) Assert.Equal($"New{row:D2}", saved.Cell(row, 1).GetValue<string>());
             using var package = SpreadsheetDocument.Open(stream, false);

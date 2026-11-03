@@ -205,7 +205,7 @@ public sealed class PdfConversionLossPropagationTests {
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfHtmlConversionResult result = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult result = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
 
         Assert.True(result.Report.HasLoss);
         Assert.Contains(result.Report.Warnings, static warning =>
@@ -222,7 +222,7 @@ public sealed class PdfConversionLossPropagationTests {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
         PdfPowerPointConversionResult result = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (result.Value) {
             Assert.True(result.Report.HasLoss);
             Assert.Contains(result.Report.Warnings, static warning =>

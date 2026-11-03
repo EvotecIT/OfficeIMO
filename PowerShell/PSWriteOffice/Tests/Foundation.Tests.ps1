@@ -5,7 +5,7 @@ BeforeAll {
     Import-Module $moduleManifest -Global -ErrorAction Stop
     $binary = (Get-Command New-OfficeWord -ErrorAction Stop).ImplementingType.Assembly
     $testAssemblyPath = if ($env:PSWRITEOFFICE_FOUNDATION_TEST_ASSEMBLY) { $env:PSWRITEOFFICE_FOUNDATION_TEST_ASSEMBLY } else {
-        Join-Path $PSScriptRoot '../Sources/PSWriteOffice.Tests/bin/Release/net8.0/PSWriteOffice.Tests.dll'
+        Join-Path $PSScriptRoot '../Sources/PSWriteOffice.Tests/bin/Debug/net8.0/PSWriteOffice.Tests.dll'
     }
     if (!(Test-Path -LiteralPath $testAssemblyPath)) { throw 'Build PSWriteOffice.Tests before running the foundation Pester tests.' }
     if ($PSEdition -eq 'Core') {

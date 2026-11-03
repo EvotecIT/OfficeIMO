@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf.Word {
         private static bool ConfigureEditablePageSection(
             WordSection section,
             PdfCore.PdfLogicalPage page,
-            WordPdfImportOptions options) {
+            PdfWordExportOptions options) {
             (double pageWidth, double pageHeight) = GetVisualPageSize(page);
             if (!TryGetEditablePageSizeTwips(pageWidth, pageHeight, out uint pageWidthTwips, out uint pageHeightTwips)) {
                 AddWarning(

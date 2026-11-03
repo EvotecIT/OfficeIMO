@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Options controlling HTML to Word conversion.
     /// </summary>
-    public class WordHtmlImportOptions {
+    public class HtmlWordExportOptions {
         /// <summary>Rejects a converted target when completed stages report fidelity loss.</summary>
         public bool FailOnLoss { get; set; }
 
@@ -14,9 +14,9 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Creates the default OfficeIMO HTML import profile.
         /// </summary>
-        /// <returns>A new <see cref="WordHtmlImportOptions"/> instance with the default compatibility-oriented settings.</returns>
-        public static WordHtmlImportOptions CreateOfficeIMOProfile() {
-            var options = new WordHtmlImportOptions {
+        /// <returns>A new <see cref="HtmlWordExportOptions"/> instance with the default compatibility-oriented settings.</returns>
+        public static HtmlWordExportOptions CreateOfficeIMOProfile() {
+            var options = new HtmlWordExportOptions {
                 ImageProcessing = WordHtmlImageProcessingMode.Embed,
                 MaxTableCells = null
             };
@@ -33,9 +33,9 @@ namespace OfficeIMO.Word.Html {
         /// applies conservative HTML, CSS, image, and table limits. Callers can relax individual
         /// limits or allow-lists when their ingestion boundary is more trusted.
         /// </remarks>
-        /// <value>A new <see cref="WordHtmlImportOptions"/> instance configured for untrusted HTML.</value>
-        public static WordHtmlImportOptions UntrustedDefaults { get {
-            var options = new WordHtmlImportOptions {
+        /// <value>A new <see cref="HtmlWordExportOptions"/> instance configured for untrusted HTML.</value>
+        public static HtmlWordExportOptions UntrustedDefaults { get {
+            var options = new HtmlWordExportOptions {
                 ImageProcessing = WordHtmlImageProcessingMode.EmbedDataUriOnly,
                 ResourceTimeout = TimeSpan.FromSeconds(5),
                 MaxImageBytes = 5L * 1024L * 1024L,
@@ -65,9 +65,9 @@ namespace OfficeIMO.Word.Html {
         /// <see cref="AllowDocumentStylesheetLinks"/>. Callers should still configure host allow-lists
         /// or byte limits when trusted documents can reference broad network locations.
         /// </remarks>
-        /// <returns>A new <see cref="WordHtmlImportOptions"/> instance configured for trusted document links.</returns>
-        public static WordHtmlImportOptions CreateTrustedDocumentProfile() {
-            var options = new WordHtmlImportOptions {
+        /// <returns>A new <see cref="HtmlWordExportOptions"/> instance configured for trusted document links.</returns>
+        public static HtmlWordExportOptions CreateTrustedDocumentProfile() {
+            var options = new HtmlWordExportOptions {
                 ImageProcessing = WordHtmlImageProcessingMode.Embed,
                 AllowDocumentStylesheetLinks = true
             };
@@ -408,9 +408,9 @@ namespace OfficeIMO.Word.Html {
         /// Configuration values, allow-lists, and configured stylesheets are copied. Runtime diagnostics
         /// start empty on the clone so evidence from one conversion is never carried into the next.
         /// </remarks>
-        /// <returns>A new <see cref="WordHtmlImportOptions"/> with the same configuration values.</returns>
-        public WordHtmlImportOptions Clone() {
-            var clone = new WordHtmlImportOptions {
+        /// <returns>A new <see cref="HtmlWordExportOptions"/> with the same configuration values.</returns>
+        public HtmlWordExportOptions Clone() {
+            var clone = new HtmlWordExportOptions {
                 FailOnLoss = FailOnLoss,
                 FontFamily = FontFamily,
                 QuotePrefix = QuotePrefix,

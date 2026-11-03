@@ -4,7 +4,7 @@ internal static class AsciiDocInlineToMarkdownConverter {
     internal static InlineSequence Convert(
         AsciiDocInlineSequence source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         AsciiDocBlock owner,
         int depth = 0) {
@@ -20,7 +20,7 @@ internal static class AsciiDocInlineToMarkdownConverter {
         InlineSequence target,
         AsciiDocInline source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         AsciiDocBlock owner,
         int depth) {
@@ -80,7 +80,7 @@ internal static class AsciiDocInlineToMarkdownConverter {
         InlineSequence target,
         AsciiDocFormattedInline source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         AsciiDocBlock owner,
         int depth) {
@@ -99,7 +99,7 @@ internal static class AsciiDocInlineToMarkdownConverter {
         InlineSequence target,
         AsciiDocAttributeReferenceInline source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         AsciiDocBlock owner) {
         if (!options.ExpandDocumentAttributes) {
@@ -120,7 +120,7 @@ internal static class AsciiDocInlineToMarkdownConverter {
         InlineSequence target,
         AsciiDocMacroInline source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         AsciiDocBlock owner,
         int depth) {
@@ -151,7 +151,7 @@ internal static class AsciiDocInlineToMarkdownConverter {
         Report(diagnostics, owner, "ADOCMD102", "inline-macro:" + source.Name, "Unknown inline macro retained as visible source text.");
     }
 
-    private static string Substitute(string value, AsciiDocDocumentAttributes attributes, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, AsciiDocBlock owner) {
+    private static string Substitute(string value, AsciiDocDocumentAttributes attributes, AsciiDocMarkdownExportOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, AsciiDocBlock owner) {
         if (!options.ExpandDocumentAttributes) return value;
         var result = AsciiDocAttributeSubstitutor.Substitute(value, attributes, new AsciiDocAttributeSubstitutionOptions { UndefinedAttributeBehavior = options.UndefinedAttributeBehavior });
         foreach (var diagnostic in result.Diagnostics) Report(diagnostics, owner, "ADOCMD101", "attribute-reference", diagnostic.Message);

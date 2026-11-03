@@ -27,10 +27,10 @@ public sealed class ExcelPdfAsyncContractTests {
         using ExcelDocument workbook = ExcelDocument.Create();
         ExcelSheet first = workbook.AddSheet("First");
         first.Cell(1, 1).SetValue("First sheet");
-        first.SetHeaderFooter(headerCenter: "&D");
+        first.PageSetup.Header.Center.Text = "&D";
         ExcelSheet second = workbook.AddSheet("Second");
         second.Cell(1, 1).SetValue("Second sheet");
-        second.SetHeaderFooter(headerCenter: "&D");
+        second.PageSetup.Header.Center.Text = "&D";
         using var cancellation = new CancellationTokenSource();
         int providerCalls = 0;
         var options = new ExcelPdfExportOptions {

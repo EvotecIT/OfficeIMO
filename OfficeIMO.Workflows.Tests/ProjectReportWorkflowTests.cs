@@ -17,10 +17,10 @@ public sealed class ProjectReportWorkflowTests {
         using var workbook = ProjectReportWorkflow.CreateExcel(view);
         using var saved = ExcelDocument.Load(new MemoryStream(workbook.ToBytes()));
         var usage = saved.Sheets.Single(sheet => sheet.Name == "Work hours");
-        Assert.Equal(100U, usage.GetPageSetup().Scale); Assert.Null(usage.GetPageSetup().FitToWidth);
-        Assert.Equal(OfficePageOrientation.Landscape, usage.GetPageSetup().Orientation);
-        Assert.Equal(1, usage.GetPrintTitles().FirstRow); Assert.Equal(1, usage.GetPrintTitles().FirstColumn); Assert.Equal(2, usage.GetPrintTitles().LastColumn);
-        Assert.Equal(OfficePageOrientation.Portrait, saved.Sheets.Single(sheet => sheet.Name == "Report").GetPageSetup().Orientation);
+        Assert.Equal(100U, usage.PageSetup.Scale); Assert.Null(usage.PageSetup.FitToWidth);
+        Assert.Equal(OfficePageOrientation.Landscape, usage.PageSetup.Orientation);
+        Assert.Equal(1, usage.PageSetup.PrintTitles.FirstRow); Assert.Equal(1, usage.PageSetup.PrintTitles.FirstColumn); Assert.Equal(2, usage.PageSetup.PrintTitles.LastColumn);
+        Assert.Equal(OfficePageOrientation.Portrait, saved.Sheets.Single(sheet => sheet.Name == "Report").PageSetup.Orientation);
         Assert.Empty(saved.ValidateDocument());
     }
 

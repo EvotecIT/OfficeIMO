@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a list validation to the specified A1 range using explicit items.
         /// </summary>
-        public void ValidationList(string a1Range, IEnumerable<string> items, bool allowBlank = true) {
+        internal void CreateDataValidationList(string a1Range, IEnumerable<string> items, bool allowBlank = true) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (items == null) throw new ArgumentNullException(nameof(items));
 
@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a list validation to the specified A1 range using a workbook or sheet-local named range.
         /// </summary>
-        public void ValidationListNamedRange(string a1Range, string namedRange, bool allowBlank = true) {
+        internal void CreateDataValidationListNamedRange(string a1Range, string namedRange, bool allowBlank = true) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (string.IsNullOrWhiteSpace(namedRange)) throw new ArgumentNullException(nameof(namedRange));
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
         /// Applies a list validation to the specified A1 range using a referenced worksheet range.
         /// When <paramref name="sourceSheetName"/> is omitted, the current worksheet is used.
         /// </summary>
-        public void ValidationListRange(string a1Range, string sourceA1Range, string? sourceSheetName = null, bool allowBlank = true) {
+        internal void CreateDataValidationListRange(string a1Range, string sourceA1Range, string? sourceSheetName = null, bool allowBlank = true) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
             if (string.IsNullOrWhiteSpace(sourceA1Range)) throw new ArgumentNullException(nameof(sourceA1Range));
 
@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a whole number validation to the specified A1 range.
         /// </summary>
-        public void ValidationWholeNumber(string a1Range, ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        internal void CreateDataValidationWholeNumber(string a1Range, ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = InvariantNumberText.Get(formula1);
             string? f2 = formula2.HasValue ? InvariantNumberText.Get(formula2.Value) : null;
             ValidationAdd(a1Range, DataValidationValues.Whole, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a decimal number validation to the specified A1 range.
         /// </summary>
-        public void ValidationDecimal(string a1Range, ExcelDataValidationOperator @operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        internal void CreateDataValidationDecimal(string a1Range, ExcelDataValidationOperator @operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = InvariantNumberText.Get(formula1);
             string? f2 = formula2.HasValue ? InvariantNumberText.Get(formula2.Value) : null;
             ValidationAdd(a1Range, DataValidationValues.Decimal, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a date validation to the specified A1 range.
         /// </summary>
-        public void ValidationDate(string a1Range, ExcelDataValidationOperator @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        internal void CreateDataValidationDate(string a1Range, ExcelDataValidationOperator @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(formula1, _excelDocument.DateSystem));
             string? f2 = formula2.HasValue ? InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(formula2.Value, _excelDocument.DateSystem)) : null;
             ValidationAdd(a1Range, DataValidationValues.Date, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a time validation to the specified A1 range.
         /// </summary>
-        public void ValidationTime(string a1Range, ExcelDataValidationOperator @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        internal void CreateDataValidationTime(string a1Range, ExcelDataValidationOperator @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = InvariantNumberText.Get(formula1.TotalDays);
             string? f2 = formula2.HasValue ? InvariantNumberText.Get(formula2.Value.TotalDays) : null;
             ValidationAdd(a1Range, DataValidationValues.Time, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
@@ -128,7 +128,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a text length validation to the specified A1 range.
         /// </summary>
-        public void ValidationTextLength(string a1Range, ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        internal void CreateDataValidationTextLength(string a1Range, ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             string f1 = formula1.ToString(System.Globalization.CultureInfo.InvariantCulture);
             string? f2 = formula2?.ToString(System.Globalization.CultureInfo.InvariantCulture);
             ValidationAdd(a1Range, DataValidationValues.TextLength, @operator.ToOpenXml(), f1, f2, allowBlank, errorTitle, errorMessage);
@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies a custom formula validation to the specified A1 range.
         /// </summary>
-        public void ValidationCustomFormula(string a1Range, string formula, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
+        internal void CreateDataValidationCustomFormula(string a1Range, string formula, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
             ValidationAdd(a1Range, DataValidationValues.Custom, null, formula, null, allowBlank, errorTitle, errorMessage);
         }

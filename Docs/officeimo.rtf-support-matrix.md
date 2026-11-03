@@ -45,13 +45,13 @@ The packages target `netstandard2.0`, .NET 8, and .NET 10; Windows builds also t
 | --- | --- | --- |
 | <!-- capability:core-parse --> Core parsing | Full | `RtfDocument.ParseResult/Load` parse groups, controls, text, binary payloads, and recoverable malformed input. |
 | <!-- capability:lossless-roundtrip --> Lossless round trip | Full | `ToRtfLossless` and lossless save preserve source bytes, unknown destinations, binary payloads, and trailing bytes. Semantic writes are normalized. |
-| <!-- capability:bounded-ingestion --> Bounded ingestion | Full | `RtfReadOptions.UntrustedDefaults` caps input bytes/chars, depth, tokens, groups, text, binary, images, objects, and semantic blocks. |
+| <!-- capability:bounded-ingestion --> Bounded ingestion | Full | `RtfLoadOptions.UntrustedDefaults` caps input bytes/chars, depth, tokens, groups, text, binary, images, objects, and semantic blocks. |
 | <!-- capability:cancellation --> Cancellation | Full | String, byte, file, and stream routes support cooperative cancellation through tokenization and semantic binding. |
 | <!-- capability:unknown-diagnostics --> Unknown and preserve-only destinations | Full | Stable diagnostics identify unknown ignorable destinations and classified advanced families while the lossless path retains syntax. |
 | <!-- capability:shared-report --> Shared conversion truth | Full | `RtfConversionReport` is used across semantic adapters. `ThrowIfLoss()` rejects flattened, omitted, blocked, or error diagnostics. `ToRtfResult()` reports normalization loss, including unbound syntax and stale encapsulated HTML. PDF uses `PdfConversionReport` with `RtfAction` details. |
 | <!-- capability:web-safe-html --> HTML output profiles | Full | `CreateWebSafeProfile()` blocks unsafe URL schemes, private metadata, and inline payloads by default. `CreateRoundTripProfile()` is explicit trusted output. |
 
-The untrusted profile is intentionally conservative. Applications can clone or create `RtfReadOptions` with different limits, but uploaded RTF should not use the compatibility-oriented default without a host boundary.
+The untrusted profile is intentionally conservative. Applications can clone or create `RtfLoadOptions` with different limits, but uploaded RTF should not use the compatibility-oriented default without a host boundary.
 
 ## P1: interoperability and adapters
 
@@ -131,11 +131,11 @@ These diagnostics describe conversion losses. Strict callers can reject them wit
 ## Safe and strict recipe
 
 ```csharp
-RtfReadOptions limits = RtfReadOptions.UntrustedDefaults;
+RtfLoadOptions limits = RtfLoadOptions.UntrustedDefaults;
 using FileStream input = File.OpenRead("upload.rtf");
 RtfReadResult read = await RtfDocument.LoadResultAsync(input, limits, cancellationToken: cancellationToken);
 
-var htmlOptions = RtfToHtmlOptions.CreateWebSafeProfile();
+var htmlOptions = RtfHtmlExportOptions.CreateWebSafeProfile();
 RtfToHtmlResult converted = read.Document.ToHtmlResult(htmlOptions);
 string html = converted.Value;
 

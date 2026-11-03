@@ -69,7 +69,7 @@ public partial class HtmlWordGapClosure {
             <p style="margin-inline-start:1pc">pc</p>
             <p style="margin-inline-start:1q">q</p>
             """;
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 

@@ -11,7 +11,7 @@ Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeHtmlPdfOptions [-Options <HtmlToPdfOptions>] [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-Margin <Double>] [-IncludeLocalResources] [-InteractiveFormControls <Boolean>] [<CommonParameters>]
+New-OfficeHtmlPdfOptions [-Options <HtmlPdfExportOptions>] [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-Margin <Double>] [-IncludeLocalResources] [-InteractiveFormControls <Boolean>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -96,7 +96,7 @@ Accept wildcard characters: False
 Existing options to clone before applying explicitly supplied values.
 
 ```yaml
-Type: HtmlToPdfOptions
+Type: HtmlPdfExportOptions
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -129,11 +129,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Html.Pdf.HtmlToPdfOptions`
+- `OfficeIMO.Html.Pdf.HtmlPdfExportOptions`
 
 ## OUTPUTS
 
-- `OfficeIMO.Html.Pdf.HtmlToPdfOptions`
+- `OfficeIMO.Html.Pdf.HtmlPdfExportOptions`
 
 ## RELATED LINKS
 

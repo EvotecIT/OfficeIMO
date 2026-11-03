@@ -40,7 +40,7 @@ public sealed class LatexForwardOwnerTests {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap(source)).ToMarkdownDocumentResult();
         Assert.Equal("\\setcounter{enumi}{4}", Assert.Single(result.Value.Blocks.OfType<CodeBlock>()).Content);
         Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "list-content" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
-        LatexToMarkdownResult omitted = LatexDocument.Parse(Wrap(source)).ToMarkdownDocumentResult(new LatexToMarkdownOptions { PreserveUnsupportedAsSource = false });
+        LatexToMarkdownResult omitted = LatexDocument.Parse(Wrap(source)).ToMarkdownDocumentResult(new LatexMarkdownExportOptions { PreserveUnsupportedAsSource = false });
         Assert.Empty(omitted.Value.Blocks.OfType<CodeBlock>());
         Assert.Contains(omitted.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "list-content" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
         LatexToMarkdownResult itemless = LatexDocument.Parse(Wrap("\\begin{" + kind + "}IMPORTANT\\end{" + kind + "}")).ToMarkdownDocumentResult();
@@ -131,7 +131,7 @@ public sealed class LatexForwardOwnerTests {
         LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
         Assert.StartsWith("command:", diagnostic.Feature);
         Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, diagnostic.Outcome);
-        LatexToMarkdownResult omitted = LatexDocument.Parse(Wrap("Before " + command + " After")).ToMarkdownDocumentResult(new LatexToMarkdownOptions { PreserveUnsupportedAsSource = false });
+        LatexToMarkdownResult omitted = LatexDocument.Parse(Wrap("Before " + command + " After")).ToMarkdownDocumentResult(new LatexMarkdownExportOptions { PreserveUnsupportedAsSource = false });
         Assert.Empty(omitted.Value.Blocks.OfType<CodeBlock>());
         Assert.Equal(2, omitted.Value.Blocks.OfType<ParagraphBlock>().Count());
         Assert.Contains(omitted.Report.NativeDiagnostics, static item => item.Outcome == LatexMarkdownConversionOutcome.Omitted);

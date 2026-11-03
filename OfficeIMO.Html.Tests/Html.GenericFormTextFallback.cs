@@ -13,7 +13,7 @@ public sealed class HtmlGenericFormTextFallbackTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<main><form><h2>Was this page helpful?</h2><label><input type='radio' name='answer'>Yes</label></form></main>");
 
-        HtmlToExcelResult excel = source.ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult excel = source.ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using (ExcelDocument workbook = excel.RequireValue()) {
             using var artifact = new System.IO.MemoryStream(workbook.ToBytes());
             using ExcelDocument reopened = ExcelDocument.Load(artifact);
@@ -24,7 +24,7 @@ public sealed class HtmlGenericFormTextFallbackTests {
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
         HtmlToPowerPointResult slides = source.ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using (PowerPointDocument presentation = slides.RequireValue()) {
             using var artifact = new System.IO.MemoryStream(presentation.ToBytes());
             using PowerPointDocument reopened = PowerPointDocument.Load(artifact);

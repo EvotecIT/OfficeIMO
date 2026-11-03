@@ -8,7 +8,7 @@ public sealed class PublisherPdfTests {
     [Fact]
     public void Pdf_keeps_document_pages_and_carries_source_and_rendering_evidence() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("Sample.pub"));
-        var result = document.ToPdfDocumentResult();
+        var result = document.ToPdf(null, out OfficeConversionReport resultReport);
         byte[] bytes = result.ToBytes();
         PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Equal(2, pdf.Pages.Count);
@@ -16,8 +16,8 @@ public sealed class PublisherPdfTests {
         Assert.Contains("This is some text", text);
         Assert.Contains("Bottom Right", text);
         Assert.Contains("second page", text);
-        Assert.Contains(document.ReadReport, result.SourceConversionReports);
-        Assert.True(result.HasLoss);
+        Assert.All(document.ReadReport.Diagnostics, source => Assert.Contains(resultReport.Diagnostics, item => item.Code == source.Code));
+        Assert.True(resultReport.HasLoss);
         Assert.Throws<OfficeConversionException>(() => document.ReadReport.ThrowIfLoss());
     }
 
@@ -25,18 +25,17 @@ public sealed class PublisherPdfTests {
     public void Pdf_save_keeps_the_caller_stream_open_and_reports_source_losses() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("Simple.pub"));
         using var output = new MemoryStream();
-        var result = document.SaveAsPdf(output);
-        Assert.True(result.Succeeded);
+        OfficeConversionReport report = document.SaveAsPdf(output);
         Assert.True(output.CanWrite);
         Assert.True(output.Length > 0);
-        Assert.True(result.HasLoss);
+        Assert.True(report.HasLoss);
     }
     [Theory]
     [InlineData("SampleBrochure.pub", 2)]
     [InlineData("SampleNewsletter.pub", 4)]
     public void Unsupported_native_metafiles_do_not_abort_publication_exports(string file, int pages) {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture(file));
-        var result = document.ToPdfDocumentResult();
+        var result = document.ToPdf(null, out OfficeConversionReport resultReport);
         PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes()));
         Assert.Equal(pages, pdf.Pages.Count);
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ImageSourceDecodeFallback && item.LossKind == OfficeConversionLossKind.Omission);
@@ -48,7 +47,7 @@ public sealed class PublisherPdfTests {
         string file = PublisherNativeTests.Fixture("SampleBrochure.pub");
         PublisherDocument baseline = PublisherDocument.Load(file);
         var codec = new TestCodec();
-        PublisherDocument document = PublisherDocument.Load(file, new PublisherReadOptions { ImageCodec = codec });
+        PublisherDocument document = PublisherDocument.Load(file, new PublisherLoadOptions { ImageCodec = codec });
         Assert.True(codec.Calls > 0);
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_METAFILE_RASTERIZED" && item.LossKind == OfficeConversionLossKind.Approximation);
         Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ImageSourceDecodeFallback);
@@ -57,16 +56,16 @@ public sealed class PublisherPdfTests {
         Assert.Equal("image/png", projected.ContentType);
         Assert.True(OfficeRasterImageDecoder.TryDecode(projected.Bytes, out OfficeRasterImage? raster));
         Assert.Equal(OfficeColor.FromRgb(20, 160, 40), raster!.GetPixel(0, 0));
-        Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes())).Pages.Count);
+        Assert.Equal(2, PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes())).Pages.Count);
     }
 
     [Fact]
     public void Application_codec_output_obeys_pixel_limits_and_cancellation() {
         string file = PublisherNativeTests.Fixture("SampleBrochure.pub");
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions { ImageCodec = new TestCodec(), MaxRasterPixels = 3 }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherLoadOptions { ImageCodec = new TestCodec(), MaxRasterPixels = 3 }));
         using var source = new CancellationTokenSource();
         Assert.Throws<OperationCanceledException>(() => PublisherDocument.Load(file,
-            new PublisherReadOptions { ImageCodec = new TestCodec(source) }, source.Token));
+            new PublisherLoadOptions { ImageCodec = new TestCodec(source) }, source.Token));
     }
 
     private sealed class TestCodec : IOfficeRasterImageCodec {

@@ -11,7 +11,7 @@ public sealed class ConversionOptionsTests {
     public void ClonedConversionSettingsRetainIndependentFormatOptions() {
         var settings = new OfficeConversionOptions {
             PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("2") },
-            PdfWord = WordPdfImportOptions.CreateVisualPages()
+            PdfWord = PdfWordExportOptions.CreateVisualPages()
         };
         OfficeConversionOptions first = settings.Clone();
         settings.PdfLoad.PageSelection = PdfPageSelection.Parse("1");
@@ -29,10 +29,10 @@ public sealed class ConversionOptionsTests {
         var route = OfficeWorkflowCatalog.ExecutableRoutes.Single(item => item.Id == id);
         Assert.Equal(pages, route.SupportsPageSelection);
         Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
-            PdfWord = new WordPdfImportOptions { Dpi = 144 }
+            PdfWord = new PdfWordExportOptions { Dpi = 144 }
         }).Snapshot(route));
         Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
-            PdfWord = new WordPdfImportOptions { Mode = (WordPdfImportMode)999 }
+            PdfWord = new PdfWordExportOptions { Mode = (WordPdfImportMode)999 }
         }).Snapshot(route));
         if (!pages) Assert.Throws<ArgumentException>(() => OfficeIMO.Workflows.OfficeWorkflowRenderingOptions.Capture(new OfficeConversionOptions {
             PdfLoad = "1" == null ? null : new OfficeIMO.Pdf.PdfLoadOptions { PageSelection = OfficeIMO.Pdf.PdfPageSelection.Parse("1") }
@@ -57,7 +57,7 @@ public sealed class ConversionOptionsTests {
                 OutputPath = output,
                 ConversionOptions = (new OfficeConversionOptions() {
                     PdfLoad = new PdfLoadOptions { PageSelection = PdfPageSelection.Parse("2") },
-                    PdfWord = new WordPdfImportOptions { Mode = mode, Dpi = mode == WordPdfImportMode.VisualPages ? 72 : 144 }
+                    PdfWord = new PdfWordExportOptions { Mode = mode, Dpi = mode == WordPdfImportMode.VisualPages ? 72 : 144 }
                 }
 
     ).Clone()

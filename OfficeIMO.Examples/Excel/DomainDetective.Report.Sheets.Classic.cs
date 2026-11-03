@@ -57,8 +57,9 @@ namespace OfficeIMO.Examples.Excel
             overview.PropertiesGrid(new (string, object? )[] { ("Domains", rows.Count), ("At Risk", atRisk), ("Errors", totalErrors), ("Warnings", totalWarnings), ("Generated", DateTime.Now.ToString("yyyy-MM-dd")), ("Version", "v1") }, columns: 3);
             // Header/footer + logo (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
-            overview.Sheet.SetHeaderFooter(headerLeft: "Domain Detective — Overview", headerRight: "Page &P of &N");
-            await overview.Sheet.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition.Right, logoUrl, width: OfficeLength.Points(96), height: OfficeLength.Points(32));
+            overview.Sheet.PageSetup.Header.Left.Text = "Domain Detective — Overview";
+            overview.Sheet.PageSetup.Header.Right.Text = "Page &P of &N";
+            await overview.Sheet.PageSetup.Header.Right.SetImageFromUrlAsync(logoUrl, width: OfficeLength.Points(96), height: OfficeLength.Points(32));
             await overview.AddImageAsync(1, 6, new System.Uri(logoUrl), new OfficeIMO.Excel.ExcelImageOptions {
                 Width = OfficeIMO.OfficeLength.Pixels(120),
                 Height = OfficeIMO.OfficeLength.Pixels(40)
@@ -88,11 +89,11 @@ namespace OfficeIMO.Examples.Excel
                 v.AutoFormatDecimals = 2;
             }).Range!;
             // Links from Domain column to detail sheet
-            overview.Sheet.LinkByHeaderToInternalSheetsInRange(summaryRange, header: "Domain", targetA1: "A1", styled: true);
+            overview.Sheet.LinkByHeader("Domain", ExcelLinkTarget.Sheet(), new ExcelLinkByHeaderOptions { Range = summaryRange });
             // Print settings (explicit, not via PrintDefaults)
-            overview.Sheet.SetGridlinesVisible(false);
-            overview.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
-            doc.SetPrintArea(overview.Sheet, summaryRange);
+            overview.Sheet.View.ShowGridlines = false;
+            overview.Sheet.PageSetup.FitToWidth = 1; overview.Sheet.PageSetup.FitToHeight = 0;
+            overview.Sheet.PageSetup.PrintArea = summaryRange;
             // Manual legend (no SectionLegend helper)
             overview.Section("Legend");
             int hdr = overview.CurrentRow;
@@ -232,7 +233,7 @@ namespace OfficeIMO.Examples.Excel
             foreach ((int column, double width) in new[] { (1, 16d), (2, 30d), (3, 22d), (4, 20d), (5, 12d), (6, 10d) }) {
                 s.Sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(width));
             }
-            s.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 1);
+            s.Sheet.PageSetup.FitToWidth = 1; s.Sheet.PageSetup.FitToHeight = 1;
         }
 
         private static List<DomainRow> GenerateFakeData(int count, int seed) {

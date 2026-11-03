@@ -14,7 +14,7 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[1].Cells[0].AddParagraph("A2");
         table.Rows[1].Cells[1].AddParagraph("B2");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfTable readTable = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -90,7 +90,7 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[0].Cells[2].VerticalAlignment = RtfTableCellVerticalAlignment.Bottom;
         table.Rows[0].Cells[2].AddParagraph("Bottom");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfTable readTable = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -266,7 +266,7 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[0].SetAutoFit(false).SetDirection(RtfTableRowDirection.LeftToRight);
         table.Rows[0].Cells[0].AddParagraph("Fixed");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\trautofit0\ltrrow", rtf, StringComparison.Ordinal);
@@ -307,7 +307,7 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[0].SetTextWrapDistances(leftTwips: 10, rightTwips: 20, topTwips: 30, bottomTwips: 40);
         table.Rows[0].Cells[0].AddParagraph("Positioned");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\tabsnoovrlp\tphpg\tpvmrg\tposx720\tposy1440\tdfrmtxtLeft10\tdfrmtxtRight20\tdfrmtxtTop30\tdfrmtxtBottom40", rtf, StringComparison.Ordinal);
@@ -499,7 +499,7 @@ public partial class RtfDocumentRichFeatureTests {
         image.DesiredWidthTwips = 1440;
         image.DesiredHeightTwips = 2880;
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfImage readImage = Assert.IsType<RtfImage>(Assert.Single(read.Document.Blocks));
@@ -524,7 +524,7 @@ public partial class RtfDocumentRichFeatureTests {
         image.DesiredHeightTwips = 2880;
         paragraph.AddText(" after");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfParagraph readParagraph = Assert.Single(read.Document.Paragraphs);
@@ -558,8 +558,8 @@ public partial class RtfDocumentRichFeatureTests {
         rtfObject.Result.AddText("Display").SetBold();
         paragraph.AddText(" after");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.ParseResult(rtf, RtfReadOptions.CreateCompatibilityProfile());
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf, RtfLoadOptions.CreateCompatibilityProfile());
 
         Assert.Contains(@"{\object\objemb\objw100\objh200\objscalex75\objscaley80{\*\objclass Package}{\*\objname Attachment}{\*\objdata 010203ff}{\result \b Display\b0 }}", rtf, StringComparison.Ordinal);
         RtfParagraph readParagraph = Assert.Single(read.Document.Paragraphs);
@@ -611,7 +611,7 @@ public partial class RtfDocumentRichFeatureTests {
         shape.AddProperty("fLine", "0");
         shape.AddTextBoxParagraph("Text box");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\shp{\*\shpinst\shpleft100\shptop200\shpright2100\shpbottom900", rtf, StringComparison.Ordinal);

@@ -3231,6 +3231,295 @@
       "applied": "applied"
     },
     {
+      "old": "OfficeIMO.Pdf.PdfBatesNumberingOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfInterleaveOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfAnnotationCreateOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfDestructiveCropOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionSearchOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfAnnotationFlattenOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionAnnotationOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfAnnotationUpdateOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPageOverlayOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfWatermarkOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionApplyOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfStampAnnotationOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPageResizeOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfSanitizationOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfImageStampOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfAnnotationRemovalOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextStampOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRepairArtifactOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfOptimizationOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfAnnotationReplyOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfAnnotationReviewCatalogOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfIncrementalFormFieldUpdateOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfProductionSplitOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPageImportOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfCanvasStampOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfRedactionVerificationOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfFormFillerOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfExternalSignatureOptions.CancellationToken",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass cancellationToken as the final argument of the operation that takes these options.",
+      "reason": "Cancellation is a final CancellationToken cancellationToken = default parameter on every cancellable operation; options no longer carry a second token.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "PDF operations taking the options above",
+      "kind": "method",
+      "action": "change",
+      "new": "Each public operation that takes these options gains a final CancellationToken cancellationToken = default parameter (async forms too).",
+      "reason": "One cancellation shape across packages (F15).",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
       "old": "OfficeIMO.Pdf.PdfContentBuilder.Table<T>(IEnumerable<T> rows, OfficeTableOptions? options) with OfficeTableOptions.Name rendered as the caption",
       "kind": "method",
       "action": "change",
@@ -3238,15 +3527,6 @@
       "replacement": "Set Caption instead of Name for the visible PDF table caption. A non-null Name now throws NotSupportedException.",
       "reason": "Name is the native table identity, which PDF tables do not have; Caption is the visible text.",
       "category": "tables"
-    },
-    {
-      "old": "OfficeIMO.Pdf.PdfTextSearchOptions.MatchCase / WholeWords",
-      "kind": "property",
-      "action": "move",
-      "new": "OfficeIMO.OfficeTextSearchOptions.MatchCase / WholeWords (inherited by PdfTextSearchOptions)",
-      "replacement": "No source change: PdfTextSearchOptions derives from OfficeTextSearchOptions, so options.MatchCase and options.WholeWords still compile with the same defaults. Recompile against the new package.",
-      "reason": "PDF keeps its own search options for pages and invisible text while sharing the comparison settings with Word and PowerPoint.",
-      "category": "search"
     },
     {
       "old": "OfficeIMO.Pdf.PdfContentBuilder.Text(string text, OfficeAlignment align = Left, OfficeColor? color = null, PdfParagraphStyle? style = null)",
@@ -3893,6 +4173,15 @@
       "replacement": "Use the positional argument or offset: as the named argument.",
       "reason": "The parameter is a length, not a point count; it sets PdfHeaderFooter.Offset.",
       "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTextSearchOptions.MatchCase / WholeWords",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.OfficeTextSearchOptions.MatchCase / WholeWords (inherited by PdfTextSearchOptions)",
+      "replacement": "No source change: PdfTextSearchOptions derives from OfficeTextSearchOptions, so options.MatchCase and options.WholeWords still compile with the same defaults. Recompile against the new package.",
+      "reason": "PDF keeps its own search options for pages and invisible text while sharing the comparison settings with Word and PowerPoint.",
+      "category": "search"
     }
   ],
   "packageMoves": [

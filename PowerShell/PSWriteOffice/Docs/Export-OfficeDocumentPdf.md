@@ -11,22 +11,22 @@ Exports Word, Excel, PowerPoint, HTML, Markdown, RTF, and literal text documents
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Export-OfficeDocumentPdf [-Document] <Object> [-Path] <string> [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf [-Document] <Object> [-Path] <string> [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfPdfExportOptions>] [-HtmlOptions <HtmlPdfExportOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Directory
 ```powershell
-Export-OfficeDocumentPdf -InputDirectory <string> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-SourceExtensions <string[]>] [-NoRecurse] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf -InputDirectory <string> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-SourceExtensions <string[]>] [-NoRecurse] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfPdfExportOptions>] [-HtmlOptions <HtmlPdfExportOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Files
 ```powershell
-Export-OfficeDocumentPdf -InputPaths <Object[]> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf -InputPaths <Object[]> -OutputDirectory <string> [-CheckpointDirectory <string>] [-ConversionRouteId <string>] [-MaximumConcurrency <int>] [-MaximumFiles <int>] [-MaximumOutputBytes <long>] [-ConflictPolicy <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfPdfExportOptions>] [-HtmlOptions <HtmlPdfExportOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Export-OfficeDocumentPdf [-InputPath] <string> [-Path] <string> [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf [-InputPath] <string> [-Path] <string> [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfPdfExportOptions>] [-HtmlOptions <HtmlPdfExportOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -184,7 +184,7 @@ Accept wildcard characters: False
 HTML-specific PDF rendering options.
 
 ```yaml
-Type: HtmlToPdfOptions
+Type: HtmlPdfExportOptions
 Parameter Sets: Document, Directory, Files, Path
 Aliases: None
 Possible values:
@@ -520,7 +520,7 @@ Accept wildcard characters: False
 RTF-specific PDF options.
 
 ```yaml
-Type: RtfToPdfOptions
+Type: RtfPdfExportOptions
 Parameter Sets: Document, Directory, Files, Path
 Aliases: None
 Possible values:

@@ -24,8 +24,8 @@ namespace OfficeIMO.Tests {
                     summary.SetInternalLink(2, 1, data, "A1", display: "Go");
 
                     document.SetNamedRange("GlobalData", "'Data'!A1:B2", save: false);
-                    document.SetPrintArea(data, "A1:B2", save: false);
-                    document.SetPrintTitles(data, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
+                    data.PageSetup.PrintArea = "A1:B2";
+                    data.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: 1, lastColumn: 1);
 
                     data.Name = "Renamed";
                     document.Save(filePath);
@@ -130,8 +130,8 @@ namespace OfficeIMO.Tests {
                     data.Cell(1, 1).SetValue(5);
                     data.Cell(2, 1).SetValue(15);
 
-                    summary.ValidationCustomFormula("A1:A2", "COUNTIF(Data!$A$1:$A$2,\">0\")>0");
-                    summary.AddConditionalRule("B1:B2", ExcelConditionalFormattingOperator.GreaterThan, "Data!$A$1");
+                    summary.Range("A1:A2").Validation().CustomFormula("COUNTIF(Data!$A$1:$A$2,\">0\")>0");
+                    summary.Range("B1:B2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "Data!$A$1");
 
                     data.Name = "Renamed Data";
                     document.Save(filePath);
@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
 
                     data.Cell(1, 1).SetValue(10);
                     summary.Cell(1, 1).SetFormula("SUM(Data!A1,'[Other.xlsx]Data'!A1,[Other.xlsx]Data!A1)");
-                    summary.ValidationCustomFormula("A2:A3", "COUNTIF(Data!$A$1:$A$3,\">0\")+COUNTIF('[Other.xlsx]Data'!$A$1:$A$3,\">0\")>0");
+                    summary.Range("A2:A3").Validation().CustomFormula("COUNTIF(Data!$A$1:$A$3,\">0\")+COUNTIF('[Other.xlsx]Data'!$A$1:$A$3,\">0\")>0");
 
                     data.Name = "Renamed Data";
                     document.Save(filePath);

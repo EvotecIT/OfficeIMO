@@ -2113,14 +2113,8 @@ namespace OfficeIMO.Tests {
             sheet.Cell(1, 1).SetValue(10);
             sheet.Cell(2, 1).SetValue(20);
             sheet.Cell(3, 1).SetValue(30);
-            sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
-            sheet.AddConditionalRule(
-                "A1:A3",
-                ExcelConditionalFormattingOperator.GreaterThan,
-                "0",
-                null,
-                "FFFF0000",
-                stopIfTrue: true);
+            sheet.Range("A1:A3").ConditionalFormat().DataBar(OfficeColor.Blue);
+            sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", null, "FFFF0000", stopIfTrue: true);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions {
                 ShowGridlines = false,

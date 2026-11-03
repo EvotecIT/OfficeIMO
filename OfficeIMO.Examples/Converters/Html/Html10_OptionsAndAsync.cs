@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Html {
 
             // Round-trip both sync and async html strings
             string htmlSync = doc.ToHtml(new WordHtmlExportOptions { IncludeFontStyles = true, IncludeDefaultCss = true });
-            using var roundTripSync = OfficeIMO.Html.HtmlConversionDocument.Parse(htmlSync).ToWord(new WordHtmlImportOptions { FontFamily = "Calibri" });
+            using var roundTripSync = OfficeIMO.Html.HtmlConversionDocument.Parse(htmlSync).ToWord(new HtmlWordExportOptions { FontFamily = "Calibri" });
 
             string htmlForAsyncImport = doc.ToHtml();
             using var roundTripAsync = (await OfficeIMO.Html.HtmlConversionDocument.Parse(htmlForAsyncImport).ToWordAsync()).Value;

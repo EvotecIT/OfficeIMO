@@ -43,7 +43,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointDocument presentation,
         PowerPointDeckComposer deck,
         OfficeMarkupSlideBlock slideBlock,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics,
         OfficeMarkupStyleResolver styleResolver) {
         if (TryExportDesignerSlide(presentation, deck, slideBlock, styleResolver, metrics, out var designedSlide)) {
@@ -301,7 +301,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         IList<OfficeMarkupBlock> blocks,
         int startIndex,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {

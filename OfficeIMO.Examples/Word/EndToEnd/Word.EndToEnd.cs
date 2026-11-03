@@ -85,7 +85,7 @@ namespace OfficeIMO.Examples.Word.EndToEnd
             // 5) Load the generated Markdown back into Word
             string mdIn = Path.Combine(outDir, "EndToEnd.md");
             string fromMdDocx = Path.Combine(outDir, "EndToEnd.FromMarkdown.docx");
-            using (var fromMarkdown = OfficeIMO.Markdown.MarkdownDocument.Load(mdIn).ToWord(new WordMarkdownImportOptions { FontFamily = "Calibri" }))
+            using (var fromMarkdown = OfficeIMO.Markdown.MarkdownDocument.Load(mdIn).ToWord(new MarkdownWordExportOptions { FontFamily = "Calibri" }))
             {
                 fromMarkdown.Save(fromMdDocx);
                 Console.WriteLine($"✓ Markdown → Word: {fromMdDocx}");

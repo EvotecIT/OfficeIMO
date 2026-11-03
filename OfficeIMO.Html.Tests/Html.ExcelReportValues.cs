@@ -23,11 +23,11 @@ public class HtmlExcelReportValues {
             $"<td data-officeimo-value-kind='date-time' data-officeimo-value='{item.Value}'>Recorded</td>"));
         HtmlToExcelResult result = HtmlConversionDocument.Parse(
             "<section class='officeimo-sheet' data-officeimo-sheet='Dates'><table><tr>" + cells + "</tr></table></section>")
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = mode, ImportTypedCellValues = true });
         using ExcelDocument workbook = result.RequireValue();
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
-        string html = reopened.ToHtml(new ExcelHtmlSaveOptions { HeaderMode = ExcelHtmlHeaderMode.None });
+        string html = reopened.ToHtml(new ExcelHtmlExportOptions { HeaderMode = ExcelHtmlHeaderMode.None });
         HtmlToExcelResult roundTrip = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument reimported = roundTrip.RequireValue();
         foreach (ExcelDocument document in new[] { reopened, reimported }) {
@@ -56,7 +56,7 @@ public class HtmlExcelReportValues {
         if (mode == HtmlImportMode.Semantic)
             table = "<section class='officeimo-sheet' data-officeimo-sheet='Dates'>" + table + "</section>";
         HtmlToExcelResult result = HtmlConversionDocument.Parse(table).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+            new HtmlExcelExportOptions { Mode = mode, ImportTypedCellValues = true });
         using ExcelDocument workbook = result.RequireValue();
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
@@ -78,7 +78,7 @@ public class HtmlExcelReportValues {
             $"<td data-officeimo-value-kind='date-time' data-officeimo-value='{value}'>Recorded</td>"));
         using ExcelDocument workbook = HtmlConversionDocument.Parse(
             "<section class='officeimo-sheet' data-officeimo-sheet='Dates'><table><tr>" + cells + "</tr></table></section>")
-            .ToExcelDocument(new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+            .ToExcelDocument(new HtmlExcelExportOptions { Mode = mode, ImportTypedCellValues = true });
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
@@ -101,7 +101,7 @@ public class HtmlExcelReportValues {
             + $"<th {attributes}><span style='font-weight:normal'><span>Value</span></span></th>"
             + "</tr></table>";
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
@@ -126,7 +126,7 @@ public class HtmlExcelReportValues {
         source.AddSheet("Notes").Cell(1, 1).SetRichText(
             new ExcelRichTextRun(first) { Bold = true },
             new ExcelRichTextRun(second) { Italic = true });
-        string html = source.ToHtml(new ExcelHtmlSaveOptions { HeaderMode = ExcelHtmlHeaderMode.None });
+        string html = source.ToHtml(new ExcelHtmlExportOptions { HeaderMode = ExcelHtmlHeaderMode.None });
         using ExcelDocument imported = HtmlConversionDocument.Parse(html).ToExcelDocument();
         using MemoryStream artifact = new System.IO.MemoryStream(imported.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
@@ -144,7 +144,7 @@ public class HtmlExcelReportValues {
             + "<td style='white-space:pre' data-officeimo-value-kind='text' data-officeimo-value='A B'><strong>A\nB</strong></td>"
             + "</tr></table></section>";
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
-            new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+            new HtmlExcelExportOptions { Mode = mode, ImportTypedCellValues = true });
         Assert.Equal("A B", Assert.Single(workbook.Sheets).Cell(1, 1).GetValue<string>());
     }
 
@@ -165,7 +165,7 @@ public class HtmlExcelReportValues {
             """;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
+            new HtmlExcelExportOptions { Mode = mode, ImportTypedCellValues = true });
         using ExcelDocument workbook = result.RequireValue();
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
@@ -196,7 +196,7 @@ public class HtmlExcelReportValues {
             </tr></table>
             """;
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = importTypedValues });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = importTypedValues });
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
         Assert.Equal(importTypedValues ? "00027" : "Account 00027", Snapshot(sheet, 1, 1).Text);
@@ -220,7 +220,7 @@ public class HtmlExcelReportValues {
             """;
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html,
             new HtmlConversionDocumentOptions { Trust = trust }).ToExcelDocumentResult(
-            new HtmlToExcelOptions {
+            new HtmlExcelExportOptions {
                 Mode = HtmlImportMode.Generic,
                 ImportTypedCellValues = true,
                 ImportFormulas = true,
@@ -250,7 +250,7 @@ public class HtmlExcelReportValues {
     public void InvalidScalarsKeepVisibleTextAndReportLoss(string kind, string rawValue) {
         string html = $"<table><tr><td data-officeimo-value-kind='{kind}' data-officeimo-value='{rawValue}'><strong>Unavailable</strong></td></tr></table>";
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
         using ExcelDocument workbook = result.RequireValue();
 
         Assert.Equal("Unavailable", Snapshot(Assert.Single(workbook.Sheets), 1, 1).Text);
@@ -268,7 +268,7 @@ public class HtmlExcelReportValues {
             </table>
             """;
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions {
+            new HtmlExcelExportOptions {
                 Mode = HtmlImportMode.Generic,
                 ImportTypedCellValues = true,
                 Limits = new HtmlImportLimits { MaxMetadataCharacters = 16, MaxTableCells = 2 }
@@ -295,7 +295,7 @@ public class HtmlExcelReportValues {
             </table>
             """;
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
@@ -315,7 +315,7 @@ public class HtmlExcelReportValues {
     [Fact]
     public void GenericCellsRetainExplicitLineBreaksWithoutRequiringOtherFormatting() {
         using ExcelDocument workbook = HtmlConversionDocument.Parse("<table><tr><td>First line<br>Second line</td></tr></table>")
-            .ToExcelDocument(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ToExcelDocument(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         Assert.Equal("First line\nSecond line", Snapshot(Assert.Single(workbook.Sheets), 1, 1).Text);
     }
 

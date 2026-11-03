@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_StyleMissing_HandlerProvidesReplacement() {
             string html = "<p class=\"unknown\">Text</p>";
             bool invoked = false;
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 StyleMissingHandler = e => {
                     invoked = true;
                     e.Style = WordParagraphStyles.Heading1;
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_StyleMissing_CreateStyleOnDemand() {
             string html = "<p class=\"custom\">Text</p>";
             string styleId = "DynamicStyle";
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 StyleMissingHandler = e => {
                     if (e.ClassName == "custom") {
                         WordParagraphStyle.RegisterFontStyle(styleId, "Courier New");

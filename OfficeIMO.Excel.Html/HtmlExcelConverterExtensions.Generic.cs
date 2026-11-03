@@ -9,7 +9,7 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlSemanticDocument document,
         ExcelDocument workbook,
         HtmlToExcelResult result,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlImportBudget budget,
         HtmlEditableLayoutProjection? editableLayout) {
         IReadOnlyList<(int Number, HtmlSemanticBlock Block)> tables = document.RootTables
@@ -164,7 +164,7 @@ public static partial class HtmlExcelConverterExtensions {
         IReadOnlyDictionary<int, ExcelSheet> tableSheets,
         HashSet<string> usedNames,
         HtmlToExcelResult result,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlImportBudget budget) {
         if (narrativeSheet == null && regions.Any(region => region.SemanticTableNumber == 0)) {
             if (budget.TryReserveSemanticContainer(out string narrativeContainerLimit)) {

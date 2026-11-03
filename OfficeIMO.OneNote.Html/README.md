@@ -48,11 +48,11 @@ using OfficeIMO.OneNote.Html;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 HtmlToOneNoteSectionResult result = source.ToOneNoteSectionResult(
-    new HtmlToOneNoteOptions { SectionName = "Imported notes" });
+    new HtmlOneNoteExportOptions { SectionName = "Imported notes" });
 OneNoteSection section = result.RequireValue();
 ```
 
-Use `ToOneNoteNotebookResult()` to create a one-section notebook. Convenience methods `ToOneNoteSection()` and `ToOneNoteNotebook()` throw when the result contains an error diagnostic. `HtmlToOneNoteOptions.Limits` applies the shared native import budgets before pages, elements, tables, or image bytes are allocated.
+Use `ToOneNoteNotebookResult()` to create a one-section notebook. Convenience methods `ToOneNoteSection()` and `ToOneNoteNotebook()` throw when the result contains an error diagnostic. `HtmlOneNoteExportOptions.Limits` applies the shared native import budgets before pages, elements, tables, or image bytes are allocated.
 
 Native HTML and ARIA tables remain editable. Uneven rows and spans become a rectangular grid with blank covered cells and an approximation diagnostic. Authored table and cell widths are bounded to the native page layout; otherwise columns share the available width according to their content. Captions are retained as preceding paragraphs, including bounded links. Image hyperlinks are preserved.
 

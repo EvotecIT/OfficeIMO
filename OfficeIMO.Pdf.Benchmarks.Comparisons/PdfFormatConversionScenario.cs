@@ -119,7 +119,7 @@ internal sealed record PdfFormatConversionScenario(
     private static byte[] ConvertHtml(byte[] source, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(Encoding.UTF8.GetString(source));
         using PdfCore.PdfDocument pdf = textFallbacksOverride.HasValue
-            ? document.ToPdf(new HtmlToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            ? document.ToPdf(new HtmlPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
             : document.ToPdf();
         return pdf.ToBytes();
     }

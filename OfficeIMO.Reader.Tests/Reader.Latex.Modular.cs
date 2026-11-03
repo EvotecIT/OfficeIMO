@@ -132,7 +132,7 @@ public sealed class ReaderLatexModularTests {
         const string source = "\\usepackage{custom}\n\\newcommand{\\greet}{Hello}\n\\begin{document}\n\\greet World\n\\end{document}\nTRAILER";
         LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly });
         ReaderChunk[] chunks = LatexReaderAdapter.Read(document, readerOptions: new ReaderOptions { MaxChars = 32 },
-            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, MarkdownOptions = new LatexToMarkdownOptions {
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, MarkdownOptions = new LatexMarkdownExportOptions {
                 IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = preserve
             } }).ToArray();
         Assert.Equal(preserve ? source : string.Empty, string.Concat(chunks.Select(static chunk => chunk.Text)));
@@ -633,7 +633,7 @@ public sealed class ReaderLatexModularTests {
         LatexDocument document = LatexDocument.Parse("\\begin{document}\\begin{custom}Important\\end{custom}\\end{document}");
         ReaderChunk[] chunks = LatexReaderAdapter.Read(document, latexOptions: new ReaderLatexOptions {
             ChunkByBlock = blocks,
-            MarkdownOptions = new OfficeIMO.Latex.Markdown.LatexToMarkdownOptions { PreserveUnsupportedAsSource = false }
+            MarkdownOptions = new OfficeIMO.Latex.Markdown.LatexMarkdownExportOptions { PreserveUnsupportedAsSource = false }
         }).ToArray();
         Assert.Contains(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEXMD299:", StringComparison.Ordinal));
         Assert.All(chunks, static chunk => Assert.Equal(string.Empty, chunk.Text));

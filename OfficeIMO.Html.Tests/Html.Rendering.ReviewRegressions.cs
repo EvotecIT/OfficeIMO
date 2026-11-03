@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_SkipsEmptySemanticContainers() {
         const string html = "<p></p><table><caption></caption><tr></tr></table><p>AfterEmptyMarkup</p>";
 
-        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes();
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions())).ToBytes();
 
         Assert.Contains("AfterEmptyMarkup", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
@@ -38,8 +38,8 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_DirectRenderer_ForcesPagedModeForSuppliedRenderOptions() {
         string html = string.Concat(Enumerable.Range(0, 40).Select(index => "<div style='line-height:20px'>Line" + index + "</div>"));
-        HtmlToPdfOptions options = new HtmlToPdfOptions();
-        options = new HtmlToPdfOptions {
+        HtmlPdfExportOptions options = new HtmlPdfExportOptions();
+        options = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(2D)),
             Margins = HtmlRenderMargins.All(8D)
         };
@@ -244,7 +244,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_PortableRenderer_MapsSansSerifToHelvetica() {
         const string html = "<p style='font-family:sans-serif'>SansSerifMarker</p>";
 
-        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         })).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);

@@ -27,8 +27,8 @@ namespace OfficeIMO.Tests {
                 Func<int> tableSaves = TrackPartSaves(document, worksheetPart.TableDefinitionParts.Single());
                 sheet.Batch(target => {
                     for (int count = 1; count <= 20; count++) {
-                        target.AutoFilterBlanks("A1:C21", 2);
-                        target.AutoFilterTopBottom("A1:C21", 1, (ushort)count, top: true, percent: false);
+                        target.Range("A1:C21").AutoFilter().Column(2).Blanks();
+                        target.Range("A1:C21").AutoFilter().Column(1).TopBottom((ushort)count, percent: false);
                     }
                 });
                 Assert.Equal(0, tableSaves());
@@ -153,10 +153,10 @@ namespace OfficeIMO.Tests {
                 for (int row = 2; row <= 21; row++) sheet.Cell(row, 1).SetValue("Value" + row);
                 Func<int> worksheetSaves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
                 void Edit(ExcelSheet target) {
-                    target.AutoFilterAdd("A1:C21");
+                    target.Range("A1:C21").AutoFilter();
                     for (int row = 2; row <= 21; row++) {
                         target.Range($"A{row}:B{row}").Merge();
-                        target.AutoFilterByHeaderEquals("Header", new[] { "Value" + row });
+                        target.Range("A1:C21").AutoFilter().Column("Header").Equals(new[] { "Value" + row });
                     }
                     target.Range("A21:B21").Unmerge();
                     target.Range("A21:B21").Merge();

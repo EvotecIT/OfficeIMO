@@ -54,9 +54,9 @@ public sealed partial class ConversionJobViewModel {
             PowerPoint = Route.Route.Id == "pptx-pdf" ? new PowerPointPdfExportOptions().UseProfile(PdfProfile) : null,
             PdfLoad = SupportsPageSelection && !string.IsNullOrWhiteSpace(PageRanges)
                 ? new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRanges) } : null,
-            PdfWord = IsWordImport ? new WordPdfImportOptions { Mode = WordMode, Dpi = (double)RasterDpi } : null,
-            PdfPowerPoint = IsPowerPointImport ? new PowerPointPdfImportOptions { Mode = PowerPointMode, Dpi = (double)RasterDpi } : null,
-            PdfHtml = IsHtmlExport ? new PdfToHtmlOptions { Profile = HtmlProfile } : null,
+            PdfWord = IsWordImport ? new PdfWordExportOptions { Mode = WordMode, Dpi = (double)RasterDpi } : null,
+            PdfPowerPoint = IsPowerPointImport ? new PdfPowerPointExportOptions { Mode = PowerPointMode, Dpi = (double)RasterDpi } : null,
+            PdfHtml = IsHtmlExport ? new PdfHtmlExportOptions { Profile = HtmlProfile } : null,
             CompressPdfOutput = SupportsPdfCompression && CompressPdfOutput,
             WordLoad = IsLegacyWordExport ? new OfficeIMO.Word.WordLoadOptions { FailOnLoss = !AllowLegacyImportLoss } : null,
             PlainText = IsPlainTextExport ? new PdfTextImportOptions { EncodingName = string.IsNullOrWhiteSpace(TextEncoding) ? null : TextEncoding, TabSize = (int)TabSize } : null

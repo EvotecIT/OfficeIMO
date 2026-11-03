@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Html {
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>
     internal partial class WordToHtmlConverter {
-        public string Convert(WordDocument document, WordHtmlExportOptions options) {
+        public string Convert(WordDocument document, WordHtmlExportOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordHtmlExportOptions();
             lock (document) {
@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Html {
                         : null;
                     using (WordRunFormatting.BeginConversionScope())
                     using (WordComplexFieldRunVisibility.BeginConversionScope())
-                        return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection);
+                        return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection, cancellationToken);
                 } finally {
                     restoreReviewProjection();
                 }
@@ -39,9 +39,10 @@ namespace OfficeIMO.Word.Html {
         }
 
         private string ConvertPrepared(WordDocument document, WordHtmlExportOptions options,
-            IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fieldInfo, ExportInspection exportInspection) {
+            IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fieldInfo, ExportInspection exportInspection,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
-            CancellationToken cancellationToken = CancellationToken.None;
             long embeddedImageBytes = 0;
 
             long MeasureCurrentHtmlCharacters() {
@@ -162,7 +163,7 @@ namespace OfficeIMO.Word.Html {
                 options,
                 SaturatingAdd(MeasureCurrentHtmlCharacters(), exportInspection.OutputConstructionCharacters));
 
-            AppendHeadMetadata(document, htmlDoc, head, options, CancellationToken.None);
+            AppendHeadMetadata(document, htmlDoc, head, options, cancellationToken);
 
             if (!string.IsNullOrEmpty(options.FontFamily)) {
                 SetOutputAttribute(

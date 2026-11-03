@@ -24,7 +24,7 @@ public class RtfHtmlRevisionTableTests {
             .SetDeletedRevision(bob)
             .SetRevisionSaveIds(deletion: 50);
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             FragmentOnly = false,
@@ -56,7 +56,7 @@ public class RtfHtmlRevisionTableTests {
         Assert.Equal(bob, removed.RevisionAuthorIndex);
         Assert.Equal(50, removed.DeletionRevisionSaveId);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\*\revtbl{Alice;}{Bob;}}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\rsidtbl\rsidroot7\rsid15\rsid1024\rsid65535}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pararsid20", rtf, StringComparison.Ordinal);

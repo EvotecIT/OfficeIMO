@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void ExcelSemanticHeaderRichTextInheritsCellBoldWithoutLosingInlineItalic() {
             const string html = "<table><thead><tr><th><em>Header</em></th></tr></thead></table>";
             using ExcelDocument document = HtmlConversionDocument.Parse(html)
-                .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+                .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
             ExcelSheet sheet = Assert.Single(document.Sheets);
             ExcelRichTextRun run = Assert.Single(sheet.Cell(1, 1).GetRichText());
             ExcelRange range = sheet.Range("A1:A1");

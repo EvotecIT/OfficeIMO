@@ -118,7 +118,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "xps-pdf": {
-                var limits = new XpsReadOptions();
+                var limits = new XpsLoadOptions();
                 limits.Limits.MaxInputBytes = (int)Math.Min(limits.Limits.MaxInputBytes, request.Limits.MaximumInputBytes);
                 var document = XpsDocument.Load(input, limits, cancellationToken);
                 using var output = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);

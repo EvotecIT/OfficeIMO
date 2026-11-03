@@ -38,7 +38,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(document.ToSvg(options));
         HtmlSvgPaintAssertions.TextPaint(HtmlSvgPaintAssertions.Read(svg), svg, "X");
 
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlPdfExportOptions(options))).ToBytes());
         var visible = pdf.GetPage(1).Letters.Where(letter => letter.RenderingMode == TextRenderingMode.Fill).ToArray();
         var pdfX = Assert.Single(visible, letter => letter.Value == "X");
         Assert.Equal(expectedSize * 0.75D, pdfX.FontSize, 3);
@@ -138,7 +138,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlSvgPaintAssertions.TextPaint(svgDrawing, svg, "1");
         HtmlSvgPaintAssertions.TextPaint(svgDrawing, svg, "BASE");
 
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlToPdfOptions(options))).ToBytes());
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(new HtmlPdfExportOptions(options))).ToBytes());
         var visible = pdf.GetPage(1).Letters.Where(letter => letter.RenderingMode == TextRenderingMode.Fill).ToArray();
         var pdfCall = Assert.Single(visible, letter => letter.Value == "1");
         Assert.Equal(expectedSize * 0.75D, pdfCall.FontSize, 3);

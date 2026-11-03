@@ -20,10 +20,10 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         };
 
         HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html, documentOptions)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html, documentOptions)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.Empty(Assert.Single(workbook.Sheets).Images);
@@ -39,7 +39,7 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
             + "background-image:url('" + image + "');background-repeat:no-repeat;background-size:24px 18px\">Layered</div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointAutoShape backingFill = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
@@ -62,7 +62,7 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         limits.MaxShapes = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });

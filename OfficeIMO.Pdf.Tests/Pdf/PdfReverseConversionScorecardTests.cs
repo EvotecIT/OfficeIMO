@@ -174,7 +174,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 }
                 return;
             case "pdf-to-html":
-                string html = logical.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic });
+                string html = logical.ToHtml(new PdfHtmlExportOptions { Profile = PdfHtmlProfile.Semantic });
                 Assert.Contains("<!doctype html", html, StringComparison.OrdinalIgnoreCase);
                 Assert.Equal(logical.Pages.Count, Regex.Matches(html, "class=\"pdf-page\"[^>]*data-page-number=", RegexOptions.CultureInvariant).Count);
                 AssertTokenRecall(sourceTokens, Regex.Replace(html, "<[^>]+>", " "), routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
@@ -206,7 +206,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 return;
             case "pdf-to-pptx":
                 PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(source))
-                    .ConvertToPowerPointWithEvidence(PowerPointPdfImportOptions.CreateEditableContent());
+                    .ConvertToPowerPointWithEvidence(PdfPowerPointExportOptions.CreateEditableContent());
                 using (result.Value) {
                     using var stream = new MemoryStream();
                     result.Value.Save(stream);
@@ -242,7 +242,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 return;
             }
             case "pdf-to-odp": {
-                PdfOdpConversionResult odpResult = logical.ToOdpPresentationResult(PowerPointPdfImportOptions.CreateEditableContent());
+                PdfOdpConversionResult odpResult = logical.ToOdpPresentationResult(PdfPowerPointExportOptions.CreateEditableContent());
                 byte[] artifact = odpResult.Value.ToBytes();
                 OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(artifact));
                 Assert.Equal(logical.Pages.Count, reopened.Slides.Count);

@@ -106,7 +106,7 @@ public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposab
         try {
             BookTitle = _project!.Publication.Title; Language = _project.Publication.Language; Creator = _project.Publication.Creator ?? string.Empty;
             Chapters.Clear();
-            EpubDocument reading = _project.Publication.Read(new EpubReadOptions { MaxChapters = _project.Publication.Spine.Count });
+            EpubDocument reading = _project.Publication.Read(new EpubLoadOptions { MaxChapters = _project.Publication.Spine.Count });
             for (int position = 0; position < _project.Publication.Spine.Count; position++) {
                 EpubSpineItem spine = _project.Publication.Spine[position];
                 var item = _project.Publication.Manifest.Single(entry => entry.Id == spine.ManifestId);

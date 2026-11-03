@@ -7,6 +7,7 @@ internal static partial class PdfAcroFormEditor {
     /// <summary>Applies field-tree, widget, calculation-order, tab-order, and selective-flatten edits as one validated full rewrite.</summary>
     public static PdfAcroFormEditResult Edit(byte[] pdf, Action<PdfAcroFormEditSession> edit, PdfLoadOptions? readOptions = null,
         PdfFormFillerOptions? appearanceOptions = null, CancellationToken cancellationToken = default) {
+        appearanceOptions = PdfOperationCancellation.Bind(appearanceOptions, createWhenNull: false, cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(edit, nameof(edit));
         cancellationToken.ThrowIfCancellationRequested();

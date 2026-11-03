@@ -1,3 +1,5 @@
+using System.Linq;
+using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
 using PSWriteOffice.Services.Excel;
@@ -87,28 +89,29 @@ public sealed class SetOfficeExcelInternalLinksByHeaderCommand : PSCmdlet
             toSheet = text => text;
         }
 
+        var options = new ExcelLinkByHeaderOptions { Display = display, Styled = !NoStyle.IsPresent };
+        bool scoped = true;
         switch (ParameterSetName)
         {
             case ParameterSetContextTable:
             case ParameterSetDocumentTable:
                 var tableRange = TryGetContextTableRange(sheet);
-                if (tableRange == null || tableRange.Length == 0)
-                {
-                    sheet.LinkByHeaderToInternalSheetsInTable(TableName, Header, toSheet, TargetAddress, display, !NoStyle.IsPresent);
-                }
-                else
-                {
-                    sheet.LinkByHeaderToInternalSheetsInRange(tableRange, Header, toSheet, TargetAddress, display, !NoStyle.IsPresent);
-                }
-
+                if (tableRange == null || tableRange.Length == 0) options.Table = TableName;
+                else options.Range = tableRange;
                 break;
             case ParameterSetContextRange:
             case ParameterSetDocumentRange:
-                sheet.LinkByHeaderToInternalSheetsInRange(Range, Header, toSheet, TargetAddress, display, !NoStyle.IsPresent);
+                options.Range = Range;
                 break;
             default:
-                sheet.LinkByHeaderToInternalSheets(Header, destinationSheetForCellText: toSheet, targetA1: TargetAddress, display: display, styled: !NoStyle.IsPresent);
+                scoped = false;
                 break;
+        }
+
+        ExcelLinkByHeaderResult result = sheet.LinkByHeader(Header, ExcelLinkTarget.Sheet(toSheet, TargetAddress), options);
+        if (scoped && !result.Succeeded)
+        {
+            throw new InvalidOperationException(result.Failure);
         }
 
         if (PassThru.IsPresent)

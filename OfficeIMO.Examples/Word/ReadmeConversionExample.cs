@@ -89,7 +89,7 @@ namespace OfficeIMO.Examples.Word {
             try {
                 string outputPath = Path.Combine(folderPath, "README_from_markdown.docx");
                 
-                using (var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new WordMarkdownImportOptions {
+                using (var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToWord(new MarkdownWordExportOptions {
                     FontFamily = "Calibri"
                 })) {
                     document.Save(outputPath);
@@ -231,7 +231,7 @@ namespace OfficeIMO.Examples.Word {
 ";
             
             try {
-                using (var document = OfficeIMO.Html.HtmlConversionDocument.Parse(sampleHtml).ToWord(new WordHtmlImportOptions {
+                using (var document = OfficeIMO.Html.HtmlConversionDocument.Parse(sampleHtml).ToWord(new HtmlWordExportOptions {
                     FontFamily = "Calibri"
                 })) {
                     string outputPath = Path.Combine(folderPath, "README_from_html.docx");

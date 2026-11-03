@@ -127,7 +127,7 @@ internal static class HtmlStaticBudgetWorker {
         ref long outputBytes,
         ref int outputCount) {
         foreach (HtmlRenderEncoder encoder in new[] { HtmlRenderEncoder.Png, HtmlRenderEncoder.Svg }) {
-            HtmlRenderResult result = HtmlRenderEngine.Execute(source, HtmlRenderRequest.Create(profile, encoder, options));
+            HtmlRenderResult result = HtmlRenderEngine.Execute(source, HtmlRenderRequest.Create(profile, encoder, new HtmlPdfExportOptions(options)));
             ValidateDocument(result.Document, scenario, profile == HtmlRenderIntentProfile.PrintPaged ? scenario.Manifest.ExpectedPrintPageCount : null);
             IReadOnlyList<OfficeImageExportResult> images = result.ExportImages();
             if (images.Count != result.Document.Pages.Count) {

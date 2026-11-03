@@ -31,9 +31,9 @@ Second overlapping box
         OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
 
         OfficeMarkupPowerPointConversionResult bounded = parsed.Document.ToPowerPointDocumentResult(
-            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+            new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
         OfficeMarkupPowerPointConversionResult explicitCollisionScan = parsed.Document.ToPowerPointDocumentResult(
-            new MarkupToPowerPointOptions {
+            new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false,
                 PreflightOptions = new PowerPointDeckPreflightOptions {
                     DetectShapeCollisions = true,
@@ -72,7 +72,7 @@ This shape is outside the slide.
 """;
         OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
         OfficeMarkupPowerPointConversionResult result = parsed.Document.ToPowerPointDocumentResult(
-            new MarkupToPowerPointOptions {
+            new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false,
                 PreflightOptions = new PowerPointDeckPreflightOptions {
                     DetectShapeCollisions = false,
@@ -116,7 +116,7 @@ title: Report Demo
             OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
             OfficeMarkupPowerPointConversionReport conversion = parsed.Document.SaveAsPowerPoint(
                 presentationPath,
-                new MarkupToPowerPointOptions {
+                new MarkupPowerPointExportOptions {
                     RenderMermaidDiagrams = false,
                     PreflightOptions = new PowerPointDeckPreflightOptions {
                         DetectShapeCollisions = false,
@@ -162,7 +162,7 @@ A deliberately long paragraph that cannot fit inside the very short slide used b
 
             Assert.Throws<PowerPointDeckPreflightException>(() =>
                 parsed.Document.SaveAsPowerPoint(presentationPath,
-                    new MarkupToPowerPointOptions {
+                    new MarkupPowerPointExportOptions {
                         RenderMermaidDiagrams = false,
                         SlideHeightInches = 1D,
                         FailOnPreflightFindings = true,

@@ -15,7 +15,7 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "DrawingFontUnits" + percent + ".xlsx");
         using (var document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Shapes" })) {
             document.Sheets[0].Cell(1, 1).SetValue("Body");
-            document.Sheets[0].SetPageSetup(scale: (uint)percent);
+            document.Sheets[0].PageSetup.Scale = (uint)percent;
             document.Save();
         }
         AddRenderableDrawingShape(path);

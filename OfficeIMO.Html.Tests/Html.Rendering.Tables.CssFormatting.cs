@@ -115,7 +115,7 @@ public sealed partial class HtmlRenderingTests {
             .Distinct(StringComparer.Ordinal).Count());
         Assert.Contains(tables, item => item.Source == "table#nested");
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html)
-            .ToPdf(new HtmlToPdfOptions(CssTableOptions()))).ToBytes()));
+            .ToPdf(new HtmlPdfExportOptions(CssTableOptions()))).ToBytes()));
         Assert.Equal(expectedTables, pdf.TaggedContent!.StructureElements.Count(item => item.StructureType == "Table"));
         HtmlRenderTestDriver.AssertOnlyUnselectedFontEstimates(rendered);
     }
@@ -342,7 +342,7 @@ public sealed partial class HtmlRenderingTests {
             : "<div role='row' style='display:table-row'>" + before + "<span role='cell' style='display:table-cell'>Middle</span>" + after + "</div>";
         string html = "<style>@page{size:200px 100px;margin:0}body{margin:0;font-size:10px;line-height:16px}</style>"
             + "<div role='table' style='display:table;width:180px;border-spacing:0'>" + content + "</div>";
-        var options = new HtmlToPdfOptions(CssTableOptions()) { HonorCssPageRules = paged };
+        var options = new HtmlPdfExportOptions(CssTableOptions()) { HonorCssPageRules = paged };
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes()));
         Assert.Equal(anonymousRows ? 3 : 1, pdf.TaggedContent!.StructureElements.Count(element => element.StructureType == "TR"));
         Assert.Equal(3, pdf.TaggedContent.StructureElements.Count(element => element.StructureType == "TD"));

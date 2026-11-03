@@ -87,13 +87,13 @@ public static class AdfConverter {
 
     /// <summary>Converts HTML to ADF through OfficeIMO.Html and OfficeIMO.Markdown.Html.</summary>
     /// <remarks>The report always includes a warning for the intermediate Markdown projection.</remarks>
-    public static AdfConversionResult<AdfDocument> FromHtml(string html, MarkdownHtmlImportOptions? options = null) {
+    public static AdfConversionResult<AdfDocument> FromHtml(string html, HtmlMarkdownExportOptions? options = null) {
         return FromHtml(html, options, new AdfConversionOptions());
     }
 
     /// <summary>Converts HTML to ADF with caller-configured task identities and destination validation.</summary>
     /// <remarks>The report includes the intermediate Markdown projection and any destination validation issues.</remarks>
-    public static AdfConversionResult<AdfDocument> FromHtml(string html, MarkdownHtmlImportOptions? options, AdfConversionOptions adfOptions) {
+    public static AdfConversionResult<AdfDocument> FromHtml(string html, HtmlMarkdownExportOptions? options, AdfConversionOptions adfOptions) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         if (adfOptions == null) throw new ArgumentNullException(nameof(adfOptions));
         AdfGraphGuard.Input(html, adfOptions);

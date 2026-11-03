@@ -16,10 +16,10 @@ public static class RtfTokenizer {
     /// <summary>
     /// Tokenizes RTF content using the configured resource limits and cancellation token.
     /// </summary>
-    public static RtfTokenizeResult Tokenize(string rtf, RtfReadOptions? options, CancellationToken cancellationToken = default) {
+    public static RtfTokenizeResult Tokenize(string rtf, RtfLoadOptions? options, CancellationToken cancellationToken = default) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
 
-        RtfReadOptions readOptions = options ?? new RtfReadOptions();
+        RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         var limits = new RtfReadLimitGuard(readOptions, cancellationToken);
         limits.CheckInputCharacters(rtf.Length);
         var tokens = new List<RtfToken>();

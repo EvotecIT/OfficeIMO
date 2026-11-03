@@ -40,7 +40,7 @@ public sealed class PdfVisualPageImportTests {
     [Fact]
     public void VisualPagesPreserveSelectedPageOrderGeometryAndRenderedImages() {
         PdfCore.PdfDocument source = Create();
-        var options = new WordPdfImportOptions {
+        var options = new PdfWordExportOptions {
             Mode = WordPdfImportMode.VisualPages, Dpi = 72,
             ReadOptions = new PdfCore.PdfLoadOptions { PageSelection = PdfCore.PdfPageSelection.From(2, 1) }
         };
@@ -78,7 +78,7 @@ public sealed class PdfVisualPageImportTests {
         PdfCore.PdfDocumentInfo sourceInfo = source.Inspect();
         Assert.Single(sourceInfo.Outlines);
         Assert.Equal(2, sourceInfo.Outlines[0].PageNumber);
-        var options = WordPdfImportOptions.CreateVisualPages();
+        var options = PdfWordExportOptions.CreateVisualPages();
         options.Dpi = 72;
         options.ReadOptions = new PdfCore.PdfLoadOptions {
             PageSelection = PdfCore.PdfPageSelection.From(1)
@@ -96,7 +96,7 @@ public sealed class PdfVisualPageImportTests {
     [InlineData(false)] [InlineData(true)]
     public async Task StreamSaveOverloadsHonorVisualPageModeAndLeaveStreamOpen(bool asynchronous) {
         PdfCore.PdfDocument source = Create();
-        var options = WordPdfImportOptions.CreateVisualPages(); options.Dpi = 72;
+        var options = PdfWordExportOptions.CreateVisualPages(); options.Dpi = 72;
         using var output = new MemoryStream();
         if (asynchronous) await source.SaveAsWordAsync(output, options); else source.SaveAsWord(output, options);
         Assert.True(output.CanWrite);
@@ -109,7 +109,7 @@ public sealed class PdfVisualPageImportTests {
     [Fact]
     public void VisualWordRoundTripRetainsPageCountSizesAndFullPageImagePlacement() {
         PdfCore.PdfDocument source = Create();
-        using OfficeWordDocument word = source.ToWord(new WordPdfImportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 72 });
+        using OfficeWordDocument word = source.ToWord(new PdfWordExportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 72 });
         using var serialized = new MemoryStream(word.ToBytes());
         using OfficeWordDocument reopened = OfficeWordDocument.Load(serialized);
         PdfCore.PdfDocument result = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(reopened.ToPdf().ToBytes()));
@@ -167,8 +167,8 @@ public sealed class PdfVisualPageImportTests {
     [Fact]
     public void VisualPagesRequireOriginalPdfInsteadOfSilentlyUsingSemanticReconstruction() {
         PdfCore.PdfDocument source = Create();
-        Assert.Throws<NotSupportedException>(() => (source.Read().ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages())).Value);
-        Assert.Throws<ArgumentOutOfRangeException>(() => source.ToWord(new WordPdfImportOptions { Mode = (WordPdfImportMode)99 }));
+        Assert.Throws<NotSupportedException>(() => (source.Read().ConvertToWordWithEvidence(PdfWordExportOptions.CreateVisualPages())).Value);
+        Assert.Throws<ArgumentOutOfRangeException>(() => source.ToWord(new PdfWordExportOptions { Mode = (WordPdfImportMode)99 }));
     }
 
     private static PdfCore.PdfDocument Create() => PdfCore.PdfDocument.Create(compose => {

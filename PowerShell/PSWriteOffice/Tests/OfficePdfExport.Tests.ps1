@@ -59,7 +59,7 @@ Describe 'Office document PDF exports' {
             -IncludeImages `
             -IncludeTables:$false `
             -MaximumSystemFontFamilies 32
-        $rtf.GetType().FullName | Should -Be 'OfficeIMO.Rtf.Pdf.RtfToPdfOptions'
+        $rtf.GetType().FullName | Should -Be 'OfficeIMO.Rtf.Pdf.RtfPdfExportOptions'
         $rtf.IncludeImages | Should -BeTrue
         $rtf.IncludeTables | Should -BeFalse
         $rtf.MaximumSystemFontFamilies | Should -Be 32

@@ -132,7 +132,7 @@ public sealed class HtmlUsedLayoutHeightTests {
             HtmlConversionDocument document = HtmlConversionDocument.Parse(Source(content + Tail, lineHeight));
             HtmlRenderDocument actual = HtmlRenderTestDriver.Render(document, options);
             HtmlRenderDocument pdfScene = document.RenderToPdfResult(HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions(options)))
+                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions(options)))
                 .RenderResult.Document;
 
             Assert.Equal(Shape(reference, "div#subject").Height, Shape(actual, "div#subject").Height, 6);

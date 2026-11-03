@@ -5,7 +5,7 @@ using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
-        private static bool LocalPathAllowed(string path, WordMarkdownImportOptions options) {
+        private static bool LocalPathAllowed(string path, MarkdownWordExportOptions options) {
             if (!options.AllowLocalImages) return false;
             if (options.AllowedImageDirectories.Count == 0) return true;
             try {
@@ -42,7 +42,7 @@ namespace OfficeIMO.Word.Markdown {
             string? alt,
             global::OfficeIMO.OfficeLength? requestedWidth,
             global::OfficeIMO.OfficeLength? requestedHeight,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             double pageContentWidthPixels,
             int listLevel,
             int quoteDepth,
@@ -155,7 +155,7 @@ namespace OfficeIMO.Word.Markdown {
                             }
                         }
                     } else {
-                        options.OnWarning?.Invoke($"Remote image '{uri}' was not resolved because WordMarkdownImportOptions.RemoteImageResolver is not configured.");
+                        options.OnWarning?.Invoke($"Remote image '{uri}' was not resolved because MarkdownWordExportOptions.RemoteImageResolver is not configured.");
                         if (options.FallbackRemoteImagesToHyperlinks) {
                             paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
                         }
@@ -175,7 +175,7 @@ namespace OfficeIMO.Word.Markdown {
             AddImageFallbackText(paragraph, alt, imageSource, options);
         }
 
-        private static void ReportImageLoss(WordMarkdownImportOptions options, string code, string message, string? location) {
+        private static void ReportImageLoss(MarkdownWordExportOptions options, string code, string message, string? location) {
             if (options.DiagnosticSink != null) {
                 options.DiagnosticSink(new WordMarkdownConversionDiagnostic(code, message, OfficeConversionLossKind.Omission,
                     OfficeDiagnosticSeverity.Warning, location, "Markdown"));
@@ -186,11 +186,11 @@ namespace OfficeIMO.Word.Markdown {
 
         /// <summary>
         /// Resolves a Markdown image reference to a local file path. Absolute paths and <c>file:</c> URIs are used
-        /// as given; relative references resolve against <see cref="WordMarkdownImportOptions.BaseUri"/> when it is a
+        /// as given; relative references resolve against <see cref="MarkdownWordExportOptions.BaseUri"/> when it is a
         /// local directory or <c>file:</c> URI, otherwise against the directory of the Markdown source file.
         /// Returns <see langword="null"/> for remote URLs, data URIs and relative references with no local base.
         /// </summary>
-        private static string? ResolveLocalImagePath(string source, WordMarkdownImportOptions options) {
+        private static string? ResolveLocalImagePath(string source, MarkdownWordExportOptions options) {
             if (string.IsNullOrWhiteSpace(source)) {
                 return null;
             }
@@ -225,7 +225,7 @@ namespace OfficeIMO.Word.Markdown {
         private static bool IsDrivePath(string value) =>
             value.Length >= 3 && char.IsLetter(value[0]) && value[1] == ':' && (value[2] == '\\' || value[2] == '/');
 
-        private static bool TryGetRemoteBase(WordMarkdownImportOptions options, out System.Uri? remoteBase) {
+        private static bool TryGetRemoteBase(MarkdownWordExportOptions options, out System.Uri? remoteBase) {
             remoteBase = null;
             string? baseUri = options.BaseUri?.Trim();
             if (string.IsNullOrEmpty(baseUri) || IsDrivePath(baseUri!)) {
@@ -240,7 +240,7 @@ namespace OfficeIMO.Word.Markdown {
             return false;
         }
 
-        private static string? ResolveLocalBaseDirectory(WordMarkdownImportOptions options) {
+        private static string? ResolveLocalBaseDirectory(MarkdownWordExportOptions options) {
             string? baseUri = options.BaseUri;
             if (!string.IsNullOrWhiteSpace(baseUri)) {
                 string trimmed = baseUri!.Trim();
@@ -261,7 +261,7 @@ namespace OfficeIMO.Word.Markdown {
             string? alt,
             global::OfficeIMO.OfficeLength? requestedWidth,
             global::OfficeIMO.OfficeLength? requestedHeight,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             double pageContentWidthPixels,
             double? contextWidthLimit,
             string contextPrefix) {
@@ -324,7 +324,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static bool TryDecodeDataUriImage(
             string source,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             out byte[] bytes,
             out string fileName,
             out string? warning) {
@@ -432,7 +432,7 @@ namespace OfficeIMO.Word.Markdown {
             };
         }
 
-        private static void AddImageFallbackText(WordParagraph paragraph, string? alt, string fallback, WordMarkdownImportOptions options) {
+        private static void AddImageFallbackText(WordParagraph paragraph, string? alt, string fallback, MarkdownWordExportOptions options) {
             var fallbackText = !string.IsNullOrEmpty(alt) ? alt! : fallback ?? string.Empty;
             var text = paragraph.AddText(fallbackText);
             var defaultFont = ResolveDefaultFontFamily(options);
@@ -502,7 +502,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static void ResolveImageDimensions(
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             string source,
             string context,
             global::OfficeIMO.OfficeLength? requestedWidth,

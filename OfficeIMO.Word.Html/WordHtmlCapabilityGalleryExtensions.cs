@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Html {
             string manifestPath = Path.Combine(directoryPath, filePrefix + ".manifest.md");
             string manifestJsonPath = Path.Combine(directoryPath, filePrefix + ".manifest.json");
 
-            WordHtmlImportOptions importOptions = CreateImportOptions(options.ImportOptions);
+            HtmlWordExportOptions importOptions = CreateImportOptions(options.ImportOptions);
             WordHtmlExportOptions exportOptions = CreateExportOptions(options.ExportOptions);
             HtmlToWordResult importResult = source.ConvertToWordWithEvidence(importOptions);
             using WordDocument document = importResult.RequireValue();
@@ -78,8 +78,8 @@ namespace OfficeIMO.Word.Html {
             return manifest;
         }
 
-        private static WordHtmlImportOptions CreateImportOptions(WordHtmlImportOptions? options) {
-            WordHtmlImportOptions importOptions = options?.Clone() ?? WordHtmlImportOptions.UntrustedDefaults;
+        private static HtmlWordExportOptions CreateImportOptions(HtmlWordExportOptions? options) {
+            HtmlWordExportOptions importOptions = options?.Clone() ?? HtmlWordExportOptions.UntrustedDefaults;
             importOptions.EnableAccessibilityDiagnostics = true;
             return importOptions;
         }

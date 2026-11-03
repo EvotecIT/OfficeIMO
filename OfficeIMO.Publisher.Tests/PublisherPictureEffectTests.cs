@@ -13,16 +13,16 @@ public sealed class PublisherPictureEffectTests {
         byte[] input = PictureInput(new Dictionary<ushort, uint> { [0x013F] = flags });
         byte[][] originals = PublisherDocument.Load(input).Images.Select(image => image.GetBytes()).ToArray();
         var codec = new PictureCodec();
-        PublisherDocument document = PublisherDocument.Load(input, new PublisherReadOptions { ImageCodec = codec });
+        PublisherDocument document = PublisherDocument.Load(input, new PublisherLoadOptions { ImageCodec = codec });
         Assert.All(document.Images.Select((image, index) => (image, index)), entry =>
             Assert.Equal(originals[entry.index], entry.image.GetBytes()));
         Assert.Equal(OfficeColor.FromRgb(expected, expected, expected), ProjectedRaster(document, 362).GetPixel(0, 0));
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED" && item.Location == "Contents/object/362");
         Assert.Contains(document.ToSvgResult(PicturePageIndex(document, 362)).Report.Diagnostics,
             item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED");
-        var pdf = document.ToPdfDocumentResult();
-        Assert.Contains(document.ReadReport, pdf.SourceConversionReports);
-        Assert.True(pdf.HasLoss);
+        var pdf = document.ToPdf(null, out OfficeConversionReport pdfReport);
+        Assert.All(document.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
+        Assert.True(pdfReport.HasLoss);
         Assert.Equal(document.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
         Assert.True(codec.Calls > 0);
     }
@@ -31,7 +31,7 @@ public sealed class PublisherPictureEffectTests {
     public void Native_transparent_key_is_applied_before_tone_and_survives_png_projection() {
         PublisherDocument document = PublisherDocument.Load(PictureInput(new Dictionary<ushort, uint> {
             [0x0107] = 0x000000FF, [0x0109] = 32768
-        }), new PublisherReadOptions { ImageCodec = new PictureCodec() });
+        }), new PublisherLoadOptions { ImageCodec = new PictureCodec() });
         OfficeRasterImage raster = ProjectedRaster(document, 362);
         Assert.Equal(OfficeColor.FromRgba(255, 255, 255, 0), raster.GetPixel(0, 0));
         Assert.Equal(OfficeColor.White, raster.GetPixel(1, 0));
@@ -57,7 +57,7 @@ public sealed class PublisherPictureEffectTests {
     public void Native_invalid_or_unqualified_controls_report_loss_without_disabling_valid_modes(ushort property, uint value, string diagnostic) {
         PublisherDocument document = PublisherDocument.Load(PictureInput(new Dictionary<ushort, uint> {
             [property] = value, [0x013F] = 0x00040004
-        }), new PublisherReadOptions { ImageCodec = new PictureCodec() });
+        }), new PublisherLoadOptions { ImageCodec = new PictureCodec() });
         Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 362).GetPixel(0, 0));
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == diagnostic);
     }
@@ -74,7 +74,7 @@ public sealed class PublisherPictureEffectTests {
     public void Native_extended_controls_ignore_reserved_and_inactive_values(ushort property, uint value, bool reported) {
         PublisherDocument document = PublisherDocument.Load(PictureInput(new Dictionary<ushort, uint> {
             [property] = value, [0x013F] = 0x00040004
-        }), new PublisherReadOptions { ImageCodec = new PictureCodec() });
+        }), new PublisherLoadOptions { ImageCodec = new PictureCodec() });
         Assert.Equal(reported, document.ReadReport.Diagnostics.Any(item => item.Code == "PUB_PICTURE_RECOLOR_UNASSESSED"
             && item.Location == "Contents/object/362"));
         Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 362).GetPixel(0, 0));
@@ -84,14 +84,14 @@ public sealed class PublisherPictureEffectTests {
     public void Picture_effect_pixels_obey_per_image_and_cumulative_bounds() {
         byte[] input = PictureInput(new Dictionary<ushort, uint> { [0x013F] = 0x00040004 });
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxRasterPixels = 1 }));
+            new PublisherLoadOptions { ImageCodec = new PictureCodec(), MaxRasterPixels = 1 }));
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 3 }));
+            new PublisherLoadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 3 }));
         PublisherDocument document = PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 4 });
+            new PublisherLoadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 4 });
         Assert.Equal(2, ProjectedRaster(document, 362).Width);
         byte[] managed = PictureInput(new Dictionary<ushort, uint> { [0x013F] = 0x00040004 }, 367);
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(managed, new PublisherReadOptions { MaxRasterPixels = 1 }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(managed, new PublisherLoadOptions { MaxRasterPixels = 1 }));
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed class PublisherPictureEffectTests {
         using var source = new CancellationTokenSource();
         Assert.Throws<OperationCanceledException>(() => PublisherDocument.Load(
             PictureInput(new Dictionary<ushort, uint> { [0x013F] = 0x00040004 }),
-            new PublisherReadOptions { ImageCodec = new PictureCodec(source) }, source.Token));
+            new PublisherLoadOptions { ImageCodec = new PictureCodec(source) }, source.Token));
     }
 
     [Fact]
@@ -109,9 +109,9 @@ public sealed class PublisherPictureEffectTests {
             [0x4104] = 1, [0x013F] = 0x00040004
         }, 1, objectId: 367);
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 7 }));
+            new PublisherLoadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 7 }));
         PublisherDocument document = PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 8 });
+            new PublisherLoadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 8 });
         Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 362).GetPixel(0, 0));
         Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 367).GetPixel(0, 0));
     }

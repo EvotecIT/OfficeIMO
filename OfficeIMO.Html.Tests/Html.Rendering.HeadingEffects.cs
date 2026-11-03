@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a href='#target'>Go</a><h1 id='target' style='position:absolute;left:10px;top:50px;"
             + "width:80px;height:20px;transform:translate(2px,3px);transform-origin:0 0;"
             + (clipped ? "clip:rect(0,0,0,0);" : "") + "'>Heading</h1>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
             Margins = HtmlRenderMargins.All(0), ViewportWidth = 120, ViewportHeight = 200,
             AutoFitWidePrintContent = false, HonorCssPageRules = false, AllowSystemFontFallback = false

@@ -1584,10 +1584,11 @@ namespace OfficeIMO.Tests
             OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddSheet("Report");
             sheet.Cell(1, 1).SetValue("Report");
-            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
-            sheet.SetHeaderFooter(headerCenter: "OfficeIMO", footerRight: "Page &P of &N");
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
+            sheet.PageSetup.Header.Center.Text = "OfficeIMO";
+            sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
 
             document.Save(memory);
 
@@ -4026,12 +4027,12 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
-                sheet.AddConditionalRule("B2:B4", ExcelConditionalFormattingOperator.GreaterThan, "15");
-                sheet.AddConditionalColorScale("B2:B4", OfficeIMO.OfficeColor.LightPink, OfficeIMO.OfficeColor.LightGreen);
-                sheet.AddConditionalDataBar("B2:B4", OfficeIMO.OfficeColor.SteelBlue);
-                sheet.ValidationWholeNumber("B2:B4", ExcelDataValidationOperator.Between, 1, 100);
-                sheet.Freeze(topRows: 1, leftCols: 1);
-                sheet.AddAutoFilter("A1:C4");
+                sheet.Range("B2:B4").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15");
+                sheet.Range("B2:B4").ConditionalFormat().ColorScale(OfficeIMO.OfficeColor.LightPink, OfficeIMO.OfficeColor.LightGreen);
+                sheet.Range("B2:B4").ConditionalFormat().DataBar(OfficeIMO.OfficeColor.SteelBlue);
+                sheet.Range("B2:B4").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 100);
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
+                sheet.Range("A1:C4").AutoFilter();
 
                 document.Save(memory);
 
@@ -4070,9 +4071,9 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
                 var sheet = document.AddSheet("Data");
-                sheet.SetGridlinesVisible(false);
+                sheet.View.ShowGridlines = false;
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
-                sheet.Freeze(topRows: 1, leftCols: 1);
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
 
                 document.Save(memory);
 
@@ -4942,10 +4943,10 @@ namespace OfficeIMO.Tests
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
-                sheet.Freeze(topRows: 1, leftCols: 1);
-                sheet.AddAutoFilter("A1:C3");
-                sheet.AddConditionalRule("B2:B3", ExcelConditionalFormattingOperator.GreaterThan, "15");
-                sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 100);
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
+                sheet.Range("A1:C3").AutoFilter();
+                sheet.Range("B2:B3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15");
+                sheet.Range("B2:B3").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 100);
                 sheet.Cell(4, 1).SetValue("Manual note");
 
                 document.Save(memory);
@@ -4987,10 +4988,10 @@ namespace OfficeIMO.Tests
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AutoFitColumns();
-                sheet.Freeze(topRows: 1, leftCols: 1);
-                sheet.AddAutoFilter("A1:C3");
-                sheet.AddConditionalRule("B2:B3", ExcelConditionalFormattingOperator.GreaterThan, "15");
-                sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 100);
+                sheet.View.Freeze(topRows: 1, leftColumns: 1);
+                sheet.Range("A1:C3").AutoFilter();
+                sheet.Range("B2:B3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "15");
+                sheet.Range("B2:B3").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 100);
 
                 document.Save(memory);
 
@@ -5245,9 +5246,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Data");
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "FilteredReport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddAutoFilter("A1:C3", new Dictionary<uint, IEnumerable<string>> {
-                    { 0U, new[] { "Alpha" } }
-                });
+                sheet.Range("A1:C3").AutoFilter().Column(0U).Equals(new[] { "Alpha" });
 
                 document.Save(memory);
 
@@ -5277,7 +5276,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Data");
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C3", hasHeader: true, name: "FilteredReport", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: false);
-                sheet.AddAutoFilter("A1:C3");
+                sheet.Range("A1:C3").AutoFilter();
 
                 document.Save(memory);
 
@@ -5336,9 +5335,9 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Data");
                 sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
-                sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
-                sheet.SetOrientation(OfficePageOrientation.Landscape);
-                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+                sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
+                sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
 
                 sheet.Cell(5, 1).SetValue("forces materialization");
                 document.Save(memory);

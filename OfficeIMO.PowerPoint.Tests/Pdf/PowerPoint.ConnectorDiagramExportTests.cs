@@ -64,7 +64,7 @@ public sealed class PowerPointConnectorDiagramExportTests {
     [Fact]
     public void VisualHtmlDrawsTheDiagramWithoutPlaceholderPrompts() {
         using var presentation = CreateDiagram();
-        PowerPointHtmlSaveOptions options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
         options.IncludeMasterInventory = false;
         options.IncludeExtractionProof = false;
 

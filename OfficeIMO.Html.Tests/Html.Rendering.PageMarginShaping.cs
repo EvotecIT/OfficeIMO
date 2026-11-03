@@ -51,7 +51,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(true)]
     public void HtmlPageMarginShaping_MarkedCffMaxContentFitsAndExportsTheSameGlyphScene(bool explicitProvider) {
         const string text = "Cafe\u0301";
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(cff: true);
         if (explicitProvider) options.TextShapingProvider = OfficeManagedTextShapingProvider.Instance;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", text, "width:max-content;height:max-content", text));
@@ -79,7 +79,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginShaping_SavedArabicArtifactRetainsItsLogicalClusterOnce() {
         const string text = "لَا";
-        HtmlToPdfOptions options = PageMarginShapingOptions();
+        HtmlPdfExportOptions options = PageMarginShapingOptions();
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             PageMarginShapingSource("bottom-center", text, "width:max-content", string.Empty));
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
@@ -95,7 +95,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPageMarginShaping_RegisteredFallbackKeepsEachFontAndItsPositionedMarks() {
-        HtmlToPdfOptions options = PageMarginShapingOptions();
+        HtmlPdfExportOptions options = PageMarginShapingOptions();
         options.Fonts.Add("Latin", File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
             "OfficeIMO.Drawing.Tests/TestAssets/SourceSansPro-Regular.otf")));
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
@@ -113,7 +113,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPageMarginShaping_AuthoredHardLinesRetainLeadingAndTheFinalEmptyLine() {
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(cff: true);
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "A\u0301\\A A\u0301\\A ",
                 "width:80px;height:max-content", "A\u0301")), options);
@@ -151,7 +151,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPageMarginShaping_WrappingKeepsEachCombiningClusterAndItsMeasuredAdvance() {
-        HtmlToPdfOptions options = PageMarginShapingOptions(cff: true);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(cff: true);
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "A\u0301 A\u0301", "width:min-content;height:max-content", "A\u0301")), options);
         HtmlRenderSemanticGroup artifact = PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center");
@@ -207,7 +207,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] font = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
             source == "A" ? "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf"
                 : "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansArabic-Regular.ttf"));
-        HtmlToPdfOptions options = PageMarginShapingOptions(fontData: font);
+        HtmlPdfExportOptions options = PageMarginShapingOptions(fontData: font);
         var provider = new LanguageAdvanceTextShapingProvider(font);
         // The provider's exact program must cover this positive fixture. Noto
         // Arabic deliberately has no Latin A and correctly declines that text.
@@ -231,7 +231,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPageMarginShaping_DeclinedGeneratedTextHasAStableSourceAndCannotClaimNoLoss() {
-        HtmlToPdfOptions options = PageMarginShapingOptions();
+        HtmlPdfExportOptions options = PageMarginShapingOptions();
         options.TextShapingProvider = new DecliningPageMarginShapingProvider();
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "لَا", "width:80px", string.Empty)), options);
@@ -245,7 +245,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginShaping_ZeroSizeNeverCallsTheConfiguredProvider() {
         var provider = new DecliningPageMarginShapingProvider();
-        HtmlToPdfOptions options = PageMarginShapingOptions();
+        HtmlPdfExportOptions options = PageMarginShapingOptions();
         options.TextShapingProvider = provider;
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             PageMarginShapingSource("top-center", "لَا\\A لَا", "font-size:0;line-height:12px;height:max-content", string.Empty)), options);
@@ -255,11 +255,11 @@ public sealed partial class HtmlRenderingTests {
         rendered.ThrowIfLoss();
     }
 
-    private static HtmlToPdfOptions PageMarginShapingOptions(bool cff = false, byte[]? fontData = null) {
+    private static HtmlPdfExportOptions PageMarginShapingOptions(bool cff = false, byte[]? fontData = null) {
         byte[] data = fontData ?? File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), cff
             ? "OfficeIMO.Drawing.Tests/TestAssets/SourceSansPro-Regular.otf"
             : "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansArabic-Regular.ttf"));
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged, HonorCssPageRules = true, AllowSystemFontFallback = false,
             DefaultFontFamily = "Typography", FontFamily = new PdfCore.PdfEmbeddedFontFamily("Typography", data),
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()

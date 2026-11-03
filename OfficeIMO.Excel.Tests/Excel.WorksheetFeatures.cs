@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Gridlines");
                 sheet.Cell(1, 1).SetValue("Header");
-                sheet.SetGridlinesVisible(false);
+                sheet.View.ShowGridlines = false;
                 document.Save();
             }
 
@@ -513,7 +513,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
-                sheet.SetGridlinesVisible(true);
+                sheet.View.ShowGridlines = true;
                 document.Save();
             }
 
@@ -534,8 +534,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("RTL");
                 sheet.Cell(1, 1).SetValue("RTL");
-                sheet.SetRightToLeft(true);
-                Assert.True(sheet.RightToLeft);
+                sheet.View.RightToLeft = true;
+                Assert.True(sheet.View.RightToLeft);
                 document.Save();
             }
 
@@ -551,9 +551,9 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
-                Assert.True(sheet.RightToLeft);
-                sheet.SetRightToLeft(false);
-                Assert.False(sheet.RightToLeft);
+                Assert.True(sheet.View.RightToLeft);
+                sheet.View.RightToLeft = false;
+                Assert.False(sheet.View.RightToLeft);
                 document.Save();
             }
 
@@ -746,14 +746,14 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("View");
                 sheet.Cell(1, 1).SetValue("Header");
-                sheet.Freeze(2, 1);
-                sheet.SetGridlinesVisible(false);
+                sheet.View.Freeze(2, 1);
+                sheet.View.ShowGridlines = false;
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document.Sheets.First();
-                ExcelWorksheetViewInfo view = sheet.GetViewInfo();
+                ExcelWorksheetViewInfo view = sheet.View.Inspect();
 
                 Assert.True(view.HasPane);
                 Assert.Equal("frozen", view.PaneState);
@@ -775,7 +775,11 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("View");
                 sheet.Cell(1, 1).SetValue("Header");
-                sheet.SetViewOptions(showGridlines: false, rightToLeft: true, zoomScale: 125, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
+                sheet.View.ShowGridlines = false;
+                sheet.View.RightToLeft = true;
+                sheet.View.ZoomScale = 125;
+                sheet.View.ZoomScaleNormal = 100;
+                sheet.View.Kind = ExcelWorksheetViewKind.PageLayout;
                 document.Save();
             }
 
@@ -791,7 +795,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document.Sheets.First();
-                ExcelWorksheetViewInfo view = sheet.GetViewInfo();
+                ExcelWorksheetViewInfo view = sheet.View.Inspect();
                 Assert.False(view.ShowGridlines);
                 Assert.True(view.RightToLeft);
                 Assert.Equal(125U, view.ZoomScale);
@@ -815,7 +819,8 @@ namespace OfficeIMO.Tests
             })) {
                 var sheet = document.AddSheet("View");
                 sheet.Cell(1, 1).SetValue("Header");
-                sheet.SetViewOptions(showGridlines: false, rightToLeft: true);
+                sheet.View.ShowGridlines = false;
+                sheet.View.RightToLeft = true;
             }
 
             stream.Position = 0;

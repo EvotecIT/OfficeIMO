@@ -93,7 +93,7 @@ claim conformance without passing external validator evidence.
         TextWriter standardError,
         CancellationToken cancellationToken) {
         byte[] input = await ReadInputAsync(arguments.InputPath!, standardInput, arguments.MaxInputBytes, cancellationToken).ConfigureAwait(false);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             MaxPageCount = arguments.MaxPages,
             Scale = arguments.Scale,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
@@ -191,7 +191,7 @@ claim conformance without passing external validator evidence.
         CancellationToken cancellationToken) {
         byte[] input = await ReadInputAsync(arguments.InputPath!, standardInput, arguments.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         HtmlRenderRequest template = HtmlRenderRequest.Create(arguments.RenderProfile, arguments.RenderEncoder);
-        var options = new HtmlToPdfOptions(template.Options) {
+        var options = new HtmlPdfExportOptions(template.Options) {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         options.MaxPageCount = arguments.MaxPages;
@@ -316,7 +316,7 @@ claim conformance without passing external validator evidence.
     }
 
     internal static void ConfigureFontFamily(
-        HtmlToPdfOptions options,
+        HtmlPdfExportOptions options,
         string familyName,
         byte[] regular,
         byte[]? bold,

@@ -59,13 +59,11 @@ internal static class PdfEditorCommandExecutor {
         ArgumentNullException.ThrowIfNull(plan);
         PdfDocument source = pdf;
         var applyOptions = new PdfRedactionApplyOptions {
-            CancellationToken = cancellationToken,
             PaintUnmatchedAreas = true,
             UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement,
             RemoveIntersectingPaths = true
         };
         var verificationOptions = new PdfRedactionVerificationOptions {
-            CancellationToken = cancellationToken,
             CheckManagedRendering = true,
             FailOnUndecodablePdfStreams = true,
             RequireCompleteStreamInspection = true
@@ -74,11 +72,11 @@ internal static class PdfEditorCommandExecutor {
             verificationOptions.RequireRemovedText(removedTextMarker.Trim());
         }
         if (sanitizationOptions is not null) {
-            PdfRedactionSharingResult sharing = source.Redactions.ApplyForSharing(plan, sanitizationOptions, applyOptions, verificationOptions);
+            PdfRedactionSharingResult sharing = source.Redactions.ApplyForSharing(plan, sanitizationOptions, applyOptions, verificationOptions, cancellationToken: cancellationToken);
             return new PdfVerifiedRedactionResult(sharing.ToBytes(), plan, sharing.Redaction, sharing.Summary);
         }
         PdfRedactionApplyResult applied = source.Redactions
-            .ApplyWithEvidence(plan, applyOptions, verificationOptions)
+            .ApplyWithEvidence(plan, applyOptions, verificationOptions, cancellationToken: cancellationToken)
             .ThrowIfUnverified();
         return new PdfVerifiedRedactionResult(applied.Pdf, plan, applied.Evidence, applied.Evidence.CreateShareableSummary());
     }

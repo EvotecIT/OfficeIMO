@@ -5,7 +5,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Pdf.Word {
     internal static partial class PdfWordConverter {
-        private static void ReportNonReconstructedLinks(PdfCore.PdfDocumentReadResult source, WordPdfImportOptions options, ImportNavigationMap navigation) {
+        private static void ReportNonReconstructedLinks(PdfCore.PdfDocumentReadResult source, PdfWordExportOptions options, ImportNavigationMap navigation) {
             int linkCount = source.Links.Count(link => !TryResolveWordLinkTarget(link, options, navigation, out _));
             if (linkCount > 0) {
                 AddWarning(
@@ -37,7 +37,7 @@ namespace OfficeIMO.Pdf.Word {
             }
         }
 
-        private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfDocumentReadResult source, WordPdfImportOptions options) {
+        private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfDocumentReadResult source, PdfWordExportOptions options) {
             ReportMetadataFidelity(source.Metadata, source.SourceFidelityFacts.HasXmpMetadata, options);
             bool importsText = options.ImportHeadings || options.ImportParagraphs || options.ImportLists;
             bool reconstructsEditableContent = source.Pages.Any(page =>
@@ -202,7 +202,7 @@ namespace OfficeIMO.Pdf.Word {
             }
         }
 
-        private static void ReportAttachmentsNotReconstructed(int count, WordPdfImportOptions options) {
+        private static void ReportAttachmentsNotReconstructed(int count, PdfWordExportOptions options) {
             if (count <= 0) return;
             AddWarning(
                 options,
@@ -215,7 +215,7 @@ namespace OfficeIMO.Pdf.Word {
         }
 
         private static void ReportDisabledSemanticFamily(
-            WordPdfImportOptions options,
+            PdfWordExportOptions options,
             string code,
             string source,
             string message,
@@ -234,7 +234,7 @@ namespace OfficeIMO.Pdf.Word {
                 });
         }
 
-        private static void ReportPageReconstructionBoundaries(PdfCore.PdfLogicalPage page, WordPdfImportOptions options) {
+        private static void ReportPageReconstructionBoundaries(PdfCore.PdfLogicalPage page, PdfWordExportOptions options) {
             if (page.OmittedArtifactTextSpanCount > 0) {
                 AddWarning(
                     options,
@@ -305,7 +305,7 @@ namespace OfficeIMO.Pdf.Word {
         private static void ReportMetadataFidelity(
             PdfCore.PdfDocumentProperties source,
             bool hasXmpMetadata,
-            WordPdfImportOptions options) {
+            PdfWordExportOptions options) {
             int copiedFieldOmissionCount = 0;
             if (!options.IncludeMetadata) {
                 if (!string.IsNullOrWhiteSpace(source.Title)) copiedFieldOmissionCount++;
@@ -338,7 +338,7 @@ namespace OfficeIMO.Pdf.Word {
         }
 
         private static void AddWarning(
-            WordPdfImportOptions options,
+            PdfWordExportOptions options,
             string code,
             string source,
             string message,
@@ -347,7 +347,7 @@ namespace OfficeIMO.Pdf.Word {
             AddWarning(options, code, source, message, severity, lossKind: null, details);
 
         private static void AddWarning(
-            WordPdfImportOptions options,
+            PdfWordExportOptions options,
             string code,
             string source,
             string message,

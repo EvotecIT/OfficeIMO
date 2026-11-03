@@ -14,7 +14,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText("2").SetSubscript();
         paragraph.AddText("O");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\super nd\nosupersub", rtf, StringComparison.Ordinal);
@@ -33,7 +33,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText("Hidden").SetHidden();
         paragraph.AddText(" shown");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\v Hidden\v0", rtf, StringComparison.Ordinal);
@@ -51,7 +51,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText("highlight").SetHighlightColor(yellow);
         paragraph.AddText(" done");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\colortbl;\red255\green255\blue0;}", rtf, StringComparison.Ordinal);
@@ -72,7 +72,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText(" ");
         paragraph.AddText("Removed").SetDeletedRevision(bob);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\revtbl{Alice;}{Bob;}}", rtf, StringComparison.Ordinal);
@@ -98,7 +98,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText("Base ");
         paragraph.AddText("Revised").SetRevisionSaveIds(character: 30, insertion: 40, deletion: 50);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\rsidtbl\rsidroot7\rsid15\rsid1024\rsid65535}", rtf, StringComparison.Ordinal);
@@ -126,7 +126,7 @@ public partial class RtfDocumentRichFeatureTests {
         note.AddParagraph("Review note");
         run.SetNote(note);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\annotation{\*\atnid c1}{\*\atnauthor Alice}{\*\atntime\yr2026\mo1\dy2\hr3\min4\sec5}\chatn", rtf, StringComparison.Ordinal);
@@ -155,7 +155,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddColumnBreak();
         paragraph.AddText("Column");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"Before\line Line\softline SoftLine\page Page\softpage SoftPage\column Column", rtf, StringComparison.Ordinal);
@@ -191,7 +191,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText(" Time ");
         paragraph.AddCurrentTime();
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\chpgn", rtf, StringComparison.Ordinal);
@@ -225,7 +225,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddTabStop(4320, RtfTabAlignment.Decimal, RtfTabLeader.MiddleDots);
         paragraph.AddText("Name\tAmount\t12.34");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\tx1440", rtf, StringComparison.Ordinal);

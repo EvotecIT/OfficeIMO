@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             try {
                 var html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
                 using var document = OfficeIMO.Html.HtmlConversionDocument
-                    .Parse(html).ToWord(new WordHtmlImportOptions {
+                    .Parse(html).ToWord(new HtmlWordExportOptions {
                         AllowDocumentStylesheetLinks = true
                     });
                 Assert.Equal(OfficeColor.Parse("111111"),
@@ -33,11 +33,11 @@ namespace OfficeIMO.Tests {
             string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
             try {
                 File.WriteAllText(path, "p { color:#111111; }");
-                var firstDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { AllowDocumentStylesheetLinks = true });
+                var firstDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions { AllowDocumentStylesheetLinks = true });
                 Assert.Equal(OfficeColor.Parse("111111"), firstDoc.Paragraphs[0].GetRuns().First().Color);
 
                 File.WriteAllText(path, "p { color:#222222; }");
-                var secondDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { AllowDocumentStylesheetLinks = true });
+                var secondDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions { AllowDocumentStylesheetLinks = true });
 
                 Assert.Equal(OfficeColor.Parse("222222"), secondDoc.Paragraphs[0].GetRuns().First().Color);
             } finally {
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
                 });
             }));
             string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/live.css\" /><p>Test</p>";
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 AllowDocumentStylesheetLinks = true,
                 HttpClient = httpClient
             };
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             const string css = "p { color:#222222; }";
             var html = $"<style>{css}</style><p>Test</p>";
             using var document = OfficeIMO.Html.HtmlConversionDocument
-                .Parse(html).ToWord(new WordHtmlImportOptions());
+                .Parse(html).ToWord(new HtmlWordExportOptions());
             Assert.Equal(OfficeColor.Parse("222222"),
                 document.Paragraphs[0].GetRuns().First().Color);
         }

@@ -5410,7 +5410,7 @@ _Caption_
 </figure>
 """;
 
-        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlMarkdownExportOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5454,7 +5454,7 @@ _Caption_
 <p><a href="/docs/hero" title="Hero docs" target="_blank" rel="nofollow sponsored">Read more</a></p>
 """;
 
-        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlMarkdownExportOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5502,7 +5502,7 @@ _Caption_
 </figure>
 """;
 
-        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlMarkdownExportOptions {
             BaseUri = new Uri("https://example.com/")
         });
 

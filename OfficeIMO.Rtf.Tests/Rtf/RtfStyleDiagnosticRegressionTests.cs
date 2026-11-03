@@ -26,9 +26,9 @@ public sealed class RtfStyleDiagnosticRegressionTests {
     [InlineData(@"{\*\vendorstyle Private}", "RtfNormalizationStyleDestinationOmitted", "vendorstyle")]
     public void UnsupportedStyleSyntaxCannotPassStrictSemanticConversion(string syntax, string code, string feature) {
         string input = @"{\rtf1\ansi{\stylesheet{\s1" + syntax + @" Style;}}\pard\s1 Visible\par}";
-        RtfReadResult read = RtfDocument.ParseResult(input, new RtfReadOptions { WarnOnUnsupportedDestinations = false });
+        RtfReadResult read = RtfDocument.ParseResult(input, new RtfLoadOptions { WarnOnUnsupportedDestinations = false });
         Assert.Equal(input, read.ToRtfLossless());
-        var result = read.Document.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = false });
+        var result = read.Document.ToRtfResult(new RtfSaveOptions { MaterializeStyleFormatting = false });
         Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == code && item.Feature == feature);
         Assert.Throws<RtfConversionLossException>(() => result.ThrowIfLoss());
         Assert.Contains(read.Document.Clone().ToRtfResult().Report.Diagnostics, item => item.Code == code);

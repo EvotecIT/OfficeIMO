@@ -12,7 +12,7 @@ public class RtfHtmlCharacterFormatTests {
         const string rtf = @"{\rtf1\ansi\deflang0 External producer text.}";
 
         RtfDocument document = RtfDocument.ParseResult(rtf).Document;
-        string html = document.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateWebSafeProfile());
 
         Assert.Contains("External producer text.", html, StringComparison.Ordinal);
         Assert.DoesNotContain("lang=", html, StringComparison.OrdinalIgnoreCase);

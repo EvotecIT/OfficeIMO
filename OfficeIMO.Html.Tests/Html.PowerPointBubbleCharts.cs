@@ -24,7 +24,7 @@ public class HtmlPowerPointBubbleChartTests {
             .HideLegend();
 
         string html = presentation.ToHtml(
-            new PowerPointHtmlSaveOptions {
+            new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
             });
 

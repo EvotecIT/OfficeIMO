@@ -14,8 +14,10 @@ internal static partial class PdfRedactionApplier {
     private static readonly Regex FontSelectionRegex = new Regex(@"/([^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf\b", RegexOptions.Compiled, RegexTimeout);
 
     /// <summary>Applies a previously reviewed plan, including exact form-field removal for field-derived search areas.</summary>
-    public static byte[] Apply(byte[] pdf, PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? readOptions = null) =>
-        Apply(pdf, plan, applyOptions, layoutOptions, readOptions, out _);
+    public static byte[] Apply(byte[] pdf, PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
+        return Apply(pdf, plan, applyOptions, layoutOptions, readOptions, out _);
+    }
 
     internal static byte[] Apply(
         byte[] pdf,
@@ -106,13 +108,14 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(areas, nameof(areas));
         PdfRedactionArea[] areaArray = areas.ToArray();
         if (areaArray.Any(static area => area.SearchCriteria is not null || area.RequiresGlyphRewrite)) {
             // Search areas need the plan route, which proves the outcome before returning.
             return Apply(pdf, PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions, applyOptions?.CancellationToken ?? default),
-                applyOptions, layoutOptions, readOptions);
+                applyOptions, layoutOptions, readOptions, cancellationToken: cancellationToken);
         }
 
         byte[] output = ApplyCore(
@@ -128,7 +131,7 @@ internal static partial class PdfRedactionApplier {
             out PdfGeneratedOutputGrowth generatedGrowth);
         if (output.SequenceEqual(pdf)) return output;
         // The same proof as the plan route: nothing reviewed may survive somewhere the pages don't paint.
-        System.Threading.CancellationToken cancellationToken = applyOptions?.CancellationToken ?? default;
+        cancellationToken = applyOptions?.CancellationToken ?? default;
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(pdf, areaArray, layoutOptions, readOptions, cancellationToken);
         ThrowIfContentOutsidePages(output, plan, PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), cancellationToken);
         return output;
@@ -365,9 +368,10 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfLoadOptions? readOptions = null) {
-        System.Threading.CancellationToken cancellationToken = applyOptions?.CancellationToken ?? default;
-        return Apply(ReadStream(stream, readOptions, cancellationToken), areas, applyOptions, layoutOptions, readOptions);
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
+        cancellationToken = applyOptions?.CancellationToken ?? default;
+        return Apply(ReadStream(stream, readOptions, cancellationToken), areas, applyOptions, layoutOptions, readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -379,8 +383,9 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfLoadOptions? readOptions = null) {
-        WriteOutput(outputStream, Apply(pdf, areas, applyOptions, layoutOptions, readOptions), applyOptions?.CancellationToken ?? default);
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
+        WriteOutput(outputStream, Apply(pdf, areas, applyOptions, layoutOptions, readOptions, cancellationToken: cancellationToken), applyOptions?.CancellationToken ?? default);
     }
 
     /// <summary>
@@ -392,16 +397,17 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        System.Threading.CancellationToken cancellationToken = applyOptions?.CancellationToken ?? default;
+        cancellationToken = applyOptions?.CancellationToken ?? default;
         byte[] redacted = Apply(
             PdfDocumentSource.FromPath(inputPath, readOptions, cancellationToken).Bytes,
             areas,
             applyOptions,
             layoutOptions,
-            readOptions);
+            readOptions, cancellationToken: cancellationToken);
         WriteOutput(fullOutputPath, redacted, cancellationToken);
     }
 
@@ -413,15 +419,16 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        System.Threading.CancellationToken cancellationToken = applyOptions?.CancellationToken ?? default;
+        cancellationToken = applyOptions?.CancellationToken ?? default;
         return Apply(
             PdfDocumentSource.FromPath(inputPath, readOptions, cancellationToken).Bytes,
             areas,
             applyOptions,
             layoutOptions,
-            readOptions);
+            readOptions, cancellationToken: cancellationToken);
     }
 
     private static RedactionMutation ApplyToObjects(

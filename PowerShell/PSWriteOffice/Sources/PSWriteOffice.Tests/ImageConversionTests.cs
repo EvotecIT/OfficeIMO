@@ -26,7 +26,7 @@ public sealed class ImageConversionTests
             int calls = 0;
             var engine = new DelegateOcrEngine("table-contract", (_, _) => { calls++; return Task.FromResult(TableResult()); });
             var review = await Source().PrepareSearchableOcrAsync(engine);
-            var options = new ExcelPdfImportOptions { UseFirstRowAsHeader = true };
+            var options = new PdfExcelExportOptions { UseFirstRowAsHeader = true };
             string output = Path.Combine(directory, "ledger.xlsx");
             var result = OfficeImageExporter.Export(review, output, false, options, null, default);
             Assert.Same(review, result.Review);
@@ -129,7 +129,7 @@ public sealed class ImageConversionTests
             runspace.Open();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            var options = new ExcelPdfImportOptions();
+            var options = new PdfExcelExportOptions();
             shell.AddCommand("ConvertFrom-OfficeImage").AddParameter("InputObject", review)
                 .AddParameter("OutputPath", Path.Combine(directory, "preview.xlsx"))
                 .AddParameter("ExcelOptions", options).AddParameter("FirstRowIsHeader").AddParameter("WhatIf");

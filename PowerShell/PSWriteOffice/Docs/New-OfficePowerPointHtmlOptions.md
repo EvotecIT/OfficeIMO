@@ -252,7 +252,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.Html.PowerPointHtmlSaveOptions`
+- `OfficeIMO.PowerPoint.Html.PowerPointHtmlExportOptions`
 
 ## RELATED LINKS
 

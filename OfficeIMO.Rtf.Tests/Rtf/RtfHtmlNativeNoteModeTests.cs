@@ -27,7 +27,7 @@ public class RtfHtmlNativeNoteModeTests {
             note.AddParagraph("Second note paragraph");
             source.AddParagraph("Body").AddNoteReference(note);
         } else source = RtfDocument.ParseResult(RtfNativeNoteModeTests.Source(controls)).Document;
-        string html = source.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = source.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
         RtfDocument returned = HtmlConversionDocument.Parse(html).ToRtfDocument();
         RtfNote raw = Assert.Single(returned.Paragraphs.SelectMany(paragraph => paragraph.Inlines)
             .Select(inline => inline is RtfRun run ? run.Note : (inline as RtfGeneratedText)?.Note).OfType<RtfNote>());

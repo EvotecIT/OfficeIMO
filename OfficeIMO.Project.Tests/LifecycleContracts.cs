@@ -11,7 +11,7 @@ public class LifecycleContracts {
         }
         Assert.True(stream.CanRead);
         using var destination = new MemoryStream();
-        var document = ProjectDocument.Create(destination, new DocumentCreateOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose });
+        var document = ProjectDocument.Create(destination, new ProjectCreateOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose });
         var task = document.Tasks.Add("Persisted");
         Assert.Equal(0, destination.Length);
         document.Dispose();

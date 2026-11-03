@@ -19,7 +19,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddHyperLink("OfficeIMO", new Uri("https://github.com/EvotecIT/OfficeIMO"), addStyle: true);
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -43,7 +43,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddDeletedText("Removed", "Bob", new DateTime(2026, 1, 2));
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         Assert.Collection(rtfDocument.RevisionAuthors,
@@ -66,7 +66,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddComment("Alice Reviewer", "AR", "Review note");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfRun run = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs);
@@ -153,7 +153,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddText("\tAmount");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -192,7 +192,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddText("Column");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);

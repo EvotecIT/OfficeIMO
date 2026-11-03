@@ -265,10 +265,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.Cell(2, 2).SetValue("Value").SetBold().SetFillColor("E6F2FF");
                 summary.Cell(2, 3).SetValue("Status").SetBold().SetFillColor("E6F2FF");
                 summary.Cell(3, 1).SetValue("Revenue");
-                summary.Cell(3, 2).SetValue(12345.6).Currency(2, System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+                summary.Cell(3, 2).SetValue(12345.6).SetNumberFormat("\"$\"#,##0.00");
                 summary.Cell(3, 3).SetValue("On track").SetFontColor("2F6F3E");
                 summary.Cell(4, 1).SetValue("Margin");
-                summary.Cell(4, 2).SetValue(0.257).Percent(1);
+                summary.Cell(4, 2).SetValue(0.257).SetNumberFormat("0.0%");
                 summary.SetHyperlink(4, 3, "https://officeimo.net/excel-pdf", display: "External Link");
                 summary.Cell(5, 1).SetValue("Drilldown");
                 summary.SetInternalLink(5, 2, "Details!A1", display: "Open Details");
@@ -308,15 +308,14 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.Cell(2, 3).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
                 summary.Cell(3, 2).SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
                 summary.Cell(4, 2).SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
-                summary.SetHeaderFooter(
-                    headerLeft: "Daily Excel",
-                    headerCenter: "Workbook &A",
-                    headerRight: "Page &P of &N",
-                    footerLeft: "OfficeIMO Excel PDF",
-                    footerRight: "Visual baseline");
-                summary.SetHeaderImage(ExcelHeaderFooterPosition.Left, logoBytes, "image/png", width: OfficeLength.Points(28), height: OfficeLength.Points(14));
-                summary.SetOrientation(OfficePageOrientation.Landscape);
-                summary.SetMargins(left: OfficeLength.Inches(0.35), right: OfficeLength.Inches(0.35), top: OfficeLength.Inches(0.55), bottom: OfficeLength.Inches(0.55));
+                summary.PageSetup.Header.Left.Text = "Daily Excel";
+                summary.PageSetup.Header.Center.Text = "Workbook &A";
+                summary.PageSetup.Header.Right.Text = "Page &P of &N";
+                summary.PageSetup.Footer.Left.Text = "OfficeIMO Excel PDF";
+                summary.PageSetup.Footer.Right.Text = "Visual baseline";
+                summary.PageSetup.Header.Left.SetImage(logoBytes, "image/png", width: OfficeLength.Points(28), height: OfficeLength.Points(14));
+                summary.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                summary.PageSetup.SetMargins(left: OfficeLength.Inches(0.35), right: OfficeLength.Inches(0.35), top: OfficeLength.Inches(0.55), bottom: OfficeLength.Inches(0.55));
 
                 ExcelSheet details = document.AddSheet("Details");
                 details.Cell(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");
@@ -327,9 +326,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 details.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
                 details.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
 
-                document.SetPrintArea(summary, "A1:C7");
-                document.SetPrintTitles(summary, firstRow: 2, lastRow: 2, firstCol: null, lastCol: null);
-                document.SetPrintArea(details, "A1:B3");
+                summary.PageSetup.PrintArea = "A1:C7";
+                summary.PageSetup.SetPrintTitles(firstRow: 2, lastRow: 2, firstColumn: null, lastColumn: null);
+                details.PageSetup.PrintArea = "A1:B3";
                 document.Save();
 
                 document.SaveAsPdf(pdfPath, new ExcelPdfExportOptions {

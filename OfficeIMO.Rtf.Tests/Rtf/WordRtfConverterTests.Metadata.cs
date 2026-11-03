@@ -34,7 +34,7 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("Body");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         Assert.Equal("Bridge Title", rtfDocument.Properties.Title);
@@ -80,7 +80,7 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("Body");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         Assert.Collection(rtfDocument.UserProperties,

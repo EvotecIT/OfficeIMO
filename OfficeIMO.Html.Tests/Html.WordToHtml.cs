@@ -562,7 +562,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_TableCaptionBelow_ExportsCaptionElementWithoutDuplicateParagraph() {
             const string sourceHtml = "<table><caption>Totals</caption><tr><td>42</td></tr></table>";
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 TableCaptionPosition = WordHtmlTableCaptionPosition.Below
             };
 
@@ -817,7 +817,7 @@ namespace OfficeIMO.Tests {
             list.AddItem("Body");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListDefinitions = true });
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
@@ -835,7 +835,7 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Normal paragraph");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true });
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
@@ -1587,7 +1587,7 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Only section");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true });
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 SectionTagHandling = WordHtmlSectionTagHandling.WordSection,
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
@@ -1615,7 +1615,7 @@ namespace OfficeIMO.Tests {
             second.AddParagraph("Second section");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true, IncludeDefaultCss = false });
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 SectionTagHandling = WordHtmlSectionTagHandling.WordSection,
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };

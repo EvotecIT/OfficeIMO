@@ -27,7 +27,7 @@ public class RtfHtmlDocumentSettingsTests {
         document.Settings.Direction = RtfTextDirection.RightToLeft;
         document.AddParagraph("Settings body");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false, NewLine = "\n" });
 
@@ -71,7 +71,7 @@ public class RtfHtmlDocumentSettingsTests {
         Assert.Equal(RtfTextDirection.RightToLeft, roundTrip.Settings.Direction);
         Assert.Equal("Settings body", Assert.Single(roundTrip.Paragraphs).ToPlainText());
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\deflangfe1041\adeflang1033\viewkind4\viewscale125\viewzk2\viewbksp1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\widowctrl\hyphauto0\hyphcaps\hyphconsec3\hyphhotz360", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\facingp\margmirror\formprot\revprot0\annotprot\readprot0", rtf, StringComparison.Ordinal);
@@ -82,7 +82,7 @@ public class RtfHtmlDocumentSettingsTests {
     public void Html_ToRtfDocument_Document_Settings_Metadata_Does_Not_Clear_Html_Language_Direction() {
         RtfDocument metadataDocument = RtfDocument.Create();
         metadataDocument.Settings.MirrorMargins = true;
-        string settingsMeta = ExtractDocumentSettingsMeta(metadataDocument.ToHtml(new RtfToHtmlOptions {
+        string settingsMeta = ExtractDocumentSettingsMeta(metadataDocument.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false }));
         string html = "<html lang=\"ar-SA\" dir=\"rtl\"><head>" + settingsMeta + "</head><body><p>Body</p></body></html>";

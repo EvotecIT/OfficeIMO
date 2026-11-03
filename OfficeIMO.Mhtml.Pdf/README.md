@@ -13,7 +13,7 @@ using OfficeIMO.Pdf;
 
 MhtmlDocument archive = MhtmlDocument.Load("quarterly-update.mhtml");
 PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(
-    new HtmlToPdfOptions());
+    new HtmlPdfExportOptions());
 await result.SaveAsync("quarterly-update.pdf");
 ```
 
@@ -24,7 +24,7 @@ For a screen-media or screen-snapshot PDF, pass an explicit render request. The 
 ```csharp
 using OfficeIMO.Html;
 
-var options = new HtmlToPdfOptions { ViewportWidth = 816, ViewportHeight = 900 };
+var options = new HtmlPdfExportOptions { ViewportWidth = 816, ViewportHeight = 900 };
 var request = HtmlRenderRequest.Create(
     HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderEncoder.Pdf, options);
 PdfDocumentConversionResult screen = await archive.RenderToPdfDocumentResultAsync(request);
@@ -38,7 +38,7 @@ Saved `template shadowmode` component content is projected into the static PDF, 
 Conversion is offline by default. To allow missing archive resources, apply an explicit bounded MHTML policy to the same options before conversion. The application fetcher must return exactly one response with automatic redirects disabled so OfficeIMO can approve every redirect target before requesting it:
 
 ```csharp
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
 };
 MhtmlRemoteResourcePolicy remote = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 2);

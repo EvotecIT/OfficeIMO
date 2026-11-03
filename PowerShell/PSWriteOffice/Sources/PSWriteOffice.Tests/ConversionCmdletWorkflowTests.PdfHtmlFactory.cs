@@ -26,7 +26,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         var output = shell.Invoke();
         Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
         Assert.Equal(2, output.Count);
-        var options = Assert.IsType<PdfToHtmlOptions>(output[0].BaseObject);
+        var options = Assert.IsType<PdfHtmlExportOptions>(output[0].BaseObject);
         Assert.Equal(PdfHtmlProfile.Semantic, options.Profile);
         string html = Assert.IsType<string>(output[1].BaseObject);
         Assert.Contains("Quarterly report content", html, StringComparison.Ordinal);

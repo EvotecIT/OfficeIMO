@@ -21,7 +21,7 @@ public partial class HtmlOfficeAdapters {
         }
         bytes.Position = 0;
         using var saved = PowerPointDocument.Load(bytes);
-        var settings = new PowerPointHtmlSaveOptions();
+        var settings = new PowerPointHtmlExportOptions();
         settings.DocumentOutput.DocumentTheme = dark ? OfficeTheme.Modern : OfficeTheme.Dark;
         string html = saved.ToHtml(settings);
         var parsed = new HtmlParser().ParseDocument(html);

@@ -9,13 +9,11 @@ using OfficeIMO.Publisher;
 using OfficeIMO.Publisher.Pdf;
 
 var publication = PublisherDocument.Load("brochure.pub");
-var converted = publication.ToPdfDocumentResult();
+OfficeConversionReport report = publication.SaveAsPdf("brochure.pdf");
 
-foreach (var diagnostic in publication.ReadReport.Diagnostics)
+foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.LossKind}: {diagnostic.Message}");
-
-var saved = converted.Save("brochure.pdf");
-Console.WriteLine($"Saved: {saved.Succeeded}, fidelity loss: {saved.HasLoss}");
+Console.WriteLine($"Fidelity loss: {report.HasLoss}");
 ```
 
 Document pages retain publication order and physical dimensions with zero added
@@ -23,15 +21,17 @@ margins. Master definitions are already applied by the Publisher reader and do
 not become separate PDF pages. Text and simple shapes remain drawing elements;
 pictures use the PDF engine's managed image handling.
 
-`ToPdfDocumentResult()` returns the existing `PdfDocumentConversionResult` with
-`PublisherReadReport` in `SourceConversionReports`. The PDF report captures
-rendering and serialization findings. Inspect source and output reports before
-accepting a conversion; successful saving does not imply native fidelity.
+The report combines the `PublisherReadReport` diagnostics with PDF rendering
+and serialization findings. Inspect it before accepting a conversion; successful
+saving does not imply native fidelity. Set `FailOnLoss` on
+`PublisherPdfExportOptions` to make reported loss an `OfficeConversionException`
+before anything is written.
 
-`ToPdfDocument()`, `ToPdfBytes()` and `SaveAsPdf()` provide convenience routes.
-Path and caller-stream saves return `PdfSaveResult`; stream output remains open.
-All routes accept cancellation and optional `PdfCreateOptions`, which are cloned for
-the operation. Refer to the [Publisher support contract](../OfficeIMO.Publisher/SUPPORT.md)
+`ToPdf(options, out report)` returns the PDF model, `ToPdfAsync` returns it with
+the report, and `SaveAsPdf`/`SaveAsPdfAsync` write a path or a caller-owned
+stream, which stays open. All routes accept cancellation; the options and their
+`PdfCreateOptions` are cloned for the operation. The async forms run the
+CPU-bound conversion on the thread pool and write the output asynchronously. Refer to the [Publisher support contract](../OfficeIMO.Publisher/SUPPORT.md)
 for profile and reconstruction limits, including linked text flow and native
 metafile placeholders.
 

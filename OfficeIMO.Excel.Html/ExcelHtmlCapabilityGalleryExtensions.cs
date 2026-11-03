@@ -21,12 +21,12 @@ public static class ExcelHtmlCapabilityGalleryExtensions {
         Directory.CreateDirectory(directoryPath);
 
         string filePrefix = ToFilePrefix(options.ScenarioId);
-        string semanticHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string semanticHtml = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
             Theme = options.Theme,
             Title = options.Title
         });
-        string visualHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string visualHtml = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelVisualReview,
             Theme = options.Theme,
             Title = options.Title + " Visual Review",

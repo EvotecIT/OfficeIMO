@@ -7,17 +7,17 @@ namespace OfficeIMO.Chm;
 public static class ChmPdfConverterExtensions {
     /// <summary>Converts help topics to PDF, preserving per-topic CSS isolation and composing source and renderer reports.</summary>
     public static PdfDocumentConversionResult ToPdfDocumentResult(this ChmDocument document, ChmConversionOptions? options = null,
-        HtmlToPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) =>
+        HtmlPdfExportOptions? pdfOptions = null, CancellationToken cancellationToken = default) =>
         Task.Run(() => document.ToPdfDocumentResultAsync(options, pdfOptions, cancellationToken), cancellationToken).GetAwaiter().GetResult();
 
     /// <summary>Asynchronously renders selected topics with archive-only resource resolution.</summary>
     public static async Task<PdfDocumentConversionResult> ToPdfDocumentResultAsync(this ChmDocument document, ChmConversionOptions? options = null,
-        HtmlToPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+        HtmlPdfExportOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
         IReadOnlyList<ChmTopic> topics = document.SelectTopics(configured);
         var diagnostics = document.SourceDiagnostics();
-        HtmlToPdfOptions template = pdfOptions?.ClonePdf() ?? new HtmlToPdfOptions();
+        HtmlPdfExportOptions template = pdfOptions?.ClonePdf() ?? new HtmlPdfExportOptions();
         if (topics.Count > 1 && template.PdfOptions.TaggedStructureMode != PdfTaggedStructureMode.None) {
             // The PDF owner blocks full rewrites of tagged structure. Preserve topic CSS and page
             // boundaries through an explicitly reported untagged merge instead of bypassing that gate.
@@ -32,7 +32,7 @@ public static class ChmPdfConverterExtensions {
         foreach (ChmTopic topic in topics) {
             cancellationToken.ThrowIfCancellationRequested();
             string html = topic.ReadHtml(cancellationToken); ChmDocument.ReserveCharacters(ref characters, html.Length, configured);
-            HtmlToPdfOptions rendering = template.ClonePdf();
+            HtmlPdfExportOptions rendering = template.ClonePdf();
             document.ConfigureRenderOptions(rendering, topic.Path);
             rendering.EmbeddedPackageResourceResolver = rendering.ResourcePolicy.AllowEmbeddedPackageResources ? document.CreateResourceResolver() : null;
             rendering.ResourceResolver = rendering.EmbeddedPackageResourceResolver;
@@ -70,7 +70,7 @@ public static class ChmPdfConverterExtensions {
 
     /// <summary>Serializes the selected topic pages as PDF.</summary>
     public static ChmConversionResult<byte[]> ToPdfBytesResult(this ChmDocument document, ChmConversionOptions? options = null,
-        HtmlToPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+        HtmlPdfExportOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
         PdfDocumentConversionResult result = document.ToPdfDocumentResult(configured, pdfOptions, cancellationToken);
         byte[] bytes = result.ToBytes(cancellationToken); ChmDocument.EnforceOutput(bytes.LongLength, configured);

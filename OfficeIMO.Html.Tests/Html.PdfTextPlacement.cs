@@ -9,7 +9,7 @@ public class HtmlPdfTextPlacement {
     [Fact]
     public void LayoutDefersUncoveredEmbeddedGlyphsUntilAutomaticFallbackSelection() {
         byte[] primaryBytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf"));
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions().EmbedStandardFont(
                 OfficeIMO.Pdf.PdfStandardFont.Helvetica, primaryBytes, "Primary")
         };
@@ -23,7 +23,7 @@ public class HtmlPdfTextPlacement {
     public void PrecomputedSceneKeepsTextAndLinkWithinItsAllocatedAdvance() {
         const string uri = "https://example.test/details";
         var rendered = HtmlRenderTestDriver.Render("<p style='font:24px Arial'><a href='" + uri + "'>NORTHWIND</a> follows</p>");
-        var result = HtmlPdfRenderedConverter.CreatePdf(rendered, new HtmlToPdfOptions(), CancellationToken.None);
+        var result = HtmlPdfRenderedConverter.CreatePdf(rendered, new HtmlPdfExportOptions(), CancellationToken.None);
         byte[] bytes = result.Document.ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
@@ -50,7 +50,7 @@ public class HtmlPdfTextPlacement {
             .RegisterEmbeddedFontFallbacks(new OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet(
                 new[] { new OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate("Fallback", fallbackBytes) },
                 new[] { OfficeIMO.Pdf.PdfStandardFont.TimesRoman }));
-        byte[] bytes = (HtmlConversionDocument.Parse("<p>" + text + "</p>").ToPdf(new HtmlToPdfOptions {
+        byte[] bytes = (HtmlConversionDocument.Parse("<p>" + text + "</p>").ToPdf(new HtmlPdfExportOptions {
             PdfOptions = options,
             TextFallbacks = OfficeIMO.Pdf.PdfTextFallbackFeatures.None
         })).ToBytes();

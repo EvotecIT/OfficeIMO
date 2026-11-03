@@ -24,7 +24,7 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Rota");
         sheet.Cell(1, 1).SetValue("Maya"); sheet.Cell(1, 2).SetValue("D");
         sheet.Cell(2, 1).SetValue("Leon"); sheet.Cell(2, 2).SetValue("R");
-        sheet.Range("B1:B2").ConditionalFormatting.ContainsText("D", "DCFCE7");
+        sheet.Range("B1:B2").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "D", "DCFCE7");
 
         PdfCore.PdfTableStyle style = ExportFlowTableStyle(document);
 
@@ -57,8 +57,8 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("Body");
-            sheet.SetHeaderFooter(headerCenter: "Scan&G");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateMinimalRgbPng(), width: OfficeLength.Points(24), height: OfficeLength.Points(18));
+            sheet.PageSetup.Header.Center.Text = "Scan&G";
+            sheet.PageSetup.Header.Center.SetImage(CreateMinimalRgbPng(), width: OfficeLength.Points(24), height: OfficeLength.Points(18));
             document.Save();
             bytes = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false })
                 .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

@@ -4,7 +4,7 @@
   "changes": [
     {
       "old": "OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelWorkbookImageExportOptions",
-      "new": "OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelImageExportOptions",
+      "new": "OfficeIMO.Excel.Html.ExcelHtmlExportOptions.VisualOptions : ExcelImageExportOptions",
       "file": "OfficeIMO.Excel.Html/ExcelHtmlSaveOptions.cs",
       "kind": "property",
       "action": "merge",
@@ -23,6 +23,24 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "OfficeIMO.Excel.Html.ExcelHtmlSaveOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.Html.ExcelHtmlExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Excel.Html.HtmlToExcelOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.Html.HtmlExcelExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
     }
   ],
   "extraChanges": [

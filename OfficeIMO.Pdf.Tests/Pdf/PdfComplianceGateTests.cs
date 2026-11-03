@@ -635,7 +635,7 @@ public class PdfComplianceGateTests {
             </body>
             </html>
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             DefaultFontFamily = "OfficeIMO Source Serif",
             FontFamily = new PdfEmbeddedFontFamily("OfficeIMO Source Serif", fontData),
             PdfOptions = CreatePdfUa1Options()

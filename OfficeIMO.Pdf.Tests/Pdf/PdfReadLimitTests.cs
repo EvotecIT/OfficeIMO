@@ -153,7 +153,7 @@ public class PdfReadLimitTests {
             PdfIncrementalUpdater.SignExternal(
                 stream,
                 signer,
-                new PdfExternalSignatureOptions { CancellationToken = cancellation.Token }));
+                new PdfExternalSignatureOptions(), cancellationToken: cancellation.Token));
         Assert.False(signer.WasCalled);
 
         using var currentPositionStream = new MemoryStream(prefixed);
@@ -204,7 +204,7 @@ public class PdfReadLimitTests {
         Assert.Throws<OperationCanceledException>(() =>
             PdfIncrementalUpdater.PrepareExternalSignature(
                 pdf,
-                new PdfExternalSignatureOptions { CancellationToken = cancellation.Token }));
+                new PdfExternalSignatureOptions(), cancellationToken: cancellation.Token));
 
         string inputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");

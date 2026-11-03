@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word.Converters {
             document.SaveAsMarkdown(markdownPath, exportOptions);
 
             string markdown = ResolveSidecarResourceLinks(File.ReadAllText(markdownPath), markdownPath, resourcesPath);
-            var importOptions = new WordMarkdownImportOptions {
+            var importOptions = new MarkdownWordExportOptions {
                 FontFamily = "Calibri",
                 AllowLocalImages = true
             };

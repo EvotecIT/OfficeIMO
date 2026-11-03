@@ -45,10 +45,10 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
 
-            sheet.AutoFilterTopBottom("A1:A10", 0, 100, percent: true);
+            sheet.Range("A1:A10").AutoFilter().Column(0).TopBottom(100, percent: true);
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                sheet.AutoFilterTopBottom("A1:A10", 0, 101, percent: true));
-            sheet.AutoFilterTopBottom("A1:A10", 0, 500, percent: false);
+                sheet.Range("A1:A10").AutoFilter().Column(0).TopBottom(101, percent: true));
+            sheet.Range("A1:A10").AutoFilter().Column(0).TopBottom(500, percent: false);
         }
 
         private sealed class CountingNonSeekableReadStream : Stream {

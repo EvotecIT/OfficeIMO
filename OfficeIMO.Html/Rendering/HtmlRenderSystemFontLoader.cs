@@ -15,12 +15,11 @@ internal static partial class HtmlRenderSystemFontLoader {
     internal static void Load(IHtmlDocument document, HtmlComputedStyleSet styles,
         OfficeFontFaceCollection fonts, HtmlRenderOptions options, HtmlResourceSession resources,
         HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken, HtmlCssPageRuleSet? pageRules = null) {
-        IReadOnlyList<string> configuredDefaults = Pdf.HtmlPdfRenderedConverter.RetainConfiguredDefaultFonts(
-            fonts, options, resources, diagnostics, cancellationToken);
+        var printOptions = options as IHtmlPrintRenderOptions;
+        IReadOnlyList<string> configuredDefaults = printOptions?.RetainConfiguredDefaultFonts(
+            fonts, resources, diagnostics, cancellationToken) ?? Array.Empty<string>();
         if (!options.AllowSystemFontFallback) return;
-        bool allowDocumentFamilies = options is Pdf.HtmlToPdfOptions pdfOptions
-            && pdfOptions.ResourcePolicy.AllowSystemFontEmbedding
-            && pdfOptions.ResourcePolicy.AllowDocumentFontEmbedding;
+        bool allowDocumentFamilies = printOptions?.AllowsDocumentSystemFontFamilies == true;
         var inherited = new Dictionary<IElement, (string Families, OfficeFontFaceDescriptor Descriptor)>();
         var attempted = new Dictionary<(string Family, OfficeFontFaceDescriptor Descriptor), bool>();
         var supplied = new HashSet<string>(fonts.Faces.Select(face => face.FamilyName), StringComparer.OrdinalIgnoreCase);

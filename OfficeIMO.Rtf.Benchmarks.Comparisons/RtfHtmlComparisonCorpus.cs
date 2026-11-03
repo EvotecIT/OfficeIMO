@@ -44,7 +44,7 @@ internal static class RtfHtmlComparisonCorpus {
             }
         }
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         return new RtfHtmlComparisonFixture(scale, rtf, paragraphCount);
     }
 }

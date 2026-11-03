@@ -16,17 +16,18 @@ public sealed class PdfFormUtilityCancellationTests {
         PdfDocument document = PdfDocument.Load(original);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var options = new PdfFormFillerOptions { CancellationToken = cancellation.Token };
+        var options = new PdfFormFillerOptions();
+        CancellationToken token = cancellation.Token;
 
         Assert.ThrowsAny<OperationCanceledException>(() => operation switch {
-            "fill" => document.Forms.Fill(Values, options),
-            "flatten" => document.Forms.Flatten(options),
-            _ => document.Forms.FillAndFlatten(Values, options)
+            "fill" => document.Forms.Fill(Values, options, cancellationToken: token),
+            "flatten" => document.Forms.Flatten(options, cancellationToken: token),
+            _ => document.Forms.FillAndFlatten(Values, options, cancellationToken: token)
         });
         Assert.ThrowsAny<OperationCanceledException>(() => operation switch {
-            "fill" => document.Forms.FillResult(Values, options, null),
-            "flatten" => document.Forms.FlattenResult(options, null),
-            _ => document.Forms.FillAndFlattenResult(Values, options, null)
+            "fill" => document.Forms.FillResult(Values, PdfOperationCancellation.Bind(options, createWhenNull: true, token)!, null),
+            "flatten" => document.Forms.FlattenResult(PdfOperationCancellation.Bind(options, createWhenNull: true, token)!, null),
+            _ => document.Forms.FillAndFlattenResult(Values, PdfOperationCancellation.Bind(options, createWhenNull: true, token)!, null)
         });
         Assert.Equal(original, document.ToBytes());
     }
@@ -81,12 +82,13 @@ public sealed class PdfFormUtilityCancellationTests {
         using var input = new TrackingInput(PdfFormPlacementFixture.CreateAuthored("text"), nonseekable: true,
             afterRead: cancellation.Cancel);
         using var output = new MemoryStream(new byte[] { 1, 2, 3 }, writable: true);
-        var options = new PdfFormFillerOptions { CancellationToken = cancellation.Token };
+        var options = new PdfFormFillerOptions();
+        CancellationToken token = cancellation.Token;
 
         Assert.ThrowsAny<OperationCanceledException>(() => {
-            if (operation == "fill") PdfFormFiller.FillFields(input, output, Values, options);
-            else if (operation == "flatten") PdfFormFiller.FlattenFields(input, output, options);
-            else PdfFormFiller.FillAndFlattenFields(input, output, Values, options);
+            if (operation == "fill") PdfFormFiller.FillFields(input, output, Values, options, cancellationToken: token);
+            else if (operation == "flatten") PdfFormFiller.FlattenFields(input, output, options, cancellationToken: token);
+            else PdfFormFiller.FillAndFlattenFields(input, output, Values, options, cancellationToken: token);
         });
 
         Assert.True(input.BytesRead > 0);
@@ -99,10 +101,10 @@ public sealed class PdfFormUtilityCancellationTests {
     public void StreamOutputObservesCancellationTriggeredByItsFinalWrite() {
         using var cancellation = new CancellationTokenSource();
         using var output = new CancellingOutput(cancellation);
-        var options = new PdfFormFillerOptions { CancellationToken = cancellation.Token };
+        var options = new PdfFormFillerOptions();
         byte[] source = PdfFormPlacementFixture.CreateAuthored("text");
 
-        Assert.ThrowsAny<OperationCanceledException>(() => PdfFormFiller.FillFields(source, output, Values, options));
+        Assert.ThrowsAny<OperationCanceledException>(() => PdfFormFiller.FillFields(source, output, Values, options, cancellationToken: cancellation.Token));
 
         Assert.True(output.Length > 0);
         Assert.True(output.CanWrite);
@@ -122,12 +124,13 @@ public sealed class PdfFormUtilityCancellationTests {
             File.WriteAllBytes(output, new byte[] { 1, 2, 3 });
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
-            var options = new PdfFormFillerOptions { CancellationToken = cancellation.Token };
+            var options = new PdfFormFillerOptions();
+            CancellationToken token = cancellation.Token;
 
             Assert.ThrowsAny<OperationCanceledException>(() => {
-                if (operation == "fill") PdfFormFiller.FillFields(input, output, Values, options);
-                else if (operation == "flatten") PdfFormFiller.FlattenFields(input, output, options);
-                else PdfFormFiller.FillAndFlattenFields(input, output, Values, options);
+                if (operation == "fill") PdfFormFiller.FillFields(input, output, Values, options, cancellationToken: token);
+                else if (operation == "flatten") PdfFormFiller.FlattenFields(input, output, options, cancellationToken: token);
+                else PdfFormFiller.FillAndFlattenFields(input, output, Values, options, cancellationToken: token);
             });
 
             Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(output));
@@ -137,19 +140,15 @@ public sealed class PdfFormUtilityCancellationTests {
         }
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ExplicitAndOptionsTokensBothCancelTypedFill(bool cancelOptionsToken) {
+    [Fact]
+    public void ExplicitTokenCancelsTypedFill() {
         using var explicitCancellation = new CancellationTokenSource();
-        using var optionsCancellation = new CancellationTokenSource();
-        (cancelOptionsToken ? optionsCancellation : explicitCancellation).Cancel();
+        explicitCancellation.Cancel();
         byte[] source = PdfFormPlacementFixture.CreateAuthored("text");
         var values = new Dictionary<string, PdfFormFieldValue> { ["Value"] = PdfFormFieldValue.From("QgjH") };
-        var options = new PdfFormFillerOptions { CancellationToken = optionsCancellation.Token };
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            PdfFormFiller.FillFields(source, values, options, null, explicitCancellation.Token));
+            PdfFormFiller.FillFields(source, values, new PdfFormFillerOptions(), null, explicitCancellation.Token));
     }
 
     private static byte[] Run(string operation, Stream stream, PdfFormFillerOptions? formOptions, PdfLoadOptions readOptions) => operation switch {

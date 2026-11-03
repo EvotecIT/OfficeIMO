@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;

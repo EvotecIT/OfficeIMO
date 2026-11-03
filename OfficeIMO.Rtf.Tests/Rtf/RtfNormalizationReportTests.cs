@@ -16,7 +16,7 @@ public sealed class RtfNormalizationReportTests {
 
     [Fact]
     public void Normalization_Reports_Read_Policy_Blocks_And_Invalidated_Alternate_Html() {
-        RtfReadResult blocked = RtfDocument.ParseResult(@"{\rtf1\ansi{\*\filetbl{\file\fid0 path}}Visible\par}", RtfReadOptions.UntrustedDefaults);
+        RtfReadResult blocked = RtfDocument.ParseResult(@"{\rtf1\ansi{\*\filetbl{\file\fid0 path}}Visible\par}", RtfLoadOptions.UntrustedDefaults);
         Assert.Contains(blocked.Document.ToRtfResult().Report.NativeDiagnostics, item => item.Code == "RTF106" && item.Action == RtfConversionAction.Blocked);
         RtfDocument html = RtfDocument.ParseResult(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Original HTML</p>}\htmlrtf1 Original fallback\par}").Document;
         Assert.DoesNotContain(html.ToRtfResult().Report.Diagnostics, item => item.Code == "RtfNormalizationHtmlOmitted");
@@ -29,7 +29,7 @@ public sealed class RtfNormalizationReportTests {
     [InlineData(true)]
     public void Normalization_Reports_Unbound_Source_Content_Even_When_Read_Warnings_Are_Disabled(bool warn) {
         const string source = @"{\rtf1\ansi{\*\vendorpayload Secret metadata}\pard Visible\par}";
-        RtfReadResult read = RtfDocument.ParseResult(source, new RtfReadOptions { WarnOnUnsupportedDestinations = warn });
+        RtfReadResult read = RtfDocument.ParseResult(source, new RtfLoadOptions { WarnOnUnsupportedDestinations = warn });
         Assert.Equal(source, read.ToRtfLossless());
         RtfConversionResult<string> output = read.Document.ToRtfResult();
         Assert.Contains(output.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == "vendorpayload" && diagnostic.Action == RtfConversionAction.Omitted);

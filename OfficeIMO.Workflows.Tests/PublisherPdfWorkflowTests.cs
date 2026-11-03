@@ -87,7 +87,7 @@ public sealed class PublisherPdfWorkflowTests {
         try {
             string input = CopySource(root), output = Path.Combine(root, "result.pdf");
             byte[] sentinel = [3, 2, 1]; File.WriteAllBytes(output, sentinel);
-            var read = new PublisherReadOptions { MaxPages = limit == "pages" ? 1 : 1024 };
+            var read = new PublisherLoadOptions { MaxPages = limit == "pages" ? 1 : 1024 };
             if (limit == "records") read.Limits.MaxRecords = 16;
             var request = ((new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Convert,

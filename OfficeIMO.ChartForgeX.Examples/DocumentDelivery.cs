@@ -52,8 +52,8 @@ internal static class DocumentDelivery {
             sheet.Cell(1, 2).SetValue(Heading(specimen));
             sheet.Cell(1, 2).SetFontName(Style.FontFamily); sheet.Cell(1, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints));
             // The picture remains within the authored Letter print width after the half-inch margins.
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
-            sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
             sheet.AddVisualArtifact("B4:I18", specimen.Artifact);
             sheet.Range("B21:I23").Merge();
             sheet.Cell(21, 2).SetValue(specimen.Caption);

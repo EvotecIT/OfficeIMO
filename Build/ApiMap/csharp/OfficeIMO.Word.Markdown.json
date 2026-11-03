@@ -85,7 +85,7 @@
     ],
     "otherUsings": "MarkdownToWordConverter.cs, .Images.cs, .SharedRendering.cs, .Formatting.cs and .BlockRenderer.cs have \"using OfficeIMO.Word.Html; using OfficeIMO.Markdown.Html;\" but no other type use (verify at compile time).",
     "removal": [
-      "Add an internal raw-HTML hook to WordMarkdownImportOptions (for example Func<string, WordDocument, bool> or an IWordMarkdownHtmlRenderer interface) that defaults to a non-HTML fallback: emit the raw HTML as literal/code text and record an OfficeDiagnostic (\"html-block-as-text\").",
+      "Add an internal raw-HTML hook to MarkdownWordExportOptions (for example Func<string, WordDocument, bool> or an IWordMarkdownHtmlRenderer interface) that defaults to a non-HTML fallback: emit the raw HTML as literal/code text and record an OfficeDiagnostic (\"html-block-as-text\").",
       "OfficeIMO.Word.Html registers the real HTML renderer when present: either an opt-in extension (options.UseHtmlBlocks()) in OfficeIMO.Word.Html, or the OfficeIMO front door wires it so the default bundle keeps today's behavior.",
       "Drop both ProjectReferences; OfficeIMO.Word.Markdown then references Core, Word and Markdown only.",
       "Behavior change: users of OfficeIMO.Word.Markdown alone lose HTML-block fidelity unless they also install OfficeIMO.Word.Html (or OfficeIMO). Document in MIGRATION.md."
@@ -183,48 +183,48 @@
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocumentResult(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "MarkdownDocument.ToWord(WordMarkdownImportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)",
+      "new": "MarkdownDocument.ToWord(MarkdownWordExportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)",
       "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "WordDocument.FromMarkdown(markdown, WordMarkdownImportOptions options, out OfficeConversionReport report)",
+      "supersededM0Target": "WordDocument.FromMarkdown(markdown, MarkdownWordExportOptions options, out OfficeConversionReport report)",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, MarkdownToWordOptions options = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "rename",
-      "new": "MarkdownDocument.ToWord(WordMarkdownImportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)",
+      "new": "MarkdownDocument.ToWord(MarkdownWordExportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
       "notes": "Extension on MarkdownDoc today (md.ToWordDocument()); static WordDocument.FromMarkdown needs a C# 14 static extension member.",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "WordDocument.FromMarkdown(MarkdownDocument | string markdown, WordMarkdownImportOptions options = null, CancellationToken cancellationToken = default) : WordDocument",
+      "supersededM0Target": "WordDocument.FromMarkdown(MarkdownDocument | string markdown, MarkdownWordExportOptions options = null, CancellationToken cancellationToken = default) : WordDocument",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocument(MarkdownDoc markdown, WordDocument templateDocument, MarkdownToWordTemplateOptions options = null)",
       "kind": "method",
       "action": "merge",
-      "new": "MarkdownDocument.ToWord(WordMarkdownImportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)",
+      "new": "MarkdownDocument.ToWord(MarkdownWordExportOptions options = null) / MarkdownDocument.ToWord(options, out OfficeConversionReport report)",
       "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
       "category": "conversion",
-      "notes": "MarkdownToWordTemplateOptions merges into WordMarkdownImportOptions.",
+      "notes": "MarkdownToWordTemplateOptions merges into MarkdownWordExportOptions.",
       "phase": "A",
       "applied": "applied",
-      "supersededM0Target": "WordDocument.FromMarkdown(MarkdownDocument | string markdown, WordMarkdownImportOptions { Template = templateDocument }) : WordDocument",
+      "supersededM0Target": "WordDocument.FromMarkdown(MarkdownDocument | string markdown, MarkdownWordExportOptions { Template = templateDocument }) : WordDocument",
       "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
     },
     {
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordOptions",
       "kind": "type",
       "action": "rename",
-      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+      "new": "OfficeIMO.Word.Markdown.MarkdownWordExportOptions",
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
       "category": "options",
@@ -235,11 +235,11 @@
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordTemplateOptions",
       "kind": "type",
       "action": "merge",
-      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+      "new": "OfficeIMO.Word.Markdown.MarkdownWordExportOptions",
       "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
       "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordTemplateOptions.cs",
       "category": "options",
-      "notes": "Template becomes WordMarkdownImportOptions.Template.",
+      "notes": "Template becomes MarkdownWordExportOptions.Template.",
       "phase": "A",
       "applied": "applied"
     },
@@ -358,7 +358,7 @@
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordOptions.CreateReaderOptions()",
       "kind": "method",
       "action": "keep",
-      "new": "WordMarkdownImportOptions.CreateReaderOptions() : MarkdownLoadOptions",
+      "new": "MarkdownWordExportOptions.CreateReaderOptions() : MarkdownLoadOptions",
       "reason": "Public source parsing must apply Word semantic fences and import reader settings before image preparation and template conversion. PSWriteOffice uses this existing library factory through public APIs, as required by the design.",
       "file": "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
       "category": "visibility",
@@ -409,7 +409,7 @@
       "old": "OfficeIMO.Word.Markdown.MarkdownToWordPresets",
       "kind": "type",
       "action": "merge",
-      "new": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions.CreateIntelligenceXTranscript(IReadOnlyList<string> allowedImageDirectories = null, OfficeLength? visualMaxWidth = null) : WordMarkdownImportOptions",
+      "new": "OfficeIMO.Word.Markdown.MarkdownWordExportOptions.CreateIntelligenceXTranscript(IReadOnlyList<string> allowedImageDirectories = null, OfficeLength? visualMaxWidth = null) : MarkdownWordExportOptions",
       "reason": "Options are created on the options type, as WordHtmlExportOptions.Create…Profile does. The preset is documented in the package README, so it stays public (design: Visibility) in the adapter that owns Markdown to Word (design: Packages).",
       "file": "OfficeIMO.Word.Markdown/Presets/MarkdownToWordPresets.cs",
       "category": "visibility",
@@ -420,7 +420,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "The documented factory is merged into WordMarkdownImportOptions. Its visual width takes OfficeLength; the existing 96-DPI rounding, 320–2,000 pixel clamp, transcript defaults and local-image policy are preserved. No preset facade remains.",
+      "note": "The documented factory is merged into MarkdownWordExportOptions. Its visual width takes OfficeLength; the existing 96-DPI rounding, 320–2,000 pixel clamp, transcript defaults and local-image policy are preserved. No preset facade remains.",
       "currentFile": "OfficeIMO.Word.Markdown/Options/WordMarkdownImportOptions.Transcript.cs"
     },
     {
@@ -500,6 +500,15 @@
       "category": "naming",
       "phase": "A",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Markdown.MarkdownWordExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
     }
   ],
   "packageMoves": [
@@ -538,7 +547,7 @@
     },
     {
       "subject": "Caller-owned template import",
-      "note": "WordMarkdownImportOptions.Template and placeholder properties absorb the separate template bag; caller-owned templates are never disposed on a loss rejection.",
+      "note": "MarkdownWordExportOptions.Template and placeholder properties absorb the separate template bag; caller-owned templates are never disposed on a loss rejection.",
       "status": "applied"
     },
     {
@@ -588,7 +597,7 @@
         "OfficeIMO.Word.Markdown/Options/MarkdownToWordOptions.cs",
         "OfficeIMO.Word.Markdown/Options/MarkdownImageLayoutOptions.cs",
         "OfficeIMO.Word.Markdown/WordMarkdownConverterExtensions.cs",
-        "OfficeIMO.Word.Markdown/Options/WordMarkdownImportOptions.Transcript.cs",
+        "OfficeIMO.Word.Markdown/Options/MarkdownWordExportOptions.Transcript.cs",
         "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.Images.cs",
         "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.BlockRenderer.cs",
         "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ConvertFromOfficeWordMarkdownCommand.cs",
@@ -599,13 +608,13 @@
       "note": "Null and nonpositive cap handling, aspect ratio, percentage hints and resource limits are unchanged. Native pixel calculations explicitly convert through 96-DPI OfficeLength.Pixels. Existing PowerShell pixel-named parameters keep their behavior through mechanical conversion to the new library properties.",
       "propertyRenames": [
         {
-          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+          "declaringType": "OfficeIMO.Word.Markdown.MarkdownWordExportOptions",
           "old": "public double? MaxImageWidthPixels { get; set; }",
           "new": "public global::OfficeIMO.OfficeLength? MaxImageWidth { get; set; }",
           "applied": "phase-b-applied"
         },
         {
-          "declaringType": "OfficeIMO.Word.Markdown.WordMarkdownImportOptions",
+          "declaringType": "OfficeIMO.Word.Markdown.MarkdownWordExportOptions",
           "old": "public double? MaxImageHeightPixels { get; set; }",
           "new": "public global::OfficeIMO.OfficeLength? MaxImageHeight { get; set; }",
           "applied": "phase-b-applied"

@@ -201,8 +201,9 @@ namespace OfficeIMO.Tests
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
 
-            Assert.Throws<System.ArgumentOutOfRangeException>(() => sheet.AutoFilterBlanks("A1:B2", 2));
-            Assert.Empty(sheet.GetAutoFilters());
+            ExcelAutoFilter filter = sheet.Range("A1:B2").AutoFilter();
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => filter.Column(2));
+            Assert.Empty(Assert.Single(sheet.GetAutoFilters()).Columns);
         }
     }
 }

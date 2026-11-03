@@ -20,7 +20,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("O");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -45,7 +45,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText(" shown");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -64,7 +64,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("Plain");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -111,7 +111,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("Plain");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -159,7 +159,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText(" done");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -191,7 +191,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText(" done");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfFont consolasFont = Assert.Single(rtfDocument.Fonts, font => font.Name == "Consolas");

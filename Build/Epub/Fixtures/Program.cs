@@ -22,7 +22,7 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
         Features = new[] { "structuralNavigation", "tableOfContents", "alternativeText" }, Hazards = new[] { "none" },
         Summary = "Prose, Arabic and Japanese text, a table, wrapping code, and a labelled vector. No flashing, motion, or audio."
     });
-    byte[] bytes = imported.Publication.Write(new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) }).Bytes;
+    byte[] bytes = imported.Publication.Write(new EpubSaveOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) }).Bytes;
     string epub = Path.Combine(outputDirectory, name + ".epub");
     File.WriteAllBytes(epub, bytes);
     string expanded = Path.Combine(outputDirectory, name);
@@ -100,7 +100,7 @@ File.WriteAllText(Path.Combine(outputDirectory, "manifest.json"), JsonSerializer
 Console.WriteLine(Path.Combine(outputDirectory, "manifest.json"));
 
 void WriteFixture(string name, EpubPublication publication) {
-    byte[] bytes = publication.Write(new EpubWriteOptions {
+    byte[] bytes = publication.Write(new EpubSaveOptions {
         ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
     }).Bytes;
     File.WriteAllBytes(Path.Combine(outputDirectory, name + ".epub"), bytes);

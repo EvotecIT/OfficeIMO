@@ -494,7 +494,7 @@ Paragraph body.
 
     [Fact]
     public void HtmlToMarkdown_Applies_DocumentTransforms_To_IntermediateDocument() {
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.DocumentTransforms.Add(
             new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
 
@@ -516,7 +516,7 @@ Paragraph body.
 
     [Fact]
     public void HtmlToMarkdown_Can_Apply_InlineNormalizationTransform_To_IntermediateDocument() {
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightParentheticalSpacing = true,
             NormalizeTightColonSpacing = true
@@ -534,7 +534,7 @@ Paragraph body.
 
     [Fact]
     public void HtmlToMarkdown_Can_Trim_LooseStrongWhitespace_Via_InlineNormalizationTransform() {
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeLooseStrongDelimiters = true
         }));
@@ -549,7 +549,7 @@ Paragraph body.
 
     [Fact]
     public void HtmlToMarkdown_Can_Normalize_TightArrowStrongBoundary_Via_InlineNormalizationTransform() {
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightArrowStrongBoundaries = true
         }));
@@ -617,7 +617,7 @@ Impact: none
 
     [Fact]
     public void HtmlToMarkdown_Can_Expand_Simple_Definition_List_Entries_Via_Transform() {
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
 
         var document = OfficeIMO.Html.HtmlConversionDocument.Parse("""

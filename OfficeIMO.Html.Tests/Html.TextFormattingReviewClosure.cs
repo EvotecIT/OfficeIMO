@@ -44,7 +44,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             Baseline = 0
         };
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("font-weight:700", html, StringComparison.Ordinal);
         Assert.Contains("font-style:italic", html, StringComparison.Ordinal);
@@ -108,7 +108,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         accent.RemoveAllChildren();
         accent.Append(new A.RgbColorModelHex { Val = "336699" });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("color:#336699", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("color:#884422", html, StringComparison.OrdinalIgnoreCase);
@@ -122,7 +122,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         run.Run.RunProperties = new A.RunProperties();
         run.RunProperties.Append(new A.LatinFont { Typeface = "+mn-lt" });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("font-family:&#39;Theme Minor&#39;", html, StringComparison.Ordinal);
         Assert.DoesNotContain("+mn-lt", html, StringComparison.Ordinal);
@@ -146,7 +146,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         complexScript.Run.RunProperties = new A.RunProperties { Language = "ar-SA" };
         complexScript.RunProperties.Append(new A.ComplexScriptFont { Typeface = "+mn-cs" });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("font-family:&#39;Major East Asian&#39;", html, StringComparison.Ordinal);
         Assert.Contains("font-family:&#39;Minor Complex Script&#39;", html, StringComparison.Ordinal);
@@ -163,7 +163,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         run.RunProperties.Append(new A.EastAsianFont { Typeface = "East Asian Face" });
         run.RunProperties.Append(new A.ComplexScriptFont { Typeface = "Complex Face" });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("font-family:&#39;Latin Face&#39;", html, StringComparison.Ordinal);
         Assert.Contains("font-family:&#39;East Asian Face&#39;", html, StringComparison.Ordinal);
@@ -181,7 +181,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         PowerPointParagraph second = textBox.AddParagraph("Second");
         second.Runs[0].Italic = true;
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
             .ToPowerPointDocumentResult()
@@ -203,7 +203,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         paragraph.AddLineBreak();
         paragraph.AddField("27 August 2026", "datetime1", "{11111111-1111-1111-1111-111111111111}");
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("Before</span><br data-officeimo-powerpoint-inline-break=\"true\"><span data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-field-id=\"{11111111-1111-1111-1111-111111111111}\"", html, StringComparison.Ordinal);
@@ -229,7 +229,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         run.StrikeStyle = PowerPointStrikeStyle.Double;
         run.FontFamily = "O'Brien Sans";
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("data-officeimo-powerpoint-font-family=\"O&#39;Brien Sans\"", html, StringComparison.Ordinal);
         Assert.Contains("text-decoration-line:underline;text-decoration-style:wavy", html, StringComparison.Ordinal);

@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(path);
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Format-specific density");
-            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+            sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Jpeg,
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(path);
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Safety-limited page");
-            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+            sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Png,

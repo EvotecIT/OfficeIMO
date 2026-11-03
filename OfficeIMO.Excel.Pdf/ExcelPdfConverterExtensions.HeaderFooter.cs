@@ -161,7 +161,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static PreparedHeaderFooterImage? PrepareHeaderFooterImage(
-            ExcelSheet.ExcelHeaderFooterImageInfo? image,
+            ExcelHeaderFooterImageInfo? image,
             string sheetName,
             string location,
             ExcelPdfExportOptions options) {

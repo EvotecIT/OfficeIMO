@@ -24,7 +24,7 @@ internal static class TrainingMatrix {
         for (int row = 0; row < 6; row++) for (int column = 0; column < 5; column++) sheet.Cell(row + 4, column + 1).SetValue(values[row, column]);
         for (int row = 5; row <= 9; row++) sheet.Cell(row, 5).SetFormula($"COUNTIF(B{row}:D{row},\"Complete\")");
         sheet.AddTable("A4:E9", hasHeader: true, name: "Training", style: ExcelTableStyle.TableStyleMedium2);
-        sheet.ValidationList("B5:D9", new[] { "Not started", "Scheduled", "Complete" });
+        sheet.Range("B5:D9").Validation().List(new[] { "Not started", "Scheduled", "Complete" });
         sheet.Cell(11, 1).SetValue("Completed modules"); sheet.Cell(11, 5).SetFormula("SUM(E5:E9)");
         sheet.Cell(12, 1).SetValue("Required modules"); sheet.Cell(12, 5).SetValue(15);
         sheet.Cell(13, 1).SetValue("Completion rate"); sheet.Cell(13, 5).SetFormula("E11/E12"); sheet.Cell(13, 5).SetNumberFormat("0%");

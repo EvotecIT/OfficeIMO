@@ -14,7 +14,7 @@ public class RtfPdfConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("bounded font resolution");
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => (document.ToPdf(new RtfToPdfOptions {
+        Assert.Throws<ArgumentOutOfRangeException>(() => (document.ToPdf(new RtfPdfExportOptions {
             MaximumSystemFontFamilies = -1
         })).ToBytes());
     }
@@ -31,10 +31,10 @@ public class RtfPdfConverterTests {
         RtfRun run = document.AddParagraph().AddText("RTF font policy marker");
         run.FontId = fontId;
 
-        PdfCore.PdfDocument portable = document.ToPdf(new RtfToPdfOptions {
+        PdfCore.PdfDocument portable = document.ToPdf(new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
-        PdfCore.PdfDocument trusted = document.ToPdf(new RtfToPdfOptions {
+        PdfCore.PdfDocument trusted = document.ToPdf(new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         });
 
@@ -59,7 +59,7 @@ public class RtfPdfConverterTests {
         PdfCore.PdfResourcePolicy policy = PdfCore.PdfResourcePolicy.CreateDefault();
         policy.AllowDocumentFontEmbedding = false;
 
-        PdfCore.PdfDocument converted = document.ToPdf(new RtfToPdfOptions {
+        PdfCore.PdfDocument converted = document.ToPdf(new RtfPdfExportOptions {
             ResourcePolicy = policy,
             PdfOptions = new PdfCore.PdfCreateOptions { EmbedDefaultFonts = embedDefaultFonts }
         });
@@ -82,7 +82,7 @@ public class RtfPdfConverterTests {
         document.AddParagraph().AddText("missing default").FontId = missingFontId;
         document.AddParagraph().AddText("installed run").FontId = installedFontId;
 
-        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
             MaximumSystemFontFamilies = 2
         });
@@ -106,7 +106,7 @@ public class RtfPdfConverterTests {
             CompressContentStreams = false
         };
 
-        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfPdfExportOptions {
             PdfOptions = callerPdfOptions,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         });
@@ -131,7 +131,7 @@ public class RtfPdfConverterTests {
             PageSetup = { Header = { StandardFont = PdfCore.PdfStandardFont.TimesRoman } }
         };
 
-        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfPdfExportOptions {
             PdfOptions = callerPdfOptions,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
@@ -168,7 +168,7 @@ public class RtfPdfConverterTests {
         run.FontSize = 10;
         byte[] sourceBefore = document.ToBytes();
 
-        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfPdfExportOptions {
             PdfOptions = pdfOptions,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost(),
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
@@ -265,7 +265,7 @@ public class RtfPdfConverterTests {
         paragraph.AddText("Hidden").SetHidden();
 
         string defaultText = PdfCore.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
-        string includedText = PdfCore.PdfReadDocument.Open((document.ToPdf(new RtfToPdfOptions {
+        string includedText = PdfCore.PdfReadDocument.Open((document.ToPdf(new RtfPdfExportOptions {
             IncludeHiddenText = true
         })).ToBytes()).ExtractText();
 
@@ -285,7 +285,7 @@ public class RtfPdfConverterTests {
         document.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Skipped table");
         document.AddImage(RtfImageFormat.Emf, new byte[] { 0x01, 0x02, 0x03 });
 
-        var options = new RtfToPdfOptions {
+        var options = new RtfPdfExportOptions {
             IncludeHeaderFooters = false,
             IncludeNotes = false,
             IncludeTables = false
@@ -341,7 +341,7 @@ public class RtfPdfConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddText("Hidden").SetHidden();
 
-        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfPdfExportOptions {
             IncludeHiddenText = true
         });
 
@@ -356,7 +356,7 @@ public class RtfPdfConverterTests {
     public void RtfDocument_ToPdfDocument_Converts_Dib_Through_Shared_Drawing() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Dib, CreateDib24(OfficeColor.FromRgb(18, 52, 86)));
-        var options = new RtfToPdfOptions();
+        var options = new RtfPdfExportOptions();
 
         PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
@@ -374,7 +374,7 @@ public class RtfPdfConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Emf, new byte[] { 1, 2, 3 });
         int conversionCount = 0;
-        var options = new RtfToPdfOptions {
+        var options = new RtfPdfExportOptions {
             ImageConverter = _ => {
                 conversionCount++;
                 return OfficePngWriter.EncodeRgba(1, 1, new byte[] { 255, 0, 0, 255 });
@@ -397,7 +397,7 @@ public class RtfPdfConverterTests {
     public void RtfDocument_ToPdfDocument_Normalizes_Configured_Gif_Through_Shared_Drawing() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Emf, new byte[] { 1, 2, 3 });
-        var options = new RtfToPdfOptions {
+        var options = new RtfPdfExportOptions {
             ImageConverter = _ => Convert.FromBase64String("R0lGODlhAQABAJAAAAAAAP///ywAAAAAAQABAAACAkwBADs=")
         };
 
@@ -639,7 +639,7 @@ public class RtfPdfConverterTests {
         document.PageSetup.PageBorders.Top.Set(RtfPageBorderStyle.Single, width: 40, space: 24, colorIndex: red);
         document.AddParagraph("Bordered document");
 
-        byte[] pdf = (document.ToPdf(new RtfToPdfOptions {
+        byte[] pdf = (document.ToPdf(new RtfPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
         })).ToBytes();
         string content = ExtractPdfContentStreams(pdf);
@@ -665,7 +665,7 @@ public class RtfPdfConverterTests {
         second.PageSetup.PageBorders.Left.Set(RtfPageBorderStyle.Dotted, width: 20, space: 12, colorIndex: blue);
         second.AddParagraph("Second border section");
 
-        byte[] pdf = (document.ToPdf(new RtfToPdfOptions {
+        byte[] pdf = (document.ToPdf(new RtfPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
         })).ToBytes();
         string content = ExtractPdfContentStreams(pdf);
@@ -789,7 +789,7 @@ public class RtfPdfConverterTests {
         annotationRun.Note!.Author = "Alice";
 
         string defaultText = PdfCore.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
-        string skippedText = PdfCore.PdfReadDocument.Open((document.ToPdf(new RtfToPdfOptions {
+        string skippedText = PdfCore.PdfReadDocument.Open((document.ToPdf(new RtfPdfExportOptions {
             IncludeNotes = false
         })).ToBytes()).ExtractText();
 
@@ -859,7 +859,7 @@ public class RtfPdfConverterTests {
         document.AddFooter().AddParagraph("Hidden footer");
         document.AddParagraph("Visible body");
 
-        byte[] pdf = (document.ToPdf(new RtfToPdfOptions {
+        byte[] pdf = (document.ToPdf(new RtfPdfExportOptions {
             IncludeHeaderFooters = false
         })).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf,
@@ -876,7 +876,7 @@ public class RtfPdfConverterTests {
         RtfObject rtfObject = document.AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2 });
         rtfObject.Result.AddText("Object result");
         document.AddShape().AddTextBoxParagraph("Shape result");
-        var options = new RtfToPdfOptions();
+        var options = new RtfPdfExportOptions();
 
         PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();

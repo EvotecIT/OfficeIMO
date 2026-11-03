@@ -47,7 +47,7 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("Body");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Equal(16838, rtfDocument.PageSetup.PaperWidthTwips);
         Assert.Equal(11906, rtfDocument.PageSetup.PaperHeightTwips);
@@ -111,7 +111,7 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("Body");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.True(rtfDocument.Settings.MirrorMargins);
         Assert.Contains(@"\margmirror", rtf, StringComparison.Ordinal);
@@ -128,7 +128,7 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("Body");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         Assert.Equal(1440, rtfDocument.Settings.DefaultTabWidthTwips);
         Assert.Equal(125, rtfDocument.Settings.ViewScale);

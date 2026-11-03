@@ -52,7 +52,7 @@ public partial class Excel {
             sheet.Cell(2, 2).SetValue("InsideHeader");
             sheet.Cell(3, 2).SetValue("InsideValue");
             sheet.Cell(4, 4).SetValue("OutsideRight");
-            document.SetPrintArea(sheet, "B2:C3");
+            sheet.PageSetup.PrintArea = "B2:C3";
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -77,7 +77,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("OnlyCell");
             sheet.Cell(2, 1).SetValue("OutsideCell");
-            document.SetPrintArea(sheet, "A1");
+            sheet.PageSetup.PrintArea = "A1";
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -170,7 +170,7 @@ public partial class Excel {
             });
             sheet.AddChart(OfficeChartType.ColumnClustered, "B2:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 3, Column = 2, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Inside Chart" });
             sheet.AddChart(OfficeChartType.ColumnClustered, "B2:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 10, Column = 1, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Outside Chart" });
-            document.SetPrintArea(sheet, "B2:C3");
+            sheet.PageSetup.PrintArea = "B2:C3";
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -216,8 +216,8 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("Name");
             sheet.Cell(2, 1).SetValue("WorksheetPageSetup");
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5));
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.SetMargins(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5));
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -243,7 +243,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("Name");
             sheet.Cell(2, 1).SetValue("WorksheetPaperSize");
-            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -266,7 +266,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("Name");
             sheet.Cell(2, 1).SetValue("PdfOptionsPageSize");
-            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -294,7 +294,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("Name");
             sheet.Cell(2, 1).SetValue("ExplicitLetter");
-            sheet.SetPageSetup(paperSize: ExcelPaperSize.A3);
+            sheet.PageSetup.PaperSize = ExcelPaperSize.A3;
             document.Save();
 
             var options = new ExcelPdfExportOptions {
@@ -319,7 +319,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("Name");
             sheet.Cell(2, 1).SetValue("DefaultPdfPageSize");
-            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -352,7 +352,7 @@ public partial class Excel {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36D)));
             }
 
-            sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
+            sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 1U;
             document.Save();
 
             pdfDocument = document.ToPdf(new ExcelPdfExportOptions {
@@ -396,8 +396,8 @@ public partial class Excel {
                 sheet.Cell(row, 2).SetValue(row);
             }
 
-            document.SetPrintArea(sheet, "A3:B90");
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null);
+            sheet.PageSetup.PrintArea = "A3:B90";
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -481,8 +481,8 @@ public partial class Excel {
             sheet.Cell(11, 1).SetValue("ExportedBody");
             sheet.Cell(11, 2).SetValue("BodyValue");
             sheet.AddManualRowPageBreak(5);
-            document.SetPrintArea(sheet, "A10:B11");
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 2, firstCol: null, lastCol: null);
+            sheet.PageSetup.PrintArea = "A10:B11";
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 2, firstColumn: null, lastColumn: null);
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {

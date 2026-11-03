@@ -38,7 +38,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Existing";
-        var options = new WordHtmlImportOptions { MaxImageBytes = 1 };
+        var options = new HtmlWordExportOptions { MaxImageBytes = 1 };
 
         cell.AddHtml(
             HtmlConversionDocument.Parse(
@@ -56,7 +56,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_InvalidBlockBorderLonghands_CanStopConversion(
         string propertyName,
         string propertyValue) {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 
@@ -147,7 +147,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_SupportedTableSpacing_PassesStrictDiagnostics() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<table style="margin:0 auto;padding:4px"><tr><td>Cell</td></tr></table>""")
-            .ToWord(new WordHtmlImportOptions {
+            .ToWord(new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             });
         WordTable table = Assert.Single(document.Tables);
@@ -176,7 +176,7 @@ public partial class HtmlWordGapClosure {
         HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
             HtmlConversionDocument
                 .Parse("""<p style="margin-block-start:-10px">Unsupported vertical overlap</p>""")
-                .ToWord(new WordHtmlImportOptions {
+                .ToWord(new HtmlWordExportOptions {
                     UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
                 }));
 
@@ -280,7 +280,7 @@ public partial class HtmlWordGapClosure {
     public void WordTableCell_AddHtml_BelowTableCaptionReusesTheTrailingParagraph() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        var options = new WordHtmlImportOptions { TableCaptionPosition = WordHtmlTableCaptionPosition.Below };
+        var options = new HtmlWordExportOptions { TableCaptionPosition = WordHtmlTableCaptionPosition.Below };
 
         cell.AddHtml(
             HtmlConversionDocument.Parse(
@@ -429,7 +429,7 @@ public partial class HtmlWordGapClosure {
     public void HtmlToWord_TransparentBlockBackground_PassesStrictDiagnosticsAndClearsFill() {
         using WordDocument document = HtmlConversionDocument
             .Parse("""<div style="background-color:#ff0000;background-color:transparent"><p>Cleared</p></div>""")
-            .ToWord(new WordHtmlImportOptions {
+            .ToWord(new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             });
         WordParagraph paragraph = Assert.Single(
@@ -520,7 +520,7 @@ public partial class HtmlWordGapClosure {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             return Task.FromResult(response);
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
             ImageProcessing = WordHtmlImageProcessingMode.Embed,
             MaxConcurrentResourceLoads = 2,

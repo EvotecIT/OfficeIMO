@@ -70,12 +70,12 @@ public class OfficeMarkupTextFormattingTests {
         var powerPointSource = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         powerPointSource.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));
         OfficeMarkupPowerPointConversionResult powerPoint = powerPointSource.ToPowerPointDocumentResult(
-            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+            new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
 
         var wordSource = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
         wordSource.Blocks.Add(new OfficeMarkupExtensionBlock("custom", new Dictionary<string, string>(), "omitted"));
         OfficeMarkupConversionResult<WordDocument> word = wordSource.ToWordDocumentResult(
-            new MarkupToWordOptions { IncludeUnsupportedBlocksAsText = false });
+            new MarkupWordExportOptions { IncludeUnsupportedBlocksAsText = false });
 
         using (excel.Value)
         using (powerPoint.Value)
@@ -95,7 +95,7 @@ public class OfficeMarkupTextFormattingTests {
         source.Blocks.Add(new OfficeMarkupSheetBlock("Invalid for presentations"));
 
         OfficeMarkupPowerPointConversionResult result = source.ToPowerPointDocumentResult(
-            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+            new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
         using (result.Value) {
             OfficeMarkupConversionException exception = Assert.Throws<OfficeMarkupConversionException>(
                 () => result.RequireValue());

@@ -88,7 +88,7 @@ public class RtfMergeSectionRegressionTests {
         explicitReset.PageSetup.RtlGutter = false;
         explicitReset.AddParagraph("Reset");
         foreach (RtfDocument value in new[] { document, RtfDocument.ParseResult(document.ToRtf()).Document,
-            HtmlConversionDocument.Parse(document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile())).ToRtfDocument() }) {
+            HtmlConversionDocument.Parse(document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile())).ToRtfDocument() }) {
             Assert.True(value.GetEffectivePageSetup(value.Sections[0]).Landscape, value.ToRtf());
             Assert.True(value.GetEffectivePageSetup(value.Sections[0]).DifferentFirstPageHeaderFooter);
             Assert.True(value.GetEffectivePageSetup(value.Sections[0]).RtlGutter);

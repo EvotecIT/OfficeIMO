@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
             "<style>@page{size:420px 160px;margin:0}html,body,p{margin:0;padding:0}"
             + "p{font:16px/28px AtomicTypography}table{border-spacing:0}td{padding:0;border:0}"
             + "ruby{ruby-align:start}</style><p>Cafe\u0301 " + atomic + " tail</p>");
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FontFamily = new PdfCore.PdfEmbeddedFontFamily("AtomicTypography", data)

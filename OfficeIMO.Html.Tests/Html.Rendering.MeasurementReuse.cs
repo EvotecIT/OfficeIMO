@@ -22,7 +22,7 @@ public sealed class HtmlMeasurementReuseTests {
             + "<div style='font-size:40px'><span>AA</span><span>X</span></div>"
             + "<div style='font-size:20px;font-weight:bold'><span>AA</span><span>X</span></div>"
             + "<div style='font-size:20px'><span>AA</span><span>X</span></div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             FontFamily = new PdfEmbeddedFontFamily("Measured", regular, bold),
             TextShapingMode = shaping,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
@@ -42,7 +42,7 @@ public sealed class HtmlMeasurementReuseTests {
     public void ReusingCallerOptionsDoesNotCarryMeasurementsAcrossFontReplacement() {
         const string html = "<p style='font:20px Measured'><span>AA</span><span style='color:red'>X</span></p>";
         var document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         foreach (ushort advance in new ushort[] { 400, 800, 400 }) {

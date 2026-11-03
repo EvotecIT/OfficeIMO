@@ -119,10 +119,10 @@ public sealed class OpmlDocumentTests {
     public void LimitsAndDtdPolicyRejectHostileInputs() {
         Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(
             "<opml version=\"2.0\"><head/><body><outline text=\"a\"/><outline text=\"b\"/></body></opml>",
-            new OpmlReadOptions { MaxOutlines = 1 }));
+            new OpmlLoadOptions { MaxOutlines = 1 }));
         Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(
             "<opml version=\"2.0\"><head/><body><extension/></body></opml>",
-            new OpmlReadOptions { MaxElements = 3 }));
+            new OpmlLoadOptions { MaxElements = 3 }));
         Assert.ThrowsAny<Exception>(() => OpmlDocument.Parse(
             "<!DOCTYPE opml [<!ENTITY x \"boom\">]><opml version=\"2.0\"><head/><body><outline text=\"&x;\"/></body></opml>"));
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
@@ -135,14 +135,14 @@ public sealed class OpmlDocumentTests {
             string.Concat(Enumerable.Repeat("<!--padding-->", 32)) + "<body/></opml>";
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            OpmlDocument.Parse(source, new OpmlReadOptions { MaxElements = 3 }));
+            OpmlDocument.Parse(source, new OpmlLoadOptions { MaxElements = 3 }));
         Assert.Contains("MaxMaterializedNodes", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void MaxOutlinesStopsParsingBeforeTheRemainingXmlIsMaterialized() {
         const string source = "<opml version=\"2.0\"><head/><body><outline text=\"a\"/><outline text=\"b\"/><";
-        var options = new OpmlReadOptions { MaxOutlines = 1 };
+        var options = new OpmlLoadOptions { MaxOutlines = 1 };
 
         InvalidDataException textException = Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(source, options));
         Assert.Contains("MaxOutlines", textException.Message, StringComparison.Ordinal);

@@ -93,10 +93,10 @@ public sealed class ArchiveTests {
 
     [Fact]
     public void BudgetsAndCancellationRejectWholeOperations() {
-        Assert.Equal("CHM_INPUT_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Book(), new ChmReadOptions { MaxInputBytes = 10 })).Code);
-        Assert.Equal("CHM_ENTRY_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Book(), new ChmReadOptions { MaxEntries = 2 })).Code);
-        Assert.Equal("CHM_EXPANDED_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.NativePath, new ChmReadOptions { MaxExpandedBytes = 1024 })).Code);
-        Assert.Equal("CHM_NAVIGATION_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Book(), new ChmReadOptions { MaxNavigationItems = 1 })).Code);
+        Assert.Equal("CHM_INPUT_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Book(), new ChmLoadOptions { MaxInputBytes = 10 })).Code);
+        Assert.Equal("CHM_ENTRY_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Book(), new ChmLoadOptions { MaxEntries = 2 })).Code);
+        Assert.Equal("CHM_EXPANDED_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.NativePath, new ChmLoadOptions { MaxExpandedBytes = 1024 })).Code);
+        Assert.Equal("CHM_NAVIGATION_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Book(), new ChmLoadOptions { MaxNavigationItems = 1 })).Code);
         Assert.Throws<OperationCanceledException>(() => ChmDocument.Load(ChmFixture.Book(), cancellationToken: new CancellationToken(true)));
     }
 

@@ -2077,7 +2077,7 @@ public sealed class PdfRenderingProfileTests {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
         OfficeIMO.Excel.ExcelSheet sheet = workbook.AddSheet("Profile");
         sheet.Cell(1, 1).SetValue("Profile page size");
-        sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
+        sheet.PageSetup.PaperSize = OfficeIMO.Excel.ExcelPaperSize.A3;
         var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions()
             .UseRenderingProfile(OfficeRenderingProfile.Managed);
         if (cloneOptions) options = options.Clone();
@@ -2180,7 +2180,7 @@ public sealed class PdfRenderingProfileTests {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
         OfficeIMO.Excel.ExcelSheet sheet = workbook.AddSheet("Profile");
         sheet.Cell(1, 1).SetValue("Explicit Letter page size");
-        sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
+        sheet.PageSetup.PaperSize = OfficeIMO.Excel.ExcelPaperSize.A3;
         var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions()
             .UseRenderingProfile(OfficeRenderingProfile.Managed);
 

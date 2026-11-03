@@ -30,8 +30,8 @@ internal static class OfficeImageExporter
     }
 
     internal static OfficeImageConversionResult Export(PdfSearchableOcrReview review, string outputPath,
-        bool overwrite, ExcelPdfImportOptions excelOptions, WordPdfImportOptions? wordOptions, CancellationToken cancellationToken,
-        PdfToHtmlOptions? htmlOptions = null, CsvSaveOptions? csvOptions = null)
+        bool overwrite, PdfExcelExportOptions excelOptions, PdfWordExportOptions? wordOptions, CancellationToken cancellationToken,
+        PdfHtmlExportOptions? htmlOptions = null, CsvSaveOptions? csvOptions = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (review == null) throw new ArgumentNullException(nameof(review));
@@ -51,9 +51,9 @@ internal static class OfficeImageExporter
             {
                 case ".xlsx": report = review.Ocr.SaveAsExcel(temporaryPath, excelOptions, cancellationToken); break;
                 case ".docx": report = review.Ocr.SaveAsWord(temporaryPath,
-                    wordOptions ?? new WordPdfImportOptions { ImportImages = false, IncludeImagePlaceholders = false }, cancellationToken); break;
+                    wordOptions ?? new PdfWordExportOptions { ImportImages = false, IncludeImagePlaceholders = false }, cancellationToken); break;
                 case ".html": report = review.Ocr.SaveAsHtml(temporaryPath,
-                    htmlOptions ?? new PdfToHtmlOptions { ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly, IncludeImagePlaceholders = false }, cancellationToken); break;
+                    htmlOptions ?? new PdfHtmlExportOptions { ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly, IncludeImagePlaceholders = false }, cancellationToken); break;
                 case ".pdf": using (var searchable = review.ApplyAll(cancellationToken).Document) searchable.Save(temporaryPath); break;
                 case ".txt": WriteText(temporaryPath, review.Ocr.Text); break;
                 case ".md": WriteText(temporaryPath, document.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false })); break;

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <code>$options = New-OfficePdfWordOptions -TablesOnly
 /// Convert-OfficeDocument -Path ./Tables.pdf -To Word -OutputPath ./Tables.docx -Options $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficePdfWordOptions", DefaultParameterSetName = "Default")]
-[OutputType(typeof(WordPdfImportOptions))]
+[OutputType(typeof(PdfWordExportOptions))]
 public sealed class NewOfficePdfWordOptionsCommand : OfficeCmdlet {
     /// <summary>Use the built-in tables-only import profile.</summary>
     [Parameter(ParameterSetName = "Default")] public SwitchParameter TablesOnly { get; set; }
@@ -64,7 +64,7 @@ public sealed class NewOfficePdfWordOptionsCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordPdfImportOptions options = TablesOnly.IsPresent ? WordPdfImportOptions.CreateTablesOnly() : new WordPdfImportOptions();
+        PdfWordExportOptions options = TablesOnly.IsPresent ? PdfWordExportOptions.CreateTablesOnly() : new PdfWordExportOptions();
         Apply(nameof(IncludeMetadata), value => options.IncludeMetadata = value);
         Apply(nameof(PreservePageBreaks), value => options.PreservePageBreaks = value);
         Apply(nameof(IncludeEmptyPages), value => options.IncludeEmptyPages = value);

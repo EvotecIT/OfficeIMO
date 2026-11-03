@@ -3,8 +3,8 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed class PublisherParseContext {
     private readonly List<OfficeDiagnostic> _diagnostics = new();
     private readonly HashSet<string> _diagnosticKeys = new(StringComparer.Ordinal);
-    internal PublisherParseContext(PublisherReadOptions options, CancellationToken token) { Options = options; Token = token; }
-    internal PublisherReadOptions Options { get; }
+    internal PublisherParseContext(PublisherLoadOptions options, CancellationToken token) { Options = options; Token = token; }
+    internal PublisherLoadOptions Options { get; }
     internal CancellationToken Token { get; }
     internal int Records { get; private set; }
     internal long ImageBytes { get; private set; }

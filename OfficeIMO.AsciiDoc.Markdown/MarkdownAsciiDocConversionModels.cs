@@ -1,7 +1,7 @@
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Options for canonical Markdown-to-AsciiDoc conversion.</summary>
-public sealed class MarkdownToAsciiDocOptions {
+public sealed class MarkdownAsciiDocExportOptions {
     /// <summary>Output line ending. Defaults to LF.</summary>
     public string LineEnding { get; set; } = "\n";
 

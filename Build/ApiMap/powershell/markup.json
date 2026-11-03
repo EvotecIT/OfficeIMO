@@ -649,7 +649,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates HTML-to-Markdown options for Convert-OfficeDocument -To Markdown.",
-      "outputType": "OfficeIMO.Markdown.Html.MarkdownHtmlImportOptions",
+      "outputType": "OfficeIMO.Markdown.Html.HtmlMarkdownExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -658,7 +658,7 @@
           "parameters": [
             {
               "name": "BaseOptions",
-              "type": "MarkdownHtmlImportOptions",
+              "type": "HtmlMarkdownExportOptions",
               "mandatory": false,
               "pipeline": "byValue"
             },
@@ -1047,14 +1047,14 @@
           "code": "$deck = New-OfficeMarkdownPowerPointOptions -SlideBreak Heading -TitleHeadingLevel 2 -AllowLocalImages -AllowedImageDirectory .\\docs\\images\nGet-ChildItem -Path .\\docs -Filter *.md |\n    Convert-OfficeDocument -To PowerPoint -OutputDirectory .\\Decks -Theme Boardroom -Options $deck"
         }
       ],
-      "notes": "Used by Convert-OfficeDocument -To PowerPoint for Markdown sources. -Theme is not repeated here: Convert-OfficeDocument -Theme styles the new deck. Blockquotes become speaker notes and front matter fills the first slide by default; -NoBlockquoteNotes and -NoFrontMatter turn them off. Image and reader settings use the names of New-OfficeMarkdownWordOptions. New enum MarkdownSlideBreak: ThematicBreakOrHeading, ThematicBreak, Heading. MarkdownToPowerPointOptions is a new options type for the Markdown-to-PowerPoint route; OfficeIMO Markup keeps its own MarkupToPowerPointOptions."
+      "notes": "Used by Convert-OfficeDocument -To PowerPoint for Markdown sources. -Theme is not repeated here: Convert-OfficeDocument -Theme styles the new deck. Blockquotes become speaker notes and front matter fills the first slide by default; -NoBlockquoteNotes and -NoFrontMatter turn them off. Image and reader settings use the names of New-OfficeMarkdownWordOptions. New enum MarkdownSlideBreak: ThematicBreakOrHeading, ThematicBreak, Heading. MarkdownToPowerPointOptions is a new options type for the Markdown-to-PowerPoint route; OfficeIMO Markup keeps its own MarkupPowerPointExportOptions."
     },
     {
       "name": "New-OfficeMarkdownRtfOptions",
       "alias": null,
       "status": "new",
       "synopsis": "Creates Markdown-to-RTF options for Convert-OfficeDocument -To Rtf.",
-      "outputType": "OfficeIMO.Rtf.Markdown.MarkdownToRtfOptions",
+      "outputType": "OfficeIMO.Rtf.Markdown.MarkdownRtfExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -4080,7 +4080,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Creates RTF-to-PDF options for Convert-OfficeDocument -To Pdf.",
-      "outputType": "OfficeIMO.Rtf.Pdf.RtfToPdfOptions",
+      "outputType": "OfficeIMO.Rtf.Pdf.RtfPdfExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -4252,7 +4252,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates RTF-to-Markdown options for Convert-OfficeDocument -To Markdown.",
-      "outputType": "OfficeIMO.Rtf.Markdown.RtfToMarkdownOptions",
+      "outputType": "OfficeIMO.Rtf.Markdown.RtfMarkdownExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -4292,7 +4292,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates HTML-to-RTF options for Convert-OfficeDocument -To Rtf.",
-      "outputType": "OfficeIMO.Html.Rtf.HtmlToRtfOptions",
+      "outputType": "OfficeIMO.Html.Rtf.HtmlRtfExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -10300,7 +10300,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Creates HTML-to-PDF options for Convert-OfficeDocument -To Pdf.",
-      "outputType": "OfficeIMO.Html.HtmlToPdfOptions",
+      "outputType": "OfficeIMO.Html.HtmlPdfExportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -10309,7 +10309,7 @@
           "parameters": [
             {
               "name": "BaseOptions",
-              "type": "HtmlToPdfOptions",
+              "type": "HtmlPdfExportOptions",
               "mandatory": false,
               "pipeline": "byValue"
             },
@@ -11348,7 +11348,7 @@
         "Document": "Document"
       },
       "hint": "Convert-OfficeDocument -Path .\\README.md -To AsciiDoc -OutputPath .\\README.adoc",
-      "reason": "Markdown-to-AsciiDoc conversion: Convert-OfficeDocument -To AsciiDoc; a MarkdownDocument uses the -Document set; MarkdownToAsciiDocOptions passes through -Options."
+      "reason": "Markdown-to-AsciiDoc conversion: Convert-OfficeDocument -To AsciiDoc; a MarkdownDocument uses the -Document set; MarkdownAsciiDocExportOptions passes through -Options."
     },
     {
       "old": "ConvertTo-OfficeAsciiDocMarkdown",
@@ -11361,7 +11361,7 @@
         "Document": "Document"
       },
       "hint": "Convert-OfficeDocument -Path .\\guide.adoc -To Markdown -OutputPath .\\guide.md",
-      "reason": "AsciiDoc-to-Markdown conversion: Convert-OfficeDocument -To Markdown; an AsciiDocDocument uses the -Document set; AsciiDocToMarkdownOptions passes through -Options."
+      "reason": "AsciiDoc-to-Markdown conversion: Convert-OfficeDocument -To Markdown; an AsciiDocDocument uses the -Document set; AsciiDocMarkdownExportOptions passes through -Options."
     },
     {
       "old": "ConvertFrom-OfficeLatexMarkdown",
@@ -11374,7 +11374,7 @@
         "Document": "Document"
       },
       "hint": "Convert-OfficeDocument -Path .\\notes.md -To Latex -OutputPath .\\notes.tex",
-      "reason": "Markdown-to-LaTeX conversion: Convert-OfficeDocument -To Latex; MarkdownToLatexOptions passes through -Options."
+      "reason": "Markdown-to-LaTeX conversion: Convert-OfficeDocument -To Latex; MarkdownLatexExportOptions passes through -Options."
     },
     {
       "old": "ConvertTo-OfficeLatexMarkdown",
@@ -11387,7 +11387,7 @@
         "Document": "Document"
       },
       "hint": "Convert-OfficeDocument -Path .\\paper.tex -To Markdown -OutputPath .\\paper.md",
-      "reason": "LaTeX-to-Markdown conversion: Convert-OfficeDocument -To Markdown; LatexToMarkdownOptions passes through -Options."
+      "reason": "LaTeX-to-Markdown conversion: Convert-OfficeDocument -To Markdown; LatexMarkdownExportOptions passes through -Options."
     },
     {
       "old": "Get-OfficeIWork",

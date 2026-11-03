@@ -59,7 +59,7 @@ public partial class RtfDocumentRichFeatureTests {
         });
         paragraph.SetIndentation(leftTwips: 720, firstLineTwips: -360);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\pn\pnlvlbody\pndec\pnf1\pnfs24\pnb1\pni0\pncaps1\pnscaps0\pnuldb\pnstrike1\pncf2{\pntxtb (}{\pntxta )}\pnnumonce1\pnacross0\pnindent720\pnsp240\pnprev1\pnqc\pnstart3\pnhang1\pnrestart0}", rtf, StringComparison.Ordinal);
@@ -130,7 +130,7 @@ public partial class RtfDocumentRichFeatureTests {
         });
         document.AddParagraph("Heading").SetStyle(1);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\stylesheet{\s1{\*\pn\pnlvlbody\pnucrm{\pntxtb Chapter}{\pntxta .}\pnindent720\pnsp240\pnqr\pnstart4}\li720\fi-360 Numbered Heading;}}", rtf, StringComparison.Ordinal);
@@ -168,7 +168,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.SetList(listId: 3, level: 0, kind: RtfListKind.Decimal);
         paragraph.SetListText(marker => marker.AddText("1.\t").FontId = 0);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\listtext \f0 1.\tab }", rtf, StringComparison.Ordinal);

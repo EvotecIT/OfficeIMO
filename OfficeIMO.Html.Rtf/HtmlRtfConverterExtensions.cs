@@ -7,11 +7,11 @@ namespace OfficeIMO.Html;
 /// </summary>
 public static partial class HtmlRtfConverterExtensions {
     /// <summary>Converts an RTF document to semantic HTML.</summary>
-    public static string ToHtml(this RtfDocument document, RtfToHtmlOptions? options = null) {
+    public static string ToHtml(this RtfDocument document, RtfHtmlExportOptions? options = null) {
         return document.ToHtmlResult(options).RequireValue();
     }
 
-    private static string ToHtmlCore(RtfDocument document, RtfToHtmlOptions effectiveOptions) {
+    private static string ToHtmlCore(RtfDocument document, RtfHtmlExportOptions effectiveOptions) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -23,7 +23,7 @@ public static partial class HtmlRtfConverterExtensions {
             document.IsHtmlEncapsulationCurrent &&
             document.HtmlEncapsulation != null &&
             !string.IsNullOrWhiteSpace(document.HtmlEncapsulation.Html)) {
-            var importOptions = HtmlToRtfOptions.UntrustedDefaults;
+            var importOptions = HtmlRtfExportOptions.UntrustedDefaults;
             importOptions.UrlPolicy = effectiveOptions.GetUrlPolicy().Clone();
             HtmlConversionDocument encapsulatedHtml = HtmlConversionDocument.Parse(
                 document.HtmlEncapsulation.Html,
@@ -54,17 +54,17 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Converts an RTF document to encoded semantic HTML bytes.</summary>
-    public static byte[] ToHtmlBytes(this RtfDocument document, RtfToHtmlOptions? options = null, Encoding? encoding = null) {
+    public static byte[] ToHtmlBytes(this RtfDocument document, RtfHtmlExportOptions? options = null, Encoding? encoding = null) {
         return (encoding ?? Encoding.UTF8).GetBytes(document.ToHtml(options));
     }
 
     /// <summary>Converts an RTF document to an encoded semantic HTML memory stream.</summary>
-    public static MemoryStream ToHtmlStream(this RtfDocument document, RtfToHtmlOptions? options = null, Encoding? encoding = null) {
+    public static MemoryStream ToHtmlStream(this RtfDocument document, RtfHtmlExportOptions? options = null, Encoding? encoding = null) {
         return new MemoryStream(document.ToHtmlBytes(options, encoding), writable: false);
     }
 
     /// <summary>Saves an RTF document as semantic HTML at the specified path.</summary>
-    public static void SaveAsHtml(this RtfDocument document, string path, RtfToHtmlOptions? options = null, Encoding? encoding = null) {
+    public static void SaveAsHtml(this RtfDocument document, string path, RtfHtmlExportOptions? options = null, Encoding? encoding = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -77,7 +77,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Saves an RTF document as semantic HTML to a writable stream.</summary>
-    public static void SaveAsHtml(this RtfDocument document, Stream stream, RtfToHtmlOptions? options = null, Encoding? encoding = null) {
+    public static void SaveAsHtml(this RtfDocument document, Stream stream, RtfHtmlExportOptions? options = null, Encoding? encoding = null) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -90,27 +90,27 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Loads a prepared shared HTML conversion document into an RTF document model without reparsing.</summary>
-    public static RtfDocument ToRtfDocument(this HtmlConversionDocument document, HtmlToRtfOptions? options = null) {
+    public static RtfDocument ToRtfDocument(this HtmlConversionDocument document, HtmlRtfExportOptions? options = null) {
         return document.ToRtfDocumentResult(options).RequireValue();
     }
 
     /// <summary>Converts semantic HTML to RTF text.</summary>
-    public static string ToRtf(this HtmlConversionDocument document, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null) {
+    public static string ToRtf(this HtmlConversionDocument document, HtmlRtfExportOptions? readOptions = null, RtfSaveOptions? writeOptions = null) {
         return document.ToRtfDocument(readOptions).ToRtf(writeOptions);
     }
 
     /// <summary>Converts semantic HTML to encoded RTF bytes.</summary>
-    public static byte[] ToRtfBytes(this HtmlConversionDocument document, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null) {
+    public static byte[] ToRtfBytes(this HtmlConversionDocument document, HtmlRtfExportOptions? readOptions = null, RtfSaveOptions? writeOptions = null, Encoding? encoding = null) {
         return document.ToRtfDocument(readOptions).ToBytes(writeOptions, encoding);
     }
 
     /// <summary>Converts semantic HTML to an encoded RTF memory stream.</summary>
-    public static MemoryStream ToRtfStream(this HtmlConversionDocument document, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null) {
+    public static MemoryStream ToRtfStream(this HtmlConversionDocument document, HtmlRtfExportOptions? readOptions = null, RtfSaveOptions? writeOptions = null, Encoding? encoding = null) {
         return document.ToRtfDocument(readOptions).ToStream(writeOptions, encoding);
     }
 
     /// <summary>Saves semantic HTML as an RTF file at the specified path.</summary>
-    public static void SaveAsRtf(this HtmlConversionDocument document, string path, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null) {
+    public static void SaveAsRtf(this HtmlConversionDocument document, string path, HtmlRtfExportOptions? readOptions = null, RtfSaveOptions? writeOptions = null, Encoding? encoding = null) {
         if (path == null) {
             throw new ArgumentNullException(nameof(path));
         }
@@ -119,7 +119,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Saves semantic HTML as RTF to a stream without closing or rewinding the stream.</summary>
-    public static void SaveAsRtf(this HtmlConversionDocument document, Stream stream, HtmlToRtfOptions? readOptions = null, RtfWriteOptions? writeOptions = null, Encoding? encoding = null) {
+    public static void SaveAsRtf(this HtmlConversionDocument document, Stream stream, HtmlRtfExportOptions? readOptions = null, RtfSaveOptions? writeOptions = null, Encoding? encoding = null) {
         if (stream == null) {
             throw new ArgumentNullException(nameof(stream));
         }

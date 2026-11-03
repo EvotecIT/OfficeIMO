@@ -15,7 +15,7 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1).SetValue("Start"); sheet.Cell(2, 1).SetValue("Merged"); sheet.Cell(4, 4).SetValue("End");
         sheet.Range("A2:A3").Merge(); sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15.1))); sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15.2)));
-        document.SetPrintArea(sheet, "A1:D4"); sheet.AddManualRowPageBreak(2);
+        sheet.PageSetup.PrintArea = "A1:D4"; sheet.AddManualRowPageBreak(2);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
             PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(500)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
@@ -42,7 +42,7 @@ public partial class Excel {
             Width = OfficeIMO.OfficeLength.Pixels(24),
             Height = OfficeIMO.OfficeLength.Pixels(16)
         });
-        document.SetPrintArea(sheet, "A1:D4");
+        sheet.PageSetup.PrintArea = "A1:D4";
         if (horizontal) sheet.AddManualColumnPageBreak(1); else sheet.AddManualRowPageBreak(2);
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,

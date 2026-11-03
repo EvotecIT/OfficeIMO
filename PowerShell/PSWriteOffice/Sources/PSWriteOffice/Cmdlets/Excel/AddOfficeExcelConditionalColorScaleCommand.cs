@@ -83,8 +83,7 @@ public sealed class AddOfficeExcelConditionalColorScaleCommand : PSCmdlet
         var sheet = ResolveSheet();
         string targetRange = ExcelTargetRangeResolver.Resolve(sheet, Range, HeaderName, TableName, HeaderRow, IncludeHeader.IsPresent, PivotTableName, !PivotWholeTable.IsPresent);
 
-        sheet.AddConditionalColorScale(
-            targetRange,
+        sheet.Range(targetRange).ConditionalFormat().ColorScale(
             OfficeColorUtilities.ToExcelArgbHex(StartColor)!,
             OfficeColorUtilities.ToExcelArgbHex(EndColor)!);
 

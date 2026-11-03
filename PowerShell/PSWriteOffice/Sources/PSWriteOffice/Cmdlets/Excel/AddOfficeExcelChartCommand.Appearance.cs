@@ -5,6 +5,7 @@ using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 

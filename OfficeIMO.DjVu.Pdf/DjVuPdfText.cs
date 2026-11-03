@@ -4,13 +4,13 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.DjVu.Pdf;
 
 internal sealed class DjVuPdfTextBudget {
-    private readonly DjVuToPdfOptions _options;
+    private readonly DjVuPdfExportOptions _options;
     private int _spans;
     internal long Characters { get; private set; }
-    internal DjVuPdfTextBudget(DjVuToPdfOptions options) => _options = options;
+    internal DjVuPdfTextBudget(DjVuPdfExportOptions options) => _options = options;
     internal void Admit(int characters) {
-        if (_spans >= _options.MaxTextSpans) throw new DjVuResourceLimitException(nameof(DjVuToPdfOptions.MaxTextSpans));
-        if (characters > _options.MaxTextCharacters - Characters) throw new DjVuResourceLimitException(nameof(DjVuToPdfOptions.MaxTextCharacters));
+        if (_spans >= _options.MaxTextSpans) throw new DjVuResourceLimitException(nameof(DjVuPdfExportOptions.MaxTextSpans));
+        if (characters > _options.MaxTextCharacters - Characters) throw new DjVuResourceLimitException(nameof(DjVuPdfExportOptions.MaxTextCharacters));
         _spans++; Characters += characters;
     }
 }

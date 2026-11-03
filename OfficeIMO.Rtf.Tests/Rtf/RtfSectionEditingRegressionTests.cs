@@ -20,7 +20,7 @@ public class RtfSectionEditingRegressionTests {
         Assert.Contains(image, section.Blocks);
         Assert.Contains(embedded, section.Blocks);
         Assert.Contains(shape, section.Blocks);
-        RtfDocument reparsed = RtfDocument.ParseResult(document.ToRtf(), RtfReadOptions.CreateCompatibilityProfile()).Document;
+        RtfDocument reparsed = RtfDocument.ParseResult(document.ToRtf(), RtfLoadOptions.CreateCompatibilityProfile()).Document;
         Assert.Contains(reparsed.Paragraphs, paragraph => paragraph.ToPlainText() == "Added");
         Assert.Single(reparsed.Blocks.OfType<RtfTable>());
         Assert.Single(reparsed.Sections);

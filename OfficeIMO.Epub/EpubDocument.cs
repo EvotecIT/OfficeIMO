@@ -8,23 +8,23 @@ using System.Threading.Tasks;
 /// </summary>
 public sealed partial class EpubDocument {
     /// <summary>Loads an EPUB document from a file.</summary>
-    public static EpubDocument Load(string path, EpubReadOptions? options = null) => EpubReader.Read(path, options);
+    public static EpubDocument Load(string path, EpubLoadOptions? options = null) => EpubReader.Read(path, options);
 
     /// <summary>Loads an EPUB document from a caller-owned stream.</summary>
-    public static EpubDocument Load(Stream stream, EpubReadOptions? options = null) => EpubReader.Read(stream, options);
+    public static EpubDocument Load(Stream stream, EpubLoadOptions? options = null) => EpubReader.Read(stream, options);
 
     /// <summary>Loads a file with cancellation during package reading and parsing.</summary>
-    public static EpubDocument Load(string path, EpubReadOptions? options, CancellationToken cancellationToken) =>
+    public static EpubDocument Load(string path, EpubLoadOptions? options, CancellationToken cancellationToken) =>
         EpubReader.Read(path, options, cancellationToken);
 
     /// <summary>Loads a caller-owned stream with cancellation during reading and parsing.</summary>
-    public static EpubDocument Load(Stream stream, EpubReadOptions? options, CancellationToken cancellationToken) =>
+    public static EpubDocument Load(Stream stream, EpubLoadOptions? options, CancellationToken cancellationToken) =>
         EpubReader.Read(stream, options, cancellationToken);
 
     /// <summary>Asynchronously loads an EPUB document from a file.</summary>
     public static async Task<EpubDocument> LoadAsync(
         string path,
-        EpubReadOptions? options = null,
+        EpubLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("EPUB path cannot be empty.", nameof(path));
         using var stream = new FileStream(
@@ -40,7 +40,7 @@ public sealed partial class EpubDocument {
     /// <summary>Asynchronously loads an EPUB document from a caller-owned stream.</summary>
     public static async Task<EpubDocument> LoadAsync(
         Stream stream,
-        EpubReadOptions? options = null,
+        EpubLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         return await EpubReader.ReadAsync(stream, options, cancellationToken).ConfigureAwait(false);
     }

@@ -4,6 +4,7 @@ using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
 using PSWriteOffice.Services.Table;

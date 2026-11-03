@@ -181,27 +181,6 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        /// <summary>Applies an explicit blank criterion by zero-based AutoFilter column offset.</summary>
-        public void AutoFilterBlanks(string range, uint columnOffset) => ApplyAutoFilterBlankCriteria(range, columnOffset);
-
-        /// <summary>Applies a top/bottom count or percentage criterion by zero-based AutoFilter column offset.</summary>
-        public void AutoFilterTopBottom(string range, uint columnOffset, ushort value, bool top = true, bool percent = false) =>
-            ApplyAutoFilterTop10Criteria(range, columnOffset, value, top, percent);
-
-        /// <summary>Clears criteria for one zero-based worksheet AutoFilter column offset.</summary>
-        public bool ClearAutoFilterColumn(uint columnOffset) {
-            bool removed = false;
-            WriteLock(() => {
-                AutoFilter? filter = WorksheetRoot.GetFirstChild<AutoFilter>();
-                FilterColumn? column = filter?.Elements<FilterColumn>()
-                    .FirstOrDefault(item => item.ColumnId?.Value == columnOffset);
-                if (column == null) return;
-                column.Remove();
-                removed = true;
-            });
-            return removed;
-        }
-
         private static ExcelAutoFilterInfo ReadAutoFilter(AutoFilter filter, string? tableName) {
             var columns = filter.Elements<FilterColumn>()
                 .Select(ReadAutoFilterColumn)

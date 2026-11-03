@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
         public void HtmlToWord_ScriptContent_IsSkippedWithDiagnostic() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<p>Visible before.</p><script>document.body.innerHTML = 'Hidden script';</script><p>Visible after.</p>";
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_TemplateContent_IsSkippedWithDiagnostic() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<p>Visible.</p><template><p>Hidden template</p></template>";
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_RawHtmlComments_AreSkippedWithDiagnostic() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<p>Visible before.</p><!-- reviewer note --><p>Visible after.</p>";
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_EmbeddedMediaWidgets_AreSkippedWithDiagnostics() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = """
                 <p>Before.</p>
                 <iframe src="https://example.com/widget">Hidden iframe fallback</iframe>
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_EmbeddedMediaWidgets_SavesAsValidOpenXmlDocument() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<p>Visible.</p><iframe src=\"https://example.com/widget\">Hidden iframe fallback</iframe><video src=\"movie.mp4\">Hidden video fallback</video>";
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);

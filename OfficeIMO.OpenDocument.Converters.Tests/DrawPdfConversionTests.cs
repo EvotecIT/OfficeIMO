@@ -81,7 +81,7 @@ public sealed class DrawPdfConversionTests {
     public async Task SaveLifecyclePreservesSourceAndRefreshesPdfStageWarnings() {
         OdgDocument source = CreateDrawing();
         string xml = source.GetXml("content.xml").ToString(SaveOptions.DisableFormatting);
-        var settings = new OdgToPdfOptions { PdfOptions = new PdfCreateOptions { PageSetup = { Size = PdfPageSizes.Letter } } };
+        var settings = new OdgPdfExportOptions { PdfOptions = new PdfCreateOptions { PageSetup = { Size = PdfPageSizes.Letter } } };
         var conversion = source.ToPdfDocumentResult(settings);
         // A caller may add PDF-native content before saving; its save-time diagnostics must stay linked.
         var vertical = new OfficeDrawing(100, 100).AddVerticalText("Vertical", 0, 0, 100, 100);
@@ -149,7 +149,7 @@ public sealed class DrawPdfConversionTests {
         OdgDocument source = CreateDrawing();
         source.Pages[1].Shapes.AddRectangle(OdfRect.FromCentimeters(1, 4, 2, 2), "Rejected")
             .Element.Name = OdfNamespaces.Draw + "custom-shape";
-        var options = new OdgToPdfOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
+        var options = new OdgPdfExportOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
         byte[] original = { 1, 2, 3 };
         string outputPath = Path.Combine(Path.GetTempPath(), "officeimo-draw-strict-" + Guid.NewGuid().ToString("N") + ".pdf");
         using var output = new MemoryStream(original.ToArray(), writable: true);

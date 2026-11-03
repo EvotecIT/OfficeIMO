@@ -10,6 +10,15 @@
       "category": "naming",
       "reason": "Native saves use AllowLoss like the other formats.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Project.ProjectDocument.Create(string path | Stream stream, DocumentCreateOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Project.ProjectDocument.Create(string path | Stream stream, ProjectCreateOptions options = null)",
+      "reason": "Lifecycle options are named {Format}CreateOptions; ProjectCreateOptions derives from DocumentCreateOptions like the other formats.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

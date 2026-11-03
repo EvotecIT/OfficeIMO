@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
             sheet.AddTable("A1:B3", true, "FilteredTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             ExcelAutoFilterInfo filterInfo = Assert.Single(sheet.GetAutoFilters(), filter => filter.IsTableFilter);
 
-            sheet.AutoFilterBlanks(filterInfo.Range, 0U);
-            sheet.AutoFilterTopBottom(filterInfo.Range, 1U, 1);
+            sheet.Range(filterInfo.Range).AutoFilter().Column(0U).Blanks();
+            sheet.Range(filterInfo.Range).AutoFilter().Column(1U).TopBottom(1);
 
             Assert.Null(sheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>());
             Table table = sheet.WorksheetPart.TableDefinitionParts.Single().Table!;

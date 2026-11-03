@@ -13,10 +13,10 @@ namespace OfficeIMO.Pdf.Word {
         /// <summary>Converts an opened PDF into a Word document using the selected import mode with conversion diagnostics.</summary>
         internal static PdfWordConversionResult ConvertToWordWithEvidence(
             this PdfCore.PdfDocument document,
-            WordPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+            PdfWordExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
-            WordPdfImportOptions operation = (options ?? new WordPdfImportOptions()).CloneForConversion();
+            PdfWordExportOptions operation = (options ?? new PdfWordExportOptions()).CloneForConversion();
             operation.CancellationToken = cancellationToken;
             ValidateImportMode(operation.Mode);
             return operation.Mode == WordPdfImportMode.VisualPages
@@ -34,7 +34,7 @@ namespace OfficeIMO.Pdf.Word {
 
         private static PdfCore.PdfDocumentReadResult ReadForWord(
             PdfCore.PdfDocument document,
-            WordPdfImportOptions? options,
+            PdfWordExportOptions? options,
             CancellationToken cancellationToken = default) {
             return document.Read(options?.ReadOptions, cancellationToken);
         }
@@ -44,11 +44,11 @@ namespace OfficeIMO.Pdf.Word {
         /// <summary>Converts a logical PDF model into an editable Word document with conversion diagnostics.</summary>
         internal static PdfWordConversionResult ConvertToWordWithEvidence(
             this PdfCore.PdfDocumentReadResult document,
-            WordPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+            PdfWordExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
             if (document == null) throw new ArgumentNullException(nameof(document));
 
-            WordPdfImportOptions operation = (options ?? new WordPdfImportOptions()).CloneForConversion();
+            PdfWordExportOptions operation = (options ?? new PdfWordExportOptions()).CloneForConversion();
             ValidateImportMode(operation.Mode);
             if (operation.Mode != WordPdfImportMode.EditableContent)
                 throw new NotSupportedException("Visual page conversion requires an opened PDF document, not a reduced logical model.");

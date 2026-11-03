@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("word-spacing:2px", "Left שלום 42")]
     public void HtmlDefaultFont_BidiInklessSlicesKeepOneLogicalSvgLabel(string declarations, string content) {
         string html = "<p style='margin:0;font:16px BidiFixture;" + declarations + "'>" + content + "</p>";
-        var options = new HtmlToPdfOptions { AllowSystemFontFallback = false, Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlPdfExportOptions { AllowSystemFontFallback = false, Margins = HtmlRenderMargins.All(0D) };
         options.Fonts.Add("BidiFixture", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true,
             "Left שלום 42".Select(character => (int)character).Distinct().ToArray()));
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
@@ -36,7 +36,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlDefaultFont_ResolvedBidiBudgetExhaustionKeepsDiagnosedStaticText() {
         const string text = "Left שלום 42";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false, MaxOutlinedTextPathCommands = 1
         };
         options.Fonts.Add("BidiFixture", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true,

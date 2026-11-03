@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(5, 4).SetValue(0.4d);
 
                     const string range = "A1:D5";
-                    sheet.AutoFilterAdd(range);
+                    sheet.Range(range).AutoFilter();
                     AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                     FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(column => column.ColumnId?.Value == 0U);
                     existingColumn?.Remove();
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(4, 1).SetValue(new DateTime(2026, 6, 29));
                     sheet.Cell(5, 1).SetValue(new DateTime(2026, 7, 1));
 
-                    sheet.AutoFilterAdd("A1:A5");
+                    sheet.Range("A1:A5").AutoFilter();
                     AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                     autoFilter.Append(new FilterColumn(
                         new Filters(

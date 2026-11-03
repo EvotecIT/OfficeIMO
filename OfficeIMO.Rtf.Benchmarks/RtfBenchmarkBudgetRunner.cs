@@ -92,7 +92,7 @@ internal static class RtfBenchmarkBudgetRunner {
             string.Equals(operation, "SemanticWrite", StringComparison.OrdinalIgnoreCase)
             ? null
             : RtfDocument.ParseResult(fixture.Rtf).Document;
-        RtfToPdfOptions? preparedPdfOptions = string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)
+        RtfPdfExportOptions? preparedPdfOptions = string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)
             ? RtfBenchmarkSupport.CreatePdfOptions()
             : null;
         OfficeDocumentReader? preparedReader = string.Equals(operation, "Reader", StringComparison.OrdinalIgnoreCase)
@@ -108,7 +108,7 @@ internal static class RtfBenchmarkBudgetRunner {
             RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf);
             outputBytes = Encoding.UTF8.GetByteCount(result.ToRtfLossless());
         } else if (string.Equals(operation, "ParseUntrusted", StringComparison.OrdinalIgnoreCase)) {
-            RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf, RtfReadOptions.UntrustedDefaults);
+            RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf, RtfLoadOptions.UntrustedDefaults);
             outputBytes = Encoding.UTF8.GetByteCount(result.ToRtfLossless());
         } else if (string.Equals(operation, "Lossless", StringComparison.OrdinalIgnoreCase)) {
             outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.ParseResult(fixture.Rtf).EditLossless().ToRtf());
@@ -117,7 +117,7 @@ internal static class RtfBenchmarkBudgetRunner {
         } else if (string.Equals(operation, "Html", StringComparison.OrdinalIgnoreCase)) {
             outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToHtml());
         } else if (string.Equals(operation, "HtmlWebSafe", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile()));
+            outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToHtml(RtfHtmlExportOptions.CreateWebSafeProfile()));
         } else if (string.Equals(operation, "Markdown", StringComparison.OrdinalIgnoreCase)) {
             outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToMarkdown());
         } else if (string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)) {

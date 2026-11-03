@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Markdown {
         private bool TryRenderHtmlFallbackViaMarkdownAst(
             string html,
             IWordBlockRenderHost host,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordDocument document,
             int quoteDepth,
             double pageContentWidthPixels,
@@ -60,7 +60,7 @@ namespace OfficeIMO.Word.Markdown {
         private bool TryRenderWordHeaderFooterSemanticBlock(
             Omd.SemanticFencedBlock block,
             IWordBlockRenderHost currentHost,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordDocument document,
             double pageContentWidthPixels) {
             if (block == null || currentHost is not DocumentWordBlockRenderHost) {
@@ -136,7 +136,7 @@ namespace OfficeIMO.Word.Markdown {
         private static bool TryResolveWordHeaderFooterTarget(
             Omd.SemanticFencedBlock block,
             WordDocument document,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             out WordHeaderFooter target) {
             target = null!;
             if (block == null) {
@@ -171,7 +171,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static WordHeaderFooterType ResolveHeaderFooterType(
             string? slot,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             Omd.SemanticFencedBlock block) {
             if (string.IsNullOrWhiteSpace(slot)) {
                 return WordHeaderFooterType.Default;
@@ -189,7 +189,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static WordHeaderFooterType WarnAndReturnDefault(
             string slot,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             Omd.SemanticFencedBlock block) {
             options.OnWarning?.Invoke($"Semantic {block.SemanticKind} block requested unsupported slot '{slot}'. Falling back to default header or footer.");
             return WordHeaderFooterType.Default;
@@ -198,7 +198,7 @@ namespace OfficeIMO.Word.Markdown {
         private void ProcessTableCellBlocksOmd(
             Omd.TableCell? tableCell,
             WordTableCell wordCell,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordDocument document,
             int quoteDepth,
             double pageContentWidthPixels,
@@ -214,7 +214,7 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedBlocksOmd(
             IEnumerable<Omd.IMarkdownBlock> blocks,
             IWordBlockRenderHost host,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordDocument document,
             int listLevel = 0,
             int quoteDepth = 0,
@@ -236,7 +236,7 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedDefinitionListEntryOmd(
             Omd.DefinitionListEntry entry,
             IWordBlockRenderHost host,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordDocument document,
             int quoteDepth,
             double pageContentWidthPixels,
@@ -299,7 +299,7 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedTableBlockOmd(
             Omd.TableBlock table,
             IWordBlockRenderHost host,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordDocument document,
             double pageContentWidthPixels) {
             var headerCells = table.HeaderCells;
@@ -487,7 +487,7 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedCalloutBlockOmd(
             Omd.CalloutBlock callout,
             IWordBlockRenderHost host,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordDocument document,
             int quoteDepth,
             double pageContentWidthPixels,

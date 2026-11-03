@@ -6,7 +6,7 @@ using OfficeIMO.Html;
 /// <summary>
 /// Options controlling HTML to Markdown conversion.
 /// </summary>
-public sealed class MarkdownHtmlImportOptions {
+public sealed class HtmlMarkdownExportOptions {
     /// <summary>Rejects converted content when its report contains fidelity loss.</summary>
     public bool FailOnLoss { get; set; }
     /// <summary>Text encoding used by Markdown file and stream exports.</summary>
@@ -18,10 +18,10 @@ public sealed class MarkdownHtmlImportOptions {
     private readonly HashSet<string> _appliedFeaturePackIds = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Creates the default OfficeIMO-flavored conversion profile.</summary>
-    public static MarkdownHtmlImportOptions CreateOfficeIMOProfile() => new MarkdownHtmlImportOptions();
+    public static HtmlMarkdownExportOptions CreateOfficeIMOProfile() => new HtmlMarkdownExportOptions();
 
     /// <summary>Creates conversion options for the requested Markdown output profile.</summary>
-    public static MarkdownHtmlImportOptions CreateProfile(MarkdownOutputProfile profile) =>
+    public static HtmlMarkdownExportOptions CreateProfile(MarkdownOutputProfile profile) =>
         profile switch {
             MarkdownOutputProfile.OfficeIMO => CreateOfficeIMOProfile(),
             MarkdownOutputProfile.CommonMark => CreateCommonMarkProfile(),
@@ -34,7 +34,7 @@ public sealed class MarkdownHtmlImportOptions {
     /// Creates a CommonMark-oriented conversion profile. The intermediate OfficeIMO document model is preserved,
     /// while markdown serialization avoids GitHub-only output where practical.
     /// </summary>
-    public static MarkdownHtmlImportOptions CreateCommonMarkProfile() => new MarkdownHtmlImportOptions {
+    public static HtmlMarkdownExportOptions CreateCommonMarkProfile() => new HtmlMarkdownExportOptions {
         EscapeMarkdownLineStarts = true,
         MarkdownWriteOptions = MarkdownSaveOptions.CreateCommonMarkProfile()
     };
@@ -42,7 +42,7 @@ public sealed class MarkdownHtmlImportOptions {
     /// <summary>
     /// Creates a GitHub Flavored Markdown-oriented conversion profile for README and GitHub documentation output.
     /// </summary>
-    public static MarkdownHtmlImportOptions CreateGitHubFlavoredMarkdownProfile() => new MarkdownHtmlImportOptions {
+    public static HtmlMarkdownExportOptions CreateGitHubFlavoredMarkdownProfile() => new HtmlMarkdownExportOptions {
         SmartHref = true,
         MarkdownWriteOptions = MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile()
     };
@@ -50,7 +50,7 @@ public sealed class MarkdownHtmlImportOptions {
     /// <summary>
     /// Creates a portable conversion profile that serializes the converted document with portable markdown fallbacks.
     /// </summary>
-    public static MarkdownHtmlImportOptions CreatePortableProfile() => new MarkdownHtmlImportOptions {
+    public static HtmlMarkdownExportOptions CreatePortableProfile() => new HtmlMarkdownExportOptions {
         MarkdownWriteOptions = MarkdownSaveOptions.CreatePortableProfile()
     };
 
@@ -177,7 +177,7 @@ public sealed class MarkdownHtmlImportOptions {
     /// </summary>
     /// <example>
     /// <code>
-    /// var options = MarkdownHtmlImportOptions.CreatePortableProfile();
+    /// var options = HtmlMarkdownExportOptions.CreatePortableProfile();
     /// options.DocumentTransforms.Add(
     ///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
     ///
@@ -273,9 +273,9 @@ public sealed class MarkdownHtmlImportOptions {
     /// <summary>
     /// Creates a copy of the current options instance so callers can reuse option templates safely.
     /// </summary>
-    /// <returns>A new <see cref="MarkdownHtmlImportOptions"/> with the same option values.</returns>
-    public MarkdownHtmlImportOptions Clone() {
-        var clone = new MarkdownHtmlImportOptions {
+    /// <returns>A new <see cref="HtmlMarkdownExportOptions"/> with the same option values.</returns>
+    public HtmlMarkdownExportOptions Clone() {
+        var clone = new HtmlMarkdownExportOptions {
             FailOnLoss = FailOnLoss,
             Encoding = Encoding,
             BaseUri = BaseUri,

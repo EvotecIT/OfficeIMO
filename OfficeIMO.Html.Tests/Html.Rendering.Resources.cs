@@ -76,7 +76,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered;
         if (encoder == HtmlRenderEncoder.DisplayList) rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
         else {
-            var pdfOptions = new HtmlToPdfOptions(options);
+            var pdfOptions = new HtmlPdfExportOptions(options);
             pdfOptions.ResourcePolicy.AllowRemoteResourceResolution = true;
             var document = HtmlConversionDocument.Parse(html);
             var request = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, encoder, pdfOptions);

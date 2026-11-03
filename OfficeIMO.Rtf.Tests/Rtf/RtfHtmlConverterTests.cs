@@ -13,8 +13,8 @@ public partial class RtfHtmlConverterTests {
         paragraph.AddText("Za").SetFontSize(11).FontId = fontId;
         paragraph.AddText("żółć").SetFontSize(11).FontId = fontId;
 
-        string semanticHtml = document.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile());
-        string roundTripHtml = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string semanticHtml = document.ToHtml(RtfHtmlExportOptions.CreateWebSafeProfile());
+        string roundTripHtml = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Equal("<p><span style=\"font-family:&quot;Calibri&quot;;font-size:11pt;\">Zaż&#243;łć</span></p>", semanticHtml);
         Assert.Equal(2, roundTripHtml.Split(new[] { "<span" }, StringSplitOptions.None).Length - 1);
@@ -29,7 +29,7 @@ public partial class RtfHtmlConverterTests {
         paragraph.AddText("bold").SetBold();
         paragraph.AddText(" link").SetItalic().SetHyperlink(new Uri("https://example.test/patient?id=1&tab=note"));
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             FragmentOnly = false
@@ -47,7 +47,7 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Allergy").ListKind = RtfListKind.Bullet;
         document.AddParagraph("Medication").ListKind = RtfListKind.Bullet;
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             NewLine = "\n"
@@ -60,7 +60,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Paragraphs_Inlines_And_Hyperlinks() {
         const string html = "<p>Plain <strong>bold</strong> <em>italic</em> <a href=\"/chart/1\">chart</a><br>next</p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument(new HtmlToRtfOptions {
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument(new HtmlRtfExportOptions {
             BaseUri = new Uri("https://example.test")
         });
 
@@ -171,7 +171,7 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Assessment").SetBackgroundColor(background);
         document.AddParagraph("Plain");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             NewLine = "\n"
@@ -217,7 +217,7 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Multiple")
             .SetLineSpacing(360, multiple: true);
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             NewLine = "\n"
@@ -302,7 +302,7 @@ public partial class RtfHtmlConverterTests {
         document.AddParagraph("Assessment").SetOutlineLevel(0);
         document.AddParagraph("Plan").SetOutlineLevel(2).SetAlignment(RtfTextAlignment.Right);
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             NewLine = "\n"
@@ -373,7 +373,7 @@ public partial class RtfHtmlConverterTests {
         RtfParagraph after = document.AddParagraph("After");
         after.AddPageBreak();
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             NewLine = "\n"
@@ -408,7 +408,7 @@ public partial class RtfHtmlConverterTests {
 
         RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
         string rtf = document.ToRtf();
-        string roundTripHtml = RtfDocument.ParseResult(rtf).Document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string roundTripHtml = RtfDocument.ParseResult(rtf).Document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("Assessment:", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("<strong>stable</strong>", roundTripHtml, StringComparison.Ordinal);

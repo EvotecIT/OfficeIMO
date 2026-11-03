@@ -499,7 +499,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             {
                 var frozenRows = ResolveFrozenTopRows(document, sheet, isAppendingToExistingSheet, appendTableName, dataStartRow, includeHeaders);
                 var frozenColumns = FreezeFirstColumn.IsPresent ? Math.Max(1, StartColumn) : 0;
-                sheet.Freeze(frozenRows, frozenColumns);
+                sheet.View.Freeze(frozenRows, frozenColumns);
             }
 
             if (!string.IsNullOrWhiteSpace(range))
@@ -732,7 +732,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             {
                 var frozenRows = FreezeTopRow.IsPresent ? Math.Max(1, !NoHeader.IsPresent ? dataStartRow : StartRow) : 0;
                 var frozenColumns = FreezeFirstColumn.IsPresent ? Math.Max(1, StartColumn) : 0;
-                sheet.Freeze(frozenRows, frozenColumns);
+                sheet.View.Freeze(frozenRows, frozenColumns);
             }
         }
 
@@ -801,7 +801,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             {
                 var frozenRows = ResolveFrozenTopRows(document, sheet, isAppendingToExistingSheet, appendTableName, dataStartRow, includeHeaders);
                 var frozenColumns = FreezeFirstColumn.IsPresent ? Math.Max(1, StartColumn) : 0;
-                sheet.Freeze(frozenRows, frozenColumns);
+                sheet.View.Freeze(frozenRows, frozenColumns);
             }
 
             if (!string.IsNullOrWhiteSpace(range))

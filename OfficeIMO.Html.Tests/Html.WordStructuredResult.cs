@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 public class HtmlWordStructuredResult {
     [Fact]
     public void WordHtml_ResultCarriesOnlyCurrentConversionDiagnostics() {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Warn
         };
 
@@ -27,7 +27,7 @@ public class HtmlWordStructuredResult {
 
     [Fact]
     public void WordHtml_UsesConversionScopedMissingStyleResolver() {
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             StyleMissingHandler = args => args.Style = WordParagraphStyles.Heading1
         };
 

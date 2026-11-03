@@ -119,9 +119,9 @@ public sealed class ConvertToOfficeExcelHtmlCommand : PSCmdlet
         return ExcelDocumentService.LoadDocument(PdfCommandUtilities.ResolvePath(this, Path), readOnly: true, autoSave: false, Password.ToPlainText());
     }
 
-    private ExcelHtmlSaveOptions CreateOptions()
+    private ExcelHtmlExportOptions CreateOptions()
     {
-        var options = new ExcelHtmlSaveOptions
+        var options = new ExcelHtmlExportOptions
         {
             Profile = Profile == OfficeExcelHtmlProfile.VisualReview
                 ? OfficeHtmlConversionProfile.ExcelVisualReview

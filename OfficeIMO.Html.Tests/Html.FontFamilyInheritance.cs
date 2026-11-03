@@ -51,7 +51,7 @@ public sealed class HtmlFontFamilyInheritanceTests {
         switch (target) {
             case "excel": {
                 using ExcelDocument workbook = source.ToExcelDocumentResult(
-                    new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+                    new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
                 string? imported = ExcelFont(workbook);
                 using var artifact = new MemoryStream();
                 workbook.Save(artifact);

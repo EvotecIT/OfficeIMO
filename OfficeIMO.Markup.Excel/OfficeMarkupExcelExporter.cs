@@ -3,7 +3,7 @@ using OfficeIMO.Excel;
 namespace OfficeIMO.Markup.Excel;
 
 internal sealed partial class OfficeMarkupExcelExporter {
-    public ExcelDocument Convert(OfficeMarkupDocument document, MarkupToExcelOptions options) {
+    public ExcelDocument Convert(OfficeMarkupDocument document, MarkupExcelExportOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -228,11 +228,11 @@ internal sealed partial class OfficeMarkupExcelExporter {
     private static void FinalizeWorkbook(WorkbookExportContext context) {
         foreach (var sheet in context.Sheets) {
             if (context.Options.FreezeTableHeaderRows && context.TryGetFreezeRow(sheet.Name, out var freezeRow)) {
-                sheet.Freeze(topRows: freezeRow, leftCols: 0);
+                sheet.View.Freeze(topRows: freezeRow);
             }
 
             if (context.Options.HideGridlines) {
-                sheet.SetGridlinesVisible(false);
+                sheet.View.ShowGridlines = false;
             }
 
             if (context.Options.AutoFitColumns) {
@@ -473,7 +473,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
         return (cell.Row, cell.Col);
     }
 
-    private static (int Row, int Column, int Width, int Height) ResolveChartPlacement(MarkupToExcelOptions options, OfficeMarkupChartBlock chart, string? placementCell) {
+    private static (int Row, int Column, int Width, int Height) ResolveChartPlacement(MarkupExcelExportOptions options, OfficeMarkupChartBlock chart, string? placementCell) {
         var row = GetInt(chart.Attributes, "row")
             ?? GetInt(chart.Attributes, "y")
             ?? options.DefaultChartRow;
@@ -772,12 +772,12 @@ internal sealed partial class OfficeMarkupExcelExporter {
         private readonly Dictionary<string, int> _freezeRows = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         private ExcelSheet? _currentSheet;
 
-        public WorkbookExportContext(ExcelDocument workbook, MarkupToExcelOptions options) {
+        public WorkbookExportContext(ExcelDocument workbook, MarkupExcelExportOptions options) {
             _workbook = workbook;
             Options = options;
         }
 
-        public MarkupToExcelOptions Options { get; }
+        public MarkupExcelExportOptions Options { get; }
 
         public IEnumerable<ExcelSheet> Sheets => _sheets.Values.Distinct();
 

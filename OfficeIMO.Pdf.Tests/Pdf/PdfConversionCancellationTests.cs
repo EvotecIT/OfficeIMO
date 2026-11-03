@@ -22,7 +22,7 @@ public sealed class PdfConversionCancellationTests {
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
+        PdfHtmlExportOptions options = CreateHtmlOptions(glyphStage);
 
         Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(new System.IO.MemoryStream(source)).ToHtml(options, cancellation.Token));
 
@@ -37,7 +37,7 @@ public sealed class PdfConversionCancellationTests {
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
+        PdfHtmlExportOptions options = CreateHtmlOptions(glyphStage);
 
         Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(new System.IO.MemoryStream(source)).ToHtmlResult(options, cancellation.Token));
 
@@ -52,7 +52,7 @@ public sealed class PdfConversionCancellationTests {
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
+        PdfHtmlExportOptions options = CreateHtmlOptions(glyphStage);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             PdfDocument.Load(new System.IO.MemoryStream(source)).SaveAsHtmlAsync(Stream.Null, options, cancellation.Token));
@@ -60,7 +60,7 @@ public sealed class PdfConversionCancellationTests {
         Assert.False(glyphStage.WasCalled);
     }
 
-    private static PdfToHtmlOptions CreateHtmlOptions(
+    private static PdfHtmlExportOptions CreateHtmlOptions(
         IPdfGlyphDecodingStage glyphStage) => new() {
             ReadOptions = new PdfLoadOptions {
                 Profile = PdfReadProfile.Structured,
@@ -77,13 +77,13 @@ public sealed class PdfConversionCancellationTests {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToWordWithEvidence(new WordPdfImportOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToWordWithEvidence(new PdfWordExportOptions(), cancellation.Token);
         });
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToExcelWithEvidence(new ExcelPdfImportOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToExcelWithEvidence(new PdfExcelExportOptions(), cancellation.Token);
         });
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(new PowerPointPdfImportOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(new PdfPowerPointExportOptions(), cancellation.Token);
         });
     }
 

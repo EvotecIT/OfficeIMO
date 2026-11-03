@@ -39,7 +39,7 @@ public class RtfNestedTableTests {
     public void Semantic_Writer_RoundTrips_Nested_Table_Structure() {
         RtfDocument document = CreateNestedDocument();
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         RtfTable outer = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable nested = Assert.Single(Assert.Single(Assert.Single(outer.Rows).Cells).Blocks.OfType<RtfTable>());
@@ -60,7 +60,7 @@ public class RtfNestedTableTests {
         secondRow.AddCell(2400).AddParagraph("Inner C");
         secondRow.AddCell(4800).AddParagraph("Inner D");
 
-        RtfDocument roundTrip = RtfDocument.ParseResult(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(document.ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document;
         RtfTable roundTripOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable roundTripNested = Assert.Single(Assert.Single(Assert.Single(roundTripOuter.Rows).Cells).Blocks.OfType<RtfTable>());
 
@@ -77,7 +77,7 @@ public class RtfNestedTableTests {
         outerCell.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("First nested table");
         outerCell.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Second nested table");
 
-        RtfDocument roundTrip = RtfDocument.ParseResult(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(document.ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document;
         RtfTable readOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable[] nestedTables = Assert.Single(Assert.Single(readOuter.Rows).Cells).Blocks.OfType<RtfTable>().ToArray();
 
@@ -96,7 +96,7 @@ public class RtfNestedTableTests {
         RtfTable levelThree = levelTwo.Rows[0].Cells[0].AddTable(1, 1);
         levelThree.Rows[0].Cells[0].AddParagraph("Level 3");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         RtfTable readOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable readLevelTwo = Assert.Single(Assert.Single(Assert.Single(readOuter.Rows).Cells).Blocks.OfType<RtfTable>());
@@ -117,7 +117,7 @@ public class RtfNestedTableTests {
         note.AddParagraph("Nested note");
         nested.Rows[0].Cells[0].Paragraphs[0].AddNoteReference(note, "1");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
 
         Assert.Equal(1, CountOccurrences(rtf, @"{\footnote"));
@@ -166,7 +166,7 @@ public class RtfNestedTableTests {
 
     [Fact]
     public void Markdown_Flattens_Nested_Table_With_Explicit_Loss_Report() {
-        var options = new RtfToMarkdownOptions();
+        var options = new RtfMarkdownExportOptions();
 
         RtfConversionResult<string> result = CreateNestedDocument().ToMarkdownResult(options);
         string markdown = result.Value;
@@ -182,7 +182,7 @@ public class RtfNestedTableTests {
 
     [Fact]
     public void Pdf_Flattens_Nested_Table_With_Explicit_Loss_Report() {
-        var options = new RtfToPdfOptions();
+        var options = new RtfPdfExportOptions();
 
         PdfCore.PdfDocumentConversionResult result = CreateNestedDocument().ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();

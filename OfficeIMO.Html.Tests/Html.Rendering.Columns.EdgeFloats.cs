@@ -195,7 +195,7 @@ public sealed partial class HtmlRenderingTests {
             .OfType<HtmlRenderNamedDestination>(), d => d.Name == "figure");
         HtmlRenderText figure = Assert.Single(document.Pages.SelectMany(p => p.Visuals).OfType<HtmlRenderText>(), t => t.Text == "Figure");
         Assert.Equal(figure.X, destination.X, 3);
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions { AutoFitWidePrintContent = false })).ToBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions { AutoFitWidePrintContent = false })).ToBytes();
         Assert.Contains("Figure", OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText());
     }
 

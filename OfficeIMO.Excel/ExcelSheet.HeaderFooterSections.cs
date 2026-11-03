@@ -5,22 +5,81 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel;
 
 public partial class ExcelSheet {
-    /// <summary>Updates odd-page header sections, retaining omitted sections, the footer and authored page variants.</summary>
+    /// <summary>Updates running-header sections and flags, retaining omitted sections, the footer and authored page variants.</summary>
     /// <para>Null leaves a section or setting unchanged; empty text clears a section. Different-page flags apply to
     /// both header and footer. Changing a variant flag from false to true fills missing content from odd-page text; existing variant
-    /// text remains intact. Use SetFirstPageHeaderFooter or SetEvenPageHeaderFooter to edit those variants.</para>
-    public void SetHeader(string? left = null, string? center = null, string? right = null,
+    /// text remains intact. First-page and even-page sections are edited through SetHeaderFooterSectionText.</para>
+    internal void SetHeaderCore(string? left = null, string? center = null, string? right = null,
         bool? differentFirstPage = null, bool? differentOddEven = null, bool? alignWithMargins = null,
         bool? scaleWithDocument = null) => UpdateHeaderFooterSections(true, left, center, right,
             differentFirstPage, differentOddEven, alignWithMargins, scaleWithDocument);
 
-    /// <summary>Updates odd-page footer sections, retaining omitted sections, the header and authored page variants.</summary>
+    /// <summary>Updates running-footer sections and flags, retaining omitted sections, the header and authored page variants.</summary>
     /// <para>Null leaves a section or setting unchanged; empty text clears a section. Different-page flags apply to
     /// both header and footer. Existing first/even-page content is retained, including when a variant is disabled.</para>
-    public void SetFooter(string? left = null, string? center = null, string? right = null,
+    internal void SetFooterCore(string? left = null, string? center = null, string? right = null,
         bool? differentFirstPage = null, bool? differentOddEven = null, bool? alignWithMargins = null,
         bool? scaleWithDocument = null) => UpdateHeaderFooterSections(false, left, center, right,
             differentFirstPage, differentOddEven, alignWithMargins, scaleWithDocument);
+
+    internal string GetHeaderFooterSectionText(ExcelHeaderFooterKind kind, ExcelHeaderFooterPosition position) {
+        HeaderFooter? value = WorksheetRoot.GetFirstChild<HeaderFooter>();
+        var sections = ParseHeaderFooterSections(GetHeaderFooterText(value, kind) ?? string.Empty);
+        return position == ExcelHeaderFooterPosition.Left ? sections.L
+            : position == ExcelHeaderFooterPosition.Center ? sections.C
+            : sections.R;
+    }
+
+    internal ExcelHeaderFooterImageInfo? GetHeaderFooterSectionImage(ExcelHeaderFooterKind kind, ExcelHeaderFooterPosition position) {
+        if (kind != ExcelHeaderFooterKind.OddHeader && kind != ExcelHeaderFooterKind.OddFooter) return null;
+        string shapeId = (position == ExcelHeaderFooterPosition.Left ? "L" : position == ExcelHeaderFooterPosition.Center ? "C" : "R")
+            + (kind == ExcelHeaderFooterKind.OddHeader ? "H" : "F");
+        return ReadHeaderFooterImages(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes)
+            .TryGetValue(shapeId, out ExcelHeaderFooterImageInfo? image) ? image : null;
+    }
+
+    /// <summary>Replaces one section; first-page and even-page text turns its variant on, as Excel's dialog does.</summary>
+    internal void SetHeaderFooterSectionText(ExcelHeaderFooterKind kind, ExcelHeaderFooterPosition position, string text) {
+        if (kind == ExcelHeaderFooterKind.OddHeader || kind == ExcelHeaderFooterKind.OddFooter) {
+            UpdateHeaderFooterSections(kind == ExcelHeaderFooterKind.OddHeader,
+                position == ExcelHeaderFooterPosition.Left ? text : null,
+                position == ExcelHeaderFooterPosition.Center ? text : null,
+                position == ExcelHeaderFooterPosition.Right ? text : null,
+                null, null, null, null);
+            return;
+        }
+
+        WriteLock(() => {
+            HeaderFooter value = EnsureHeaderFooter();
+            var current = ParseHeaderFooterSections(GetHeaderFooterText(value, kind) ?? string.Empty);
+            string? rebuilt = BuildHeaderFooterSections(
+                position == ExcelHeaderFooterPosition.Left ? text : current.L,
+                position == ExcelHeaderFooterPosition.Center ? text : current.C,
+                position == ExcelHeaderFooterPosition.Right ? text : current.R);
+            switch (kind) {
+                case ExcelHeaderFooterKind.FirstHeader: value.FirstHeader = rebuilt == null ? null : new FirstHeader(rebuilt); break;
+                case ExcelHeaderFooterKind.FirstFooter: value.FirstFooter = rebuilt == null ? null : new FirstFooter(rebuilt); break;
+                case ExcelHeaderFooterKind.EvenHeader: value.EvenHeader = rebuilt == null ? null : new EvenHeader(rebuilt); break;
+                default: value.EvenFooter = rebuilt == null ? null : new EvenFooter(rebuilt); break;
+            }
+
+            if (text.Length > 0) {
+                if (kind == ExcelHeaderFooterKind.FirstHeader || kind == ExcelHeaderFooterKind.FirstFooter) value.DifferentFirst = true;
+                else value.DifferentOddEven = true;
+            }
+
+            CleanupHeaderFooterPictureArtifacts();
+        });
+    }
+
+    private static string? GetHeaderFooterText(HeaderFooter? value, ExcelHeaderFooterKind kind) => kind switch {
+        ExcelHeaderFooterKind.OddHeader => value?.OddHeader?.Text,
+        ExcelHeaderFooterKind.OddFooter => value?.OddFooter?.Text,
+        ExcelHeaderFooterKind.FirstHeader => value?.FirstHeader?.Text,
+        ExcelHeaderFooterKind.FirstFooter => value?.FirstFooter?.Text,
+        ExcelHeaderFooterKind.EvenHeader => value?.EvenHeader?.Text,
+        _ => value?.EvenFooter?.Text
+    };
 
     private void UpdateHeaderFooterSections(bool header, string? left, string? center, string? right,
         bool? differentFirstPage, bool? differentOddEven, bool? alignWithMargins, bool? scaleWithDocument) {

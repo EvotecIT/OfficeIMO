@@ -75,7 +75,7 @@ public class RtfParagraphLayoutTests {
             .SetSnapToLineGrid();
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\pagebb", rtf, StringComparison.Ordinal);
@@ -172,7 +172,7 @@ public class RtfParagraphLayoutTests {
         paragraph._paragraph.ParagraphProperties.OutlineLevel = new OutlineLevel { Val = 2 };
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -292,7 +292,7 @@ public class RtfParagraphLayoutTests {
         indented.IndentationHanging = global::OfficeIMO.OfficeLength.Points(18D);
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         Assert.Equal(RtfTextAlignment.Center, rtfDocument.Paragraphs[0].DirectAlignment);
@@ -335,7 +335,7 @@ public class RtfParagraphLayoutTests {
         document.AddParagraph("RTL").SetDirection(RtfTextDirection.RightToLeft);
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\pard\rtlpar\ql RTL", rtf, StringComparison.Ordinal);
@@ -351,7 +351,7 @@ public class RtfParagraphLayoutTests {
         paragraph.BiDi = true;
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -421,7 +421,7 @@ public class RtfParagraphLayoutTests {
         });
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\absw3600\absh0\phmrg\posnegx-180\pvpara\posy720\abslock\absnoovrlp1\nowrap\dxfrtext120\dfrmtxtx240\dfrmtxty360\overlay\dropcapli2\dropcapt1", rtf, StringComparison.Ordinal);

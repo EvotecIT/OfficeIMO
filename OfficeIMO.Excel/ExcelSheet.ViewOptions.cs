@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
         /// Applies worksheet view options such as gridlines, direction, zoom, and view mode.
         /// </summary>
         /// <param name="options">Options to apply. Null properties leave the existing worksheet setting unchanged.</param>
-        public void SetViewOptions(ExcelWorksheetViewOptions options) {
+        internal void ApplyViewOptions(ExcelWorksheetViewOptions options) {
             if (options == null) {
                 throw new ArgumentNullException(nameof(options));
             }
@@ -39,19 +39,6 @@ namespace OfficeIMO.Excel {
                 }
 
                 _excelDocument.MarkPackageDirty();
-            });
-        }
-
-        /// <summary>
-        /// Applies worksheet view options such as gridlines, direction, zoom, and view mode.
-        /// </summary>
-        public void SetViewOptions(bool? showGridlines = null, bool? rightToLeft = null, uint? zoomScale = null, uint? zoomScaleNormal = null, ExcelWorksheetViewKind? view = null) {
-            SetViewOptions(new ExcelWorksheetViewOptions {
-                ShowGridlines = showGridlines,
-                RightToLeft = rightToLeft,
-                ZoomScale = zoomScale,
-                ZoomScaleNormal = zoomScaleNormal,
-                View = view,
             });
         }
 

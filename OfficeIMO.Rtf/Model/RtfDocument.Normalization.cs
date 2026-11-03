@@ -7,8 +7,8 @@ public sealed partial class RtfDocument {
 
     /// <summary>Writes normalized semantic RTF with an operation-scoped report of source content that cannot survive normalization.</summary>
     /// <remarks>Use the read result's lossless APIs when original syntax must survive. Call ThrowIfLoss on this result before accepting strict semantic output.</remarks>
-    public RtfConversionResult<string> ToRtfResult(RtfWriteOptions? options = null) {
-        RtfWriteOptions resolved = options ?? new RtfWriteOptions();
+    public RtfConversionResult<string> ToRtfResult(RtfSaveOptions? options = null) {
+        RtfSaveOptions resolved = options ?? new RtfSaveOptions();
         var report = new RtfConversionReport();
         foreach (RtfConversionDiagnostic diagnostic in _sourceNormalizationDiagnostics) report.Add(diagnostic);
         report.Merge(GetStyleReferenceDiagnostics());

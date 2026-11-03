@@ -4,7 +4,7 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
     private static void ReportContinuousSectionSettings(RtfDocument document, RtfSection section, RtfSection currentPageSection,
-        PdfCore.PdfCreateOptions current, PdfCore.PdfCreateOptions defaults, RtfToPdfOptions options) {
+        PdfCore.PdfCreateOptions current, PdfCore.PdfCreateOptions defaults, RtfPdfExportOptions options) {
         PdfCore.PdfCreateOptions requested = defaults.Clone();
         RtfPageSetup setup = document.GetPageSetup(section);
         ApplyPageSetup(document, setup, requested);
@@ -38,7 +38,7 @@ internal static partial class RtfPdfConverter {
             RtfConversionAction.Flattened, new Dictionary<string, string> { ["Properties"] = string.Join(",", differences) });
     }
 
-    private static void RenderSectionBlocks(RtfDocument document, RtfSection section, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+    private static void RenderSectionBlocks(RtfDocument document, RtfSection section, PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state) {
         // A section terminator owns an implicit paragraph even when an
         // authored model has no explicit body blocks. Active body paragraph
         // controls cross section boundaries; the first uses normal parsed

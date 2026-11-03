@@ -45,7 +45,7 @@ public sealed class ConvertToOfficePdfWordCommand : PSCmdlet
 
     /// <summary>Advanced OfficeIMO PDF-to-Word reconstruction options.</summary>
     [Parameter]
-    public WordPdfImportOptions? Options { get; set; }
+    public PdfWordExportOptions? Options { get; set; }
 
     /// <summary>Overwrite an existing output file.</summary>
     [Parameter]

@@ -5,18 +5,18 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.OneNote.Pdf;
 
 internal static class OneNotePdfConversionEngine {
-    internal static PdfCore.PdfDocumentConversionResult Convert(OneNoteSection section, OneNoteToPdfOptions? options, System.Threading.CancellationToken cancellationToken) {
+    internal static PdfCore.PdfDocumentConversionResult Convert(OneNoteSection section, OneNotePdfExportOptions? options, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (section == null) throw new ArgumentNullException(nameof(section));
-        OneNoteToPdfOptions operation = (options ?? new OneNoteToPdfOptions()).CloneForConversion();
+        OneNotePdfExportOptions operation = (options ?? new OneNotePdfExportOptions()).CloneForConversion();
         OneNoteMarkdownConversionResult projection = section.ToMarkdownDocumentResult(operation.ProjectionOptions);
         return ConvertProjection(projection, operation.MarkdownOptions, cancellationToken);
     }
 
-    internal static PdfCore.PdfDocumentConversionResult Convert(OneNoteNotebook notebook, OneNoteToPdfOptions? options, System.Threading.CancellationToken cancellationToken) {
+    internal static PdfCore.PdfDocumentConversionResult Convert(OneNoteNotebook notebook, OneNotePdfExportOptions? options, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        OneNoteToPdfOptions operation = (options ?? new OneNoteToPdfOptions()).CloneForConversion();
+        OneNotePdfExportOptions operation = (options ?? new OneNotePdfExportOptions()).CloneForConversion();
         OneNoteMarkdownConversionResult projection = notebook.ToMarkdownDocumentResult(operation.ProjectionOptions);
         return ConvertProjection(projection, operation.MarkdownOptions, cancellationToken);
     }

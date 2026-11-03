@@ -11,7 +11,7 @@ Reconstructs editable Word content from a PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertTo-OfficePdfWord [-Path] <string> [-OutputPath] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-Options <WordPdfImportOptions>] [-Force] [-Open] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfWord [-Path] <string> [-OutputPath] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-Options <PdfWordExportOptions>] [-Force] [-Open] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -80,7 +80,7 @@ Accept wildcard characters: False
 Advanced OfficeIMO PDF-to-Word reconstruction options.
 
 ```yaml
-Type: WordPdfImportOptions
+Type: PdfWordExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

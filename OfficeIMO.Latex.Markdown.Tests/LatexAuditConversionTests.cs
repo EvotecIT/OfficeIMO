@@ -59,7 +59,7 @@ public sealed class LatexAuditConversionTests {
         LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions {
             Profile = preserveOnly ? LatexDocumentProfile.PreserveOnly : LatexDocumentProfile.OfficeIMO
         });
-        LatexToMarkdownResult result = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
+        LatexToMarkdownResult result = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false });
         Assert.Contains("IMPORTANT CONTENT", result.Value.ToMarkdown(), StringComparison.Ordinal);
         if (preserveOnly) {
             CodeBlock fallback = Assert.Single(result.Value.Blocks.OfType<CodeBlock>());
@@ -70,7 +70,7 @@ public sealed class LatexAuditConversionTests {
         }
         Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
         Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
-        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { PreserveUnsupportedAsSource = false });
+        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { PreserveUnsupportedAsSource = false });
         Assert.Contains(omitted.Report.NativeDiagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
     }
 
@@ -131,7 +131,7 @@ public sealed class LatexAuditConversionTests {
     [InlineData("_", "_005F_")]
     public void EncodedLabelNamesCannotCollideWithLiteralEscapeLookingIdentifiers(string first, string second) {
         MarkdownDocument markdown = MarkdownDocument.Parse("## A {#" + first + "}\n\n## B {#" + second + "}\n\n[A](#" + first + ") [B](#" + second + ")\n", new MarkdownLoadOptions { GenericAttributes = true });
-        MarkdownToLatexResult result = markdown.ToLatexDocumentResult(new MarkdownToLatexOptions { FirstHeadingIsTitle = false });
+        MarkdownToLatexResult result = markdown.ToLatexDocumentResult(new MarkdownLatexExportOptions { FirstHeadingIsTitle = false });
         string[] names = result.Value.Labels.Select(static label => label.Name).ToArray();
         Assert.Equal(2, names.Length);
         Assert.NotEqual(names[0], names[1]);
@@ -247,12 +247,12 @@ public sealed class LatexAuditConversionTests {
         const string source = "\\documentclass{article}\n\\usepackage{custom}\n\\newcommand{\\greet}{Hello}\n" +
             "\\begin{document}\n\\greet World\n\\end{document}\nTRAILER";
         LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly });
-        LatexToMarkdownResult preserved = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
+        LatexToMarkdownResult preserved = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false });
         Assert.Equal(source, Assert.Single(preserved.Value.Blocks.OfType<CodeBlock>()).Content);
         var pdf = document.ToPdfDocumentResult();
         string extracted = PdfDocument.Load(new System.IO.MemoryStream(pdf.Value.ToBytes())).ExtractText();
         foreach (string text in new[] { "usepackage", "newcommand", "greet World", "TRAILER" }) Assert.Contains(text, extracted, StringComparison.Ordinal);
-        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = false });
+        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = false });
         Assert.Empty(omitted.Value.Blocks);
         LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(omitted.Report.NativeDiagnostics, static item => item.Code == "LATEXMD297");
         Assert.Equal(LatexMarkdownConversionOutcome.Omitted, diagnostic.Outcome);
@@ -266,7 +266,7 @@ public sealed class LatexAuditConversionTests {
     public void PreservationOnlyFallbackKeepsOuterWhitespaceWithOrWithoutDocumentBody(bool body) {
         string source = " \n" + (body ? "\\begin{document}Body\\end{document}" : "\\newcommand{\\greet}{Hello}") + "\n ";
         LatexToMarkdownResult result = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly })
-            .ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
+            .ToMarkdownDocumentResult(new LatexMarkdownExportOptions { IncludePreambleAsFrontMatter = false });
         Assert.Equal(source, Assert.Single(result.Value.Blocks.OfType<CodeBlock>()).Content);
     }
     [Fact]

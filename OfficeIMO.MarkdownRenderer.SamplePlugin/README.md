@@ -45,7 +45,7 @@ using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer.SamplePlugin;
 
-var htmlOptions = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
+var htmlOptions = HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
 SampleMarkdownRenderer.ApplyHtmlRoundTripHints(htmlOptions);
 
 using var document = HtmlConversionDocument.Parse(html).ToMarkdown(htmlOptions);

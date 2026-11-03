@@ -24,7 +24,7 @@ public class RtfHtmlTableCellMetadataTests {
         first.AddParagraph("Left");
         second.AddParagraph("Right");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, NewLine = "\n" });
 
@@ -43,7 +43,7 @@ public class RtfHtmlTableCellMetadataTests {
         Assert.Equal(10, roundTripFirst.TopRightToBottomLeftBorder.Width);
         Assert.Equal(blue, roundTripFirst.TopRightToBottomLeftBorder.ColorIndex);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\cldglu\brdrdot\brdrw6\brdrcf1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\cldgll\brdrdash\brdrw10\brdrcf2", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\cellx1800", rtf, StringComparison.Ordinal);
@@ -69,7 +69,7 @@ public class RtfHtmlTableCellMetadataTests {
         first.AddParagraph("Merged");
         last.AddParagraph("Tail");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, NewLine = "\n" });
 
@@ -92,7 +92,7 @@ public class RtfHtmlTableCellMetadataTests {
         Assert.Equal(6, roundTripContinuation.TopLeftToBottomRightBorder.Width);
         Assert.Equal(red, roundTripContinuation.TopLeftToBottomRightBorder.ColorIndex);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\clmgf\cellx1800", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clmrg\clftsWidth3\clwWidth2400\clNoWrap\clFitText\cldglu\brdrdot\brdrw6\brdrcf1\cellx4200", rtf, StringComparison.Ordinal);
     }

@@ -3,7 +3,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Publisher.Internal;
 
 internal static class PublisherNativeReader {
-    internal static PublisherDocument Read(OfficeCompoundFile compound, PublisherReadOptions options, CancellationToken token) {
+    internal static PublisherDocument Read(OfficeCompoundFile compound, PublisherLoadOptions options, CancellationToken token) {
         var context = new PublisherParseContext(options, token);
         PublisherBinaryData contents = Required(compound, "Contents");
         contents.Range(0, 4);

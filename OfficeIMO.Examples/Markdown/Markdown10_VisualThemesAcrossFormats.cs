@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Markdown {
                     .Row("Markdown", "SaveAsMarkdown", "semantic source")
                     .Row("HTML", "SaveAsHtml", "HtmlOptions.Theme")
                     .Row("PDF", "SaveAsPdf", "MarkdownPdfExportOptions.Theme")
-                    .Row("Word", "ToWordDocument", "WordMarkdownImportOptions.Theme"))
+                    .Row("Word", "ToWordDocument", "MarkdownWordExportOptions.Theme"))
                 .Callout("success", "Consistent visuals", "The same theme object controls the conversion-specific renderer details.")
                 .H2("Code")
                 .Code("csharp", """
@@ -75,7 +75,7 @@ word.SaveCopy(docxPath);
                 Theme = theme
             });
 
-            using var word = doc.ToWord(new WordMarkdownImportOptions {
+            using var word = doc.ToWord(new MarkdownWordExportOptions {
                 Theme = theme,
                 FontFamily = "Aptos"
             });

@@ -108,9 +108,9 @@ namespace OfficeIMO.Examples.Excel
                 }
 
                 // Make Summary sheet print nicely
-                composer.Sheet.SetGridlinesVisible(false);
-                composer.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
-                doc.SetPrintArea(composer.Sheet, summaryRange);
+                composer.Sheet.View.ShowGridlines = false;
+                composer.Sheet.PageSetup.FitToWidth = 1; composer.Sheet.PageSetup.FitToHeight = 0;
+                composer.Sheet.PageSetup.PrintArea = summaryRange;
                 // Legend
                 composer.Section("Legend");
                 var legendHeaderRow = composer.CurrentRow;
@@ -140,9 +140,10 @@ namespace OfficeIMO.Examples.Excel
                 // Header text and an optional embedded logo
                 var logoPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
                 byte[]? logo = System.IO.File.Exists(logoPath) ? System.IO.File.ReadAllBytes(logoPath) : null;
-                composer.Sheet.SetHeaderFooter(headerCenter: "Domain Detective", headerRight: "Page &P of &N");
+                composer.Sheet.PageSetup.Header.Center.Text = "Domain Detective";
+                composer.Sheet.PageSetup.Header.Right.Text = "Page &P of &N";
                 if (logo != null)
-                    composer.Sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", OfficeLength.Points(96), OfficeLength.Points(32));
+                    composer.Sheet.PageSetup.Header.Center.SetImage(logo, "image/png", OfficeLength.Points(96), OfficeLength.Points(32));
                 // Back links to TOC on all sheets
                 doc.AddBackLinksToToc();
                 // Horizontal band: avoid full-sheet auto-fit to prevent column width fights
@@ -245,10 +246,10 @@ namespace OfficeIMO.Examples.Excel
                     var summary = verify.Sheets.FirstOrDefault(s => string.Equals(s.Name, "Summary", System.StringComparison.Ordinal));
                     if (summary != null)
                     {
-                        var hf = summary.GetHeaderFooter();
-                        Console.WriteLine("    Header (L/C/R): [" + hf.HeaderLeft + "] [" + hf.HeaderCenter + "] [" + hf.HeaderRight + "]");
-                        Console.WriteLine("    Footer (L/C/R): [" + hf.FooterLeft + "] [" + hf.FooterCenter + "] [" + hf.FooterRight + "]");
-                        Console.WriteLine("    Header has &G: " + hf.HeaderHasPicturePlaceholder + ", Footer has &G: " + hf.FooterHasPicturePlaceholder);
+                        var page = summary.PageSetup;
+                        Console.WriteLine("    Header (L/C/R): [" + page.Header.Left.Text + "] [" + page.Header.Center.Text + "] [" + page.Header.Right.Text + "]");
+                        Console.WriteLine("    Footer (L/C/R): [" + page.Footer.Left.Text + "] [" + page.Footer.Center.Text + "] [" + page.Footer.Right.Text + "]");
+                        Console.WriteLine("    Header picture: " + (page.Header.Center.Image != null));
                     }
                     else
                     {
@@ -272,7 +273,7 @@ namespace OfficeIMO.Examples.Excel
             if (!ExcelA1.TryParseRange(summaryRange, out _, out int firstColumn, out _, out int lastColumn)) return;
             sheet.SetColumnWidth(firstColumn, ExcelColumnWidth.Characters(22));
             for (int column = firstColumn + 1; column <= lastColumn; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
         }
     }
 }

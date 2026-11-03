@@ -8,7 +8,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupImageBlock image,
         LayoutCursor cursor,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics) {
         bool embedded = TryReadEmbeddedImage(image.Source, options, out var bytes, out var info);
         string path = string.Empty;
@@ -48,7 +48,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static bool TryResolveFilePath(
-        MarkupToPowerPointOptions? options,
+        MarkupPowerPointExportOptions? options,
         string source,
         out string path) {
         path = source;

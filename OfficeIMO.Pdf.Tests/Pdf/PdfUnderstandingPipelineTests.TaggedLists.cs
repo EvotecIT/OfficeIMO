@@ -165,7 +165,7 @@ public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void WordImportWithoutLists_RetainsTaggedParagraphBodies() {
         PdfDocumentReadResult result = PdfDocument.Load(new System.IO.MemoryStream(CreateParagraphTaggedListPdf())).Read();
-        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new WordPdfImportOptions { ImportLists = false })).Value;
+        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new PdfWordExportOptions { ImportLists = false })).Value;
         string text = ReadWordBody(word);
         Assert.Equal(1, CountText(text, "Linked incident title"));
         Assert.Equal(1, CountText(text, "Incident detail"));
@@ -227,8 +227,8 @@ public partial class PdfUnderstandingPipelineTests {
 
     private static void AssertConsumerTextOccursOnce(PdfDocumentReadResult result, bool sharedOrder, params string[] values) {
         string reader = string.Join(" ", PdfReaderAdapter.ReadDocument(result).Blocks.Select(static block => block.Text));
-        string html = result.ToHtml(new PdfToHtmlOptions { UseSharedPageReadingOrder = sharedOrder });
-        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = sharedOrder })).Value;
+        string html = result.ToHtml(new PdfHtmlExportOptions { UseSharedPageReadingOrder = sharedOrder });
+        using OfficeIMO.Word.WordDocument word = (result.ConvertToWordWithEvidence(new PdfWordExportOptions { UseSharedPageReadingOrder = sharedOrder })).Value;
         string wordText = ReadWordBody(word);
         foreach (string value in values) {
             // Table content is represented in Reader tables, not duplicated in document blocks.

@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <code>$options = New-OfficePdfHtmlOptions -Fragment -NoMetadata -NoPageContainers
 /// Convert-OfficeDocument -Path ./Report.pdf -To Html -AsString -Options $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficePdfHtmlOptions", DefaultParameterSetName = "Default")]
-[OutputType(typeof(PdfToHtmlOptions))]
+[OutputType(typeof(PdfHtmlExportOptions))]
 public sealed class NewOfficePdfHtmlOptionsCommand : OfficeCmdlet {
     /// <summary>Semantic content or positioned, inert review HTML; semantic is the default.</summary>
     [Parameter(ParameterSetName = "Default")]
@@ -52,8 +52,8 @@ public sealed class NewOfficePdfHtmlOptionsCommand : OfficeCmdlet {
         if (ImageExportMode.HasValue && !System.Enum.IsDefined(typeof(PdfHtmlImageExportMode), ImageExportMode.Value))
             throw new PSArgumentException("Unsupported PDF HTML image export mode.");
         var options = Profile == PdfHtmlProfile.PositionedReview
-            ? PdfToHtmlOptions.CreatePositionedReviewProfile()
-            : PdfToHtmlOptions.CreateSemanticProfile();
+            ? PdfHtmlExportOptions.CreatePositionedReviewProfile()
+            : PdfHtmlExportOptions.CreateSemanticProfile();
         options.IncludeMetadata = !NoMetadata.IsPresent;
         options.IncludePageContainers = !NoPageContainers.IsPresent;
         options.IncludeImagePlaceholders = !NoImagePlaceholders.IsPresent;

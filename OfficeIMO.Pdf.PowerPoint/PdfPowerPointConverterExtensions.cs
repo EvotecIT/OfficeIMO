@@ -14,15 +14,15 @@ public static partial class PdfPowerPointConverterExtensions {
     /// <summary>Converts an opened PDF into a PowerPoint presentation with conversion diagnostics.</summary>
     internal static PdfPowerPointConversionResult ConvertToPowerPointWithEvidence(
         this PdfCore.PdfDocument document,
-        PowerPointPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        PdfPowerPointExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
         ConvertOpenedPdf(document, options, cancellationToken);
 
     private static PdfPowerPointConversionResult ConvertOpenedPdf(
         PdfCore.PdfDocument document,
-        PowerPointPdfImportOptions? options,
+        PdfPowerPointExportOptions? options,
         CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        PowerPointPdfImportOptions operation = options ?? new PowerPointPdfImportOptions();
+        PdfPowerPointExportOptions operation = options ?? new PdfPowerPointExportOptions();
         cancellationToken = cancellationToken.CanBeCanceled
             ? cancellationToken
             : operation.CancellationToken;
@@ -48,7 +48,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static PdfCore.PdfDocumentReadResult ReadBoundedLogicalDocument(
         PdfCore.PdfDocument document,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (options.MaxPages <= 0) {
@@ -71,7 +71,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static void ValidateLogicalPageCount(
         PdfCore.PdfDocumentReadResult logical,
-        PowerPointPdfImportOptions options) {
+        PdfPowerPointExportOptions options) {
         if (logical.Pages.Count > options.MaxPages) {
             throw new InvalidOperationException(
                 $"PDF import page count {logical.Pages.Count} exceeded the configured limit of {options.MaxPages}.");
@@ -95,9 +95,9 @@ public static partial class PdfPowerPointConverterExtensions {
     /// <summary>Imports logical PDF tables into an editable PowerPoint presentation plus an explicit table-scope report.</summary>
     internal static PdfPowerPointConversionResult ConvertToPowerPointWithEvidence(
         this PdfCore.PdfDocumentReadResult document,
-        PowerPointPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        PdfPowerPointExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        PowerPointPdfImportOptions operation = options ?? PowerPointPdfImportOptions.CreateEditableTables();
+        PdfPowerPointExportOptions operation = options ?? PdfPowerPointExportOptions.CreateEditableTables();
         return ConvertLogicalResult(
             document,
             operation,
@@ -107,7 +107,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static PdfPowerPointConversionResult ConvertLogicalResult(
         PdfCore.PdfDocumentReadResult document,
-        PowerPointPdfImportOptions operation,
+        PdfPowerPointExportOptions operation,
         bool applyPageSelection,
         CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -115,7 +115,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PdfCore.PdfDocumentReadResult selected = applyPageSelection
             ? document.ProjectPages(
                 operation.ReadOptions?.PageSelection,
-                nameof(PowerPointPdfImportOptions.ReadOptions),
+                nameof(PdfPowerPointExportOptions.ReadOptions),
                 cancellationToken)
             : document;
         if (operation.MaxPages <= 0) {
@@ -150,7 +150,7 @@ public static partial class PdfPowerPointConverterExtensions {
     private static IReadOnlyList<PdfPowerPointTableImportEntry> ImportTables(
         PdfCore.PdfDocumentReadResult document,
         PptCore.PowerPointDocument presentation,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
@@ -225,7 +225,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static PdfPowerPointConversionResult ImportVisualPages(
         PdfCore.PdfDocument document,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options, cancellationToken);
         using var presentationOwner = new PresentationConstructionScope();
@@ -256,7 +256,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static PdfPowerPointConversionResult ImportHybridPages(
         PdfCore.PdfDocument document,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         PdfCore.PdfDocumentReadResult logical = ReadBoundedLogicalDocument(document, options, cancellationToken);
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options, cancellationToken);
@@ -383,7 +383,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PdfCore.PdfLogicalTableData data,
         TableSegment segment,
         bool headerRowIncluded,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int rowCount = segment.RowCount + (headerRowIncluded ? 1 : 0);
@@ -417,7 +417,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static IReadOnlyList<PdfCore.PdfPageRenderResult> RenderPages(
         PdfCore.PdfDocument document,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         var renderOptions = new PdfCore.PdfPageRenderOptions {
             Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
@@ -562,7 +562,7 @@ public static partial class PdfPowerPointConverterExtensions {
             height);
     }
 
-    private static void AddEmptyPresentationSlide(PptCore.PowerPointDocument presentation, PowerPointPdfImportOptions options) {
+    private static void AddEmptyPresentationSlide(PptCore.PowerPointDocument presentation, PdfPowerPointExportOptions options) {
         PptCore.PowerPointSlide slide = presentation.AddSlide();
         string title = string.IsNullOrWhiteSpace(options.EmptyPresentationTitle)
             ? "PDF Tables"
@@ -596,7 +596,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static List<TableSegment> BuildTableSegments(
         PdfCore.PdfLogicalTableData data,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         int sourceColumnCount = Math.Max(data.Columns.Count, 1);
         int columnLimit = options.MaxColumnsPerSlide > 0
@@ -641,7 +641,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PdfCore.PdfLogicalTableData data,
         TableSegment segment,
         bool headerRowIncluded,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         table.HeaderRow = headerRowIncluded;

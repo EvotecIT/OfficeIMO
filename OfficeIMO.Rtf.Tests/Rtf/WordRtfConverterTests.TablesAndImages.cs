@@ -32,7 +32,7 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("After");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         Assert.Collection(rtfDocument.Blocks,
@@ -157,7 +157,7 @@ public partial class WordRtfConverterTests {
         }
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
         RtfDocument roundTripRtf = roundTrip.ToRtfDocument();
 
@@ -195,7 +195,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddText(" after");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
         RtfDocument semanticRoundTrip = roundTrip.ToRtfDocument();
 
@@ -900,7 +900,7 @@ public partial class WordRtfConverterTests {
         table.Rows[1].Cells[0].AddParagraph("Vertical", removeExistingParagraphs: true);
 
         RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfTable rtfTable = Assert.IsType<RtfTable>(Assert.Single(rtfDocument.Blocks));

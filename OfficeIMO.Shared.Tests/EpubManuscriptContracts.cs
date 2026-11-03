@@ -145,7 +145,7 @@ public sealed class EpubManuscriptContracts {
         Assert.Equal("chapter-0003.xhtml#two", (string?)book.GetContentXml("chapter-2").Descendants(Html + "a").Single().Attribute("href"));
         Assert.Equal("chapter-0002.xhtml#one", (string?)book.GetContentXml("chapter-3").Descendants(Html + "a").Single().Attribute("href"));
         Assert.Equal("prose", (string?)book.GetContentXml("chapter-3").Descendants(Html + "section").Single().Attribute("class"));
-        EpubDocument reopened = book.Read(new EpubReadOptions { IncludeRawHtml = true });
+        EpubDocument reopened = book.Read(new EpubLoadOptions { IncludeRawHtml = true });
         Assert.Equal(new[] { "Book", "First", "Second" }, reopened.Chapters.Select(chapter => chapter.Title));
         Assert.Contains("Value", reopened.Chapters[2].Text);
         Assert.Single(reopened.TableOfContents[1].Children);

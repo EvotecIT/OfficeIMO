@@ -210,7 +210,7 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
 
     private void ConvertToPdf()
     {
-        var options = new RtfToPdfOptions
+        var options = new RtfPdfExportOptions
         {
             IncludeHiddenText = IncludeHiddenText.IsPresent,
             IncludeImages = !ExcludeImages.IsPresent,
@@ -244,7 +244,7 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
 
     private void ConvertToMarkdown()
     {
-        var options = new RtfToMarkdownOptions
+        var options = new RtfMarkdownExportOptions
         {
             IncludeHiddenText = IncludeHiddenText.IsPresent,
             EmitUnsupportedHtmlComments = !NoUnsupportedHtmlComments.IsPresent

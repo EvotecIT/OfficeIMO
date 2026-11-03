@@ -10,7 +10,8 @@ internal static partial class PdfSanitizer {
     }
 
     /// <summary>Returns the forbidden-content inventory that the supplied policy would remove.</summary>
-    public static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options = null) {
+    public static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return Analyze(pdf, options, readOptions: null);
     }
 
@@ -29,7 +30,8 @@ internal static partial class PdfSanitizer {
     /// Produces a normalized PDF with forbidden actions, unsafe URI targets, rich media, and embedded payloads removed.
     /// Quarantine mode returns decoded attachments to the caller but never writes them to disk.
     /// </summary>
-    public static PdfSanitizationResult Sanitize(byte[] pdf, PdfSanitizationOptions? options = null) {
+    public static PdfSanitizationResult Sanitize(byte[] pdf, PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return Sanitize(pdf, options, readOptions: null);
     }
 
@@ -171,8 +173,10 @@ internal static partial class PdfSanitizer {
     }
 
     /// <summary>Sanitizes a PDF from the current position of a readable stream.</summary>
-    public static PdfSanitizationResult Sanitize(Stream stream, PdfSanitizationOptions? options = null) =>
-        Sanitize(stream, options, readOptions: null);
+    public static PdfSanitizationResult Sanitize(Stream stream, PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Sanitize(stream, options, readOptions: null);
+    }
 
     /// <summary>Sanitizes remaining stream content using caller-selected limits, without closing the caller stream.</summary>
     internal static PdfSanitizationResult Sanitize(Stream stream, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
@@ -181,8 +185,10 @@ internal static partial class PdfSanitizer {
     }
 
     /// <summary>Sanitizes a PDF file and returns the result without writing output automatically.</summary>
-    public static PdfSanitizationResult Sanitize(string inputPath, PdfSanitizationOptions? options = null) =>
-        Sanitize(inputPath, options, readOptions: null);
+    public static PdfSanitizationResult Sanitize(string inputPath, PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Sanitize(inputPath, options, readOptions: null);
+    }
 
     /// <summary>Sanitizes one bounded file snapshot using caller-selected limits and credentials.</summary>
     internal static PdfSanitizationResult Sanitize(string inputPath, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {

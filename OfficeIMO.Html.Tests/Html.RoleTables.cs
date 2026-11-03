@@ -93,7 +93,7 @@ public partial class HtmlOfficeAdapters {
         limits.MaxTableCells = 3;
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(
-            new HtmlToOneNoteOptions { Limits = limits });
+            new HtmlOneNoteExportOptions { Limits = limits });
         OneNoteSection reopened = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
@@ -164,12 +164,12 @@ public partial class HtmlOfficeAdapters {
         const string html = "<div role='table'><div role='row'><div role='cell'></div></div></div>";
 
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(
-            new HtmlToRtfOptions { MaxHtmlNodes = 6, MaxHtmlDepth = 5 });
+            new HtmlRtfExportOptions { MaxHtmlNodes = 6, MaxHtmlDepth = 5 });
 
         Assert.Single(result.RequireValue().Blocks.OfType<RtfTable>());
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
-            HtmlConversionDocument.Parse(html).ToRtfDocumentResult(new HtmlToRtfOptions { MaxHtmlDepth = 4 }));
-        Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlDepth), exception.LimitSource);
+            HtmlConversionDocument.Parse(html).ToRtfDocumentResult(new HtmlRtfExportOptions { MaxHtmlDepth = 4 }));
+        Assert.Equal(nameof(HtmlRtfExportOptions.MaxHtmlDepth), exception.LimitSource);
     }
 
 }

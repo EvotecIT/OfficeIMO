@@ -32,16 +32,16 @@ namespace OfficeIMO.Tests
                 data.SetNamedRange("LocalData", "A2:A3", save: false);
                 summary.SetNamedRange("SummaryLocal", "A2:A3", save: false);
                 document.SetNamedRange("GlobalData", "'Data'!A2:A3", save: false);
-                document.SetPrintTitles(data, firstRow: 2, lastRow: 3, firstCol: null, lastCol: null, save: false);
+                data.PageSetup.SetPrintTitles(firstRow: 2, lastRow: 3, firstColumn: null, lastColumn: null);
                 summary.Cell(1, 1).SetFormula("'Data'!A3+A3");
                 summary.SetInternalLink(2, 1, data, "A3", display: "Second value");
-                data.Range("A2:A3").Validation.CustomFormula("A2>0");
-                data.AddConditionalFormulaRule("B2:B3", "A2>0");
+                data.Range("A2:A3").Validation().CustomFormula("A2>0");
+                data.Range("B2:B3").ConditionalFormat().Formula("A2>0");
                 data.SetComment(3, 1, "Second value");
                 data.AddThreadedComment("A3", "Threaded second value");
                 data.SetHyperlink(3, 2, "https://example.org", display: "Second");
                 data.Range("D2:D3").Merge();
-                data.AutoFilterAdd("F1:G3");
+                data.Range("F1:G3").AutoFilter();
                 data.AddManualRowPageBreak(3);
                 data.AddSparklines("A2:B2", "H2");
 
@@ -365,7 +365,7 @@ namespace OfficeIMO.Tests
             sheet.Cell(2, 2).SetValue(1);
             sheet.Cell(1, 10).SetFormula($"A{ExcelA1.MaxRows}");
             document.SetNamedRange("Bottom", $"'Data'!A{ExcelA1.MaxRows}", save: false);
-            sheet.Range("C1").Validation.CustomFormula($"A{ExcelA1.MaxRows}>0");
+            sheet.Range("C1").Validation().CustomFormula($"A{ExcelA1.MaxRows}>0");
             DataValidation validation = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DataValidation>());
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 4 });
             C.Formula chartFormula = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace.Descendants<C.Formula>().First();

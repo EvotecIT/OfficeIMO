@@ -17,9 +17,9 @@ public sealed class HtmlOfficeAdapterLimitTests {
         using ExcelDocument workbook = ExcelDocument.Create();
         workbook.AddSheet("Data").Cell(1, 1).SetValue("value");
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxRowsPerSheet = -1 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxRowsPerSheet = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxMergedRangesPerSheet = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlExportOptions { MaxRowsPerSheet = -1 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlExportOptions { MaxRowsPerSheet = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlExportOptions { MaxMergedRangesPerSheet = 0 }));
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxImageBytes = 2;
         limits.MaxTotalImageBytes = 2;
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions { Limits = limits });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(0, result.Images);
@@ -72,7 +72,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxShapes = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Limits = limits });
+            new HtmlExcelExportOptions { Limits = limits });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(1, result.Images);
@@ -93,7 +93,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxShapes = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Limits = limits, Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelImage image = Assert.Single(Assert.Single(workbook.Sheets).Images);
@@ -115,7 +115,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxShapes = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Limits = limits, Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(1, result.Images);
@@ -136,7 +136,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxShapes = 2;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Limits = limits, Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
         Assert.Equal(1, result.Pictures);
@@ -156,7 +156,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxShapes = 1;
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html)
-            .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
+            .ToOneNoteSectionResult(new HtmlOneNoteExportOptions { Limits = limits });
 
         Assert.Equal(1, result.Images);
         Assert.Contains(result.Report.Diagnostics,
@@ -185,7 +185,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxAnnotations = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Limits = limits });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Limits = limits });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(1, result.Formulas);
@@ -204,7 +204,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             </main>
             """;
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { ImportFormulas = false });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions { ImportFormulas = false });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(0, result.Formulas);
@@ -235,7 +235,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticRestorationTrustRequired);
 
         HtmlToExcelResult optedIn = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { AllowUntrustedFormulas = true });
+            new HtmlExcelExportOptions { AllowUntrustedFormulas = true });
         using ExcelDocument optedInWorkbook = optedIn.Value;
 
         Assert.Equal(1, optedIn.Formulas);
@@ -251,7 +251,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxSemanticContainers = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Limits = limits, Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
@@ -274,7 +274,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxSemanticContainers = 2;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Semantic });
+            new HtmlExcelExportOptions { Limits = limits, Mode = HtmlImportMode.Semantic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(2, result.Sheets);
@@ -298,7 +298,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxSemanticContainers = 2;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Limits = limits, Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Limits = limits, Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(2, result.Sheets);
@@ -404,7 +404,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
             .ToPowerPointDocumentResult(
-                new HtmlToPowerPointOptions { Limits = limits });
+                new HtmlPowerPointExportOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(0, result.Charts);
@@ -444,7 +444,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
             .ToPowerPointDocumentResult(
-                new HtmlToPowerPointOptions { Limits = limits });
+                new HtmlPowerPointExportOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(1, result.Charts);
@@ -476,7 +476,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
             .ToPowerPointDocumentResult(
-                new HtmlToPowerPointOptions { Limits = limits });
+                new HtmlPowerPointExportOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(0, result.Charts);
@@ -505,7 +505,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxShapes = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Limits = limits });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(0, result.Charts);
@@ -531,7 +531,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxCharts = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Limits = limits });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(1, result.Charts);
@@ -565,7 +565,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxCharts = 1;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Limits = limits });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Limits = limits });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(1, result.Charts);
@@ -589,7 +589,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
                 UrlPolicy = hyperlinkPolicy,
                 ResourceUrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
             });
-        WordHtmlImportOptions permissiveOptions = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions permissiveOptions = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         permissiveOptions.ResourceUrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile();
 
         HtmlToWordResult result = source.ConvertToWordWithEvidence(permissiveOptions);
@@ -630,7 +630,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             Trust = HtmlInputTrust.Trusted,
             Limits = limits
         });
-        WordHtmlImportOptions permissiveOptions = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions permissiveOptions = HtmlWordExportOptions.CreateTrustedDocumentProfile();
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
             () => source.ConvertToWordWithEvidence(permissiveOptions));
@@ -665,7 +665,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         limits.MaxMetadataCharacters = 4;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Limits = limits });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Limits = limits });
         using var presentation = result.Value;
 
         Assert.Equal(0, result.TextBoxes);
@@ -680,7 +680,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
             </main>
             """;
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Auto });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Auto });
         using ExcelDocument workbook = result.Value;
 
         Assert.False(result.Succeeded);
@@ -708,7 +708,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     public void ExcelHtml_AutoModeImportsOrdinaryTablesWithoutSemanticMetadata() {
         const string html = "<h1>Inventory</h1><table><caption>Products</caption><tr><th>Name</th><th>Count</th></tr><tr><td>Paper</td><td>12</td></tr></table>";
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Auto });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Auto });
         using ExcelDocument workbook = result.Value;
 
         Assert.True(result.Succeeded);
@@ -722,7 +722,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     public void PowerPointHtml_AutoModeImportsOrdinarySectionsAndTables() {
         const string html = "<section><h2>Agenda</h2><p>First topic</p><table><tr><td>Owner</td><td>Ada</td></tr></table></section>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Auto });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Auto });
         using var presentation = result.Value;
 
         Assert.True(result.Succeeded);
@@ -736,7 +736,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string html = "<main><section><h2>First</h2><p>One</p></section><article><h2>Second</h2><p>Two</p></article></main>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
         Assert.True(result.Succeeded);
@@ -748,7 +748,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string html = "<p>intro</p><section><h2>Middle</h2><p>inside</p></section><p>outro</p>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
         Assert.True(result.Succeeded);
@@ -759,7 +759,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void PowerPointHtml_GenericProjectionPreservesTextInsideOrdinaryContainers() {
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse("<div>Hello from a generic container</div>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using var presentation = result.Value;
 
         Assert.True(result.Succeeded);
@@ -776,7 +776,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string html = "<section><h2>Title</h2><p>This text is too large</p><p>Accepted</p></section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });
@@ -794,7 +794,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         const string html = "<section><img src='https://example.test/not-embedded.png'><p>Accepted</p></section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });
@@ -810,7 +810,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void SemanticImportModeRequiresAdapterMetadata() {
         HtmlToExcelResult result = HtmlConversionDocument.Parse("<table><tr><td>Visible only</td></tr></table>")
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Semantic });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Semantic });
         using ExcelDocument workbook = result.Value;
 
         Assert.False(result.Succeeded);

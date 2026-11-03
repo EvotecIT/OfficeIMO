@@ -21,8 +21,7 @@ public sealed class ExcelConditionalIconFidelityTests {
             sheet.Cell(row, 1).SetValue(row - 1);
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         }
-        sheet.AddConditionalIconSet("A1:A" + count, iconSet, showValue: false, reverseIconOrder: false,
-            percentThresholds: null, numberThresholds: Enumerable.Range(0, count).Select(value => (double)value).ToArray());
+        sheet.Range("A1:A" + count).ConditionalFormat().IconSet(iconSet, showValue: false, reverseIconOrder: false, percentThresholds: null, numberThresholds: Enumerable.Range(0, count).Select(value => (double)value).ToArray());
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable, IncludeSheetHeadings = false, HeaderRowCount = 0,
             PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(360)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
@@ -61,16 +60,15 @@ public sealed class ExcelConditionalIconFidelityTests {
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Icons");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
-        sheet.SetMargins(OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0));
-        sheet.SetPageSetup(scale: (uint)percent);
+        sheet.PageSetup.SetMargins(OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0));
+        sheet.PageSetup.Scale = (uint)percent;
         int[] values = { 123, 456, 789 };
         for (int row = 1; row <= 3; row++) {
             sheet.Cell(row, 1).SetValue(values[row - 1]);
             sheet.Cell(row, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Left);
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
         }
-        sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeSymbols2, showValue, false,
-            percentThresholds: null, numberThresholds: new[] { 0D, 300D, 600D });
+        sheet.Range("A1:A3").ConditionalFormat().IconSet(ExcelIconSet.ThreeSymbols2, showValue, false, percentThresholds: null, numberThresholds: new[] { 0D, 300D, 600D });
 
         ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot();
         Assert.Equal(new[] { OfficeConditionalIconKind.RedCross, OfficeConditionalIconKind.YellowExclamation, OfficeConditionalIconKind.GreenCheck },
@@ -137,7 +135,7 @@ public sealed class ExcelConditionalIconFidelityTests {
                 CustomIcons = Enumerable.Range(0, 3).Select(index => new ExcelConditionalFormatIcon { IconSet = "ThreeSymbols2", IconId = (uint)index }).ToArray()
             });
             // A lower-priority icon set must not paint through a higher-priority NoIcons rule.
-            sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeArrows, showValue: true, reverseIconOrder: false);
+            sheet.Range("A1:A3").ConditionalFormat().IconSet(ExcelIconSet.ThreeArrows, showValue: true, reverseIconOrder: false);
             document.Save();
         }
         // Patch the saved package with producer-shaped records. Library save lifecycle

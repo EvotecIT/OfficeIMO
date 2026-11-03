@@ -7,7 +7,7 @@ internal static class MarketFixtures {
     internal static void Write(BookProject project, BookOnixExportOptions options, XmlSchemaSet schemas, string output, DateTimeOffset timestamp) {
         var supplies = options.Commercial!.Supplies.Select((supply, index) => supply with { MarketReference = "market-" + index }).ToArray();
         var source = project.ExportOnix(options with { Commercial = options.Commercial with { Supplies = supplies } }, schemas,
-            new EpubWriteOptions { ModifiedAt = timestamp });
+            new EpubSaveOptions { ModifiedAt = timestamp });
         File.WriteAllBytes(Path.Combine(output, "named-markets.onix"), source.Bytes);
         File.WriteAllBytes(Path.Combine(output, "named-markets.epub"), source.Publication.Bytes);
         var update = BookOnixMessage.CreateBlockUpdates([new(source) { ReplaceMarketReferences = ["market-1"], RemoveMarketReferences = ["market-0"] }], schemas);

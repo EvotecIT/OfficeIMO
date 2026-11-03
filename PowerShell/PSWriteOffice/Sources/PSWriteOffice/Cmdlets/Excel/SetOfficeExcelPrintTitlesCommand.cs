@@ -81,13 +81,11 @@ public sealed class SetOfficeExcelPrintTitlesCommand : PSCmdlet {
 
         var document = workbook.Document;
         var sheet = ExcelWorkbookCommandService.ResolveSheet(this, document, ParameterSetName, Sheet, SheetIndex);
-        document.SetPrintTitles(
-            sheet,
+        sheet.PageSetup.SetPrintTitles(
             Clear.IsPresent ? null : FirstRow,
             Clear.IsPresent ? null : LastRow,
             Clear.IsPresent ? null : FirstColumn,
-            Clear.IsPresent ? null : LastColumn,
-            save: false);
+            Clear.IsPresent ? null : LastColumn);
         workbook.SaveIfOwned();
 
         if (PassThru.IsPresent) {

@@ -108,7 +108,7 @@ RTF declaring `fromhtml` with `pict` or `objdata` is refused before semantic bin
 The loaded-result extension shares one native parse between Reader projection and payload inspection:
 
 ```csharp
-RtfReadResult native = RtfDocument.LoadResult("policy.rtf", new RtfReadOptions { DeferBinaryPayloads = true });
+RtfReadResult native = RtfDocument.LoadResult("policy.rtf", new RtfLoadOptions { DeferBinaryPayloads = true });
 OfficeDocumentReadResult projected = native.ReadDocument("policy.rtf", new ReaderOptions {
     Projection = ReaderProjection.TextAndMetadata
 });

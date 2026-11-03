@@ -215,7 +215,7 @@ public class MarkdownSaveAsPdfOptionsTests {
         }
         html.Append("</tr></table>");
 
-        MarkdownDocument document = HtmlConversionDocument.Parse(html.ToString()).ToMarkdown(new MarkdownHtmlImportOptions {
+        MarkdownDocument document = HtmlConversionDocument.Parse(html.ToString()).ToMarkdown(new HtmlMarkdownExportOptions {
             MaxTableExpandedColumns = 32
         });
 

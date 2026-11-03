@@ -242,7 +242,7 @@ public sealed class BookProjectTests {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
         project.SetCoverImage(Convert.FromBase64String(png), "image/png");
         var restored = BookProject.LoadProject(project.ToProjectBytes());
-        var reopened = restored.Publication.Read(new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+        var reopened = restored.Publication.Read(new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
         Assert.Contains(reopened.Resources, item => (item.Properties ?? string.Empty).Split(' ').Contains("cover-image"));
         Assert.Contains(restored.Publication.Manifest, item => item.Id == "book-project-style");
         Assert.All(restored.Publication.Spine, chapter => Assert.Contains("project.css", restored.Publication.GetContentXml(chapter.ManifestId).ToString()));

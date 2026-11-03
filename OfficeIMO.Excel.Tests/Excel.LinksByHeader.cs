@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 doc.AddSheet("domain-002.example");
 
                 // Link by header (styled)
-                s.LinkByHeaderToInternalSheets("Domain", rowFrom: 2, rowTo: 3, targetA1: "A1", styled: true);
+                s.LinkByHeader("Domain", ExcelLinkTarget.Sheet(targetCell: "A1"), new ExcelLinkByHeaderOptions { FirstRow = 2, LastRow = 3 });
                 doc.Save();
             }
 
@@ -78,13 +78,9 @@ namespace OfficeIMO.Tests {
                 s.Cell(1, 1).SetValue("RFC");
                 s.Cell(2, 1).SetValue("rfc7208");
 
-                s.LinkByHeaderToUrls(
-                    header: "RFC",
-                    rowFrom: 2,
-                    rowTo: 2,
-                    urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}",
-                    titleForCellText: null,
-                    styled: true);
+                s.LinkByHeader("RFC",
+                    ExcelLinkTarget.Url(rfc => $"https://datatracker.ietf.org/doc/html/{rfc}"),
+                    new ExcelLinkByHeaderOptions { FirstRow = 2, LastRow = 2 });
 
                 doc.Save();
             }
@@ -138,8 +134,8 @@ namespace OfficeIMO.Tests {
                 doc.AddSheet("domain-002.example");
 
                 // Link inside table by header
-                s.LinkByHeaderToInternalSheetsInTable("TblSummary", "Domain", targetA1: "A1", styled: true);
-                s.LinkByHeaderToUrlsInTable("TblSummary", "RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
+                Assert.Equal(2, s.LinkByHeader("Domain", ExcelLinkTarget.Sheet(targetCell: "A1"), new ExcelLinkByHeaderOptions { Table = "TblSummary" }).LinkedCount);
+                s.LinkByHeader("RFC", ExcelLinkTarget.Url(rfc => $"https://datatracker.ietf.org/doc/html/{rfc}"), new ExcelLinkByHeaderOptions { Table = "TblSummary" });
                 doc.Save();
             }
 
@@ -180,8 +176,8 @@ namespace OfficeIMO.Tests {
                 doc.AddSheet("domain-002.example");
 
                 // Link within the rectangular range
-                s.LinkByHeaderToInternalSheetsInRange("A1:B3", "Domain", targetA1: "A1", styled: true);
-                s.LinkByHeaderToUrlsInRange("A1:B3", "RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
+                s.LinkByHeader("Domain", ExcelLinkTarget.Sheet(targetCell: "A1"), new ExcelLinkByHeaderOptions { Range = "A1:B3" });
+                s.LinkByHeader("RFC", ExcelLinkTarget.Url(rfc => $"https://datatracker.ietf.org/doc/html/{rfc}"), new ExcelLinkByHeaderOptions { Range = "A1:B3" });
                 doc.Save();
             }
 
@@ -218,7 +214,7 @@ namespace OfficeIMO.Tests {
                 s.Cell(1, 1).SetValue("Domain");
                 s.Cell(2, 1).SetValue("domain-001??");
 
-                s.LinkByHeaderToInternalSheetsInRange("A1:A2", "Domain", targetA1: "A1", styled: false);
+                s.LinkByHeader("Domain", ExcelLinkTarget.Sheet(targetCell: "A1"), new ExcelLinkByHeaderOptions { Range = "A1:A2", Styled = false });
                 doc.Save();
             }
 
@@ -236,5 +232,24 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'domain-001'!A1", hyperlink.Location!.Value);
             }
         }
-    }
+    
+        [Fact]
+        public void Excel_LinkByHeader_ReportsCellsWhoseTargetMapsToNothing() {
+            using var doc = ExcelDocument.Create(new MemoryStream());
+            var s = doc.AddSheet("Summary");
+            s.Cell(1, 1).SetValue("RFC");
+            s.Cell(2, 1).SetValue("rfc7208");
+            s.Cell(3, 1).SetValue("draft");
+
+            ExcelLinkByHeaderResult result = s.LinkByHeader("RFC",
+                ExcelLinkTarget.Url(text => text.StartsWith("rfc", StringComparison.Ordinal) ? "https://datatracker.ietf.org/doc/html/" + text : string.Empty),
+                new ExcelLinkByHeaderOptions { Range = "A1:A3" });
+
+            Assert.True(result.Succeeded);
+            Assert.Equal(1, result.Column);
+            Assert.Equal(1, result.LinkedCount);
+            Assert.Equal(new[] { "A3" }, result.SkippedCells);
+            Assert.Equal(new[] { "A2" }, s.GetHyperlinks().Keys);
+        }
+}
 }

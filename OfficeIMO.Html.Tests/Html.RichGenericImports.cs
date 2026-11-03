@@ -25,7 +25,7 @@ public class HtmlRichGenericImports {
             """;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         ExcelCell richCell = Enumerable.Range(1, 8)
@@ -58,7 +58,7 @@ public class HtmlRichGenericImports {
         });
 
         HtmlToExcelResult excelResult = source.ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         ExcelCell excelCell = Assert.Single(Enumerable.Range(1, 4)
@@ -66,7 +66,7 @@ public class HtmlRichGenericImports {
         Assert.True(Assert.Single(excelCell.GetRichText()).Bold);
 
         HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
         PowerPointTextBox textBox = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
             candidate => candidate.Text == "Screen target");
@@ -86,7 +86,7 @@ public class HtmlRichGenericImports {
             run => run.Text.Contains("the report", StringComparison.Ordinal)).Hyperlink);
 
         HtmlToExcelResult excelResult = source.ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         Assert.Contains(Enumerable.Range(1, 8).Select(row => sheet.Cell(row, 1).GetValue<string>()),
@@ -95,7 +95,7 @@ public class HtmlRichGenericImports {
             hyperlink => hyperlink.Target == "https://example.test/report");
 
         HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
         PowerPointTextBox textBox = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
             candidate => candidate.Text == "Read the report now.");
@@ -124,7 +124,7 @@ public class HtmlRichGenericImports {
             """;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         IReadOnlyList<ExcelRichTextRun> runs = sheet.Cell(2, 1).GetRichText();
@@ -150,7 +150,7 @@ public class HtmlRichGenericImports {
         Assert.Equal(2, source.SemanticDocument.ResourceOccurrences.Count);
 
         HtmlToExcelResult result = source.ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelImage[] images = Assert.Single(workbook.Sheets).Images.ToArray();
 
@@ -170,7 +170,7 @@ public class HtmlRichGenericImports {
             """;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointTextRun[] runs = slide.TextBoxes
@@ -201,7 +201,7 @@ public class HtmlRichGenericImports {
     public void PowerPointHtml_GenericImportPreservesEffectiveOrderedListOrdinals() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointTextBox list = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
             textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
@@ -214,7 +214,7 @@ public class HtmlRichGenericImports {
     public void PowerPointHtml_GenericImportUsesNativeContinuationForOrdinaryOrderedLists() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<ol start='3'><li>A</li><li>B</li><li>C</li></ol>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointTextBox list = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
             textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
@@ -226,7 +226,7 @@ public class HtmlRichGenericImports {
     public void PowerPointHtml_GenericImportClampsUnrepresentableListOrdinalsToValidDrawingMl() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<ol reversed start='1'><li>A</li><li>B</li></ol>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointTextBox list = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
             textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
@@ -247,7 +247,7 @@ public class HtmlRichGenericImports {
     public void PowerPointHtml_GenericImportRestartsWhileClampingConsecutiveOrdinals() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<ol start='-2'><li>A</li><li>B</li><li>C</li><li>D</li><li>E</li></ol>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointTextBox list = Assert.Single(Assert.Single(presentation.Slides).TextBoxes,
             textBox => textBox.Paragraphs.Any(paragraph => paragraph.IsNumbered));
@@ -270,7 +270,7 @@ public class HtmlRichGenericImports {
             """;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointTable table = Assert.Single(Assert.Single(presentation.Slides).Tables);
         PowerPointTableCell header = table.GetCell(0, 0);
@@ -293,7 +293,7 @@ public class HtmlRichGenericImports {
         HtmlToExcelResult result = HtmlConversionDocument.Parse("""
             <section><h1>Quarterly</h1><p>Executive narrative</p>
             <table><caption>Metrics</caption><tr><th>Name</th><th>Value</th></tr><tr><td>Revenue</td><td>42</td></tr></table></section>
-            """).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            """).ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Equal(2, workbook.Sheets.Count);
@@ -308,7 +308,7 @@ public class HtmlRichGenericImports {
     public void ExcelHtml_GenericNestedListProjectionIncludesDescendants() {
         HtmlToExcelResult result = HtmlConversionDocument
             .Parse("<ul><li>Parent<ol><li>Child<ul><li>Grandchild</li></ul></li></ol></li></ul>")
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         Assert.Contains("• Parent\n  1. Child\n    • Grandchild",
@@ -321,12 +321,12 @@ public class HtmlRichGenericImports {
             + "' alt='Inline evidence' width='24' height='30'> after</p></section>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        HtmlToExcelResult excelResult = source.ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult excelResult = source.ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         Assert.Equal("Inline evidence", Assert.Single(Assert.Single(workbook.Sheets).Images).Description);
 
         HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
         Assert.Equal("Inline evidence", Assert.Single(Assert.Single(presentation.Slides).Images).AltText);
 
@@ -342,7 +342,7 @@ public class HtmlRichGenericImports {
     public void ExcelHtml_GenericRichRunsUseNormalizedBoundedText() {
         string html = "<p>A<strong>" + new string(' ', 40_000) + "B</strong></p>";
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         ExcelCell cell = Enumerable.Range(1, 4).Select(row => sheet.Cell(row, 1))

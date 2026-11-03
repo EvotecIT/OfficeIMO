@@ -9,7 +9,7 @@ internal static class MsgRtfBodyProjection {
         if (string.IsNullOrEmpty(rtf)) return null;
 
         try {
-            RtfReadOptions options = RtfReadOptions.UntrustedDefaults;
+            RtfLoadOptions options = RtfLoadOptions.UntrustedDefaults;
             int maximum = checked((int)Math.Min(state.Options.MaxDecodedPropertyBytes, int.MaxValue));
             options.Limits.MaxInputBytes = maximum;
             options.Limits.MaxInputCharacters = maximum;

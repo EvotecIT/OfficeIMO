@@ -53,7 +53,7 @@ public partial class Excel {
             AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
         });
         ExcelSheet.ExcelHeaderFooterInfo snapshot = document.Sheets[0].GetHeaderFooter();
-        ExcelSheet.ExcelHeaderFooterImageInfo? image = shapeId == "LH" ? snapshot.HeaderLeftImage : snapshot.FooterRightImage;
+        ExcelHeaderFooterImageInfo? image = shapeId == "LH" ? snapshot.HeaderLeftImage : snapshot.FooterRightImage;
         Assert.NotNull(image);
         Assert.Equal(logo, image.Bytes);
         Assert.Equal("image/png", image.ContentType);

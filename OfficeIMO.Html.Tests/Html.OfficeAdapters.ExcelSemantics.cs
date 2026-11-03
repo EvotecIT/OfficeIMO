@@ -14,7 +14,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
         sheet.Cell(2, 1).SetValue("Second row");
 
         string defaultHtml = workbook.ToHtml();
-        string dataOnlyHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string dataOnlyHtml = workbook.ToHtml(new ExcelHtmlExportOptions {
             HeaderMode = ExcelHtmlHeaderMode.None
         });
 
@@ -52,7 +52,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
             </section>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { MaxTableCells = 4 });
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions { MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
 
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
@@ -66,7 +66,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
             """;
 
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
@@ -88,7 +88,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
             + "<img src='data:image/png;base64," + png + "'></li></ul></section></section>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { MaxTableCells = 4 });
+            new HtmlExcelExportOptions { MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
         ExcelImage image = Assert.Single(Assert.Single(workbook.Sheets).Images);
 

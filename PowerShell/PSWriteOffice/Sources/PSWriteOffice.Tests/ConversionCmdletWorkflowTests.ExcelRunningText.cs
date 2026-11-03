@@ -17,7 +17,8 @@ public sealed partial class ConversionCmdletWorkflowTests {
             File.WriteAllBytes(path, png);
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Report");
-            sheet.SetHeaderFooter(headerLeft: "Header", footerLeft: "Footer", differentFirstPage: true, differentOddEven: true);
+            sheet.PageSetup.Header.Left.Text = "Header"; sheet.PageSetup.Footer.Left.Text = "Footer";
+            sheet.PageSetup.DifferentFirstPage = true; sheet.PageSetup.DifferentOddEven = true;
             using var runspace = OpenRunspace();
             runspace.SessionStateProxy.SetVariable("document", document);
             runspace.SessionStateProxy.SetVariable("sheet", sheet);
@@ -36,16 +37,17 @@ public sealed partial class ConversionCmdletWorkflowTests {
             Assert.IsType<ExcelSheet>(Assert.Single(output).BaseObject);
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using (var reopened = ExcelDocument.Load(saved)) {
-                var info = reopened.Sheets[0].GetHeaderFooter();
-                Assert.Equal("Header", info.HeaderLeft); Assert.Equal("Footer", info.FooterLeft);
-                Assert.Contains("Review", command.EndsWith("Header", StringComparison.Ordinal) ? info.HeaderCenter : info.FooterCenter, StringComparison.Ordinal);
-                Assert.False(info.DifferentFirstPage); Assert.True(info.DifferentOddEven);
-                var image = command.EndsWith("Header", StringComparison.Ordinal) ? info.HeaderCenterImage : info.FooterCenterImage;
+                var page = reopened.Sheets[0].PageSetup;
+                var edited = command.EndsWith("Header", StringComparison.Ordinal) ? page.Header : page.Footer;
+                Assert.Equal("Header", page.Header.Left.Text); Assert.Equal("Footer", page.Footer.Left.Text);
+                Assert.Contains("Review", edited.Center.Text, StringComparison.Ordinal);
+                Assert.False(page.DifferentFirstPage); Assert.True(page.DifferentOddEven);
+                var image = edited.Center.Image;
                 Assert.NotNull(image);
                 Assert.Equal(png, image.Bytes);
                 Assert.Equal("image/png", image.ContentType);
                 Assert.Equal(72, image.Width.ToPoints(), 3); Assert.Equal(36, image.Height.ToPoints(), 3);
-                Assert.Equal("Page &P of &N", command.EndsWith("Header", StringComparison.Ordinal) ? info.HeaderRight : info.FooterRight);
+                Assert.Equal("Page &P of &N", edited.Right.Text);
             }
             saved.Position = 0;
             using var zip = new ZipArchive(saved, ZipArchiveMode.Read);

@@ -23,11 +23,11 @@ internal static class OfficeHtmlResourceResolver {
         return (request, token) => ResolveAsync(request, physicalRoot, maximumResourceBytes, null, token);
     }
 
-    internal static HtmlToPdfOptions CreateOptions(
+    internal static HtmlPdfExportOptions CreateOptions(
         string inputPath,
         long maximumResourceBytes,
         IReadOnlyDictionary<string, byte[]>? resourceSnapshots = null,
-        HtmlToPdfOptions? renderingOptions = null) {
+        HtmlPdfExportOptions? renderingOptions = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) {
             throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
         }
@@ -41,7 +41,7 @@ internal static class OfficeHtmlResourceResolver {
         HtmlUrlPolicy resourcePolicy = CreateResourcePolicy();
 
         long rendererResourceBudget = Math.Max(1L, maximumResourceBytes);
-        var options = renderingOptions?.ClonePdf() ?? new HtmlToPdfOptions();
+        var options = renderingOptions?.ClonePdf() ?? new HtmlPdfExportOptions();
         options.ResourceUrlPolicy = resourcePolicy;
         options.MaxResourceBytes = Math.Min(options.MaxResourceBytes, rendererResourceBudget);
         options.MaxTotalResourceBytes = Math.Min(options.MaxTotalResourceBytes, rendererResourceBudget);
@@ -69,7 +69,7 @@ internal static class OfficeHtmlResourceResolver {
     }
 
     internal static HtmlResourcePipelineOptions CreatePdfResourcePipelineOptions(Uri? baseUri = null) {
-        var renderOptions = new HtmlToPdfOptions();
+        var renderOptions = new HtmlPdfExportOptions();
         return new HtmlResourcePipelineOptions {
             BaseUri = baseUri,
             ResourceUrlPolicy = CreateResourcePolicy(),

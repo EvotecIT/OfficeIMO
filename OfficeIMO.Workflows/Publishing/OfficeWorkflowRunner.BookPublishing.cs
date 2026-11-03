@@ -6,7 +6,7 @@ public sealed partial class OfficeWorkflowRunner {
     private static (byte[] Bytes, bool HasLoss) ExportBookProject(byte[] input, long maximumOutputBytes,
         List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
         BookProject project = BookProject.LoadProject(input, token);
-        EpubWriteResult result = project.Export(new EpubWriteOptions {
+        EpubWriteResult result = project.Export(new EpubSaveOptions {
             MaxOutputBytes = Math.Min(maximumOutputBytes, 128L * 1024 * 1024)
         }, token);
         bool hasLoss = false;

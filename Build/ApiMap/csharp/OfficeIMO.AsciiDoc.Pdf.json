@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.AsciiDoc.Pdf",
+  "changes": [
+    {
+      "old": "OfficeIMO.AsciiDoc.Pdf.AsciiDocToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

@@ -50,11 +50,11 @@ public sealed class XpsDocumentTests {
     [Fact]
     public void BoundsInputExpansionPagesAndXmlDepth() {
         var doc = XpsDocument.Create(); doc.AddPage(); doc.AddPage(); byte[] bytes = doc.ToBytes();
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { Limits = { MaxInputBytes = 20 } }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { Limits = { MaxExpandedBytes = 50 } }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { Limits = { MaxPages = 1 } }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { Limits = { MaxParts = 1 } }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(Rewrite(bytes, "Documents/1/Pages/1.fpage", b => Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(b).Replace(" />", "><Canvas><Canvas /></Canvas></FixedPage>"))), new XpsReadOptions { Limits = { MaxDepth = 1 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsLoadOptions { Limits = { MaxInputBytes = 20 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsLoadOptions { Limits = { MaxExpandedBytes = 50 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsLoadOptions { Limits = { MaxPages = 1 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsLoadOptions { Limits = { MaxParts = 1 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(Rewrite(bytes, "Documents/1/Pages/1.fpage", b => Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(b).Replace(" />", "><Canvas><Canvas /></Canvas></FixedPage>"))), new XpsLoadOptions { Limits = { MaxDepth = 1 } }));
         Assert.Throws<OperationCanceledException>(() => XpsDocument.Load(bytes, cancellationToken: new CancellationToken(true)));
     }
     [Fact]

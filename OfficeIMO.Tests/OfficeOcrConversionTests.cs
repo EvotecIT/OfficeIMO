@@ -50,7 +50,7 @@ public sealed class OfficeOcrConversionTests {
     public async Task LossPolicyAndCancellationLeaveDestinationUntouched() {
         PdfOcrMergeResult source = await RecognizeTableAsync();
         using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, writable: true);
-        Assert.Throws<OfficeConversionException>(() => source.SaveAsWord(destination, new WordPdfImportOptions { FailOnLoss = true }));
+        Assert.Throws<OfficeConversionException>(() => source.SaveAsWord(destination, new PdfWordExportOptions { FailOnLoss = true }));
         Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

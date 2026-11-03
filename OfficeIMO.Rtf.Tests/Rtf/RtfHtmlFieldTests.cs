@@ -74,7 +74,7 @@ public class RtfHtmlFieldTests {
         RtfField field = paragraph.AddField(@"HYPERLINK \l ""Target"" \o ""Jump tip""");
         field.AddText("Jump");
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("href=\"#Target\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-field-hyperlink-sub-address=\"Target\"", html, StringComparison.Ordinal);
@@ -91,7 +91,7 @@ public class RtfHtmlFieldTests {
     [Fact]
     public void Html_ToRtfDocument_Rejects_Unsafe_Hyperlink_Field_Instruction_Target() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;file:///C:/secret.txt&quot;\">Secret</span></p>";
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
@@ -109,7 +109,7 @@ public class RtfHtmlFieldTests {
     [Fact]
     public void Html_ToRtfDocument_Rejects_Hyperlink_Field_Instruction_With_Extra_Target() {
         const string html = "<p><a href=\"https://example.test/\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;file:///C:/secret.txt&quot; &quot;https://example.test/&quot;\">Link</a></p>";
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
@@ -129,7 +129,7 @@ public class RtfHtmlFieldTests {
     [Fact]
     public void Html_ToRtfDocument_Rejects_Unsafe_Hyperlink_Field_Metadata_Target() {
         const string html = "<p><a href=\"https://example.test/\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/&quot;\" data-officeimo-rtf-field-hyperlink=\"javascript:alert(1)\">Link</a></p>";
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
@@ -189,7 +189,7 @@ public class RtfHtmlFieldTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Page ").AddPageNumber("7 < 8");
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateWebSafeProfile());
 
         Assert.Equal("<p>Page 7 &lt; 8</p>", html);
         Assert.DoesNotContain("data-officeimo-rtf-generated-text", html, StringComparison.Ordinal);
@@ -199,7 +199,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_DoesNot_Preserve_Field_Span_As_Unknown_Text() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE\">1</span></p>";
 
-        RtfParagraph paragraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument(new HtmlToRtfOptions { PreserveUnknownTagsAsText = true }).Paragraphs);
+        RtfParagraph paragraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument(new HtmlRtfExportOptions { PreserveUnknownTagsAsText = true }).Paragraphs);
 
         RtfField field = Assert.IsType<RtfField>(Assert.Single(paragraph.Inlines));
         Assert.Equal("PAGE", field.Instruction);
@@ -232,7 +232,7 @@ public class RtfHtmlFieldTests {
         Assert.Equal("Enter", data.EntryMacro);
         Assert.Equal("Exit", data.ExitMacro);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\*\ffdata\fftype0\ffenabled1\ffownhelp1\ffownstat1\ffprot0\ffrecalc1\ffmaxlen50{\ffname Customer}{\ffdeftext Default}{\ffformat Uppercase}{\ffhelptext Help}{\ffstattext Status}{\ffentrymcr Enter}{\ffexitmcr Exit}}", rtf, StringComparison.Ordinal);
     }
 

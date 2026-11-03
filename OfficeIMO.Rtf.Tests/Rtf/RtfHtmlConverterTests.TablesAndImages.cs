@@ -91,7 +91,7 @@ public partial class RtfHtmlConverterTests {
     public void RtfDocument_ToHtml_Reports_Diagnostic_When_Image_Embedding_Is_Disabled() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50, 0x4E, 0x47 });
-        var options = new RtfToHtmlOptions {
+        var options = new RtfHtmlExportOptions {
             EmbedImagesAsDataUri = false
         };
 
@@ -109,7 +109,7 @@ public partial class RtfHtmlConverterTests {
     public void RtfDocument_ToHtml_Reports_Diagnostic_For_Unsupported_Image_Format() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Emf, new byte[] { 0x01, 0x02, 0x03 });
-        RtfToHtmlOptions options = RtfToHtmlOptions.CreateRoundTripProfile();
+        RtfHtmlExportOptions options = RtfHtmlExportOptions.CreateRoundTripProfile();
 
         RtfToHtmlResult result = document.ToHtmlResult(options);
         string html = result.Value;
@@ -397,7 +397,7 @@ public partial class RtfHtmlConverterTests {
         image.DesiredWidthTwips = 1440;
         image.DesiredHeightTwips = 720;
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         AngleSharp.Dom.IElement rendered = Assert.Single(new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html).QuerySelectorAll("img"));
         Assert.Equal("Chart", rendered.GetAttribute("alt"));

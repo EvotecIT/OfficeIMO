@@ -38,7 +38,7 @@ internal static class PackedSiteBundleContract {
         }
 
         HtmlRenderRequest pdfRequest = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions {
+            HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions {
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             });
         foreach (HtmlPdfRenderRequestResult result in new[] {

@@ -8,7 +8,7 @@ public sealed class TopicLanguageTests {
     public void ATopicAtItsConfiguredDepthLimitStillConvertsWithBothContainerWrappers() {
         ChmDocument book = ChmDocument.Load(ChmFixture.Archive(new Dictionary<string, byte[]> {
             ["/topic.html"] = ChmFixture.Html("<html lang='ar'><head><meta charset='utf-8'></head><body dir='rtl'><p>Text</p></body></html>")
-        }), new ChmReadOptions { MaxHtmlDepth = 3 });
+        }), new ChmLoadOptions { MaxHtmlDepth = 3 });
         var projected = book.ToHtmlDocumentResult().Value;
         Assert.Equal("Text", projected.CreateDocumentForConversion().QuerySelector("p")!.TextContent);
         Assert.Contains("Text", book.ToMarkdownResult().Value);

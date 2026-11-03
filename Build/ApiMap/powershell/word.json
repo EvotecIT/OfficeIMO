@@ -8629,7 +8629,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates HTML-to-Word settings for Convert-OfficeDocument -To Word.",
-      "outputType": "WordHtmlImportOptions",
+      "outputType": "HtmlWordExportOptions",
       "parameterSets": [
         {
           "name": "Default",

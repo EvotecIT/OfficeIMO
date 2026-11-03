@@ -13,7 +13,7 @@ using OfficeIMO.Excel.Html;
 using ExcelDocument workbook = ExcelDocument.Load("report.xlsx", new ExcelLoadOptions {
     AccessMode = DocumentAccessMode.ReadOnly
 });
-string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+string html = workbook.ToHtml(new ExcelHtmlExportOptions {
     HeaderMode = ExcelHtmlHeaderMode.FirstRow
 });
 
@@ -37,12 +37,12 @@ Ordinary HTML tables are available explicitly through the shared generic project
 
 ```csharp
 HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-    .ToExcelDocumentResult(new HtmlToExcelOptions {
+    .ToExcelDocumentResult(new HtmlExcelExportOptions {
         Mode = HtmlImportMode.Auto
     });
 ```
 
-`Semantic` remains the default for strict round-trip compatibility. `Auto` selects a supported semantic envelope when present and otherwise maps ordinary tables to worksheets; `Generic` always uses the ordinary HTML path. `HtmlToExcelOptions.Limits` bounds worksheets, tables, cells, images, chart dimensions, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
+`Semantic` remains the default for strict round-trip compatibility. `Auto` selects a supported semantic envelope when present and otherwise maps ordinary tables to worksheets; `Generic` always uses the ordinary HTML path. `HtmlExcelExportOptions.Limits` bounds worksheets, tables, cells, images, chart dimensions, metadata, and geometry before native allocations. `MaxTableCells` remains as a forwarding compatibility property.
 
 Generic table worksheets fit their columns to imported text within bounded widths, wrap longer values, and fit row heights. Two-column term/definition tables retain their printable layout. HTML spans remain native merged ranges; ordinary grids do not become named Excel table objects. This default presentation does not reproduce CSS table geometry.
 
@@ -67,7 +67,7 @@ The first three cells become a number, boolean, and date in Excel. The reference
 
 ```csharp
 var report = HtmlConversionDocument.Load("service-review.html");
-var result = report.ToExcelDocumentResult(new HtmlToExcelOptions {
+var result = report.ToExcelDocumentResult(new HtmlExcelExportOptions {
     Mode = HtmlImportMode.Generic,
     ImportTypedCellValues = true
 });
@@ -81,7 +81,7 @@ The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMult
 
 ## Visual review
 
-Use `ExcelHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = ExcelHtmlExportProfile.VisualReview` to emit review HTML through OfficeIMO's dependency-free SVG renderer. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is presentation evidence; use semantic tables when the HTML must be imported back into Excel.
+Use `ExcelHtmlExportOptions.CreateVisualReviewProfile()` or set `ExportProfile = ExcelHtmlExportProfile.VisualReview` to emit review HTML through OfficeIMO's dependency-free SVG renderer. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is presentation evidence; use semantic tables when the HTML must be imported back into Excel.
 
 ## Targets
 

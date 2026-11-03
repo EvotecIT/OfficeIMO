@@ -17,7 +17,7 @@ public sealed class HtmlExcelNamedTableLossTests {
             using var workbook = ExcelDocument.Create();
             var original = AddTableSheet(workbook, "Orders", "OrderItems");
             workbook.Save(path);
-            var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
+            var options = new ExcelHtmlExportOptions { ExportProfile = profile };
             foreach (var result in new[] { original.ToHtmlResult(options), workbook.ToHtmlResult(options), workbook.Sheets[0].ToHtmlResult(options) }) {
                 Assert.True(result.Report.HasLoss);
                 var omission = Assert.Single(result.Report.NativeDiagnostics, d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true);
@@ -40,7 +40,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         workbook.AddSheet("Plain");
         workbook.RemoveWorksheet("Orders");
         AddTableSheet(workbook, "Orders", "ReplacementItems");
-        Assert.Throws<InvalidOperationException>(() => original.ToHtmlResult(new ExcelHtmlSaveOptions { ExportProfile = profile }));
+        Assert.Throws<InvalidOperationException>(() => original.ToHtmlResult(new ExcelHtmlExportOptions { ExportProfile = profile }));
     }
 
     [Theory]
@@ -57,7 +57,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         table.Rows.Add("Alpha", 2);
         data.Tables.Add(table);
         HtmlTextConversionResult result;
-        var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
+        var options = new ExcelHtmlExportOptions { ExportProfile = profile };
         if (worksheetOnly) {
             var sheet = workbook.AddSheet("Orders");
             sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "OrderItems" }, row: 1, column: 1);
@@ -82,7 +82,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         orders.SetHidden(true);
         var plain = workbook.AddSheet("Plain");
         plain.Cell(1, 1).SetValue("Selected plain value");
-        var result = workbook.ToHtmlResult(new ExcelHtmlSaveOptions {
+        var result = workbook.ToHtmlResult(new ExcelHtmlExportOptions {
             ExportProfile = ExcelHtmlExportProfile.VisualReview,
             VisualOptions = new ExcelImageExportOptions {
                 SheetNames = selectedSheet == null ? null : new[] { selectedSheet },
@@ -103,7 +103,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         using var workbook = ExcelDocument.Create();
         var orders = AddTableSheet(workbook, "Orders", "OrderItems");
         AddTableSheet(workbook, "Inventory", "StockItems");
-        var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
+        var options = new ExcelHtmlExportOptions { ExportProfile = profile };
         var result = worksheetOnly ? orders.ToHtmlResult(options) : workbook.ToHtmlResult(options);
         var omitted = result.Report.NativeDiagnostics.Where(d => d.Source?.StartsWith("excel:table:", StringComparison.Ordinal) == true).ToArray();
 

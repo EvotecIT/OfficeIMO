@@ -23,7 +23,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         byte[] image = OfficePngWriter.Encode(raster);
         var pdf = PdfDocument.Load(PdfDocument.Create()
             .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300))).ToBytes());
-        var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        var result = pdf.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.Contains("data:image/png;base64,", result.Value);
         Assert.Contains(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.PageAppearanceImageFallback);
@@ -33,7 +33,7 @@ public sealed class PdfHtmlPageAppearanceTests {
     public void OpenedPdfHonorsImageEmbeddingChoicesAndLimits() {
         var pdf = PdfDocument.Load(PdfDocument.Create()
             .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30))).ToBytes());
-        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        var options = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         string embedded = pdf.ToHtml(options);
         Assert.Contains("pdf-page-appearance", embedded);
         using var imageHtml = new HtmlParser().ParseDocument(embedded);
@@ -68,7 +68,7 @@ public sealed class PdfHtmlPageAppearanceTests {
             AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans", "red-rgb.jp2"));
         var pdf = PdfDocument.Load(BuildImagePdf(jpeg2000, "/JPXDecode", interpolate));
 
-        var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        var result = pdf.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
 
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.DoesNotContain("data:image/jp2;base64,", result.Value);
@@ -82,7 +82,7 @@ public sealed class PdfHtmlPageAppearanceTests {
     public void UndecodableNearestNeighborJpegFallsBackWithoutFailingConversion() {
         var pdf = PdfDocument.Load(BuildImagePdf(new byte[] { 0xff, 0xd8, 0xff, 0xd9 }, "/DCTDecode", interpolate: false));
 
-        var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        var result = pdf.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
 
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.Contains("data:image/jpeg;base64,", result.Value);
@@ -96,7 +96,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         byte[] jpeg = OfficeJpegCodec.Encode(raster);
         var pdf = PdfDocument.Load(BuildImagePdf(jpeg, "/DCTDecode", interpolate: false));
 
-        var result = pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        var result = pdf.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
 
         Assert.DoesNotContain("pdf-page-appearance", result.Value);
         Assert.Contains("data:image/jpeg;base64,", result.Value);
@@ -106,7 +106,7 @@ public sealed class PdfHtmlPageAppearanceTests {
     [Fact]
     public async Task OpenedPdfKeepsArtworkAndSelectableTextAcrossOutputEntrypoints() {
         var pdf = PdfDocument.Load(Source());
-        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        var options = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         var result = pdf.ToHtmlResult(options);
         using var html = new HtmlParser().ParseDocument(result.Value);
         var appearance = Assert.Single(html.QuerySelectorAll("img.pdf-page-appearance"));
@@ -149,7 +149,7 @@ public sealed class PdfHtmlPageAppearanceTests {
             "trailer << /Root 1 0 R /Size 6 >>", "%%EOF"
         }));
 
-        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        PdfHtmlExportOptions options = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         options.IncludeInvisibleTextInAppearanceOverlay = includeInvisibleText;
         var result = PdfDocument.Load(source).ToHtmlResult(options);
         using var html = new HtmlParser().ParseDocument(result.Value);
@@ -177,7 +177,7 @@ public sealed class PdfHtmlPageAppearanceTests {
             "trailer << /Root 1 0 R /Size 6 >>", "%%EOF"
         }));
 
-        var result = PdfDocument.Load(source).ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        var result = PdfDocument.Load(source).ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         using var html = new HtmlParser().ParseDocument(result.Value);
 
         Assert.Contains("Visible", html.Body!.TextContent, StringComparison.Ordinal);
@@ -200,7 +200,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         }));
         var pdf = PdfDocument.Load(source);
 
-        using var html = new HtmlParser().ParseDocument(pdf.ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile()));
+        using var html = new HtmlParser().ParseDocument(pdf.ToHtml(PdfHtmlExportOptions.CreatePositionedReviewProfile()));
         Assert.Contains("Visible text", html.Body!.TextContent, StringComparison.Ordinal);
         Assert.DoesNotContain("Off-page secret", html.Body.TextContent, StringComparison.Ordinal);
     }
@@ -219,8 +219,8 @@ public sealed class PdfHtmlPageAppearanceTests {
         }));
 
         foreach (string output in new[] {
-            PdfDocument.Load(source).ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile()),
-            PdfDocumentReadResult.Load(source).ToHtml(PdfToHtmlOptions.CreatePositionedReviewProfile())
+            PdfDocument.Load(source).ToHtml(PdfHtmlExportOptions.CreatePositionedReviewProfile()),
+            PdfDocumentReadResult.Load(source).ToHtml(PdfHtmlExportOptions.CreatePositionedReviewProfile())
         }) {
             using var html = new HtmlParser().ParseDocument(output);
             Assert.Contains("Visible text", html.Body!.TextContent, StringComparison.Ordinal);
@@ -234,7 +234,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         Assert.Empty(Assert.Single(PdfDocumentReadResult.Load(source).Pages).Images);
 
         PdfHtmlConversionResult result = PdfDocument.Load(source)
-            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+            .ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
 
         Assert.DoesNotContain("pdf-page-appearance", result.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/", result.Value, StringComparison.Ordinal);
@@ -255,7 +255,7 @@ public sealed class PdfHtmlPageAppearanceTests {
             PdfImagePlacementImportPolicy.Analyze(logicalPage, logicalImage, placement);
         Assert.True(assessment.IsSuppressed);
 
-        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        var options = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         options.IncludeImagePlaceholders = false;
         options.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
         options.MaxEmbeddedImageBytes = 0;
@@ -277,7 +277,7 @@ public sealed class PdfHtmlPageAppearanceTests {
         bool includeImagePlaceholders,
         PdfHtmlImageExportMode imageExportMode) {
         var pdf = PdfDocument.Load(Source());
-        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        var options = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         options.IncludeImagePlaceholders = includeImagePlaceholders;
         options.ImageExportMode = imageExportMode;
 
@@ -294,7 +294,7 @@ public sealed class PdfHtmlPageAppearanceTests {
     [Fact]
     public void AppearanceKeepsSourcePageSelectionAndRotatedGeometry() {
         var pdf = PdfDocument.Load(Source(twoPages: true));
-        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        var options = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         options.PageRanges = new[] { new PdfPageRange(2, 2) };
         var result = pdf.ToHtmlResult(options);
         using var html = new HtmlParser().ParseDocument(result.Value);
@@ -316,8 +316,8 @@ public sealed class PdfHtmlPageAppearanceTests {
         var pdf = PdfDocument.Load(Source());
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        Assert.ThrowsAny<OperationCanceledException>(() => pdf.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile(), cancellation.Token));
-        var options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        Assert.ThrowsAny<OperationCanceledException>(() => pdf.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile(), cancellation.Token));
+        var options = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         string complete = pdf.ToHtml(options);
         options.MaximumOutputCharacters = complete.Length;
         Assert.Equal(complete, pdf.ToHtml(options));

@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Markdown {
         private sealed class BlockRenderer : Omd.MarkdownVisitor {
             private readonly MarkdownToWordConverter _converter;
             private readonly IWordBlockRenderHost _host;
-            private readonly WordMarkdownImportOptions _options;
+            private readonly MarkdownWordExportOptions _options;
             private readonly WordDocument _document;
             private readonly int _listLevel;
             private readonly int _quoteDepth;
@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Markdown {
             public BlockRenderer(
                 MarkdownToWordConverter converter,
                 IWordBlockRenderHost host,
-                WordMarkdownImportOptions options,
+                MarkdownWordExportOptions options,
                 WordDocument document,
                 int listLevel,
                 int quoteDepth,
@@ -360,7 +360,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             /// <summary>Surrounds the paragraph content with a bookmark, as Word does for heading targets.</summary>
-            private static void WrapParagraphInBookmark(WordParagraph paragraph, string name, WordMarkdownImportOptions options) {
+            private static void WrapParagraphInBookmark(WordParagraph paragraph, string name, MarkdownWordExportOptions options) {
                 Paragraph element = paragraph._paragraph;
                 int next = options.NextBookmarkId ?? paragraph._document.BookmarkId;
                 options.NextBookmarkId = next + 1;

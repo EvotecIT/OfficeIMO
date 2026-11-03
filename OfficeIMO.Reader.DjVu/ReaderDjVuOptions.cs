@@ -15,7 +15,7 @@ public enum ReaderDjVuImageMode {
 /// <summary>Native DjVu limits and optional page images, snapshotted when the handler is registered.</summary>
 public sealed class ReaderDjVuOptions {
     /// <summary>Owned document limits and explicit indirect component resolver.</summary>
-    public DjVuReadOptions ReadOptions { get; set; } = new DjVuReadOptions();
+    public DjVuLoadOptions ReadOptions { get; set; } = new DjVuLoadOptions();
     /// <summary>Page-image policy. Text-only ingestion is the default.</summary>
     public ReaderDjVuImageMode ImageMode { get; set; }
     /// <summary>One-based source pages in requested output order. Null selects all pages; duplicates are rejected.</summary>

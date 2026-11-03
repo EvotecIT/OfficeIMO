@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Latex.Pdf",
+  "changes": [
+    {
+      "old": "OfficeIMO.Latex.Pdf.LatexToPdfOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Latex.Pdf.LatexPdfExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

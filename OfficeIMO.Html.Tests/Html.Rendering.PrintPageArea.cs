@@ -12,7 +12,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='fixed' style='position:fixed;left:0;top:0;width:100%;height:25px;background:blue'></div>"
             + "<div style='height:250px'>Flow</div>";
         var result = HtmlConversionDocument.Parse(html).RenderToPdfResult(HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions()));
 
         Assert.Equal(2, result.RenderResult.Document.Pages.Count);
         foreach (var page in result.RenderResult.Document.Pages) {
@@ -56,7 +56,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:400px 300px;margin:0}html,body{margin:0}" + root + "{overflow-x:" + overflow + "}</style>"
             + "<div style='width:600px;height:100px;background:blue'></div>";
         var result = HtmlConversionDocument.Parse(html).RenderToPdfResult(HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions()));
         Assert.Equal(600D, result.RenderResult.Document.Pages[0].Width, 3);
         Assert.DoesNotContain(result.RenderResult.Diagnostics, d => d.Code == HtmlRenderDiagnosticCodes.PrintFitOverflowUnresolved);
     }
@@ -68,7 +68,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>@page{size:400px 300px;margin:0}html,body{margin:0}body{display:" + display + ";max-width:400px;overflow-x:hidden}</style>"
             + "<div style='width:600px;height:100px;background:blue'></div>";
         var result = HtmlConversionDocument.Parse(html).RenderToPdfResult(HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions()));
         Assert.Equal(600D, result.RenderResult.Document.Pages[0].Width, 3);
     }
 

@@ -32,14 +32,14 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.LossKind == OfficeConversionLossKind.None);
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.InvisibleImagePlacementSuppressed &&
             warning.LossKind == OfficeConversionLossKind.None);
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Images));
             Assert.Equal(0, Assert.Single(powerPoint.Report.EditablePages).OmittedImageCount);
@@ -59,7 +59,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(invisible);
         Assert.Single(Assert.Single(logical.Pages).Images);
-        PdfHtmlConversionResult html = logical.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult html = logical.ToHtmlResult(new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.Semantic,
             IncludeImagePlaceholders = false
         });
@@ -68,7 +68,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.DoesNotContain(html.Report.Warnings, static warning =>
             warning.Code is OfficeDiagnosticCodes.PdfImagesOmitted or OfficeDiagnosticCodes.PdfSemanticLayoutReflowed);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions {
             ImportImages = false,
             IncludeImagePlaceholders = false
         });
@@ -95,7 +95,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions {
             PreserveSourcePageSize = preserveSourcePageSize,
             IncludeEmptyPages = false
         });
@@ -125,7 +125,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions {
             PreserveSourcePageSize = preserveSourcePageSize,
             IncludeEmptyPages = false
         });
@@ -150,7 +150,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Equal(3, logical.Pages.Count);
         Assert.Single(logical.Pages[1].Images);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions {
             PreserveSourcePageSize = preserveSourcePageSize,
             IncludeImagePlaceholders = false,
             IncludeEmptyPages = false
@@ -173,7 +173,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfLogicalImage placedImage = Assert.Single(page.Images);
         var unplacedImage = new PdfLogicalImage(placedImage.SourceImage);
         var builder = new StringBuilder();
-        PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        PdfHtmlExportOptions options = PdfHtmlExportOptions.CreatePositionedReviewProfile();
 
         PdfHtmlConverterExtensions.AppendPositionedImagePlaceholders(
             builder,
@@ -209,7 +209,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.LossKind == OfficeConversionLossKind.None);
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("<figure class=\"pdf-image-placeholder\"", html.Value, StringComparison.Ordinal);
         Assert.Equal(0, html.Summary.ImagePlaceholderCount);
@@ -219,7 +219,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             warning.LossKind == OfficeConversionLossKind.None);
 
         PdfPowerPointConversionResult editable = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (editable.Value) {
             Assert.Empty(editable.Value.Slides.SelectMany(static slide => slide.Images));
             Assert.Equal(0, Assert.Single(editable.Report.EditablePages).OmittedImageCount);
@@ -237,7 +237,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
 
         PdfPowerPointConversionResult tables = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableTables());
+            PdfPowerPointExportOptions.CreateEditableTables());
         using (tables.Value) {
             Assert.False(tables.HasLoss);
             Assert.Equal(0, tables.Report.SourceScope.ImageCount);
@@ -253,7 +253,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.True(Assert.Single(Assert.Single(logical.Pages).Images).SourceImage.IsImageMask);
 
         PdfPowerPointConversionResult editable = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (editable.Value) {
             Assert.Equal(0, Assert.Single(editable.Report.EditablePages).OmittedImageCount);
             Assert.DoesNotContain(editable.Report.Warnings, static warning =>
@@ -287,7 +287,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.True(html.HasLoss);
         Assert.Contains(html.Report.Warnings, static warning =>
@@ -295,7 +295,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             warning.LossKind == OfficeConversionLossKind.Omission);
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Images));
             Assert.True(powerPoint.HasLoss);
@@ -319,7 +319,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             "pdf-image-transform-not-safely-editable", OfficeDiagnosticCodes.ImageTransformNotSafelyEditable);
 
         PdfHtmlConversionResult positioned = PdfDocument.Load(new System.IO.MemoryStream(source))
-            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+            .ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         Assert.DoesNotContain("data:image/", positioned.Value, StringComparison.Ordinal);
         Assert.Contains(positioned.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.ImageTransformNotSafelyEditable &&
@@ -353,7 +353,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .ToBytes();
 
         PdfHtmlConversionResult html = PdfDocument.Load(new System.IO.MemoryStream(source))
-            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+            .ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
 
         Assert.DoesNotContain("pdf-page-appearance", html.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
@@ -380,7 +380,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = () => hashCount++;
         try {
             PdfHtmlConversionResult html = PdfDocument.Load(new System.IO.MemoryStream(source))
-                .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+                .ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
             Assert.Contains("pdf-page-appearance", html.Value, StringComparison.Ordinal);
         } finally {
             PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = null;
@@ -396,7 +396,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = cancellation.Cancel;
         try {
             Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(new System.IO.MemoryStream(source))
-                .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile(), cancellation.Token));
+                .ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile(), cancellation.Token));
         } finally {
             PdfHtmlConverterExtensions.ImagePayloadHashObserverForTesting = null;
         }
@@ -458,14 +458,14 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.ImageUnsupportedBlendModeNotSafelyEditable &&
             warning.LossKind == OfficeConversionLossKind.Omission);
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Images));
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
@@ -657,7 +657,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions {
             PreserveImagePlacementPosition = true,
             PreserveImagePlacementSize = false
         });
@@ -684,7 +684,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.Equal(40D * 2D * 96D / 72D, (image.Height?.ToPixels())!.Value, 6);
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         Assert.Contains("style=\"width:320pt;height:320pt;\"", html.Value, StringComparison.Ordinal);
         Assert.Contains("width:160pt;height:80pt;", html.Value, StringComparison.Ordinal);
     }
@@ -728,7 +728,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateRawImagePdf(
             "q 80 0 0 40 20 30 cm /Im1 Do Q\n"));
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions {
             PreserveSourcePageSize = false
         });
         using (word.Value) {
@@ -758,7 +758,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.Equal(20D, paragraph.FontSize?.ToPoints());
         }
 
-        PdfWordConversionResult unscaled = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult unscaled = logical.ConvertToWordWithEvidence(new PdfWordExportOptions {
             PreserveSourcePageSize = false
         });
         using (unscaled.Value) {
@@ -803,7 +803,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             userUnit: 2D);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions {
             PreservePageBreaks = false,
             PreserveSourcePageSize = true
         });
@@ -831,7 +831,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         // Cells keep the source cell font size, scaled by the page user unit.
         double sourceFontSize = logical.Pages[0].TextBlocks.First(static block => block.Text.Contains("Service", StringComparison.Ordinal)).FontSize;
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
@@ -856,7 +856,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.NotEmpty(logical.Tables);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
@@ -886,7 +886,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             using var serialized = new MemoryStream(powerPoint.Value.ToBytes());
             using OfficeIMO.PowerPoint.PowerPointDocument reopened =
@@ -898,9 +898,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         string scale = "transform:scale(" + (expectedHorizontalFlip ? "-1" : "1") + "," +
             (expectedVerticalFlip ? "-1" : "1") + ");";
-        PdfHtmlConversionResult semantic = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult semantic = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.Contains(scale, semantic.Value, StringComparison.Ordinal);
-        PdfHtmlConversionResult positioned = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        PdfHtmlConversionResult positioned = logical.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         Assert.Contains(scale, positioned.Value, StringComparison.Ordinal);
     }
 
@@ -914,9 +914,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             pageEntries: "/Rotate " + pageRotation.ToString(System.Globalization.CultureInfo.InvariantCulture));
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
-        foreach (PdfToHtmlOptions options in new[] {
-                     PdfToHtmlOptions.CreateSemanticProfile(),
-                     PdfToHtmlOptions.CreatePositionedReviewProfile()
+        foreach (PdfHtmlExportOptions options in new[] {
+                     PdfHtmlExportOptions.CreateSemanticProfile(),
+                     PdfHtmlExportOptions.CreatePositionedReviewProfile()
                  }) {
             PdfHtmlConversionResult html = logical.ToHtmlResult(options);
             Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
@@ -934,7 +934,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfLogicalPage page = Assert.Single(logical.Pages);
         Assert.Equal(2, page.Images.Count);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions { PreserveImagePlacementPosition = true });
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions { PreserveImagePlacementPosition = true });
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
@@ -982,7 +982,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfVisualBounds visual = page.TransformBoundsToVisual(20D, 30D, 100D, 70D);
 
         PdfPowerPointConversionResult result = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         byte[] bytes;
         using (result.Value) {
             bytes = result.Value.ToBytes();
@@ -1038,7 +1038,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
 
         // An image painted over text floats only when positioned placement is requested; by default it is
         // placed inline so reflowed text stays readable.
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new WordPdfImportOptions { PreserveImagePlacementPosition = true });
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(new PdfWordExportOptions { PreserveImagePlacementPosition = true });
         using (word.Value) {
             Assert.Equal(
                 OfficeIMO.Word.WordImageTextWrapping.InFrontOfText,
@@ -1090,26 +1090,26 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.LossKind == OfficeConversionLossKind.None);
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.Contains("style=\"opacity:0.5;\"", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.ImageOpacityMapped &&
             warning.LossKind == OfficeConversionLossKind.None);
 
-        PdfToHtmlOptions semanticPlaceholderOptions = PdfToHtmlOptions.CreateSemanticProfile();
+        PdfHtmlExportOptions semanticPlaceholderOptions = PdfHtmlExportOptions.CreateSemanticProfile();
         semanticPlaceholderOptions.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
         PdfHtmlConversionResult semanticPlaceholder = logical.ToHtmlResult(semanticPlaceholderOptions);
         Assert.DoesNotContain(semanticPlaceholder.Report.Warnings, static warning =>
             warning.Code is OfficeDiagnosticCodes.ImageOpacityMapped or OfficeDiagnosticCodes.ImageBlendModeApproximated);
 
-        PdfToHtmlOptions positionedPlaceholderOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        PdfHtmlExportOptions positionedPlaceholderOptions = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         positionedPlaceholderOptions.ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly;
         PdfHtmlConversionResult positionedPlaceholder = logical.ToHtmlResult(positionedPlaceholderOptions);
         Assert.DoesNotContain(positionedPlaceholder.Report.Warnings, static warning =>
             warning.Code is OfficeDiagnosticCodes.ImageOpacityMapped or OfficeDiagnosticCodes.ImageBlendModeApproximated);
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Equal(50, Assert.Single(Assert.Single(powerPoint.Value.Slides).Images).FillTransparency);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
@@ -1138,7 +1138,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Equal(100, Assert.Single(Assert.Single(powerPoint.Value.Slides).Images).FillTransparency);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
@@ -1149,13 +1149,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             Assert.ThrowsAny<OfficeConversionException>(() => powerPoint.ThrowIfLoss());
         }
 
-        PdfHtmlConversionResult semanticHtml = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult semanticHtml = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.Contains("opacity:4E-07;", semanticHtml.Value, StringComparison.Ordinal);
         Assert.Contains(semanticHtml.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.ImageOpacityMapped &&
             warning.LossKind == OfficeConversionLossKind.None);
 
-        PdfHtmlConversionResult positionedHtml = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+        PdfHtmlConversionResult positionedHtml = logical.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         Assert.Contains("opacity:4E-07;", positionedHtml.Value, StringComparison.Ordinal);
         Assert.Contains(positionedHtml.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.ImageOpacityMapped &&
@@ -1171,7 +1171,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.Equal(0.5D, Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements).Opacity);
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Images));
             Assert.DoesNotContain(powerPoint.Report.Warnings, static warning =>
@@ -1205,7 +1205,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             OfficeDiagnosticCodes.ImageDecodeNotSafelyEditable);
 
         PdfHtmlConversionResult positioned = PdfDocument.Load(new System.IO.MemoryStream(source))
-            .ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
+            .ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile());
         Assert.DoesNotContain("data:image/", positioned.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("pdf-page-appearance", positioned.Value, StringComparison.Ordinal);
         Assert.Contains(positioned.Report.Warnings, static warning =>
@@ -1233,7 +1233,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.False(image.SourceImage.HasUnsafePassThroughDecode);
         Assert.Equal(OfficeIMO.Drawing.OfficeImageFormat.Jpeg2000, OfficeIMO.Drawing.OfficeImageReader.Identify(jpx).Format);
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.ImageDataUnavailable && warning.LossKind == OfficeConversionLossKind.Omission);
@@ -1250,7 +1250,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             using var serialized = new MemoryStream(powerPoint.Value.ToBytes());
             using OfficeIMO.PowerPoint.PowerPointDocument reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(serialized);
@@ -1376,7 +1376,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         Assert.False(image.SourceImage.HasExplicitDecode);
         Assert.False(image.SourceImage.HasUnsafePassThroughDecode);
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/jp2;base64,", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.ImageDataUnavailable && warning.LossKind == OfficeConversionLossKind.Omission);
@@ -1388,7 +1388,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.DoesNotContain(powerPoint.Report.Warnings, static warning => warning.Code == "pdf-image-decode-not-safely-editable");
         }
@@ -1412,13 +1412,13 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.Code == officeWarningCode && warning.LossKind == OfficeConversionLossKind.Omission);
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/", html.Value, StringComparison.Ordinal);
         Assert.Contains(html.Report.Warnings, warning =>
             warning.Code == htmlWarningCode && warning.LossKind == OfficeConversionLossKind.Omission);
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Images));
             Assert.Contains(powerPoint.Report.Warnings, warning =>
@@ -1427,7 +1427,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     }
 
     private static void AssertJpeg2000PayloadNotEmbeddedAcrossEditableAdapters(PdfDocumentReadResult logical) {
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.DoesNotContain("data:image/jp2", html.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/j2c", html.Value, StringComparison.Ordinal);
         Assert.True(html.HasLoss);
@@ -1439,7 +1439,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableContent());
+            PdfPowerPointExportOptions.CreateEditableContent());
         using (powerPoint.Value) {
             Assert.Empty(powerPoint.Value.Slides.SelectMany(static slide => slide.Images));
             Assert.True(powerPoint.HasLoss);

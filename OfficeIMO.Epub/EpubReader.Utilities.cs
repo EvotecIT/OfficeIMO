@@ -163,9 +163,9 @@ internal static partial class EpubReader {
         return sb.ToString().Trim();
     }
 
-    private static EpubReadOptions Normalize(EpubReadOptions? options) {
-        var source = options ?? new EpubReadOptions();
-        var normalized = new EpubReadOptions {
+    private static EpubLoadOptions Normalize(EpubLoadOptions? options) {
+        var source = options ?? new EpubLoadOptions();
+        var normalized = new EpubLoadOptions {
             MaxPackageBytes = source.MaxPackageBytes,
             MaxArchiveEntries = source.MaxArchiveEntries,
             MaxTotalUncompressedBytes = source.MaxTotalUncompressedBytes,

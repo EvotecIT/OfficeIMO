@@ -19,7 +19,7 @@ public sealed partial class BookProject {
     /// Publication, OPF and manifest limits are 128 MiB, 4 MiB and 1 MiB respectively.
     /// No files are written and project history is not included.
     /// </summary>
-    public byte[] ToDeliveryBytes(EpubWriteOptions? options = null,
+    public byte[] ToDeliveryBytes(EpubSaveOptions? options = null,
         long maximumOutputBytes = MaximumDeliveryBytes, CancellationToken cancellationToken = default) {
         if (maximumOutputBytes <= 0 || maximumOutputBytes > MaximumDeliveryBytes)
             throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
@@ -38,11 +38,11 @@ public sealed partial class BookProject {
     }
 
     private (byte[] Publication, byte[] Package, BookDeliveryManifest Manifest) CreateDeliveryPayloads(
-        EpubWriteOptions? options, long maximumOutputBytes, CancellationToken cancellationToken) {
+        EpubSaveOptions? options, long maximumOutputBytes, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        options ??= new EpubWriteOptions();
+        options ??= new EpubSaveOptions();
         // Copy caller options so imposing the delivery bound does not change subsequent exports.
-        var writerOptions = new EpubWriteOptions {
+        var writerOptions = new EpubSaveOptions {
             CompressEntries = options.CompressEntries,
             MaxOutputBytes = Math.Min(options.MaxOutputBytes, Math.Min(MaximumPublicationBytes, maximumOutputBytes)),
             MaxExpandedBytes = options.MaxExpandedBytes, MaxEntries = options.MaxEntries,

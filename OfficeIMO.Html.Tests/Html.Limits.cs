@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
         public void HtmlToWord_MaxHtmlNodes_StopsConversionWithStructuredException() {
-            var options = new WordHtmlImportOptions { MaxHtmlNodes = 1 };
+            var options = new HtmlWordExportOptions { MaxHtmlNodes = 1 };
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse("<p>One</p><p>Two</p>").ToWord(options));
 
@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_MaxHtmlDepth_StopsConversionWithStructuredException() {
-            var options = new WordHtmlImportOptions { MaxHtmlDepth = 2 };
+            var options = new HtmlWordExportOptions { MaxHtmlDepth = 2 };
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse("<div><div><p>Deep</p></div></div>").ToWord(options));
 
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_MaxCssBytes_StopsConversionBeforeParsingStylesheet() {
-            var options = new WordHtmlImportOptions { MaxCssBytes = 8 };
+            var options = new HtmlWordExportOptions { MaxCssBytes = 8 };
             string html = "<style>.a { color: red; }</style><p class=\"a\">Text</p>";
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options));
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_MaxTableCells_StopsConversionBeforeAllocatingTable() {
-            var options = new WordHtmlImportOptions { MaxTableCells = 3 };
+            var options = new HtmlWordExportOptions { MaxTableCells = 3 };
             string html = "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>";
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options));
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_MaxTableCells_StopsConversionWhileExpandingLargeSpans() {
-            var options = new WordHtmlImportOptions { MaxTableCells = 10 };
+            var options = new HtmlWordExportOptions { MaxTableCells = 10 };
             string html = "<table><tr><td colspan=\"1000000\">Wide</td></tr></table>";
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options));
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_DefaultMaxTableCells_StopsHostileColumnSpan() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<table><tr><td colspan=\"50001\">Wide</td></tr></table>";
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options));
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_DefaultMaxTableCells_StopsSaturatedColumnSpanAfterEarlierCell() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<table><tr><td>First</td><td colspan=\"999999999999\">Wide</td></tr></table>";
 
             var exception = Assert.Throws<HtmlConversionLimitException>(() =>
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_ColumnGroupSpan_DoesNotExpandBeyondResolvedColumns() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<table><colgroup><col span=\"1000000\" style=\"width:10px\"></colgroup><tr><td>Cell</td></tr></table>";
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);

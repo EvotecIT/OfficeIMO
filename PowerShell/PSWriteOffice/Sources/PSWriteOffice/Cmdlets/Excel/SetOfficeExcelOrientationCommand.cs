@@ -43,7 +43,7 @@ public sealed class SetOfficeExcelOrientationCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var sheet = ResolveSheet();
-        sheet.SetOrientation(Orientation);
+        sheet.PageSetup.Orientation = Orientation;
 
         if (PassThru.IsPresent)
         {

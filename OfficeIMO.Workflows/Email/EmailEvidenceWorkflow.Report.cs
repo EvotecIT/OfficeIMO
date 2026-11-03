@@ -56,7 +56,7 @@ public static partial class EmailEvidenceWorkflow {
         EnsureBounds(reportHtml.Length, reportMarkdown.Length);
         byte[]? pdf = null;
         if (options.IncludePdf) {
-            var conversion = HtmlConversionDocument.Parse(reportHtml).ConvertToPdfWithEvidence(new HtmlToPdfOptions {
+            var conversion = HtmlConversionDocument.Parse(reportHtml).ConvertToPdfWithEvidence(new HtmlPdfExportOptions {
                 MaxInputCharacters = options.MaxReportCharacters, MaxPageCount = options.MaxPdfPages
             }, token);
             pdf = conversion.ToBytes(token);

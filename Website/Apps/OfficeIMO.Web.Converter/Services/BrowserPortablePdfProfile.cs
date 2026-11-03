@@ -130,10 +130,10 @@ internal static class BrowserPortablePdfProfile {
         return options;
     }
 
-    internal static HtmlToPdfOptions CreateHtmlOptions(BrowserPdfProfile profile) {
+    internal static HtmlPdfExportOptions CreateHtmlOptions(BrowserPdfProfile profile) {
         FontPackData data = Data.Value;
         FallbackFontData? fallback = Fallback;
-        return new HtmlToPdfOptions {
+        return new HtmlPdfExportOptions {
             DefaultFontFamily = fallback != null ? DefaultLayoutFontFamilies : DefaultFontFamily,
             Fonts = CreateLayoutFonts(data, fallback),
             PdfOptions = CreateOptions(profile),

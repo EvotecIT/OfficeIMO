@@ -197,7 +197,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Word.Html.WordHtmlImportOptions`
+- `OfficeIMO.Word.Html.HtmlWordExportOptions`
 
 ## RELATED LINKS
 

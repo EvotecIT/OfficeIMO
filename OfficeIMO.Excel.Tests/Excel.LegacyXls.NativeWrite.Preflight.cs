@@ -318,7 +318,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("AutoFilter dropdown control metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.AutoFilterAdd("A1:A2");
+                sheet.Range("A1:A2").AutoFilter();
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                 autoFilter.Append(new FilterColumn(
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("AutoFilter extension metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.AutoFilterAdd("A1:A2");
+                sheet.Range("A1:A2").AutoFilter();
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                 autoFilter.Append(new ExtensionList(
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("AutoFilter sort metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.AutoFilterAdd("A1:A2");
+                sheet.Range("A1:A2").AutoFilter();
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                 autoFilter.Append(new SortState { Reference = "A1:A2" });
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("AutoFilter metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.AutoFilterAdd("A1:A2");
+                sheet.Range("A1:A2").AutoFilter();
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                 autoFilter.SetAttribute(new OpenXmlAttribute("customMetadata", string.Empty, "present"));
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("AutoFilter column metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.AutoFilterAdd("A1:A2");
+                sheet.Range("A1:A2").AutoFilter();
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                 var filterColumn = new FilterColumn(
@@ -393,7 +393,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("AutoFilter criteria metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.AutoFilterAdd("A1:A2");
+                sheet.Range("A1:A2").AutoFilter();
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                 var filters = new Filters(new Filter { Val = "Alpha" });
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("AutoFilter columns with multiple filter types", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.AutoFilterAdd("A1:A2");
+                sheet.Range("A1:A2").AutoFilter();
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                 autoFilter.Append(new FilterColumn(
@@ -495,7 +495,7 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("multiple worksheet AutoFilter", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue("Alpha");
-                sheet.AutoFilterAdd("A1:A2");
+                sheet.Range("A1:A2").AutoFilter();
 
                 sheet.WorksheetPart.Worksheet.Append(new AutoFilter { Reference = "B1:B2" });
                 sheet.WorksheetPart.Worksheet.Save();
@@ -932,12 +932,12 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksConditionalFormattingVisualPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting visual or extension payloads", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue(5d);
-                sheet.AddConditionalColorScale("A1:A1", "FFFF0000", "FF00FF00");
+                sheet.Range("A1:A1").ConditionalFormat().ColorScale("FFFF0000", "FF00FF00");
             });
 
             AssertNativeXlsSaveNotSupported("conditional formatting visual or extension payloads", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue(5d);
-                sheet.AddConditionalIconSet("A1:A1");
+                sheet.Range("A1:A1").ConditionalFormat().IconSet();
             });
         }
 
@@ -1117,12 +1117,12 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksHeaderFooterImagesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("header or footer images", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Header image");
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", width: OfficeLength.Points(24D), height: OfficeLength.Points(16D));
+                sheet.PageSetup.Header.Center.SetImage(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", width: OfficeLength.Points(24D), height: OfficeLength.Points(16D));
             });
 
             AssertNativeXlsSaveNotSupported("header or footer images", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Footer image");
-                sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, "image/jpeg", width: OfficeLength.Points(24D), height: OfficeLength.Points(16D));
+                sheet.PageSetup.Footer.Center.SetImage(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, "image/jpeg", width: OfficeLength.Points(24D), height: OfficeLength.Points(16D));
             });
         }
 
@@ -1130,7 +1130,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksOversizedHeaderFooterTextBeforeWriting() {
             AssertNativeXlsSaveNotSupported("header or footer text lengths outside BIFF8 limits", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Oversized header");
-                sheet.SetHeaderFooter(headerCenter: new string('H', 70000));
+                sheet.PageSetup.Header.Center.Text = new string('H', 70000);
             });
         }
 
@@ -1138,7 +1138,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksOversizedHeaderFooterExtensionTextBeforeWriting() {
             AssertNativeXlsSaveNotSupported("header or footer text lengths outside BIFF8 limits", (document, sheet) => {
                 sheet.Cell(1, 1).SetValue("Oversized first-page header");
-                sheet.SetFirstPageHeaderFooter(headerCenter: new string('F', 70000));
+                sheet.PageSetup.FirstPageHeader.Center.Text = new string('F', 70000);
             });
         }
 
@@ -1885,7 +1885,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 1).SetValue("Alpha");
             sheet.Cell(3, 1).SetValue("Beta");
             sheet.Cell(4, 1).SetValue("Gamma");
-            sheet.AutoFilterAdd("A1:A4");
+            sheet.Range("A1:A4").AutoFilter();
 
             AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
             autoFilter.Append(new FilterColumn(criteria) {

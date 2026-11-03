@@ -57,12 +57,12 @@ public sealed class PublisherGeometryGuideTests {
         byte[] group = Record(0xF000, 15, Record(0xF00B, 0x23, properties));
         byte[] shape = Record(0xF004, 15, Record(0xF00A, 2, BitConverter.GetBytes(1U).Concat(BitConverter.GetBytes(1U)).ToArray()));
         byte[] bytes = group.Concat(new byte[4]).Concat(shape).Concat(shape).ToArray();
-        var context = new PublisherParseContext(new PublisherReadOptions {
+        var context = new PublisherParseContext(new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxRecords = 12 }
         }, default);
         new PublisherEscherReader(new PublisherBinaryData(bytes, "controlled defaults"), null, context).Read();
         Assert.Equal(12, context.Records);
-        var limited = new PublisherParseContext(new PublisherReadOptions {
+        var limited = new PublisherParseContext(new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxRecords = 11 }
         }, default);
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
@@ -124,7 +124,7 @@ public sealed class PublisherGeometryGuideTests {
             new OfficeArtProperty(7, 0x181, 0x000000FF), new OfficeArtProperty(8, 0x1BF, 0x00100010)
         }) { Bounds = new PublisherNativeRectangle(0, 0, nativeWidth, nativeHeight) });
         PublisherDocument publication = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Project();
         OfficeShape shape = PublisherNativeTests.Elements(publication.Pages[0].Drawing).OfType<OfficeDrawingShape>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-2") == true).Shape;
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
@@ -152,8 +152,8 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Contains(svg.Report.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
             && item.Message.Contains("producer rounding") && item.Location == "Contents/object/293");
         Assert.Throws<OfficeConversionException>(() => svg.ThrowIfLoss());
-        var pdf = publication.ToPdfDocumentResult();
-        Assert.Contains(publication.ReadReport, pdf.SourceConversionReports);
+        var pdf = publication.ToPdf(null, out OfficeConversionReport pdfReport);
+        Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
         Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
         Assert.NotEmpty(publication.TextStories);
     }
@@ -176,7 +176,7 @@ public sealed class PublisherGeometryGuideTests {
     public void Native_guides_retain_recovery_limits_in_the_complete_reader() {
         var records = Enumerable.Range(0, 128).Select(index => ((ushort)0, (ushort)index, (ushort)0, (ushort)0)).ToArray();
         var error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(Input(records),
-            new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } }));
+            new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } }));
         Assert.Contains("custom path item work limit", error.Message);
     }
 
@@ -200,7 +200,7 @@ public sealed class PublisherGeometryGuideTests {
             ((ushort)0x2000, (ushort)0x0147, (ushort)0, (ushort)0),
             ((ushort)0x2000, (ushort)0x0400, (ushort)50, (ushort)0),
             ((ushort)0x2000, (ushort)0x04F8, (ushort)0, (ushort)0) }), 362);
-        var options = new PublisherReadOptions { ImageCodec = new SolidCodec() };
+        var options = new PublisherLoadOptions { ImageCodec = new SolidCodec() };
         PublisherDocument publication = PublisherDocument.Load(input, options);
         PublisherDocument control = PublisherDocument.Load(original, options);
         Assert.Equal(control.Images.SelectMany(image => image.GetBytes()), publication.Images.SelectMany(image => image.GetBytes()));

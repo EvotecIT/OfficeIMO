@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests.Rtf;
 public class RtfReadLimitTests {
     [Fact]
     public void Default_Profile_Is_Bounded_And_Blocks_External_Object_References() {
-        var options = new RtfReadOptions();
+        var options = new RtfLoadOptions();
 
         Assert.Equal(128, options.Limits.MaxDepth);
         Assert.Equal(16L * 1024 * 1024, options.Limits.MaxInputBytes);
@@ -31,7 +31,7 @@ public class RtfReadLimitTests {
 
     [Fact]
     public void Compatibility_Profile_Explicitly_Restores_Legacy_Permissive_Behavior() {
-        RtfReadOptions options = RtfReadOptions.CreateCompatibilityProfile();
+        RtfLoadOptions options = RtfLoadOptions.CreateCompatibilityProfile();
 
         Assert.Equal(RtfReadLimits.CompatibilityMaxDepth, options.Limits.MaxDepth);
         Assert.Null(options.Limits.MaxInputBytes);
@@ -47,7 +47,7 @@ public class RtfReadLimitTests {
 
     [Fact]
     public void Untrusted_Profile_Is_Bounded_And_Blocks_External_Object_References() {
-        RtfReadOptions options = RtfReadOptions.UntrustedDefaults;
+        RtfLoadOptions options = RtfLoadOptions.UntrustedDefaults;
 
         Assert.Equal(128, options.Limits.MaxDepth);
         Assert.Equal(16L * 1024 * 1024, options.Limits.MaxInputBytes);
@@ -68,7 +68,7 @@ public class RtfReadLimitTests {
     [InlineData("RtfTextCharacterLimitExceeded", "MaxTextCharacters")]
     public void Syntax_Limits_Throw_Stable_Exceptions(string expectedCode, string limitSource) {
         const string rtf = @"{\rtf1{nested}Visible text}";
-        var options = new RtfReadOptions();
+        var options = new RtfLoadOptions();
         switch (limitSource) {
             case "MaxInputCharacters": options.Limits.MaxInputCharacters = 5; break;
             case "MaxTokens": options.Limits.MaxTokens = 2; break;
@@ -87,7 +87,7 @@ public class RtfReadLimitTests {
     public void Byte_Limit_Is_Checked_Before_Seekable_Stream_Is_Read() {
         byte[] bytes = Encoding.ASCII.GetBytes(@"{\rtf1 Too large}");
         using var stream = new MemoryStream(bytes);
-        var options = new RtfReadOptions { Limits = { MaxInputBytes = 4 }};
+        var options = new RtfLoadOptions { Limits = { MaxInputBytes = 4 }};
 
         RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.LoadResult(stream, options));
 
@@ -99,7 +99,7 @@ public class RtfReadLimitTests {
     public async Task Byte_Limit_Is_Enforced_By_Async_Stream_Load() {
         byte[] bytes = Encoding.ASCII.GetBytes(@"{\rtf1 Too large}");
         using var stream = new MemoryStream(bytes);
-        var options = new RtfReadOptions { Limits = { MaxInputBytes = 4 }};
+        var options = new RtfLoadOptions { Limits = { MaxInputBytes = 4 }};
 
         RtfReadLimitException exception = await Assert.ThrowsAsync<RtfReadLimitException>(() =>
             RtfDocument.LoadResultAsync(stream, options));
@@ -113,7 +113,7 @@ public class RtfReadLimitTests {
     [InlineData("RtfTotalBinaryLimitExceeded", null, 3)]
     public void Binary_Limits_Are_Checked_Before_Payload_Allocation(string expectedCode, int? perPayload, int? total) {
         const string rtf = "{\\rtf1\\bin4 abcd}";
-        var options = new RtfReadOptions { Limits = {
+        var options = new RtfLoadOptions { Limits = {
             MaxBinaryPayloadBytes = perPayload,
             MaxTotalBinaryBytes = total }};
 
@@ -130,7 +130,7 @@ public class RtfReadLimitTests {
     [InlineData("RtfTotalImageLimitExceeded", 1, null, 3)]
     public void Image_Limits_Stop_Decoded_Hex_Payloads(string expectedCode, int? count, int? perImage, int? total) {
         const string rtf = @"{\rtf1{\pict\pngblip 01020304}}";
-        var options = new RtfReadOptions { Limits = {
+        var options = new RtfLoadOptions { Limits = {
             MaxImages = count,
             MaxImageBytes = perImage,
             MaxTotalImageBytes = total }};
@@ -146,7 +146,7 @@ public class RtfReadLimitTests {
     [InlineData("RtfTotalObjectLimitExceeded", 1, null, 3)]
     public void Object_Limits_Stop_Decoded_Hex_Payloads(string expectedCode, int? count, int? perObject, int? total) {
         const string rtf = @"{\rtf1{\object\objemb{\*\objdata 01020304}}}";
-        var options = new RtfReadOptions { Limits = {
+        var options = new RtfLoadOptions { Limits = {
             MaxObjects = count,
             MaxObjectBytes = perObject,
             MaxTotalObjectBytes = total },
@@ -160,7 +160,7 @@ public class RtfReadLimitTests {
     [Fact]
     public void Semantic_Block_Limit_Stops_Binding() {
         const string rtf = @"{\rtf1 One\par Two\par Three\par}";
-        var options = new RtfReadOptions { Limits = { MaxSemanticBlocks = 1 }};
+        var options = new RtfLoadOptions { Limits = { MaxSemanticBlocks = 1 }};
 
         RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.ParseResult(rtf, options));
 
@@ -171,7 +171,7 @@ public class RtfReadLimitTests {
     [Fact]
     public void Semantic_Block_Limit_Counts_Paragraphs_Inside_Tables() {
         const string rtf = @"{\rtf1\trowd\cellx1000\intbl Cell\cell\row}";
-        var options = new RtfReadOptions { Limits = { MaxSemanticBlocks = 1 }};
+        var options = new RtfLoadOptions { Limits = { MaxSemanticBlocks = 1 }};
 
         RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.ParseResult(rtf, options));
 
@@ -184,7 +184,7 @@ public class RtfReadLimitTests {
     [InlineData(@"{\rtf1 Body{\footnote Note\par}\par}")]
     [InlineData(@"{\rtf1{\shp{\*\shpinst{\shptxt Shape\par}}}}")]
     public void Semantic_Block_Limit_Counts_Paragraphs_In_Nested_Content(string rtf) {
-        var options = new RtfReadOptions { Limits = { MaxSemanticBlocks = 1 }};
+        var options = new RtfLoadOptions { Limits = { MaxSemanticBlocks = 1 }};
 
         RtfReadLimitException exception = Assert.Throws<RtfReadLimitException>(() => RtfDocument.ParseResult(rtf, options));
 
@@ -195,7 +195,7 @@ public class RtfReadLimitTests {
     public void Untrusted_Profile_Blocks_Objects_And_File_References_With_Diagnostics() {
         const string rtf = @"{\rtf1{\filetbl{\file\fid0 C:\\private.txt;}}{\object\objemb{\*\objdata 0102}}Visible}";
 
-        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.UntrustedDefaults);
+        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.UntrustedDefaults);
 
         Assert.Empty(result.Document.FileReferences);
         Assert.Empty(result.Document.Blocks.OfType<RtfObject>());
@@ -238,7 +238,7 @@ public class RtfReadLimitTests {
     public void Untrusted_Profile_Flattens_Unsafe_Hyperlink_Fields(string target) {
         string rtf = "{\\rtf1{\\field{\\*\\fldinst HYPERLINK \\\"" + target + "\\\"}{\\fldrslt Visible}}}";
 
-        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.UntrustedDefaults);
+        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.UntrustedDefaults);
 
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
         Assert.Equal("Visible", paragraph.ToPlainText());
@@ -251,7 +251,7 @@ public class RtfReadLimitTests {
     public void Untrusted_Profile_Preserves_Web_Hyperlink_Fields() {
         const string rtf = @"{\rtf1{\field{\*\fldinst HYPERLINK ""https://example.test/""}{\fldrslt Visible}}}";
 
-        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.UntrustedDefaults);
+        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.UntrustedDefaults);
 
         Assert.Single(Assert.Single(result.Document.Paragraphs).Inlines.OfType<RtfField>());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF107");
@@ -297,7 +297,7 @@ public class RtfReadLimitTests {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() =>
-            RtfDocument.ParseResult(@"{\rtf1 Cancelled}", new RtfReadOptions(), cancellation.Token));
+            RtfDocument.ParseResult(@"{\rtf1 Cancelled}", new RtfLoadOptions(), cancellation.Token));
     }
 
 }

@@ -311,8 +311,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             WriteBufferedRows(sheet, firstRow: 1, rows: 100);
-            sheet.Freeze(topRows: 1);
-            sheet.AutoFilterAdd("A1:C100");
+            sheet.View.Freeze(topRows: 1);
+            sheet.Range("A1:C100").AutoFilter();
 
             using var output = new MemoryStream();
             document.Save(output);

@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.Pdf {
             ExcelSheetReader reader, ExcelSheet? metadataSheet, ExcelSheet? styleSheet,
             string range, ExcelPdfExportOptions options, PdfCore.PdfStandardFont defaultFont, bool boundedRead) {
             RangeExportData body = ReadRangeExportData(reader, metadataSheet, styleSheet, range, options, defaultFont, boundedRead);
-            ExcelPrintTitles? titles = metadataSheet?.GetPrintTitles();
+            ExcelPrintTitles? titles = metadataSheet?.PageSetup.PrintTitles;
             if (!options.UseWorksheetPrintTitleColumns || titles?.HasColumns != true ||
                 !ExcelA1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out _)
                 || titles.FirstColumn!.Value >= firstColumn) return body;
@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static IReadOnlyList<int> GetPrintTitleColumnIndexes(ExcelSheet? sheet, string?[,]? references, ExcelPdfExportOptions options) {
-            ExcelPrintTitles? titles = sheet?.GetPrintTitles();
+            ExcelPrintTitles? titles = sheet?.PageSetup.PrintTitles;
             if (!options.UseWorksheetPrintTitleColumns || titles?.HasColumns != true || references == null) return Array.Empty<int>();
             var indexes = new List<int>();
             for (int column = 0; column < references.GetLength(1); column++) {

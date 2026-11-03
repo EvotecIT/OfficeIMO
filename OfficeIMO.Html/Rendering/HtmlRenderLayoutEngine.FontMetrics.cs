@@ -12,13 +12,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private bool TryRebuildWithPreparedFontMetrics(IReadOnlyList<HtmlRenderFlowBlock> blocks,
         out HtmlRenderDocument rendered) {
         rendered = null!;
-        if (_options is not Pdf.HtmlToPdfOptions pdfOptions) return false;
+        if (_options is not IHtmlPrintRenderOptions printOptions) return false;
         // Preserve the converter's policy gate: explicit and portable font
         // policies do not need page-margin discovery at all.
         var margins = new Lazy<MarginFontPreparation>(() => PrepareMarginFontRequirements(blocks));
-        if (!Pdf.HtmlPdfRenderedConverter.TryPrepareLibraryFontMetrics(
+        if (!printOptions.TryPrepareLibraryFontMetrics(
                 blocks.SelectMany(block => block.Visuals).Concat(EnumerateAdditionalFontVisuals(margins)),
-                EnumerateMarginFontRequirements(margins), _fonts, pdfOptions, _resources, _diagnostics, _cancellationToken)) return false;
+                EnumerateMarginFontRequirements(margins), _fonts, _resources, _diagnostics, _cancellationToken)) return false;
         CheckCancellation();
         _fontLayoutRebuilt = true;
         var rebuilt = new HtmlRenderLayoutEngine(_document, _computedStyles, _options,

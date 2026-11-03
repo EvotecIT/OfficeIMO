@@ -318,7 +318,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupChartBlock chart,
         LayoutCursor cursor,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics) {
         if (!TryCreateChartData(chart, out var data)) {
             if (options.IncludeUnsupportedBlocksAsText) {

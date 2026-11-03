@@ -13,7 +13,9 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Margins" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1).SetValue("BodyText");
-            sheet.SetHeaderFooter(headerLeft: "HeaderLeft", headerRight: "HeaderRight", footerLeft: "FooterLeft");
+            sheet.PageSetup.Header.Left.Text = "HeaderLeft";
+            sheet.PageSetup.Header.Right.Text = "HeaderRight";
+            sheet.PageSetup.Footer.Left.Text = "FooterLeft";
             document.Save();
             bytes = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false })
                 .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

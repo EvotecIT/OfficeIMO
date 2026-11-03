@@ -17,7 +17,7 @@ public sealed class RtfPdfWhitespaceRegressionTests {
         PdfCore.PdfCreateOptions? caller = unrelatedPdfOptions
             ? new PdfCore.PdfCreateOptions { CompressContentStreams = false }
             : null;
-        var options = new RtfToPdfOptions {
+        var options = new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = caller
         };
@@ -49,7 +49,7 @@ public sealed class RtfPdfWhitespaceRegressionTests {
         RtfDocument document = CreateDocument(spaces: 3);
         var caller = new PdfCore.PdfCreateOptions { TextWhitespaceMode = mode };
 
-        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfToPdfOptions {
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             PdfOptions = caller
         });
@@ -86,7 +86,7 @@ public sealed class RtfPdfWhitespaceRegressionTests {
         Assert.Equal(PdfCore.PdfTextWhitespaceMode.Preserve, imported.Mode);
 
         static (PdfCore.PdfTextWhitespaceMode Mode, string[] Lines) ReadLines(RtfDocument source, PdfCore.PdfCreateOptions? options) {
-            PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new RtfToPdfOptions {
+            PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(new RtfPdfExportOptions {
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
                 PdfOptions = options
             });

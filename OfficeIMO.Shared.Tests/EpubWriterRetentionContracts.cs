@@ -154,7 +154,7 @@ public sealed class EpubWriterRetentionContracts {
     public void Write_HonorsStoredCompressionPolicyOnUneditedImports(EpubVersion version) {
         byte[] source = EpubWritingContracts.CreateBook(version).Write().Bytes;
         EpubPublication book = EpubPublication.Load(new MemoryStream(source));
-        EpubWriteResult stored = book.Write(new EpubWriteOptions { CompressEntries = false });
+        EpubWriteResult stored = book.Write(new EpubSaveOptions { CompressEntries = false });
         Assert.False(stored.Report.UsedOriginalPackage);
         using var archive = new ZipArchive(new MemoryStream(stored.Bytes));
         Assert.All(archive.Entries, entry => Assert.Equal(entry.Length, entry.CompressedLength));
@@ -186,7 +186,7 @@ public sealed class EpubWriterRetentionContracts {
         package.Root!.Element(Opf + "metadata")!.Add(new XElement(Opf + "meta", new XAttribute("property", "schema:description"), new XAttribute("refines", "#modified"), "Revision date"));
         book = EpubPublication.Load(new MemoryStream(EpubWritingContracts.ReplaceEntry(source, book.PackagePath, Encoding.UTF8.GetBytes(package.ToString()))));
         book.Title = "Edited";
-        byte[] output = book.Write(new EpubWriteOptions { ModifiedAt = DateTimeOffset.Parse("2020-01-02T03:04:05Z") }).Bytes;
+        byte[] output = book.Write(new EpubSaveOptions { ModifiedAt = DateTimeOffset.Parse("2020-01-02T03:04:05Z") }).Bytes;
         package = XDocument.Parse(Encoding.UTF8.GetString(ReadEntry(output, book.PackagePath)));
         stamp = package.Descendants(Opf + "meta").Single(meta => (string?)meta.Attribute("property") == "dcterms:modified");
         Assert.Equal("modified", stamp.Attribute("id")!.Value);

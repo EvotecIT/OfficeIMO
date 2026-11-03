@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                         }) { Count = 1U });
                     break;
                 case "conditional-formatting":
-                    sheet.AddConditionalFormulaRule("A1:B1", "A1>0");
+                    sheet.Range("A1:B1").ConditionalFormat().Formula("A1>0");
                     break;
                 case "allowed-edit":
                     sheet.Protect();
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFilterState_UsesTop10SchemaDefaults() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.AutoFilterAdd("A1:B2");
+            sheet.Range("A1:B2").AutoFilter();
             AutoFilter filter = sheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>()!;
             filter.Append(new FilterColumn(new Top10 { Val = 5D }) { ColumnId = 0U });
 

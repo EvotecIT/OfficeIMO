@@ -29,7 +29,7 @@ public sealed class PdfConversionOutputContracts {
     public void MhtmlSynchronousConversionObservesCancellationDuringHtmlPolicyEvaluation() {
         using var cancellation = new CancellationTokenSource();
         bool evaluatedPolicy = false;
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.UrlPolicy.ResolvedUrlTransform = value => {
             evaluatedPolicy = true;
             cancellation.Cancel();
@@ -47,7 +47,7 @@ public sealed class PdfConversionOutputContracts {
         using PdfDocument generated = PdfDocument.Create();
         generated.Content.AddParagraph(p => p.AddText("Presentation output"));
         using PdfDocument opened = PdfDocument.Load(new MemoryStream(generated.ToBytes()));
-        var options = PowerPointPdfImportOptions.CreateEditableTables();
+        var options = PdfPowerPointExportOptions.CreateEditableTables();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-output-contract-" + Guid.NewGuid().ToString("N") + ".pptx");
         try {
             OfficeConversionReport report = asyncOutput

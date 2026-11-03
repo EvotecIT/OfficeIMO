@@ -25,7 +25,7 @@ public sealed class EpubPublicationLoadOptions {
 }
 
 /// <summary>Bounds serialized output and controls explicit signature invalidation.</summary>
-public sealed class EpubWriteOptions {
+public sealed class EpubSaveOptions {
     /// <summary>Deflates ordinary entries when true. The leading mimetype entry is always stored.</summary>
     public bool CompressEntries { get; set; } = true;
     /// <summary>Maximum compressed output bytes, checked while producing the ZIP.</summary>

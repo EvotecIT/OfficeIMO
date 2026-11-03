@@ -28,15 +28,15 @@ public sealed class PdfBridgeApiContracts {
         };
 
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToWord(new WordPdfImportOptions { ReadOptions = readOptions }));
+            document.ToWord(new PdfWordExportOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToExcel(new ExcelPdfImportOptions { ReadOptions = readOptions }));
+            document.ToExcel(new PdfExcelExportOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToRtfDocument(new PdfToRtfOptions { ReadOptions = readOptions }));
+            document.ToRtfDocument(new PdfRtfExportOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToHtml(new PdfToHtmlOptions { ReadOptions = readOptions }));
+            document.ToHtml(new PdfHtmlExportOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToPowerPoint(new PowerPointPdfImportOptions { ReadOptions = readOptions }));
+            document.ToPowerPoint(new PdfPowerPointExportOptions { ReadOptions = readOptions }));
         using var stream = new MemoryStream(pdf, writable: false);
         ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() =>
             PdfReaderAdapter.ReadDocument(stream, pdfOptions: new ReaderPdfOptions { ReadOptions = readOptions }));
@@ -52,7 +52,7 @@ public sealed class PdfBridgeApiContracts {
             .Paragraph(paragraph => paragraph.AddText("Second page marker"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(pdf));
-        var options = new WordPdfImportOptions {
+        var options = new PdfWordExportOptions {
             ReadOptions = new PdfLoadOptions {
                 PageSelection = PdfPageSelection.From(2),
                 Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }

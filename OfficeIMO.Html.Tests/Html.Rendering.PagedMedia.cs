@@ -180,7 +180,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = true
         });
         IReadOnlyList<HtmlRenderVisual> visuals = rendered.Pages.SelectMany(page => page.Visuals).ToList();
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             HonorCssPageRules = true
         })).ToBytes();
@@ -209,7 +209,7 @@ public sealed partial class HtmlRenderingTests {
             + ".note::footnote-marker{content:url('data:image/svg+xml;base64," + data + "')}</style>"
             + "<p>Body<span id='svg-note' class='note'>SVG marker footnote</span>.</p>";
 
-        OfficeIMO.Pdf.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlToPdfOptions {
+        OfficeIMO.Pdf.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             HonorCssPageRules = true
         });

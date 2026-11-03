@@ -12,7 +12,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Bounded");
             sheet.Cell(1, 1).SetValue("Composed Excel raster export");
-            sheet.SetHeaderFooter(headerCenter: "Header", footerCenter: "Footer");
+            sheet.PageSetup.Header.Center.Text = "Header";
+            sheet.PageSetup.Footer.Center.Text = "Footer";
             var options = new ExcelImageExportOptions {
                 MaximumTotalEncodedBytes = 8L,
                 UsePrintArea = false
@@ -42,7 +43,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("BoundedSvg");
             FillPageBreakGrid(sheet);
             sheet.Cell(3, 1).SetValue(new string('\u754c', 10_000));
-            sheet.SetHeaderFooter(headerCenter: "Bounded header", footerCenter: "Bounded footer");
+            sheet.PageSetup.Header.Center.Text = "Bounded header";
+            sheet.PageSetup.Footer.Center.Text = "Bounded footer";
             sheet.AddManualRowPageBreak(2, save: false);
             var options = new ExcelImageExportOptions {
                 Range = "A1:AZ4",
@@ -118,7 +120,7 @@ namespace OfficeIMO.Tests {
                 Height = OfficeIMO.OfficeLength.Pixels(900),
                 Name = "Noise"
             });
-            sheet.SetPageSetup(scale: 10, paperSize: ExcelPaperSize.Letter);
+            sheet.PageSetup.Scale = 10; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
             var contentOptions = new ExcelImageExportOptions {
                 Range = "A1:T50",
@@ -149,7 +151,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Draft");
+            sheet.PageSetup.Header.Center.Text = "Confidential";
+            sheet.PageSetup.Footer.Right.Text = "Draft";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -172,7 +175,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Draft");
+            sheet.PageSetup.Header.Center.Text = "Confidential";
+            sheet.PageSetup.Footer.Right.Text = "Draft";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(
@@ -202,10 +206,9 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             string visiblePrefix = new string('V', 600);
             string oversizedFont = new string('F', 10000);
-            sheet.SetHeaderFooter(
-                headerLeft: visiblePrefix + "PLAIN-SECRET-TAIL",
-                headerCenter: "&B" + visiblePrefix + "RICH-SECRET-TAIL",
-                footerRight: "&\"" + oversizedFont + ",Bold\"FONT-SECRET-TAIL");
+            sheet.PageSetup.Header.Left.Text = visiblePrefix + "PLAIN-SECRET-TAIL";
+            sheet.PageSetup.Header.Center.Text = "&B" + visiblePrefix + "RICH-SECRET-TAIL";
+            sheet.PageSetup.Footer.Right.Text = "&\"" + oversizedFont + ",Bold\"FONT-SECRET-TAIL";
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Svg,
@@ -227,7 +230,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "Sheet &A", footerRight: "Page &[Page] of &N && draft");
+            sheet.PageSetup.Header.Center.Text = "Sheet &A";
+            sheet.PageSetup.Footer.Right.Text = "Page &[Page] of &N && draft";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -257,7 +261,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerLeft: "File &F", headerRight: "Path &[Path]", footerRight: "&[File]");
+            sheet.PageSetup.Header.Left.Text = "File &F";
+            sheet.PageSetup.Header.Right.Text = "Path &[Path]";
+            sheet.PageSetup.Footer.Right.Text = "&[File]";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -284,7 +290,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerLeft: "Date &D", headerCenter: "Time &[Time]", footerRight: "Printed &[Date] &T");
+            sheet.PageSetup.Header.Left.Text = "Date &D";
+            sheet.PageSetup.Header.Center.Text = "Time &[Time]";
+            sheet.PageSetup.Footer.Right.Text = "Printed &[Date] &T";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -309,7 +317,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "&B&I&UStyled &A", footerRight: "Printed &BConfidential");
+            sheet.PageSetup.Header.Center.Text = "&B&I&UStyled &A";
+            sheet.PageSetup.Footer.Right.Text = "Printed &BConfidential";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -336,7 +345,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "&KFF0000&14Red &A");
+            sheet.PageSetup.Header.Center.Text = "&KFF0000&14Red &A";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -359,7 +368,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "&SStrike Header");
+            sheet.PageSetup.Header.Center.Text = "&SStrike Header";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -381,7 +390,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "&\"Aptos,Bold Italic\"Font Header");
+            sheet.PageSetup.Header.Center.Text = "&\"Aptos,Bold Italic\"Font Header";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -405,7 +414,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "&\"OfficeIMO Missing Header Font,Bold\"Font Header");
+            sheet.PageSetup.Header.Center.Text = "&\"OfficeIMO Missing Header Font,Bold\"Font Header";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -431,9 +440,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(
-                headerCenter:
-                    "&\"OfficeIMO Scoped Header Font,Regular\"Font Header");
+            sheet.PageSetup.Header.Center.Text = "&\"OfficeIMO Scoped Header Font,Regular\"Font Header";
             sheet.AddManualRowPageBreak(2, save: false);
             var options = new ExcelImageExportOptions {
                 Range = "A1:D4",
@@ -466,7 +473,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerCenter: "&\"AptosFont Header");
+            sheet.PageSetup.Header.Center.Text = "&\"AptosFont Header";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -487,7 +494,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerLeft: "Date &D", headerCenter: "Time &[Time]", footerRight: "Printed &[Date] &T");
+            sheet.PageSetup.Header.Left.Text = "Date &D";
+            sheet.PageSetup.Header.Center.Text = "Time &[Time]";
+            sheet.PageSetup.Footer.Right.Text = "Printed &[Date] &T";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -516,9 +525,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet, rows: 6);
-            sheet.SetHeaderFooter(headerCenter: "Odd &P", footerRight: "Odd Footer");
-            sheet.SetFirstPageHeaderFooter(headerCenter: "First &P", footerRight: "First Footer");
-            sheet.SetEvenPageHeaderFooter(headerCenter: "Even &P", footerRight: "Even Footer");
+            sheet.PageSetup.Header.Center.Text = "Odd &P";
+            sheet.PageSetup.Footer.Right.Text = "Odd Footer";
+            sheet.PageSetup.FirstPageHeader.Center.Text = "First &P";
+            sheet.PageSetup.FirstPageFooter.Right.Text = "First Footer";
+            sheet.PageSetup.EvenPageHeader.Center.Text = "Even &P";
+            sheet.PageSetup.EvenPageFooter.Right.Text = "Even Footer";
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualRowPageBreak(4, save: false);
 
@@ -551,7 +563,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderFooter(headerLeft: "Prepared", footerCenter: "Internal");
+            sheet.PageSetup.Header.Left.Text = "Prepared";
+            sheet.PageSetup.Footer.Center.Text = "Internal";
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult composed = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -582,7 +595,8 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(row, column).SetFillColor("#00FF00");
                 }
             }
-            sheet.SetHeaderFooter(headerLeft: "Prepared", footerRight: "Internal");
+            sheet.PageSetup.Header.Left.Text = "Prepared";
+            sheet.PageSetup.Footer.Right.Text = "Internal";
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(
@@ -623,8 +637,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetPaperSize(ExcelPaperSize.Letter);
-            sheet.SetHeaderFooter(headerCenter: "Prepared", footerCenter: "Internal");
+            sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.Header.Center.Text = "Prepared";
+            sheet.PageSetup.Footer.Center.Text = "Internal";
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -642,9 +657,10 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetPaperSize(ExcelPaperSize.Letter);
-            sheet.SetHeaderFooter(headerCenter: "Prepared", footerCenter: "Internal");
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
+            sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.Header.Center.Text = "Prepared";
+            sheet.PageSetup.Footer.Center.Text = "Internal";
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -664,8 +680,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             byte[] logo = CreateHeaderFooterLogoPng();
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
-            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, logo, "image/png", width: OfficeLength.Points(24D), height: OfficeLength.Points(12D));
+            sheet.PageSetup.Header.Center.SetImage(logo, "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
+            sheet.PageSetup.Footer.Right.SetImage(logo, "image/png", width: OfficeLength.Points(24D), height: OfficeLength.Points(12D));
             sheet.AddManualRowPageBreak(2, save: false);
 
             var options = new ExcelImageExportOptions {
@@ -697,7 +713,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoPng(), "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
+            sheet.PageSetup.Header.Center.SetImage(CreateHeaderFooterLogoPng(), "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -718,7 +734,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
             byte[] logo = CreateHeaderFooterLogoPng();
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
+            sheet.PageSetup.Header.Center.SetImage(logo, "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddImage(1, 1, logo, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -744,7 +760,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoBmp(), "image/bmp", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
+            sheet.PageSetup.Header.Center.SetImage(CreateHeaderFooterLogoBmp(), "image/bmp", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
             var options = new ExcelImageExportOptions {
@@ -774,7 +790,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
+            sheet.PageSetup.Header.Center.SetImage(new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -796,12 +812,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(
-                ExcelHeaderFooterPosition.Center,
-                new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 },
-                "image/gif",
-                width: OfficeLength.Points(36D),
-                height: OfficeLength.Points(16D));
+            sheet.PageSetup.Header.Center.SetImage(new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
             var codec = new HeaderImageCodec();
 

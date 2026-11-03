@@ -724,7 +724,7 @@ public sealed partial class PdfDocument {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] input = GetBytesForOperation(cancellationToken);
         PdfAnnotationEditResult result = PdfAnnotationEditor.FlattenAnnotations(input,
-            new PdfAnnotationFlattenOptions { CancellationToken = cancellationToken }, readOptions);
+            new PdfAnnotationFlattenOptions { CancellationToken = cancellationToken }, readOptions, cancellationToken: cancellationToken);
         return WithBytes(input, result.Bytes, result.OutputReadOptions,
             operationName: nameof(FlattenVisualAnnotations), cancellationToken: cancellationToken);
     }
@@ -887,12 +887,14 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Removes or quarantines active content and embedded payloads through a proven full rewrite.</summary>
-    public PdfSanitizationResult Sanitize(PdfSanitizationOptions? options = null) {
+    public PdfSanitizationResult Sanitize(PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return PdfSanitizer.Sanitize(GetBytesForOperation(options?.CancellationToken ?? default), options, ReadOptions);
     }
 
     /// <summary>Inspects what the supplied sanitization policy would remove without modifying the PDF.</summary>
-    public PdfSanitizationReport InspectSanitization(PdfSanitizationOptions? options = null) {
+    public PdfSanitizationReport InspectSanitization(PdfSanitizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return PdfSanitizer.Inspect(GetBytesForOperation(options?.CancellationToken ?? default), options, ReadOptions);
     }
 

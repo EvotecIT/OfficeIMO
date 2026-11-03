@@ -7,7 +7,7 @@ Read compiled HTML Help (`.chm`) in process on Windows, macOS, and Linux. `ChmDo
 ```csharp
 using OfficeIMO.Chm;
 
-ChmDocument book = ChmDocument.Load("manual.chm", new ChmReadOptions {
+ChmDocument book = ChmDocument.Load("manual.chm", new ChmLoadOptions {
     MaxInputBytes = 64L * 1024 * 1024,
     MaxExpandedBytes = 128L * 1024 * 1024
 });

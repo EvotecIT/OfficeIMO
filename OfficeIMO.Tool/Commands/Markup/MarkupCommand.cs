@@ -158,7 +158,7 @@ internal static class MarkupCommand {
 
                 outputPath = NormalizeWritableFilePath(outputPath);
 
-                result.Document.SaveAsPowerPoint(outputPath!, new MarkupToPowerPointOptions {
+                result.Document.SaveAsPowerPoint(outputPath!, new MarkupPowerPointExportOptions {
                     BaseDirectory = inputPath == null
                         ? Directory.GetCurrentDirectory()
                         : Path.GetDirectoryName(inputPath),
@@ -201,7 +201,7 @@ internal static class MarkupCommand {
 
                 documentOutputPath = NormalizeWritableFilePath(documentOutputPath);
 
-                result.Document.SaveAsWord(documentOutputPath!, new MarkupToWordOptions {
+                result.Document.SaveAsWord(documentOutputPath!, new MarkupWordExportOptions {
                     BaseDirectory = documentInputPath == null
                         ? Environment.CurrentDirectory
                         : Path.GetDirectoryName(documentInputPath)

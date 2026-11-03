@@ -15,7 +15,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
         try {
             File.WriteAllText(path,
                 "div{position:absolute;left:24px;top:18px;width:160px;height:40px}");
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             options.StylesheetPaths.Add(path);
 
             HtmlToWordResult result = HtmlConversionDocument.Parse(
@@ -56,7 +56,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
     [InlineData(OfficePageOrientation.Landscape)]
     public void ContinuousWordProjectionUsesConfiguredPageWidth(OfficePageOrientation orientation) {
         const string html = "<div style='position:absolute;right:0;top:0;width:96px;height:40px'>A5 anchor</div>";
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             DefaultPageSize = WordPageSize.A5,
             DefaultOrientation = orientation
         };

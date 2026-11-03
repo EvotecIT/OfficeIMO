@@ -261,7 +261,7 @@ public class RtfEditingWorkflowTests {
         Assert.True(replaced);
         Assert.Equal("Before New value", first.ToPlainText());
         Assert.Equal(" after", second.ToPlainText());
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\*\bkmkstart Patient}New value\par", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\bkmkend Patient} after", rtf, StringComparison.Ordinal);
     }

@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 3).SetValue(10);
             sheet.Cell(3, 2).SetValue("South");
             sheet.Cell(3, 3).SetValue(20);
-            document.SetPrintArea(sheet, "B2:C3", save: false);
+            sheet.PageSetup.PrintArea = "B2:C3";
 
             ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelImageExportOptions {
                 UsePrintArea = true,
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Report");
             sheet.Cell(1, 1).SetValue("Print");
             sheet.Cell(3, 3).SetValue("Explicit");
-            document.SetPrintArea(sheet, "A1:A1", save: false);
+            sheet.PageSetup.PrintArea = "A1:A1";
 
             ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelImageExportOptions {
                 Range = "C3:C3",
@@ -209,8 +209,8 @@ namespace OfficeIMO.Tests {
             summary.Cell(4, 4).SetValue("Outside");
             ExcelSheet details = document.AddSheet("Details");
             details.Cell(1, 1).SetValue("No print area");
-            document.SetPrintArea(summary, "A1:A1", save: false);
-            Assert.Equal("$A$1", summary.GetPrintArea());
+            summary.PageSetup.PrintArea = "A1:A1";
+            Assert.Equal("$A$1", summary.PageSetup.PrintArea);
             OfficeImageExportResult directSummary = summary.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 UsePrintArea = true
             });
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
-            sheet.SetPageSetup(pageOrder: ExcelPageOrder.OverThenDown);
+            sheet.PageSetup.PageOrder = ExcelPageOrder.OverThenDown;
 
             IReadOnlyList<OfficeImageExportResult> results = document.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 SheetNames = new[] { "Report" },
@@ -359,10 +359,11 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetPageSetup(fitToWidth: 2, fitToHeight: 1);
-            sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Printed &BConfidential");
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.FitToWidth = 2; sheet.PageSetup.FitToHeight = 1;
+            sheet.PageSetup.Header.Center.Text = "Confidential";
+            sheet.PageSetup.Footer.Right.Text = "Printed &BConfidential";
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -394,9 +395,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
-            sheet.SetPageSetup(scale: 50);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
+            sheet.PageSetup.Scale = 50;
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -425,8 +426,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
-            sheet.SetPageSetup(scale: 75);
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
+            sheet.PageSetup.Scale = 75;
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -457,8 +458,8 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(40D));
             }
 
-            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -487,8 +488,8 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(40D));
             }
 
-            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -515,8 +516,8 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(800D)));
             sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(800D)));
-            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
-            sheet.SetPageSetup(fitToWidth: 0, fitToHeight: 1, paperSize: ExcelPaperSize.Letter);
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
+            sheet.PageSetup.FitToWidth = 0; sheet.PageSetup.FitToHeight = 1; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -541,8 +542,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
-            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.A4);
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
+            sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -569,9 +570,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
-            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Legal);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
+            sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Legal;
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -597,8 +598,8 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
                 FillPageBreakGrid(sheet);
-                sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
-                sheet.SetPageSetup(scale: 100);
+                sheet.PageSetup.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
+                sheet.PageSetup.Scale = 100;
                 sheet.AddManualRowPageBreak(2, save: false);
                 document.Save();
             }
@@ -630,7 +631,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
             sheet.AddManualRowPageBreak(2, save: false);
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -652,9 +653,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
             sheet.AddManualRowPageBreak(2, save: false);
-            sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
+            sheet.PageSetup.Scale = 100; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 
             IReadOnlyList<OfficeImageExportResult> results = sheet.ExportImages(
                 OfficeImageExportFormat.Svg,

@@ -48,7 +48,7 @@ public partial class HtmlWordGapClosure {
         HtmlUnsupportedCssException exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
             HtmlConversionDocument
                 .Parse("""<body style="margin:0;margin-inline-start:10px"><p>Text</p></body>""")
-                .ToWord(new WordHtmlImportOptions {
+                .ToWord(new HtmlWordExportOptions {
                     UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
                 }));
 
@@ -82,7 +82,7 @@ public partial class HtmlWordGapClosure {
         cell.AddHtml(
             HtmlConversionDocument.Parse(
                 """<table><caption>Nested caption</caption><tr><td>Value</td></tr></table>"""),
-            new WordHtmlImportOptions { TableCaptionPosition = WordHtmlTableCaptionPosition.Below });
+            new HtmlWordExportOptions { TableCaptionPosition = WordHtmlTableCaptionPosition.Below });
 
         Paragraph caption = Assert.Single(
             cell._tableCell.Elements<Paragraph>(),

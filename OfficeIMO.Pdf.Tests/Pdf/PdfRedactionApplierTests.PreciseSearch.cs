@@ -361,8 +361,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Empty(source.Redactions.Search(options).Areas);
             using CancellationTokenSource cancellation = new CancellationTokenSource();
             cancellation.Cancel();
-            options.CancellationToken = cancellation.Token;
-            Assert.Throws<OperationCanceledException>(() => source.Redactions.Search(options));
+            Assert.Throws<OperationCanceledException>(() => source.Redactions.Search(options, cancellationToken: cancellation.Token));
         }
 
         [Fact]

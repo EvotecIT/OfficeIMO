@@ -16,7 +16,7 @@ public partial class Excel {
         using (var workbook = ExcelDocument.Create(xlsx, new ExcelCreateOptions { FirstSheetName = "Print" })) {
             ExcelSheet sheet = workbook.Sheets[0];
             sheet.Cell(1, 1).SetValue("Cached fit dimensions");
-            sheet.SetPageSetup(fitToWidth: 2, fitToHeight: 0, scale: 85);
+            sheet.PageSetup.FitToWidth = 2; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.Scale = 85;
             PageSetupProperties properties = sheet.WorksheetPart.Worksheet
                 .GetFirstChild<SheetProperties>()!.GetFirstChild<PageSetupProperties>()!;
             properties.FitToPage = fitEnabled;
@@ -29,7 +29,7 @@ public partial class Excel {
         Assert.Equal((ushort)85, stored.Scale);
         Assert.Equal((ushort)2, stored.FitToWidth);
         Assert.Equal((ushort)0, stored.FitToHeight);
-        ExcelSheetPageSetup effective = result.Document.Sheets[0].GetPageSetup();
+        ExcelSheetPageSetup effective = result.Document.Sheets[0].PageSetup;
         Assert.Equal(fitEnabled == true ? 2U : (uint?)null, effective.FitToWidth);
         Assert.Equal(fitEnabled == true ? 0U : (uint?)null, effective.FitToHeight);
     }

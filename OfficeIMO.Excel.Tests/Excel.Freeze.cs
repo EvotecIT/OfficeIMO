@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests
                 {
                     var sheet1 = document.AddSheet("Data");
 
-                    sheet1.Freeze(topRows: 1);
+                    sheet1.View.Freeze(topRows: 1);
                     document.Save();
                 }
             }
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests
                 {
                     var sheet3 = document.AddSheet("Data");
 
-                    sheet3.Freeze(leftCols: 2);
+                    sheet3.View.Freeze(leftColumns: 2);
                     document.Save();
                 }
             }
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests
                 {
                     var sheet5 = document.AddSheet("Data");
 
-                    sheet5.Freeze(topRows: 1, leftCols: 1);
+                    sheet5.View.Freeze(topRows: 1, leftColumns: 1);
                     document.Save();
                 }
             }
@@ -149,8 +149,8 @@ namespace OfficeIMO.Tests
                 {
                     var sheet7 = document.AddSheet("Data");
 
-                    sheet7.Freeze(topRows: 1, leftCols: 1);
-                    sheet7.Freeze();
+                    sheet7.View.Freeze(topRows: 1, leftColumns: 1);
+                    sheet7.View.Freeze();
                     document.Save();
                 }
             }

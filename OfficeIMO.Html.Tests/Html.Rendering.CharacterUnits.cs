@@ -49,7 +49,7 @@ public sealed class HtmlCharacterUnitTests {
     [InlineData("<style>:root{--measure:20ch}</style><div style='font-size:0'>Hidden<span style='font-size:16px'>Visible</span></div>")]
     [InlineData("<div style='font-size:0'><span style='font-size:2ch'>Hidden</span><span style='font-size:16px'>Visible</span></div>")]
     public void ZeroSizeCharacterMeasurementPreservesVisiblePdfDescendants(string html) {
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         })).ToBytes();
 

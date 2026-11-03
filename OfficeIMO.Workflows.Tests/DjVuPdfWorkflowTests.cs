@@ -50,7 +50,7 @@ public sealed class DjVuPdfWorkflowTests {
                 ConflictPolicy = OfficePublicationPolicy.Replace,
                 ConversionOptions = new() {
                     FailOnLoss = true,
-                    RegisteredSettings = new OfficeWorkflowRouteSettings { DjVu = new DjVuToPdfOptions() }
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { DjVu = new DjVuPdfExportOptions() }
                 }
             };
             var result = await new OfficeWorkflowRunner().RunAsync(request);

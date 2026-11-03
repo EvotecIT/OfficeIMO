@@ -103,11 +103,11 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
 
     /// <summary>RTF-specific PDF options.</summary>
     [Parameter]
-    public RtfToPdfOptions? RtfOptions { get; set; }
+    public RtfPdfExportOptions? RtfOptions { get; set; }
 
     /// <summary>HTML-specific PDF rendering options.</summary>
     [Parameter]
-    public HtmlToPdfOptions? HtmlOptions { get; set; }
+    public HtmlPdfExportOptions? HtmlOptions { get; set; }
 
     /// <summary>Literal text layout and strict decoding options. Applies only to TXT sources.</summary>
     [Parameter]

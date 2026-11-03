@@ -319,7 +319,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         IReadOnlyList<OfficeMarkupBlock> blocks,
         OfficeMarkupStyleResolver styleResolver,
         int columnIndex) {
-        var textOnlyOptions = new MarkupToPowerPointOptions {
+        var textOnlyOptions = new MarkupPowerPointExportOptions {
             IncludeUnsupportedBlocksAsText = false,
             RenderMermaidDiagrams = false
         };

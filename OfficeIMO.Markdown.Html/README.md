@@ -43,7 +43,7 @@ using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 
-var options = new MarkdownHtmlImportOptions {
+var options = new HtmlMarkdownExportOptions {
     BaseUri = new Uri("https://example.com/docs/"),
     UseBodyContentsOnly = true,
     PreserveUnsupportedBlocks = true,
@@ -61,7 +61,7 @@ string markdown = document.ToMarkdown();
 ```csharp
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
-var options = new MarkdownHtmlImportOptions {
+var options = new HtmlMarkdownExportOptions {
     SmartHref = true,
     UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Bypass,
     UnknownInlineHandling = MarkdownHtmlUnknownTagHandling.Bypass
@@ -105,12 +105,12 @@ EPUB footnote references are converted only when their target is an actual footn
 ```csharp
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
-var github = MarkdownHtmlImportOptions.CreateGitHubFlavoredMarkdownProfile();
+var github = HtmlMarkdownExportOptions.CreateGitHubFlavoredMarkdownProfile();
 string readme = HtmlConversionDocument
     .Parse("<p><a href=\"https://example.com\">https://example.com</a></p>")
     .ToMarkdown(github).ToMarkdown();
 
-var commonMark = MarkdownHtmlImportOptions.CreateCommonMarkProfile();
+var commonMark = HtmlMarkdownExportOptions.CreateCommonMarkProfile();
 string portableTable = HtmlConversionDocument
     .Parse("<table><tr><th>Name</th></tr><tr><td>Value</td></tr></table>")
     .ToMarkdown(commonMark).ToMarkdown();

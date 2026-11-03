@@ -26,11 +26,11 @@ public static class ChmEpubConverterExtensions {
 
     /// <summary>Creates serialized EPUB bytes and retains import and package-write fidelity reports.</summary>
     public static ChmConversionResult<byte[]> ToEpubBytesResult(this ChmDocument document, ChmConversionOptions? options = null,
-        EpubManuscriptOptions? epubOptions = null, EpubWriteOptions? writeOptions = null, CancellationToken cancellationToken = default) {
+        EpubManuscriptOptions? epubOptions = null, EpubSaveOptions? writeOptions = null, CancellationToken cancellationToken = default) {
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
         EpubManuscriptResult imported = document.ToEpubPublicationResult(configured, epubOptions, cancellationToken);
-        EpubWriteOptions requested = writeOptions ?? new EpubWriteOptions();
-        var writing = new EpubWriteOptions {
+        EpubSaveOptions requested = writeOptions ?? new EpubSaveOptions();
+        var writing = new EpubSaveOptions {
             CompressEntries = requested.CompressEntries, MaxOutputBytes = Math.Min(requested.MaxOutputBytes, configured.MaxOutputBytes),
             MaxExpandedBytes = requested.MaxExpandedBytes, MaxEntries = requested.MaxEntries,
             RemoveInvalidatedSignatures = requested.RemoveInvalidatedSignatures, ModifiedAt = requested.ModifiedAt

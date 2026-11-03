@@ -15,7 +15,7 @@ public partial class Html {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Word", "EvidenceCorpus", "word-html-reciprocal.html");
         string html = File.ReadAllText(path);
 
-        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions());
+        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new HtmlWordExportOptions());
         using var document = conversion.RequireValue();
 
         Assert.Single(document.Tables);

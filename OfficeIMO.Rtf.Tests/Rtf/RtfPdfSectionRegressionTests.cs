@@ -12,7 +12,7 @@ public class RtfPdfSectionRegressionTests {
         document.Settings.FacingPages = true;
         document.AddSection().AddParagraph("First body");
         document.AddSection().AddParagraph("Second body");
-        PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfToPdfOptions {
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions { PageSetup = { Footer = { Show = true, Format = "Caller page {page}" } } }
         })).ToBytes());
         Assert.Equal(2, read.Pages.Count);
@@ -33,7 +33,7 @@ public class RtfPdfSectionRegressionTests {
         RtfSection third = document.AddSection();
         third.AddHeader().AddParagraph("RTF third header");
         third.AddParagraph("Fifth body");
-        PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfToPdfOptions {
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions {
                 PageSetup = {
                     DifferentFirstPage = true,
@@ -77,7 +77,7 @@ public class RtfPdfSectionRegressionTests {
         Assert.Contains("Second body", read.Pages[pageCount - 1].ExtractText(), StringComparison.Ordinal);
         if (pageCount == 3) {
             Assert.True(string.IsNullOrWhiteSpace(read.Pages[1].ExtractText()));
-            var limitFailure = Assert.Throws<OfficeConversionException>(() => document.ToPdf(new RtfToPdfOptions {
+            var limitFailure = Assert.Throws<OfficeConversionException>(() => document.ToPdf(new RtfPdfExportOptions {
                 PdfOptions = new PdfCore.PdfCreateOptions { MaxGeneratedPages = 2 }
             }));
             Assert.IsType<InvalidDataException>(limitFailure.InnerException);
@@ -92,7 +92,7 @@ public class RtfPdfSectionRegressionTests {
         document.PageSetup.SetPageNumbering(start: 7);
         document.AddSection().AddParagraph("First body");
         document.AddSection().AddParagraph("Second body");
-        PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfToPdfOptions {
+        PdfCore.PdfReadDocument read = ReadIncludingRunningText((document.ToPdf(new RtfPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions { PageSetup = { Footer = { Show = true, Format = "{page}/{pages}" } } }
         })).ToBytes());
         Assert.Equal(2, read.Pages.Count);
@@ -154,7 +154,7 @@ public class RtfPdfSectionRegressionTests {
             Margins = { Left = global::OfficeIMO.OfficeLength.Points(17) }
         } };
 
-        byte[] bytes = (document.ToPdf(new RtfToPdfOptions {
+        byte[] bytes = (document.ToPdf(new RtfPdfExportOptions {
             PdfOptions = caller,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         })).ToBytes();

@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests
                 Assert.True(sheet.HasComment(2, 1));
                 Assert.False(sheet.HasComment(3, 1));
 
-                sheet.Range("A1:B4").ApplyAutoFilter();
+                sheet.Range("A1:B4").AutoFilter();
                 ExcelTable table = sheet.Range("A1:B4").CreateTable("Scores");
                 Assert.Equal("A1:B4", table.Range);
                 table.SetStyle(ExcelTableStyle.TableStyleMedium4);
@@ -967,8 +967,8 @@ namespace OfficeIMO.Tests
                 sheet.Cell(4, 3).SetValue(30d);
                 sheet.Cell(5, 3).SetFormula("SUM(C2:C4)");
                 sheet.Range("A1:C4").CreateTable("SalesData");
-                sheet.Range("B2:B4").Validate.List("A", "B");
-                sheet.Range("C2:C4").ConditionalFormat.DataBar("#5B9BD5");
+                sheet.Range("B2:B4").Validation().List("A", "B");
+                sheet.Range("C2:C4").ConditionalFormat().DataBar("#5B9BD5");
                 sheet.AddSparklines("C2:C4", "D2:D4", ExcelSparklineType.Column);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
@@ -2332,9 +2332,9 @@ namespace OfficeIMO.Tests
                 sheet.Cell(3, 1).SetValue(20d);
                 sheet.Cell(4, 1).SetValue(20d);
 
-                sheet.AddConditionalFormulaRule("A2:A4", "A2>15", stopIfTrue: true);
-                sheet.AddConditionalDuplicateValuesRule("A2:A4");
-                sheet.AddConditionalTopBottomRule("A2:A4", 1);
+                sheet.Range("A2:A4").ConditionalFormat().Formula("A2>15", stopIfTrue: true);
+                sheet.Range("A2:A4").ConditionalFormat().DuplicateValues();
+                sheet.Range("A2:A4").ConditionalFormat().TopBottom(1);
 
                 IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules("A2:A4");
                 Assert.Equal(3, rules.Count);
@@ -2342,7 +2342,7 @@ namespace OfficeIMO.Tests
                 Assert.Contains(rules, rule => rule.Type == "DuplicateValues");
                 Assert.Contains(rules, rule => rule.Type == "Top10");
 
-                sheet.ValidationWholeNumber("B2:B4", ExcelDataValidationOperator.Between, 1, 30);
+                sheet.Range("B2:B4").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 30);
                 sheet.SetDataValidationMessages("B2:B4", new ExcelDataValidationMessageOptions {
                     PromptTitle = "Allowed",
                     Prompt = "1-30 only",
@@ -2394,8 +2394,8 @@ namespace OfficeIMO.Tests
                 sheet.Cell(4, 2).SetValue(30d);
                 sheet.Cell(6, 2).SetValue(40d);
 
-                sheet.AddConditionalFormulaRule("A2:A4 A6", "A2>15");
-                sheet.ValidationWholeNumber("B2:B4 B6", ExcelDataValidationOperator.Between, 1, 50);
+                sheet.Range("A2:A4 A6").ConditionalFormat().Formula("A2>15");
+                sheet.Range("B2:B4 B6").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 50);
 
                 Assert.Single(sheet.GetConditionalFormattingRules("A6"));
                 Assert.Single(sheet.GetDataValidations("B6"));

@@ -65,9 +65,9 @@ public sealed class DocBookDocumentTests {
     public void LimitsAndEntityPolicyAreBounded() {
         Assert.Throws<InvalidDataException>(() => DocBookDocument.Parse(
             "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para/><para/></article>",
-            new DocBookReadOptions { MaxElements = 2 }));
+            new DocBookLoadOptions { MaxElements = 2 }));
         const string entity = "<!DOCTYPE article [<!ENTITY a \"1234567890\">]><article><para>&a;&a;</para></article>";
-        Assert.ThrowsAny<Exception>(() => DocBookDocument.Parse(entity, new DocBookReadOptions { MaxCharactersFromEntities = 10 }));
+        Assert.ThrowsAny<Exception>(() => DocBookDocument.Parse(entity, new DocBookLoadOptions { MaxCharactersFromEntities = 10 }));
         InvalidDataException external = Assert.Throws<InvalidDataException>(() => DocBookDocument.Parse(
             "<!DOCTYPE article [<!ENTITY external SYSTEM \"file:///etc/passwd\">]><article><para>&external;</para></article>"));
         Assert.Contains("external and parameter entity declarations", external.Message, StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public sealed class DocBookDocumentTests {
             string.Concat(Enumerable.Repeat("<!--padding-->", 32)) + "</article>";
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            DocBookDocument.Parse(source, new DocBookReadOptions { MaxElements = 2 }));
+            DocBookDocument.Parse(source, new DocBookLoadOptions { MaxElements = 2 }));
         Assert.Contains("MaxMaterializedNodes", exception.Message, StringComparison.Ordinal);
     }
 

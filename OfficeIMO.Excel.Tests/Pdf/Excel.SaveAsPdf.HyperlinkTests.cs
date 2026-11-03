@@ -145,7 +145,7 @@ public partial class Excel {
             details.Cell(1, 1).SetValue("Details Header");
             details.Cell(2, 1).SetValue("Visible Detail");
             details.Cell(200, 2).SetValue("Hidden Target");
-            document.SetPrintArea(details, "A1:B2");
+            details.PageSetup.PrintArea = "A1:B2";
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {

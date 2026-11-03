@@ -351,7 +351,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelSheetReader sheet = reader.GetSheet(sheetName);
                 bool boundedRead = IsBoundedWorksheetRead(options);
                 ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
-                ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? metadataSheet?.GetPageSetup() : null;
+                ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? metadataSheet?.PageSetup : null;
                 ExcelSheet.ExcelHeaderFooterInfo? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? metadataSheet?.GetHeaderFooter() : null;
                 IReadOnlyList<WorksheetChartExportData> worksheetCharts = boundedRead
                     ? Array.Empty<WorksheetChartExportData>()
@@ -434,7 +434,7 @@ namespace OfficeIMO.Excel.Pdf {
                         CreateSheetBookmarkName(sheetName, plans.Count + 1),
                         CreateWorksheetGeometry(metadataSheet, normalizedExportRange, options),
                         hasPrintArea || options.MaxRowsPerSheet.HasValue) {
-                            PrintOptions = options.UseWorksheetPageSetup ? metadataSheet?.GetPrintOptions() : null,
+                            PrintOptions = options.UseWorksheetPageSetup ? metadataSheet?.ReadPrintOptions() : null,
                             DrawingObjects = drawings
                         });
                 }

@@ -8,7 +8,7 @@ public class HtmlRtfStructuredResult {
     [Fact]
     public void HtmlRtf_UsesSharedResultAndLossDiagnosticsWithoutReparsingSharedDocument() {
         HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse("<p><unknown>Value</unknown></p>");
-        var options = new HtmlToRtfOptions { PreserveUnknownTagsAsText = true };
+        var options = new HtmlRtfExportOptions { PreserveUnknownTagsAsText = true };
 
         HtmlToRtfResult import = source.ToRtfDocumentResult(options);
         import.Value.AddParagraph().AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3 });

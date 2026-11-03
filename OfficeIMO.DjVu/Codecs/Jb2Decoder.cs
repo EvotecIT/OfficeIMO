@@ -30,7 +30,7 @@ internal sealed class Jb2Decoder {
         while (true) {
             _budget.Cancellation.ThrowIfCancellationRequested();
             if (++records > (long)_budget.Options.MaxSymbols + _budget.Options.MaxSymbolPlacements + _budget.Options.MaxChunks)
-                throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSymbols));
+                throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSymbols));
             int record = Number(0, 0, 11);
             if (record == 9) {
                 if (started) _numbers.Reset();
@@ -38,7 +38,7 @@ internal sealed class Jb2Decoder {
                     if (inheritedSeen) throw new InvalidDataException("Repeated JB2 shared dictionary requirement.");
                     inheritedSeen = true;
                     int count = Number(15, 0, Maximum);
-                    if (count > _budget.Options.MaxSymbols) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSymbols));
+                    if (count > _budget.Options.MaxSymbols) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSymbols));
                     if (_inherited == null || _inherited.Count != count) throw new InvalidDataException("JB2 shared dictionary size does not match.");
                     _library.AddRange(_inherited);
                     _symbols = count;
@@ -51,7 +51,7 @@ internal sealed class Jb2Decoder {
                 started = true;
                 _width = Number(1, 0, Maximum); _height = Number(1, 0, Maximum);
                 if (dictionary ? _width != 0 || _height != 0 : _width <= 0 || _height <= 0) throw new InvalidDataException("Invalid JB2 image dimensions.");
-                if ((long)_width * _height > _budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxPagePixels));
+                if ((long)_width * _height > _budget.Options.MaxPagePixels) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxPagePixels));
                 if (_arithmetic.Bit(ref _eventualRefinement) != 0) throw new NotSupportedException("JB2 eventual image refinement is unsupported.");
                 _firstX = _previousRight = -1;
                 _firstY = _height - 1;
@@ -80,7 +80,7 @@ internal sealed class Jb2Decoder {
                 bitmap = DecodeBitmap(width, height, null);
             } else throw new InvalidDataException("Unknown JB2 record.");
             if (record != 2 && record != 5) {
-                if (_placements.Count >= _budget.Options.MaxSymbolPlacements) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSymbolPlacements));
+                if (_placements.Count >= _budget.Options.MaxSymbolPlacements) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSymbolPlacements));
                 int x, y;
                 if (record == 8) {
                     x = Number(7, 1, _width) - 1;
@@ -108,9 +108,9 @@ internal sealed class Jb2Decoder {
 
     private Jb2Bitmap DecodeBitmap(int width, int height, Jb2Bitmap? reference) {
         if (width < 0 || height < 0 || width > Maximum || height > Maximum) throw new InvalidDataException("Invalid JB2 symbol dimensions.");
-        if (++_symbols > _budget.Options.MaxSymbols) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSymbols));
+        if (++_symbols > _budget.Options.MaxSymbols) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSymbols));
         long count = (long)width * height;
-        if (count > int.MaxValue) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxCodecBytes));
+        if (count > int.MaxValue) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxCodecBytes));
         _budget.Jb2DecodedSamples(count);
         CheckBuffers(count);
         var bitmap = new Jb2Bitmap(width, height, new byte[(int)count]);

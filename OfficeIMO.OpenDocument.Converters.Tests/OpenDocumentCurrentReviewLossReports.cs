@@ -653,8 +653,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void ExcelValidationRangeClippedByRowLimitIsAppliedPartiallyAndReported() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddSheet("Data").ValidationWholeNumber(
-            "A1:A100", ExcelDataValidationOperator.Between, 1, 10);
+        source.AddSheet("Data").Range("A1:A100").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
             new ExcelOpenDocumentConversionOptions { MaximumRows = 10 });
@@ -675,8 +674,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void RejectedValidationCoordinateCannotBypassMaterializationBudgetInLaterRule() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.ValidationWholeNumber("A1:B1", ExcelDataValidationOperator.Between, 1, 10);
-        sheet.ValidationList("B1:C1", new[] { "One", "Two" });
+        sheet.Range("A1:B1").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
+        sheet.Range("B1:C1").Validation().List(new[] { "One", "Two" });
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
             new ExcelOpenDocumentConversionOptions { MaximumExpandedCells = 1 });

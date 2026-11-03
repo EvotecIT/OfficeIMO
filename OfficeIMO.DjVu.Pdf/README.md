@@ -11,7 +11,7 @@ using OfficeIMO.DjVu;
 using OfficeIMO.DjVu.Pdf;
 
 var document = DjVuDocument.Load("book.djvu");
-var result = document.ToPdfDocumentResult(new DjVuToPdfOptions {
+var result = document.ToPdfDocumentResult(new DjVuPdfExportOptions {
     PageNumbers = new[] { 2, 1 }
 });
 var saved = result.Save("selected.pdf");
@@ -21,7 +21,7 @@ var saved = result.Save("selected.pdf");
 
 The result carries a `DjVuPdfConversionReport` alongside PDF-stage reports. Per-page evidence records source/output page numbers, original text status, `StoredText`/`Ocr`/`None` provenance, pixel size, physical size, and embedded character count. Conversion reports distinguish omitted annotations, corrupt text, unsupported navigation targets, approximate geometry, and render qualifications. Use the existing result/report `ThrowIfLoss()` gate when reported loss is unacceptable.
 
-For OCR, supply an existing `IOcrEngine` through `DjVuToPdfOptions.OcrEngine` and call an asynchronous entrypoint. Only selected pages with `Absent` or `Empty` stored text are recognized. Present text is reused and corrupt text remains a diagnostic. OCR uses the existing Reader execution limits and records new provider/model/confidence evidence; text without usable provider geometry is reported and not placed into an invented searchable rectangle. OfficeIMO does not install an OCR engine.
+For OCR, supply an existing `IOcrEngine` through `DjVuPdfExportOptions.OcrEngine` and call an asynchronous entrypoint. Only selected pages with `Absent` or `Empty` stored text are recognized. Present text is reused and corrupt text remains a diagnostic. OCR uses the existing Reader execution limits and records new provider/model/confidence evidence; text without usable provider geometry is reported and not placed into an invented searchable rectangle. OfficeIMO does not install an OCR engine.
 
 Options bound selected pages, decoded image pixels and working memory, individual and aggregate PNG bytes, searchable spans and characters, and serialized PDF bytes. Stream output stays open; seekable output is replaced and rewound. Serialization failure can leave partial output. The shared `djvu-pdf` workflow stages, reopens, and publishes output atomically, and retains combined source/PDF diagnostics. Workflow OCR remains a separate explicit operation.
 
