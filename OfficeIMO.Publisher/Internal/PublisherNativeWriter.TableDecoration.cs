@@ -61,13 +61,15 @@ internal sealed partial class PublisherNativeWriter {
         if (ownersByEdge.Count != oldBorders.Count || !DisjointBorders(before.BorderSegments) || !DisjointBorders(after.BorderSegments)) {
             Reject(location, "Native border editing requires complete non-overlapping shared grid ownership."); return;
         }
-        // Publisher paints newly authored ranges as cell edges. Retain source
-        // ranges verbatim; split only new ranges to reproduce native joins.
+        // Publisher retains complete merged-cell sides as ranges. Preserve
+        // source partitions and split other new ranges to reproduce native joins.
+        var mergedSides = PublisherTableCellSlot.FullMergedSides(after.Cells, _token);
         var nativeBorders = new List<PublisherTableBorderSegment>();
         foreach (PublisherTableBorderSegment edge in after.BorderSegments) {
             bool horizontal = edge.FirstRow == edge.LastRow;
             int start = horizontal ? edge.FirstColumn : edge.FirstRow, end = horizontal ? edge.LastColumn : edge.LastRow;
-            int count = oldBorders.ContainsKey(PublisherEscherTableBorderPlan.Key(edge)) ? 1 : end - start;
+            var key = PublisherEscherTableBorderPlan.Key(edge);
+            int count = oldBorders.ContainsKey(key) || mergedSides.Contains(key) ? 1 : end - start;
             if (nativeBorders.Count + (long)count > _sourceLimits.MaxItems) { Reject(location, "Native cell-edge allocation exceeds the source item limit."); return; }
             if (count == 1) nativeBorders.Add(edge);
             else for (int index = start; index < end; index++) {

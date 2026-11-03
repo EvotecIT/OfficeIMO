@@ -32,6 +32,7 @@ dotnet $probe table-utility-source ./decorated-bare-pair-control.pub ./missing-d
 dotnet $probe table-utility-source ./pair-borders-control.pub ./missing-bordered-first.pub 0
 dotnet $probe table-cluster-source ./native-tableclusternear.pub ./missing-twenty.pub
 dotnet $probe table-cluster-compact-source ./native-tableclusterwide.pub ./compact-twenty.pub
+dotnet $probe table-merged-source ./native-tablemergedborders.pub ./missing-merged-cells.pub
 dotnet $probe create blank ./candidate-blank.pub
 dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
 dotnet $probe create text-pages ./candidate-text-pages.pub 3
@@ -57,6 +58,7 @@ dotnet $probe create table-edited ./candidate-table-edited.pub
 dotnet $probe create table-cluster-near ./candidate-table-cluster-near.pub
 dotnet $probe create table-cluster-near-edited ./candidate-table-cluster-near-edited.pub
 dotnet $probe create table-cluster-wide ./candidate-table-cluster-wide.pub
+dotnet $probe create table-merged-decorated ./candidate-table-merged-decorated.pub
 dotnet $probe create frame-layout ./candidate-frame-layout.pub
 dotnet $probe create frame-layout-edited ./candidate-frame-layout-edited.pub
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
@@ -114,6 +116,13 @@ utilities in a 1,243-shape utility drawing across clusters 3 and 4. Both derivat
 commands report source/output hashes and the retained or discarded allocation
 metadata; the [fixture guide](../../../OfficeIMO.Publisher.Tests/Fixtures/README.md)
 records their provenance.
+
+`table-merged-source <native-merged-borders.pub> <derived.pub>` removes hidden
+cell utility owners 0 and 6 from the independent `TableMergedBorders` control.
+All seven logical cell definitions, surviving utilities, allocation history and
+other logical streams remain retained. The labelled derived input exercises
+selective merged-anchor initialization; independent native controls supply the
+final-state expectations.
 
 Select the dense native controls explicitly with `-Case TableClusterNear`,
 `TableClusterNearEdited` or `TableClusterWide` and `-TimeoutSeconds 600` when
@@ -390,6 +399,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `table`, `table-edited` | Projects the final public model of a borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label, with an empty applied master. The edited specimen adds a first-cell paragraph and refills the last cell. |
 | `table-grid`, `table-grid-empty`, `table-grid-edited` | Requires a `<rows>x<columns>` argument within the legible specimen range of 1–12 rows and 1–8 columns. Authors an unmerged borderless grid with a caption, fixed tracks and cell paragraphs. The empty variant retains every empty cell; the edited variant changes bounds and the final cell, then places the table before its caption in drawing/story order. |
 | `table-cluster-near`, `table-cluster-near-edited`, `table-cluster-wide` | Authors the dense unmerged rectangular table and label through the public model, with alternating solid fills and all shared unit edges. The near cases use an 18×18 grid; the edited case changes one previously invisible cell. The wide case uses a 20×20 grid to exercise multi-cluster utility allocation and a chained Quill directory. |
+| `table-merged`, `table-merged-decorated` | Authors a three-row, four-column table with horizontal, vertical and 2×2 merges, leaving seven logical cells. The decorated case adds five solid fills and nineteen exact edge ranges through the public model, without native seed bytes. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
@@ -714,9 +724,56 @@ save/reopen with independent `TableCreationMerged` controls. Public source edits
 clear and grow the merged owners and match `TableCreationMergedEdited` before
 and after native resave. Span/track/text readback and four native PDF page pairs
 are exact at 100 dpi. The public model retains styled paragraphs during merging;
-imported topology changes remain refused. Native/managed PDF parity, decorated
-tables, dynamic row sizing and the public source-free native writer remain
-unqualified.
+imported topology changes remain refused. Decorated merges use the separate
+profile below. Native/managed PDF parity, dynamic row sizing and the public
+source-free native writer remain unqualified.
+
+The `decoratedMergedTableUtilities` record extends source saving and fresh utility
+encoding to that bounded seven-definition merged grid. The independent catalog
+orders `H`, `R1C3`, `R1C4`, `V`, `R2C2`, `R3C2` and `Block` as definitions 0–6;
+utility traversal is `0,1,2,3,4,6,5`. Allocation follows logical definition identity
+without substituting row-major grid positions or drawing traversal order.
+
+Existing source edge partitions remain exact. New whole merged-cell perimeter
+ranges stay one utility span; other new ranges use unit cell edges. The baseline
+has nineteen edge ranges with five long spans; the edited state has eighteen
+ranges with six long spans. Its horizontal merged bottom edge is requested
+explicitly through the public model:
+
+```csharp
+publication.SetTableBorderStyle(table.Id, 1, 0, 1, 2,
+    new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 0.5));
+```
+
+Without that range request, source saving preserves the two earlier fragments;
+their boundary differs from the native edited control by two pixels at 100 dpi.
+The codec does not implicitly coalesce adjacent equal styles or reproduce the
+effects of unrequested native UI history.
+
+Six independent controls cover decorated, edited, text, composed, fills-only and
+borders-only states. Eight public source edit/initialization workflows and the
+fresh `table-merged-decorated` specimen complete native Full validation without
+changing their inputs. All eighteen initial/resaved native PDF pairs match the
+controls with zero changed pixels at 100 dpi. Final-style, text, composed and
+partial-fill workflows match all native inventory keys at both stages. Other
+comparisons retain the [documented black-edge color-type and caption metadata limits](../../../OfficeIMO.Publisher/SUPPORT.md#decorated-merged-table-utilities):
+new explicit black can differ from native automatic black while rendering the
+same pixels, and generated captions retain whole-range font/size/language
+differences. Aggregate native merged-side getters can be mixed or partial; raw
+utility anchors and native PDFs establish the shared-edge result.
+
+All nine PowerShell PDF conversions retain normalized text and 612×792-point pages.
+Cell-fill RGB values match, with rectangle coordinates differing by at most
+0.001007 point, and all 279 unit-edge probes
+match coverage and colors. Native 0.5-point lines occupy roughly 0.6 PDF point;
+edited 1/2-point lines occupy roughly 1.08/2.04 points. Centerline differences reach
+0.051006 point, and joins/end clipping differ by up to 0.501 point in the baseline
+and 2 points in the edited state. Text baselines differ by 2.42–4.34 points; the
+managed Helvetica and native Arial PDF font families also differ.
+Full-page 100 dpi comparisons differ by 0.836–1.196 percent, so stroke, join,
+clipping, text and font parity remain unqualified. Broader merge layouts, actual
+post-open native merged-cell editing, paragraph terminator equivalence, repair-free
+acceptance and public native creation remain unqualified.
 
 The `tableCellDecoration` record maps solid cell fills and shared grid borders
 from independent native controls into the canonical table model and current
@@ -751,7 +808,7 @@ input complete Full validation: eight cell/grid inventories and eight native PDF
 pairs match independent controls at 100 dpi. Four workflows cover three distinct
 candidate byte sequences; a direct source scalar edit equals fresh edited creation.
 The earlier blank, borderless-table and merged-table bytes remain unchanged.
-Decorated merges, broader native visibility definitions and utility layouts
+Merge profiles beyond the bounded slice above, broader native visibility definitions and utility layouts
 beyond the qualified source and ordered-cluster profiles below remain open. Native cell mutation
 uses the separate first-cell profile below; repair-free acceptance and public
 native creation remain gated.
@@ -784,7 +841,7 @@ white cell defaults. Seven public source workflows include generated/native-resa
 input and deletion/reload/re-add: fourteen native cell/grid inventories and fourteen
 PDF pairs match the controls at 100 dpi. The shared border encoder retains both
 decorated creation specimens' exact previous bytes. Broader paint/producer
-profiles, decorated merges and utility composition beyond the populated
+profiles, merge layouts beyond the bounded slice above and utility composition beyond the populated
 two-table profile below remain unqualified. Native cell mutation uses the separate
 first-cell profile; repair-free acceptance and public native creation remain gated.
 
@@ -802,7 +859,7 @@ and ten PDF workflows retain text and colored primitive counts/colors.
 
 Final-size border checks reject styles wider than their perpendicular table
 extent in both source save paths and fresh encoding. Unsupported default opacity,
-ambiguous counts/history, decorated merges and broader producers
+ambiguous counts/history, broader merge layouts and producers
 remain outside this profile. Populated utility drawings and native first-cell
 mutation use the separate profiles below; ordered cluster allocation is also
 qualified separately. Managed/native text-baseline parity,
@@ -826,7 +883,7 @@ colored primitives match, while text baselines remain approximate.
 Unsupported inherited opacity/defaults and grouped or
 unqualified ownership refuse output. Selectively missing cell sets in a table that
 already owns utilities and ordered cluster allocation use the separate profiles
-below. Decorated merges and broader transforms/layouts/producers remain unqualified. This record adds no actual native
+below. Broader merge layouts, transforms and producers remain unqualified. This record adds no actual native
 cell mutation claim; the first-cell profile below is separate. Repair-free
 acceptance and public source-free native creation remain open.
 
@@ -890,7 +947,7 @@ fresh output, versus an empty font name, mixed-size sentinel `-9999999` and lang
 1033 for the native control's range including its paragraph terminator. Those
 caption font/size/language observations remain unqualified despite identical
 rendering. Six earlier complete PUB specimens remain byte-identical.
-Broader grids, decorated merges, grouped/transformed tables and additional
+Broader grids, merge layouts beyond the bounded profile above, grouped/transformed tables and additional
 producer/generation profiles remain unqualified. The fresh dense specimen and
 independent wide control also complete native first-unmerged-cell text replacement
 from `0101` to `N101`, save and reopen; the same table, caption text/layout and
@@ -927,7 +984,7 @@ preceding writer, pages two/three match exactly; the table region on page one
 changes by 959 initial and 1,389 resaved pixels at 100 dpi as automatic white
 backgrounds disappear. Glyph text/positions remain identical. This sibling check
 does not qualify independent newsletter appearance parity, native newsletter cell
-editing, merged-cell editing, broader native mutations or repair-free acceptance.
+editing, actual native merged-cell editing, broader native mutations or repair-free acceptance.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

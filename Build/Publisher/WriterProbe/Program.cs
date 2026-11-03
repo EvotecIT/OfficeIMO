@@ -15,6 +15,7 @@ internal static class Program {
         try {
             if (args.Length == 3 && args[0] == "table-cluster-source") return SourceTableClusterControl.Prepare(args[1], args[2]);
             if (args.Length == 3 && args[0] == "table-cluster-compact-source") return SourceTableClusterControl.PrepareCompact(args[1], args[2]);
+            if (args.Length == 3 && args[0] == "table-merged-source") return SourceMergedTableUtilityControl.Prepare(args[1], args[2]);
             if (args.Length is 3 or 4 && args[0] == "table-utility-source") return SourceTableUtilityControl.Prepare(args[1], args[2],
                 args.Length == 4 ? args[3].Split(',').Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToArray() : null);
             if (args.Length == 4 && args[0] == "source-newsletter") return SourceNewsletterLifecycle.Run(args[1], args[2], args[3]);
@@ -73,7 +74,9 @@ internal static class Program {
             Console.Error.WriteLine("create <linked-story|linked-story-overflow> <candidate.pub>");
             Console.Error.WriteLine("create <table|table-edited|table-merged|table-decorated|table-decorated-edited> <candidate.pub>");
             Console.Error.WriteLine("create <table-cluster-near|table-cluster-near-edited|table-cluster-wide> <candidate.pub>");
+            Console.Error.WriteLine("create table-merged-decorated <candidate.pub>");
             Console.Error.WriteLine("table-utility-source <decorated-bare-pair-control.pub> <derived-input.pub> [missing-cell-indices]");
+            Console.Error.WriteLine("table-merged-source <native-merged-borders.pub> <derived.pub>");
             Console.Error.WriteLine("table-cluster-source <native-near-control.pub> <derived-input.pub>");
             Console.Error.WriteLine("table-cluster-compact-source <native-wide-control.pub> <derived-input.pub>");
             Console.Error.WriteLine("create <table-grid|table-grid-empty|table-grid-edited> <candidate.pub> <rows>x<columns>");

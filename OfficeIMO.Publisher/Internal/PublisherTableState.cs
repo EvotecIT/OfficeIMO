@@ -98,4 +98,37 @@ internal sealed class PublisherTableState {
 }
 
 /// <summary>A cell's immutable grid anchor and merged ownership, in definition order.</summary>
-internal readonly record struct PublisherTableCellSlot(int Row, int Column, int RowSpan, int ColumnSpan);
+internal readonly record struct PublisherTableCellSlot(int Row, int Column, int RowSpan, int ColumnSpan) {
+    /// <summary>Checks complete coverage of canonical non-overlapping definitions without expanding their grid positions.</summary>
+    internal static bool IsCompleteGrid(IReadOnlyList<PublisherTableCellSlot> cells, int rows, int columns, CancellationToken token) {
+        if (rows < 1 || columns < 1) return false;
+        long gridArea = (long)rows * columns;
+        long area = 0;
+        foreach (PublisherTableCellSlot cell in cells) {
+            token.ThrowIfCancellationRequested();
+            if (cell.Row < 0 || cell.Column < 0 || cell.Row >= rows || cell.Column >= columns
+                || cell.RowSpan < 1 || cell.ColumnSpan < 1 || cell.RowSpan > rows - cell.Row || cell.ColumnSpan > columns - cell.Column) return false;
+            area += (long)cell.RowSpan * cell.ColumnSpan;
+            if (area > gridArea) return false;
+        }
+        return area == gridArea;
+    }
+
+    /// <summary>Identifies long sides that retain one utility range when newly authored for a complete merged cell.</summary>
+    internal static HashSet<(int, int, int, int)> FullMergedSides(IReadOnlyList<PublisherTableCellSlot> cells, CancellationToken token) {
+        var sides = new HashSet<(int, int, int, int)>();
+        foreach (PublisherTableCellSlot cell in cells) {
+            token.ThrowIfCancellationRequested();
+            int endRow = cell.Row + cell.RowSpan, endColumn = cell.Column + cell.ColumnSpan;
+            if (cell.ColumnSpan > 1) {
+                sides.Add((cell.Row, cell.Column, cell.Row, endColumn));
+                sides.Add((endRow, cell.Column, endRow, endColumn));
+            }
+            if (cell.RowSpan > 1) {
+                sides.Add((cell.Row, cell.Column, endRow, cell.Column));
+                sides.Add((cell.Row, endColumn, endRow, endColumn));
+            }
+        }
+        return sides;
+    }
+}

@@ -17,10 +17,10 @@ internal static partial class PublisherEscherTableUtilityPlan {
             PublisherTableState table = entry.Value;
             PublisherEscherShape[] owners = art.Shapes.Where(item => item.Id == entry.Key).ToArray();
             if (!table.HasPlacement || table.Hidden || table.BoundsEditLimitation != null
-                || table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1)
+                || !PublisherTableCellSlot.IsCompleteGrid(table.Cells, table.Rows.Count, table.Columns.Count, context.Token)
                 || owners.Length != 1 || owners[0].NativeBinding is not { } binding || !binding.Matches(data)
                 || !profile.OrdinaryBodies.Contains(binding.BodyOffset)) return null;
-            inputs.Add(new(table.Id, table.Rows.Count, table.Columns.Count, table.Width, table.Height, table.CellFills, table.BorderSegments));
+            inputs.Add(new(table.Id, table.Rows.Count, table.Columns.Count, table.Width, table.Height, table.Cells, table.CellFills, table.BorderSegments));
         }
         PublisherEscherDrawingAllocation? allocation = PublisherEscherDrawingAllocation.Read(data, profile.Allocation, context);
         if (allocation == null || !allocation.StartDrawing(2, profile.AuxiliaryUsed, context.Token)) return null;

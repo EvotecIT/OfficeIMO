@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.native-decorated-merged-table-fixture.v1",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "reproduction": "pwsh Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableMergedDecorationComposed -TimeoutSeconds 180 -PhaseTimeoutSeconds 45",
+  "files": [
+    {
+      "name": "native-tablemergeddecorationcomposed.pub",
+      "bytes": 100864,
+      "sha256": "2b1e9c58e6b862648eb8a8cca2cd55e53247e74c36a1dc3a6d517f968fffbf3b"
+    },
+    {
+      "name": "native-tablemergeddecorationcomposed.pdf",
+      "bytes": 116365,
+      "sha256": "914e84d93015165c512fdf3ba5c14afc73f7d9fc3e399bea0aec530adf2994a5"
+    },
+    {
+      "name": "native-tablemergeddecorationcomposed.json",
+      "bytes": 22316,
+      "sha256": "ab05f31003c13f609c877c3bc6a80f14d1543a8a230446b6ec5bff3a7a6c4c8b"
+    }
+  ],
+  "scope": "Independent native 3x4 unequal grid with seven logical cell definitions and horizontal, vertical and block merges. Raw definition order and merged-edge ranges are separate from physical cell traversal. Native merged-side aggregate getters do not describe every physical edge; raw utility records and PDF are decisive."
+}

@@ -135,6 +135,7 @@ public sealed class PublisherTableClusterWritingTests {
     public void Fresh_dense_table_utilities_cross_the_cluster_boundary_and_retain_shape_limit() {
         PublisherTable table = PublisherDocument.Load(Fixture("TableClusterWide")).Pages[0].Tables.Single();
         var input = new PublisherTableUtilityInput(table.Id, table.RowCount, table.ColumnCount, table.Width, table.Height,
+            table.Cells.Select(cell => new PublisherTableCellSlot(cell.RowIndex, cell.ColumnIndex, cell.RowSpan, cell.ColumnSpan)).ToArray(),
             table.Cells.Select(cell => cell.FillColor).ToArray(), table.BorderSegments);
         PublisherTableUtilityDrawing result = Assert.IsType<PublisherTableUtilityDrawing>(
             PublisherTableUtilityDrawingEncoding.Write(3, new[] { input }, 1243, CancellationToken.None));

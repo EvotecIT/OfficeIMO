@@ -34,6 +34,10 @@ internal static class CandidateCases {
             if (value != null || secondValue != null) throw new ArgumentException("The merged table specimen uses fixed cell text and spans.");
             return CandidateTableCreation.CreateMerged();
         }
+        if (kind == "table-merged-decorated") {
+            if (value != null || secondValue != null) throw new ArgumentException("The decorated merged table specimen uses fixed cell text, spans and paint.");
+            return CandidateTableCreation.CreateMergedDecorated();
+        }
         if (kind is "linked-story" or "linked-story-overflow") {
             if (value != null || secondValue != null) throw new ArgumentException("The linked story specimens use fixed text.");
             return CandidateLinkedStory.Create(kind == "linked-story-overflow");

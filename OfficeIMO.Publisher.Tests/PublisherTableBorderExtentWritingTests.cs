@@ -39,6 +39,7 @@ public sealed class PublisherTableBorderExtentWritingTests {
         // The source-free specimen consumes this codec directly; public native
         // creation remains gated before reaching it.
         var input = new PublisherTableUtilityInput(id, table.RowHeights.Count, table.ColumnWidths.Count, table.Width, table.Height,
+            table.Cells.Select(cell => new PublisherTableCellSlot(cell.RowIndex, cell.ColumnIndex, cell.RowSpan, cell.ColumnSpan)).ToArray(),
             table.Cells.Select(cell => cell.FillColor).ToArray(), table.BorderSegments);
         Assert.Null(PublisherTableUtilityDrawingEncoding.Write(3, new[] { input }, 1024, CancellationToken.None));
     }

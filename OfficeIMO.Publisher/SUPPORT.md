@@ -104,7 +104,7 @@ still consume the image-processing byte budget.
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
 | Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds and qualified source-bound effective defaults control measurement and glyph output. Plain printable-ASCII native contexts span color, threshold and space boundaries, retaining glyph slices for raster/SVG/PDF; broader scripts, decorations and producer profiles remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment; undeclared stops use the qualified text-engine default or publication fallback | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed. With no usable default-tab carrier, layout reports `PUB_DEFAULT_TAB_UNASSESSED` and uses the generic 36-point grid. Native device advances and broader tabbed-line placement remain separate rendering limits |
-| Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, solid cell fills, shared grid borders, text and placement; anchor-cell fills and shared-border ranges are editable; qualified text edits preserve complete story partitions, and bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` identify those operations. Unavailable geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`. Native saving supports existing solid utilities, local color insertion, shared-edge allocation, first fill/border initialization in qualified compact, empty and populated utility scopes, selective missing-cell initialization and [ordered cluster rollover](#ordered-table-utility-cluster-allocation) in qualified direct unmerged table profiles. Existing invisible cell records retain their ownership. Cell-specific padding and other paint remain unqualified |
+| Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, solid cell fills, shared grid borders, text and placement; anchor-cell fills and shared-border ranges are editable; qualified text edits preserve complete story partitions, and bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` identify those operations. Unavailable geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`. Native saving supports existing solid utilities, local color insertion, shared-edge allocation, first fill/border initialization, selective missing-cell initialization and [ordered cluster rollover](#ordered-table-utility-cluster-allocation) in qualified direct table profiles, including [bounded decorated merges](#decorated-merged-table-utilities). Existing invisible cell records retain their ownership. Cell-specific padding and other paint remain unqualified |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
 | Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
@@ -1028,8 +1028,70 @@ all spans, cell text and tracks. Public source saves clear the horizontal cell
 and grow the vertical and block cells without changing their ownership. Initial
 and resaved native PDFs match independent native controls exactly at 100 dpi.
 The OfficeIMO PDF retains the content but has a baseline offset; native/managed
-pixel parity is not qualified. These specimens do not qualify table fills,
-borders, dynamic row sizing, repair-free opening or public native creation.
+pixel parity is not qualified. Table fills and borders have a separate bounded
+profile below. Dynamic row sizing, repair-free opening and public native creation
+remain unqualified.
+
+### Decorated merged table utilities
+
+The `decoratedMergedTableUtilities` record qualifies solid fills and shared borders
+on the three-row, four-column profile above. Its horizontal, vertical and 2×2
+merged owners form seven logical cell definitions covering twelve grid positions.
+Source saving and fresh encoding use those logical definitions, retaining native
+definition order independently of drawing traversal. Positive complete geometry,
+unambiguous ownership, solid paint and the existing allocation/default checks
+remain required; imported topology changes remain refused.
+
+Existing exact source border partitions remain preserved. A newly requested full
+merged-cell perimeter stays one utility span; other new ranges use unit cell
+edges. The edited workflow explicitly assigns the horizontal merged owner's whole
+bottom edge through `SetTableBorderStyle`. Adjacent matching source fragments are
+not implicitly coalesced. The independent baseline has nineteen edge ranges,
+including five longer spans; the explicitly edited state has eighteen ranges,
+including six longer spans.
+
+Six independently authored native controls cover the decorated baseline, final
+styles, cell text, composed styles/text, fills alone and borders alone. Eight
+public source workflows cover existing style/text edits, first decoration of the
+bare generated merged table and selective initialization of two missing merged
+anchor utilities. The internal `table-merged-decorated` specimen separately
+creates five fills and nineteen exact edge ranges without native seed bytes.
+All nine outputs complete native Full opening/export and SaveAs/reopen without
+changing their sources. Eighteen native PDF pairs match their independent controls
+with zero changed pixels at 100 dpi.
+
+The final-style, text, composed and partial-fill workflows match every native
+inventory key at both stages, giving eight exact comparisons. Other comparisons
+retain these explicit metadata limits:
+
+| Workflow | Native inventory difference |
+| --- | --- |
+| Existing fill/border edits | One new black shared edge reports explicit RGB color type 1 instead of the control's automatic color type 2; both render black. |
+| First combined styles, first borders and fresh decorated creation | The same black-edge color-type difference, plus caption whole-range font, size and language differences. |
+| First fills alone | Caption whole-range font, size and language differences only. |
+
+Affected captions report Arial/12 points/language 0, while the native controls'
+whole-range queries report an empty font name, mixed-size sentinel `-9999999` and
+language 1033. Generated object names also differ. All table fields match apart
+from the listed black-edge color type; caption text, bounds, layout and rendered
+appearance match. Native aggregate merged-cell side getters can expose mixed or
+partial observations, so exact raw utility anchors and native PDFs establish the
+qualified shared-edge result. Caption and paragraph terminator metadata equivalence
+remain unqualified.
+
+Nine PSWriteOffice PDF conversions retain 612×792-point pages and normalized text.
+Cell-fill RGB values match; fill rectangles differ by at most 0.0011 point. All 279 unit-edge
+probes match shared-edge coverage and colors. Native stroke-width quantization,
+centerlines, joins and end clipping remain approximate, as do text baselines and
+font selection. These geometry and coverage comparisons do not establish
+native/managed pixel parity.
+
+The [fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md) distinguishes
+independent controls from the bare generated source and the derived missing-cell
+input, which retains all logical definitions, surviving utilities and allocation
+history. Broader merge layouts, grouped/transformed tables, additional producers
+or generations, actual native post-open merged-cell editing, repair-free acceptance
+and public source-free native creation remain unqualified.
 
 ### Native cell fills and shared borders
 
@@ -1092,8 +1154,8 @@ native PDF pairs match at 100 dpi. The direct scalar edit produces the same PUB
 bytes as creating the edited model. The four workflows cover three distinct
 candidate byte sequences. This record covers a bounded unmerged rectangular
 utility profile with one SPID cluster per drawing; ordered multi-cluster allocation
-is qualified separately below. Decorated merged-table creation,
-broader visibility/paint definitions, layouts and the
+is qualified separately below; decorated merges use the bounded profile above.
+Broader visibility/paint definitions, layouts and the
 general public native writer remain unqualified. Managed/native pixel parity,
 native cell editing beyond the separate first-cell profile below and repair-free
 acceptance remain open criteria.
@@ -1147,7 +1209,7 @@ PDF pairs match their controls at 100 dpi. Two unchanged final input sequences
 reuse their exact-byte native proof; five changed sequences are validated again.
 Other logical storage remains preserved, with explicit stale-preview invalidation.
 Output reports `PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED`. Decoration beyond
-the populated two-table and ordered cluster profiles below, decorated merges,
+the populated two-table, ordered cluster and decorated merged profiles,
 broader paint/producer profiles and native mutations beyond the separate
 first-cell profile remain unqualified. Repair-free acceptance remains open.
 Public source-free native creation remains gated.
@@ -1178,8 +1240,8 @@ complex/BLIP-role defaults, inconsistent counts/history and borders wider than
 the final perpendicular table extent, including bounds-only resizing of existing
 styles. Output reports `PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED` for broader
 native uncertainty. Populated-drawing initialization is qualified separately
-below. Ordered cluster allocation has its own profile below. Decorated merges,
-layouts beyond the qualified profiles and additional producers remain unqualified.
+below. Ordered cluster allocation has its own profile below. Merge layouts
+beyond the bounded profile above and additional producers remain unqualified.
 Native cell mutation beyond
 the separate first-cell profile, repair-free acceptance and public source-free
 native creation remain open criteria.
@@ -1207,8 +1269,8 @@ Allocation refuses unsupported inherited opacity/defaults
 and grouped or unqualified ownership. Fresh cells and edges require safe document
 defaults independently of local utility-default overrides. Selectively missing
 cells in a table that already owns utility records use the separate profile below.
-Ordered cluster allocation is qualified separately below. Decorated merges and
-broader transforms, layouts and producers remain unqualified. Output retains
+Ordered cluster allocation is qualified separately below. Broader merge layouts,
+transforms and producers remain unqualified. Output retains
 `PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED`. This record does not qualify actual
 native cell mutation; the separate first-cell profile below retains its own scope.
 Repair-free acceptance and public source-free native creation remain open criteria.
@@ -1240,7 +1302,7 @@ This profile retains the direct ordinary placement, solid paint, exact-width,
 opaque preservation and default checks above. Duplicate or unknown raw ownership,
 unsafe inherited drawing-group properties or defaults and inconsistent allocation
 metadata refuse output. Ordered cluster allocation has its own profile below.
-Decorated merges and broader grids, transforms, layouts and producers remain
+Merge layouts beyond the bounded profile above and broader grids, transforms and producers remain
 unqualified. Output retains `PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED`.
 This record adds no actual native cell text mutation claim; the first-cell profile
 below is separate. Repair-free acceptance and public source-free native creation
@@ -1304,7 +1366,8 @@ retains the fresh, native-normalized and native-edited files with their independ
 native-edited control.
 
 This profile retains the solid-paint, direct ownership, exact-width, preservation
-and default checks above. Decorated merges, grouped or transformed tables,
+and default checks above. Decorated merges have their own bounded profile above.
+Grouped or transformed tables,
 arbitrary larger-grid composition, additional producers or generations, arbitrary
 native cell selection and broader native text/formatting edits remain unqualified.
 Repair-free acceptance and public source-free native creation remain open criteria.
@@ -1334,7 +1397,7 @@ glyph text/positions remain identical to the preceding writer, with a localized
 table-region raster change as automatic white backgrounds disappear; independent
 newsletter appearance parity remains unqualified. The older compact fixtures
 remain source-preservation inputs and do not establish native style stability.
-Merged-cell editing, additional native mutations, repair-free acceptance and
+Actual post-open native merged-cell editing, additional native mutations, repair-free acceptance and
 public source-free native creation remain open criteria.
 
 The internal `frame-layout` and `frame-layout-edited` creation specimens carry
@@ -1652,8 +1715,9 @@ can also change length without changing relative cell ownership.
 Unknown partition headers/descriptors, unresolved or conflicting ownership,
 table stories also used by ordinary frames and arbitrary count-changing rewrites
 from nonuniform definitions within the edited cell
-refuse edited output. Table creation,
-bounds/grid changes, cell merges and table styling have no native save profile.
+refuse edited output. New table creation, imported grid/topology changes and cell
+merges remain outside native source saving. Qualified [table bounds](#native-table-placement-and-fixed-track-resizing)
+and [solid styles](#native-cell-fills-and-shared-borders) use their separate profiles.
 These limits apply with `Allow`; unchanged content still returns an exact copy.
 
 The `sourceEditing.cellParagraphRetention` record covers ten public saves from

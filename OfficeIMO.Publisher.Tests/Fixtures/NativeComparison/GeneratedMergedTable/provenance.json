@@ -1,0 +1,13 @@
+{
+  "schema": "officeimo.publisher.merged-initialization-source.v1",
+  "license": "MIT",
+  "scope": "Template-free borderless merged source from the existing table-merged specimen. First decorations are compared against independently native-authored controls.",
+  "reproduction": "dotnet <WriterProbe.dll> create table-merged <generated.pub>",
+  "files": [
+    {
+      "name": "generated.pub",
+      "bytes": 8704,
+      "sha256": "21343f85132455613677402a7739d449fe7e854f8a8ff9eecaba0fe232ba9c1e"
+    }
+  ]
+}

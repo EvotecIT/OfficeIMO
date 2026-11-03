@@ -13,9 +13,8 @@ internal static partial class CandidateOfficeArt {
         var inputs = new List<PublisherTableUtilityInput>();
         foreach (ObjectBinding item in tables) {
             PublisherTable table = item.Source.Table!;
-            if (table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1))
-                throw new NotSupportedException("Decorated merged-table native creation requires separate qualification.");
             inputs.Add(new(item.Id, table.RowHeights.Count, table.ColumnWidths.Count, table.Width, table.Height,
+                table.Cells.Select(cell => new PublisherTableCellSlot(cell.RowIndex, cell.ColumnIndex, cell.RowSpan, cell.ColumnSpan)).ToArray(),
                 table.Cells.Select(cell => cell.FillColor).ToArray(), table.BorderSegments));
         }
         int available = new PublisherReadOptions().Limits.MaxItems - graph.Objects.Count - 2;

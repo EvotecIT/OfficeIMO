@@ -38108,5 +38108,407 @@
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "decoratedMergedTableUtilities": {
+    "sourceBaseCommit": "428bda0b289c43eb71752a8a3210e2999476ed36",
+    "scope": "Decorated horizontal, vertical and block merges on the unequal 3x4 grid; source decoration/text edits, first/selective utility initialization and an internal template-free specimen.",
+    "publicOperations": [
+      "SetTableCellFillColor",
+      "SetTableBorderStyle",
+      "ReplaceTableCellParagraphs",
+      "ToPubBytesResult",
+      "ConvertTo-OfficeDocument"
+    ],
+    "codec": {
+      "logicalDefinitions": "Seven canonical nonoverlapping logical cell slots cover twelve physical positions. Utilities are indexed by native definition order, not raw shape traversal or covered positions.",
+      "admission": "Positive bounded spans and complete area under the canonical nonoverlap contract. Incomplete source grids still refuse changed native output.",
+      "perimeterPolicy": "Retain exact existing source ranges. Newly requested complete merged-cell sides remain single ranges; other new ranges retain unit-edge encoding. Saving does not implicitly coalesce unchanged fragments.",
+      "composition": "Shared existing utility encoder and source planner retain final-size, owner, resource, cluster and unknown-storage checks; no new public API, allocator or runtime dependency."
+    },
+    "grid": {
+      "rows": 3,
+      "columns": 4,
+      "widthsPoints": [
+        90,
+        110,
+        130,
+        150
+      ],
+      "heightsPoints": [
+        42,
+        54,
+        66
+      ],
+      "logicalCells": 7,
+      "mergedAnchors": [
+        [
+          0,
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          0,
+          2,
+          1
+        ],
+        [
+          1,
+          2,
+          2,
+          2
+        ]
+      ],
+      "nativeDefinitionOrder": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "rawCellUtilityTraversal": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6,
+        5
+      ],
+      "baseline": {
+        "visibleFills": 5,
+        "borderRanges": 19,
+        "longMergedSides": 5
+      },
+      "edited": {
+        "visibleFills": 4,
+        "borderRanges": 18,
+        "longMergedSides": 6
+      }
+    },
+    "fixtures": [
+      {
+        "case": "TableMergedDecoration",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tablemergeddecoration.pub",
+            "bytes": 100864,
+            "sha256": "45ddf934716b2b61c37187ecb940f379867c9f99ccd315e065a623c9923fff7d"
+          },
+          {
+            "name": "native-tablemergeddecoration.pdf",
+            "bytes": 121018,
+            "sha256": "7e05c6cab507a00feb269fcacb7e65f905e9a57853f6b028291d1e9e3b643604"
+          },
+          {
+            "name": "native-tablemergeddecoration.json",
+            "bytes": 22291,
+            "sha256": "5e67c1985baa1f826afc4cc4e37d70e3b4d9afa0aa5deb7443c6d996d740555e"
+          }
+        ]
+      },
+      {
+        "case": "TableMergedDecorationEdited",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tablemergeddecorationedited.pub",
+            "bytes": 100864,
+            "sha256": "4209747741a2b985dac52ddd2fa66c24b17a9500b7cdfe107c181b6caddde74c"
+          },
+          {
+            "name": "native-tablemergeddecorationedited.pdf",
+            "bytes": 120987,
+            "sha256": "4b09a254378f65fb9f1504efa5b37334fe66ab20558f0cdf2d5a8d2451d6b881"
+          },
+          {
+            "name": "native-tablemergeddecorationedited.json",
+            "bytes": 22316,
+            "sha256": "5ce605d81930c56ce14306a076ef36300404494d9b87fdf51bbf57a534cf4349"
+          }
+        ]
+      },
+      {
+        "case": "TableMergedDecorationText",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tablemergeddecorationtext.pub",
+            "bytes": 100864,
+            "sha256": "41932aeab54f9d016956fd3ec047d3d9613545c68308b59de26ca3d13d12bc94"
+          },
+          {
+            "name": "native-tablemergeddecorationtext.pdf",
+            "bytes": 116397,
+            "sha256": "a047c1992ab608d13a53ebb59ac801f343a8e8d91393756b373e28ee7899cafc"
+          },
+          {
+            "name": "native-tablemergeddecorationtext.json",
+            "bytes": 22297,
+            "sha256": "c29d081247594219495c1cce0ccff4d48828adf82fb77df75fce6d1623cca295"
+          }
+        ]
+      },
+      {
+        "case": "TableMergedDecorationComposed",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tablemergeddecorationcomposed.pub",
+            "bytes": 100864,
+            "sha256": "2b1e9c58e6b862648eb8a8cca2cd55e53247e74c36a1dc3a6d517f968fffbf3b"
+          },
+          {
+            "name": "native-tablemergeddecorationcomposed.pdf",
+            "bytes": 116365,
+            "sha256": "914e84d93015165c512fdf3ba5c14afc73f7d9fc3e399bea0aec530adf2994a5"
+          },
+          {
+            "name": "native-tablemergeddecorationcomposed.json",
+            "bytes": 22316,
+            "sha256": "ab05f31003c13f609c877c3bc6a80f14d1543a8a230446b6ec5bff3a7a6c4c8b"
+          }
+        ]
+      },
+      {
+        "case": "TableMergedFills",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tablemergedfills.pub",
+            "bytes": 94208,
+            "sha256": "0edecd26f7aed73c7403f7e4cdbe3ad30a5bb43574c1ef49470605db13341c6e"
+          },
+          {
+            "name": "native-tablemergedfills.pdf",
+            "bytes": 120820,
+            "sha256": "a6993516e8bb30aa674f946fabd721102518e0dbac62b7985517515fc8e8ab3d"
+          },
+          {
+            "name": "native-tablemergedfills.json",
+            "bytes": 22409,
+            "sha256": "cae4497b6cdb9a54106c8592a72f6d161b5ac0653977518a3124341d0b3c4ad4"
+          }
+        ]
+      },
+      {
+        "case": "TableMergedBorders",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tablemergedborders.pub",
+            "bytes": 100864,
+            "sha256": "3263e9641466595fc554a36e9524ae4b89bb703015e6e9a3a888466378fbc135"
+          },
+          {
+            "name": "native-tablemergedborders.pdf",
+            "bytes": 120751,
+            "sha256": "9f036f06d333d0b47587687e986263499f7e1fb6fbd97d4a044bc6e469ac5001"
+          },
+          {
+            "name": "native-tablemergedborders.json",
+            "bytes": 22273,
+            "sha256": "9b0ce63c75de136ab285c549a67b1064fda0f9a230067de4b2f3f5557b912047"
+          }
+        ]
+      },
+      {
+        "case": "GeneratedMergedTable",
+        "classification": "template-free-borderless-initialization-source",
+        "files": [
+          {
+            "name": "generated.pub",
+            "bytes": 8704,
+            "sha256": "21343f85132455613677402a7739d449fe7e854f8a8ff9eecaba0fe232ba9c1e"
+          }
+        ]
+      },
+      {
+        "case": "TableMergedMissingCells",
+        "classification": "native-derived-missing-logical-cell-utilities",
+        "files": [
+          {
+            "name": "missing-merged-cells.pub",
+            "bytes": 100864,
+            "sha256": "f17f4cfb4625c2b1843203d95486ad9a0d003435263567f56c6f0b68cf9b8d2c"
+          }
+        ]
+      },
+      {
+        "case": "GeneratedDecoratedMergedTable",
+        "classification": "template-free-decorated-candidate-and-native-normalized-output",
+        "files": [
+          {
+            "name": "generated.pub",
+            "bytes": 12288,
+            "sha256": "7d88914fcb82f897d5f711180bb72b655a60a229bc980d4979f2f51c98e158fa"
+          },
+          {
+            "name": "native-normalized.pub",
+            "bytes": 71168,
+            "sha256": "c42eae7c6f107d824150cb20dd848916b5ff9c3bb399c42a461139af95be4bee"
+          },
+          {
+            "name": "native-validation.json",
+            "bytes": 45731,
+            "sha256": "d9cc6e4760d91dd4d8589d8cf6c820cf878afd6d2373f9632f353f29ea771357"
+          }
+        ]
+      }
+    ],
+    "nativeValidation": {
+      "producer": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20112",
+        "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+        "powershell": "7.6.9",
+        "automationSecurity": 3
+      },
+      "cases": [
+        "final-styles",
+        "final-text",
+        "final-composed",
+        "first-all",
+        "partial-fills",
+        "existing-fills-borders",
+        "first-fills",
+        "first-borders",
+        "fresh-decorated"
+      ],
+      "operations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "pdfComparison": {
+        "pairs": 18,
+        "dpi": 100,
+        "changedPixels": 0,
+        "reference": "Independent native controls for each final contour/text/fill combination"
+      },
+      "completeInventoryMatches": {
+        "comparisons": 8,
+        "cases": [
+          "final-styles",
+          "final-text",
+          "final-composed",
+          "partial-fills"
+        ],
+        "stages": [
+          "initial",
+          "resaved"
+        ]
+      },
+      "metadataLimits": [
+        "New black border ranges use explicit RGB color type 1 where native R2C2.Right uses automatic color type 2; RGB and exported pixels match.",
+        "Bare/fresh captions retain generated shape names and whole-range Arial/12/language 0, versus native empty/mixed font, mixed-size sentinel -9999999 and language 1033. This does not qualify inherited or paragraph-terminator defaults.",
+        "Merged side aggregate getters can be mixed or invisible even where raw physical edge ranges and native PDF show visible edges; they are not a complete physical-border oracle."
+      ],
+      "partitionBoundary": "Changing paint while retaining the original two-part horizontal merged-cell bottom gives two changed pixels at the T join versus the independently produced one-range edited control at 100 dpi. Explicitly requesting its complete merged side gives the qualified zero-pixel result; implicit normalization is not promised.",
+      "repairStatus": "Unassessed; successful COM operations and pixel-identical export do not establish repair-free opening."
+    },
+    "regressionProof": {
+      "cases": 12,
+      "oldCodecFailed": 5,
+      "oldCodecPassed": 7,
+      "distinguishedFailures": [
+        "New full merged-side partition was unitized",
+        "Compact complete merged grid refused first utilities",
+        "Missing logical merged-cell utilities refused initialization",
+        "Fresh merged utility encoding refused"
+      ],
+      "methodNames": [
+        "Independent_merged_controls_recover_anchor_paint_and_preserve_unchanged_native_bytes",
+        "Merged_source_edits_retain_requested_long_perimeters_and_match_independent_controls",
+        "First_styles_on_compact_merged_source_use_logical_definitions_and_native_perimeters",
+        "Missing_merged_cell_utilities_follow_logical_definition_indices_and_preserve_existing_edges",
+        "Fresh_merged_utilities_encode_seven_definitions_and_keep_five_long_native_edges"
+      ]
+    },
+    "validation": {
+      "testResults": {
+        "merged-final-full-net10": 1206,
+        "merged-final-tables-net8": 231,
+        "merged-final-tables-net472": 231,
+        "merged-first-green": 26
+      },
+      "netstandard2Build": "Passed",
+      "powerShellAndProbeBuild": "Passed",
+      "managedPdf": {
+        "pairs": 9,
+        "pageGeometry": "612x792 points, equal in all nine pairs",
+        "coloredCellFills": {
+          "matched": 38,
+          "maximumRectangleCoordinateDifferencePoints": 0.001007
+        },
+        "borderGridUnitProbes": {
+          "compared": 279,
+          "visible": 192,
+          "presenceAndRgbMatch": true,
+          "maximumCenterlineDifferencePoints": 0.051006
+        },
+        "normalizedTextLines": 83,
+        "limits": "Native half-point border strips render about 0.6 PDF points; other widths, join/end clipping up to 2 points, font selection and text baselines differ. At 100 dpi, all managed/native pages differ by 7821-11181 pixels (0.836-1.196%). This qualifies content, fill rectangles and border coverage/colors, not exact raster or physical stroke geometry."
+      },
+      "unchangedProbeOutputs": {
+        "previousFreshCases": 7,
+        "previousDerivedSources": 6,
+        "newCasesRepeatedByteIdentically": 2,
+        "finalProbeSha256": "9edd4342f2a5c4a8853f826b38dbc9fbeea2074bdba40f2abd0f832758ac68e8",
+        "historicalProbeDllFingerprint": "Unavailable; prior accepted output hashes and successful build receipts retained, not an old-versus-new DLL identity claim."
+      },
+      "nativeScriptParsing": "Four changed scripts pass PowerShell 7.6.9 and Windows PowerShell 5.1.26100.9711; default corpus unchanged, six new merged controls explicit-only.",
+      "processClosure": {
+        "closedNativeRuns": 18,
+        "exactOwnedProcessesAbsent": true
+      }
+    },
+    "review": {
+      "scope": "Core encoder, source planner, canonical slot checks, isolated specimen and regression boundary",
+      "result": "One independent read-only full pass; no actionable findings",
+      "byteManifestSha256": "bb0517a4578a885df9b5bc7912ff6cc2ba6859fafa28d7d125c373c2a04a9695",
+      "targetedFixConfirmations": 0
+    },
+    "limitations": [
+      "Bounded fixed merged-grid profile; broader producers, generations, utility layouts, groups and transforms remain unqualified",
+      "Imported topology edits and new merges in already bordered tables remain refused",
+      "Actual post-open native merged-cell text/format editing remains unqualified",
+      "Dynamic row sizing, broader layout/overflow and managed/native text baseline parity",
+      "Inherited caption language and paragraph-terminator defaults",
+      "Positive recovery control and repair-free native acceptance",
+      "Public source-free native creation remains gated"
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

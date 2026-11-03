@@ -70,7 +70,7 @@ internal sealed class PublisherEscherTableBorderPlan {
                 context.Token.ThrowIfCancellationRequested();
                 var table = item.Value;
                 if (!QualifiedTable(item.Key, table) || art.TableArtwork.Any(owner => owner.TableId == item.Key)) return null;
-                inputs.Add(new(table.Id, table.Rows.Count, table.Columns.Count, table.Width, table.Height, table.CellFills, table.BorderSegments));
+                inputs.Add(new(table.Id, table.Rows.Count, table.Columns.Count, table.Width, table.Height, table.Cells, table.CellFills, table.BorderSegments));
             }
             if (partialTables != null) foreach (var item in partialTables.OrderBy(item => item.Key)) {
                 context.Token.ThrowIfCancellationRequested();
@@ -91,8 +91,7 @@ internal sealed class PublisherEscherTableBorderPlan {
             bool QualifiedTable(uint id, PublisherTableState table) {
                 var owners = art.Shapes.Where(shape => shape.Id == id).ToArray();
                 return table.Id == id && table.HasPlacement && !table.Hidden && table.BoundsEditLimitation == null
-                    && table.Rows.Count > 0 && table.Columns.Count > 0 && (long)table.Rows.Count * table.Columns.Count == table.Cells.Count
-                    && !table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1)
+                    && PublisherTableCellSlot.IsCompleteGrid(table.Cells, table.Rows.Count, table.Columns.Count, context.Token)
                     && owners.Length == 1 && owners[0].NativeBinding is { } binding && binding.Matches(data) && ordinary.Contains(binding.BodyOffset);
             }
         }

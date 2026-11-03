@@ -603,16 +603,19 @@ qualified existing cell utility records, preserving latent colors when hidden.
 A missing local color field can be inserted; visibility requires an unambiguous
 local owning field. Existing shared-border color/width edits use qualified local
 scalars. Shared edges can also be added, cleared and replaced within a qualified
-direct utility drawing. New ranges use native cell edges; reopened segmentation
-and record order can differ while retaining shared
-grid coverage. First fills and borders can also initialize utilities for qualified
+direct utility drawing. New ranges use native cell edges, while a requested full
+merged-cell perimeter can remain one native span. Existing exact border partitions
+remain preserved; use `SetTableBorderStyle` with the complete perimeter range to
+replace adjacent fragments explicitly. Reopened segmentation and record order can
+differ while retaining shared grid coverage. First fills and borders can also initialize utilities for qualified
 borderless rectangular tables in compact sources and native-normalized empty
 utility scopes. A table with no cell or edge utility records can receive its first
 fills and borders beside an already decorated table in a qualified populated
 drawing. This can compose with supported peer border edits and cell-paragraph
 growth in one save. A fill or border decoration
-change can also initialize selectively missing cell utilities in qualified
-unmerged tables. Only missing native cell-definition indices receive the final
+change can also initialize selectively missing cell utilities in qualified tables,
+including the [decorated merged profile](SUPPORT.md#decorated-merged-table-utilities).
+Only missing native cell-definition indices receive the final
 fill/no-fill state; existing invisible cell records retain their ownership.
 Text or bounds edits alone do not initialize missing cells. Selective
 initialization composes with supported border edits on the same table or a peer,

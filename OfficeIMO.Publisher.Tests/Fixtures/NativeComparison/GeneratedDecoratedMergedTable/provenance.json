@@ -1,0 +1,32 @@
+{
+  "schema": "officeimo.publisher.generated-decorated-merged-table-fixture.v1",
+  "license": "MIT",
+  "generator": "dotnet <WriterProbe.dll> create table-merged-decorated <generated.pub>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "automationSecurity": 3
+  },
+  "nativeValidation": "pwsh Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <generated.pub> -OutputDirectory <empty-directory> -TimeoutSeconds 180 -PhaseTimeoutSeconds 45",
+  "files": [
+    {
+      "name": "generated.pub",
+      "bytes": 12288,
+      "sha256": "7d88914fcb82f897d5f711180bb72b655a60a229bc980d4979f2f51c98e158fa"
+    },
+    {
+      "name": "native-normalized.pub",
+      "bytes": 71168,
+      "sha256": "c42eae7c6f107d824150cb20dd848916b5ff9c3bb399c42a461139af95be4bee"
+    },
+    {
+      "name": "native-validation.json",
+      "bytes": 45731,
+      "sha256": "d9cc6e4760d91dd4d8589d8cf6c820cf878afd6d2373f9632f353f29ea771357"
+    }
+  ],
+  "scope": "Template-free 3x4 merged table with seven logical cell definitions, five visible fills and nineteen physical edge ranges including five long merged sides. Native normalized output retained. Initial and resaved native PDF exports match the independent TableMergedDecoration control at 100 dpi. Whole-range caption font, size and language and automatic-black versus explicit-RGB border roles differ. Repair-free acceptance, actual post-open native merged-cell editing and public source-free saving remain unqualified."
+}

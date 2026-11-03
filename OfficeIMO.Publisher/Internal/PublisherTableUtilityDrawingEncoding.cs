@@ -55,8 +55,9 @@ internal static class PublisherTableUtilityDrawingEncoding {
         var ids = new HashSet<uint>();
         foreach (PublisherTableUtilityInput table in tables) {
             token.ThrowIfCancellationRequested();
-            if (table.Id == 0 || !ids.Add(table.Id) || table.Rows < 1 || table.Columns < 1
-                || (long)table.Rows * table.Columns != table.Fills.Count) return false;
+            if (table.Id == 0 || !ids.Add(table.Id) || table.Cells.Count != table.Fills.Count
+                || !PublisherTableCellSlot.IsCompleteGrid(table.Cells, table.Rows, table.Columns, token)) return false;
+            var mergedSides = PublisherTableCellSlot.FullMergedSides(table.Cells, token);
             for (int index = 0; index < table.Fills.Count; index++) {
                 token.ThrowIfCancellationRequested();
                 if (shapes.Count >= limit || !allocation.Allocate(token, out uint id)) return false;
@@ -70,12 +71,14 @@ internal static class PublisherTableUtilityDrawingEncoding {
                     || border.Side.Width > (horizontal ? table.Height : table.Width)
                     || (horizontal ? border.LastColumn <= border.FirstColumn : border.LastRow <= border.FirstRow || border.LastColumn != border.FirstColumn)) return false;
                 int start = horizontal ? border.FirstColumn : border.FirstRow, end = horizontal ? border.LastColumn : border.LastRow;
-                for (int index = start; index < end; index++) {
+                int count = mergedSides.Contains((border.FirstRow, border.FirstColumn, border.LastRow, border.LastColumn)) ? 1 : end - start;
+                for (int offset = 0; offset < count; offset++) {
                     token.ThrowIfCancellationRequested();
                     if (shapes.Count >= limit || !allocation.Allocate(token, out uint id)) return false;
-                    var unit = new PublisherTableBorderSegment(horizontal ? border.FirstRow : index, horizontal ? index : border.FirstColumn,
+                    int index = start + offset;
+                    PublisherTableBorderSegment segment = count == 1 ? border : new(horizontal ? border.FirstRow : index, horizontal ? index : border.FirstColumn,
                         horizontal ? border.LastRow : index + 1, horizontal ? index + 1 : border.LastColumn, border.Side);
-                    byte[]? encoded = PublisherTableBorderEncoding.Write(table.Id, id, unit);
+                    byte[]? encoded = PublisherTableBorderEncoding.Write(table.Id, id, segment);
                     if (encoded == null) return false;
                     shapes.Add(encoded);
                 }
@@ -133,8 +136,8 @@ internal static class PublisherTableUtilityDrawingEncoding {
     }
 }
 
-internal sealed record PublisherTableUtilityInput(uint Id, int Rows, int Columns, double Width, double Height, IReadOnlyList<OfficeColor?> Fills,
-    IReadOnlyList<PublisherTableBorderSegment> Borders);
+internal sealed record PublisherTableUtilityInput(uint Id, int Rows, int Columns, double Width, double Height, IReadOnlyList<PublisherTableCellSlot> Cells,
+    IReadOnlyList<OfficeColor?> Fills, IReadOnlyList<PublisherTableBorderSegment> Borders);
 /// <summary>An explicit utility owner for one definition index; a null fill authors an invisible record.</summary>
 internal sealed record PublisherTableCellUtilityInput(uint TableId, int Index, OfficeColor? Fill);
 internal sealed record PublisherTableUtilityDrawing(byte[] Bytes, uint Count, uint LastSpid);

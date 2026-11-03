@@ -21,7 +21,31 @@ internal static class CandidateTableCreation {
         return CandidateModelProjection.Tables(document);
     }
 
-    internal static CandidatePublicationSpec CreateMerged() {
+    internal static CandidatePublicationSpec CreateMerged() => CandidateModelProjection.Tables(AuthorMerged());
+
+    internal static CandidatePublicationSpec CreateMergedDecorated() {
+        PublisherDocument document = AuthorMerged();
+        uint id = document.Pages[0].Tables.Single().Id;
+        document.SetTableCellFillColor(id, 0, 0, OfficeColor.FromRgb(255, 224, 160));
+        document.SetTableCellFillColor(id, 0, 2, OfficeColor.FromRgb(224, 192, 255));
+        document.SetTableCellFillColor(id, 1, 0, OfficeColor.FromRgb(160, 224, 255));
+        document.SetTableCellFillColor(id, 1, 1, OfficeColor.FromRgb(255, 192, 128));
+        document.SetTableCellFillColor(id, 1, 2, OfficeColor.FromRgb(180, 240, 180));
+        var side = new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 0.5);
+        var ranges = new (int FirstRow, int FirstColumn, int LastRow, int LastColumn)[] {
+            (0, 0, 1, 0), (0, 0, 0, 2), (0, 2, 1, 2), (1, 0, 1, 1),
+            (0, 2, 0, 3), (0, 3, 1, 3), (0, 3, 0, 4), (0, 4, 1, 4),
+            (1, 1, 1, 2), (1, 0, 3, 0), (1, 1, 2, 1), (3, 0, 3, 1),
+            (2, 1, 3, 1), (2, 1, 2, 2), (1, 2, 1, 4), (2, 2, 3, 2),
+            (1, 4, 3, 4), (3, 2, 3, 4)
+        };
+        foreach (var range in ranges)
+            document.SetTableBorderStyle(id, range.FirstRow, range.FirstColumn, range.LastRow, range.LastColumn, side);
+        document.SetTableBorderStyle(id, 1, 2, 2, 2, new OfficeBorderSide(OfficeColor.Black, 0.5));
+        return CandidateModelProjection.Tables(document);
+    }
+
+    internal static PublisherDocument AuthorMerged() {
         PublisherDocument document = PublisherDocument.Create(612, 792);
         PublisherPage master = document.AddMasterPage("Master Page A");
         uint page = document.Pages[0].Id;
@@ -38,7 +62,7 @@ internal static class CandidateTableCreation {
             };
             document.ReplaceTableCellParagraphs(table.Id, cell.RowIndex, cell.ColumnIndex, Paragraphs(text, cell.RowIndex == 0));
         }
-        return CandidateModelProjection.Tables(document);
+        return document;
     }
 
     internal static PublisherDocument Author(bool edited) {

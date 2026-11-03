@@ -87,6 +87,32 @@ derived hashes. These inputs qualify selective initialization after fill/border
 edits against the independent final-state controls; they are not independent
 native producers or native repair controls.
 
+TableMergedDecoration, TableMergedDecorationEdited, TableMergedDecorationText,
+TableMergedDecorationComposed, TableMergedFills and TableMergedBorders independently
+author the same three-row, four-column merged grid and label. Horizontal, vertical
+and 2×2 owners leave seven logical cell definitions; native definition order differs
+from utility traversal. The decorated baseline has five fills and nineteen exact
+edge ranges, including five long spans. The edited control has eighteen ranges,
+including six long spans. Raw utility anchors and native PDFs qualify the shared
+edges; aggregate native merged-cell side getters can report mixed or partial values.
+
+`NativeComparison/GeneratedMergedTable/generated.pub` retains the existing
+template-free bare `table-merged` specimen for first-decoration source workflows.
+`NativeComparison/TableMergedMissingCells/missing-merged-cells.pub` is a labelled
+derived input from TableMergedBorders. The probe's `table-merged-source` command
+removes hidden utility owners 0 and 6, retaining all seven logical definitions,
+other utilities, consumed allocation history and other logical streams. These
+inputs are separate from the independent native final-state controls. Their
+provenance records reproduction and file hashes; the [support contract](../../OfficeIMO.Publisher/SUPPORT.md#decorated-merged-table-utilities)
+defines the explicit border-range and native metadata comparison limits.
+
+`NativeComparison/GeneratedDecoratedMergedTable` retains the template-free
+`table-merged-decorated` specimen as `generated.pub`, its `native-normalized.pub`
+output and `native-validation.json`. The provenance records the
+generator, native producer, validation command and hashes. Initial/resaved native
+PDFs match TableMergedDecoration; caption metadata and black-edge color-type limits
+remain explicit in the support contract.
+
 TableClusterNear and TableClusterNearEdited independently author an 18×18 dense
 table with a label, alternating solid fills and every shared unit edge; the edited
 control activates one previously invisible cell. TableClusterWide supplies the
