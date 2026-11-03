@@ -14,7 +14,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
     public void NegativeRtfFrameCoordinatesUseNegativeCapableControls() {
         const string html = "<div style='position:absolute;left:-200px;top:-100px;width:180px;height:70px'>Negative frame</div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
             item.ToPlainText().Contains("Negative frame", StringComparison.Ordinal));
         string rtf = result.Value.ToRtf();
@@ -31,7 +31,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
             + "<div style='position:absolute;left:24px;top:20px;width:180px;height:70px'>First-page frame</div>"
             + "<section style='break-before:page'><p>Later page</p></section>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         IReadOnlyList<IRtfBlock> blocks = result.Value.Blocks;
         int frameIndex = FindParagraphIndex(blocks, paragraph => paragraph.Frame.HasAnyValue);
         int pageBreakIndex = FindParagraphIndex(blocks, paragraph => paragraph.PageBreakBefore);

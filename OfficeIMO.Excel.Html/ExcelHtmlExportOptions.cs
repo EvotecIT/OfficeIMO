@@ -138,6 +138,9 @@ public sealed class ExcelHtmlExportOptions {
     /// <summary>Shows object metadata such as chart type, series counts, anchor cells and pixel sizes as visible text. Defaults to false; the data attributes are always written.</summary>
     public bool IncludeObjectMetadata { get; set; }
 
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Creates an independent settings snapshot for one export operation.</summary>
     public ExcelHtmlExportOptions Clone() => new() {
         ExportProfile = ExportProfile,
@@ -153,7 +156,8 @@ public sealed class ExcelHtmlExportOptions {
         ApplyCellPresentation = ApplyCellPresentation,
         RenderCharts = RenderCharts,
         IncludeFormulaInventory = IncludeFormulaInventory,
-        IncludeObjectMetadata = IncludeObjectMetadata
+        IncludeObjectMetadata = IncludeObjectMetadata,
+        FailOnLoss = FailOnLoss
     };
 
     internal void Validate() {

@@ -20,7 +20,7 @@ public sealed class PowerPointChartPointStylesTests {
         using PowerPointDocument authored = PowerPointDocument.Create();
         authored.AddSlide().AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, new OfficeChartPointStyle?[] { outline, null, null }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
         using PowerPointDocument htmlReopened = OfficeIMO.Html.HtmlConversionDocument.Parse(authored.ToHtml())
-            .ToPowerPointDocument();
+            .ToPowerPoint();
         Assert.True(htmlReopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeStrokeLineJoin.Round, snapshot.Data.Series[0].PointStyles![0]!.OutlineJoin);
     }
@@ -90,7 +90,7 @@ public sealed class PowerPointChartPointStylesTests {
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         AssertStyles(snapshot, hatch);
         Assert.Empty(reopened.ValidateDocument());
-        using (PowerPointDocument htmlReopened = OfficeIMO.Html.HtmlConversionDocument.Parse(reopened.ToHtml()).ToPowerPointDocument()) {
+        using (PowerPointDocument htmlReopened = OfficeIMO.Html.HtmlConversionDocument.Parse(reopened.ToHtml()).ToPowerPoint()) {
             Assert.True(htmlReopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot htmlSnapshot));
             AssertStyles(htmlSnapshot, hatch);
         }

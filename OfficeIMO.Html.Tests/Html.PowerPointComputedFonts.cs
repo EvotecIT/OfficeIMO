@@ -63,7 +63,7 @@ public sealed class HtmlPowerPointComputedFontsTests {
     }
 
     private static PowerPointDocument ImportGeneric(string html) => HtmlConversionDocument.Parse(html)
-        .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic })
+        .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic })
         .RequireValue();
 
     private static void AssertFont(PowerPointDocument presentation, string text, string expectedFamily) {

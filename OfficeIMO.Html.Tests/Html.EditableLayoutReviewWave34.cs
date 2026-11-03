@@ -60,12 +60,12 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
 
         HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
-        HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.Contains(wordResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
@@ -84,7 +84,7 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
         string html = "<div style='position:absolute;width:180px;height:70px'>"
             + "<img alt='Budget rejected' src='" + image + "'></div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
 
         Assert.DoesNotContain(result.Value.Paragraphs, paragraph => paragraph.Frame.HasAnyValue);
         Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>

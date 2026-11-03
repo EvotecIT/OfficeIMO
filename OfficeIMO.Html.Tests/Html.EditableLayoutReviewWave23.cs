@@ -17,10 +17,10 @@ public sealed class HtmlEditableLayoutReviewWave23Tests {
             + "<img alt='Middle' src='" + image + "'>After</div>";
 
         HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.Contains(excelResult.Report.NativeDiagnostics, IsMixedInlineRetentionDiagnostic);

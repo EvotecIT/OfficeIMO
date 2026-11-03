@@ -55,7 +55,11 @@ public sealed class HtmlPowerPointExportOptions {
     // normalization. Target-specific metadata still uses the complete policy.
     internal HtmlUrlPolicy? NormalizedHyperlinkUrlPolicy { get; set; }
 
-    internal HtmlPowerPointExportOptions Clone() => new HtmlPowerPointExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public HtmlPowerPointExportOptions Clone() => new HtmlPowerPointExportOptions {
         Limits = Limits.Clone(),
         Mode = Mode,
         ImportTables = ImportTables,
@@ -64,6 +68,7 @@ public sealed class HtmlPowerPointExportOptions {
         ImportNotes = ImportNotes,
         ImportEditableLayoutRegions = ImportEditableLayoutRegions,
         HyperlinkUrlPolicy = HyperlinkUrlPolicy.Clone(),
-        NormalizedHyperlinkUrlPolicy = NormalizedHyperlinkUrlPolicy?.Clone()
+        NormalizedHyperlinkUrlPolicy = NormalizedHyperlinkUrlPolicy?.Clone(),
+        FailOnLoss = FailOnLoss
     };
 }

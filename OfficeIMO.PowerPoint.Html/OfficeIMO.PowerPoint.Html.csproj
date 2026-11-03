@@ -55,4 +55,12 @@
   <ItemGroup>
     <Compile Include="..\OfficeIMO.SharedSource\Charts\OfficeChartTypeName.cs" Link="SharedSource\Charts\OfficeChartTypeName.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Html.EditableEvidence" />
+  </ItemGroup>
 </Project>

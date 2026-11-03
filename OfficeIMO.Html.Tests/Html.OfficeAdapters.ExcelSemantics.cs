@@ -32,7 +32,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
         sheet.Cell(2, 1).SetValue(expected);
 
         string html = workbook.ToHtml();
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -52,7 +52,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
             </section>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlExcelExportOptions { MaxTableCells = 4 });
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(new HtmlExcelExportOptions { MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
 
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
@@ -65,7 +65,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
             <table><tr><td colspan="2147483647"><strong>First</strong></td><td>Second</td></tr></table>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
             new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
 
@@ -87,7 +87,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
             + "data-officeimo-to-row='1048576' data-officeimo-to-column='16384'><span class='officeimo-feature-label'>Huge</span>"
             + "<img src='data:image/png;base64," + png + "'></li></ul></section></section>";
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
             new HtmlExcelExportOptions { MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
         ExcelImage image = Assert.Single(Assert.Single(workbook.Sheets).Images);

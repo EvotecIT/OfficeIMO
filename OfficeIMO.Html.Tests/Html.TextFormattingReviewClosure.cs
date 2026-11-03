@@ -61,7 +61,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
         using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextRun[] runs = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs)
             .Runs.ToArray();
@@ -184,7 +184,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
 
         PowerPointTextBox actual = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -212,7 +212,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
         using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointParagraph actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs);
         Assert.Collection(actual.InlineNodes,
@@ -237,7 +237,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
         using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextRun actual = Assert.Single(Assert.Single(Assert.Single(imported.Slides).TextBoxes).Paragraphs).Runs.Single();
         Assert.Equal(PowerPointUnderlineStyle.Wavy, actual.UnderlineStyle);
@@ -250,7 +250,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         const string html = "<section class='officeimo-slide'><p><span><strong>Bold</strong></span> tail</p></section>";
 
         using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
 
         PowerPointTextBox textBox = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -263,7 +263,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         const string html = "<section class='officeimo-slide'><p><strong>one</strong><br><em>two</em></p></section>";
 
         using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
 
         PowerPointTextBox textBox = Assert.Single(Assert.Single(imported.Slides).TextBoxes);
@@ -377,7 +377,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             """;
 
         using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
 
         string[] texts = Assert.Single(imported.Slides).TextBoxes.Select(box => box.Text).ToArray();
@@ -390,7 +390,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         paragraph.AddMath(OfficeIMO.Drawing.OfficeMath.Fraction(
             OfficeIMO.Drawing.OfficeMath.Identifier("x"), OfficeIMO.Drawing.OfficeMath.Number("2")));
 
-        string html = section.ToHtmlDocument();
+        string html = section.ConvertToHtmlWithEvidence().RequireValue();
 
         Assert.Contains("class=\"officeimo-onenote-math\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-math-format=\"latex\"", html, StringComparison.Ordinal);
@@ -404,12 +404,12 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         page.DirectContent.Add(new OneNoteImage { FileName = "missing.png", AltText = "Missing" });
         int resolverCalls = 0;
 
-        string html = section.ToHtmlDocument(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions {
+        string html = section.ConvertToHtmlWithEvidence(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownExportOptions {
             AssetUriResolver = element => {
                 resolverCalls++;
                 return element.Payload!.Length.ToString();
             }
-        });
+        }).RequireValue();
 
         Assert.Equal(0, resolverCalls);
         Assert.Contains("officeimo-onenote-image-placeholder", html, StringComparison.Ordinal);
@@ -425,7 +425,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             Payload = OneNoteBinaryPayload.FromBytes(new byte[] { 1, 2, 3 })
         });
 
-        HtmlTextConversionResult result = section.ToHtmlDocumentResult(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions {
+        HtmlTextConversionResult result = section.ConvertToHtmlWithEvidence(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownExportOptions {
             AssetUriResolver = _ => "javascript:alert(1)"
         });
 
@@ -436,7 +436,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             && diagnostic.Source == "blocked.png"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
 
-        HtmlTextConversionResult allowed = section.ToHtmlDocumentResult(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownOptions {
+        HtmlTextConversionResult allowed = section.ConvertToHtmlWithEvidence(new OfficeIMO.OneNote.Markdown.OneNoteMarkdownExportOptions {
             AssetUriResolver = _ => "https://example.com/allowed.png"
         });
         Assert.Contains("src=\"https://example.com/allowed.png\"", allowed.Value, StringComparison.Ordinal);
@@ -451,12 +451,12 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         paragraph.Runs[0].Style.FontFamily = "Aptos";
         paragraph.Runs[0].Style.Underline = true;
 
-        HtmlTextConversionResult styled = section.ToHtmlDocumentResult();
+        HtmlTextConversionResult styled = section.ConvertToHtmlWithEvidence();
         Assert.DoesNotContain(styled.Report.Diagnostics,
             diagnostic => diagnostic.Code is "ONENOTE_MARKDOWN_FORMATTING_SIMPLIFIED" or "ONENOTE_HTML_FORMATTING_SIMPLIFIED");
 
         paragraph.Style.SpaceBefore = 12D;
-        HtmlTextConversionResult spaced = section.ToHtmlDocumentResult();
+        HtmlTextConversionResult spaced = section.ConvertToHtmlWithEvidence();
         Assert.Contains(spaced.Report.Diagnostics,
             diagnostic => diagnostic.Code == "ONENOTE_HTML_FORMATTING_SIMPLIFIED"
                 && diagnostic.LossKind == OfficeConversionLossKind.Approximation);

@@ -27,7 +27,7 @@ public class HtmlOfficeAdaptersStreamIO {
         Assert.False(HasUtf8Bom(htmlBytes));
         htmlStream.Position = 0;
         HtmlConversionDocument htmlDocument = await HtmlConversionDocument.LoadAsync(htmlStream);
-        HtmlToExcelResult result = htmlDocument.ToExcelDocumentResult();
+        HtmlToExcelResult result = htmlDocument.ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.Value;
         Assert.True(result.Succeeded);
         Assert.True(htmlStream.CanRead);
@@ -46,7 +46,7 @@ public class HtmlOfficeAdaptersStreamIO {
         Assert.False(HasUtf8Bom(htmlBytes));
         htmlStream.Position = 0;
         HtmlConversionDocument htmlDocument = await HtmlConversionDocument.LoadAsync(htmlStream);
-        HtmlToPowerPointResult result = htmlDocument.ToPowerPointDocumentResult();
+        HtmlToPowerPointResult result = htmlDocument.ConvertToPowerPointWithEvidence();
         using PowerPointDocument imported = result.Value;
         Assert.True(result.Succeeded);
         Assert.True(htmlStream.CanRead);

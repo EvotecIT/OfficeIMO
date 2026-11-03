@@ -35,7 +35,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         Assert.DoesNotContain("data-officeimo-cell=\"B1\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-officeimo-cell=\"A2\"", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
         string[] mergedRanges = importedSheet.GetMergedRanges().Select(merge => merge.A1Range).OrderBy(range => range).ToArray();
@@ -62,7 +62,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
             </main>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
@@ -79,7 +79,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         const string html = "<table><tr><td><strong>Bold</strong> <em>italic</em> <u>under</u> <s>strike</s> <sup>2</sup><sub>3</sub></td></tr></table>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
         IReadOnlyList<ExcelRichTextRun> runs = Assert.Single(workbook.Sheets).Cell(1, 1).GetRichText();
 
@@ -102,7 +102,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.RequireValue();
         ExcelRichTextRun run = Assert.Single(Assert.Single(imported.Sheets).Cell(1, 1).GetRichText());
 
@@ -122,7 +122,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
             MaxRowsPerSheet = 2
         });
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.Value;
 
         Assert.Contains("data-officeimo-merge=\"A1:B2\"", html, StringComparison.Ordinal);

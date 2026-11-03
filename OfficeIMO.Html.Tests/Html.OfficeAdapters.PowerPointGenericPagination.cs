@@ -11,7 +11,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         var limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<table><tr><td>ForbiddenMarker " + new string('x', 2000) + "</td></tr></table>")
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false, Limits = limits });
         using var document = result.RequireValue();
         Assert.DoesNotContain(document.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("ForbiddenMarker"));
         Assert.Contains(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded);
@@ -23,7 +23,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
     public void EmptyAuthoredRowKeepsPaginatedTablesAndCellLinks(bool trailingEmptyRow) {
         string rows = string.Concat(Enumerable.Range(1, 20).Select(i => "<tr><td><a href='https://example.test/row'>Row " + i + "</a></td></tr>"));
         var result = HtmlConversionDocument.Parse("<table><tr><th>Name</th></tr><tr></tr>" + rows + (trailingEmptyRow ? "<tr></tr>" : "") + "</table>")
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using var document = result.RequireValue();
         Assert.True(result.Tables > 1);
         Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Detail?.Contains("projection=paginatedText") == true);
@@ -44,7 +44,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + "<section><p>Key points remain editable.</p></section>"
             + "<section><p>Terms remain editable.</p></section></main>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
@@ -73,7 +73,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + " <a href='https://example.org/source'>source measurements</a> " + closing
             + "</p><p>Following paragraph remains visible.</p></article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
@@ -130,7 +130,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + string.Concat(Enumerable.Range(1, 5).Select(index => "<p>Section " + index + ": " + paragraph + "</p>"))
             + "</article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
@@ -158,7 +158,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
                 "<li>Measurement " + index + " recorded from the field team.</li>"))
             + "</ul></article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
@@ -182,7 +182,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + string.Concat(Enumerable.Range(1, 18).Select(index => "<p>Entry " + index + "</p>"))
             + "<p>Illustration <img src='" + image + "' alt='Field diagram'></p></article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
@@ -214,7 +214,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxSemanticContainers = 2;
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits,
                 ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
@@ -231,7 +231,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         string html = "<article><h1>Gallery</h1><table><tr><td><a href='https://example.org/gallery'>Gallery source</a> " + cellText
             + "</td></tr></table><p>After gallery</p></article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
@@ -256,7 +256,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + "Second section region</section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(first + second)
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.True(presentation.Slides.Count >= 3);

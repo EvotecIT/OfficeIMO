@@ -52,7 +52,7 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
 
         HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
-        HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         string rtf = rtfResult.Value.ToRtf();
 
         Assert.Empty(word.TextBoxes);
@@ -69,7 +69,7 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
             + "background-image:linear-gradient(red,blue)'>Gradient</div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Single(Assert.Single(presentation.Slides).TextBoxes, box => box.Text == "Gradient");

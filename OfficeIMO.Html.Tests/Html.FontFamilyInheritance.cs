@@ -50,7 +50,7 @@ public sealed class HtmlFontFamilyInheritanceTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         switch (target) {
             case "excel": {
-                using ExcelDocument workbook = source.ToExcelDocumentResult(
+                using ExcelDocument workbook = source.ConvertToExcelWithEvidence(
                     new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
                 string? imported = ExcelFont(workbook);
                 using var artifact = new MemoryStream();
@@ -59,7 +59,7 @@ public sealed class HtmlFontFamilyInheritanceTests {
                 return (new[] { imported }, new[] { ExcelFont(reopened) });
             }
             case "onenote": {
-                OneNoteSection section = source.ToOneNoteSectionResult().RequireValue();
+                OneNoteSection section = source.ConvertToOneNoteSectionWithEvidence().RequireValue();
                 string? imported = OneNoteFont(section);
                 using var artifact = new MemoryStream(OneNoteSectionWriter.Write(section));
                 OneNoteSection reopened = OneNoteSectionReader.Read(artifact);

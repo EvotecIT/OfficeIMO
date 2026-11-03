@@ -30,28 +30,28 @@ public static partial class HtmlImageExportExtensions {
         (await document.ExportImageAsync(OfficeImageExportFormat.Webp, options, pageIndex, cancellationToken).ConfigureAwait(false)).Bytes;
 
     /// <summary>Saves a shared HTML conversion document as a JPEG file.</summary>
-    public static OfficeImageExportResult SaveAsJpeg(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        SaveRaster(document, path, OfficeImageExportFormat.Jpeg, options, pageIndex);
+    public static OfficeImageExportResult SaveAsJpeg(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        SaveRaster(document, path, OfficeImageExportFormat.Jpeg, options, pageIndex, cancellationToken);
 
     /// <summary>Saves a shared HTML conversion document as a TIFF file.</summary>
-    public static OfficeImageExportResult SaveAsTiff(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        SaveRaster(document, path, OfficeImageExportFormat.Tiff, options, pageIndex);
+    public static OfficeImageExportResult SaveAsTiff(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        SaveRaster(document, path, OfficeImageExportFormat.Tiff, options, pageIndex, cancellationToken);
 
     /// <summary>Saves a shared HTML conversion document as a lossless WebP file.</summary>
-    public static OfficeImageExportResult SaveAsWebp(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        SaveRaster(document, path, OfficeImageExportFormat.Webp, options, pageIndex);
+    public static OfficeImageExportResult SaveAsWebp(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        SaveRaster(document, path, OfficeImageExportFormat.Webp, options, pageIndex, cancellationToken);
 
     /// <summary>Writes a shared HTML conversion document as JPEG to a caller-owned stream.</summary>
-    public static OfficeImageExportResult SaveAsJpeg(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        SaveRaster(document, stream, OfficeImageExportFormat.Jpeg, options, pageIndex);
+    public static OfficeImageExportResult SaveAsJpeg(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        SaveRaster(document, stream, OfficeImageExportFormat.Jpeg, options, pageIndex, cancellationToken);
 
     /// <summary>Writes a shared HTML conversion document as TIFF to a caller-owned stream.</summary>
-    public static OfficeImageExportResult SaveAsTiff(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        SaveRaster(document, stream, OfficeImageExportFormat.Tiff, options, pageIndex);
+    public static OfficeImageExportResult SaveAsTiff(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        SaveRaster(document, stream, OfficeImageExportFormat.Tiff, options, pageIndex, cancellationToken);
 
     /// <summary>Writes a shared HTML conversion document as lossless WebP to a caller-owned stream.</summary>
-    public static OfficeImageExportResult SaveAsWebp(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        SaveRaster(document, stream, OfficeImageExportFormat.Webp, options, pageIndex);
+    public static OfficeImageExportResult SaveAsWebp(this HtmlConversionDocument document, Stream stream, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        SaveRaster(document, stream, OfficeImageExportFormat.Webp, options, pageIndex, cancellationToken);
 
     /// <summary>Asynchronously resolves resources and saves a shared HTML conversion document as a JPEG file.</summary>
     public static Task<OfficeImageExportResult> SaveAsJpegAsync(this HtmlConversionDocument document, string path, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
@@ -82,8 +82,9 @@ public static partial class HtmlImageExportExtensions {
         string path,
         OfficeImageExportFormat format,
         HtmlRenderOptions? options,
-        int pageIndex) {
-        return CreateImageExportOperation(document, options, format, pageIndex).Save(path);
+        int pageIndex,
+        CancellationToken cancellationToken) {
+        return CreateImageExportOperation(document, options, format, pageIndex).Save(path, cancellationToken);
     }
 
     private static OfficeImageExportResult SaveRaster(
@@ -91,8 +92,9 @@ public static partial class HtmlImageExportExtensions {
         Stream stream,
         OfficeImageExportFormat format,
         HtmlRenderOptions? options,
-        int pageIndex) {
-        return CreateImageExportOperation(document, options, format, pageIndex).Save(stream);
+        int pageIndex,
+        CancellationToken cancellationToken) {
+        return CreateImageExportOperation(document, options, format, pageIndex).Save(stream, cancellationToken);
     }
 
     private static async Task<OfficeImageExportResult> SaveRasterAsync(

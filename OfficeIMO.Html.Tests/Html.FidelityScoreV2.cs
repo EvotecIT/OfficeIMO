@@ -86,7 +86,7 @@ public class HtmlFidelityScoreV2 {
     public void FidelityV2_UsesHtmlExportedAfterActualXlsxReload() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<table><caption>Data</caption><tr><th>Name</th><th>Value</th></tr><tr><td>Total</td><td>42</td></tr></table>");
-        using ExcelDocument workbook = source.ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+        using ExcelDocument workbook = source.ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         string initialExport = workbook.ToHtml();
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(artifact.ToArray()),
@@ -105,7 +105,7 @@ public class HtmlFidelityScoreV2 {
     public void FidelityV2_UsesHtmlExportedAfterActualPptxReload() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<section><h1>Reload</h1><p>Plain <strong>bold</strong></p></section>");
-        using PowerPointDocument presentation = source.ToPowerPointDocumentResult(
+        using PowerPointDocument presentation = source.ConvertToPowerPointWithEvidence(
             new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         string initialExport = presentation.ToHtml();
         using MemoryStream artifact = new System.IO.MemoryStream(presentation.ToBytes());

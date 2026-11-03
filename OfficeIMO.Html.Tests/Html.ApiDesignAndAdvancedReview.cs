@@ -426,7 +426,7 @@ public partial class Html {
                 DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") }
             });
 
-            HtmlTextConversionResult result = document.ToHtmlResult(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
+            HtmlTextConversionResult result = document.ConvertToHtmlWithEvidence(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
             string html = result.Value;
 
             Assert.Contains("data-officeimo-feature=\"pivot-table\"", html, StringComparison.Ordinal);

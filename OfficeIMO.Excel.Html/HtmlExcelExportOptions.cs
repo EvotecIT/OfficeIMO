@@ -64,7 +64,11 @@ public sealed class HtmlExcelExportOptions {
     /// <summary>Maps bounded positioned, floating, flex, and grid regions to editable cells and drawing anchors.</summary>
     public bool ImportEditableLayoutRegions { get; set; } = true;
 
-    internal HtmlExcelExportOptions Clone() => new HtmlExcelExportOptions {
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public HtmlExcelExportOptions Clone() => new HtmlExcelExportOptions {
         Limits = Limits.Clone(),
         Mode = Mode,
         ImportTypedCellValues = ImportTypedCellValues,
@@ -73,6 +77,7 @@ public sealed class HtmlExcelExportOptions {
         ImportComments = ImportComments,
         ImportFormulas = ImportFormulas,
         AllowUntrustedFormulas = AllowUntrustedFormulas,
-        ImportEditableLayoutRegions = ImportEditableLayoutRegions
+        ImportEditableLayoutRegions = ImportEditableLayoutRegions,
+        FailOnLoss = FailOnLoss
     };
 }

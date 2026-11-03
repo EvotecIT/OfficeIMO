@@ -10,9 +10,9 @@ public class HtmlRtfStructuredResult {
         HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse("<p><unknown>Value</unknown></p>");
         var options = new HtmlRtfExportOptions { PreserveUnknownTagsAsText = true };
 
-        HtmlToRtfResult import = source.ToRtfDocumentResult(options);
+        HtmlToRtfResult import = source.ConvertToRtfWithEvidence(options);
         import.Value.AddParagraph().AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3 });
-        RtfToHtmlResult export = import.Value.ToHtmlResult();
+        RtfToHtmlResult export = import.Value.ConvertToHtmlWithEvidence();
 
         Assert.True(import.Succeeded);
         Assert.True(export.Succeeded);
@@ -29,7 +29,7 @@ public class HtmlRtfStructuredResult {
                 BaseUri = new Uri("https://example.test/root/page.html")
             });
 
-        HtmlToRtfResult import = source.ToRtfDocumentResult();
+        HtmlToRtfResult import = source.ConvertToRtfWithEvidence();
 
         RtfRun run = Assert.Single(Assert.Single(import.Value.Paragraphs).Runs);
         Assert.Equal(new Uri("https://example.test/root/docs/start.html"), run.Hyperlink);

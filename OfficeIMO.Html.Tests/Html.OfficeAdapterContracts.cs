@@ -12,7 +12,7 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_GenericImportRetainsWrappedNestedListText() {
         HtmlToExcelResult result = HtmlConversionDocument
             .Parse("<ul><li>Parent<div><ol><li>Child</li></ol></div></li></ul>")
-            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
@@ -24,7 +24,7 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_GenericImportRetainsTableAdjacentHeadingOnlySection() {
         HtmlToExcelResult result = HtmlConversionDocument
             .Parse("<table><tr><td>Cell</td></tr></table><h1>Summary</h1>")
-            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet narrative = Assert.Single(workbook.Sheets, sheet => sheet.Name == "Imported");
@@ -35,7 +35,7 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_GenericImportIgnoresUnnamedEmptySectionBesideTable() {
         HtmlToExcelResult result = HtmlConversionDocument
             .Parse("<table><tr><td>Cell</td></tr></table><section></section>")
-            .ToExcelDocumentResult(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet table = Assert.Single(workbook.Sheets);
@@ -47,7 +47,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtml_RendersHeadingOnlySemanticSections() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<p>First slide</p><h1>Heading-only slide</h1>")
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(2, result.Slides);
@@ -60,7 +60,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtml_DoesNotRenderAnEmptyHeadingAsAnExtraSection() {
         HtmlToPowerPointResult result = HtmlConversionDocument
             .Parse("<p>Only slide</p><h1>  </h1>")
-            .ToPowerPointDocumentResult(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(1, result.Slides);
