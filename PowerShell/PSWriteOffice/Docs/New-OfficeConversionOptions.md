@@ -252,11 +252,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PublisherPdfOptions
-Shared PDF settings for recovered Publisher pages.
+### -PublisherLoadOptions
+Native Publisher decoding and projection limits.
 
 ```yaml
-Type: PdfCreateOptions
+Type: PublisherLoadOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -268,11 +268,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PublisherLoadOptions
-Native Publisher decoding and projection limits.
+### -PublisherPdfOptions
+Shared PDF settings for recovered Publisher pages.
 
 ```yaml
-Type: PublisherLoadOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

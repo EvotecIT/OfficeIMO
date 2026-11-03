@@ -43,7 +43,7 @@ PS> New-OfficePdf -Path .\Examples\Documents\RichFooter.pdf {
         param($footer)
         $label = New-OfficeTextRun -Text 'Confidential - page ' -Bold | ConvertTo-OfficePdfTextRun
         $pageStyle = New-OfficeTextRun -Italic | ConvertTo-OfficePdfTextRun
-        $null = $footer.Alignment([OfficeIMO.OfficeAlignment]::Right).Text({
+        $null = $footer.AlignRight().Text({
             param($text)
             $null = $text.Run($label).CurrentPage($pageStyle).Text(' of ').TotalPages($pageStyle)
         })
