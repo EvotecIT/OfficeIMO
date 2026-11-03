@@ -222,6 +222,101 @@ and resaves. An additional negative-zero control through `Cell.SetValue` returns
 positive zero on the original baseline and the candidate, including XLSX. That
 existing normalization is preserved rather than changing the cell-write contract.
 
+## Shared-string storage follow-up: 3 November 2026
+
+I profile the integrated implementation at `6c56a09f12` and compare it with
+`5e87f1f784`, using the same benchmark sources, pinned reader inputs and settings
+as the compatible cohort above. I retain two interleaved baseline/candidate
+pairs for all 36 Excel and CSV lanes. Rebuilt assemblies stamp the Git revision
+into their metadata; the evidence retains each actual assembly hash rather than
+claiming byte-identical harness DLLs.
+
+The read profiles still spend substantial time constructing owned strings and
+mapping typed rows. A restarted XLSB row plan can recognize a stable suffix after
+text lengths change, but its targeted runs do not show a repeatable material gain.
+A part-wide XML normalization flag likewise does not improve XLSX reads. I remove
+both experiments and their associated test extension. Complete binary discovery,
+used-range handling, XML validation and the existing read implementations remain
+unchanged.
+
+The binary write profiles show source-row materialization, boxed selector values,
+string generation, dictionary growth and shared-string storage. The direct XLS
+builder keeps both a dictionary and a growing entry list for the same unique
+strings. I use the dictionary's explicit numeric indexes to construct one exact
+entry array instead. Newer targets also insert through one dictionary lookup;
+netstandard2.0 and net472 retain ordinary dictionary operations. Entry order does
+not depend on dictionary enumeration order. Duplicate strings still contribute
+to the total count, while each distinct string has one entry.
+
+The [normalized evidence](excel-tabular-direct-sst-2026-11-03.json) includes twelve
+samples per launch, allocation, source and assembly identities, input hashes,
+package versions and the rejected read experiments. The table keeps both launches
+separate. Allocation uses the second pair; both pairs show the same XLS saving.
+
+| Lane | Library | Before → after ms, pair 1 | Before → after ms, pair 2 | Before → after MiB |
+|---|---|---:|---:|---:|
+| XLSX read | ExcelDataReader | 62.486 → 63.749 | 62.185 → 62.624 | 33.881 → 33.881 |
+| XLSX read | ExcelReader.NET | 6.322 → 6.370 | 6.667 → 6.406 | 2.217 → 2.217 |
+| XLSX read | OfficeIMO | 10.145 → 10.147 | 10.146 → 10.120 | 2.274 → 2.274 |
+| XLSX read | Sylvan | 29.660 → 29.140 | 29.418 → 29.130 | 2.546 → 2.546 |
+| XLSX parse | ExcelReader.NET | 8.256 → 7.773 | 8.241 → 7.856 | 4.506 → 4.506 |
+| XLSX parse | OfficeIMO | 10.963 → 10.977 | 10.966 → 11.065 | 4.562 → 4.562 |
+| XLSX write | ExcelReader.NET | 7.946 → 8.096 | 8.019 → 8.028 | 9.008 → 9.008 |
+| XLSX write | OfficeIMO | 9.857 → 9.902 | 9.939 → 9.867 | 9.066 → 9.066 |
+| XLSX write | SpreadCheetah | 11.924 → 11.944 | 11.645 → 12.185 | 11.135 → 11.135 |
+| XLSB read | ExcelDataReader | 23.578 → 23.053 | 23.660 → 22.601 | 18.702 → 18.702 |
+| XLSB read | ExcelReader.NET | 4.765 → 4.708 | 4.878 → 4.797 | 2.217 → 2.217 |
+| XLSB read | OfficeIMO | 6.539 → 6.359 | 6.246 → 6.106 | 2.285 → 2.285 |
+| XLSB read | Sylvan | 5.943 → 5.716 | 5.812 → 5.680 | 2.464 → 2.464 |
+| XLSB parse | ExcelReader.NET | 6.102 → 6.181 | 6.201 → 6.315 | 4.506 → 4.506 |
+| XLSB parse | OfficeIMO | 6.806 → 7.186 | 6.824 → 6.852 | 4.574 → 4.574 |
+| XLSB write | ExcelReader.NET | 5.486 → 5.436 | 5.404 → 5.438 | 8.829 → 8.829 |
+| XLSB write | OfficeIMO | 15.972 → 16.142 | 16.125 → 16.986 | 15.469 → 15.470 |
+| XLS read | ExcelDataReader | 43.766 → 43.492 | 48.549 → 42.723 | 50.960 → 50.960 |
+| XLS read | ExcelReader.NET | 4.816 → 4.619 | 4.706 → 4.654 | 3.762 → 3.761 |
+| XLS read | OfficeIMO | 5.215 → 5.464 | 5.680 → 5.224 | 3.269 → 3.268 |
+| XLS read | Sylvan | 5.071 → 5.083 | 5.647 → 5.162 | 2.716 → 2.716 |
+| XLS parse | ExcelReader.NET | 7.477 → 7.621 | 7.689 → 7.689 | 6.051 → 6.051 |
+| XLS parse | OfficeIMO | 6.620 → 6.739 | 6.656 → 6.647 | 5.558 → 5.558 |
+| XLS write | ExcelReader.NET | 4.241 → 4.258 | 4.098 → 4.218 | 17.074 → 17.074 |
+| XLS write | OfficeIMO | 18.315 → 16.641 | 17.949 → 16.423 | 30.072 → 28.836 |
+| CSV read | CsvHelper | 18.461 → 18.288 | 18.181 → 18.199 | 21.529 → 21.529 |
+| CSV read | Dataplat.Dbatools.Csv | 11.258 → 11.478 | 11.203 → 11.061 | 21.514 → 21.514 |
+| CSV read | ExcelReader.NET | 7.533 → 7.508 | 13.407 → 8.019 | 21.508 → 21.508 |
+| CSV read | OfficeIMO | 7.989 → 8.083 | 8.097 → 8.052 | 21.511 → 21.511 |
+| CSV read | Sep | 4.645 → 4.626 | 4.704 → 4.581 | 20.835 → 20.835 |
+| CSV read | Sylvan | 8.825 → 8.908 | 11.895 → 8.836 | 21.542 → 21.542 |
+| CSV parse | CsvHelper | 32.378 → 32.271 | 32.248 → 32.234 | 32.274 → 32.275 |
+| CSV parse | ExcelReader.NET | 14.007 → 13.793 | 14.230 → 14.009 | 16.779 → 16.779 |
+| CSV parse | OfficeIMO | 10.795 → 10.994 | 10.819 → 10.989 | 16.782 → 16.782 |
+| CSV write | ExcelReader.NET | 6.642 → 6.691 | 6.482 → 6.509 | 15.961 → 15.960 |
+| CSV write | OfficeIMO | 6.919 → 6.870 | 6.418 → 6.343 | 16.009 → 16.009 |
+
+XLS writes save 1.236 MiB per operation, about 4.1%, and their medians improve
+by 9.1% and 8.5% in the two pairs. The XLSB writer is unchanged; its medians move
+from 15.972 to 16.142 ms and from 16.125 to 16.986 ms. I do not attribute those
+movements, or the small read movements, to the shared-string change. The unchanged
+ExcelReader.NET CSV reader moves from 13.407 to 8.019 ms in the second pair,
+which demonstrates substantial launch variation even with serialized heavy work.
+
+These are owned-string read comparisons: ExcelReader.NET also allocates about
+2.217 MiB for the unique XLSX/XLSB names. The earlier few-kilobyte figures for
+span-only scans do not describe this materialized workload. OfficeIMO's matched
+raw reads allocate about 2.274 and 2.285 MiB respectively. Throughput parity is
+still incomplete. Source materialization and selector invocation order, boxed
+values, complete part validation, fixed reader schemas and binary compression
+remain the principal constraints described below.
+
+Excel builds for netstandard2.0, net8.0, net10.0 and net472 with no warnings or
+errors. The net10.0 osx-arm64 NativeAOT publish and smoke pass. Final net10.0
+correctness runs use `Category!=Performance`: Excel.Tests passes 7,751 with five
+opt-in/platform skips, including all twelve omitted-reference cases; CSV.Tests
+passes all 938. The hand-authored ZIP/XML fixture and grid loader are unchanged.
+An independent read-only review finds no actionable issues in the retained writer
+change. No additional test is needed for this storage change: existing binary
+format and reader-boundary checks cover its values, indexes and duplicate strings.
+The net472 result is a cross-build, without a Windows runtime run.
+
 ## Remaining costs and limits
 
 Parity is incomplete; the earlier cohorts still show gaps against ExcelReader.NET

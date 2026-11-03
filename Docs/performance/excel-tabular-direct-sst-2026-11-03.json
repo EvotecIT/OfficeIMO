@@ -1,0 +1,4104 @@
+{
+  "baseline_source": "6c56a09f12c20e1ea395231e08cba53dddb742ec",
+  "candidate_source": "5e87f1f784228d16983d306fc54769092fb19661",
+  "harness_identity": "Benchmark, Core and CSV sources are identical across revisions. Rebuilt DLL hashes differ because assembly metadata includes the source revision; all actual hashes are retained.",
+  "runtime_change": "Direct XLS shared-string storage: one dictionary with explicit indices and one exact-size entry array. Other engine and benchmark sources are unchanged.",
+  "date": "2026-11-03",
+  "host": {
+    "BenchmarkDotNetCaption": "BenchmarkDotNet",
+    "BenchmarkDotNetVersion": "0.15.8",
+    "OsVersion": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+    "ProcessorName": "Apple M4",
+    "PhysicalProcessorCount": 1,
+    "PhysicalCoreCount": 10,
+    "LogicalCoreCount": 10,
+    "RuntimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+    "Architecture": "Arm64",
+    "HasAttachedDebugger": false,
+    "HasRyuJit": true,
+    "Configuration": "RELEASE",
+    "DotNetCliVersion": "10.0.403",
+    "ChronometerFrequency": {
+      "Hertz": 1000000000
+    },
+    "HardwareTimerKind": "Unknown"
+  },
+  "configuration": {
+    "rows": 50000,
+    "warmup_count": 8,
+    "iteration_count": 12,
+    "invocation_count": 16,
+    "unroll_factor": 1,
+    "toolchain": "InProcessEmitToolchain",
+    "outliers": "DontRemove",
+    "launch_order": [
+      "before-1",
+      "after-1",
+      "before-2",
+      "after-2"
+    ],
+    "serialization": "Shared heavy-run lock; MSBuild at most two workers; no affinity; ordinary OS scheduling."
+  },
+  "packages": {
+    "ExcelReader.NET": {
+      "version": "7.3.4",
+      "license": "MIT",
+      "role": "comparison only"
+    },
+    "BenchmarkDotNet": {
+      "version": "0.15.8",
+      "license": "MIT",
+      "role": "benchmark harness"
+    },
+    "Sylvan.Data.Excel": {
+      "version": "0.5.8",
+      "license": "MIT",
+      "role": "comparison only",
+      "license_source": "license.txt in the installed package"
+    },
+    "ExcelDataReader": {
+      "version": "3.9.0",
+      "license": "MIT",
+      "role": "comparison only"
+    },
+    "SpreadCheetah": {
+      "version": "1.28.0",
+      "license": "MIT",
+      "role": "comparison only"
+    },
+    "Sylvan.Data.Csv": {
+      "version": "1.4.4",
+      "license": "MIT",
+      "role": "comparison only",
+      "license_source": "license.txt in the installed package"
+    },
+    "Sep": {
+      "version": "0.17.1",
+      "license": "MIT",
+      "role": "comparison only"
+    },
+    "CsvHelper": {
+      "version": "33.1.0",
+      "license": "MS-PL OR Apache-2.0",
+      "role": "comparison only"
+    },
+    "Dataplat.Dbatools.Csv": {
+      "version": "1.1.15",
+      "license": "MIT",
+      "role": "comparison only"
+    }
+  },
+  "inputs": [
+    {
+      "name": "generated-four-columns-50000.xlsx",
+      "sha256": "8ffa84c5ddf6a282b861c5a2bdaaf13c0a0d411cae5f3b178a6dcd2eaee60b44"
+    },
+    {
+      "name": "generated-four-columns-50000.xlsb",
+      "sha256": "870df6ba8ed20131d0811e5bbaf16a00967bd581da7ad962cb75fe9cfc628e5a"
+    },
+    {
+      "name": "generated-four-columns-50000.xls",
+      "sha256": "57a4d6f06964444b8e35ab1830bc3e0f1c3ac9a1fcdad003e74afe3d9a3baae2"
+    }
+  ],
+  "assemblies": {
+    "excel": {
+      "baseline": [
+        {
+          "name": "OfficeIMO.Excel.Benchmarks.dll",
+          "sha256": "feca14ee0b0cf2334bc322f097bbc56a2b4ad311dacf0ce7c694e3ab1510366b"
+        },
+        {
+          "name": "OfficeIMO.Excel.dll",
+          "sha256": "c2e7fff0fb2fe889f7b5f528c56fa6aae3485ef44ebf6535b16b915eacd0eda8"
+        },
+        {
+          "name": "OfficeIMO.Core.dll",
+          "sha256": "09c13fdd13eb8eeafdc11bf59a685752d2616ae5615941df6f8f53bfe1f8b104"
+        }
+      ],
+      "candidate": [
+        {
+          "name": "OfficeIMO.Excel.Benchmarks.dll",
+          "sha256": "9c3d6c4ab63ec7d6914a7d74fcf394b9bbcff09ee62f37db6b1a6be6aff3f57d"
+        },
+        {
+          "name": "OfficeIMO.Excel.dll",
+          "sha256": "1ed695f7ef699ada79742396035e73540350d921d82e3a4bd9fd06cc00bb8b4d"
+        },
+        {
+          "name": "OfficeIMO.Core.dll",
+          "sha256": "8fd71b909ebd57734ad1660feeba483d7bce24775bd72d5f8fb81919194966e2"
+        }
+      ]
+    },
+    "csv": {
+      "baseline": [
+        {
+          "name": "OfficeIMO.CSV.Benchmarks.dll",
+          "sha256": "dc7d1d0b70c0525962a3c52ea6bb50d43d3e819ed6bb199a4263ba06044ab9f8"
+        },
+        {
+          "name": "OfficeIMO.CSV.dll",
+          "sha256": "923bdbbd44bfcaf6d30268165116455a7234a30b03458104dcfa979a60a64bf5"
+        },
+        {
+          "name": "OfficeIMO.Core.dll",
+          "sha256": "09c13fdd13eb8eeafdc11bf59a685752d2616ae5615941df6f8f53bfe1f8b104"
+        }
+      ],
+      "candidate": [
+        {
+          "name": "OfficeIMO.CSV.Benchmarks.dll",
+          "sha256": "e0b1982c00cdafadc559e6d573f041bcf7b3733a794edb9075f98bd2ae8511bd"
+        },
+        {
+          "name": "OfficeIMO.CSV.dll",
+          "sha256": "90cd4c3dcb9e65116cfb5e71733fd94593bb9076e25c7776ef69064c908c5907"
+        },
+        {
+          "name": "OfficeIMO.Core.dll",
+          "sha256": "8fd71b909ebd57734ad1660feeba483d7bce24775bd72d5f8fb81919194966e2"
+        }
+      ]
+    }
+  },
+  "lanes": [
+    {
+      "format": "XLSX",
+      "operation": "read",
+      "library": "ExcelDataReader",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelDataReader_Read",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 62.4860455625,
+          "mean_ms": 62.84172634895834,
+          "samples_ns_per_operation": [
+            62320730.46875,
+            62831608.09374999,
+            62380399.78125,
+            62189175.78125,
+            63043858.09375001,
+            65936600.28125,
+            62853704.40625001,
+            62952428.34374999,
+            62445988.28125,
+            62414550.78125,
+            62526102.84375001,
+            62205569.03125
+          ],
+          "allocated_bytes": 35526432,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 63.74922003125,
+          "mean_ms": 63.7141853125,
+          "samples_ns_per_operation": [
+            63728289.06249999,
+            63922559.875,
+            63861169.25,
+            63811182.3125,
+            63868427.06250001,
+            63927070.31249999,
+            63770151.00000001,
+            63655765.62499999,
+            63712208.3125,
+            63480291.68750001,
+            63449640.5625,
+            63383468.68749999
+          ],
+          "allocated_bytes": 35526432,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 62.1849909375,
+          "mean_ms": 63.93528019270833,
+          "samples_ns_per_operation": [
+            61463872.375,
+            62272411.5,
+            61897544.3125,
+            62092143.25,
+            62126523.5,
+            72203901.0625,
+            69360968.75,
+            68220963.5625,
+            61510072.9375,
+            61189455.75,
+            62243458.375,
+            62642046.9375
+          ],
+          "allocated_bytes": 35526411,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 62.6237551875,
+          "mean_ms": 62.61478513020833,
+          "samples_ns_per_operation": [
+            62538591.12499999,
+            62442013,
+            62670580.6875,
+            62754572.87500001,
+            62723229.125,
+            62659856.75,
+            62559132.8125,
+            62400080.6875,
+            62393466.125,
+            62662088.5,
+            62986156.25,
+            62587653.625
+          ],
+          "allocated_bytes": 35526432,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSX",
+      "operation": "read",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Read",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 6.32152471875,
+          "mean_ms": 6.332116291666667,
+          "samples_ns_per_operation": [
+            6467143.1875,
+            6336648.375,
+            6337460.9375,
+            6335697.875,
+            6326289.0625,
+            6322039.0625,
+            6321010.375,
+            6318778.625,
+            6304419.25,
+            6302158.8125,
+            6294216.125,
+            6319533.8125
+          ],
+          "allocated_bytes": 2324470,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.37021090625,
+          "mean_ms": 6.374693322916667,
+          "samples_ns_per_operation": [
+            6369606.75,
+            6363260.375,
+            6392416.625,
+            6392046.8125,
+            6366960.875,
+            6371838.5,
+            6359414,
+            6398596.3125,
+            6381255.1875,
+            6370427.0625,
+            6360502.625,
+            6369994.75
+          ],
+          "allocated_bytes": 2324470,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 6.66655596875,
+          "mean_ms": 6.715293161458333,
+          "samples_ns_per_operation": [
+            6990476.5,
+            6646708.3125,
+            6637729.125,
+            6813830.75,
+            6617486.9375,
+            6566458.3125,
+            6635341.125,
+            6671994.75,
+            6698572.9375,
+            6971807.25,
+            6661627.5625,
+            6671484.375
+          ],
+          "allocated_bytes": 2324449,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.4058568125,
+          "mean_ms": 6.409163869791667,
+          "samples_ns_per_operation": [
+            6379632.8125,
+            6384315.125,
+            6400281.3125,
+            6428367.1875,
+            6407744.8125,
+            6437718.75,
+            6411684.9375,
+            6398315.125,
+            6420135.4375,
+            6403619.8125,
+            6434182.3125,
+            6403968.8125
+          ],
+          "allocated_bytes": 2324470,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSX",
+      "operation": "read",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Read",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 10.14543625,
+          "mean_ms": 10.183336416666666,
+          "samples_ns_per_operation": [
+            9825122.4375,
+            10058033.9375,
+            10123492.25,
+            10167380.25,
+            10076489.625,
+            10112380.25,
+            10055869.8125,
+            10246711,
+            10384497.4375,
+            10419028.6875,
+            10335682.3125,
+            10395349
+          ],
+          "allocated_bytes": 2383964,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 10.14675521875,
+          "mean_ms": 10.357543203125,
+          "samples_ns_per_operation": [
+            10108020.8125,
+            10150088.5625,
+            10117653.6875,
+            10234864.625,
+            10569763.0625,
+            10124791.6875,
+            12356898.4375,
+            10210000,
+            10152195.3125,
+            10143421.875,
+            10056588.5625,
+            10066231.8125
+          ],
+          "allocated_bytes": 2383964,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 10.14645703125,
+          "mean_ms": 10.216580526041666,
+          "samples_ns_per_operation": [
+            10257132.875,
+            10126888.0625,
+            10124169.3125,
+            10127312.5,
+            10128359.375,
+            10142820.3125,
+            10150093.75,
+            10120799.5,
+            10323830.75,
+            10450945.3125,
+            10407203.125,
+            10239411.4375
+          ],
+          "allocated_bytes": 2383964,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 10.12034634375,
+          "mean_ms": 10.127595682291666,
+          "samples_ns_per_operation": [
+            10132377.625,
+            10180049.4375,
+            10130947.875,
+            10140677.0625,
+            10112947.875,
+            10150768.1875,
+            10112148.4375,
+            10113911.4375,
+            10120812.5,
+            10115330.6875,
+            10119880.1875,
+            10101296.875
+          ],
+          "allocated_bytes": 2383964,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSX",
+      "operation": "read",
+      "library": "Sylvan",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "Sylvan_Read",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 29.66036459375,
+          "mean_ms": 29.672563796875,
+          "samples_ns_per_operation": [
+            29424923.15625,
+            29634798.15625,
+            29952683.59375,
+            29666654.96875,
+            29603964.84375,
+            29545782.53125,
+            29846058.59375,
+            29539899.78125,
+            29672587.21875,
+            29827720.03125,
+            29701618.46875,
+            29654074.21875
+          ],
+          "allocated_bytes": 2669508,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 29.1396055,
+          "mean_ms": 29.127120255208332,
+          "samples_ns_per_operation": [
+            29168536.4375,
+            29133648.4375,
+            29163846.375,
+            29145562.5625,
+            29309666.6875,
+            29039593.8125,
+            29060328.1875,
+            29060763.0625,
+            29173002.625,
+            29214244.8125,
+            28995799.5,
+            29060450.5625
+          ],
+          "allocated_bytes": 2669526,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 29.4181523125,
+          "mean_ms": 29.499354364583333,
+          "samples_ns_per_operation": [
+            28801684.875,
+            29432971.3125,
+            29588393.1875,
+            29241080.75,
+            30104499.9375,
+            29403333.3125,
+            29198911.4375,
+            29073648.4375,
+            29458130.1875,
+            29805848.9375,
+            30615231.75,
+            29268518.25
+          ],
+          "allocated_bytes": 2669526,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 29.1301888125,
+          "mean_ms": 29.126095270833332,
+          "samples_ns_per_operation": [
+            29152980.46875,
+            29135506.53125,
+            29197548.21875,
+            29124871.09375,
+            29206806.03125,
+            29185201.78125,
+            29110149.71875,
+            29118410.15625,
+            28952321.65625,
+            29068154.90625,
+            29154425.78125,
+            29106766.90625
+          ],
+          "allocated_bytes": 2669526,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSX",
+      "operation": "parse",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Parse",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 8.2562435,
+          "mean_ms": 8.375885859375,
+          "samples_ns_per_operation": [
+            8371934.937499999,
+            8319210.937500001,
+            8239354.1875,
+            8383744.812500001,
+            8091338.5625,
+            8219429.687500001,
+            8139987,
+            8201164.062499999,
+            8120601.5625,
+            8279296.875000001,
+            8273132.812499999,
+            9871434.875
+          ],
+          "allocated_bytes": 4724943,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 7.77307290625,
+          "mean_ms": 7.775250421875,
+          "samples_ns_per_operation": [
+            7768651,
+            7761880.1875,
+            7798632.8125,
+            7790216.125,
+            7787218.6875,
+            7774523.4375,
+            7749716.125,
+            7771622.375,
+            7761541.6875,
+            7767580.75,
+            7784927.0625,
+            7786494.8125
+          ],
+          "allocated_bytes": 4724943,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 8.240681,
+          "mean_ms": 8.2318583125,
+          "samples_ns_per_operation": [
+            8207007.812500001,
+            8197914.0625,
+            8214151.0625,
+            8241630.25,
+            8214442.749999999,
+            8244992.25,
+            8234908.874999999,
+            8241656.250000001,
+            8255299.499999999,
+            8241341.1875,
+            8240020.812499999,
+            8248934.9375
+          ],
+          "allocated_bytes": 4724943,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 7.85597396875,
+          "mean_ms": 7.858261958333333,
+          "samples_ns_per_operation": [
+            7880541.6875,
+            7843614.624999999,
+            7845744.8125,
+            7872825.5625,
+            7837039.062499999,
+            7838687.562499999,
+            7868596.375000001,
+            7857432.3125,
+            7902351.562500001,
+            7854515.625,
+            7859627.625,
+            7838166.687499999
+          ],
+          "allocated_bytes": 4724943,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSX",
+      "operation": "parse",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Parse",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 10.96265496875,
+          "mean_ms": 10.945145619791665,
+          "samples_ns_per_operation": [
+            11056734.375,
+            11193218.75,
+            10954583.375,
+            11114825.5,
+            11086075.5625,
+            11054432.3125,
+            10970726.5625,
+            10751304.6875,
+            10811453.125,
+            10787848.9375,
+            10866513,
+            10694031.25
+          ],
+          "allocated_bytes": 4783794,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 10.97692709375,
+          "mean_ms": 10.981057942708334,
+          "samples_ns_per_operation": [
+            10997579.46875,
+            10984967.46875,
+            11169649.71875,
+            11005029.90625,
+            10998730.46875,
+            10968886.71875,
+            10950558.59375,
+            11007678.40625,
+            10930313.78125,
+            10921503.90625,
+            10938048.15625,
+            10899748.71875
+          ],
+          "allocated_bytes": 4783794,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 10.96597921875,
+          "mean_ms": 10.99039434375,
+          "samples_ns_per_operation": [
+            10966200.5625,
+            10959880.25,
+            11051349,
+            11063960.9375,
+            11090447.9375,
+            10935484.4375,
+            10984776.0625,
+            11068338.5625,
+            10965757.875,
+            10947591.1875,
+            10940940.125,
+            10910005.1875
+          ],
+          "allocated_bytes": 4783794,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 11.06455990625,
+          "mean_ms": 11.06726346875,
+          "samples_ns_per_operation": [
+            11035635.4375,
+            11106002.625,
+            11138432.3125,
+            11070018.25,
+            11059101.5625,
+            11102500,
+            11056953.125,
+            11084549.5,
+            11096737,
+            11039200.5625,
+            11023737,
+            10994294.25
+          ],
+          "allocated_bytes": 4783794,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSX",
+      "operation": "write",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+      "method": "ExcelReaderNet",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 7.9461393125,
+          "mean_ms": 7.946727203125,
+          "samples_ns_per_operation": [
+            7973658.875,
+            7948888,
+            7929351.562499999,
+            7935299.4375,
+            7929466.125,
+            7946557.25,
+            7945721.374999999,
+            7949473.9375,
+            7965562.500000001,
+            7971309.874999999,
+            7940992.187499999,
+            7924445.312500001
+          ],
+          "allocated_bytes": 9445132,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 8.09571871875,
+          "mean_ms": 8.09478209375,
+          "samples_ns_per_operation": [
+            8107833.3125,
+            8097755.1875,
+            8106940.125,
+            8102781.1875,
+            8093682.25,
+            8079447.875,
+            8083846.312500001,
+            8123255.1875,
+            8118953.0625,
+            8085221.3125,
+            8056338.5625,
+            8081330.749999999
+          ],
+          "allocated_bytes": 9445154,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 8.01884375,
+          "mean_ms": 8.035794682291668,
+          "samples_ns_per_operation": [
+            8213513.000000001,
+            8029760.375000001,
+            8037734.3125,
+            8020752.625000001,
+            8040619.750000001,
+            8016934.875,
+            7992145.812500001,
+            8000817.6875,
+            8007643.25,
+            8016150.999999999,
+            7978273.437499999,
+            8075190.0625
+          ],
+          "allocated_bytes": 9445132,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 8.0283541875,
+          "mean_ms": 8.020858536458332,
+          "samples_ns_per_operation": [
+            8028994.8125,
+            8002351.625,
+            8027713.562499999,
+            7980367.249999999,
+            8037362,
+            8003653.6875,
+            8046093.749999999,
+            8010695.375000001,
+            8002789.125,
+            8039091.125000001,
+            8034950.499999999,
+            8036239.624999999
+          ],
+          "allocated_bytes": 9445154,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSX",
+      "operation": "write",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+      "method": "OfficeIMO",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 9.85721746875,
+          "mean_ms": 9.86403821875,
+          "samples_ns_per_operation": [
+            10008104.1875,
+            9814343.75,
+            9844291.6875,
+            9861455.75,
+            9879377.625,
+            9857112,
+            9857322.9375,
+            9830755.25,
+            9804322.9375,
+            9902617.25,
+            9817898.4375,
+            9890856.8125
+          ],
+          "allocated_bytes": 9506014,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 9.90176434375,
+          "mean_ms": 9.911824885416666,
+          "samples_ns_per_operation": [
+            10046234.375,
+            9905658.875,
+            9879046.875,
+            9935849,
+            9903549.5,
+            9891427.125,
+            9982210.9375,
+            9901734.4375,
+            9834466.1875,
+            9901794.25,
+            9864015.625,
+            9895911.4375
+          ],
+          "allocated_bytes": 9506038,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 9.9394270625,
+          "mean_ms": 9.941851979166666,
+          "samples_ns_per_operation": [
+            9976622.40625,
+            9994989.53125,
+            9941695.28125,
+            9973947.90625,
+            9958562.46875,
+            9937158.84375,
+            9923872.40625,
+            9909161.40625,
+            9928718.71875,
+            9897307.28125,
+            9960263.03125,
+            9899924.46875
+          ],
+          "allocated_bytes": 9506018,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 9.86737634375,
+          "mean_ms": 9.877092677083334,
+          "samples_ns_per_operation": [
+            9853300.78125,
+            9852699.21875,
+            9831027.34375,
+            9878621.09375,
+            9882368.53125,
+            9882824.21875,
+            9863108.09375,
+            9864985.71875,
+            9859477.84375,
+            9871123.71875,
+            9869766.96875,
+            10015808.59375
+          ],
+          "allocated_bytes": 9506038,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSX",
+      "operation": "write",
+      "library": "SpreadCheetah",
+      "benchmark_type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+      "method": "SpreadCheetah",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 11.92377475,
+          "mean_ms": 11.945442072916666,
+          "samples_ns_per_operation": [
+            11891781.25,
+            11878864.625,
+            11833403.625,
+            12120085.9375,
+            11941596.375,
+            12107684.9375,
+            11952934.9375,
+            11948481.8125,
+            11927929.6875,
+            11919382.8125,
+            11903539.0625,
+            11919619.8125
+          ],
+          "allocated_bytes": 11676163,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 11.94449875,
+          "mean_ms": 11.942158010416666,
+          "samples_ns_per_operation": [
+            11911440.125,
+            11991419.25,
+            11958286.5,
+            11946820.375,
+            11928330.75,
+            11886528.6875,
+            11960109.375,
+            11942177.125,
+            11930809.9375,
+            11960020.875,
+            11972989.5625,
+            11916963.5625
+          ],
+          "allocated_bytes": 11676184,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 11.645434875,
+          "mean_ms": 11.881054895833334,
+          "samples_ns_per_operation": [
+            11583520.84375,
+            14693174.46875,
+            11663533.84375,
+            11647575.46875,
+            11635723.96875,
+            11596906.28125,
+            11597356.78125,
+            11653729.15625,
+            11645236.96875,
+            11645632.78125,
+            11649752.59375,
+            11560515.59375
+          ],
+          "allocated_bytes": 11676163,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 12.18524865625,
+          "mean_ms": 12.222875614583334,
+          "samples_ns_per_operation": [
+            12140890.5625,
+            12254091.125,
+            12114651,
+            12196822.875,
+            12140658.8125,
+            12340367.1875,
+            12446807.25,
+            12367135.375,
+            12261424.4375,
+            12173674.4375,
+            12119669.25,
+            12118315.0625
+          ],
+          "allocated_bytes": 11676184,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSB",
+      "operation": "read",
+      "library": "ExcelDataReader",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelDataReader_Read",
+      "parameters": "Format=Xlsb&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 23.57779296875,
+          "mean_ms": 23.57130836458333,
+          "samples_ns_per_operation": [
+            23341416.6875,
+            23919692.6875,
+            23389380.1875,
+            23695205.6875,
+            23701627.5625,
+            23608023.4375,
+            23629747.375,
+            23772901,
+            23489796.875,
+            23412984.375,
+            23347362,
+            23547562.5
+          ],
+          "allocated_bytes": 19609952,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 23.053190125,
+          "mean_ms": 23.1062075,
+          "samples_ns_per_operation": [
+            22911161.5,
+            22892364.625,
+            22937958.375,
+            23187796.9375,
+            22943205.75,
+            23016453.125,
+            23264773.4375,
+            22854765.6875,
+            23089927.125,
+            23261221.375,
+            23530211,
+            23384651.0625
+          ],
+          "allocated_bytes": 19609952,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 23.65989190625,
+          "mean_ms": 23.620498255208332,
+          "samples_ns_per_operation": [
+            23632369.8125,
+            23547093.75,
+            23466377.625,
+            23687414,
+            23911559.875,
+            23816057.3125,
+            23726502.5625,
+            23842520.8125,
+            23748906.25,
+            23340828.125,
+            23415057.25,
+            23311291.6875
+          ],
+          "allocated_bytes": 19609952,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 22.60147396875,
+          "mean_ms": 22.62100740625,
+          "samples_ns_per_operation": [
+            22613867.1875,
+            22584244.8125,
+            22582234.4375,
+            22545010.4375,
+            22648518.25,
+            22629096.375,
+            22565968.75,
+            22578145.875,
+            22589080.75,
+            22825541.6875,
+            22644317.75,
+            22646062.5625
+          ],
+          "allocated_bytes": 19609952,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSB",
+      "operation": "read",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Read",
+      "parameters": "Format=Xlsb&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 4.76456115625,
+          "mean_ms": 4.771040557291667,
+          "samples_ns_per_operation": [
+            4749406.1875,
+            4759859.375,
+            4773343.6875,
+            4750750,
+            4764249.9375,
+            4741651,
+            4764872.375,
+            4788130.1875,
+            4806153.625,
+            4824684.875,
+            4804979.1875,
+            4724406.25
+          ],
+          "allocated_bytes": 2324190,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 4.7081770625,
+          "mean_ms": 4.72058590625,
+          "samples_ns_per_operation": [
+            4685903.625,
+            4699408.8125,
+            4692601.5,
+            4701611.9375,
+            4696666.625,
+            4708299.4375,
+            4708054.6875,
+            4711916.625,
+            4733718.75,
+            4745072.875,
+            4742283.8125,
+            4821492.1875
+          ],
+          "allocated_bytes": 2324190,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 4.8783659375,
+          "mean_ms": 4.881978098958333,
+          "samples_ns_per_operation": [
+            4888299.5,
+            4913497.375,
+            4909825.5,
+            4903528.6875,
+            4882218.8125,
+            4851580.75,
+            4874268.25,
+            4898250,
+            4874513.0625,
+            4867604.1875,
+            4867078.125,
+            4853072.9375
+          ],
+          "allocated_bytes": 2324190,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 4.79676565625,
+          "mean_ms": 4.796691869791667,
+          "samples_ns_per_operation": [
+            4799893.25,
+            4794283.875,
+            4805171.9375,
+            4802739.625,
+            4794257.875,
+            4794924.5,
+            4798606.8125,
+            4794601.5625,
+            4791143.25,
+            4784065.125,
+            4799414.0625,
+            4801200.5625
+          ],
+          "allocated_bytes": 2324190,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSB",
+      "operation": "read",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Read",
+      "parameters": "Format=Xlsb&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 6.53910546875,
+          "mean_ms": 6.659407130208333,
+          "samples_ns_per_operation": [
+            6503917.96875,
+            6855811.21875,
+            6782071.65625,
+            6350186.21875,
+            6838029.96875,
+            7331313.78125,
+            6474256.53125,
+            6574292.96875,
+            7022524.78125,
+            6374522.15625,
+            6483032.53125,
+            6322925.78125
+          ],
+          "allocated_bytes": 2395490,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.3589296875,
+          "mean_ms": 6.353680130208333,
+          "samples_ns_per_operation": [
+            6363186.15625,
+            6376832.03125,
+            6354673.21875,
+            6381300.78125,
+            6299522.15625,
+            6429847.65625,
+            6367865.90625,
+            6309306.03125,
+            6353045.59375,
+            6331535.15625,
+            6310503.90625,
+            6366542.96875
+          ],
+          "allocated_bytes": 2395456,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 6.245716125,
+          "mean_ms": 6.2693218125,
+          "samples_ns_per_operation": [
+            6198190.0625,
+            6239364.5625,
+            6240713.5625,
+            6246697.875,
+            6223989.5625,
+            6266752.5625,
+            6244734.375,
+            6227223.9375,
+            6271799.4375,
+            6367270.8125,
+            6367018.25,
+            6338106.75
+          ],
+          "allocated_bytes": 2395490,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.10575390625,
+          "mean_ms": 6.10578321875,
+          "samples_ns_per_operation": [
+            6105171.875,
+            6106335.9375,
+            6120093.8125,
+            6102802.125,
+            6112653.6875,
+            6095549.5,
+            6086867.1875,
+            6114786.4375,
+            6093731.8125,
+            6122278.625,
+            6108169.3125,
+            6100958.3125
+          ],
+          "allocated_bytes": 2395490,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSB",
+      "operation": "read",
+      "library": "Sylvan",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "Sylvan_Read",
+      "parameters": "Format=Xlsb&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 5.94343103125,
+          "mean_ms": 5.975098104166667,
+          "samples_ns_per_operation": [
+            6045591.125,
+            6264177.125,
+            5923559.9375,
+            5828987,
+            5871583.3125,
+            5828424.5,
+            6038083.3125,
+            5922645.875,
+            6123734.375,
+            5967528.625,
+            5934489.625,
+            5952372.4375
+          ],
+          "allocated_bytes": 2583090,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 5.71552084375,
+          "mean_ms": 5.717374802083333,
+          "samples_ns_per_operation": [
+            5642325.5625,
+            5675429.75,
+            5689424.5,
+            5653718.75,
+            5660054.6875,
+            5709656.25,
+            5740791.6875,
+            5721385.4375,
+            5805083.375,
+            5760817.6875,
+            5744979.1875,
+            5804830.75
+          ],
+          "allocated_bytes": 2583174,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 5.8119895625,
+          "mean_ms": 5.811986114583333,
+          "samples_ns_per_operation": [
+            5822467.40625,
+            5798240.90625,
+            5839157.53125,
+            5827194.03125,
+            5742003.90625,
+            5779985.65625,
+            5801511.71875,
+            5771587.28125,
+            5751404.90625,
+            5828295.59375,
+            5915282.59375,
+            5866701.84375
+          ],
+          "allocated_bytes": 2583174,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 5.680474,
+          "mean_ms": 5.693896286458333,
+          "samples_ns_per_operation": [
+            5810885.4375,
+            5732278.6875,
+            5684132.875,
+            5693817.6875,
+            5699601.5625,
+            5657247.375,
+            5698849,
+            5662205.75,
+            5658221.375,
+            5676557.3125,
+            5676815.125,
+            5676143.25
+          ],
+          "allocated_bytes": 2583174,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSB",
+      "operation": "parse",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Parse",
+      "parameters": "Format=Xlsb&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 6.10183596875,
+          "mean_ms": 6.101942296875,
+          "samples_ns_per_operation": [
+            6115796.875,
+            6101330.75,
+            6085143.25,
+            6104445.3125,
+            6118494.8125,
+            6115406.3125,
+            6092414.0625,
+            6096638.0625,
+            6102341.1875,
+            6095281.25,
+            6104549.5,
+            6091466.1875
+          ],
+          "allocated_bytes": 4724708,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.18062103125,
+          "mean_ms": 6.186130390625,
+          "samples_ns_per_operation": [
+            6227703.0625,
+            6190624.9375,
+            6175986.9375,
+            6183968.6875,
+            6176213.5,
+            6186882.75,
+            6172528.625,
+            6164588.5625,
+            6177273.375,
+            6219731.75,
+            6192122.375,
+            6165940.125
+          ],
+          "allocated_bytes": 4724726,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 6.2006536875,
+          "mean_ms": 6.184197958333333,
+          "samples_ns_per_operation": [
+            6190401.0625,
+            6214388.0625,
+            6236744.8125,
+            6220179.75,
+            6227817.75,
+            6217424.5,
+            6176109.4375,
+            6118177.125,
+            6146231.8125,
+            6146911.5,
+            6210906.3125,
+            6105083.375
+          ],
+          "allocated_bytes": 4724726,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.3152786875,
+          "mean_ms": 6.316754578125,
+          "samples_ns_per_operation": [
+            6312382.8125,
+            6311281.25,
+            6324234.4375,
+            6313942.75,
+            6321169.25,
+            6331703.1875,
+            6304500.0625,
+            6312234.375,
+            6310955.75,
+            6323192.6875,
+            6316614.625,
+            6318843.75
+          ],
+          "allocated_bytes": 4724726,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSB",
+      "operation": "parse",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Parse",
+      "parameters": "Format=Xlsb&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 6.80644009375,
+          "mean_ms": 6.8362018125,
+          "samples_ns_per_operation": [
+            6828481.75,
+            6871833.3125,
+            6801989.5625,
+            6795895.8125,
+            6761916.6875,
+            6963921.875,
+            6970502.625,
+            6865437.5,
+            6795763,
+            6810890.625,
+            6796934.875,
+            6770854.125
+          ],
+          "allocated_bytes": 4796338,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 7.186091125,
+          "mean_ms": 7.301186833333333,
+          "samples_ns_per_operation": [
+            7111442.6875,
+            7168825.5,
+            7266364.5625,
+            7922690.125,
+            7291643.25,
+            7727098.9375,
+            7698851.5,
+            7095653.625,
+            7055421.875,
+            7203356.75,
+            7077973.9375,
+            6994919.25
+          ],
+          "allocated_bytes": 4796212,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 6.82428259375,
+          "mean_ms": 6.8365351875,
+          "samples_ns_per_operation": [
+            6956434.9375,
+            6922213.5625,
+            6906203.125,
+            6877437.5625,
+            6794729.1875,
+            6768197.9375,
+            6842718.75,
+            6831593.8125,
+            6758768.25,
+            6768211,
+            6816971.375,
+            6794942.75
+          ],
+          "allocated_bytes": 4796338,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.85212634375,
+          "mean_ms": 6.85572875,
+          "samples_ns_per_operation": [
+            6924057.3125,
+            6881794.25,
+            6861281.25,
+            6905987,
+            6854692.75,
+            6874427.125,
+            6849559.9375,
+            6802575.5,
+            6832093.75,
+            6835234.375,
+            6847799.5,
+            6799242.25
+          ],
+          "allocated_bytes": 4796338,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSB",
+      "operation": "write",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedWriteBenchmarks",
+      "method": "ExcelReaderNet",
+      "parameters": "Format=Xlsb&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 5.48596871875,
+          "mean_ms": 5.50956246875,
+          "samples_ns_per_operation": [
+            5444666.625,
+            5621388,
+            5486497.375,
+            5448736.9375,
+            5474244.75,
+            5543390.625,
+            5596429.625,
+            5564151,
+            5513278.625,
+            5485440.0625,
+            5465346.3125,
+            5471179.6875
+          ],
+          "allocated_bytes": 9258116,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 5.4357551875,
+          "mean_ms": 5.440673822916667,
+          "samples_ns_per_operation": [
+            5435209.65625,
+            5471949.21875,
+            5431811.15625,
+            5435488.28125,
+            5450175.78125,
+            5421628.90625,
+            5434147.15625,
+            5438084.65625,
+            5438621.09375,
+            5461670.53125,
+            5433277.34375,
+            5436022.09375
+          ],
+          "allocated_bytes": 9258138,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 5.40366015625,
+          "mean_ms": 5.402569895833333,
+          "samples_ns_per_operation": [
+            5431039.0625,
+            5413460.9375,
+            5424434.9375,
+            5381617.25,
+            5392739.5625,
+            5402606.75,
+            5413112,
+            5411906.3125,
+            5404713.5625,
+            5383205.75,
+            5379731.8125,
+            5392270.8125
+          ],
+          "allocated_bytes": 9258116,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 5.438015625,
+          "mean_ms": 5.438575973958333,
+          "samples_ns_per_operation": [
+            5448052.125,
+            5424940.125,
+            5438645.875,
+            5437895.8125,
+            5438135.4375,
+            5452026.0625,
+            5439648.4375,
+            5446031.25,
+            5432104.1875,
+            5432401.0625,
+            5436510.4375,
+            5436520.875
+          ],
+          "allocated_bytes": 9258138,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLSB",
+      "operation": "write",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedWriteBenchmarks",
+      "method": "OfficeIMO",
+      "parameters": "Format=Xlsb&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 15.97220184375,
+          "mean_ms": 16.105009130208334,
+          "samples_ns_per_operation": [
+            16828414.0625,
+            16541106.8125,
+            15971627.625,
+            16206828.124999998,
+            15898356.8125,
+            16002302.0625,
+            15961523.437499998,
+            15907455.75,
+            15951151.0625,
+            15972776.062499998,
+            16067544.3125,
+            15951023.437499998
+          ],
+          "allocated_bytes": 16220392,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 16.14237890625,
+          "mean_ms": 16.1807485,
+          "samples_ns_per_operation": [
+            16120611.999999998,
+            16268096.375000002,
+            16128552.062500002,
+            16090343.749999998,
+            16374565.125,
+            16129320.3125,
+            16189088.562500002,
+            16328895.875000002,
+            16036388.0625,
+            16233315.125,
+            16155437.5,
+            16114367.25
+          ],
+          "allocated_bytes": 16220972,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 16.1247851875,
+          "mean_ms": 16.127221583333334,
+          "samples_ns_per_operation": [
+            16288921.875,
+            16058565.125,
+            16164687.5,
+            16013442.6875,
+            16113609.375,
+            16101234.375000002,
+            16158947.9375,
+            16143192.687500002,
+            16135961,
+            16249434.9375,
+            16058640.625000002,
+            16040020.875
+          ],
+          "allocated_bytes": 16220760,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 16.9863450625,
+          "mean_ms": 17.31461633854167,
+          "samples_ns_per_operation": [
+            17014078.1875,
+            16989679.75,
+            17023684.875,
+            16940447.9375,
+            16990599,
+            16861197.9375,
+            16987460.9375,
+            16985229.1875,
+            23081851.5625,
+            16555033.874999998,
+            16239718.749999998,
+            16106414.0625
+          ],
+          "allocated_bytes": 16220966,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLS",
+      "operation": "read",
+      "library": "ExcelDataReader",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelDataReader_Read",
+      "parameters": "Format=Xls&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 43.76601303125,
+          "mean_ms": 43.83107423958334,
+          "samples_ns_per_operation": [
+            44152718.8125,
+            44033315.125,
+            44583213.5625,
+            43655166.6875,
+            43961612,
+            43751687.5,
+            43634437.5,
+            43811601.5625,
+            43374307.3125,
+            43746294.3125,
+            43488197.9375,
+            43780338.5625
+          ],
+          "allocated_bytes": 53435454,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 43.4919049375,
+          "mean_ms": 44.4432050625,
+          "samples_ns_per_operation": [
+            43816385.375,
+            43090174.4375,
+            43059916.6875,
+            43380268.25,
+            43069085.875,
+            43520132.8125,
+            43483348.9375,
+            43718976.5625,
+            43402627.5625,
+            43500460.9375,
+            51180231.75,
+            48096851.5625
+          ],
+          "allocated_bytes": 53435360,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 48.54947525,
+          "mean_ms": 48.5849190625,
+          "samples_ns_per_operation": [
+            48519541.65625,
+            49227505.21875,
+            48579408.84375,
+            48649322.90625,
+            48346226.53125,
+            49258343.78125,
+            48975455.78125,
+            48668031.28125,
+            48141947.90625,
+            48435841.15625,
+            48447817.71875,
+            47769585.96875
+          ],
+          "allocated_bytes": 53435360,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 42.72315890625,
+          "mean_ms": 42.740886958333334,
+          "samples_ns_per_operation": [
+            42787757.875,
+            42816742.1875,
+            43178760.4375,
+            42735140.6875,
+            42596890.625,
+            42515179.6875,
+            42613388.0625,
+            42710291.6875,
+            42989898.4375,
+            42711177.125,
+            42789437.5,
+            42445979.1875
+          ],
+          "allocated_bytes": 53435412,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLS",
+      "operation": "read",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Read",
+      "parameters": "Format=Xls&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 4.816265625,
+          "mean_ms": 4.813070947916667,
+          "samples_ns_per_operation": [
+            4731195.3125,
+            4725216.125,
+            4709041.625,
+            4869125,
+            4853278.625,
+            4979408.8125,
+            4807395.8125,
+            4814263,
+            4818268.25,
+            4839257.8125,
+            4754505.1875,
+            4855895.8125
+          ],
+          "allocated_bytes": 3943898,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 4.6191458125,
+          "mean_ms": 4.615711989583333,
+          "samples_ns_per_operation": [
+            4619052.0625,
+            4660200.5,
+            4627502.5625,
+            4662283.8125,
+            4619239.5625,
+            4585151,
+            4564390.5625,
+            4599104.125,
+            4571231.75,
+            4640528.625,
+            4627244.75,
+            4612614.5625
+          ],
+          "allocated_bytes": 3944231,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 4.70626825,
+          "mean_ms": 4.712279317708333,
+          "samples_ns_per_operation": [
+            4743408.875,
+            4692153.625,
+            4617760.4375,
+            4629901.0625,
+            4720382.875,
+            4678057.3125,
+            4783346.375,
+            4764526.0625,
+            4826544.3125,
+            4772903.6875,
+            4655786.4375,
+            4662580.75
+          ],
+          "allocated_bytes": 3944231,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 4.65404040625,
+          "mean_ms": 4.668952932291667,
+          "samples_ns_per_operation": [
+            4667656.25,
+            4846614.625,
+            4686177.125,
+            4698218.75,
+            4625497.375,
+            4660588.5625,
+            4683299.5,
+            4634380.25,
+            4625390.625,
+            4611367.25,
+            4640752.625,
+            4647492.25
+          ],
+          "allocated_bytes": 3944084,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLS",
+      "operation": "read",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Read",
+      "parameters": "Format=Xls&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 5.21538021875,
+          "mean_ms": 5.214190098958333,
+          "samples_ns_per_operation": [
+            5199764.28125,
+            5220347.65625,
+            5231808.59375,
+            5221618.46875,
+            5236529.96875,
+            5200272.09375,
+            5190670.59375,
+            5197316.40625,
+            5245701.84375,
+            5181561.15625,
+            5234277.34375,
+            5210412.78125
+          ],
+          "allocated_bytes": 3427442,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 5.4637291875,
+          "mean_ms": 5.454955953125,
+          "samples_ns_per_operation": [
+            5466730.46875,
+            5467266.96875,
+            5462516.96875,
+            5391683.59375,
+            5394381.53125,
+            5399069.03125,
+            5464941.40625,
+            5550753.90625,
+            5506032.53125,
+            5439170.59375,
+            5446563.78125,
+            5470360.65625
+          ],
+          "allocated_bytes": 3427440,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 5.6796224375,
+          "mean_ms": 5.688008697916667,
+          "samples_ns_per_operation": [
+            5648000,
+            5757000.0625,
+            5799343.75,
+            5770487,
+            5715822.9375,
+            5682171.875,
+            5679187.5625,
+            5646867.1875,
+            5626796.875,
+            5592114.625,
+            5680057.3125,
+            5658255.1875
+          ],
+          "allocated_bytes": 3427421,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 5.22426040625,
+          "mean_ms": 5.2426588489583335,
+          "samples_ns_per_operation": [
+            5424566.40625,
+            5274990.90625,
+            5231753.90625,
+            5239071.59375,
+            5227798.15625,
+            5214834.59375,
+            5228863.28125,
+            5212949.21875,
+            5211816.40625,
+            5220722.65625,
+            5205563.78125,
+            5218975.28125
+          ],
+          "allocated_bytes": 3427252,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLS",
+      "operation": "read",
+      "library": "Sylvan",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "Sylvan_Read",
+      "parameters": "Format=Xls&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 5.07120571875,
+          "mean_ms": 5.069018645833333,
+          "samples_ns_per_operation": [
+            5085195.3125,
+            5050140.625,
+            5046562.4375,
+            5083458.3125,
+            5072427.0625,
+            5067093.75,
+            5074476.5625,
+            5061583.3125,
+            5075809.875,
+            5069984.375,
+            5066598.9375,
+            5074893.1875
+          ],
+          "allocated_bytes": 2848189,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 5.0827681875,
+          "mean_ms": 5.094505833333333,
+          "samples_ns_per_operation": [
+            5124916.6875,
+            5097130.1875,
+            5082346.3125,
+            5082736.9375,
+            5082799.4375,
+            5067510.4375,
+            5075984.3125,
+            5099856.75,
+            5186812.5,
+            5074481.75,
+            5071963.5,
+            5087531.1875
+          ],
+          "allocated_bytes": 2848158,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 5.646890625,
+          "mean_ms": 5.676937489583333,
+          "samples_ns_per_operation": [
+            5411015.65625,
+            5483195.28125,
+            5943122.40625,
+            5445124.96875,
+            5790682.28125,
+            5876335.90625,
+            6003617.15625,
+            5775786.46875,
+            5560479.15625,
+            5593361.96875,
+            5700419.28125,
+            5540109.34375
+          ],
+          "allocated_bytes": 2848448,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 5.16236459375,
+          "mean_ms": 5.16002975,
+          "samples_ns_per_operation": [
+            5099520.8125,
+            5170669.25,
+            5191773.4375,
+            5195044.25,
+            5172403.6875,
+            5194109.4375,
+            5154059.9375,
+            5153559.9375,
+            5142349,
+            5133010.4375,
+            5142270.875,
+            5171585.9375
+          ],
+          "allocated_bytes": 2848074,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLS",
+      "operation": "parse",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Parse",
+      "parameters": "Format=Xls&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 7.4773828125,
+          "mean_ms": 7.497352447916667,
+          "samples_ns_per_operation": [
+            7445377.625,
+            7449429.6875,
+            7581096.375,
+            7646265.625,
+            7518122.4375,
+            7436875.0625,
+            7473473.9375,
+            7463919.3125,
+            7514356.75,
+            7515135.4375,
+            7481291.6875,
+            7442885.4375
+          ],
+          "allocated_bytes": 6345248,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 7.62135415625,
+          "mean_ms": 7.6171696875,
+          "samples_ns_per_operation": [
+            7548434.875,
+            7857434.875,
+            7774669.25,
+            7479044.25,
+            7547541.625,
+            7667966.125,
+            7631382.8125,
+            7695179.6875,
+            7670268.1875,
+            7432031.25,
+            7611325.5,
+            7490757.8125
+          ],
+          "allocated_bytes": 6345248,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 7.689033875,
+          "mean_ms": 7.70173634375,
+          "samples_ns_per_operation": [
+            7741546.9375,
+            7858080.75,
+            7667695.3125,
+            7677669.25,
+            7686619.8125,
+            7650572.9375,
+            7653750,
+            7691447.9375,
+            7718252.625,
+            7677625,
+            7698158.875,
+            7699416.6875
+          ],
+          "allocated_bytes": 6345248,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 7.68948440625,
+          "mean_ms": 7.688836614583333,
+          "samples_ns_per_operation": [
+            7719906.25,
+            7682169.3125,
+            7701080.75,
+            7679453.1875,
+            7666062.5,
+            7663229.1875,
+            7650062.5,
+            7706924.5,
+            7696799.5,
+            7713786.5,
+            7731184.9375,
+            7655380.25
+          ],
+          "allocated_bytes": 6344748,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLS",
+      "operation": "parse",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Parse",
+      "parameters": "Format=Xls&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 6.62017059375,
+          "mean_ms": 6.630573354166667,
+          "samples_ns_per_operation": [
+            6677238.28125,
+            6617378.90625,
+            6618256.53125,
+            6607259.09375,
+            6683628.90625,
+            6680949.21875,
+            6656019.53125,
+            6577108.09375,
+            6622084.65625,
+            6604850.28125,
+            6595029.90625,
+            6627076.84375
+          ],
+          "allocated_bytes": 5827768,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.73898175,
+          "mean_ms": 7.024604583333333,
+          "samples_ns_per_operation": [
+            6701914.0625,
+            6693273.4375,
+            9656013,
+            6757059.875,
+            7107947.875,
+            6933348.9375,
+            6731401,
+            6658096.375,
+            6718770.8125,
+            6741093.75,
+            6736869.75,
+            6859466.125
+          ],
+          "allocated_bytes": 5827768,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 6.65592315625,
+          "mean_ms": 6.660817473958333,
+          "samples_ns_per_operation": [
+            6642335.9375,
+            6618445.3125,
+            6648552.0625,
+            6638645.8125,
+            6644237,
+            6663294.25,
+            6672630.1875,
+            6645513,
+            6723138,
+            6672596.3125,
+            6669182.25,
+            6691239.5625
+          ],
+          "allocated_bytes": 5827748,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.646971375,
+          "mean_ms": 6.668995239583333,
+          "samples_ns_per_operation": [
+            6624658.875,
+            6616289.0625,
+            6662604.1875,
+            6612067.6875,
+            6637916.6875,
+            6644174.5,
+            6764635.4375,
+            6634304.6875,
+            6649768.25,
+            6672317.75,
+            6810166.6875,
+            6699039.0625
+          ],
+          "allocated_bytes": 5827768,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLS",
+      "operation": "write",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "ExcelReaderGeneratedWriteBenchmarks",
+      "method": "ExcelReaderNet",
+      "parameters": "Format=Xls&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 4.24148309375,
+          "mean_ms": 4.302636739583333,
+          "samples_ns_per_operation": [
+            4592489.625,
+            4486190.125,
+            4303895.8125,
+            4463609.375,
+            4277307.3125,
+            4243429.6875,
+            4187692.75,
+            4224442.75,
+            4239536.5,
+            4209505.1875,
+            4203500.0625,
+            4200041.6875
+          ],
+          "allocated_bytes": 17903299,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 4.25790884375,
+          "mean_ms": 4.315898671875,
+          "samples_ns_per_operation": [
+            4355692.75,
+            4238049.5,
+            4308023.4375,
+            4271268.25,
+            4250997.4375,
+            4230625.0625,
+            4259552.0625,
+            4253539.125,
+            4248125,
+            4278218.75,
+            4256265.625,
+            4840427.0625
+          ],
+          "allocated_bytes": 17903360,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 4.09779425,
+          "mean_ms": 4.1121538385416665,
+          "samples_ns_per_operation": [
+            4176549.5,
+            4104914.0624999995,
+            4090674.4375,
+            4073041.6250000005,
+            4077195.25,
+            4074052.0625,
+            4132593.7500000005,
+            4110291.6250000005,
+            4071611.9375,
+            4067648.4375,
+            4108177.0624999995,
+            4259096.3125
+          ],
+          "allocated_bytes": 17903299,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 4.2175703125,
+          "mean_ms": 4.211534296875,
+          "samples_ns_per_operation": [
+            4248697.9375,
+            4226601.5625,
+            4218070.3125,
+            4217429.6875,
+            4170242.1875,
+            4198494.8125,
+            4189921.8750000005,
+            4227213.5625,
+            4195565.125,
+            4217710.9375,
+            4208625,
+            4219838.5625
+          ],
+          "allocated_bytes": 17903362,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "XLS",
+      "operation": "write",
+      "library": "OfficeIMO",
+      "benchmark_type": "ExcelReaderGeneratedWriteBenchmarks",
+      "method": "OfficeIMO",
+      "parameters": "Format=Xls&RowCount=50000",
+      "pair_1": {
+        "before": {
+          "median_ms": 18.31519534375,
+          "mean_ms": 19.135176671875,
+          "samples_ns_per_operation": [
+            21135531.25,
+            20980729.1875,
+            21493599,
+            20748960.9375,
+            17005635.4375,
+            19101638.0625,
+            18360200.5625,
+            18270190.125,
+            18254817.75,
+            18175984.4375,
+            18127984.375,
+            17966848.9375
+          ],
+          "allocated_bytes": 31532880,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 16.64121228125,
+          "mean_ms": 16.732989385416666,
+          "samples_ns_per_operation": [
+            17262533.875,
+            16521463.5625,
+            16546640.687500002,
+            16437791.6875,
+            16660062.5625,
+            17075669.25,
+            16894911.5,
+            16894104.1875,
+            16622362,
+            16806138,
+            16552406.250000002,
+            16521789.0625
+          ],
+          "allocated_bytes": 30236558,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 17.94899996875,
+          "mean_ms": 17.853168588541667,
+          "samples_ns_per_operation": [
+            18391221.3125,
+            18127382.8125,
+            17841419.25,
+            18400651,
+            17018421.875,
+            18458499.9375,
+            17105562.4375,
+            17939369.75,
+            17958630.1875,
+            17819554.6875,
+            16870947.875,
+            18306361.9375
+          ],
+          "allocated_bytes": 31532897,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 16.4226106875,
+          "mean_ms": 16.464382614583332,
+          "samples_ns_per_operation": [
+            16302346.375000002,
+            16412031.25,
+            16859846.375,
+            16329299.5,
+            16395911.500000002,
+            16328960.9375,
+            16459755.249999998,
+            16453234.375,
+            16559372.375000002,
+            16644851.625,
+            16433190.125,
+            16393791.687500002
+          ],
+          "allocated_bytes": 30236545,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "read",
+      "library": "CsvHelper",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "CsvHelper_Read",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 18.460622375,
+          "mean_ms": 18.46136588541667,
+          "samples_ns_per_operation": [
+            18459328.09375,
+            18447932.28125,
+            18525039.03125,
+            18395927.09375,
+            18485177.09375,
+            18476945.34375,
+            18450531.28125,
+            18400419.28125,
+            18539955.71875,
+            18422494.78125,
+            18470723.96875,
+            18461916.65625
+          ],
+          "allocated_bytes": 22574886,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 18.2875416875,
+          "mean_ms": 18.295969395833332,
+          "samples_ns_per_operation": [
+            18463190.0625,
+            18409640.625,
+            18246609.375,
+            18147643.25,
+            18272734.375,
+            18357593.75,
+            18317903.625,
+            18216635.375,
+            18212468.75,
+            18283200.5625,
+            18332130.1875,
+            18291882.8125
+          ],
+          "allocated_bytes": 22574886,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 18.18088021875,
+          "mean_ms": 18.209770182291667,
+          "samples_ns_per_operation": [
+            18229292.96875,
+            18228305.96875,
+            18162579.40625,
+            18181842.46875,
+            18191946.65625,
+            18179714.84375,
+            18162082.03125,
+            18179917.96875,
+            18126415.34375,
+            18161847.65625,
+            18324834.65625,
+            18388462.21875
+          ],
+          "allocated_bytes": 22574904,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 18.199384125,
+          "mean_ms": 18.2157760625,
+          "samples_ns_per_operation": [
+            18201058.59375,
+            18215944.03125,
+            18226832.09375,
+            18249459.65625,
+            18232527.34375,
+            18345029.96875,
+            18196889.34375,
+            18196772.15625,
+            18197709.65625,
+            18176798.21875,
+            18180467.46875,
+            18169824.21875
+          ],
+          "allocated_bytes": 22574886,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "read",
+      "library": "Dataplat.Dbatools.Csv",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "Dataplat_Read",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 11.2584635625,
+          "mean_ms": 11.260076177083334,
+          "samples_ns_per_operation": [
+            11301727.84375,
+            11272001.28125,
+            11252212.28125,
+            11326196.65625,
+            11264714.84375,
+            11213488.28125,
+            11320230.46875,
+            11249548.21875,
+            11224850.28125,
+            11213587.21875,
+            11202652.34375,
+            11279704.40625
+          ],
+          "allocated_bytes": 22558720,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 11.47795703125,
+          "mean_ms": 11.645305338541666,
+          "samples_ns_per_operation": [
+            11135515.625,
+            12125247.4375,
+            11024721.375,
+            12054424.5,
+            11147138,
+            11200768.1875,
+            13329737,
+            11437125,
+            11468000,
+            11832270.8125,
+            11487914.0625,
+            11500802.0625
+          ],
+          "allocated_bytes": 22558720,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 11.20348828125,
+          "mean_ms": 11.201603536458334,
+          "samples_ns_per_operation": [
+            11220303.375,
+            11214285.1875,
+            11228897.1875,
+            11217738.3125,
+            11173324.25,
+            11210803.375,
+            11189540.375,
+            11215035.1875,
+            11189181,
+            11170860.6875,
+            11193100.3125,
+            11196173.1875
+          ],
+          "allocated_bytes": 22558702,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 11.0608763125,
+          "mean_ms": 11.060287348958333,
+          "samples_ns_per_operation": [
+            11004821.625,
+            11050496.125,
+            11073029.9375,
+            11059837.25,
+            11062043,
+            11061915.375,
+            11071868.5,
+            11102162.8125,
+            11059425.8125,
+            11056050.8125,
+            11056243.5,
+            11065553.4375
+          ],
+          "allocated_bytes": 22558720,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "read",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Read",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 7.5325051875,
+          "mean_ms": 7.546262130208333,
+          "samples_ns_per_operation": [
+            7533768.21875,
+            7717729.15625,
+            7531242.15625,
+            7554744.78125,
+            7508414.03125,
+            7543322.90625,
+            7508752.59375,
+            7529919.21875,
+            7538872.34375,
+            7555403.65625,
+            7519679.65625,
+            7513296.84375
+          ],
+          "allocated_bytes": 22552438,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 7.507716125,
+          "mean_ms": 8.135365666666667,
+          "samples_ns_per_operation": [
+            10574147.125,
+            11782214.875,
+            7552089.8125,
+            7511733.0625,
+            7502222.6875,
+            7514217.4375,
+            7484217.4375,
+            7488975.25,
+            7490285.1875,
+            7722850.25,
+            7497735.6875,
+            7503699.1875
+          ],
+          "allocated_bytes": 22552438,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 13.4068385,
+          "mean_ms": 13.114788171875,
+          "samples_ns_per_operation": [
+            10864455.75,
+            10407083.3125,
+            13938151,
+            15874705.75,
+            11622249.9375,
+            8696239.5625,
+            12875526,
+            14672778.625,
+            15284940.0625,
+            12229927.0625,
+            15600494.8125,
+            15310906.1875
+          ],
+          "allocated_bytes": 22552438,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 8.019239625,
+          "mean_ms": 8.033790838541666,
+          "samples_ns_per_operation": [
+            8242632.875000001,
+            8021096.437499999,
+            8021971.375,
+            8026648.4375,
+            7986278.6875,
+            8017375.0625,
+            8017382.812500001,
+            8025609.437500001,
+            8008015.687499999,
+            8011770.875000001,
+            8022757.812499999,
+            8003950.5625
+          ],
+          "allocated_bytes": 22552372,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "read",
+      "library": "OfficeIMO",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Read",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 7.98947265625,
+          "mean_ms": 7.9917615,
+          "samples_ns_per_operation": [
+            7970279.937500001,
+            7987738.3125,
+            7954933.5625,
+            7991206.999999999,
+            7993389.312500001,
+            7970230.500000001,
+            7947519.500000001,
+            8059543,
+            8009556,
+            8010069.062500001,
+            8030316.375,
+            7976355.4375
+          ],
+          "allocated_bytes": 22555888,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 8.0831549375,
+          "mean_ms": 8.085568552083332,
+          "samples_ns_per_operation": [
+            8086417.937499999,
+            8160925.75,
+            8094876.3125,
+            8042537.75,
+            8079891.937499999,
+            8122920.5,
+            8070704.437500001,
+            8067933.5625,
+            8059470,
+            8087464.8125,
+            8114332,
+            8039347.625
+          ],
+          "allocated_bytes": 22555888,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 8.0965403125,
+          "mean_ms": 8.110452671875,
+          "samples_ns_per_operation": [
+            8081944.03125,
+            8102394.46875,
+            8197209.656249999,
+            8176555.968750001,
+            8079587.21875,
+            8077595.031250001,
+            8110204.40625,
+            8141524.718749999,
+            8066548.156250001,
+            8115608.031250001,
+            8090686.156250001,
+            8085574.218750001
+          ],
+          "allocated_bytes": 22555888,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 8.05208984375,
+          "mean_ms": 8.047699651041667,
+          "samples_ns_per_operation": [
+            8055776.000000001,
+            8047606.75,
+            8063908.875,
+            8062898.437500001,
+            8053372.375,
+            8050807.3125,
+            8060700.500000001,
+            8061083.3125,
+            8029807.3125,
+            7998528.687499999,
+            8043187.5,
+            8044718.749999999
+          ],
+          "allocated_bytes": 22555888,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "read",
+      "library": "Sep",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "Sep_Read",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 4.64477734375,
+          "mean_ms": 4.648590489583333,
+          "samples_ns_per_operation": [
+            4669829.46875,
+            4700566.40625,
+            4680381.46875,
+            4620683.59375,
+            4645035.15625,
+            4682930.96875,
+            4611730.46875,
+            4613029.90625,
+            4644519.53125,
+            4626266.90625,
+            4649248.71875,
+            4638863.28125
+          ],
+          "allocated_bytes": 21847198,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 4.625645875,
+          "mean_ms": 4.623958348958333,
+          "samples_ns_per_operation": [
+            4613083.3125,
+            4620059.9375,
+            4646695.375,
+            4649580.75,
+            4627466.125,
+            4590864.5625,
+            4613330.75,
+            4610692.6875,
+            4631752.625,
+            4632682.3125,
+            4626010.4375,
+            4625281.3125
+          ],
+          "allocated_bytes": 21847198,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 4.70354946875,
+          "mean_ms": 4.694321171875,
+          "samples_ns_per_operation": [
+            4707102.84375,
+            4709910.15625,
+            4712391.90625,
+            4719441.40625,
+            4717264.34375,
+            4664641.90625,
+            4640188.78125,
+            4699022.15625,
+            4676134.09375,
+            4699996.09375,
+            4709589.84375,
+            4676170.53125
+          ],
+          "allocated_bytes": 21847198,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 4.5813828125,
+          "mean_ms": 4.601221557291667,
+          "samples_ns_per_operation": [
+            4804234.375,
+            4554492.1875,
+            4583367.1875,
+            4592981.75,
+            4612117.125,
+            4619856.75,
+            4550309.875,
+            4620213.5,
+            4565130.1875,
+            4570541.6875,
+            4562015.625,
+            4579398.4375
+          ],
+          "allocated_bytes": 21847198,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "read",
+      "library": "Sylvan",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "Sylvan_Read",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 8.8248503125,
+          "mean_ms": 8.823850713541667,
+          "samples_ns_per_operation": [
+            8870112,
+            8861291.6875,
+            8835091.1875,
+            8844429.75,
+            8747994.8125,
+            8759283.875,
+            8761648.4375,
+            8756325.5,
+            8758351.5625,
+            8814609.4375,
+            8927007.8125,
+            8950062.5
+          ],
+          "allocated_bytes": 22588648,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 8.9084036875,
+          "mean_ms": 8.89124178125,
+          "samples_ns_per_operation": [
+            8921550.84375,
+            8930261.71875,
+            8899631.53125,
+            8944248.71875,
+            8839373.71875,
+            8852253.90625,
+            8946472.71875,
+            8806345.03125,
+            8819694.03125,
+            8917175.84375,
+            8875592.46875,
+            8942300.84375
+          ],
+          "allocated_bytes": 22588630,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 11.8947865,
+          "mean_ms": 12.349333807291666,
+          "samples_ns_per_operation": [
+            12513225.28125,
+            9366243.53125,
+            11276347.71875,
+            13944334.71875,
+            14585779.96875,
+            13239566.46875,
+            11050863.34375,
+            10927306.03125,
+            14849311.21875,
+            15047141.96875,
+            11080136.71875,
+            10311748.71875
+          ],
+          "allocated_bytes": 22588648,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 8.835839875,
+          "mean_ms": 8.884021088541665,
+          "samples_ns_per_operation": [
+            9244666.71875,
+            8929835.96875,
+            8909752.65625,
+            8890973.96875,
+            8834656.28125,
+            8796401.09375,
+            8803687.53125,
+            8837023.46875,
+            8829859.40625,
+            8900908.90625,
+            8812828.15625,
+            8817658.90625
+          ],
+          "allocated_bytes": 22588630,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "parse",
+      "library": "CsvHelper",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "CsvHelper_Parse",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 32.378477875,
+          "mean_ms": 32.539347015625,
+          "samples_ns_per_operation": [
+            32653906.281250004,
+            32296281.218749996,
+            32882734.40625,
+            32357708.343749996,
+            32357416.656250004,
+            32399247.406250004,
+            32261309.906249996,
+            32311984.406249996,
+            32310716.15625,
+            32679442.718749996,
+            32873057.281249996,
+            33088359.40625
+          ],
+          "allocated_bytes": 33842318,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 32.27146225,
+          "mean_ms": 32.77286740625,
+          "samples_ns_per_operation": [
+            33585546.875,
+            33619505.1875,
+            35835299.5,
+            32363302.0625,
+            32261763.000000004,
+            32279796.875,
+            32327458.375000004,
+            32263127.625000004,
+            32170114.5625,
+            32146617.1875,
+            32182924.499999996,
+            32238953.125
+          ],
+          "allocated_bytes": 33842022,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 32.2477695,
+          "mean_ms": 32.252710479166666,
+          "samples_ns_per_operation": [
+            32391071.593750004,
+            32226665.343749996,
+            32292667.968750004,
+            32252558.53125,
+            32202061.15625,
+            32298287.71875,
+            32333412.71875,
+            32243308.531250004,
+            32219652.343749996,
+            32161819.03125,
+            32158790.343750004,
+            32252230.46875
+          ],
+          "allocated_bytes": 33842040,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 32.2335794375,
+          "mean_ms": 32.28721940104167,
+          "samples_ns_per_operation": [
+            32631169.25,
+            32394966.187499996,
+            32309921.875,
+            32165604.1875,
+            32200033.874999996,
+            32467994.75,
+            32310307.25,
+            32267125,
+            32173135.4375,
+            32148843.75,
+            32197250.000000004,
+            32180281.250000004
+          ],
+          "allocated_bytes": 33842376,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "parse",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Parse",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 14.00671878125,
+          "mean_ms": 13.999318171875,
+          "samples_ns_per_operation": [
+            14009880.25,
+            14031044.3125,
+            13939968.75,
+            13971859.4375,
+            14063296.9375,
+            14003557.3125,
+            13972781.25,
+            13886442.75,
+            13875276.0625,
+            14093947.9375,
+            14022757.8125,
+            14121005.25
+          ],
+          "allocated_bytes": 17593974,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 13.79280728125,
+          "mean_ms": 14.115955265625,
+          "samples_ns_per_operation": [
+            13790272.125,
+            13742230.4375,
+            13708511.6875,
+            13696186.1875,
+            13728930.9375,
+            13744045.5625,
+            13849199.1875,
+            14143975.25,
+            17534097.625,
+            13819795.5,
+            13838876.25,
+            13795342.4375
+          ],
+          "allocated_bytes": 17593992,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 14.2302096875,
+          "mean_ms": 14.256417140625,
+          "samples_ns_per_operation": [
+            14176938.84375,
+            14313157.53125,
+            14256602.90625,
+            14226480.53125,
+            14440181.03125,
+            14211707.03125,
+            14230355.53125,
+            14238558.65625,
+            14230063.84375,
+            14360293.03125,
+            14226811.21875,
+            14165855.53125
+          ],
+          "allocated_bytes": 17593974,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 14.008640625,
+          "mean_ms": 14.009299276041666,
+          "samples_ns_per_operation": [
+            13863864.625,
+            13878127.625,
+            13850820.3125,
+            14179143.25,
+            14021932.3125,
+            13926750.0625,
+            14055067.6875,
+            14196210.9375,
+            14068250,
+            14094565.125,
+            13981510.4375,
+            13995348.9375
+          ],
+          "allocated_bytes": 17593992,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "parse",
+      "library": "OfficeIMO",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Parse",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 10.7953854375,
+          "mean_ms": 10.846576171875,
+          "samples_ns_per_operation": [
+            10972798.15625,
+            11015248.71875,
+            11048550.78125,
+            10823688.78125,
+            10783290.40625,
+            10765933.59375,
+            10767954.46875,
+            10769261.71875,
+            10750904.90625,
+            10776876.28125,
+            10876925.78125,
+            10807480.46875
+          ],
+          "allocated_bytes": 17597611,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 10.99390496875,
+          "mean_ms": 11.32229753125,
+          "samples_ns_per_operation": [
+            11314686.21875,
+            10932777.34375,
+            11046131.53125,
+            11216628.90625,
+            10950886.71875,
+            10983998.71875,
+            10893074.21875,
+            10892535.15625,
+            11003811.21875,
+            13828516.90625,
+            10943819.03125,
+            11860704.40625
+          ],
+          "allocated_bytes": 17597614,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 10.81853121875,
+          "mean_ms": 10.819429442708334,
+          "samples_ns_per_operation": [
+            10872252.5625,
+            10836213.5,
+            10845432.25,
+            10819255.1875,
+            10808390.625,
+            10811257.75,
+            10805760.4375,
+            10806494.75,
+            10768854.125,
+            10817807.25,
+            10819966.125,
+            10821468.75
+          ],
+          "allocated_bytes": 17597614,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 10.988653625,
+          "mean_ms": 10.9520833125,
+          "samples_ns_per_operation": [
+            10779306,
+            10767514.3125,
+            11077933.5625,
+            11102235.6875,
+            11093964.8125,
+            11124430.9375,
+            11028209.625,
+            11037897.125,
+            10949097.625,
+            10908269.5,
+            10782139.3125,
+            10774001.25
+          ],
+          "allocated_bytes": 17597632,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "write",
+      "library": "ExcelReader.NET",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "ExcelReaderNet_Write",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 6.64174215625,
+          "mean_ms": 6.644163171875,
+          "samples_ns_per_operation": [
+            6588938.78125,
+            6702845.03125,
+            6669173.15625,
+            6643842.40625,
+            6658022.09375,
+            6615787.71875,
+            6631837.21875,
+            6609667.96875,
+            6658886.71875,
+            6639641.90625,
+            6628915.34375,
+            6682399.71875
+          ],
+          "allocated_bytes": 16735366,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.69147396875,
+          "mean_ms": 6.692815958333333,
+          "samples_ns_per_operation": [
+            6687691.375,
+            6679779.9375,
+            6757727.8125,
+            6695199.25,
+            6688011.75,
+            6702123.6875,
+            6671152.3125,
+            6717709.625,
+            6677055.9375,
+            6708613.25,
+            6694936.1875,
+            6633790.375
+          ],
+          "allocated_bytes": 16735363,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 6.4817916875,
+          "mean_ms": 6.489581171875,
+          "samples_ns_per_operation": [
+            6546636.75,
+            6464654.9375,
+            6521095.0625,
+            6447639.375,
+            6472673.1875,
+            6468235.6875,
+            6452128.875,
+            6553550.8125,
+            6446381.5,
+            6490910.1875,
+            6504733.0625,
+            6506334.625
+          ],
+          "allocated_bytes": 16735862,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.509076875,
+          "mean_ms": 6.511338354166667,
+          "samples_ns_per_operation": [
+            6512346.375,
+            6474070.375,
+            6450031.3125,
+            6540468.75,
+            6492221.375,
+            6506395.8125,
+            6536901.0625,
+            6550062.5625,
+            6509836,
+            6548807.3125,
+            6506601.5625,
+            6508317.75
+          ],
+          "allocated_bytes": 16735366,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    },
+    {
+      "format": "CSV",
+      "operation": "write",
+      "library": "OfficeIMO",
+      "benchmark_type": "CsvExcelReaderGeneratedBenchmarks",
+      "method": "OfficeIMO_Write",
+      "parameters": "",
+      "pair_1": {
+        "before": {
+          "median_ms": 6.9190703125,
+          "mean_ms": 6.915454880208333,
+          "samples_ns_per_operation": [
+            6887548.1875,
+            6888368.5,
+            6944397.1875,
+            6924397.1875,
+            6807100.3125,
+            6914269.5,
+            6923871.125,
+            6897860.6875,
+            6979915.375,
+            6964894.5625,
+            6973615.875,
+            6879220.0625
+          ],
+          "allocated_bytes": 16786378,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.8703541875,
+          "mean_ms": 6.871476567708333,
+          "samples_ns_per_operation": [
+            6908862,
+            6863786.5,
+            6887265.625,
+            6897437.5,
+            6866684.9375,
+            6909825.5,
+            6905231.75,
+            6845523.4375,
+            6808372.375,
+            6835096.375,
+            6874023.4375,
+            6855609.375
+          ],
+          "allocated_bytes": 16786377,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      },
+      "pair_2": {
+        "before": {
+          "median_ms": 6.41845178125,
+          "mean_ms": 6.414726755208333,
+          "samples_ns_per_operation": [
+            6455481.78125,
+            6429427.03125,
+            6425572.90625,
+            6404505.15625,
+            6421140.59375,
+            6405039.03125,
+            6441054.65625,
+            6361463.53125,
+            6392830.71875,
+            6396796.84375,
+            6415762.96875,
+            6427645.84375
+          ],
+          "allocated_bytes": 16786464,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        "after": {
+          "median_ms": 6.34258721875,
+          "mean_ms": 6.335132598958333,
+          "samples_ns_per_operation": [
+            6330977.90625,
+            6328766.90625,
+            6342967.40625,
+            6343022.15625,
+            6350852.90625,
+            6341102.84375,
+            6436673.21875,
+            6354373.71875,
+            6233048.15625,
+            6342207.03125,
+            6364045.59375,
+            6253553.34375
+          ],
+          "allocated_bytes": 16786374,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      }
+    }
+  ],
+  "rejected_experiments": {
+    "trial": "SST change plus restarted XLSB stable-tail row plan; removed because timing benefit did not repeat.",
+    "control": "Unmodified baseline between targeted candidate launches.",
+    "xml-trial": "SST and row-plan experiments plus part-wide XML normalization flag; read changes removed because no material gain.",
+    "measurements": {
+      "trial": [
+        {
+          "format": "XLSX",
+          "operation": "parse",
+          "median_ms": 11.66506903125,
+          "mean_ms": 11.651809255208335,
+          "samples_ns_per_operation": [
+            12022195.3125,
+            11978281.25,
+            11705958.3125,
+            11770549.5,
+            11693744.8125,
+            11569020.875,
+            11741976.5625,
+            11636393.25,
+            11233143.25,
+            11400757.8125,
+            11572338.5625,
+            11497351.5625
+          ],
+          "allocated_bytes": 4784088,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "parse",
+          "median_ms": 8.356503875,
+          "mean_ms": 8.319377802083332,
+          "samples_ns_per_operation": [
+            8352953.0625,
+            9719380.1875,
+            8091908.875,
+            8106083.3125,
+            7787973.9375,
+            8639046.875,
+            7900348.9375,
+            7516593.6875,
+            8498000,
+            8379236.9375,
+            8480953.125,
+            8360054.6875
+          ],
+          "allocated_bytes": 5827558,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "parse",
+          "median_ms": 9.18374871875,
+          "mean_ms": 9.279083567708334,
+          "samples_ns_per_operation": [
+            11238755.1875,
+            10778906.25,
+            9521049.5,
+            9784286.4375,
+            8846447.9375,
+            8170065.125,
+            8067981.8125,
+            8765197.9375,
+            8361223.999999999,
+            8014507.875000001,
+            9944697.9375,
+            9855882.8125
+          ],
+          "allocated_bytes": 4796422,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSX",
+          "operation": "read",
+          "median_ms": 11.1228229375,
+          "mean_ms": 11.179386072916666,
+          "samples_ns_per_operation": [
+            11169932.25,
+            11818046.875,
+            11120791.6875,
+            10648411.5,
+            11569677.125,
+            10604502.625,
+            11037078.125,
+            12097109.375,
+            10731963.5625,
+            10987010.375,
+            11243255.1875,
+            11124854.1875
+          ],
+          "allocated_bytes": 2383858,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "read",
+          "median_ms": 5.84797784375,
+          "mean_ms": 5.844229380208333,
+          "samples_ns_per_operation": [
+            5855894.53125,
+            5900441.40625,
+            5930170.53125,
+            5752277.34375,
+            5672152.34375,
+            5730993.53125,
+            5695790.34375,
+            5850610.65625,
+            6164839.84375,
+            5897324.21875,
+            5834912.78125,
+            5845345.03125
+          ],
+          "allocated_bytes": 3427338,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "read",
+          "median_ms": 6.850222625,
+          "mean_ms": 7.104477838541667,
+          "samples_ns_per_operation": [
+            6794205.6875,
+            6879778.625,
+            6832252.5625,
+            6787833.3125,
+            6868192.6875,
+            7471424.4375,
+            6746898.4375,
+            6754119.75,
+            6659075.5,
+            7116268.25,
+            8651138,
+            7692546.8125
+          ],
+          "allocated_bytes": 2395470,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "write",
+          "median_ms": 17.1275846875,
+          "mean_ms": 17.2259989375,
+          "samples_ns_per_operation": [
+            18244177.125,
+            16345533.875,
+            17068325.5,
+            17000533.875,
+            16858562.5,
+            17121671.9375,
+            16958734.375,
+            17182335.9375,
+            18065218.8125,
+            17133497.4375,
+            17317783.875,
+            17415612
+          ],
+          "allocated_bytes": 30233634,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "write",
+          "median_ms": 17.40841921875,
+          "mean_ms": 17.42745528125,
+          "samples_ns_per_operation": [
+            17411807.25,
+            17469770.8125,
+            17550518.25,
+            17421903.625,
+            17248335.9375,
+            17257708.3125,
+            17405031.1875,
+            17281737,
+            17868971.375,
+            17574570.3125,
+            17373408.8125,
+            17265700.5
+          ],
+          "allocated_bytes": 16219930,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      ],
+      "control": [
+        {
+          "format": "XLSX",
+          "operation": "parse",
+          "median_ms": 10.71314840625,
+          "mean_ms": 10.745717640625,
+          "samples_ns_per_operation": [
+            11028950.5,
+            10770546.875,
+            10840385.375,
+            10908820.3125,
+            10734049.4375,
+            10676351.5,
+            10634989.5625,
+            10650200.5,
+            10612510.375,
+            10655862,
+            10743697.875,
+            10692247.375
+          ],
+          "allocated_bytes": 4784088,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "parse",
+          "median_ms": 6.72562371875,
+          "mean_ms": 6.73715128125,
+          "samples_ns_per_operation": [
+            6697843.75,
+            6717651.0625,
+            6735739.625,
+            6733596.375,
+            6787812.5,
+            6710843.8125,
+            6802559.9375,
+            6715619.8125,
+            6681572.9375,
+            6717372.4375,
+            6746218.75,
+            6798984.375
+          ],
+          "allocated_bytes": 5827683,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "parse",
+          "median_ms": 7.07799475,
+          "mean_ms": 7.09819096875,
+          "samples_ns_per_operation": [
+            7125761.71875,
+            7140384.15625,
+            7089264.28125,
+            7047753.90625,
+            7031186.15625,
+            7026475.28125,
+            7156230.46875,
+            7279217.46875,
+            7114055.96875,
+            7060373.71875,
+            7066725.21875,
+            7040863.28125
+          ],
+          "allocated_bytes": 4796216,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSX",
+          "operation": "read",
+          "median_ms": 9.84955734375,
+          "mean_ms": 9.852403890625,
+          "samples_ns_per_operation": [
+            9868026.0625,
+            9931890.625,
+            9889296.875,
+            9860341.1875,
+            9894216.1875,
+            9806658.875,
+            9875489.625,
+            9838773.5,
+            9822651.0625,
+            9837929.6875,
+            9801731.8125,
+            9801841.1875
+          ],
+          "allocated_bytes": 2384216,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "read",
+          "median_ms": 5.43068625,
+          "mean_ms": 5.4588824010416666,
+          "samples_ns_per_operation": [
+            5435997.4375,
+            5415263,
+            5405916.6875,
+            5425375.0625,
+            5415716.125,
+            5413729.1875,
+            5404075.5625,
+            5449822.9375,
+            5475138.0625,
+            5656015.625,
+            5530049.5,
+            5479489.625
+          ],
+          "allocated_bytes": 3427356,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "read",
+          "median_ms": 6.3933710625,
+          "mean_ms": 6.450142973958333,
+          "samples_ns_per_operation": [
+            6375390.5625,
+            6454174.4375,
+            6910039,
+            6460408.8125,
+            6510544.25,
+            6440838.5,
+            6374367.125,
+            6362244.75,
+            6411351.5625,
+            6364528.625,
+            6373169.25,
+            6364658.8125
+          ],
+          "allocated_bytes": 2395368,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "write",
+          "median_ms": 17.8233385625,
+          "mean_ms": 17.971475703125,
+          "samples_ns_per_operation": [
+            18111687.5,
+            17829375,
+            16381817.6875,
+            16375505.25,
+            17777953.125,
+            17546653.625,
+            18012044.3125,
+            17817302.125,
+            17971588.5625,
+            17904981.75,
+            22262674.5,
+            17666125
+          ],
+          "allocated_bytes": 31532249,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "write",
+          "median_ms": 15.970062499999997,
+          "mean_ms": 15.959487208333334,
+          "samples_ns_per_operation": [
+            16188518.250000002,
+            16043432.3125,
+            16019041.687500002,
+            16024489.5625,
+            15982161.437499998,
+            15800166.687500002,
+            15957963.562499998,
+            15830153.6875,
+            16040812.5,
+            15860963.5625,
+            15810421.875,
+            15955721.375000002
+          ],
+          "allocated_bytes": 16220420,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      ],
+      "xml-trial": [
+        {
+          "format": "XLSX",
+          "operation": "parse",
+          "median_ms": 10.92875390625,
+          "mean_ms": 11.048714197916667,
+          "samples_ns_per_operation": [
+            11527794.25,
+            11851802.0625,
+            11058992.1875,
+            10957375,
+            10933429.6875,
+            10902690.125,
+            10931244.8125,
+            10894359.4375,
+            10859143.25,
+            10926263,
+            10864546.875,
+            10876929.6875
+          ],
+          "allocated_bytes": 4784092,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "parse",
+          "median_ms": 6.7736666875,
+          "mean_ms": 6.764082927083333,
+          "samples_ns_per_operation": [
+            6748533.875,
+            6678640.6875,
+            6769250,
+            6778083.375,
+            6726674.5,
+            6693000.0625,
+            6826158.875,
+            6778794.3125,
+            6757531.25,
+            6803132.875,
+            6782585.9375,
+            6826609.375
+          ],
+          "allocated_bytes": 5827685,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "parse",
+          "median_ms": 7.109905,
+          "mean_ms": 7.111492645833333,
+          "samples_ns_per_operation": [
+            7215187.5625,
+            7137593.75,
+            7115099,
+            7081171.875,
+            7115703.125,
+            7095539.0625,
+            7063208.375,
+            7069612,
+            7127692.75,
+            7097294.25,
+            7105145.875,
+            7114664.125
+          ],
+          "allocated_bytes": 4796464,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSX",
+          "operation": "read",
+          "median_ms": 10.02056640625,
+          "mean_ms": 10.01615059375,
+          "samples_ns_per_operation": [
+            10024088.5625,
+            9999171.8125,
+            10004213.5625,
+            10037578.125,
+            10036588.5,
+            10025882.8125,
+            10017044.25,
+            10009695.3125,
+            10033416.625,
+            9993645.8125,
+            9976817.6875,
+            10035664.0625
+          ],
+          "allocated_bytes": 2384224,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "read",
+          "median_ms": 5.43047009375,
+          "mean_ms": 5.425580109375,
+          "samples_ns_per_operation": [
+            5437192.75,
+            5448401.0625,
+            5439424.5,
+            5508885.4375,
+            5431500.0625,
+            5429440.125,
+            5393947.9375,
+            5388859.4375,
+            5459362,
+            5405104.1875,
+            5382755.25,
+            5382088.5625
+          ],
+          "allocated_bytes": 3427357,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "read",
+          "median_ms": 6.32515625,
+          "mean_ms": 6.330530140625,
+          "samples_ns_per_operation": [
+            6328039.0625,
+            6322273.4375,
+            6329776,
+            6316338.5,
+            6313374.9375,
+            6311958.3125,
+            6374382.8125,
+            6333463.5,
+            6347770.8125,
+            6320989.5625,
+            6317973.9375,
+            6350020.8125
+          ],
+          "allocated_bytes": 2395616,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLS",
+          "operation": "write",
+          "median_ms": 16.32343359375,
+          "mean_ms": 16.350918838541666,
+          "samples_ns_per_operation": [
+            16615093.75,
+            16418057.3125,
+            16264828.125,
+            16264765.624999998,
+            16292843.75,
+            16526072.9375,
+            16294494.8125,
+            16093497.375,
+            16281906.25,
+            16441583.3125,
+            16365510.4375,
+            16352372.374999998
+          ],
+          "allocated_bytes": 30235588,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        },
+        {
+          "format": "XLSB",
+          "operation": "write",
+          "median_ms": 16.1481510625,
+          "mean_ms": 16.14930709375,
+          "samples_ns_per_operation": [
+            16154575.5,
+            16144338.562500002,
+            16074289.0625,
+            16046372.4375,
+            16024382.8125,
+            16066171.9375,
+            16151963.562499998,
+            16063671.875,
+            16194997.4375,
+            16243135.4375,
+            16260333.375,
+            16367453.125
+          ],
+          "allocated_bytes": 16221170,
+          "validation": "All values checked in setup; measured reads and parses check row count and checksum."
+        }
+      ]
+    }
+  },
+  "interpretation": "Per-launch medians and twelve samples are kept separately. Allocation reduction in XLS is repeatable; timing movement in unchanged lanes is not attributed to the patch. Profiles are diagnostic and do not supply these timing results.",
+  "verification": {
+    "excel": {
+      "framework": "net10.0",
+      "filter": "Category!=Performance",
+      "counters": {
+        "total": "7756",
+        "executed": "7751",
+        "passed": "7751",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx_sha256": "09a244899860144006e22bb6b8e92564a3e9045cb4183864b035451b686eb59f"
+    },
+    "omitted_references": {
+      "cases": 12,
+      "outcome": "Passed",
+      "fixture": "Independently authored ZIP/XML, UTF-8/UTF-16; reader, snapshot, loaded, parallel and grid routes.",
+      "grid_loader_changed": false
+    },
+    "csv": {
+      "framework": "net10.0",
+      "filter": "Category!=Performance",
+      "counters": {
+        "total": "938",
+        "executed": "938",
+        "passed": "938",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx_sha256": "1c7ea7eed76cde0994f7d9bcb0063963f00948376317d02ee9b968dfd0a9bc4d"
+    },
+    "framework_builds": {
+      "netstandard2.0": "Passed",
+      "net8.0": "Passed",
+      "net10.0": "Passed",
+      "net472": "Passed"
+    },
+    "native_aot": {
+      "target": "net10.0/osx-arm64",
+      "publish": "Passed",
+      "smoke": [
+        "PASS | Constructor-bound worksheet and table records retain values and native schemas",
+        "PASS | Excel DataReader, typed, and generic-only dictionary tables create, save, and reload"
+      ],
+      "binary_sha256": "9368e25de8191fc9a2332003133fdc3dcb4c45c7cc6f20bcf28638b661d702fb"
+    },
+    "review": {
+      "scope": "Direct XLS shared-string builder, callers, serialization and reader lookup",
+      "mode": "Independent read-only local review",
+      "findings": [],
+      "api_or_runtime_dependency_change": false
+    },
+    "heavy_run_policy": "Every build, publish, test, diagnostic workload and benchmark runs under the shared lock; MSBuild and native compilation at most two workers.",
+    "limits": [
+      "Single M4 host, ordinary OS scheduling; timing variation retained.",
+      "net472 cross-build only; no Windows runtime test in this cohort.",
+      "No new read fast path retained; throughput parity is incomplete."
+    ]
+  }
+}
