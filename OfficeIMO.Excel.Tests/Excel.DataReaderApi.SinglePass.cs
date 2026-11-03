@@ -20,7 +20,9 @@ namespace OfficeIMO.Tests {
                 for (int row = 2; row <= 5; row++) {
                     sheet.Cell(row, 1).SetValue("Row " + row);
                 }
-                workbook = document.ToBytes(new ExcelSaveOptions { Format = format, XlsbUseSharedStrings = true });
+                workbook = document.ToBytes(format == ExcelFileFormat.Xlsb
+                    ? new ExcelSaveOptions { Format = format, XlsbUseSharedStrings = true }
+                    : new ExcelSaveOptions { Format = format });
             }
             // The fourth shared-string cell is the third data row.
             workbook = format == ExcelFileFormat.Xlsb

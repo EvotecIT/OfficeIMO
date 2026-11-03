@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
             using var rewrittenStream = new MemoryStream(rewritten, writable: false);
             int[] recordTypes = XlsbRecordReader.ReadAll(rewrittenStream).Select(record => record.Type).ToArray();
 
-            Assert.Equal(new[] { 145, 0, 5, 700, 5, 701, 146 }, recordTypes);
+            Assert.Equal(new[] { 145, 0, 2, 700, 2, 701, 146 }, recordTypes);
         }
 
         private static byte[] CreateReviewRowHeaderPayload() {
