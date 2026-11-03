@@ -161,7 +161,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private sealed class LegacyXlsDirectSharedStringBuilder {
-            private readonly List<LegacyXlsSharedStringEntry> _entries = new();
             private readonly Dictionary<string, uint> _indexesByValue = new(StringComparer.Ordinal);
             private uint _totalCount;
             private long _estimatedSerializedBytes;
@@ -170,15 +169,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             internal uint Add(string text) {
                 _totalCount = checked(_totalCount + 1U);
-                if (_indexesByValue.TryGetValue(text, out uint existingIndex)) {
-                    return existingIndex;
-                }
-
-                uint index = checked((uint)_entries.Count);
+#if NET8_0_OR_GREATER
+                ref uint index = ref System.Runtime.InteropServices.CollectionsMarshal.GetValueRefOrAddDefault(
+                    _indexesByValue, text, out bool exists);
+                if (exists) return index;
+                index = checked((uint)(_indexesByValue.Count - 1));
+#else
+                if (_indexesByValue.TryGetValue(text, out uint existingIndex)) return existingIndex;
+                uint index = checked((uint)_indexesByValue.Count);
                 _indexesByValue.Add(text, index);
-                _entries.Add(new LegacyXlsSharedStringEntry(
-                    text,
-                    Array.Empty<LegacyXlsTextFormattingRun>()));
+#endif
                 _estimatedSerializedBytes = checked(
                     _estimatedSerializedBytes
                     + 3L
@@ -186,8 +186,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return index;
             }
 
-            internal LegacyXlsSharedStringTable Build() =>
-                new LegacyXlsSharedStringTable(_entries, _totalCount, _indexesByValue);
+            internal LegacyXlsSharedStringTable Build() {
+                // Indexes already preserve insertion order. Materialize exactly once,
+                // without relying on Dictionary enumeration order on older targets.
+                var entries = _indexesByValue.Count == 0
+                    ? Array.Empty<LegacyXlsSharedStringEntry>()
+                    : new LegacyXlsSharedStringEntry[_indexesByValue.Count];
+                foreach (KeyValuePair<string, uint> entry in _indexesByValue) {
+                    entries[checked((int)entry.Value)] = new LegacyXlsSharedStringEntry(
+                        entry.Key, Array.Empty<LegacyXlsTextFormattingRun>());
+                }
+                return new LegacyXlsSharedStringTable(entries, _totalCount, _indexesByValue);
+            }
         }
 
         private sealed class LegacyXlsStringSegmentWriter {
