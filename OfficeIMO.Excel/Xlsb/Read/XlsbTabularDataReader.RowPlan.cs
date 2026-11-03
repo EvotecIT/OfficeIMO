@@ -58,17 +58,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private int _currentContentPosition;
         private int _currentCellCount;
         private bool _currentMatches = true;
-        private bool _disabled;
         private int _firstRowIndex;
         private int _lastRowIndex = -1;
         private int _firstContentPosition;
         private int _rowStride;
         private int _pendingCompletedRowIndex = -1;
 
-        internal void BeginRow(int rowIndex, int contentPosition) {
-            if (_physicalRowIndex >= 0) {
-                CompleteCurrentRow(rowIndex, contentPosition);
-            }
+        internal XlsbValidatedRowPlanBuilder? BeginRow(int rowIndex, int contentPosition) {
+            // A rejected layout never becomes a delivery plan. Stop tracking its
+            // later rows; discovery continues to validate every record itself.
+            if (_physicalRowIndex >= 0 && !CompleteCurrentRow(rowIndex, contentPosition)) return null;
 
             _physicalRowIndex++;
             _currentRowIndex = rowIndex;
@@ -78,6 +77,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (_cells == null) {
                 _candidateCells.Clear();
             }
+            return this;
         }
 
         internal void ObserveCell(
@@ -86,7 +86,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int recordSize,
             int column,
             ExcelSerialDateStyle dateStyle) {
-            if (_disabled || _physicalRowIndex <= 0) {
+            if (_physicalRowIndex <= 0) {
                 return;
             }
 
@@ -113,7 +113,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         internal XlsbValidatedRowPlan? Build() {
-            if (_disabled || _cells == null || _lastRowIndex < _firstRowIndex) {
+            if (_cells == null || _lastRowIndex < _firstRowIndex) {
                 return null;
             }
 
@@ -125,17 +125,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 _cells);
         }
 
-        private void CompleteCurrentRow(int nextRowIndex, int nextContentPosition) {
-            if (_disabled || _physicalRowIndex == 0) {
-                return;
+        private bool CompleteCurrentRow(int nextRowIndex, int nextContentPosition) {
+            if (_physicalRowIndex == 0) {
+                return true;
             }
 
             int stride = nextContentPosition - _currentContentPosition;
             if (_currentCellCount == 0
                 || nextRowIndex != _currentRowIndex + 1
                 || stride <= 0) {
-                _disabled = true;
-                return;
+                return false;
             }
 
             if (_cells == null) {
@@ -144,15 +143,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 _firstContentPosition = _currentContentPosition;
                 _rowStride = stride;
                 _pendingCompletedRowIndex = _currentRowIndex;
-                return;
+                return true;
             }
 
             if (!_currentMatches || _currentCellCount != _cells.Length || stride != _rowStride) {
-                _disabled = true;
-                return;
+                return false;
             }
 
             _pendingCompletedRowIndex = _currentRowIndex;
+            return true;
         }
     }
 
