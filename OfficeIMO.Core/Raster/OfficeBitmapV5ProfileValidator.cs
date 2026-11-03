@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Validates linked and embedded color-profile ranges shared by BMP and ICO DIB payloads.</summary>

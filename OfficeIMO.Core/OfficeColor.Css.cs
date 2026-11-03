@@ -1,6 +1,5 @@
 using OfficeIMO.Drawing;
 using System;
-using System.Globalization;
 
 namespace OfficeIMO;
 

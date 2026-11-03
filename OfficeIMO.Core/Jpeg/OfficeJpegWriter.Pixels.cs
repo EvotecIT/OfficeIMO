@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.Threading;
 
 namespace OfficeIMO.Drawing;
