@@ -72,19 +72,23 @@ public static partial class OfficeSvgDrawingReader {
                 complete = false;
                 continue;
             }
-            if (loaded) continue;
             imports.CancellationToken.ThrowIfCancellationRequested();
             // Use only the first-party bounded loader for untrusted document bytes. Providers and
             // variation resolvers belong to the caller's explicit registrations, not SVG content.
+            // Validate every alternative: a rasterizer may choose a different source. Keep only
+            // the first usable face, but charge every bounded load to the shared work budget.
             var accepted = new OfficeFontFaceCollection();
-            loaded = accepted.TryAddBounded(family, data, descriptor, ranges, limit, out int retainedBytes, out _, applyDescriptorWeight: true);
+            bool sourceLoaded = accepted.TryAddBounded(family, data, descriptor, ranges, limit, out int retainedBytes, out _, applyDescriptorWeight: true);
             imports.CancellationToken.ThrowIfCancellationRequested();
             // A failed decoder may have allocated its entire allowance before rejecting input.
-            imports.RemainingLoadWorkBytes -= loaded ? retainedBytes : limit;
-            if (loaded) {
+            imports.RemainingLoadWorkBytes -= sourceLoaded ? retainedBytes : limit;
+            if (!sourceLoaded) {
+                complete = false;
+            } else if (!loaded) {
+                loaded = true;
                 imports.RemainingRetainedBytes -= retainedBytes;
                 imports.Fonts.AddRange(accepted);
-            } else complete = false;
+            }
         }
         return loaded && complete;
     }

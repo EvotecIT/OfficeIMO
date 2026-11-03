@@ -65,6 +65,36 @@ public partial class DrawingSvgFontImportTests {
         Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(bytes));
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void EmbeddedSvgFontAlternativesCannotHideDecodedSizeExpansionAfterAUsableSource() {
+        byte[] primary = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "OpenSans-Regular.woff2"));
+        byte[] alternate = ManagedTextShapingTestAssets.CreateWoff(ManagedTextShapingTestAssets.CreateFont('A'));
+        byte[] valid = DocumentWithAlternate(alternate);
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(valid));
+        Assert.True(OfficeSvgDrawingReader.TryRead(valid, out OfficeDrawing? control, out int controlUnsupported));
+        Assert.Equal(0, controlUnsupported);
+        Assert.Equal(OfficeFontContainerFormat.Woff2, Assert.Single(control!.Fonts.Faces).ContainerFormat);
+        OfficeSvgDrawingReader.InspectContentSafety(valid);
+
+        uint declared = 8U * 1024U * 1024U + 1U;
+        for (int index = 0; index < 4; index++) alternate[16 + index] = (byte)(declared >> (24 - index * 8));
+        byte[] oversized = DocumentWithAlternate(alternate);
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(oversized));
+        Assert.True(OfficeSvgDrawingReader.TryRead(oversized, out OfficeDrawing? drawing, out int unsupported));
+        Assert.True(unsupported > 0);
+        Assert.Equal(OfficeFontContainerFormat.Woff2, Assert.Single(drawing!.Fonts.Faces).ContainerFormat);
+        Assert.Throws<InvalidDataException>(() => OfficeSvgDrawingReader.InspectContentSafety(oversized));
+
+        byte[] DocumentWithAlternate(byte[] woff) => SvgFontImportDocument(
+            "@font-face{font-family:FixtureFont;src:url('data:font/woff2;base64,"
+            + Convert.ToBase64String(primary) + "') format('woff2'),url('data:font/woff;base64,"
+            + Convert.ToBase64String(woff) + "') format('woff');}", "<text x='8' y='24'>A</text>");
+    }
+#endif
+
     [Fact]
     public void EmbeddedSvgFontsShareOneRegistrationBudgetAcrossStylesheets() {
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
