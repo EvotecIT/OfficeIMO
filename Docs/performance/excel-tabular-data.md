@@ -748,8 +748,8 @@ do not claim a standalone indexing speedup from their frame percentages.
 
 This path applies to compressed UTF-8 parts of at least 1 MiB, on net8.0/net10.0
 when execution permits parallel work. Sequential execution, `MaxDegreeOfParallelism=1`,
-diagnostic callbacks, explicit ranges, worksheet prefetch and legacy frameworks
-retain the serial path. Small or unsupported parts fall back. The independent
+diagnostic callbacks, explicit ranges, worksheet prefetch, WebAssembly and legacy
+frameworks retain the serial path. Small or unsupported parts fall back. The independent
 archive and worker add about 12 KiB of allocation per operation; physical-row
 positions also use pooled metadata. I have not qualified peak memory or a
 small-workbook timing benefit.
