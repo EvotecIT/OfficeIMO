@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             document.AddSheet("Data").WriteData(data);
             byte[] sentinel = { 1, 2, 3, 4, 5 };
             using var destination = new MemoryStream();
-            destination.Write(sentinel);
+            destination.Write(sentinel, 0, sentinel.Length);
             destination.Position = 2;
 
             Assert.Throws<NotSupportedException>(() =>
