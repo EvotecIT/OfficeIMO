@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel {
             private const int MaximumIndexedCells = 1_000_000;
             private const int StringCacheSize = 256;
             private const int MaximumCachedStringBytes = 256;
+            private const int StringCacheSampleSize = 512;
             private const byte DateStyleCellKindFlag = 0x80;
             private const byte CalendarStyleCellKindFlag = 0x40;
             private const byte CellKindMask = 0x3F;
@@ -25,6 +26,9 @@ namespace OfficeIMO.Excel {
             private int _firstColumn;
             private int _fieldCount;
             private Utf8StringCacheEntry[]? _stringCache;
+            private int _stringCacheLookups;
+            private int _stringCacheHits;
+            private int _stringCacheBypassRemaining;
             private byte[]? _buffer;
             private int[]? _rowIndexes;
             private int[]? _valueStarts;
@@ -1021,6 +1025,19 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (length <= MaximumCachedStringBytes) {
+                    if (_stringCacheBypassRemaining > 0) {
+                        _stringCacheBypassRemaining--;
+                        return DecodeXmlText(start, length);
+                    }
+                    // Mostly unique text fills the table and then only pays for probes.
+                    // Sample the hit rate and pause lookups while repeats stay rare.
+                    if (++_stringCacheLookups == StringCacheSampleSize) {
+                        if (_stringCacheHits < StringCacheSampleSize / 16) {
+                            _stringCacheBypassRemaining = StringCacheSampleSize * 8;
+                        }
+                        _stringCacheLookups = 0;
+                        _stringCacheHits = 0;
+                    }
                     Utf8StringCacheEntry[] stringCache = _stringCache ??= new Utf8StringCacheEntry[StringCacheSize];
                     int hash = ComputeHash(_buffer!, start, length);
                     int slot = hash & (StringCacheSize - 1);
@@ -1035,6 +1052,7 @@ namespace OfficeIMO.Excel {
                         if (entry.Hash == hash
                             && entry.Length == length
                             && _buffer!.AsSpan(entry.Start, entry.Length).SequenceEqual(_buffer.AsSpan(start, length))) {
+                            _stringCacheHits++;
                             return entry.Value;
                         }
                     }
