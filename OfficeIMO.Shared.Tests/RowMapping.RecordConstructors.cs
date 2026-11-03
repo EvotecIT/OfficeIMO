@@ -121,7 +121,7 @@ public sealed class RecordConstructorMappingTests {
         Assert.Throws<DataMappingException>(() => AutomaticRowMappingPlan<AmbiguousOrder>.Create(["Value"]));
     }
 
-#if NET8_0_OR_GREATER
+#if NET8_0_OR_GREATER && !OFFICEIMO_NETSTANDARD_COMPATIBILITY
     [Fact]
     public async Task ReaderRecordsShareAsyncAndOrderedParallelMappingWithoutTakingOwnership() {
         using var data = new DataTable();
