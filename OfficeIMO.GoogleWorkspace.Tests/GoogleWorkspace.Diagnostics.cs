@@ -318,21 +318,21 @@ namespace OfficeIMO.Tests {
             report.Add(TranslationSeverity.Info, "Text", "Text was preserved.",
                 code: "WORKSPACE.TEST.PRESERVE", action: TranslationAction.Preserve);
 
-            IOfficeConversionReport common = report;
+            OfficeConversionReport common = report;
 
             Assert.Equal(OfficeConversionLossKind.Omission,
-                Assert.Single(common.FidelityDiagnostics, item => item.Code == "WORKSPACE.TEST.SKIP").LossKind);
-            Assert.All(common.FidelityDiagnostics.Where(item =>
+                Assert.Single(common.Diagnostics, item => item.Code == "WORKSPACE.TEST.SKIP").LossKind);
+            Assert.All(common.Diagnostics.Where(item =>
                     item.Code is "WORKSPACE.TEST.FLATTEN" or "WORKSPACE.TEST.RASTERIZE"),
                 item => Assert.Equal(OfficeConversionLossKind.Approximation, item.LossKind));
             Assert.Equal(OfficeConversionLossKind.Failure,
-                Assert.Single(common.FidelityDiagnostics, item => item.Code == "WORKSPACE.TEST.FAIL").LossKind);
+                Assert.Single(common.Diagnostics, item => item.Code == "WORKSPACE.TEST.FAIL").LossKind);
             Assert.Equal(OfficeConversionLossKind.None,
-                Assert.Single(common.FidelityDiagnostics, item => item.Code == "WORKSPACE.TEST.PRESERVE").LossKind);
+                Assert.Single(common.Diagnostics, item => item.Code == "WORKSPACE.TEST.PRESERVE").LossKind);
             Assert.Equal("Slides[0].Notes",
-                Assert.Single(common.FidelityDiagnostics, item => item.Code == "WORKSPACE.TEST.SKIP").Location);
+                Assert.Single(common.Diagnostics, item => item.Code == "WORKSPACE.TEST.SKIP").Location);
             Assert.True(common.HasLoss);
-            Assert.Throws<InvalidOperationException>(common.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(common.ThrowIfLoss);
         }
 
         [Fact]

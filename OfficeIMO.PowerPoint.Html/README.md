@@ -21,7 +21,7 @@ imported.Save(output);
 
 Semantic output carries a versioned OfficeIMO envelope and keeps slide order and visibility, unified drawing order across text boxes, tables, pictures, charts, SmartArt, and media, shape geometry and transforms, presenter notes, table merge spans, embedded pictures, supported chart data, master/layout inventory, poster frames, and supported picture adjustments. SmartArt and advanced effects use static snapshots or diagnosed fallbacks; media is never executed. Generic HTML `rowspan` and `colspan` values become native PowerPoint table merges.
 
-`ToPowerPointDocument()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-slide` envelope exists. Use `ToPowerPointDocumentResult()` to inspect diagnostics and loss classification, and `ToHtmlResult()` for export evidence. Master/layout projection, SmartArt fallback, inert media, advanced effects, unavailable pictures or charts, and visual-renderer fallbacks are represented in the immutable operation report so `RequireNoLoss()` cannot accept a simplified review silently.
+`ToPowerPointDocument()` is the convenience API. It throws `HtmlConversionException` when no semantic `section.officeimo-slide` envelope exists. Use `ToPowerPointDocumentResult()` to inspect diagnostics and loss classification, and `ToHtmlResult()` for export evidence. Master/layout projection, SmartArt fallback, inert media, advanced effects, unavailable pictures or charts, and visual-renderer fallbacks are represented in the immutable operation report so `ThrowIfLoss()` cannot accept a simplified review silently.
 
 To turn ordinary HTML sections into slides, select the shared generic path:
 

@@ -12,7 +12,7 @@ OdgDocument drawing = OdgDocument.Load("diagram.odg");
 var conversion = drawing.ToPdfDocumentResult();
 conversion.Save("diagram.pdf").RequireSuccess();
 
-foreach (var diagnostic in conversion.FidelityDiagnostics)
+foreach (var diagnostic in conversion.Diagnostics)
     Console.WriteLine($"{diagnostic.Location}: {diagnostic.LossKind}: {diagnostic.Message}");
 ```
 
@@ -34,8 +34,8 @@ to 1,000 pages by default. An empty drawing is rejected.
 
 `SourceConversionReports` contains an `OdfConversionReport` with feature locations
 such as `page:2:Network/shape:Router`. PDF-stage warnings remain in `Report` and
-are refreshed after serialization. `FidelityDiagnostics` and `HasLoss` include
-both stages. Use `RequireNoLoss()` after serialization when save-time font or
+are refreshed after serialization. `Diagnostics` and `HasLoss` include
+both stages. Use `ThrowIfLoss()` after serialization when save-time font or
 layout warnings also matter.
 
 The default `LossPolicy` is `ReportOnly`. `ThrowOnSkippedOrUnsupported` accepts
@@ -43,7 +43,7 @@ documented approximations but rejects omitted source features before saving;
 `ThrowOnAnyLoss` also rejects approximations. Source projection failures do not
 publish a PDF through the save methods.
 Structured save failures retain the rejected source report in `ConversionReports`,
-`FidelityDiagnostics` and `HasLoss`.
+`Diagnostics` and `HasLoss`.
 
 Fixed text-box frames and rectangle labels support the [Draw shrinking profile](../OfficeIMO.OpenDocument/README.md#draw-text-fitting). Source clipping checks use the final `PdfCreateOptions` fonts, including named faces, embedded standard fonts and fallback selection, before applying strict loss policy. For fixed frames and line/connector captions, a `text-clipped` mapping identifies omitted content or clipped text paint caused by frame bounds, paragraph margins, padding, tabs or shared layout limits; adjust the frame, margins, padding, line spacing or font size. Shrinking remains an approximation with a six-point largest-font floor.
 

@@ -76,7 +76,7 @@ public sealed class OfficeLegacyImportLimits {
 }
 
 /// <summary>Immutable import and loss report produced by a managed legacy source adapter.</summary>
-public sealed class OfficeLegacyImportReport : IOfficeConversionReport {
+public sealed class OfficeLegacyImportReport : OfficeConversionReport {
     private readonly ReadOnlyCollection<OfficeCompatibilityFinding> _findings;
 
     /// <summary>Creates a legacy import report.</summary>
@@ -100,18 +100,22 @@ public sealed class OfficeLegacyImportReport : IOfficeConversionReport {
             .Select(finding => OfficeConversionFidelityDiagnostics.From(finding, "OfficeIMO.LegacyImport"))
             .ToList();
         if (Quality == OfficeLegacyImportQuality.Salvage) {
-            fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "LEGACY_SALVAGE_IMPORT",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 "The source used bounded salvage recovery instead of structured reconstruction.",
-                OfficeConversionLossKind.Approximation,
-                "OfficeIMO.LegacyImport"));
+                null,
+                "OfficeIMO.LegacyImport",
+                OfficeConversionLossKind.Approximation));
         }
         if (InertContent != OfficeLegacyInertContentKind.None) {
-            fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "LEGACY_INERT_CONTENT",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 "Active or externally resolved source content was retained inert: " + InertContent + ".",
-                OfficeConversionLossKind.Omission,
-                "OfficeIMO.LegacyImport"));
+                null,
+                "OfficeIMO.LegacyImport",
+                OfficeConversionLossKind.Omission));
         }
         FidelityDiagnostics = fidelityDiagnostics.AsReadOnly();
     }
@@ -132,19 +136,15 @@ public sealed class OfficeLegacyImportReport : IOfficeConversionReport {
     public IReadOnlyList<OfficeCompatibilityFinding> Findings => _findings;
 
     /// <summary>Gets category-preserving legacy-import diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Gets whether any typed diagnostic reports an approximation, omission, or failure.</summary>
-    public bool HasLoss => FidelityDiagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => FidelityDiagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Gets whether the source contained active or externally resolved content that remained inert.</summary>
     public bool HasInertContent => InertContent != OfficeLegacyInertContentKind.None;
 
     /// <summary>Throws when the import did not produce a structured, inert-content-free, lossless reconstruction.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) {
-            throw new InvalidOperationException(
-                "Legacy import used salvage recovery, kept active content inert, or contains a lossy or blocked source mapping.");
-        }
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Legacy import used salvage recovery, kept active content inert, or contains a lossy or blocked source mapping.", this);
 }

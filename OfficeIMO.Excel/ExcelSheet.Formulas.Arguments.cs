@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel {
 
         private static IReadOnlyList<string> SplitFormulaArguments(string args, bool preserveEmpty = false) {
             var tokens = new List<string>();
-            var builder = new StringBuilder();
+            int tokenStart = 0;
             int depth = 0;
             int bracketDepth = 0;
             int arrayDepth = 0;
@@ -203,25 +203,21 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < args.Length; index++) {
                 char ch = args[index];
                 if (!inString && bracketDepth > 0 && ch == '\'' && index + 1 < args.Length) {
-                    builder.Append(ch);
-                    builder.Append(args[++index]);
+                    index++;
                     continue;
                 }
                 if (!inString && bracketDepth == 0 && ch == '\'') {
-                    builder.Append(ch);
                     if (inQuotedQualifier && index + 1 < args.Length && args[index + 1] == '\'') {
-                        builder.Append(args[++index]);
+                        index++;
                     } else {
                         inQuotedQualifier = !inQuotedQualifier;
                     }
                     continue;
                 }
-                if (inQuotedQualifier) { builder.Append(ch); continue; }
+                if (inQuotedQualifier) continue;
                 if (bracketDepth == 0 && ch == '"') {
-                    builder.Append(ch);
                     if (inString && index + 1 < args.Length && args[index + 1] == '"') {
                         index++;
-                        builder.Append(args[index]);
                         continue;
                     }
 
@@ -231,7 +227,6 @@ namespace OfficeIMO.Excel {
 
                 if (!inString && ch == '(') {
                     depth++;
-                    builder.Append(ch);
                     continue;
                 }
 
@@ -241,13 +236,11 @@ namespace OfficeIMO.Excel {
                         return Array.Empty<string>();
                     }
 
-                    builder.Append(ch);
                     continue;
                 }
 
                 if (!inString && ch == '[') {
                     bracketDepth++;
-                    builder.Append(ch);
                     continue;
                 }
 
@@ -257,7 +250,6 @@ namespace OfficeIMO.Excel {
                         return Array.Empty<string>();
                     }
 
-                    builder.Append(ch);
                     continue;
                 }
 
@@ -267,28 +259,28 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!inString && ch == ',' && depth == 0 && bracketDepth == 0 && arrayDepth == 0) {
-                    AddToken(tokens, builder, preserveEmpty);
+                    AddToken(tokens, args, tokenStart, index, preserveEmpty);
+                    tokenStart = index + 1;
                     continue;
                 }
 
-                builder.Append(ch);
             }
 
             if (depth != 0 || bracketDepth != 0 || arrayDepth != 0 || inString || inQuotedQualifier) {
                 return Array.Empty<string>();
             }
 
-            AddToken(tokens, builder, preserveEmpty);
+            AddToken(tokens, args, tokenStart, args.Length, preserveEmpty);
             return tokens;
         }
 
-        private static void AddToken(List<string> tokens, StringBuilder builder, bool preserveEmpty = false) {
-            string token = builder.ToString().Trim();
-            if (token.Length > 0 || preserveEmpty) {
-                tokens.Add(token);
+        /// <summary>Adds the trimmed argument between two top-level separators; every argument character is kept as written.</summary>
+        private static void AddToken(List<string> tokens, string args, int start, int end, bool preserveEmpty = false) {
+            while (start < end && char.IsWhiteSpace(args[start])) start++;
+            while (end > start && char.IsWhiteSpace(args[end - 1])) end--;
+            if (end > start || preserveEmpty) {
+                tokens.Add(start == 0 && end == args.Length ? args : args.Substring(start, end - start));
             }
-
-            builder.Clear();
         }
 
     }

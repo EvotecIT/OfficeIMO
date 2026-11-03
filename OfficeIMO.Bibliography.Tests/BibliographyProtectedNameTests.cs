@@ -13,7 +13,7 @@ public sealed class BibliographyProtectedNameTests {
         Assert.Null(name.NonDroppingParticle);
         Assert.Null(name.Literal);
         foreach (BibliographyFormat format in new[] { BibliographyFormat.CslJson, BibliographyFormat.BibLatex }) {
-            BibliographyWriteResult written = source.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+            BibliographyWriteResult written = source.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
             BibliographyName reopened = Assert.Single(Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items).Contributors).Name;
             Assert.Equal(given, reopened.Given);
             Assert.Equal(family, reopened.Family);
@@ -27,7 +27,7 @@ public sealed class BibliographyProtectedNameTests {
     [InlineData("\r\n")]
     public void CanonicalCslUsesRequestedLineEndingThroughout(string lineEnding) {
         BibliographyDocument source = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"title\":\"Text\",\"vendor\":{\"list\":[1,2]}}]", BibliographyFormat.CslJson).Document;
-        BibliographyWriteResult written = source.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, LineEnding = lineEnding, RequireNoLoss = true });
+        BibliographyWriteResult written = source.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, LineEnding = lineEnding, FailOnLoss = true });
         Assert.Contains(lineEnding, written.Content);
         Assert.DoesNotContain("\n", written.Content.Replace(lineEnding, string.Empty));
         Assert.DoesNotContain("\r", written.Content.Replace(lineEnding, string.Empty));

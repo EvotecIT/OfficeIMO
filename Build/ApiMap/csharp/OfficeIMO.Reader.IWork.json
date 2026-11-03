@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Reader.IWork",
+  "changes": [
+    {
+      "old": "OfficeIMO.Reader.IWork.ReaderIWorkOptions.MaximumTableColumns / MaximumProjectedTableCells",
+      "kind": "property",
+      "action": "rename",
+      "new": "MaxTableColumns / MaxProjectedTableCells",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    }
+  ]
+}

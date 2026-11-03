@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(1, ColumnPageBandTextPage(rendered, "ONE").PageNumber);
             Assert.Equal(2, ColumnPageBandTextPage(rendered, "TWO").PageNumber);
             AssertColumnPageBandTextOnce(rendered, new[] { "ONE", "TWO" });
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -70,7 +70,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal("other", rendered.Pages[expectedPages - 1].PageName);
             if (expectedPages == 3) Assert.Empty(rendered.Pages[1].Visuals.OfType<HtmlRenderText>());
             AssertColumnPageBandTextOnce(rendered, new[] { "ONE", "TWO" });
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
                 HtmlRenderDocument rendered = Render();
                 Assert.Equal(2, rendered.Pages.Count);
                 Assert.Equal(2, ColumnPageBandTextPage(rendered, "TWO").PageNumber);
-                rendered.RequireNoLoss();
+                rendered.ThrowIfLoss();
             }
         }
     }

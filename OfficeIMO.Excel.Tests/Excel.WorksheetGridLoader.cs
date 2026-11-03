@@ -63,6 +63,42 @@ public sealed class ExcelWorksheetGridLoaderTests {
         Assert.Throws<XmlException>(() => document.Sheets[0].Cell(9, 9).SetValue(1d));
     }
 
+    [Fact]
+    public void Loaded_value_and_formula_cells_keep_column_order_through_edits_and_column_insert() {
+        string grid = "<sheetData><row r=\"1\" spans=\"1:4\">"
+            + "<c r=\"A1\" s=\"0\"><v>2</v></c>"
+            + "<c r=\"B1\"><f>A1*2</f><v>4</v></c>"
+            + "<c r=\"C1\"><v>7</v></c>"
+            + "<c r=\"D1\" t=\"str\"><v>tail</v></c></row></sheetData>";
+        byte[] package = CreatePackage(Worksheet(string.Empty, "xmlns=\"" + MainNamespace + "\"", grid));
+
+        using var output = new MemoryStream();
+        using (var document = ExcelDocument.Load(new MemoryStream(package))) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1).SetValue(5d);
+            sheet.InsertColumns(2);
+            sheet.Cell(1, 2).SetValue("inserted");
+            document.Calculate();
+            document.Save(output);
+        }
+
+        output.Position = 0;
+        using var saved = SpreadsheetDocument.Open(output, false);
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(saved));
+        Cell[] cells = saved.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<Cell>().ToArray();
+        Assert.Equal(new[] { "A1", "B1", "C1", "D1", "E1" }, cells.Select(cell => cell.CellReference!.Value));
+        Assert.Equal("0", cells[0].StyleIndex!.InnerText);
+        Assert.Equal("5", cells[0].CellValue!.Text);
+        string[] sharedStrings = saved.WorkbookPart.SharedStringTablePart!.SharedStringTable!.Elements<SharedStringItem>().Select(item => item.InnerText).ToArray();
+        Assert.Equal(CellValues.SharedString, cells[1].DataType!.Value);
+        Assert.Equal("inserted", sharedStrings[int.Parse(cells[1].CellValue!.Text, System.Globalization.CultureInfo.InvariantCulture)]);
+        Assert.Equal("A1*2", cells[2].CellFormula!.Text);
+        Assert.Equal("10", cells[2].CellValue!.Text);
+        Assert.Equal("7", cells[3].CellValue!.Text);
+        Assert.Equal(CellValues.String, cells[4].DataType!.Value);
+        Assert.Equal("tail", cells[4].CellValue!.Text);
+    }
+
     private static string Worksheet(string prefix, string declaration, string grid) =>
         $"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<{prefix}worksheet {declaration} "
         + "xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\">"

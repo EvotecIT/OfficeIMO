@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Missing", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-skipped-by-policy", diagnostic.Code);
             Assert.Equal(HtmlDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Equal("http://localhost:1/missing.png", diagnostic.Source);
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(doc.Images);
             Assert.Empty(doc.Paragraphs);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-skipped-by-policy", diagnostic.Code);
             Assert.Equal("http://localhost:1/missing.png", diagnostic.Source);
         }
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Too large", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-too-large", diagnostic.Code);
             Assert.Equal("https://example.test/large.png", diagnostic.Source);
             Assert.Contains("limit", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Not image", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-content-type-rejected", diagnostic.Code);
             Assert.Equal("https://example.test/not-image.png", diagnostic.Source);
             Assert.Contains("text/html", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Blocked scheme", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-rejected-by-policy", diagnostic.Code);
             Assert.Equal("https://example.test/scheme.png", diagnostic.Source);
             Assert.Contains("https", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 fetched = true;
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             }));
-            var options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+            var options = WordHtmlImportOptions.UntrustedDefaults;
             options.HttpClient = httpClient;
             string html = "<img src=\"https://example.test/untrusted.png\" alt=\"Blocked by profile\" />";
 
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Blocked by profile", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-skipped-by-policy", diagnostic.Code);
             Assert.Equal("https://example.test/untrusted.png", diagnostic.Source);
         }
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Blocked host", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-rejected-by-policy", diagnostic.Code);
             Assert.Equal("https://other.example.test/host.png", diagnostic.Source);
             Assert.Contains("other.example.test", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
@@ -654,7 +654,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Budget", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-budget-exceeded", diagnostic.Code);
             Assert.Equal("https://example.test/budget.png", diagnostic.Source);
             Assert.Contains("budget", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
@@ -681,10 +681,10 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             Assert.Single(doc.Images);
-            Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "image-resource-budget-exceeded" &&
                 string.Equals(diagnostic.Source, "https://example.test/too-large.png", StringComparison.OrdinalIgnoreCase));
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "image-load-failed");
+            Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "image-load-failed");
         }
 
         [Fact]
@@ -701,7 +701,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Too large data", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-too-large", diagnostic.Code);
             Assert.Equal("data:image", diagnostic.Source);
         }
@@ -720,7 +720,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Too much data", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-budget-exceeded", diagnostic.Code);
             Assert.Equal("data:image", diagnostic.Source);
         }
@@ -848,10 +848,10 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             Assert.Single(doc.Images);
-            Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "svg-load-failed" &&
                 diagnostic.Source == "https://example.test/broken.svg");
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "image-resource-budget-exceeded");
+            Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "image-resource-budget-exceeded");
         }
 
         [Fact]
@@ -881,7 +881,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Bad mime", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-content-type-rejected", diagnostic.Code);
             Assert.Equal("data:image/x-officeimo", diagnostic.Source);
         }
@@ -901,7 +901,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Too large svg", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-too-large", diagnostic.Code);
             Assert.Equal("data:image/svg+xml", diagnostic.Source);
         }
@@ -921,7 +921,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Budget svg", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-budget-exceeded", diagnostic.Code);
             Assert.Equal("data:image/svg+xml", diagnostic.Source);
         }
@@ -1107,7 +1107,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Blocked link", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-resource-rejected-by-policy", diagnostic.Code);
             Assert.Equal("https://blocked.example.test/logo.png", diagnostic.Source);
         }
@@ -1366,7 +1366,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Missing", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("image-skipped-by-policy", diagnostic.Code);
             Assert.Equal("missing.png", diagnostic.Source);
         }
@@ -1552,7 +1552,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(doc.Images);
             Assert.Single(requested);
-            Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "image-resource-budget-exceeded" &&
                 diagnostic.Source == "https://example.test/logo.png");
         }
@@ -1629,7 +1629,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, requested.Count);
             Assert.Contains(requested, uri => uri.AbsolutePath == "/Logo.png");
             Assert.Contains(requested, uri => uri.AbsolutePath == "/logo.png");
-            Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "image-load-failed" &&
                 diagnostic.Source == "https://cdn.example.test/Logo.png");
         }
@@ -1648,7 +1648,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Logo", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics,
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics,
                 item => item.Code == "image-skipped-by-policy");
             Assert.Equal(uri, diagnostic.Source);
         }

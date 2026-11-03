@@ -25,7 +25,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal("18", evidence.Facts["reconstructedSourceUnitCount"]);
         Assert.Equal("0", evidence.Facts["omittedSourceUnitCount"]);
         Assert.Equal("0", evidence.Facts["unassessedSourceUnitCount"]);
-        Assert.DoesNotContain(evidence.FidelityDiagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED"
+        Assert.DoesNotContain(evidence.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED"
             || d.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
         Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
         var pdf = PdfDocument.Load(files.Output);
@@ -57,9 +57,9 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(evidence.Facts["sourceUnitCount"], evidence.Facts["reconstructedSourceUnitCount"]);
         Assert.Equal("0", evidence.Facts["omittedSourceUnitCount"]);
         Assert.Equal("0", evidence.Facts["unassessedSourceUnitCount"]);
-        Assert.DoesNotContain(evidence.FidelityDiagnostics, d => d.Code == "IWORK_PAGES_DOCX_PRECISION");
-        Assert.DoesNotContain(evidence.FidelityDiagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED");
-        Assert.DoesNotContain(evidence.FidelityDiagnostics, d => d.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED"
+        Assert.DoesNotContain(evidence.Diagnostics, d => d.Code == "IWORK_PAGES_DOCX_PRECISION");
+        Assert.DoesNotContain(evidence.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED");
+        Assert.DoesNotContain(evidence.Diagnostics, d => d.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED"
             || d.LossKind == OfficeConversionLossKind.Failure);
         Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
         Assert.Equal(sourceHash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))));

@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
 
             using var document = conversion.Value;
 
-            var accessibilityDiagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("accessibility-", StringComparison.OrdinalIgnoreCase)).ToList();
+            var accessibilityDiagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code.StartsWith("accessibility-", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-image-missing-alt" && diagnostic.Source == "missing.png");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-link-text-weak" && diagnostic.Source == "https://example.com/report");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-link-text-missing" && diagnostic.Source == "https://example.com/empty");
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
 
             using var document = conversion.Value;
 
-            var accessibilityDiagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("accessibility-", StringComparison.OrdinalIgnoreCase)).ToList();
+            var accessibilityDiagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code.StartsWith("accessibility-", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-heading-level-skipped" && diagnostic.Source == "h3");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "accessibility-table-missing-header" && diagnostic.Source == "table#data");
             Assert.DoesNotContain(accessibilityDiagnostics, diagnostic => diagnostic.Source == "table#headed");

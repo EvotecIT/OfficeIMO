@@ -17,7 +17,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-                new IWorkReadOptions { MaximumRecordCount = 1 }));
+                new IWorkReadOptions { MaxRecordCount = 1 }));
 
         Assert.Contains("record count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

@@ -431,7 +431,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
 
         Assert.Contains("officeimo-onenote-image-placeholder", result.Value, StringComparison.Ordinal);
         Assert.DoesNotContain("javascript:", result.Value, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "ONENOTE_HTML_ASSET_URI_REJECTED_BY_POLICY"
             && diagnostic.Source == "blocked.png"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);

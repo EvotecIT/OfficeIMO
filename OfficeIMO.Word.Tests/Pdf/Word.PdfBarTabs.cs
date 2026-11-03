@@ -34,8 +34,8 @@ public sealed class WordPdfBarTabTests {
             item => item.Code == "native-paragraph-bar-tab-approximated");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.DoesNotContain(result.Warnings, item => item.Code == "native-paragraph-bar-tab-omitted");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var bars = BarBounds(pdf);
         Assert.Equal(story == "empty" ? 1 : 2, bars.Length);
@@ -158,7 +158,7 @@ public sealed class WordPdfBarTabTests {
         PdfConversionWarning warning = Assert.Single(result.Warnings,
             item => item.Code == "native-paragraph-bar-tab-omitted");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         Assert.Contains("FIRST", pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -182,7 +182,7 @@ public sealed class WordPdfBarTabTests {
             item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
         Assert.Equal("native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         Assert.Contains(pdf.GetPage(1).Paths, path => path.IsFilled);
@@ -261,7 +261,7 @@ public sealed class WordPdfBarTabTests {
             item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
         Assert.Equal("native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         Assert.Equal(sourceXml, paragraph._paragraph.OuterXml);
@@ -288,8 +288,8 @@ public sealed class WordPdfBarTabTests {
         Assert.Equal(surroundingText ? "native-paragraph-bar-tab-approximated" : "native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(surroundingText ? OfficeIMO.OfficeConversionLossKind.Approximation : OfficeIMO.OfficeConversionLossKind.Omission,
             warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Equal(surroundingText ? 2 : 0, BarBounds(pdf).Length);
         string text = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
@@ -324,8 +324,8 @@ public sealed class WordPdfBarTabTests {
             item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
         Assert.Equal("native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Empty(BarBounds(pdf));
         string text = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
@@ -367,7 +367,7 @@ public sealed class WordPdfBarTabTests {
             item => item.Code.StartsWith("native-paragraph-bar-tab-", StringComparison.Ordinal));
         Assert.Equal("native-paragraph-bar-tab-approximated", warning.Code);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Single(BarBounds(pdf));
         string text = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
@@ -420,8 +420,8 @@ public sealed class WordPdfBarTabTests {
         Assert.Equal(anchored ? "native-paragraph-bar-tab-approximated" : "native-paragraph-bar-tab-omitted", warning.Code);
         Assert.Equal(anchored ? OfficeIMO.OfficeConversionLossKind.Approximation : OfficeIMO.OfficeConversionLossKind.Omission,
             warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         Assert.Equal(sourceXml, story._header.OuterXml);
     }
 

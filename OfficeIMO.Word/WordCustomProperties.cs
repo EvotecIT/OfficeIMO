@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
                 if (_customProperties?.CustomFilePropertiesPart?.Properties != null) {
                     foreach (CustomDocumentProperty property in _customProperties.CustomFilePropertiesPart.Properties.OfType<CustomDocumentProperty>()) {
                         WordCustomProperty wordCustomProperty = new WordCustomProperty(property);
-                        _document.CustomDocumentProperties.Add(property.Name!, wordCustomProperty);
+                        _document.CustomProperties.Add(property.Name!, wordCustomProperty);
                     }
                 }
             }
@@ -196,10 +196,10 @@ namespace OfficeIMO.Word {
         }
 
         private void CreateCustomProperty(WordDocument document) {
-            if (document.CustomDocumentProperties.Count > 0) {
+            if (document.CustomProperties.Count > 0) {
                 CreateCustomProperties(document);
-                foreach (var property in document.CustomDocumentProperties.Keys) {
-                    var prop = Add(property, document.CustomDocumentProperties[property].Value, document.CustomDocumentProperties[property].PropertyType);
+                foreach (var property in document.CustomProperties.Keys) {
+                    var prop = Add(property, document.CustomProperties[property].Value, document.CustomProperties[property].PropertyType);
                     Add(property, prop);
                 }
             }

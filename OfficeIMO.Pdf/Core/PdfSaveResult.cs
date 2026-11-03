@@ -14,14 +14,14 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
         PdfConversionReport? report = null,
         PdfPipelineReport? pipeline = null,
         PdfSerializationReport? serialization = null,
-        IReadOnlyList<IOfficeConversionReport>? sourceConversionReports = null) {
+        IReadOnlyList<OfficeConversionReport>? sourceConversionReports = null) {
         OutputPath = outputPath;
         BytesWritten = bytesWritten;
         Diagnostics = diagnostics;
         Exception = exception;
         TextEncodingDiagnostics = PdfOutputDiagnostics.ExtractTextEncodingDiagnostics(exception);
         Report = Snapshot(report);
-        IOfficeConversionReport[] sourceReports = SnapshotSourceReports(sourceConversionReports);
+        OfficeConversionReport[] sourceReports = SnapshotSourceReports(sourceConversionReports);
         Report.AddRange(PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics));
         ConversionReports = CreateConversionReports(sourceReports, Report);
         Pipeline = pipeline ?? PdfPipelineReport.Empty();
@@ -50,7 +50,7 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
     public PdfConversionReport Report { get; }
 
     /// <summary>Ordered source-stage reports followed by the PDF-stage report, when conversion preceded the save.</summary>
-    public IReadOnlyList<IOfficeConversionReport> ConversionReports { get; }
+    public IReadOnlyList<OfficeConversionReport> ConversionReports { get; }
 
     /// <summary>End-to-end create/open, mutation, and output evidence for this save attempt.</summary>
     public PdfPipelineReport Pipeline { get; }
@@ -68,7 +68,7 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
     public bool HasLoss => ConversionReports.Any(static report => report.HasLoss);
 
     /// <summary>All source and PDF-stage diagnostics with their original loss categories preserved.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+    public IReadOnlyList<OfficeDiagnostic> ConversionDiagnostics =>
         OfficeConversionFidelityDiagnostics.Flatten(ConversionReports);
 
     /// <summary>Returns this result or throws with diagnostics when the save failed.</summary>
@@ -84,12 +84,11 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
     }
 
     /// <summary>Requires a successful save without reported conversion loss.</summary>
-    public PdfSaveResult RequireNoLoss() {
+    public void ThrowIfLoss() {
         RequireSuccess();
-        foreach (IOfficeConversionReport report in ConversionReports) {
-            report.RequireNoLoss();
+        foreach (OfficeConversionReport report in ConversionReports) {
+            report.ThrowIfLoss();
         }
-        return this;
     }
 
     /// <summary>Creates a successful save result.</summary>
@@ -104,7 +103,7 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
 
     /// <summary>Creates a failed save result while retaining the source-stage report that caused the failure.</summary>
     /// <remarks>The source report precedes the PDF-stage report in <see cref="ConversionReports"/>.</remarks>
-    public static PdfSaveResult FromFailure(string? outputPath, Exception exception, IOfficeConversionReport sourceConversionReport) {
+    public static PdfSaveResult FromFailure(string? outputPath, Exception exception, OfficeConversionReport sourceConversionReport) {
         Guard.NotNull(sourceConversionReport, nameof(sourceConversionReport));
         return CreateFailure(outputPath, exception, new[] { sourceConversionReport });
     }
@@ -112,7 +111,7 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
     private static PdfSaveResult CreateFailure(
         string? outputPath,
         Exception exception,
-        IReadOnlyList<IOfficeConversionReport>? sourceConversionReports) {
+        IReadOnlyList<OfficeConversionReport>? sourceConversionReports) {
         Guard.NotNull(exception, nameof(exception));
         IReadOnlyList<string> diagnostics = PdfOutputDiagnostics.BuildExceptionDiagnostics(exception);
         return new PdfSaveResult(
@@ -143,7 +142,7 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
 
     internal PdfSaveResult WithReport(
         PdfConversionReport report,
-        IReadOnlyList<IOfficeConversionReport>? sourceConversionReports = null) {
+        IReadOnlyList<OfficeConversionReport>? sourceConversionReports = null) {
         return new PdfSaveResult(
             OutputPath,
             BytesWritten,
@@ -165,7 +164,7 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
             Pipeline,
             Serialization,
             ConversionReports.Count == 0
-                ? Array.Empty<IOfficeConversionReport>()
+                ? Array.Empty<OfficeConversionReport>()
                 : ConversionReports.Take(ConversionReports.Count - 1).ToArray());
     }
 
@@ -175,22 +174,22 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
         return snapshot;
     }
 
-    private static IOfficeConversionReport[] SnapshotSourceReports(
-        IReadOnlyList<IOfficeConversionReport>? reports) {
-        if (reports == null || reports.Count == 0) return Array.Empty<IOfficeConversionReport>();
-        var snapshot = new IOfficeConversionReport[reports.Count];
+    private static OfficeConversionReport[] SnapshotSourceReports(
+        IReadOnlyList<OfficeConversionReport>? reports) {
+        if (reports == null || reports.Count == 0) return Array.Empty<OfficeConversionReport>();
+        var snapshot = new OfficeConversionReport[reports.Count];
         for (int i = 0; i < reports.Count; i++) {
             snapshot[i] = reports[i];
         }
         return snapshot;
     }
 
-    private static IOfficeConversionReport[] CreateConversionReports(
-        IOfficeConversionReport[] sourceReports,
+    private static OfficeConversionReport[] CreateConversionReports(
+        OfficeConversionReport[] sourceReports,
         PdfConversionReport? pdfReport) {
         int count = sourceReports.Length + (pdfReport == null ? 0 : 1);
-        if (count == 0) return Array.Empty<IOfficeConversionReport>();
-        var reports = new IOfficeConversionReport[count];
+        if (count == 0) return Array.Empty<OfficeConversionReport>();
+        var reports = new OfficeConversionReport[count];
         for (int i = 0; i < sourceReports.Length; i++) {
             reports[i] = sourceReports[i];
         }

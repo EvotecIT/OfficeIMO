@@ -16,8 +16,8 @@ namespace OfficeIMO.Examples.Word
             using (WordDocument document = WordDocument.Create(filePath))
             {
                 {
-                    document.BuiltinDocumentProperties.Title = "Quarterly Review";
-                    document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+                    document.Properties.Title = "Quarterly Review";
+                    document.Properties.Creator = "OfficeIMO";
                     document.PageSetup.Orientation = OfficePageOrientation.Portrait;
                     document.PageSetup.Size.PageSize = WordPageSize.A4;
                     document.Sections[0].PageSetup.Margins.Type = WordMargin.Normal;

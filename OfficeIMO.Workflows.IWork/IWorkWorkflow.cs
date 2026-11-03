@@ -58,7 +58,7 @@ public static partial class IWorkWorkflow {
 
     private static IWorkReadOptions Bound(IWorkReadOptions options, OfficeOperationLimits limits) {
         IWorkReadOptions copy = options.Clone();
-        copy.MaximumPackageBytes = Math.Min(copy.MaximumPackageBytes, limits.MaximumInputBytes);
+        copy.MaxPackageBytes = Math.Min(copy.MaxPackageBytes, limits.MaximumInputBytes);
         return copy;
     }
 

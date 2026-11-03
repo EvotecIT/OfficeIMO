@@ -37,10 +37,10 @@ public sealed class PdfAssemblyFailureEvidenceTests {
             Assert.Equal(conversion.FailureKind, assembly.FailureKind);
             Assert.Equal(expected.Details["exceptionType"], Assert.Single(assembly.Diagnostics, d => d.Code == "PdfAssemblyFailed").Details["exceptionType"]);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(conversion.ConversionEvidence);
-            Assert.NotEmpty(evidence.FidelityDiagnostics);
-            foreach (var finding in evidence.FidelityDiagnostics) {
+            Assert.NotEmpty(evidence.Diagnostics);
+            foreach (var finding in evidence.Diagnostics) {
                 Assert.Contains(assembly.Diagnostics, d => d.Code == finding.Code && d.Message == finding.Message
-                    && d.Details.TryGetValue("source", out string? sourceName) && sourceName == finding.Source);
+                    && d.Details.TryGetValue("source", out string? sourceName) && sourceName == finding.Format);
             }
             Assert.Equal(source, File.ReadAllBytes(input));
             Assert.Equal(destination, File.ReadAllBytes(output));

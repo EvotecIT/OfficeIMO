@@ -28,7 +28,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, face.Program.Measure(mark, 18D));
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         Assert.Contains(pdf.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
 
         Assert.Equal(mark, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
@@ -41,8 +41,8 @@ public sealed partial class HtmlRenderingTests {
         OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(pdf,
             OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
         Assert.Equal(replay.Bytes, image.Bytes);
-        image.CreateReport().RequireNoLoss();
-        replay.CreateReport().RequireNoLoss();
+        image.CreateReport().ThrowIfLoss();
+        replay.CreateReport().ThrowIfLoss();
         Assert.DoesNotContain(image.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);
         Assert.DoesNotContain(replay.Diagnostics, item => item.LossKind != OfficeConversionLossKind.None);
     }

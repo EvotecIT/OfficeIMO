@@ -447,9 +447,9 @@ internal static partial class PdfWriter {
             }
         }
 
-        private static double GetAlignedObjectX(double containerX, double containerWidth, double objectWidth, PdfAlign align) {
-            if (align == PdfAlign.Center) return containerX + Math.Max(0, (containerWidth - objectWidth) / 2);
-            if (align == PdfAlign.Right) return containerX + Math.Max(0, containerWidth - objectWidth);
+        private static double GetAlignedObjectX(double containerX, double containerWidth, double objectWidth, OfficeAlignment align) {
+            if (align == OfficeAlignment.Center) return containerX + Math.Max(0, (containerWidth - objectWidth) / 2);
+            if (align == OfficeAlignment.Right) return containerX + Math.Max(0, containerWidth - objectWidth);
             return containerX;
         }
 

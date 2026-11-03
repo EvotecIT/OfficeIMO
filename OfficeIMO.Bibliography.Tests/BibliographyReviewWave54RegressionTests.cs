@@ -10,14 +10,14 @@ public sealed class BibliographyReviewWave54RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyNativeEntry reopened = Assert.Single(BibliographyDocument.Parse(permissive.Content, BibliographyFormat.EndNoteXml).Document.NativeEntries,
             entry => entry.Kind == kind && entry.Name == "metadata");
 
         Assert.Equal("<metadata>A\nB</metadata>", reopened.Value.Replace("\r\n", "\n"));
         Assert.DoesNotContain("A\rB", reopened.Value, StringComparison.Ordinal);
-        Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV235" && diagnostic.Field == "metadata");
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV235" && diagnostic.Field == "metadata");
+        Assert.Contains(permissive.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV235" && diagnostic.Field == "metadata");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV235" && diagnostic.Field == "metadata");
     }
 
     [Theory]

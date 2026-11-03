@@ -11,7 +11,7 @@ public sealed class OfficeImageExportPolicy {
     private IReadOnlyCollection<string> _failOnDiagnosticCodes = Array.Empty<string>();
 
     /// <summary>Rejects any approximation, omission, or failure diagnostic.</summary>
-    public bool RequireNoLoss { get; set; }
+    public bool FailOnLoss { get; set; }
 
     /// <summary>Rejects omission diagnostics while allowing documented approximations.</summary>
     public bool RequireNoOmissions { get; set; }
@@ -27,7 +27,7 @@ public sealed class OfficeImageExportPolicy {
 
     /// <summary>Creates an independent policy snapshot.</summary>
     public OfficeImageExportPolicy Clone() => new OfficeImageExportPolicy {
-        RequireNoLoss = RequireNoLoss,
+        FailOnLoss = FailOnLoss,
         RequireNoOmissions = RequireNoOmissions,
         RequireNoFailures = RequireNoFailures,
         FailOnDiagnosticCodes = _failOnDiagnosticCodes
@@ -45,7 +45,7 @@ public sealed class OfficeImageExportPolicy {
     private bool IsRejected(OfficeImageExportDiagnostic diagnostic) {
         if (diagnostic == null) return false;
         if (_failOnDiagnosticCodes.Contains(diagnostic.Code, StringComparer.OrdinalIgnoreCase)) return true;
-        if (RequireNoLoss && diagnostic.LossKind != OfficeConversionLossKind.None) return true;
+        if (FailOnLoss && diagnostic.LossKind != OfficeConversionLossKind.None) return true;
         if (RequireNoOmissions && diagnostic.LossKind == OfficeConversionLossKind.Omission) return true;
         return RequireNoFailures &&
                (diagnostic.LossKind == OfficeConversionLossKind.Failure ||

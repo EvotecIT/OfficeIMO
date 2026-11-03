@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
                 return pixel.A > 0 && (pixel.R != pixel.G || pixel.G != pixel.B);
             }));
         if (expectedLoss) {
-            options.Policy.RequireNoLoss = true;
+            options.Policy.FailOnLoss = true;
             OfficeImageExportPolicyException failure = Assert.Throws<OfficeImageExportPolicyException>(() =>
                 document.ExportImage(OfficeImageExportFormat.Png, options));
             Assert.Contains(failure.Diagnostics, diagnostic =>

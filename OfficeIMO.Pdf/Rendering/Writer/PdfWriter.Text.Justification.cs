@@ -26,15 +26,15 @@ internal static partial class PdfWriter {
 
     /// <summary>Plans one physical line's glyph and separator advances for paint and paint diagnostics.</summary>
     private static RichLineJustification PlanRichLineJustification(List<RichSeg> segments,
-        PdfAlign alignment, PdfParagraphStyle? style, double availableWidth, bool isFinalParagraphLine, PdfCreateOptions options) {
-        if (alignment == PdfAlign.Justify &&
+        OfficeAlignment alignment, PdfParagraphStyle? style, double availableWidth, bool isFinalParagraphLine, PdfCreateOptions options) {
+        if (alignment == OfficeAlignment.Justify &&
             TryApplyWordCompressionPlan(segments, availableWidth, out RichLineJustification compression))
             return compression;
         double naturalWidth = MeasureRichLineWidth(segments);
         bool hardBreak = segments.Any(segment => segment.EndsWithHardBreak);
         RichLineJustificationPolicy policy = segments.Select(segment => segment.JustificationPolicy).FirstOrDefault(item => item.HasValue)
             ?? new RichLineJustificationPolicy(style, isFinalParagraphLine, hardBreak);
-        bool expands = alignment == PdfAlign.Justify && availableWidth > naturalWidth &&
+        bool expands = alignment == OfficeAlignment.Justify && availableWidth > naturalWidth &&
             (policy.IsExplicitBreak ? policy.ExplicitBreaks : !policy.IsFinalParagraphLine || policy.LastLine);
         if (!expands) return new RichLineJustification(segments, 0D, naturalWidth);
         int lastTab = segments.FindLastIndex(segment => segment.LeadingIsTab);

@@ -80,7 +80,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void TextDecorationBidiControlsRetainAutomaticPaintAndReportTheSpecialization() {
         var scene = HtmlRenderTestDriver.Render("<span style='text-decoration:underline 3px solid red;text-underline-offset:8px'>\u202Eabc\u202C</span>", new HtmlRenderOptions());
-        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
+        Assert.Contains(scene.NativeDiagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
             && d.Detail?.Contains("bidi", StringComparison.Ordinal) == true);
         Assert.DoesNotContain(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderShape>(),
             s => s.Source?.Contains(":decoration:", StringComparison.Ordinal) == true);
@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("text-decoration:underline 3px;text-decoration-skip-ink:all", "skipping")]
     public void SpecializedDecorationGeometryRetainsActionableLoss(string declarations, string detail) {
         var scene = HtmlRenderTestDriver.Render("<span style='" + declarations + "'>Boundary</span>", new HtmlRenderOptions());
-        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated" && d.Detail?.Contains(detail, StringComparison.Ordinal) == true);
+        Assert.Contains(scene.NativeDiagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated" && d.Detail?.Contains(detail, StringComparison.Ordinal) == true);
         Assert.True(scene.HasLoss);
     }
 }

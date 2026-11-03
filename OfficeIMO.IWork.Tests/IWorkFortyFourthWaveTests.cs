@@ -76,9 +76,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesDrawableOccurrencePackage(
             duplicateWithinField: false, floating: false, occurrenceCount: 13);
         var options = new IWorkReadOptions {
-            MaximumProjectedImages = 1,
-            MaximumProjectedTables = 1,
-            MaximumProjectedTextItems = 10
+            MaxProjectedImages = 1,
+            MaxProjectedTables = 1,
+            MaxProjectedTextItems = 10
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -94,9 +94,9 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Repeated", 1, 1, 1d)
         }, repeatedFirstDrawableCount: 3);
         var options = new IWorkReadOptions {
-            MaximumProjectedImages = 1,
-            MaximumProjectedTables = 1,
-            MaximumProjectedTextItems = 1
+            MaxProjectedImages = 1,
+            MaxProjectedTables = 1,
+            MaxProjectedTextItems = 1
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -111,9 +111,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
             1, drawableReferenceCount: 13);
         var options = new IWorkReadOptions {
-            MaximumProjectedImages = 1,
-            MaximumProjectedTables = 1,
-            MaximumProjectedTextItems = 10
+            MaxProjectedImages = 1,
+            MaxProjectedTables = 1,
+            MaxProjectedTextItems = 10
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>

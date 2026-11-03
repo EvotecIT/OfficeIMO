@@ -197,7 +197,7 @@ public sealed class DrawPdfCommandTests {
 
     private static void CreateDrawing(string path) {
         var drawing = OdgDocument.Create();
-        drawing.Metadata.Title = "Unprojected CLI metadata";
+        drawing.Properties.Title = "Unprojected CLI metadata";
         drawing.AddPage("Main", OdfLength.Points(360), OdfLength.Points(220))
             .Shapes.AddTextBox(Bounds(20), "Draw CLI caption");
         drawing.AddPage("Blank", OdfLength.Points(180), OdfLength.Points(120));

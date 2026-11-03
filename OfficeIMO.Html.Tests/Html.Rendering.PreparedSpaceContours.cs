@@ -17,7 +17,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = new ManagedTextShapingTestAssets.RecordingProvider()
         };
         options.Fonts.Add("Empty Glyphs", ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(
@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         Assert.Equal(text, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
         if (linked) Assert.NotEmpty(PdfCore.PdfDocumentReadResult.Load(bytes).GetLinksByUri(uri));
     }
@@ -54,11 +54,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotNull(space.PreparedShaping);
         Assert.True(space.TextAdvanceWidth > 0D);
         Assert.Empty(space.PreparedShaping!.GetContours(0D, 0D, 20D, 1000, default));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
 
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         Assert.Equal("אבג 123", PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(

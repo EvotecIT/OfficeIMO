@@ -777,7 +777,7 @@ Floating drawings, unsupported image effects and transforms, embedded objects,
 and other unprojected legacy content are diagnosed or blocked. File optimization
 workflows refuse to publish incomplete legacy projections. `WordDocument.Convert`
 uses the same load/save paths and blocks known conversion loss by default. Set
-`LossPolicy = OfficeConversionLossPolicy.Allow` only after reviewing that loss.
+`AllowLoss = true` on `WordSaveOptions` only after reviewing that loss.
 See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-compatibility.md)
 for the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
@@ -822,7 +822,7 @@ The importer never saves back to these source formats, executes macros or embedd
 | Microsoft Write WRI | Salvage | bounded text and paragraph runs | formatting runs, objects, headers, footers, and layout are not yet reconstructed |
 | Microsoft Word for DOS 4-6 | Salvage | bounded text and paragraphs | formatting, annotations, objects, and layout are not yet reconstructed |
 
-`Structured` means the input passed the documented profile grammar, not that conversion is lossless. Inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow. Detection combines stable signatures and validated grammar with an optional source name; resource limits and cancellation apply before and during parsing.
+`Structured` means the input passed the documented profile grammar, not that conversion is lossless. Inspect `Report.Findings`, or call `imported.ThrowIfLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow. Detection combines stable signatures and validated grammar with an optional source name; resource limits and cancellation apply before and during parsing.
 
 WordPerfect 5 and 6 use separate record grammars. Encrypted documents and malformed record gates, references, or table grids fail import. Deleted WordPerfect 6 undo text is excluded. Basic WPG1 vectors are rasterized at 96 DPI; `Image.GetSourceBytes()` and `Image.GetPngBytes()` return independent copies. `Limits.MaxResourceBytes` bounds graphics bytes and `Limits.MaxImagePixels` bounds total generated pixels across body and referenced stories. The five attributed WordPerfect fixtures and WPG1 fixture in `OfficeIMO.LegacyImport.Tests/Fixtures/WordPerfect` provide independent source evidence; specification-built tests cover tables, notes, malformed input, and shared budgets. Complete source-format preservation and pixel-identical layout are outside these profiles.
 

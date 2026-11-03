@@ -10,6 +10,24 @@
       "category": "naming",
       "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdfDocument.Metadata",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.OpenDocument.OdfDocument.Properties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdfConversionLossException : InvalidOperationException",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.OpenDocument.OdfConversionLossException : OfficeConversionException",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
     }
   ]
 }

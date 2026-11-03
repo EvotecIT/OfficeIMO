@@ -1,4 +1,7 @@
 #nullable enable
+*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
+*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasLoss.get -> bool
+*REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.RequireNoLoss() -> void
 OfficeIMO.PowerPoint.PowerPointCardContent.ImagePath.get -> string?
 OfficeIMO.PowerPoint.PowerPointCardContent.ImagePath.set -> void
 OfficeIMO.PowerPoint.PowerPointCardContent.Text.get -> string?
@@ -28,8 +31,10 @@ OfficeIMO.PowerPoint.PowerPointDeckContinuationOptions.ContinuationTitleFormat.g
 OfficeIMO.PowerPoint.PowerPointDeckPlan.AddContent(string? title, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>! blocks, OfficeIMO.PowerPoint.PowerPointLayout layout = OfficeIMO.PowerPoint.PowerPointLayout.Auto, string? subtitle = null) -> OfficeIMO.PowerPoint.PowerPointDeckPlan!
 OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Content = 15 -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
 OfficeIMO.PowerPoint.PowerPointDocument.ApplyTheme(OfficeIMO.OfficeTheme! theme, int? masterIndex = null) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.BuiltinDocumentProperties.get -> OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties!
 OfficeIMO.PowerPoint.PowerPointDocument.GetTheme(int masterIndex = 0) -> OfficeIMO.OfficeTheme!
 OfficeIMO.PowerPoint.PowerPointDocument.ImportSlides(OfficeIMO.PowerPoint.PowerPointDocument! sourcePresentation, System.Collections.Generic.IEnumerable<int>! sourceIndices, int? insertAt = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlide!>!
+OfficeIMO.PowerPoint.PowerPointDocument.Properties.get -> OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties!
 OfficeIMO.PowerPoint.PowerPointDocument.SetThemeName(string! name, int masterIndex = 0) -> void
 OfficeIMO.PowerPoint.PowerPointImage
 OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold.get -> int?
@@ -275,6 +280,7 @@ OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontFamily(string? fontFamily) -> O
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontName(string? fontName) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextStyle.WithHighlightColor(string? highlightColor) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithUnderlineStyle(OfficeIMO.PowerPoint.PowerPointUnderlineStyle? underlineStyle) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+override OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasLoss.get -> bool
 override OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
 static OfficeIMO.PowerPoint.PowerPointDocument.SignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 *REMOVED*static OfficeIMO.PowerPoint.PowerPointDocument.SignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!

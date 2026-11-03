@@ -37,7 +37,7 @@ public sealed class PdfRuledTableFigureTests {
             "Stacked results", "Results", OfficeChartType.BarStacked100,
             new OfficeChartData(new[] { "Quarter" }, series), OfficeLength.Points(400D), OfficeLength.Points(220D)));
         using var source = PdfDocument.Create(new PdfCreateOptions { PageWidth = OfficeLength.Points(500D), PageHeight = OfficeLength.Points(320D),
-            MarginLeft = OfficeLength.Points(36D), MarginRight = OfficeLength.Points(36D), MarginTop = OfficeLength.Points(36D), MarginBottom = OfficeLength.Points(36D) }).Drawing(drawing, PdfAlign.Left);
+            MarginLeft = OfficeLength.Points(36D), MarginRight = OfficeLength.Points(36D), MarginTop = OfficeLength.Points(36D), MarginBottom = OfficeLength.Points(36D) }).Drawing(drawing, OfficeAlignment.Left);
         using var pdf = PdfDocument.Load(source.ToBytes());
         Assert.NotEmpty(pdf.Read().Pages[0].VectorFigures);
     }

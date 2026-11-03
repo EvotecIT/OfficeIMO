@@ -34,7 +34,7 @@ internal sealed class IWorkTableFillStyleReader {
                     fill = cached.Fill; complete = cached.Complete;
                 } else {
                     var chain = IWorkStyleReader.ReadChain(source.Index, record!.Identifier,
-                        budget.MaximumTextStyleInheritanceDepth, type => type == 6004,
+                        budget.MaxTextStyleInheritanceDepth, type => type == 6004,
                         tolerateStyleDepth: true, references, ref complete);
                     for (int i = chain.Count - 1; i >= 0; i--) {
                         source.CancellationToken.ThrowIfCancellationRequested();

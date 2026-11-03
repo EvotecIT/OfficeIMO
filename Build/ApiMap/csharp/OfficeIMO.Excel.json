@@ -10819,6 +10819,24 @@
       "note": "Reviewed documentation roots, retained public signatures and actual cross-assembly callers; implementation access uses existing friends."
     },
     {
+      "old": "OfficeIMO.Excel.ExcelDocument.BuiltinDocumentProperties",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.Properties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.CustomDocumentProperties",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.CustomProperties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
       "old": "OfficeIMO.Excel.ExcelSheet.CellAt(int row, int column)",
       "kind": "method",
       "action": "rename",

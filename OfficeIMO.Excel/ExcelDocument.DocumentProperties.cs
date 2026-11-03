@@ -24,7 +24,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Built-in (core) document properties (Title, Creator, etc.).
         /// </summary>
-        public ExcelBuiltinDocumentProperties BuiltinDocumentProperties { get; internal set; } = null!;
+        public ExcelBuiltinDocumentProperties Properties { get; internal set; } = null!;
 
         /// <summary>
         /// Extended (application) properties (Company, Manager, etc.).
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Custom workbook properties keyed by property name.
         /// </summary>
-        public ExcelCustomDocumentPropertyCollection CustomDocumentProperties { get; } = new ExcelCustomDocumentPropertyCollection();
+        public ExcelCustomDocumentPropertyCollection CustomProperties { get; } = new ExcelCustomDocumentPropertyCollection();
 
         /// <summary>
         /// FileOpenAccess of the document

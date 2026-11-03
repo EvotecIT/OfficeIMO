@@ -6,7 +6,7 @@ internal static class NativeEditProof {
     internal static int Run(string input, string output) {
         if (Directory.Exists(output)) throw new IOException("Choose a new output directory.");
         Directory.CreateDirectory(output);
-        var allow = new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
+        var allow = new ProjectSaveOptions { AllowLoss = true };
         void Save(string name, Action<ProjectDocument> edit, bool loss = true, string extension = ".mpp") {
             using var document = ProjectDocument.Load(input); edit(document);
             string path = Path.Combine(output, name + extension);

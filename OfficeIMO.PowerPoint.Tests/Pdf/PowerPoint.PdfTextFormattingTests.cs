@@ -25,7 +25,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         Assert.Equal(2, pdf.LinkAnnotations.Count);
         Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
         Assert.Contains(pdf.LinkAnnotations, link => link.X2 - link.X1 < PowerPointUnits.ToPoints(box.Width.ToEmus()));
-        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Theory]
@@ -48,7 +48,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         paragraph.AddText(string.Empty).CharacterSpacing = global::OfficeIMO.OfficeLength.Points(1.25);
         var conversion = presentation.ConvertToPdfWithEvidence();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
-        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics,
+        Assert.DoesNotContain(conversion.Report.Diagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
     }
 
@@ -60,10 +60,10 @@ public sealed class PowerPointPdfTextFormattingTests {
         paragraph.Paragraph.RemoveAllChildren<A.Run>();
         paragraph.AddField("1", "slidenum", "{33333333-3333-3333-3333-333333333333}");
         paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Spacing = 125 });
-        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.Diagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
         paragraph.InlineNodes.Single().Run!.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(0);
-        Assert.DoesNotContain(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+        Assert.DoesNotContain(presentation.ConvertToPdfWithEvidence().Report.Diagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
     }
 
@@ -76,7 +76,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         PowerPointTextRun run = paragraph.InlineNodes.First(node => node.Run != null).Run!;
         Assert.Null(run.CharacterSpacing?.ToPoints());
         Assert.Equal(-2.32, PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, title));
-        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.Diagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated"
                 && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         foreach (PowerPointTextRun authored in title.Paragraphs.SelectMany(item => item.InlineNodes).Where(node => node.Run != null).Select(node => node.Run!)) authored.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(0);
@@ -99,10 +99,10 @@ public sealed class PowerPointPdfTextFormattingTests {
             A.DefaultRunProperties master = level.GetFirstChild<A.DefaultRunProperties>() ?? level.AppendChild(new A.DefaultRunProperties());
             master.Spacing = 125;
         }
-        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+        Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.Diagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
         box.Paragraphs[0].Runs[0].CharacterSpacing = global::OfficeIMO.OfficeLength.Points(0);
-        Assert.DoesNotContain(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
+        Assert.DoesNotContain(presentation.ConvertToPdfWithEvidence().Report.Diagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
     }
 
@@ -121,7 +121,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         Assert.Equal(-2.32, reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].CharacterSpacing?.ToPoints());
         Assert.Equal(1.25, reopened.Slides[0].Tables.Single().GetCell(0, 0).Paragraphs[0].Runs[0].CharacterSpacing?.ToPoints());
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
-        Assert.Contains(conversion.Report.FidelityDiagnostics, d => d.Code == OfficeDiagnosticCodes.PowerpointCharacterSpacingApproximated
+        Assert.Contains(conversion.Report.Diagnostics, d => d.Code == OfficeDiagnosticCodes.PowerpointCharacterSpacingApproximated
             && d.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Contains(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
     }

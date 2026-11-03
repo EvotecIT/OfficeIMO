@@ -10,7 +10,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>Rejects a converted target when completed stages report fidelity loss.</summary>
         public bool FailOnLoss { get; set; }
 
-        private HtmlConversionLimits _limits = HtmlConversionLimits.CreateTrustedProfile();
+        private HtmlConversionLimits _limits = new HtmlConversionLimits();
         /// <summary>
         /// Creates the default OfficeIMO HTML import profile.
         /// </summary>
@@ -33,8 +33,8 @@ namespace OfficeIMO.Word.Html {
         /// applies conservative HTML, CSS, image, and table limits. Callers can relax individual
         /// limits or allow-lists when their ingestion boundary is more trusted.
         /// </remarks>
-        /// <returns>A new <see cref="WordHtmlImportOptions"/> instance configured for untrusted HTML.</returns>
-        public static WordHtmlImportOptions CreateUntrustedHtmlProfile() {
+        /// <value>A new <see cref="WordHtmlImportOptions"/> instance configured for untrusted HTML.</value>
+        public static WordHtmlImportOptions UntrustedDefaults { get {
             var options = new WordHtmlImportOptions {
                 ImageProcessing = WordHtmlImageProcessingMode.EmbedDataUriOnly,
                 ResourceTimeout = TimeSpan.FromSeconds(5),
@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.Html {
             options.AllowedStylesheetUriSchemes.Clear();
 
             return options;
-        }
+        } }
 
         /// <summary>
         /// Creates a profile for trusted HTML documents whose own linked stylesheets may be loaded.
@@ -315,7 +315,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>Shared HTML parsing and CSS limits used by the core engine and Word adapter.</summary>
         public HtmlConversionLimits Limits {
             get => _limits;
-            set => _limits = value ?? HtmlConversionLimits.CreateTrustedProfile();
+            set => _limits = value ?? new HtmlConversionLimits();
         }
 
         /// <summary>

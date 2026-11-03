@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using (var document = ExcelDocument.Load(path)) {
-                document.BuiltinDocumentProperties.Title = "Updated workbook title";
+                document.Properties.Title = "Updated workbook title";
                 var sheet = document["Data"];
                 sheet.Cell(1, 1).SetValue(1);
                 document.RecalculateSupportedFormulas();

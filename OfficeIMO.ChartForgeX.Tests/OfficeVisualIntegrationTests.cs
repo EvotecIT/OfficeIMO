@@ -37,13 +37,13 @@ public sealed partial class OfficeVisualIntegrationTests {
         Assert.NotNull(result.Regions[0].Width);
         Assert.True(result.Report.IsVector || result.Report.UnsupportedSvgFeatureCount > 0);
         Assert.Equal(OfficeVisualMediaFormat.Svg, result.PlacementFormat);
-        IOfficeConversionReport common = result.Report;
-        OfficeConversionFidelityDiagnostic regionDiagnostic = Assert.Single(common.FidelityDiagnostics,
+        OfficeConversionReport common = result.Report;
+        OfficeDiagnostic regionDiagnostic = Assert.Single(common.Diagnostics,
             diagnostic => diagnostic.Code == "VISUAL_REGION_LINKS_NOT_PROJECTED");
         Assert.Equal(OfficeConversionLossKind.Omission, regionDiagnostic.LossKind);
         Assert.Equal("regions", regionDiagnostic.Location);
         Assert.True(common.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => common.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => common.ThrowIfLoss());
     }
 
     [Fact]
@@ -172,10 +172,10 @@ public sealed partial class OfficeVisualIntegrationTests {
 
         Assert.True(result.Report.UsedRasterFallback);
         Assert.Equal(OfficeVisualMediaFormat.Png, result.PlacementFormat);
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(result.Report.FidelityDiagnostics);
+        OfficeDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics);
         Assert.Equal("SVG_RASTER_FALLBACK", diagnostic.Code);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]

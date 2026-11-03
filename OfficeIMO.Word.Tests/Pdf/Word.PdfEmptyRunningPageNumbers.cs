@@ -136,7 +136,7 @@ public partial class Word {
         if (typography) {
             options.PdfOptions.FooterFont = PdfStandardFont.Courier;
             options.PdfOptions.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24D);
-            options.PdfOptions.FooterAlign = PdfAlign.Left;
+            options.PdfOptions.FooterAlign = OfficeAlignment.Left;
             options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
         }
         using var withImplicit = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

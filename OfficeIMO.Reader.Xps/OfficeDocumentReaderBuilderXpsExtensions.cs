@@ -12,8 +12,8 @@ public static class OfficeDocumentReaderBuilderXpsExtensions {
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO, Id = HandlerId, DisplayName = "XPS Reader Adapter",
             Description = "Native XPS/OpenXPS Unicode and logical structure through OfficeIMO.Xps.", Kind = ReaderInputKind.Xps,
-            Extensions = new[] { ".xps", ".oxps" }, DefaultMaxInputBytes = snapshot.ReadOptions.MaximumInputBytes,
-            MaxInputBytesCeiling = snapshot.ReadOptions.MaximumInputBytes,
+            Extensions = new[] { ".xps", ".oxps" }, DefaultMaxInputBytes = snapshot.ReadOptions.Limits.MaxInputBytes,
+            MaxInputBytesCeiling = snapshot.ReadOptions.Limits.MaxInputBytes,
             ReadPath = (path, reader, token) => XpsReaderAdapter.Read(path, reader, snapshot.Clone(), token).Chunks,
             ReadStream = (stream, name, reader, token) => XpsReaderAdapter.Read(stream, name, reader, snapshot.Clone(), token).Chunks,
             ReadDocumentPath = (path, reader, token) => XpsReaderAdapter.Read(path, reader, snapshot.Clone(), token),

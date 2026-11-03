@@ -114,13 +114,13 @@ public sealed class VisioBackgroundCompositionTests {
         VisioDocument document = VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()))).Value;
         byte[] before = document.ToLegacyXmlResult().Value;
         var result = document.Pages[2].ToDrawing();
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<OfficeConversionException>(() => document.Pages[2].ToDrawing(new VisioDrawingOptions { RequireNoLoss = true }));
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<OfficeConversionException>(() => document.Pages[2].ToDrawing(new VisioDrawingOptions { FailOnLoss = true }));
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
             var exported = document.Pages[2].ExportImage(format, new VisioImageExportOptions { RenderText = false, TargetDpi = 24, Supersampling = 1 });
             Assert.Contains(exported.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Throws<OfficeImageExportPolicyException>(() => document.Pages[2].ExportImage(format, new VisioImageExportOptions {
-                RenderText = false, TargetDpi = 24, Supersampling = 1, Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+                RenderText = false, TargetDpi = 24, Supersampling = 1, Policy = new OfficeImageExportPolicy { FailOnLoss = true }
             }));
         }
         Assert.Equal(before, document.ToLegacyXmlResult().Value);

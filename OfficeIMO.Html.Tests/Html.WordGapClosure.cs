@@ -43,7 +43,7 @@ public partial class HtmlWordGapClosure {
         Assert.Equal(60, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
         Assert.Equal(90, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
         Assert.DoesNotContain(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "unsupported-css-declaration" &&
                           diagnostic.Source?.Contains("inline", StringComparison.OrdinalIgnoreCase) == true);
     }
@@ -395,7 +395,7 @@ public partial class HtmlWordGapClosure {
         Assert.Equal(OfficeColor.Parse("FF0000"), border.Borders.TopColor);
         Assert.Null(transparent.ShadingFillColor);
         Assert.Equal(OfficeColor.Parse("010203"), functionalColor.Borders.TopColor);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "unsupported-css-value" &&
             diagnostic.Source == "div:border");
     }

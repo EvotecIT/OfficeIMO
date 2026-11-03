@@ -27,7 +27,8 @@ public partial class WordRtfConverterTests {
             block => Assert.Equal("Second run image", Assert.IsType<RtfImage>(block).Description));
         Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "WordRtfImagesOmitted");
-        Assert.Same(conversion.Value, conversion.RequireNoLoss());
+        conversion.ThrowIfLoss();
+        Assert.Same(conversion.Value, conversion.Value);
     }
 
     [Fact]
@@ -47,6 +48,7 @@ public partial class WordRtfConverterTests {
             converted.Inlines,
             inline => Assert.Equal("Inline image", Assert.IsType<RtfImage>(inline).Description),
             inline => Assert.Equal("After image", Assert.IsType<RtfRun>(inline).Text));
-        Assert.Same(conversion.Value, conversion.RequireNoLoss());
+        conversion.ThrowIfLoss();
+        Assert.Same(conversion.Value, conversion.Value);
     }
 }

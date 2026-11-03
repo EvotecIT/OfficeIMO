@@ -18,7 +18,7 @@ reads current criteria and table ownership. Creating the handle preserves deferr
 workbook exports. `AddTableOfContents` returns the sheet it creates, and
 `AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
 
-`CustomDocumentProperties.Add` returns the attached `ExcelCustomProperty`, so edits
+`CustomProperties.Add` returns the attached `ExcelCustomProperty`, so edits
 to the returned value are saved with the workbook. The collection also implements
 `IDictionary<string, ExcelCustomProperty>` and `ICollection<KeyValuePair<string, ExcelCustomProperty>>`.
 

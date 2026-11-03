@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumArchiveReferenceCount = 3 }));
+                new IWorkReadOptions { MaxArchiveReferenceCount = 3 }));
 
         Assert.Contains("remaining aggregate limit", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages,
             new IWorkReadOptions {
-                MaximumProjectedTextCharacters = 2 + target.Length * 2 - 1
+                MaxProjectedTextCharacters = 2 + target.Length * 2 - 1
             });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>

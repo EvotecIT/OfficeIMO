@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test FinalDocument values");
                 if (value != null) {
-                    document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
+                    document.CustomProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
                 }
                 document.Save();
             }

@@ -98,8 +98,8 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [InlineData("object")]
     [InlineData("bin")]
     public void DeferredParsingStillRefusesNativeDeclaredAndDecodedPayloadBounds(string kind) {
-        var options = new RtfReadOptions { DeferBinaryPayloads = true, ReadEmbeddedObjects = true,
-            MaxImageBytesPerImage = 2, MaxObjectBytesPerObject = 2, MaxBinaryBytesPerPayload = 2 };
+        var options = new RtfReadOptions { Limits = {
+            MaxImageBytes = 2, MaxObjectBytes = 2, MaxBinaryPayloadBytes = 2 }, DeferBinaryPayloads = true, ReadEmbeddedObjects = true};
         string source = kind == "image" ? @"{\rtf1{\pict\pngblip 414243}}"
             : kind == "object" ? @"{\rtf1{\object\objemb{\*\objdata 414243}}}" : @"{\rtf1{\pict\pngblip\bin3 ABC}}";
         Assert.Throws<RtfReadLimitException>(() => RtfDocument.ParseResult(source, options));

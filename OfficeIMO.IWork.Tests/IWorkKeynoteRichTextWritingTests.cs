@@ -163,7 +163,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         document.AddSlide().AddRichText(new[] { new IWorkTextRunData("one"), new IWorkTextRunData("two", bold: true) },
             0, 0, 400, 100);
         document.AddSlide().AddText("three", 0, 0, 400, 100);
-        var limits = new IWorkKeynoteWriteOptions { MaximumTextRuns = 2 };
+        var limits = new IWorkKeynoteWriteOptions { MaxTextRuns = 2 };
         using var stream = new MemoryStream(new byte[] { 9, 8, 7 });
         Assert.Throws<InvalidDataException>(() => document.Save(stream, limits));
         Assert.Equal(new byte[] { 9, 8, 7 }, stream.ToArray());
@@ -176,7 +176,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(destination));
             Assert.Single(Directory.GetFiles(folder));
         } finally { Directory.Delete(folder, recursive: true); }
-        limits.MaximumTextRuns = 0;
+        limits.MaxTextRuns = 0;
         Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(limits));
     }
 

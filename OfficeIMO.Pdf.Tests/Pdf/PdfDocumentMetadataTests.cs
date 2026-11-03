@@ -23,7 +23,7 @@ public class PdfDocumentMetadataTests {
         Assert.Equal(title, PdfInspector.Inspect(bytes).Metadata.Title);
         using var originalIndependent = PdfPigDocument.Open(bytes);
         Assert.Equal(title, originalIndependent.Information.Title);
-        byte[] edited = PdfDocument.Load(bytes).UpdateMetadata(title: title + "\u00A0").ToBytes();
+        byte[] edited = PdfDocument.Load(bytes).UpdateProperties(title: title + "\u00A0").ToBytes();
         Assert.Equal(title + "\u00A0", PdfInspector.Inspect(edited).Metadata.Title);
         using var editedIndependent = PdfPigDocument.Open(edited);
         Assert.Equal(title + "\u00A0", editedIndependent.Information.Title);

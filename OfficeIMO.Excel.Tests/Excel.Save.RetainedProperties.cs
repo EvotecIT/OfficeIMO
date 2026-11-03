@@ -14,13 +14,13 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
             document.AddSheet("Report").Cell(1, 1).SetValue("Data");
-            ExcelBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
+            var properties = document.Properties;
             properties.Title = "Before save";
             var options = new ExcelSaveOptions { DisableFastPackageWriter = standardWriter };
             SaveRetainedMetadataFixture(document, stream, options, fileSave);
 
             properties.Title = "After save";
-            Assert.Equal("After save", document.BuiltinDocumentProperties.Title);
+            Assert.Equal("After save", document.Properties.Title);
             SaveRetainedMetadataFixture(document, stream, options, fileSave);
 
             using var saved = SpreadsheetDocument.Open(stream, false);
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Retained_property_wrappers_reject_access_after_document_disposal() {
             var document = ExcelDocument.Create();
-            ExcelBuiltinDocumentProperties core = document.BuiltinDocumentProperties;
+            ExcelBuiltinDocumentProperties core = document.Properties;
             ExcelApplicationProperties application = document.ApplicationProperties;
             document.Dispose();
 

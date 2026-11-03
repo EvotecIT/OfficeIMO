@@ -85,7 +85,7 @@ public sealed partial class HtmlRenderingTests {
             HtmlConversionDocument.Parse("<math><mtext>PARENT</mtext></math>"), new HtmlToPdfOptions())
             .RenderResult!.Document;
         if (!probe.Fonts.TryResolveFaceForText("x", "math", OfficeFontStyle.Regular, out OfficeFontFace? face)) return;
-        HtmlDiagnostic loaded = Assert.Single(probe.Diagnostics, item => item.Code == "InstalledFontResolved");
+        HtmlDiagnostic loaded = Assert.Single(probe.NativeDiagnostics, item => item.Code == "InstalledFontResolved");
         long decodedBytes = long.Parse(loaded.Detail!.Split('=')[2], System.Globalization.CultureInfo.InvariantCulture);
         long fontBudget = decodedBytes;
         if (!face!.Program.IsOpenTypeCff

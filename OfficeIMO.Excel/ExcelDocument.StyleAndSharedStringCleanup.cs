@@ -60,10 +60,21 @@ namespace OfficeIMO.Excel {
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
                 var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                 bool worksheetChanged = false;
-                foreach (var cell in ExcelWorksheetScan.Cells(worksheet)) {
-                    if (cell.StyleIndex?.Value >= cellFormatCount) {
-                        cell.StyleIndex = 0U;
-                        worksheetChanged = true;
+                foreach (Row row in ExcelWorksheetScan.Rows(worksheet)) {
+                    if (row is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                        for (int index = 0; index < stored.StoredCount; index++) {
+                            ref ExcelStoredCell storedCell = ref stored.CellAt(index);
+                            if (storedCell.HasStyle && storedCell.Style >= cellFormatCount) {
+                                storedCell.Style = 0U;
+                                worksheetChanged = true;
+                            }
+                        }
+                    }
+                    foreach (Cell cell in ExcelWorksheetScan.DomCells(row)) {
+                        if (cell.StyleIndex?.Value >= cellFormatCount) {
+                            cell.StyleIndex = 0U;
+                            worksheetChanged = true;
+                        }
                     }
                 }
 
@@ -88,24 +99,16 @@ namespace OfficeIMO.Excel {
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
                 var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                 bool worksheetChanged = false;
-                foreach (Cell cell in ExcelWorksheetScan.Cells(worksheet)) {
-                    if (!IsSharedStringCell(cell)) {
-                        continue;
-                    }
-
-                    string rawValue = ExcelWorksheetScan.FindValue(cell)?.Text ?? cell.InnerText ?? string.Empty;
+                // Returns false when the cell must become an inline string; repairs a short table otherwise.
+                bool KeepSharedString(string rawValue) {
                     if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)) {
-                        ConvertSharedStringCellToInlineString(cell, rawValue);
-                        worksheetChanged = true;
-                        continue;
+                        return false;
                     }
 
                     if (sharedStringIndex >= itemCount) {
                         long repairGap = (long)sharedStringIndex - itemCount + 1L;
                         if (sharedStringTablePart == null || repairGap > remainingSharedStringRepairItems) {
-                            ConvertSharedStringCellToInlineString(cell, rawValue);
-                            worksheetChanged = true;
-                            continue;
+                            return false;
                         }
 
                         sharedStringTable ??= sharedStringTablePart.SharedStringTable = new SharedStringTable();
@@ -118,6 +121,35 @@ namespace OfficeIMO.Excel {
                     }
 
                     sharedStringCellCount++;
+                    return true;
+                }
+
+                foreach (Row row in ExcelWorksheetScan.Rows(worksheet)) {
+                    if (row is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                        // A stored cell is read as its DOM form would be; only a cell the cleanup rewrites joins the DOM.
+                        for (int index = 0; index < stored.StoredCount;) {
+                            ExcelStoredCell storedCell = stored.CellAt(index);
+                            string rawValue = storedCell.Value ?? string.Empty;
+                            if (storedCell.Type != ExcelStoredCellType.SharedString || KeepSharedString(rawValue)) {
+                                index++;
+                                continue;
+                            }
+                            ConvertSharedStringCellToInlineString(stored.Promote(index), rawValue);
+                            worksheetChanged = true;
+                        }
+                    }
+
+                    foreach (Cell cell in ExcelWorksheetScan.DomCells(row)) {
+                        if (!IsSharedStringCell(cell)) {
+                            continue;
+                        }
+
+                        string rawValue = ExcelWorksheetScan.FindValue(cell)?.Text ?? cell.InnerText ?? string.Empty;
+                        if (!KeepSharedString(rawValue)) {
+                            ConvertSharedStringCellToInlineString(cell, rawValue);
+                            worksheetChanged = true;
+                        }
+                    }
                 }
 
                 if (worksheetChanged) {

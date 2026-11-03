@@ -82,8 +82,8 @@ public sealed class PdfShapeGroupTests {
         AssertPixel(bitmap, 95, 102, 255, 255, 255); // white warning triangle
         AssertPixel(bitmap, 103, 100, 0, 0, 0); // exclamation mark
         AssertPixel(bitmap, 300, 80, 255, 255, 255); // outside the 217-point group
-        Assert.DoesNotContain(result.FidelityDiagnostics, item => item.Code == "native-shape-group-unsupported");
-        if (!legacyOnly) Assert.Contains(result.FidelityDiagnostics, item => item.Code == "native-shape-group-vml-fallback");
+        Assert.DoesNotContain(result.ConversionDiagnostics, item => item.Code == "native-shape-group-unsupported");
+        if (!legacyOnly) Assert.Contains(result.ConversionDiagnostics, item => item.Code == "native-shape-group-vml-fallback");
         SaveEvidence(pdf, legacyOnly ? "reporter-vml" : "reporter-drawingml");
     }
 

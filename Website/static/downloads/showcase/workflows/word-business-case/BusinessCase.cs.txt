@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
         internal static void Create(string folder) {
             using var document = WordDocument.Create(Path.Combine(folder, "example.docx"));
             document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-            document.BuiltinDocumentProperties.Title = "Business case: service intake";
+            document.Properties.Title = "Business case: service intake";
             document.AddParagraph("Business case: service intake").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("NORTHWIND / INVESTMENT REVIEW / ILLUSTRATIVE ESTIMATE");
             document.AddParagraph("Decide whether a shared intake form is worth a six-week pilot. The baseline is 240 requests per month; every amount below is an estimate.");

@@ -12,7 +12,7 @@ public sealed class RtfListStoryResourceRegressionTests {
         RtfDocument source = RtfDocument.Create();
         source.AddNote(RtfNoteKind.Footnote).AddParagraph("Imported decimal").SetList(3, kind: RtfListKind.Decimal);
 
-        destination.AppendDocument(source).Report.RequireNoLoss();
+        destination.AppendDocument(source).Report.ThrowIfLoss();
         Assert.Equal(RtfListKind.Bullet, destination.ResolveListFormatting(original)!.Level.Kind);
         RtfParagraph imported = destination.Notes[1].Paragraphs[0];
         Assert.True(imported.ListId > 7);
@@ -50,7 +50,7 @@ public sealed class RtfListStoryResourceRegressionTests {
         RtfDocument source = RtfDocument.Create();
         source.AddNote(RtfNoteKind.Footnote).AddParagraph("Imported bullet").SetList(3);
 
-        destination.AppendDocument(source).Report.RequireNoLoss();
+        destination.AppendDocument(source).Report.ThrowIfLoss();
         RtfParagraph imported = Assert.Single(destination.Notes).Paragraphs[0];
         RtfListFormatting list = destination.ResolveListFormatting(imported)!;
         Assert.True(list.IsDefined);

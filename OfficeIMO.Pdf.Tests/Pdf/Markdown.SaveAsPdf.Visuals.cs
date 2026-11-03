@@ -2435,7 +2435,7 @@ _Figure 2. Revenue chart_
         MarkdownPdfStyle theme = MarkdownPdfStyle.Report();
         MarkdownPdfFigureStyle figureStyle = theme.FigureStyle!;
         figureStyle.DrawingStyle = new PdfCore.PdfDrawingStyle {
-            Align = PdfCore.PdfAlign.Center,
+            Align = global::OfficeIMO.OfficeAlignment.Center,
             Decorative = true,
             KeepWithNext = true,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),

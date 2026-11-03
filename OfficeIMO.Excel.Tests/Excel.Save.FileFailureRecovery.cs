@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var document = CreateFileFailureWorkbook(writer, out ExcelSheet? retainedSheet, out ExcelCustomProperty? retainedProperty);
-                ExcelBuiltinDocumentProperties retainedBuiltinProperties = document.BuiltinDocumentProperties;
+                ExcelBuiltinDocumentProperties retainedBuiltinProperties = document.Properties;
                 string blockedPath = Path.Combine(directory, "blocked.xlsx");
                 Directory.CreateDirectory(blockedPath);
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 retainedBuiltinProperties.Title = "Still editable";
                 if (retainedProperty != null) {
                     retainedProperty.Value = "After file failure";
-                    Assert.Same(retainedProperty, document.CustomDocumentProperties["Review"]);
+                    Assert.Same(retainedProperty, document.CustomProperties["Review"]);
                 } else {
                     document.SetCustomDocumentProperty("Review", "After file failure");
                 }
@@ -64,8 +64,8 @@ namespace OfficeIMO.Tests {
                 document.Save(recoveredPath);
                 using var reopened = ExcelDocument.Load(recoveredPath);
                 Assert.Equal("After file failure", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
-                Assert.Equal("Still editable", reopened.BuiltinDocumentProperties.Title);
-                Assert.Equal("After file failure", reopened.CustomDocumentProperties["Review"].Value);
+                Assert.Equal("Still editable", reopened.Properties.Title);
+                Assert.Equal("After file failure", reopened.CustomProperties["Review"].Value);
             } finally {
                 Directory.Delete(directory, recursive: true);
             }

@@ -326,7 +326,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 BaseElementBaseUri = options.BaseUri,
                 UrlPolicy = options.UrlPolicy ?? HtmlUrlPolicy.CreateHyperlinkProfile(),
                 ResourceUrlPolicy = options.ResourceUrlPolicy ?? options.UrlPolicy,
-                Limits = HtmlConversionLimits.CreateTrustedProfile(),
+                Limits = new HtmlConversionLimits(),
                 UseBodyContentsOnly = false,
                 PreserveComments = true,
                 PreserveSkippedElementMarkers = true,

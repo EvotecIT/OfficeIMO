@@ -6,12 +6,12 @@ namespace OfficeIMO.PowerPoint.Html;
 /// Options for importing semantic OfficeIMO PowerPoint HTML into a presentation.
 /// </summary>
 public sealed class HtmlToPowerPointOptions {
-    private HtmlImportLimits _limits = HtmlImportLimits.CreateDefault();
+    private HtmlImportLimits _limits = new HtmlImportLimits();
 
     /// <summary>Shared native-artifact limits for this import operation.</summary>
     public HtmlImportLimits Limits {
         get => _limits;
-        set => _limits = value ?? HtmlImportLimits.CreateDefault();
+        set => _limits = value ?? new HtmlImportLimits();
     }
 
     /// <summary>

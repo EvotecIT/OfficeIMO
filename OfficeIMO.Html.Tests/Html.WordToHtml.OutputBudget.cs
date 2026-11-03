@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_OutputBudgetReservesEncodedDocumentMetadataBeforeDomConstruction() {
             using WordDocument document = WordDocument.Create();
-            document.BuiltinDocumentProperties.Title = new string('&', 1024);
+            document.Properties.Title = new string('&', 1024);
             document.AddParagraph("Visible content");
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() =>

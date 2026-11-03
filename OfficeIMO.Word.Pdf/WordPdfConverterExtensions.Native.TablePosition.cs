@@ -10,9 +10,9 @@ namespace OfficeIMO.Word.Pdf {
                 ? PdfCore.PdfTableAnchor.Page : position.VerticalAnchor?.Value == W.VerticalAnchorValues.Margin
                     ? PdfCore.PdfTableAnchor.Margin : PdfCore.PdfTableAnchor.Flow;
             var horizontal = position.TablePositionXAlignment?.Value;
-            PdfCore.PdfAlign alignment = horizontal == W.HorizontalAlignmentValues.Center ? PdfCore.PdfAlign.Center
+            global::OfficeIMO.OfficeAlignment alignment = horizontal == W.HorizontalAlignmentValues.Center ? global::OfficeIMO.OfficeAlignment.Center
                 : horizontal == W.HorizontalAlignmentValues.Right || horizontal == W.HorizontalAlignmentValues.Outside
-                    ? PdfCore.PdfAlign.Right : PdfCore.PdfAlign.Left;
+                    ? global::OfficeIMO.OfficeAlignment.Right : global::OfficeIMO.OfficeAlignment.Left;
             var vertical = position.TablePositionYAlignment?.Value;
             bool relativeVertical = vertical.HasValue && verticalAnchor != PdfCore.PdfTableAnchor.Flow;
             if (!relativeVertical) vertical = null;

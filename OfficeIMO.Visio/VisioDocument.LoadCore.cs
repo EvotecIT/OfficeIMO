@@ -17,8 +17,8 @@ namespace OfficeIMO.Visio {
             VisioDocument document = new() { _filePath = filePath };
             Dictionary<int, string> faceNamesById = new();
 
-            document.Title = package.PackageProperties.Title;
-            document.Author = package.PackageProperties.Creator;
+            document.Properties.Title = package.PackageProperties.Title;
+            document.Properties.Author = package.PackageProperties.Creator;
 
             PackageRelationship documentRel = GetRequiredSingleRelationship(
                 package.GetRelationshipsByType(DocumentRelationshipType),

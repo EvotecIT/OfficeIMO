@@ -105,7 +105,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 Color = _theme.LegendText.Color ?? _theme.TitleText.Color ?? Color.FromRgb(25, 35, 45),
                 BackgroundColor = _theme.PageBackgroundColor ?? Color.White,
                 BackgroundTransparency = 0,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
             MarkDiagramAdornment(label);

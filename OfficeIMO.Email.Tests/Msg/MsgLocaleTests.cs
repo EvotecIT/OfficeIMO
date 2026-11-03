@@ -61,7 +61,7 @@ public sealed class MsgLocaleTests {
         EmailDocument source = CreateNestedMessages();
         try {
             using (EmailStorePstWriter writer = EmailStorePstWriter.Create(path,
-                new EmailStorePstWriterOptions(failOnDataLoss: true))) {
+                new EmailStorePstWriterOptions(failOnLoss: true))) {
                 writer.AddItem(writer.AddFolder("Synthetic"), source);
                 EmailStorePstWriteReport report = writer.Complete();
                 Assert.Equal(1, report.ItemCount);

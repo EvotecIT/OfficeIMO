@@ -38,7 +38,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
             Assert.Single(result.SourceConversionReports));
         Assert.False(report.Tagged);
         Assert.False(report.HasLoss);
-        Assert.Same(capture.Diagnostics, report.Diagnostics);
+        Assert.Same(capture.Diagnostics, report.NativeDiagnostics);
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
 
         Assert.True(report.Tagged);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.True(result.Value.Analyze().Preflight.CanExtractText);
     }
 

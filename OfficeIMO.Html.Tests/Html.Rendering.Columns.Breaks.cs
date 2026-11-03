@@ -239,7 +239,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Single(rendered.Pages.SelectMany(ColumnPageBandText), item => item.Text == "BREAK-TWO");
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]

@@ -40,12 +40,12 @@ namespace OfficeIMO.Examples.Excel
             {
                 // Document properties via fluent Info
                 {
-                    doc.BuiltinDocumentProperties.Title = "Domain Detective — Mail Classification";
-                    doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
-                    doc.BuiltinDocumentProperties.LastModifiedBy = "OfficeIMO";
+                    doc.Properties.Title = "Domain Detective — Mail Classification";
+                    doc.Properties.Creator = "OfficeIMO";
+                    doc.Properties.LastModifiedBy = "OfficeIMO";
                     doc.ApplicationProperties.Company = "Evotec";
                     doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
-                    doc.BuiltinDocumentProperties.Keywords = "email,security,classification,excel";
+                    doc.Properties.Keywords = "email,security,classification,excel";
                 }
 
                 // Sheet 1: Summary of all domains as a table (ExcelReportBuilder)
@@ -239,8 +239,8 @@ namespace OfficeIMO.Examples.Excel
                 using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
                 {
                     Console.WriteLine("[=] Verifying saved workbook properties and header/footer...");
-                    Console.WriteLine("    Title   : " + (verify.BuiltinDocumentProperties.Title ?? "<null>"));
-                    Console.WriteLine("    Author  : " + (verify.BuiltinDocumentProperties.Creator ?? "<null>"));
+                    Console.WriteLine("    Title   : " + (verify.Properties.Title ?? "<null>"));
+                    Console.WriteLine("    Author  : " + (verify.Properties.Creator ?? "<null>"));
                     Console.WriteLine("    Company : " + (verify.ApplicationProperties.Company ?? "<null>"));
                     var summary = verify.Sheets.FirstOrDefault(s => string.Equals(s.Name, "Summary", System.StringComparison.Ordinal));
                     if (summary != null)

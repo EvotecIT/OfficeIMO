@@ -20,9 +20,9 @@ public sealed class BibliographyReviewWave50RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV218" && diagnostic.Field == "dates.Issued");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV218" && diagnostic.Field == "dates.Issued");
     }
 
     [Theory]
@@ -36,11 +36,11 @@ public sealed class BibliographyReviewWave50RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyIdentifier reopened = Assert.Single(BibliographyDocument.Parse(permissive.Content, BibliographyFormat.EndNoteXml).Document.Items[0].Identifiers);
 
-        Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "identifiers." + scheme);
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "identifiers." + scheme);
+        Assert.Contains(permissive.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "identifiers." + scheme);
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "identifiers." + scheme);
         Assert.Equal("before\uFFFDafter", reopened.Value);
     }
 
@@ -59,14 +59,14 @@ public sealed class BibliographyReviewWave50RegressionTests {
             : Assert.Single(document.NativeEntries, native => native.Kind == "attributes" && native.Name == field).Value;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document;
         string reopenedCarrier = owner == "record"
             ? Assert.Single(reopened.Items[0].NativeFields, native => native.Name == field).Value
             : Assert.Single(reopened.NativeEntries, native => native.Kind == "attributes" && native.Name == field).Value;
 
         Assert.Equal(originalCarrier, reopenedCarrier);
-        Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Action != BibliographyConversionAction.PreservedExtension);
+        Assert.DoesNotContain(written.Report.NativeDiagnostics, diagnostic => diagnostic.Action != BibliographyConversionAction.PreservedExtension);
     }
 
     [Theory]
@@ -77,7 +77,7 @@ public sealed class BibliographyReviewWave50RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Preserve, RequireNoLoss = requireNoLoss }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Preserve, FailOnLoss = requireNoLoss }));
 
         Assert.Contains("x-custom", exception.Message, StringComparison.Ordinal);
     }

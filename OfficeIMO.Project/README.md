@@ -74,7 +74,7 @@ var build = project.AllTasks.Single(task => task.Name == "Build");
 build.Notes = "Ready for review";
 var report = project.AssessSave();
 report.ThrowIfErrors();
-report.RequireNoLoss();
+report.ThrowIfLoss();
 project.Save("delivery-edited.xml");
 ```
 
@@ -101,7 +101,7 @@ Caller streams remain open. Seekable input is read from its beginning and its po
 
 An unchanged byte-loaded document saves byte-for-byte by default. For edited documents, the codec updates modeled values in retained source XML, including unknown safe elements and attributes. `ReadDiagnostics` identifies preserved unmodeled content by location. Preservation does not mean that OfficeIMO understands or validates that content.
 
-Structural edits can invalidate references inside unmodeled structures. `AssessSave()` reports this risk and the default loss policy blocks the save. A caller that has reviewed the findings can explicitly choose `new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }` from `OfficeIMO.Core`. Validation errors still block output. Fractional dependency lag also requires explicit loss permission because MSPDI writes integer tenths of a minute or integer percent.
+Structural edits can invalidate references inside unmodeled structures. `AssessSave()` reports this risk and the default loss policy blocks the save. A caller that has reviewed the findings can explicitly choose `new ProjectSaveOptions { AllowLoss = true }` from `OfficeIMO.Core`. Validation errors still block output. Fractional dependency lag also requires explicit loss permission because MSPDI writes integer tenths of a minute or integer percent.
 
 Schedule-affecting mutations set `IsScheduleStale`; validation reports the stale stored task dates. Applying a date-only schedule leaves `AreWorkCostTotalsStale` set. Applying a complete assignment calculation updates the work/cost totals and clears that flag when every relevant task and assignment is covered. These flags describe edits in the current document; they do not certify the consistency of imported caches. Dates use `DateTimeKind.Unspecified` and represent local project wall time; no host timezone conversion occurs. Working durations use the project's minutes-per-day/week and days-per-month settings. Elapsed durations count continuous time. Costs are public currency amounts; the XML codec handles MSPDI monetary scaling. New documents use USD deterministically; set `Settings.CurrencyCode` to the intended currency. Loaded documents retain their declared currency or its absence.
 
@@ -173,7 +173,7 @@ File extensions select XML, MPX, project, or template output. A loaded native do
 ```csharp
 var downgrade = new ProjectSaveOptions {
     Format = ProjectFileFormat.Mpp9,
-    LossPolicy = OfficeConversionLossPolicy.Allow
+    AllowLoss = true
 };
 var assessment = project.AssessSave("delivery-2003.mpp", downgrade);
 assessment.ThrowIfErrors();
@@ -195,7 +195,7 @@ var options = new ProjectSaveOptions {
     Format = ProjectFileFormat.Mpx4,
     MpxEncoding = ProjectMpxEncoding.Windows1252,
     MpxSeparator = ';',
-    LossPolicy = OfficeConversionLossPolicy.Allow
+    AllowLoss = true
 };
 exchange.AssessSave("delivery-edited.mpx", options).ThrowIfErrors();
 exchange.Save("delivery-edited.mpx", options);

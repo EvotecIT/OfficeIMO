@@ -21,7 +21,7 @@ public sealed class HtmlExcelTableCaptionTests {
 
     [Fact]
     public void ExcelCaptionLinkHonorsNativeMetadataLimit() {
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 64;
         string html = "<table><caption><a href='https://example.test/" + new string('x', 100) + "'>Units</a></caption><tr><td>m</td></tr></table>";
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
@@ -45,12 +45,12 @@ public sealed class HtmlExcelTableCaptionTests {
         Assert.Equal("Fluoride", table.Cell(2, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableCaption, table.Cell(4, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableLink, table.GetHyperlinks()["A4"].Target);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation
             && diagnostic.Detail?.Contains("originalLength=" + RegulatoryTableCaption.Length,
                 StringComparison.Ordinal) == true);
-        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted
             && diagnostic.Message.Contains("caption", StringComparison.OrdinalIgnoreCase));
     }

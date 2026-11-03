@@ -92,9 +92,9 @@ WordDocument
 ```csharp
 using var document = WordDocument.Create("props.docx");
 
-document.BuiltinDocumentProperties.Title = "Quarterly Report";
-document.BuiltinDocumentProperties.Creator = "OfficeIMO";
-document.BuiltinDocumentProperties.Description = "Q4 2025 financial summary";
+document.Properties.Title = "Quarterly Report";
+document.Properties.Creator = "OfficeIMO";
+document.Properties.Description = "Q4 2025 financial summary";
 
 document.ApplicationProperties.Company = "Evotec";
 

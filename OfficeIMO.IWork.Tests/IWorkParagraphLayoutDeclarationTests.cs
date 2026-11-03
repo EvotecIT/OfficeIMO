@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = ParagraphLayoutPackage(IWorkDocumentKind.Numbers,
             Message(BytesField(13, Message(VarintField(1, 2), FloatField(2, 24))),
                 BytesField(25, BytesField(1, Message(FloatField(1, 18), StringField(3, "."))))));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 

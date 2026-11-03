@@ -228,19 +228,19 @@ internal static class IWorkDrawingReader {
         int metadataEntryCount;
         try {
             metadataEntryCount = IWorkProtobuf.CountFields(metadata.Payload, 4,
-                source.Options.MaximumProtobufFieldCount);
+                source.Options.MaxProtobufFieldCount);
         } catch (InvalidDataException exception)
             when (!IWorkProtobuf.IsLimitException(exception)) {
             metadataComplete = false;
             return new Dictionary<ulong, DataEntry>();
         }
-        if (metadataEntryCount > source.Options.MaximumImageMetadataEntries) {
+        if (metadataEntryCount > source.Options.MaxImageMetadataEntries) {
             throw new InvalidDataException(
-                $"iWork image metadata exceeds the configured catalog limit of {source.Options.MaximumImageMetadataEntries} entries.");
+                $"iWork image metadata exceeds the configured catalog limit of {source.Options.MaxImageMetadataEntries} entries.");
         }
         var result = new Dictionary<ulong, DataEntry>();
         IReadOnlyList<IWorkWireMessage> messages = IWorkProtobuf.ParseRepeatedMessages(
-            metadata.Payload, 4, source.Options.MaximumImageMetadataEntries,
+            metadata.Payload, 4, source.Options.MaxImageMetadataEntries,
             source.Options, out bool malformedEntries);
         metadataComplete = !malformedEntries;
         foreach (IWorkWireMessage message in messages) {

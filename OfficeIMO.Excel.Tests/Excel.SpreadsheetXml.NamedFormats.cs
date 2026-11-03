@@ -18,7 +18,9 @@ namespace OfficeIMO.Tests {
         [InlineData("On/Off", "\"On\";\"On\";\"Off\"")]
         [InlineData("General Number", "General")]
         public void Named_formats_translate_to_usable_OpenXml_codes(string name, string expected) {
-            using ExcelDocument document = ExcelDocument.ImportSpreadsheetXml(Input(name)).RequireNoLoss();
+            var documentResult = ExcelDocument.ImportSpreadsheetXml(Input(name));
+            documentResult.ThrowIfLoss();
+            using ExcelDocument document = documentResult.Value;
             Assert.Equal(expected, document.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
             Assert.Empty(document.ValidateOpenXml());
         }
@@ -29,8 +31,8 @@ namespace OfficeIMO.Tests {
         public void Locale_dependent_currency_formats_report_approximation(string name) {
             var result = ExcelDocument.ImportSpreadsheetXml(Input(name));
             using ExcelDocument document = result.Value;
-            Assert.Contains(result.Report.FidelityDiagnostics, item => item.LossKind == OfficeConversionLossKind.Approximation);
-            Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+            Assert.Contains(result.Report.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Approximation);
+            Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
             Assert.DoesNotContain("Currency", document.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         }
 

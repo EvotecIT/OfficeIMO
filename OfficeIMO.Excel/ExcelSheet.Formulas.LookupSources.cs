@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel {
             int index = 0;
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
-                    Cell? cell = sheet.TryGetExistingCell(row, column);
+                    Cell? cell = sheet.TryGetDomCell(row, column);
                     if (cell != null && ExcelWorksheetScan.FindFormula(cell) != null) {
                         context.LazyRanges.Add(key);
                         return false;

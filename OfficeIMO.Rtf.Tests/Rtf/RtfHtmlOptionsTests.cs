@@ -9,7 +9,7 @@ public class RtfHtmlOptionsTests {
     [Fact]
     public void HtmlToRtfOptions_Profiles_Expose_Bounded_Untrusted_Profile() {
         HtmlToRtfOptions defaultProfile = HtmlToRtfOptions.CreateOfficeIMOProfile();
-        HtmlToRtfOptions untrustedProfile = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        HtmlToRtfOptions untrustedProfile = HtmlToRtfOptions.UntrustedDefaults;
 
         Assert.Null(defaultProfile.MaxHtmlNodes);
         Assert.Null(defaultProfile.MaxHtmlDepth);
@@ -112,8 +112,8 @@ public class RtfHtmlOptionsTests {
         Assert.Contains("<th", html, StringComparison.Ordinal);
         Assert.Contains("State", html, StringComparison.Ordinal);
         Assert.Contains("--officeimo-accent:#1D4ED8", html, StringComparison.Ordinal);
-        Assert.DoesNotContain(import.Report.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
-        Assert.DoesNotContain(export.Report.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(import.Report.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(export.Report.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]

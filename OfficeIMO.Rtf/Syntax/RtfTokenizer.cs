@@ -19,7 +19,7 @@ public static class RtfTokenizer {
     public static RtfTokenizeResult Tokenize(string rtf, RtfReadOptions? options, CancellationToken cancellationToken = default) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
 
-        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        RtfReadOptions readOptions = options ?? new RtfReadOptions();
         var limits = new RtfReadLimitGuard(readOptions, cancellationToken);
         limits.CheckInputCharacters(rtf.Length);
         var tokens = new List<RtfToken>();

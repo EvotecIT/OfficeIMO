@@ -58,10 +58,10 @@ public sealed partial class PdfCreateOptions {
     /// <summary>Header text color. When null, the current PDF fill color is preserved.</summary>
     public global::OfficeIMO.OfficeColor? HeaderTextColor { get; set; }
     /// <summary>Header alignment.</summary>
-    public PdfAlign HeaderAlign {
+    public OfficeAlignment HeaderAlign {
         get => _headerAlign;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(HeaderAlign), "PDF header");
+            value = Guard.LeftCenterRightAlign(value, nameof(HeaderAlign), "PDF header");
             _headerAlign = value;
         }
     }
@@ -112,10 +112,10 @@ public sealed partial class PdfCreateOptions {
     /// <summary>Footer text color. When null, the current PDF fill color is preserved.</summary>
     public global::OfficeIMO.OfficeColor? FooterTextColor { get; set; }
     /// <summary>Footer alignment.</summary>
-    public PdfAlign FooterAlign {
+    public OfficeAlignment FooterAlign {
         get => _footerAlign;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(FooterAlign), "PDF footer");
+            value = Guard.LeftCenterRightAlign(value, nameof(FooterAlign), "PDF footer");
             _footerAlign = value;
         }
     }

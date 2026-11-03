@@ -173,7 +173,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Equal(84d, formula.CachedValue);
         Assert.Contains(imported.Metadata.Values, value => value.Contains("outside the validated absolute/relative profile", StringComparison.Ordinal));
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
         Assert.Contains(imported.Cells, cell => cell.Row == 1 && cell.Column == 4 && cell.CachedValue == null);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_RECORDS_UNSUPPORTED");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Empty(imported.Names);
         Assert.Equal("Input", imported.Metadata["UnresolvedName.Sample.1"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_REFERENCE_UNSUPPORTED");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -282,7 +282,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Null(name.ProjectedName);
         Assert.Equal("1", imported.Metadata["UnprojectedInvalidNameCount"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "wk-name-invalid");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
 
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_CELL_PROTECTION_UNSUPPORTED");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -368,7 +368,7 @@ public sealed class LegacySpreadsheetImportTests {
 
         Assert.Empty(imported.Cells);
         Assert.Single(imported.Value.Sheets);
-        imported.Report.RequireNoLoss();
+        imported.Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -554,7 +554,7 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { FormatHint = LegacySpreadsheetFormat.MicrosoftWorks });
         Assert.Contains(compound.Report.Findings, finding => finding.Code == "LEGACY_COMPOUND_INVENTORY_INCOMPLETE");
         Assert.True(compound.Report.HasLoss);
-        Assert.Contains(compound.Report.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(compound.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "LEGACY_COMPOUND_INVENTORY_INCOMPLETE"
             && diagnostic.LossKind != OfficeConversionLossKind.None);
 

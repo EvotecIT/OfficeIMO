@@ -5,7 +5,7 @@ namespace OfficeIMO.Epub;
 public static partial class EpubManuscript {
     /// <summary>Plans heading boundaries before cloning so document-local relationships retain their original elements.</summary>
     private static HashSet<XElement> PlanChapterBoundaries(XElement body, int headingLevel,
-        List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        List<OfficeDiagnostic> diagnostics, CancellationToken token) {
         var allowed = new HashSet<XElement>();
         if (headingLevel == 0) return allowed;
         var boundaries = new List<XElement>();

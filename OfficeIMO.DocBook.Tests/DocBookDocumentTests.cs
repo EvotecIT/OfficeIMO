@@ -1377,7 +1377,7 @@ public sealed class DocBookDocumentTests {
         Assert.True(Flatten(root).Sum(node => (long)node.Text.Length) <= 12);
         Assert.All(converted.Diagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
             diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
-        Assert.All(converted.FidelityDiagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
+        Assert.All(converted.Diagnostics.Where(diagnostic => diagnostic.Code == "DB123"),
             diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
         Assert.Throws<ArgumentOutOfRangeException>(() => DocBookDocument.Parse(source)
             .ToOfficeDocumentModel(options: new DocBookConversionOptions { MaxTotalTextCharacters = 0 }));
@@ -2127,7 +2127,7 @@ public sealed class DocBookDocumentTests {
         DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
 
         Assert.True(converted.HasLoss);
-        Assert.Contains(converted.Diagnostics, diagnostic =>
+        Assert.Contains(converted.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "DB015" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
@@ -2386,12 +2386,12 @@ public sealed class DocBookDocumentTests {
         };
 
         DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
-        DocBookDiagnostic diagnostic = Assert.Single(converted.Diagnostics, item => item.Code == "DB117");
+        DocBookDiagnostic diagnostic = Assert.Single(converted.NativeDiagnostics, item => item.Code == "DB117");
 
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Equal(OfficeConversionLossKind.Omission,
-            Assert.Single(converted.FidelityDiagnostics, item => item.Code == "DB117").LossKind);
-        Assert.Throws<InvalidDataException>(converted.RequireNoLoss);
+            Assert.Single(converted.Diagnostics, item => item.Code == "DB117").LossKind);
+        Assert.ThrowsAny<OfficeConversionException>(converted.ThrowIfLoss);
     }
 
     [Fact]

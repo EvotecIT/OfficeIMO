@@ -129,7 +129,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.BuiltinDocumentProperties.Title = "Native property title";
+            document.Properties.Title = "Native property title";
             document.ApplicationProperties.Company = "Native property company";
             document._document.Body!.Append(CreateNativeCoverPageBlock(
                 CreateNativeCoverPagePropertyBlock("Title", "[Document title]"),
@@ -153,7 +153,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeOrdinaryAliasContentControl.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.BuiltinDocumentProperties.Title = "Document property title";
+            document.Properties.Title = "Document property title";
             document._document.Body!.Append(new SdtBlock(
                 new SdtProperties(new SdtAlias { Val = "Title" }),
                 new SdtContentBlock(
@@ -206,7 +206,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeOrdinaryInlineAliasContentControl.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.BuiltinDocumentProperties.Title = "Document property title";
+            document.Properties.Title = "Document property title";
             document._document.Body!.Append(new Paragraph(new SdtRun(
                 new SdtProperties(new SdtAlias { Val = "Title" }),
                 new SdtContentRun(new Run(new Text("Manual inline content control title"))))));
@@ -234,7 +234,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.BuiltinDocumentProperties.Title = "Native inline title";
+            document.Properties.Title = "Native inline title";
             document.ApplicationProperties.Company = "Native inline company";
             document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
                 new Paragraph(
@@ -264,8 +264,8 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.BuiltinDocumentProperties.Title = "Native textbox title";
-            document.BuiltinDocumentProperties.Created = new DateTime(2026, 6, 13);
+            document.Properties.Title = "Native textbox title";
+            document.Properties.Created = new DateTime(2026, 6, 13);
             document.ApplicationProperties.Company = "Native textbox company";
             document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
                 CreateNativeVmlTextBoxParagraph(
@@ -362,8 +362,8 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.BuiltinDocumentProperties.Title = "Native VML cover title";
-            document.BuiltinDocumentProperties.Created = new DateTime(2026, 6, 13);
+            document.Properties.Title = "Native VML cover title";
+            document.Properties.Created = new DateTime(2026, 6, 13);
             document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
                 CreateNativeVmlCoverDrawingParagraph()));
             document.AddParagraph("Native VML cover body");

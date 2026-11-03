@@ -490,7 +490,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = RenderFlex(html, 120D);
-        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics
+        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.NativeDiagnostics
             .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported)
             .ToList();
 

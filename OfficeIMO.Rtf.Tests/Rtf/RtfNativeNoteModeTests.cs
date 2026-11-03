@@ -60,7 +60,7 @@ public class RtfNativeNoteModeTests {
         RtfReadResult read = RtfDocument.ParseResult(Source(controls));
         Assert.Equal(Source(controls), read.ToRtfLossless());
         RtfDocument copy = read.Document.Clone();
-        copy.Info.Title = "Edited metadata";
+        copy.Properties.Title = "Edited metadata";
         string written = copy.ToRtf();
         Assert.Contains(normalizedMode, written);
         if (normalizedMode != @"\fet2") Assert.DoesNotContain(@"\fet2", written);
@@ -69,7 +69,7 @@ public class RtfNativeNoteModeTests {
         Assert.Equal(endnote ? 1 : 0, direct.EndNotes.Count);
         Assert.Equal(endnote ? 1 : 0, normalized.EndNotes.Count);
         Assert.Equal(endnote ? 0 : 1, normalized.FootNotes.Count);
-        Assert.Null(read.Document.Info.Title);
+        Assert.Null(read.Document.Properties.Title);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class RtfNativeNoteModeTests {
         RtfDocument source = RtfDocument.ParseResult(Source(@"\endnotes\ftnstart3\ftnnrlc")).Document;
         RtfDocument destination = RtfDocument.Create();
         RtfDocumentMergeResult result = destination.AppendDocument(source);
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         using WordDocument word = destination.ToWordDocument();
         Assert.Single(word.EndNotes);
         Assert.Empty(word.FootNotes);
@@ -93,8 +93,8 @@ public class RtfNativeNoteModeTests {
         RtfDocument destination = RtfDocument.Create();
         destination.AddParagraph("Existing modern body");
         RtfDocumentMergeResult result = destination.AppendDocument(RtfDocument.ParseResult(Source("")).Document);
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == "RtfMergeDocumentSettingsFlattened" && d.Detail!.Contains("NoteMode"));
-        Assert.Throws<RtfConversionLossException>(result.Report.RequireNoLoss);
+        Assert.Contains(result.Report.NativeDiagnostics, d => d.Code == "RtfMergeDocumentSettingsFlattened" && d.Detail!.Contains("NoteMode"));
+        Assert.Throws<RtfConversionLossException>(result.Report.ThrowIfLoss);
         Assert.Contains(@"\fet2", destination.ToRtf());
     }
 
@@ -118,7 +118,7 @@ public class RtfNativeNoteModeTests {
         using WordDocument word = result.Value;
         Assert.Equal(2, word.EndNotes.Count);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "RtfWordNoteGroupsFlattened");
-        Assert.Throws<RtfConversionLossException>(result.Report.RequireNoLoss);
+        Assert.Throws<RtfConversionLossException>(result.Report.ThrowIfLoss);
     }
 
     [Theory]
@@ -143,7 +143,7 @@ public class RtfNativeNoteModeTests {
         Assert.Contains(read.Diagnostics, d => d.Code == "RTF108");
         RtfConversionResult<string> normalized = read.Document.ToRtfResult();
         Assert.True(normalized.Report.HasLoss);
-        Assert.Throws<RtfConversionLossException>(normalized.Report.RequireNoLoss);
+        Assert.Throws<RtfConversionLossException>(normalized.Report.ThrowIfLoss);
     }
 
     internal static string Source(string controls, bool alternate = false) =>

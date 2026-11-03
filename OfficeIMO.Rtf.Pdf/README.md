@@ -18,7 +18,7 @@ Pair kerning is disabled unless a run supplies a positive `KerningHalfPoints` th
 
 PDF export distinguishes minimum, exact, and multiple line spacing using the [RTF sign and unit rules](../OfficeIMO.Rtf/README.md#paragraph-spacing-and-inheritance). Body paragraphs, individual table-cell paragraphs, and appended note paragraphs retain supported alignment, indents, before/after spacing, line spacing, and tab stops. An ordinary RTF paragraph without after-spacing does not acquire the PDF builder's convenience gap.
 
-Bar tab stops draw vertical rules at their declared positions without moving the text cursor, including paragraphs with no tab character and supported rich running stories. The shared PDF engine supplies their default appearance; `BarTabAppearanceApproximated` records `Approximation` loss because native RTF pen widths and line extents are not independently qualified. Bar rules in nested tables or caller-selected plain running text are omitted and reported as `BarTabOmitted` with `Omission` loss. `RequireNoLoss()` rejects both diagnostics.
+Bar tab stops draw vertical rules at their declared positions without moving the text cursor, including paragraphs with no tab character and supported rich running stories. The shared PDF engine supplies their default appearance; `BarTabAppearanceApproximated` records `Approximation` loss because native RTF pen widths and line extents are not independently qualified. Bar rules in nested tables or caller-selected plain running text are omitted and reported as `BarTabOmitted` with `Omission` loss. `ThrowIfLoss()` rejects both diagnostics.
 
 RTF export defaults to `PdfTextWhitespaceMode.Preserve`: it retains repeated source spaces and moves a whole hyphenated token to the next line when it fits there. An explicit `TextWhitespaceMode` in `RtfToPdfOptions.PdfCreateOptions` overrides that default. Use `Collapse` for collapsed spaces or `Preformatted` for literal-space overflow behavior. Conversion leaves the caller's options unchanged.
 
@@ -32,7 +32,7 @@ Caller-supplied named fonts and planned substitutions in `RtfToPdfOptions.PdfOpt
 
 Footnotes, endnotes, and annotations are appended after the body with a label on each note's first paragraph. Their paragraph formatting is retained within that flow; this route does not place footnotes beside their reference pages or reproduce native endnote continuation. Nested tables remain delimited text with `NestedTableFlattened` diagnostics.
 
-Paragraph-frame positioning, dimensions, and wrapping are flattened to ordinary flow and reported as `ParagraphFrameFlattened`. The warning applies to projected body, cell, note, and selected running-story paragraphs. `RequireNoLoss()` rejects this approximation; the lossless RTF API remains available when source frame syntax must survive.
+Paragraph-frame positioning, dimensions, and wrapping are flattened to ordinary flow and reported as `ParagraphFrameFlattened`. The warning applies to projected body, cell, note, and selected running-story paragraphs. `ThrowIfLoss()` rejects this approximation; the lossless RTF API remains available when source frame syntax must survive.
 
 ## Running headers and footers
 

@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Empty(report.SourceCellIssues);
             AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 12),
                 "5[1]/6", 1, IWorkSourceDeclarationIssueKind.UnsupportedField);
-            Assert.Contains(report.FidelityDiagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
+            Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
                 && d.LossKind == OfficeConversionLossKind.Unassessed);
         }
         package.Position = 0;
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(customSettings ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.None,
             selected.UnsupportedFeatures);
         Assert.Equal(customSettings ? (IWorkNumberFormatKind?)null : IWorkNumberFormatKind.Text, selected.NumberFormat?.Kind);
-        Assert.DoesNotContain(result.Report.FidelityDiagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal(!customSettings, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode == "@");
@@ -133,16 +133,16 @@ public sealed partial class IWorkBoundaryTests {
             Enumerable.Range(0, 17).Select(_ => VarintField(99, 0))).ToArray());
         using var parserLimited = ScalarFormatPackage(IWorkDocumentKind.Numbers, 18, fields);
         Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(parserLimited,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
         using var catalogLimited = ScalarFormatPackage(IWorkDocumentKind.Numbers, 18, VarintField(1, 1), extraFormat: true);
         Assert.Contains("catalog", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(catalogLimited,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Unused_scalar_format_catalogs_remain_unselected() {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 999));
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadNumbers();
+        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers();
         Assert.True(projection.HasEditableContent);
         Assert.Empty(projection.SourceReferenceIssues);
         Assert.Empty(projection.SourceDeclarationIssues);
@@ -160,7 +160,7 @@ public sealed partial class IWorkBoundaryTests {
             tilePayload: BytesField(5, Message(VarintField(1, 0), BytesField(6, Message(cell, cell)),
                 BytesField(7, new byte[] { 0, 0, (byte)cell.Length, 0 }))));
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(overBudget,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     private static void AssertScalarFormatSavedValue(IWorkSourceDocument source, IWorkDocumentKind kind, IWorkTableCell cell) {

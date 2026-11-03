@@ -222,7 +222,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='invalid-columns' style='columns:wide 2;column-fill:spread;column-span:some;column-rule:wavy'>Text</div>";
         HtmlRenderDocument rendered = RenderColumns(html, 120D);
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
         Assert.Equal("div#invalid-columns", diagnostic.Source);
         Assert.Contains("wide", diagnostic.Detail);
         Assert.Contains("column-fill=spread", diagnostic.Detail);

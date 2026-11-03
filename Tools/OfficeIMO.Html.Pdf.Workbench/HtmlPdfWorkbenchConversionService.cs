@@ -32,7 +32,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
         cancellationToken.ThrowIfCancellationRequested();
 
         long elapsedMilliseconds = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        PdfDocumentInfo pdfInfo = PdfDocument.Load(payload.PdfBytes).Inspect();
+        PdfDocumentInfo pdfInfo = PdfDocument.Load(new MemoryStream(payload.PdfBytes, writable: false)).Inspect();
         cancellationToken.ThrowIfCancellationRequested();
         var evidence = new HtmlPdfWorkbenchEvidence(
             "officeimo.html-pdf-workbench/v1",
@@ -59,21 +59,21 @@ public sealed class HtmlPdfWorkbenchConversionService {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(request.Html);
         HtmlToPdfOptions options = CreateManagedOptions(request.Settings);
         if (!string.IsNullOrWhiteSpace(request.Css)) options.AdditionalStylesheets.Add(request.Css);
-        PdfDocumentConversionResult conversion = await document
-            .ToPdfDocumentResultAsync(options, cancellationToken)
+        OfficeConversionResult<PdfDocument> conversion = await document
+            .ToPdfAsync(options, cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] pdfBytes = conversion.ToBytes();
+        byte[] pdfBytes = conversion.Value.ToBytes(cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (pdfBytes.Length > MaximumPdfBytes) {
             throw new InvalidOperationException($"Generated PDF exceeds the {MaximumPdfBytes / 1024 / 1024} MiB workbench limit.");
         }
-        IReadOnlyList<HtmlPdfWorkbenchDiagnostic> diagnostics = conversion.Warnings
-            .Select(warning => new HtmlPdfWorkbenchDiagnostic(
-                warning.Severity.ToString(),
-                warning.Code,
-                warning.Source,
-                warning.Message))
+        IReadOnlyList<HtmlPdfWorkbenchDiagnostic> diagnostics = conversion.Report.Diagnostics
+            .Select(diagnostic => new HtmlPdfWorkbenchDiagnostic(
+                diagnostic.Severity.ToString(),
+                diagnostic.Code,
+                diagnostic.Location ?? string.Empty,
+                diagnostic.Message))
             .ToArray();
         return new ConversionPayload(
             pdfBytes,
@@ -111,7 +111,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
         HtmlBrowserPdfResult capture = await _browserRenderer.CaptureAsync(browserRequest, cancellationToken).ConfigureAwait(false);
         PdfDocumentConversionResult bridge = capture.ToPdfDocumentResult();
         HtmlBrowserPdfCaptureReport report = bridge.SourceConversionReports.OfType<HtmlBrowserPdfCaptureReport>().Single();
-        if (settings.StrictFidelity) report.RequireNoLoss();
+        if (settings.StrictFidelity) report.ThrowIfLoss();
 
         var diagnostics = new List<HtmlPdfWorkbenchDiagnostic>();
         foreach (string warning in capture.Diagnostics.Warnings) {
@@ -153,7 +153,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
             HonorCssPageRules = settings.HonorCssPageSize,
             InteractiveFormControls = settings.InteractiveForms,
             FidelityPolicy = settings.StrictFidelity
-                ? HtmlRenderFidelityPolicy.RequireNoLoss
+                ? HtmlRenderFidelityPolicy.FailOnLoss
                 : HtmlRenderFidelityPolicy.AllowDiagnosedLoss,
             MaxInputCharacters = MaximumInputCharacters
         };

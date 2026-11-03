@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.IWork",
+  "changes": [
+    {
+      "old": "OfficeIMO.IWork.IWorkReadOptions / IWorkPagesWriteOptions / IWorkKeynoteWriteOptions / IWorkNumbersWriteOptions / IWorkNativeSaveOptions Maximum* properties",
+      "kind": "property",
+      "action": "rename",
+      "new": "Max* (for example MaxPackageBytes, MaxEntryCount, MaxTableRows)",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    }
+  ]
+}

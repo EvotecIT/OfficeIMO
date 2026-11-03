@@ -9,11 +9,11 @@ public sealed class CslStyle {
     private readonly XElement _root;
     internal readonly IReadOnlyDictionary<string, XElement> Macros;
     internal XElement Root => _root;
-    internal int MaximumDepth { get; }
+    internal int MaxDepth { get; }
 
     private CslStyle(XElement root, int maximumDepth, string? dependentLocale, CancellationToken token) {
         _root = root;
-        MaximumDepth = maximumDepth;
+        MaxDepth = maximumDepth;
         Id = root.Element(Namespace + "info")?.Element(Namespace + "id")?.Value ?? string.Empty;
         Title = root.Element(Namespace + "info")?.Element(Namespace + "title")?.Value ?? string.Empty;
         DefaultLocale = dependentLocale ?? (string?)root.Attribute("default-locale") ?? "en-US";
@@ -72,18 +72,18 @@ public sealed class CslStyle {
     /// <summary>Parses bounded CSL XML, prohibits external entities, resolves local parent styles, and rejects recursive macros.</summary>
     public static CslStyle Parse(string xml, CslStyleLoadOptions? options = null, CancellationToken cancellationToken = default) {
         options ??= new CslStyleLoadOptions();
-        if (options.MaximumCharacters < 1 || options.MaximumNestingDepth < 1 || options.MaximumNestingDepth > 256)
+        if (options.MaxCharacters < 1 || options.MaxNestingDepth < 1 || options.MaxNestingDepth > 256)
             throw new ArgumentOutOfRangeException(nameof(options), "CSL limits must be positive and nesting depth cannot exceed 256.");
         var seen = new HashSet<string>(StringComparer.Ordinal);
         string? locale = null;
-        for (int depth = 0; depth < options.MaximumNestingDepth; depth++) {
-            XElement root = ReadXml(xml, options.MaximumCharacters, options.MaximumNestingDepth, cancellationToken);
+        for (int depth = 0; depth < options.MaxNestingDepth; depth++) {
+            XElement root = ReadXml(xml, options.MaxCharacters, options.MaxNestingDepth, cancellationToken);
             if (root.Name != Namespace + "style" || (string?)root.Attribute("version") != "1.0")
                 throw new InvalidDataException("A CSL 1.0 style in the CSL XML namespace is required.");
             if (root.Element(Namespace + "citation") != null) {
                 if (root.Element(Namespace + "citation")!.Element(Namespace + "layout") == null)
                     throw new InvalidDataException("A CSL citation requires a layout.");
-                return new CslStyle(root, options.MaximumNestingDepth, locale, cancellationToken);
+                return new CslStyle(root, options.MaxNestingDepth, locale, cancellationToken);
             }
             locale ??= (string?)root.Attribute("default-locale");
             string? parent = root.Element(Namespace + "info")?.Elements(Namespace + "link")
@@ -91,19 +91,19 @@ public sealed class CslStyle {
             if (parent == null || !seen.Add(parent)) throw new InvalidDataException("CSL parent style is missing or cyclic.");
             xml = options.IndependentStyleResolver?.Invoke(parent) ?? throw new InvalidDataException("Supply IndependentStyleResolver for CSL parent '" + parent + "'.");
         }
-        throw new InvalidDataException("CSL parent resolution exceeds MaximumNestingDepth.");
+        throw new InvalidDataException("CSL parent resolution exceeds MaxNestingDepth.");
     }
 
     internal static XElement ReadXml(string xml, int maximumCharacters, int maximumDepth, CancellationToken token) {
         if (xml == null) throw new ArgumentNullException(nameof(xml));
-        if (xml.Length > maximumCharacters) throw new InvalidDataException("CSL XML exceeds MaximumCharacters.");
+        if (xml.Length > maximumCharacters) throw new InvalidDataException("CSL XML exceeds MaxCharacters.");
         token.ThrowIfCancellationRequested();
         var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = maximumCharacters };
         using var input = new StringReader(xml);
         using XmlReader reader = XmlReader.Create(input, settings);
         while (reader.Read()) {
             token.ThrowIfCancellationRequested();
-            if (reader.Depth > maximumDepth) throw new InvalidDataException("CSL XML exceeds MaximumNestingDepth.");
+            if (reader.Depth > maximumDepth) throw new InvalidDataException("CSL XML exceeds MaxNestingDepth.");
         }
         using var secondInput = new StringReader(xml);
         using XmlReader second = XmlReader.Create(secondInput, settings);
@@ -127,10 +127,10 @@ public sealed class CslStyle {
     private int Visit(string name, HashSet<string> active, IDictionary<string, int> lengths, IDictionary<string, bool> suffixes, int depth, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         if (lengths.TryGetValue(name, out int cached)) {
-            if (depth + cached > MaximumDepth) throw new InvalidDataException("Excessively nested CSL macro '" + name + "'.");
+            if (depth + cached > MaxDepth) throw new InvalidDataException("Excessively nested CSL macro '" + name + "'.");
             return cached;
         }
-        if (depth >= MaximumDepth || !active.Add(name)) throw new InvalidDataException("Recursive or excessively nested CSL macro '" + name + "'.");
+        if (depth >= MaxDepth || !active.Add(name)) throw new InvalidDataException("Recursive or excessively nested CSL macro '" + name + "'.");
         int length = 1;
         bool hasSuffix = false;
         foreach (XElement child in Macros[name].DescendantsAndSelf()) {

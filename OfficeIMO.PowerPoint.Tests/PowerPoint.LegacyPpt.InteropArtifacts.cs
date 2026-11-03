@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 // LibreOffice adds legacy ruler fields that the importer preserves
                 // without projecting. Keep that approximation visible while requiring
                 // every authored semantic below and rejecting any other conversion loss.
-                Assert.All(loaded.FidelityDiagnostics.Where(diagnostic =>
+                Assert.All(loaded.Diagnostics.Where(diagnostic =>
                     diagnostic.LossKind != OfficeConversionLossKind.None), diagnostic => {
                     Assert.Equal("ppt-text-paragraph-partial", diagnostic.Code);
                     Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);

@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
                 });
             }));
             string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/untrusted.css\" /><p>Remote CSS</p>";
-            var options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+            var options = WordHtmlImportOptions.UntrustedDefaults;
             options.HttpClient = httpClient;
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests {
             Assert.False(fetched);
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual(OfficeColor.Parse("ABCDEF"), run.Color);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics, item => item.Code == "html-stylesheet-link-skipped");
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics, item => item.Code == "html-stylesheet-link-skipped");
             Assert.Equal("https://styles.example.test/untrusted.css", diagnostic.Source);
         }
 
@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests {
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual(OfficeColor.Parse("ABCDEF"), run.Color);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("stylesheet-resource-rejected-by-policy", diagnostic.Code);
             Assert.Equal("https://blocked.example.test/site.css", diagnostic.Source);
         }
@@ -320,7 +320,7 @@ namespace OfficeIMO.Tests {
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual(OfficeColor.Parse("FEDCBA"), run.Color);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("stylesheet-content-type-rejected", diagnostic.Code);
             Assert.Equal("https://styles.example.test/rejected-content-type.css", diagnostic.Source);
         }
@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests {
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual(OfficeColor.Parse("445566"), run.Color);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("stylesheet-http-status-rejected", diagnostic.Code);
             Assert.Equal("https://styles.example.test/not-found.css", diagnostic.Source);
             Assert.Contains("404", diagnostic.Detail, StringComparison.Ordinal);
@@ -381,7 +381,7 @@ namespace OfficeIMO.Tests {
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual(OfficeColor.Parse("778899"), run.Color);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("stylesheet-transport-failed", diagnostic.Code);
             Assert.Equal("https://styles.example.test/transport.css", diagnostic.Source);
             Assert.Contains("DNS resolution failed", diagnostic.Detail, StringComparison.Ordinal);
@@ -403,7 +403,7 @@ namespace OfficeIMO.Tests {
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual(OfficeColor.Parse("AABBCC"), run.Color);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("stylesheet-load-timed-out", diagnostic.Code);
             Assert.Equal("https://styles.example.test/timeout.css", diagnostic.Source);
             Assert.Contains("timed out", diagnostic.Detail, StringComparison.OrdinalIgnoreCase);
@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests {
                 HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
 
                 Assert.Equal("Local CSS", conversion.Value.Paragraphs[0].Text);
-                var diagnostic = Assert.Single(conversion.Report.Diagnostics, item => item.Code == "stylesheet-encoding-failed");
+                var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics, item => item.Code == "stylesheet-encoding-failed");
                 Assert.Equal(path, diagnostic.Source);
             } finally {
                 File.Delete(path);
@@ -585,7 +585,7 @@ namespace OfficeIMO.Tests {
 
                 var afterRun = doc.Paragraphs[1].GetRuns().First();
                 Assert.NotEqual(OfficeColor.Parse("765432"), afterRun.Color);
-                var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+                var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
                 Assert.Equal("html-stylesheet-link-skipped", diagnostic.Code);
                 Assert.Equal(path, diagnostic.Source, ignoreCase: true);
             } finally {
@@ -602,7 +602,7 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             Assert.Equal("Missing href", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("html-stylesheet-link-missing-href", diagnostic.Code);
             Assert.Equal("link", diagnostic.Source);
         }
@@ -617,7 +617,7 @@ namespace OfficeIMO.Tests {
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual(OfficeColor.Parse("999999"), run.Color);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("stylesheet-resource-rejected-by-policy", diagnostic.Code);
             Assert.Equal("data:text/css,p%7Bcolor:%23999999%7D", diagnostic.Source);
             Assert.Contains("data", diagnostic.Detail, StringComparison.OrdinalIgnoreCase);

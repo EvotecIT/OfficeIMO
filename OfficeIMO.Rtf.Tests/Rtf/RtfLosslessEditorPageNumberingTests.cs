@@ -26,7 +26,7 @@ public class RtfLosslessEditorPageNumberingTests {
         Assert.Equal(720, pageSetup.PageNumberPositionXTwips);
         Assert.Equal(900, pageSetup.PageNumberPositionYTwips);
         Assert.Equal(RtfPageNumberFormat.LowerRoman, pageSetup.PageNumberFormat);
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 

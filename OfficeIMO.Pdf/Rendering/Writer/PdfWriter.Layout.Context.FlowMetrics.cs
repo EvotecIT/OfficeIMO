@@ -131,7 +131,7 @@ internal static partial class PdfWriter {
             var wrap = HasParagraphPictures(paragraphStyle) || HasPictureExclusions
                 ? WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize,
                     y - (suppressSpacingBefore ? 0D : ResolveTopLevelSpacingBefore(spacingBefore)))
-                : WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
+                : WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
             if (wrap.LineHeights.Count == 0) {
                 return (spacingBefore, PdfKeepTogetherOverflowBehavior.Reject);
             }
@@ -339,7 +339,7 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
             return spacingBefore + wrap.LineHeights.Sum() + spacingAfter;
         }
 
@@ -439,7 +439,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (section.Options.IncludeHeading) {
-                    var sectionHeading = new HeadingBlock(section.Options.Level, section.Title, PdfAlign.Left, color: null, style: section.Options.HeadingStyle);
+                    var sectionHeading = new HeadingBlock(section.Options.Level, section.Title, OfficeAlignment.Left, color: null, style: section.Options.HeadingStyle);
                     return (MeasureNextBlockFirstVisualHeight(sectionHeading, frameX, frameWidth, fontSize,
                         closingSpace: section.Blocks.Count == 0 ? closingSpace : default), reject);
                 }

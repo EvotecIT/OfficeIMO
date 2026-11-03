@@ -13,7 +13,7 @@ internal sealed class PdfPageTilingPatternResource {
         bool uncolored,
         bool consumesInheritedLineState,
         bool hasMalformedStrictInvocation,
-        string sourceIdentity) {
+        PdfStream sourceStream, PdfDictionary sourceResources) {
         Tile = tile;
         HorizontalStep = horizontalStep;
         VerticalStep = verticalStep;
@@ -23,7 +23,8 @@ internal sealed class PdfPageTilingPatternResource {
         Uncolored = uncolored;
         ConsumesInheritedLineState = consumesInheritedLineState;
         HasMalformedStrictInvocation = hasMalformedStrictInvocation;
-        SourceIdentity = sourceIdentity;
+        SourceStream = sourceStream;
+        SourceResources = sourceResources;
     }
 
     public OfficeDrawing Tile { get; }
@@ -35,7 +36,9 @@ internal sealed class PdfPageTilingPatternResource {
     public bool Uncolored { get; }
     public bool ConsumesInheritedLineState { get; }
     public bool HasMalformedStrictInvocation { get; }
-    public string SourceIdentity { get; }
+    /// <summary>Original pattern graph retained for operation-specific preservation fingerprints.</summary>
+    internal PdfStream SourceStream { get; }
+    internal PdfDictionary SourceResources { get; }
 }
 
 internal sealed class PdfPageTilingPatternPaint {

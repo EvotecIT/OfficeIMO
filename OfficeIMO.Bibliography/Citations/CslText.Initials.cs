@@ -46,7 +46,7 @@ internal readonly partial struct CslText {
                 previousInitial = currentInitial;
             }
             outputLength += replacement.Length;
-            if (outputLength > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+            if (outputLength > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
             replacements.Add((start, length, replacement, false));
             hasText = true;
             pending = -1; pendingHyphen = false; pendingCompound = false;
@@ -65,10 +65,10 @@ internal readonly partial struct CslText {
             }
             string value = result.ToString();
             encodedLength += Escape(value).Length;
-            if (encodedLength > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+            if (encodedLength > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
             return value;
         }, token);
-        if (html.Length > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+        if (html.Length > maximumCharacters) throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
         return new CslText(HtmlPlain(html, token), html, Attempted, Rendered);
     }
 

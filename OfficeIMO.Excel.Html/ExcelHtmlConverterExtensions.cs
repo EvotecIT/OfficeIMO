@@ -948,7 +948,7 @@ public static partial class ExcelHtmlConverterExtensions {
         if (!string.IsNullOrWhiteSpace(options.Title)) return options.Title!;
         string? title = null;
         try {
-            title = workbook.BuiltinDocumentProperties?.Title;
+            title = workbook.Properties?.Title;
         } catch (InvalidOperationException) {
         }
 

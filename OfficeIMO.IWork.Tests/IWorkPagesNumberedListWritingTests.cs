@@ -103,13 +103,13 @@ public sealed class IWorkPagesNumberedListWritingTests {
         Assert.Equal(baseline, document.SaveBytes());
         document.NumberedLists[2].AddItem("First"); document.NumberedLists[4].AddItem("Other");
         using var stream = new MemoryStream(); stream.WriteByte(9);
-        var options = new IWorkPagesWriteOptions { MaximumNumberedLists = 1 };
+        var options = new IWorkPagesWriteOptions { MaxNumberedLists = 1 };
         Assert.Throws<InvalidDataException>(() => document.Save(stream, options)); Assert.Equal(new byte[] { 9 }, stream.ToArray());
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumNumberedLists = 0 }));
-        options.MaximumNumberedLists = 2; Assert.NotEmpty(document.SaveBytes(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxNumberedLists = 0 }));
+        options.MaxNumberedLists = 2; Assert.NotEmpty(document.SaveBytes(options));
         string path = Path.Combine(Path.GetTempPath(), "iwork-list-bound-" + Guid.NewGuid().ToString("N") + ".pages");
         try {
-            File.WriteAllBytes(path, new byte[] { 37 }); options.MaximumNumberedLists = 1;
+            File.WriteAllBytes(path, new byte[] { 37 }); options.MaxNumberedLists = 1;
             Assert.Throws<InvalidDataException>(() => document.Save(path, overwrite: true, options: options)); Assert.Equal(new byte[] { 37 }, File.ReadAllBytes(path));
         } finally { File.Delete(path); }
     }

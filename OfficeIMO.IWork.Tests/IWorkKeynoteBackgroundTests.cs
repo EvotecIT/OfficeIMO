@@ -100,7 +100,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = KeynoteWithBuildDeclarations(ReferenceField(1, 10),
             SlideBackgroundStyle(10, null, 11), SlideBackgroundStyle(11, FillColor(1, 0, 0)));
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            readOptions: new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 1 }, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            readOptions: new IWorkReadOptions { MaxTextStyleInheritanceDepth = 1 }, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Slides[0].HasBackgroundFill);
     }
@@ -144,7 +144,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(kind is "solid" or "none", slide.HasBackgroundFill);
                 Assert.Equal(expected.GetProperty("rgb").GetString(), slide.BackgroundColor?.RgbHex);
                 Assert.Equal(slide.BackgroundColor?.RgbHex, reopened.Slides[slide.Index - 1].BackgroundColor);
-                if (kind == "unsupported") Assert.Contains(result.Report.Diagnostics,
+                if (kind == "unsupported") Assert.Contains(result.Report.NativeDiagnostics,
                     d => d.Code == "IWORK_KEYNOTE_BACKGROUND_UNSUPPORTED" && d.RecordIdentifier == slide.SourceIdentity!.RecordIdentifier);
             }
         }

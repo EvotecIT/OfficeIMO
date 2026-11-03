@@ -81,7 +81,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(
             visuals.OfType<HtmlRenderText>().Where(value => value.Source != null && value.Source.Contains('#')),
             value => Assert.Equal("form-control", value.SemanticRole));
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "input#rotated");
         Assert.True(Math.Abs(effect.Transform.M12) > 0.0001D || Math.Abs(effect.Transform.M21) > 0.0001D);
         Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Tilted");
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
             && diagnostic.Source == "input#rotated");
     }
@@ -234,7 +234,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "div#rotated-parent");
         Assert.True(Math.Abs(effect.Transform.M12) > 0.0001D || Math.Abs(effect.Transform.M21) > 0.0001D);
         Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Descendant");
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
             && diagnostic.Source == "input#child");
     }
@@ -250,7 +250,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "div#faded-parent");
         Assert.Equal(0.4D, effect.Opacity, 6);
         Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Faded descendant");
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
             && diagnostic.Source == "input#child"
             && diagnostic.Detail!.StartsWith("ancestor-opacity=", StringComparison.Ordinal));
@@ -267,7 +267,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.DoesNotContain(scene, visual => visual is HtmlRenderFormField);
         Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Clipped descendant");
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
             && diagnostic.Source == "input#child"
             && diagnostic.Detail!.StartsWith("ancestor-clip-path=", StringComparison.Ordinal));
@@ -277,9 +277,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(pdfResult.Report.Warnings, warning =>
             warning.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
             && warning.Source == "input#child");
-        Assert.Throws<InvalidOperationException>(() => pdfResult.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => pdfResult.ThrowIfLoss());
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         }));
     }
 

@@ -33,13 +33,13 @@ internal static class ReaderAsciiDocOptionsCloner {
             IncludeDiagnostics = source.IncludeDiagnostics,
             ParseOptions = new AsciiDocParseOptions {
                 Profile = parse.Profile,
-                MaximumInputLength = parse.MaximumInputLength,
-                MaximumBlockCount = parse.MaximumBlockCount,
-                MaximumInlineNestingDepth = parse.MaximumInlineNestingDepth,
-                MaximumInlineNodeCount = parse.MaximumInlineNodeCount,
-                MaximumTableCellCount = parse.MaximumTableCellCount,
-                MaximumTableColumnCount = parse.MaximumTableColumnCount,
-                MaximumTableSpan = parse.MaximumTableSpan
+                MaxInputLength = parse.MaxInputLength,
+                MaxBlockCount = parse.MaxBlockCount,
+                MaxInlineNestingDepth = parse.MaxInlineNestingDepth,
+                MaxInlineNodeCount = parse.MaxInlineNodeCount,
+                MaxTableCellCount = parse.MaxTableCellCount,
+                MaxTableColumnCount = parse.MaxTableColumnCount,
+                MaxTableSpan = parse.MaxTableSpan
             },
             MarkdownOptions = new AsciiDocToMarkdownOptions {
                 IncludeDocumentAttributesAsFrontMatter = markdown.IncludeDocumentAttributesAsFrontMatter,

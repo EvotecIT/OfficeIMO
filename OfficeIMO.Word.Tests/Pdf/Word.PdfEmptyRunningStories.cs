@@ -36,14 +36,14 @@ public partial class Word {
             if (configure) {
                 options.PdfOptions = new PdfCreateOptions();
                 if (footer) {
-                    if (setting == "alignment") options.PdfOptions.FooterAlign = PdfAlign.Right;
+                    if (setting == "alignment") options.PdfOptions.FooterAlign = OfficeAlignment.Right;
                     else if (setting == "font") options.PdfOptions.FooterFont = PdfStandardFont.Courier;
                     else if (setting == "family") options.PdfOptions.FooterFontFamily = "Arial";
                     else if (setting == "size") options.PdfOptions.FooterFontSize = global::OfficeIMO.OfficeLength.Points(24D);
                     else if (setting == "offset") options.PdfOptions.FooterOffsetY = global::OfficeIMO.OfficeLength.Points(45D);
                     else options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
                 } else {
-                    if (setting == "alignment") options.PdfOptions.HeaderAlign = PdfAlign.Right;
+                    if (setting == "alignment") options.PdfOptions.HeaderAlign = OfficeAlignment.Right;
                     else if (setting == "font") options.PdfOptions.HeaderFont = PdfStandardFont.Courier;
                     else if (setting == "family") options.PdfOptions.HeaderFontFamily = "Arial";
                     else if (setting == "size") options.PdfOptions.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(24D);

@@ -23,8 +23,8 @@ public sealed partial class RtfDocument {
     /// <summary>Asynchronously loads RTF from a stream with lossless syntax and diagnostics.</summary>
     public static async Task<RtfReadResult> LoadResultAsync(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
-        byte[] bytes = await RtfBytePreservingEncoding.ReadBytesToEndAsync(stream, readOptions.MaxInputBytes, cancellationToken).ConfigureAwait(false);
+        RtfReadOptions readOptions = options ?? new RtfReadOptions();
+        byte[] bytes = await RtfBytePreservingEncoding.ReadBytesToEndAsync(stream, readOptions.Limits.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         string rtf = DecodeInput(bytes, encoding);
         return ParseResult(rtf, readOptions, cancellationToken).AttachOriginalBytes(bytes);
     }

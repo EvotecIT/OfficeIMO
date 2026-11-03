@@ -17,7 +17,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(
             "<html><head>" + links + "</head><body><p>Text</p></body></html>").ToOneNoteSectionResult();
 
-        HtmlDiagnostic[] skipped = result.Report.Diagnostics
+        HtmlDiagnostic[] skipped = result.Report.NativeDiagnostics
             .Where(item => item.Code == "html-stylesheet-link-skipped").ToArray();
         Assert.Equal(128, skipped.Length);
         Assert.Equal("https://example.test/plain-0.css", skipped[0].Source);
@@ -37,7 +37,7 @@ public partial class HtmlOfficeAdapters {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
         HtmlToOneNoteSectionResult section = source.ToOneNoteSectionResult();
-        HtmlDiagnostic diagnostic = Assert.Single(section.Report.Diagnostics,
+        HtmlDiagnostic diagnostic = Assert.Single(section.Report.NativeDiagnostics,
             item => item.Code == "html-stylesheet-link-skipped");
         Assert.Equal("https://example.test/active.css", diagnostic.Source);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
@@ -48,7 +48,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(0xFF336699U, Assert.Single(paragraph.Runs).Style.ColorArgb);
 
         HtmlToOneNoteNotebookResult notebook = source.ToOneNoteNotebookResult();
-        Assert.Equal(diagnostic.Source, Assert.Single(notebook.Report.Diagnostics,
+        Assert.Equal(diagnostic.Source, Assert.Single(notebook.Report.NativeDiagnostics,
             item => item.Code == "html-stylesheet-link-skipped").Source);
     }
 

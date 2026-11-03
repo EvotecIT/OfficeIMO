@@ -90,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(4)] [InlineData(5)] [InlineData(6)] [InlineData(17)] [InlineData(19)] [InlineData(22)]
     public void Invalid_list_kind_still_charges_declared_catalog_entry_work(int field) {
         using var package = CatalogContractPackage(field, VarintField(1, 99), entries: 2);
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTableCatalogEntries = 1 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 });
         Assert.Contains("catalog limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 

@@ -27,14 +27,14 @@ namespace OfficeIMO.Tests {
                 parsed.LegacyDocument,
                 new InvalidDataException("Projection failed."));
 
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                failed.FidelityDiagnostics,
+            OfficeDiagnostic diagnostic = Assert.Single(
+                failed.Diagnostics,
                 item => item.Code == "doc-projection-failed");
 
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
             Assert.True(failed.HasLoss);
             Assert.True(failed.HasImportErrors);
-            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(failed.ThrowIfLoss);
             Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
         }
 
@@ -372,14 +372,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-merged-table-cells-present"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["MergedTableCell|doc-merged-table-cells-present|PAPX:sprmTDefTable"]);
             Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "doc-merged-table-cells-present");
-            IOfficeConversionReport commonResult = result;
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                commonResult.FidelityDiagnostics,
+            OfficeConversionReport commonResult = result;
+            OfficeDiagnostic diagnostic = Assert.Single(
+                commonResult.Diagnostics,
                 item => item.Code == feature.Code && item.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal("PAPX:sprmTDefTable", diagnostic.Location);
             Assert.True(result.Summary.HasLoss);
-            Assert.Throws<InvalidDataException>(commonResult.RequireNoLoss);
-            Assert.Throws<InvalidDataException>(result.Summary.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(commonResult.ThrowIfLoss);
+            Assert.ThrowsAny<OfficeConversionException>(result.Summary.ThrowIfLoss);
 
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);
@@ -527,29 +527,29 @@ namespace OfficeIMO.Tests {
             result.EnsureNoImportErrors();
             Assert.True(result.HasDocument);
             Assert.Equal(14, result.ImportReport.DocumentPropertyCount);
-            Assert.Equal("Legacy DOC Metadata Title", result.Document.BuiltinDocumentProperties.Title);
-            Assert.Equal("Legacy DOC metadata subject", result.Document.BuiltinDocumentProperties.Subject);
-            Assert.Equal("OfficeIMO Legacy Import", result.Document.BuiltinDocumentProperties.Creator);
-            Assert.Equal("doc, metadata, officeimo", result.Document.BuiltinDocumentProperties.Keywords);
-            Assert.Equal("OLE SummaryInformation comments", result.Document.BuiltinDocumentProperties.Description);
-            Assert.Equal("Legacy Category", result.Document.BuiltinDocumentProperties.Category);
-            AssertSameInstant(created, result.Document.BuiltinDocumentProperties.Created);
-            AssertSameInstant(modified, result.Document.BuiltinDocumentProperties.Modified);
+            Assert.Equal("Legacy DOC Metadata Title", result.Document.Properties.Title);
+            Assert.Equal("Legacy DOC metadata subject", result.Document.Properties.Subject);
+            Assert.Equal("OfficeIMO Legacy Import", result.Document.Properties.Creator);
+            Assert.Equal("doc, metadata, officeimo", result.Document.Properties.Keywords);
+            Assert.Equal("OLE SummaryInformation comments", result.Document.Properties.Description);
+            Assert.Equal("Legacy Category", result.Document.Properties.Category);
+            AssertSameInstant(created, result.Document.Properties.Created);
+            AssertSameInstant(modified, result.Document.Properties.Modified);
             Assert.Equal("EvotecIT", result.Document.ApplicationProperties.Company);
             Assert.Equal("Document Manager", result.Document.ApplicationProperties.Manager);
-            Assert.Equal("Ready", result.Document.CustomDocumentProperties["ReleaseStatus"].Text);
-            Assert.True(result.Document.CustomDocumentProperties["Reviewed"].Bool);
-            Assert.Equal(2003, result.Document.CustomDocumentProperties["Ticket"].NumberInteger);
-            Assert.Equal(5000000000L, result.Document.CustomDocumentProperties["ArchiveId"].Value);
+            Assert.Equal("Ready", result.Document.CustomProperties["ReleaseStatus"].Text);
+            Assert.True(result.Document.CustomProperties["Reviewed"].Bool);
+            Assert.Equal(2003, result.Document.CustomProperties["Ticket"].NumberInteger);
+            Assert.Equal(5000000000L, result.Document.CustomProperties["ArchiveId"].Value);
 
             using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToBytes()));
             Assert.False(converted.SourceFormat == WordFileFormat.Doc);
-            Assert.Equal("Legacy DOC Metadata Title", converted.BuiltinDocumentProperties.Title);
+            Assert.Equal("Legacy DOC Metadata Title", converted.Properties.Title);
             Assert.Equal("EvotecIT", converted.ApplicationProperties.Company);
-            Assert.Equal("Ready", converted.CustomDocumentProperties["ReleaseStatus"].Text);
-            Assert.True(converted.CustomDocumentProperties["Reviewed"].Bool);
-            Assert.Equal(2003, converted.CustomDocumentProperties["Ticket"].NumberInteger);
-            Assert.Equal(5000000000L, converted.CustomDocumentProperties["ArchiveId"].Value);
+            Assert.Equal("Ready", converted.CustomProperties["ReleaseStatus"].Text);
+            Assert.True(converted.CustomProperties["Reviewed"].Bool);
+            Assert.Equal(2003, converted.CustomProperties["Ticket"].NumberInteger);
+            Assert.Equal(5000000000L, converted.CustomProperties["ArchiveId"].Value);
         }
 
         [Fact]
@@ -566,7 +566,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(result.HasDocument);
                 Assert.Empty(result.UnsupportedFeatures);
                 Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "doc-ole-custom-document-property-unsupported");
-                WordCustomProperty binaryProperty = result.Document.CustomDocumentProperties["BinaryPayload"];
+                WordCustomProperty binaryProperty = result.Document.CustomProperties["BinaryPayload"];
                 Assert.Equal(WordCustomPropertyType.Binary, binaryProperty.PropertyType);
                 Assert.Equal(expectedPayload, binaryProperty.Binary);
 
@@ -578,14 +578,14 @@ namespace OfficeIMO.Tests {
                 }
 
                 using (WordDocument reloadedDocx = WordDocument.Load(docxPath)) {
-                    WordCustomProperty reloadedProperty = reloadedDocx.CustomDocumentProperties["BinaryPayload"];
+                    WordCustomProperty reloadedProperty = reloadedDocx.CustomProperties["BinaryPayload"];
                     Assert.Equal(WordCustomPropertyType.Binary, reloadedProperty.PropertyType);
                     Assert.Equal(expectedPayload, reloadedProperty.Binary);
                 }
 
                 result.Document.Save(docPath);
                 using WordDocument reloadedDoc = WordDocument.Load(docPath);
-                WordCustomProperty nativeProperty = reloadedDoc.CustomDocumentProperties["BinaryPayload"];
+                WordCustomProperty nativeProperty = reloadedDoc.CustomProperties["BinaryPayload"];
                 Assert.Equal(WordCustomPropertyType.Binary, nativeProperty.PropertyType);
                 Assert.Equal(expectedPayload, nativeProperty.Binary);
             } finally {
@@ -1434,7 +1434,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasDocument);
             Assert.True(result.HasImportErrors);
-            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.NativeDiagnostics);
             Assert.Equal("doc-worddocument-missing", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Error, diagnostic.Severity);
         }
@@ -1447,7 +1447,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasDocument);
             Assert.True(result.HasImportErrors);
-            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.NativeDiagnostics);
             Assert.Equal("doc-fib-invalid", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Error, diagnostic.Severity);
             Assert.Contains("Unsupported Word FIB version 0x0065", diagnostic.Message);
@@ -1600,7 +1600,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.ImportReport.UnsupportedFeatures);
             Assert.Equal(0, result.ImportReport.UnsupportedFeatureCount);
             Assert.False(result.ImportReport.UnsupportedFeaturesByKind.ContainsKey(LegacyDocUnsupportedFeatureKind.FastSave));
-            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.NativeDiagnostics);
             Assert.Equal("doc-quick-save-history-present", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Contains("3 quick-save revision", diagnostic.Message);
@@ -1937,13 +1937,13 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == code);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(result.Summary.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Summary.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Empty(endnote ? result.Document.EndNotes : result.Document.FootNotes);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
-            Assert.Throws<InvalidDataException>(() => result.Summary.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Summary.ThrowIfLoss());
         }
 
         [Fact]
@@ -1955,9 +1955,9 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Empty(result.LegacyDocument.Comments);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == "doc-comment-plc-invalid" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         }
 
         [Theory]
@@ -1972,10 +1972,10 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Equal("Retained text", result.Document.Sections[0].Paragraphs[0].Text);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == "doc-ole-properties-unreadable"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         }
 
         [Fact]
@@ -5631,21 +5631,21 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Metadata native DOC");
-                    document.BuiltinDocumentProperties.Title = "Native DOC Metadata Title";
-                    document.BuiltinDocumentProperties.Subject = "Native DOC metadata subject";
-                    document.BuiltinDocumentProperties.Creator = "OfficeIMO Native DOC";
-                    document.BuiltinDocumentProperties.Keywords = "doc, metadata, native";
-                    document.BuiltinDocumentProperties.Description = "Native DOC metadata comments";
-                    document.BuiltinDocumentProperties.Category = "Native Category";
-                    document.BuiltinDocumentProperties.Created = created;
-                    document.BuiltinDocumentProperties.Modified = modified;
+                    document.Properties.Title = "Native DOC Metadata Title";
+                    document.Properties.Subject = "Native DOC metadata subject";
+                    document.Properties.Creator = "OfficeIMO Native DOC";
+                    document.Properties.Keywords = "doc, metadata, native";
+                    document.Properties.Description = "Native DOC metadata comments";
+                    document.Properties.Category = "Native Category";
+                    document.Properties.Created = created;
+                    document.Properties.Modified = modified;
                     document.ApplicationProperties.Company = "EvotecIT";
                     document.ApplicationProperties.Manager = "Native Manager";
-                    document.CustomDocumentProperties["ReleaseStatus"] = new WordCustomProperty("Ready");
-                    document.CustomDocumentProperties["Reviewed"] = new WordCustomProperty(true);
-                    document.CustomDocumentProperties["Ticket"] = new WordCustomProperty(2004);
-                    document.CustomDocumentProperties["Score"] = new WordCustomProperty(98.5d);
-                    document.CustomDocumentProperties["ReviewedAt"] = new WordCustomProperty(reviewedAt);
+                    document.CustomProperties["ReleaseStatus"] = new WordCustomProperty("Ready");
+                    document.CustomProperties["Reviewed"] = new WordCustomProperty(true);
+                    document.CustomProperties["Ticket"] = new WordCustomProperty(2004);
+                    document.CustomProperties["Score"] = new WordCustomProperty(98.5d);
+                    document.CustomProperties["ReviewedAt"] = new WordCustomProperty(reviewedAt);
 
                     document.Save(docPath);
                 }
@@ -5653,21 +5653,21 @@ namespace OfficeIMO.Tests {
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
-                Assert.Equal("Native DOC Metadata Title", reloaded.BuiltinDocumentProperties.Title);
-                Assert.Equal("Native DOC metadata subject", reloaded.BuiltinDocumentProperties.Subject);
-                Assert.Equal("OfficeIMO Native DOC", reloaded.BuiltinDocumentProperties.Creator);
-                Assert.Equal("doc, metadata, native", reloaded.BuiltinDocumentProperties.Keywords);
-                Assert.Equal("Native DOC metadata comments", reloaded.BuiltinDocumentProperties.Description);
-                Assert.Equal("Native Category", reloaded.BuiltinDocumentProperties.Category);
-                AssertSameInstant(created, reloaded.BuiltinDocumentProperties.Created);
-                AssertSameInstant(modified, reloaded.BuiltinDocumentProperties.Modified);
+                Assert.Equal("Native DOC Metadata Title", reloaded.Properties.Title);
+                Assert.Equal("Native DOC metadata subject", reloaded.Properties.Subject);
+                Assert.Equal("OfficeIMO Native DOC", reloaded.Properties.Creator);
+                Assert.Equal("doc, metadata, native", reloaded.Properties.Keywords);
+                Assert.Equal("Native DOC metadata comments", reloaded.Properties.Description);
+                Assert.Equal("Native Category", reloaded.Properties.Category);
+                AssertSameInstant(created, reloaded.Properties.Created);
+                AssertSameInstant(modified, reloaded.Properties.Modified);
                 Assert.Equal("EvotecIT", reloaded.ApplicationProperties.Company);
                 Assert.Equal("Native Manager", reloaded.ApplicationProperties.Manager);
-                Assert.Equal("Ready", reloaded.CustomDocumentProperties["ReleaseStatus"].Text);
-                Assert.True(reloaded.CustomDocumentProperties["Reviewed"].Bool);
-                Assert.Equal(2004, reloaded.CustomDocumentProperties["Ticket"].NumberInteger);
-                Assert.Equal(98.5d, reloaded.CustomDocumentProperties["Score"].NumberDouble);
-                AssertSameInstant(reviewedAt, reloaded.CustomDocumentProperties["ReviewedAt"].Date);
+                Assert.Equal("Ready", reloaded.CustomProperties["ReleaseStatus"].Text);
+                Assert.True(reloaded.CustomProperties["Reviewed"].Bool);
+                Assert.Equal(2004, reloaded.CustomProperties["Ticket"].NumberInteger);
+                Assert.Equal(98.5d, reloaded.CustomProperties["Score"].NumberDouble);
+                AssertSameInstant(reviewedAt, reloaded.CustomProperties["ReviewedAt"].Date);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -6850,7 +6850,7 @@ namespace OfficeIMO.Tests {
 
                 OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                Assert.Contains(exception.Report.Diagnostics, finding =>
                     finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
@@ -6929,7 +6929,7 @@ namespace OfficeIMO.Tests {
 
                 OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                Assert.Contains(exception.Report.Diagnostics, finding =>
                     finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
@@ -9185,7 +9185,7 @@ namespace OfficeIMO.Tests {
 
                 OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                Assert.Contains(exception.Report.Diagnostics, finding =>
                     finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
@@ -10147,7 +10147,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
                 OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
-                Assert.Contains(failure.Report.FidelityDiagnostics, finding => finding.Code == "word-doc-color-approximated");
+                Assert.Contains(failure.Report.Diagnostics, finding => finding.Code == "word-doc-color-approximated");
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(secondX, second.X, 3);
         if (wraps) Assert.True(second.Y > first.Y);
         else Assert.Equal(first.Y, second.Y, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(12D, first.X, 3);
         Assert.Equal(secondX, second.X, 3);
         Assert.True(second.Y > first.Y);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
         Assert.Equal(10D, TableGeometryShape(rendered, "span#a").X, 3);
         Assert.True(TableGeometryShape(rendered, "span#a").Y > TableGeometryShape(rendered, "span#prior").Y);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(112D, TableGeometryShape(rendered, "span#outer").Width, 3);
         Assert.Equal(5D, TableGeometryShape(rendered, "span#inner").X, 3);
         Assert.Equal(102D, TableGeometryShape(rendered, "span#inner").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(30D, TableGeometryShape(rendered, "span#a").X, 3);
         Assert.Equal(70D, TableGeometryShape(rendered, "span#b").X, 3);
         Assert.Equal(TableGeometryShape(rendered, "span#a").Y, TableGeometryShape(rendered, "span#b").Y, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='padding-left:10px'><span id='a' style='display:inline-block;width:40px;height:12px;vertical-align:top;background:navy'></span></span></div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
         Assert.Equal(TableGeometryShape(rendered, "div#sized").Y, TableGeometryShape(rendered, "span#a").Y, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(first.Y, second.Y, 3);
         Assert.True(first.Y > TableGeometryShape(rendered, "span#prior").Y);
         Assert.True(after.Y > second.Y);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]

@@ -236,7 +236,7 @@ public class PdfDefaultControlAdmissionTests {
         // Only LF is a layout separator. Both original LRM controls and every
         // primary/fallback source character must survive exactly once.
         Assert.Equal("A\u200EAA\u200EAB", new string(extracted.Where(character => !char.IsWhiteSpace(character)).ToArray()));
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]

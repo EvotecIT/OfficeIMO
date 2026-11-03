@@ -13,7 +13,7 @@ public class PdfNestedTableCellFlowTests {
         var nestedStyle = Style();
         nestedStyle.PreferredWidthFraction = nestedStyle.MaxWidthFraction = .5D;
         nestedStyle.PreserveWidth = true;
-        var nested = new TableBlock(new[] { new[] { new PdfTableCell("InnerLeft"), new PdfTableCell("InnerRight") } }, PdfAlign.Left, nestedStyle);
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("InnerLeft"), new PdfTableCell("InnerRight") } }, OfficeAlignment.Left, nestedStyle);
         PdfTableCell cell = Cell(Paragraph("BeforeGrid"), nested, Paragraph("AfterGrid"));
         var outer = Style();
         outer.MaxWidth = global::OfficeIMO.OfficeLength.Points(200D); outer.PreserveWidth = true;
@@ -62,7 +62,7 @@ public class PdfNestedTableCellFlowTests {
             Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = global::OfficeIMO.OfficeLength.Points(1D) }
         };
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("Left"), new PdfTableCell("Right") } },
-            PdfAlign.Left, nestedStyle);
+            OfficeAlignment.Left, nestedStyle);
         var outer = Style();
         outer.MaxWidth = global::OfficeIMO.OfficeLength.Points(216D); outer.CellPaddingX = global::OfficeIMO.OfficeLength.Points(9D); outer.PreserveWidth = true;
         outer.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(216D) };
@@ -90,7 +90,7 @@ public class PdfNestedTableCellFlowTests {
         nestedStyle.ResolvedWidthAdjustment = -8D;
         nestedStyle.HorizontalOffset = global::OfficeIMO.OfficeLength.Points(7D);
         nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
-        var nested = new TableBlock(new[] { new[] { new PdfTableCell("CapturedOffsets") } }, PdfAlign.Left, nestedStyle);
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("CapturedOffsets") } }, OfficeAlignment.Left, nestedStyle);
         PdfTableCell captured = Cell(nested).WithNamedDestination("CapturedOffsetCell").WithNoWrap(false);
         nestedStyle.MaxWidthFraction = .9D;
         nestedStyle.FrameWidthAdjustment = 100D;
@@ -134,7 +134,7 @@ public class PdfNestedTableCellFlowTests {
             Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = global::OfficeIMO.OfficeLength.Points(1D) }
         };
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("L"), new PdfTableCell("R") } },
-            PdfAlign.Left, nestedStyle);
+            OfficeAlignment.Left, nestedStyle);
         var outer = Style();
         outer.MaxWidth = global::OfficeIMO.OfficeLength.Points(216D); outer.CellPaddingX = global::OfficeIMO.OfficeLength.Points(9D); outer.PreserveWidth = true;
         outer.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(216D) };
@@ -156,7 +156,7 @@ public class PdfNestedTableCellFlowTests {
     public void ContinuedOuterRowResumesEachCellOnceAndKeepsFollowingParagraphBelowTheLastNestedRow() {
         var nested = new TableBlock(Enumerable.Range(0, 34).Select(index => new[] {
             new PdfTableCell("Nested" + index.ToString("00"))
-        }), PdfAlign.Left, Style());
+        }), OfficeAlignment.Left, Style());
         var document = PdfDocument.Create(Options(190D)).Table(new[] { new[] {
             Cell(Paragraph("BeforeNested"), nested, Paragraph("AfterNested")), new PdfTableCell("ShortPeer")
         } }, style: Style());
@@ -179,7 +179,7 @@ public class PdfNestedTableCellFlowTests {
     [Fact]
     public void ContinuedSiblingCellsUseIndependentNestedTableCursors() {
         TableBlock Nested(string prefix, int count) => new TableBlock(Enumerable.Range(0, count)
-            .Select(index => new[] { new PdfTableCell(prefix + index.ToString("00")) }), PdfAlign.Left, Style());
+            .Select(index => new[] { new PdfTableCell(prefix + index.ToString("00")) }), OfficeAlignment.Left, Style());
         var document = PdfDocument.Create(Options(190D)).Table(new[] { new[] {
             Cell(Nested("Left", 27)), Cell(Paragraph("RightBefore"), Nested("Right", 14), Paragraph("RightAfter"))
         } }, style: Style());
@@ -244,7 +244,7 @@ public class PdfNestedTableCellFlowTests {
             : new PdfTableCell("HeaderCell", linkUri: cellUri, namedDestinationName: "FirstHeader");
         var linkedRuns = new[] { PdfTextRun.Link("HeaderRun", runUri) };
         PdfTableCell runHeader = orderedCells
-            ? Cell(new RichParagraphBlock(linkedRuns, PdfAlign.Left, null, ParagraphStyle()))
+            ? Cell(new RichParagraphBlock(linkedRuns, OfficeAlignment.Left, null, ParagraphStyle()))
             : new PdfTableCell(linkedRuns);
         var rows = new List<PdfTableCell[]> { new[] { cellHeader, runHeader } };
         rows.AddRange(Enumerable.Range(0, 30).Select(index => new[] {
@@ -275,7 +275,7 @@ public class PdfNestedTableCellFlowTests {
         var document = PdfDocument.Create(Options(190D));
         var nested = new TableBlock(Enumerable.Range(0, 26).Select(index => new[] {
             new PdfTableCell("NoteRow" + index.ToString("00"))
-        }), PdfAlign.Left, Style());
+        }), OfficeAlignment.Left, Style());
         var note = document.Content.DefineFootnote(body => body.Table(new[] {
             new[] { Cell(Paragraph("NoteStart"), nested, Paragraph("NoteEnd")) }
         }, style: Style()));
@@ -293,7 +293,7 @@ public class PdfNestedTableCellFlowTests {
     [Fact]
     public void CellCopyOperationsRetainCapturedNestedStylesAndSourceOrder() {
         var style = Style(); style.MaxWidth = style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(90D); style.PreserveWidth = true;
-        var nested = new TableBlock(new[] { new[] { new PdfTableCell("Captured") } }, PdfAlign.Left, style);
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("Captured") } }, OfficeAlignment.Left, style);
         PdfTableCell source = Cell(Paragraph("First"), nested, Paragraph("Last"));
         PdfTableCell copy = source.WithNamedDestination("CellTarget").WithNoWrap(false).WithShrinkTextToFit(false).WithViewport(null);
         nested.Style!.MaxWidth = nested.Style.PreferredWidth = global::OfficeIMO.OfficeLength.Points(160D);
@@ -316,7 +316,7 @@ public class PdfNestedTableCellFlowTests {
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", expected)) };
         var paragraph = new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(8D), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)),
             widowControl: false, keepTogether: true);
-        var nested = new TableBlock(new[] { new[] { new PdfTableCell("NestedPeer") } }, PdfAlign.Left, Style());
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("NestedPeer") } }, OfficeAlignment.Left, Style());
         var rows = new[] { new[] { new PdfTableCell(runs, new[] { paragraph }), Cell(nested), new PdfTableCell("ShortPeer") } };
         if (noteTable) {
             var note = document.Content.DefineFootnote(body => body.Table(rows, style: Style()));
@@ -341,7 +341,7 @@ public class PdfNestedTableCellFlowTests {
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", expected)) };
         var paragraph = new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(8D), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)),
             widowControl: false, keepTogether: true);
-        var nested = new TableBlock(new[] { new[] { new PdfTableCell("FittingPeer") } }, PdfAlign.Left, Style());
+        var nested = new TableBlock(new[] { new[] { new PdfTableCell("FittingPeer") } }, OfficeAlignment.Left, Style());
         document.Content.Table(new[] { new[] { new PdfTableCell(runs, new[] { paragraph }), Cell(nested) } }, style: Style());
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -357,7 +357,7 @@ public class PdfNestedTableCellFlowTests {
     public void UnsupportedOrderedCellReferencesAreRejectedBeforeTheirNotesCanBeLost() {
         var document = PdfDocument.Create(Options());
         var note = document.Content.DefineFootnote(body => body.Text("RequiredNote"));
-        var reference = new RichParagraphBlock(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }, PdfAlign.Left, null, ParagraphStyle());
+        var reference = new RichParagraphBlock(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }, OfficeAlignment.Left, null, ParagraphStyle());
         document.Content.Table(new[] { new[] { Cell(reference) } }, style: Style());
 
         Assert.Throws<NotSupportedException>(() => document.ToBytes());
@@ -367,7 +367,7 @@ public class PdfNestedTableCellFlowTests {
         new PdfTableCell(Array.Empty<PdfTextRun>(), null, blocks: blocks);
 
     private static RichParagraphBlock Paragraph(string text) =>
-        new(new[] { PdfTextRun.Normal(text) }, PdfAlign.Left, null, ParagraphStyle());
+        new(new[] { PdfTextRun.Normal(text) }, OfficeAlignment.Left, null, ParagraphStyle());
 
     private static PdfParagraphStyle ParagraphStyle() => new() { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineHeight = 1D, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
 

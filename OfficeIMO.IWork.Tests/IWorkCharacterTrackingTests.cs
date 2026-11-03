@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = SelectedRichTextPackage(IWorkDocumentKind.Keynote,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, Message(FloatField(3, 40), FloatField(27, 0.1234f)))));
-        Assert.Contains(ConvertUnitReport(package, IWorkDocumentKind.Keynote, visual: false).FidelityDiagnostics,
+        Assert.Contains(ConvertUnitReport(package, IWorkDocumentKind.Keynote, visual: false).Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_CHARACTER_SPACING_PRECISION"
                 && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }

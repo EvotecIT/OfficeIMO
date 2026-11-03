@@ -70,7 +70,7 @@ public sealed class BibliographyReviewWave37RegressionTests {
         BibliographyDate date = Assert.Single(read.Document.Items[0].Dates);
         read.Document.Items[0].Title = "Edited";
 
-        BibliographyWriteResult written = read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyReadResult reread = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson);
         BibliographyDate reopened = Assert.Single(reread.Document.Items[0].Dates);
 

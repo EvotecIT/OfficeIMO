@@ -55,7 +55,7 @@ namespace OfficeIMO.Visio {
                     OfficeCompatibilityState.Dropped, OfficeCompatibilitySeverity.Warning,
                     OfficeCompatibilityImpact.Semantic | OfficeCompatibilityImpact.Visual, representsLoss: true,
                     sourceLocation: "record:0x" + entry.Key.ToString("X", CultureInfo.InvariantCulture)));
-            foreach (var diagnostic in normalization.FidelityDiagnostics)
+            foreach (var diagnostic in normalization.Diagnostics)
                 _findings.Add(new OfficeCompatibilityFinding(diagnostic.Code, "ModelProjection", diagnostic.Message,
                     diagnostic.LossKind == OfficeConversionLossKind.Omission ? OfficeCompatibilityState.Dropped : OfficeCompatibilityState.Approximated,
                     OfficeCompatibilitySeverity.Warning, OfficeCompatibilityImpact.Visual | OfficeCompatibilityImpact.Editability,

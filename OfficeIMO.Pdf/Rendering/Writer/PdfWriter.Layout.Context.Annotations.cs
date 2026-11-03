@@ -90,7 +90,7 @@ internal static partial class PdfWriter {
             });
         }
 
-        private void AddFreeTextAnnotation(double x, double bottomY, double boxWidth, double boxHeight, string contents, double fontSize, global::OfficeIMO.OfficeColor textColor, global::OfficeIMO.OfficeColor? borderColor, double borderWidth, global::OfficeIMO.OfficeColor? fillColor, PdfAlign textAlign, double padding, double? lineHeight) {
+        private void AddFreeTextAnnotation(double x, double bottomY, double boxWidth, double boxHeight, string contents, double fontSize, global::OfficeIMO.OfficeColor textColor, global::OfficeIMO.OfficeColor? borderColor, double borderWidth, global::OfficeIMO.OfficeColor? fillColor, OfficeAlignment textAlign, double padding, double? lineHeight) {
             currentPage!.FreeTextAnnotations.Add(new FreeTextAnnotation {
                 X1 = x,
                 Y1 = bottomY,

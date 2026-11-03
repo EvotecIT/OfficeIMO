@@ -142,7 +142,7 @@ public sealed class NewOfficePowerPointCommand : OfficeNewLifecycleCmdlet<PowerP
                     accent2: OfficeColor.ParseHex(brand.Accent2Color), accent3: OfficeColor.ParseHex(brand.Accent3Color))));
             }
             if (Author != null) {
-                document.BuiltinDocumentProperties.Creator = Author;
+                document.Properties.Creator = Author;
                 if (!string.IsNullOrWhiteSpace(Author)) document.LayoutDeck.TitleMetadata.Add(Author);
             }
             if (Date.HasValue) document.LayoutDeck.TitleMetadata.Add(Date.Value.ToString("d", CultureInfo.CurrentCulture));

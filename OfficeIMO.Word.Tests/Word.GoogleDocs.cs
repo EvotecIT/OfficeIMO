@@ -3676,7 +3676,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsSampleDocument(string filePath, string imagePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Snapshot";
+            document.Properties.Title = "Google Docs Snapshot";
 
             var intro = document.AddParagraph("Intro ");
             intro.Style = WordParagraphStyles.Heading1;
@@ -3705,7 +3705,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsListDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Lists";
+            document.Properties.Title = "Google Docs Lists";
 
             var bullets = document.AddList(WordListStyle.Bulleted);
             bullets.AddItem("First bullet");
@@ -3720,7 +3720,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsHighlightDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Highlights";
+            document.Properties.Title = "Google Docs Highlights";
 
             var paragraph = document.AddParagraph("Plain ");
             paragraph.AddText("Highlighted").SetHighlight(WordHighlightColor.Yellow);
@@ -3731,7 +3731,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsBaselineDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Baseline";
+            document.Properties.Title = "Google Docs Baseline";
 
             var paragraph = document.AddParagraph("Base ");
             paragraph.AddText("Super").SetVerticalTextAlignment(WordVerticalTextPosition.Superscript);
@@ -3743,7 +3743,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsSmallCapsDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs SmallCaps";
+            document.Properties.Title = "Google Docs SmallCaps";
 
             var paragraph = document.AddParagraph("Base ");
             paragraph.AddText("Small").SetSmallCaps();
@@ -3755,7 +3755,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsFontFamilyDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Font Family";
+            document.Properties.Title = "Google Docs Font Family";
 
             var paragraph = document.AddParagraph();
             paragraph.AddText("Mono").SetFontFamily("Consolas");
@@ -3766,7 +3766,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsParagraphLayoutDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Layout";
+            document.Properties.Title = "Google Docs Paragraph Layout";
 
             var paragraph = document.AddParagraph("Indented paragraph");
             paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(24D);
@@ -3780,7 +3780,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsRightToLeftParagraphDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs RTL Paragraph";
+            document.Properties.Title = "Google Docs RTL Paragraph";
 
             var paragraph = document.AddParagraph("RTL paragraph");
             paragraph.BiDi = true;
@@ -3790,7 +3790,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsAutoLineSpacingDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Auto Line Spacing";
+            document.Properties.Title = "Google Docs Auto Line Spacing";
 
             var paragraph = document.AddParagraph("Auto spaced paragraph");
             paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D);
@@ -3800,7 +3800,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsParagraphPaginationDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Pagination";
+            document.Properties.Title = "Google Docs Paragraph Pagination";
 
             var paragraph = document.AddParagraph("Paragraph with pagination controls");
             paragraph.KeepWithNext = true;
@@ -3812,7 +3812,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsParagraphTabStopsDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Tab Stops";
+            document.Properties.Title = "Google Docs Paragraph Tab Stops";
 
             var paragraph = document.AddParagraph("Label");
             paragraph.AddTabStop(OfficeLength.Points(72), WordTabAlignment.Left, WordTabLeader.None);
@@ -3825,7 +3825,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsSectionLayoutDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Section Layout";
+            document.Properties.Title = "Google Docs Section Layout";
 
             var section = document.Sections[0];
             section.PageSetup.Size.PageSize = WordPageSize.A5;
@@ -3845,7 +3845,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsSectionColumnsDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Section Columns";
+            document.Properties.Title = "Google Docs Section Columns";
 
             var section = document.Sections[0];
             section.ColumnCount = 2;
@@ -3858,7 +3858,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsExactLineSpacingDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Exact Line Spacing";
+            document.Properties.Title = "Google Docs Exact Line Spacing";
 
             var paragraph = document.AddParagraph("Exact spaced paragraph");
             paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635)));
@@ -3868,7 +3868,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsAtLeastLineSpacingDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs AtLeast Line Spacing";
+            document.Properties.Title = "Google Docs AtLeast Line Spacing";
 
             var paragraph = document.AddParagraph("AtLeast spaced paragraph");
             paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635)));
@@ -3878,7 +3878,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsParagraphShadingDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Shading";
+            document.Properties.Title = "Google Docs Paragraph Shading";
 
             var paragraph = document.AddParagraph("Shaded paragraph");
             paragraph.ShadingFillColor = OfficeColor.Parse("D9EAF7");
@@ -3888,7 +3888,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsParagraphBorderDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Borders";
+            document.Properties.Title = "Google Docs Paragraph Borders";
 
             var paragraph = document.AddParagraph("Bordered paragraph");
             paragraph.Borders.TopStyle = WordBorderStyle.Single;
@@ -3905,7 +3905,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsPageBreakDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Page Break";
+            document.Properties.Title = "Google Docs Page Break";
 
             document.AddParagraph("Intro paragraph");
             var nextPageParagraph = document.AddParagraph("Starts on next page");
@@ -3916,14 +3916,14 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsFootnoteDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Footnotes";
+            document.Properties.Title = "Google Docs Footnotes";
             document.AddParagraph("Body text").AddFootNote("Footnote text");
             return document;
         }
 
         private WordDocument BuildGoogleDocsFootnoteBookmarkDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Footnote Bookmarks";
+            document.Properties.Title = "Google Docs Footnote Bookmarks";
             var footnoteReferenceParagraph = document.AddParagraph("Body text").AddFootNote("Footnote text").Paragraph;
             footnoteReferenceParagraph.FootNote!.Paragraphs!.Last().AddBookmark("FootnoteBookmark");
             return document;
@@ -3931,7 +3931,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsBookmarkDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Bookmarks";
+            document.Properties.Title = "Google Docs Bookmarks";
             document.AddParagraph("Jump to ").AddHyperLink("target", "TargetBookmark");
             document.AddParagraph("Target paragraph").AddBookmark("TargetBookmark");
             return document;
@@ -3939,7 +3939,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsTableBookmarkDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Table Bookmark";
+            document.Properties.Title = "Google Docs Table Bookmark";
 
             var table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Bookmarked cell";
@@ -3950,7 +3950,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsHeaderBookmarkDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Header Bookmark";
+            document.Properties.Title = "Google Docs Header Bookmark";
             document.AddParagraph("Body text");
             document.Sections[0].PageSetup.Header.AddParagraph("Header bookmark").AddBookmark("HeaderBookmark");
             return document;
@@ -3958,7 +3958,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsHeaderFooterDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Header Footer";
+            document.Properties.Title = "Google Docs Header Footer";
             document.AddParagraph("Body text");
             document.Sections[0].PageSetup.Header.AddParagraph("Header text");
             document.Sections[0].PageSetup.Footer.AddParagraph("Footer text");
@@ -3967,7 +3967,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsFirstPageHeaderFooterDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs First Page Header Footer";
+            document.Properties.Title = "Google Docs First Page Header Footer";
             document.AddParagraph("Body text");
             document.Sections[0].PageSetup.DifferentFirstPage = true;
             document.Sections[0].PageSetup.FirstPageHeader.AddParagraph("First header text");
@@ -3977,7 +3977,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsEvenPageHeaderFooterDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Even Page Header Footer";
+            document.Properties.Title = "Google Docs Even Page Header Footer";
             document.AddParagraph("Body text");
             document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
             document.Sections[0].PageSetup.EvenPageHeader.AddParagraph("Even header text");
@@ -3987,7 +3987,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsStyledTableDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Styled Table";
+            document.Properties.Title = "Google Docs Styled Table";
 
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
@@ -4019,7 +4019,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsTableImageDocument(string filePath, string imagePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Table Image";
+            document.Properties.Title = "Google Docs Table Image";
 
             var table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             var paragraph = table.Rows[0].Cells[0].Paragraphs[0];
@@ -4031,7 +4031,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsTableFootnoteDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Table Footnote";
+            document.Properties.Title = "Google Docs Table Footnote";
 
             var table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             var paragraph = table.Rows[0].Cells[0].Paragraphs[0];
@@ -4043,7 +4043,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsMergedTableDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Merged Table";
+            document.Properties.Title = "Google Docs Merged Table";
 
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
@@ -4057,7 +4057,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsShiftedMergedTableDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Shifted Merged Table";
+            document.Properties.Title = "Google Docs Shifted Merged Table";
 
             var prefix = document.AddTable(1, 1, WordTableStyle.TableGrid);
             prefix.Rows[0].Cells[0].Paragraphs[0].Text = "Prefix content that shifts the later table";
@@ -4074,7 +4074,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsLeadingTableSectionDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Leading Table Section";
+            document.Properties.Title = "Google Docs Leading Table Section";
             document.AddParagraph("First section");
             document.AddSection(WordSectionBreakType.NextPage);
 
@@ -4089,7 +4089,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsHeaderTableDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Header Table";
+            document.Properties.Title = "Google Docs Header Table";
             document.AddParagraph("Body text");
 
             var headerTable = document.Sections[0].PageSetup.Header.AddTable(2, 2, WordTableStyle.TableGrid);
@@ -4107,14 +4107,14 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsHeaderTableBookmarkDocument(string filePath) {
             var document = BuildGoogleDocsHeaderTableDocument(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Header Table Bookmark";
+            document.Properties.Title = "Google Docs Header Table Bookmark";
             document.Sections[0].PageSetup.Header.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("HeaderCellBookmark");
             return document;
         }
 
         private WordDocument BuildGoogleDocsFooterTableDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Footer Table";
+            document.Properties.Title = "Google Docs Footer Table";
             document.AddParagraph("Body text");
 
             var footerTable = document.Sections[0].PageSetup.Footer.AddTable(2, 2, WordTableStyle.TableGrid);
@@ -4132,7 +4132,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsFirstFooterTableDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs First Footer Table";
+            document.Properties.Title = "Google Docs First Footer Table";
             document.AddParagraph("Body text");
             document.Sections[0].PageSetup.DifferentFirstPage = true;
 
@@ -4151,7 +4151,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsEvenFooterTableDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Even Footer Table";
+            document.Properties.Title = "Google Docs Even Footer Table";
             document.AddParagraph("Body text");
             document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
 
@@ -4170,14 +4170,14 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsEvenFooterTableBookmarkDocument(string filePath) {
             var document = BuildGoogleDocsEvenFooterTableDocument(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Even Footer Table Bookmark";
+            document.Properties.Title = "Google Docs Even Footer Table Bookmark";
             document.Sections[0].PageSetup.EvenPageFooter.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("FooterCellBookmark");
             return document;
         }
 
         private WordDocument BuildGoogleDocsEvenHeaderTableDocument(string filePath) {
             var document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Even Header Table";
+            document.Properties.Title = "Google Docs Even Header Table";
             document.AddParagraph("Body text");
             document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
 
@@ -4196,7 +4196,7 @@ namespace OfficeIMO.Tests {
 
         private WordDocument BuildGoogleDocsEvenHeaderTableBookmarkDocument(string filePath) {
             var document = BuildGoogleDocsEvenHeaderTableDocument(filePath);
-            document.BuiltinDocumentProperties.Title = "Google Docs Even Header Table Bookmark";
+            document.Properties.Title = "Google Docs Even Header Table Bookmark";
             document.Sections[0].PageSetup.EvenPageHeader.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("HeaderCellBookmark");
             return document;
         }

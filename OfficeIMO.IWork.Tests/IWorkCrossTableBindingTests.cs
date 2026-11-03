@@ -65,7 +65,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(8, true)]
     public void Source_and_destination_binding_charge_cumulative_formula_work(long maximumOperations, bool destination) {
         using MemoryStream package = CrossBindingPackage();
-        var options = new IWorkReadOptions { MaximumFormulaRenderingOperations = maximumOperations };
+        var options = new IWorkReadOptions { MaxFormulaRenderingOperations = maximumOperations };
         if (destination) Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
             options, new IWorkConversionOptions { NormalizeWorksheetNames = true }));
         else Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options).ReadNumbers());
@@ -75,16 +75,16 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_source_formula_text_consumes_projection_character_budget() {
         using MemoryStream package = CrossBindingPackage(shortNames: true);
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 64 }).ReadNumbers());
+            new IWorkReadOptions { MaxProjectedTextCharacters = 64 }).ReadNumbers());
         package.Position = 0;
         Assert.True(IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 4096 }).ReadNumbers().HasEditableContent);
+            new IWorkReadOptions { MaxProjectedTextCharacters = 4096 }).ReadNumbers().HasEditableContent);
     }
 
     [Fact]
     public void Destination_name_expansion_respects_formula_limits_and_discards_planned_worksheets_on_fallback() {
         using MemoryStream package = CrossBindingPackage(shortNames: true, unnamedTarget: true);
-        var read = new IWorkReadOptions { MaximumFormulaCharacters = 30 };
+        var read = new IWorkReadOptions { MaxFormulaCharacters = 30 };
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, read, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.True(result.IsVisualFallback);
@@ -134,7 +134,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("SUM('" + target.Replace("'", "''") + "'!" + address + ")", result.Value.Sheets[0].GetFormulaText(1, 1));
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Theory]

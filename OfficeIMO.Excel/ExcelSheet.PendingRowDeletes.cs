@@ -81,6 +81,8 @@ namespace OfficeIMO.Excel {
                 int rowIndex = checked((int)row.RowIndex!.Value);
                 while (cursor < deleted.Length && deleted[cursor] < rowIndex) cursor++;
                 if (cursor < deleted.Length && deleted[cursor] == rowIndex) {
+                    // Stored cells hold no value metadata, so a deleted row drops them without building their DOM form.
+                    if (row is ExcelStoredRow stored && stored.IsStoreAvailable) stored.ClearStoredCells();
                     foreach (Cell cell in row.Elements<Cell>().ToList()) RemoveCellWithValueMetadataCleanup(cell);
                     row.Remove();
                 } else if (cursor > 0) {

@@ -8,7 +8,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Enforces_the_source_wide_projected_image_budget() {
-        var budget = new IWorkProjectionBudget(new IWorkReadOptions { MaximumProjectedImages = 1 });
+        var budget = new IWorkProjectionBudget(new IWorkReadOptions { MaxProjectedImages = 1 });
 
         budget.AddImage();
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => budget.AddImage());

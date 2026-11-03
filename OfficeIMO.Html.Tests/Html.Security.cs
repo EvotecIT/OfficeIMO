@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(new[] { "Visible before.", "Visible after." }, document.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
             Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text.Contains("Hidden script"));
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("html-element-skipped", diagnostic.Code);
             Assert.Equal("script", diagnostic.Source);
         }
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(document.Paragraphs);
             Assert.Equal("Visible.", document.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics);
             Assert.Equal("html-element-skipped", diagnostic.Code);
             Assert.Equal("template", diagnostic.Source);
         }
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(new[] { "Visible before.", "Visible after." }, document.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
             Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text.Contains("reviewer note"));
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "html-comment-skipped");
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "html-comment-skipped");
             Assert.Equal("comment", diagnostic.Source);
             Assert.Null(diagnostic.Detail);
         }
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(new[] { "Before.", "After." }, document.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
             Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text.Contains("Hidden", System.StringComparison.Ordinal));
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "html-embedded-content-skipped").ToList();
+            var diagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code == "html-embedded-content-skipped").ToList();
             Assert.Equal(6, diagnostics.Count);
             Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "iframe");
             Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "object");

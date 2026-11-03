@@ -171,7 +171,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void LeadingTabIncludesAdvanceWhenAvoidingFloat(bool inline) {
-        var style = Floating(200); style.Position = new PdfTablePosition(horizontalAlignment: PdfAlign.Right);
+        var style = Floating(200); style.Position = new PdfTablePosition(horizontalAlignment: OfficeAlignment.Right);
         var paragraphStyle = new PdfParagraphStyle { DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(100) };
         using var pdf = Pig.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => {

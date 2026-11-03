@@ -101,7 +101,7 @@ public partial class PdfInspectorTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.H3("ColumnHead", PdfAlign.Right, linkUri: "https://evotec.xyz/right-heading", linkContents: "Right heading"))))))
+                                column.H3("ColumnHead", OfficeAlignment.Right, linkUri: "https://evotec.xyz/right-heading", linkContents: "Right heading"))))))
             .ToBytes();
 
         PdfDocumentInfo rowInfo = PdfInspector.Inspect(rowBytes);
@@ -127,7 +127,7 @@ public partial class PdfInspectorTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Image(CreateMinimalRgbPng(), 80, 40, PdfAlign.Center, fit: OfficeImageFit.Contain, linkUri: "https://evotec.xyz/image", linkContents: "Image metadata")
+            .Image(CreateMinimalRgbPng(), 80, 40, OfficeAlignment.Center, fit: OfficeImageFit.Contain, linkUri: "https://evotec.xyz/image", linkContents: "Image metadata")
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -158,8 +158,8 @@ public partial class PdfInspectorTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Shape(OfficeShape.Rectangle(40, 20), PdfAlign.Right, linkUri: "https://evotec.xyz/shape", linkContents: "Shape metadata")
-            .Drawing(drawing, PdfAlign.Center, spacingBefore: 6, linkUri: "https://evotec.xyz/drawing", linkContents: "Drawing metadata")
+            .Shape(OfficeShape.Rectangle(40, 20), OfficeAlignment.Right, linkUri: "https://evotec.xyz/shape", linkContents: "Shape metadata")
+            .Drawing(drawing, OfficeAlignment.Center, spacingBefore: 6, linkUri: "https://evotec.xyz/drawing", linkContents: "Drawing metadata")
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -197,7 +197,7 @@ public partial class PdfInspectorTests {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Rectangle(40, 20, align: PdfAlign.Center, linkUri: "https://evotec.xyz/rectangle", linkContents: "Rectangle metadata")
+            .Rectangle(40, 20, align: OfficeAlignment.Center, linkUri: "https://evotec.xyz/rectangle", linkContents: "Rectangle metadata")
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);

@@ -63,9 +63,9 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document without using");
             string filePath = System.IO.Path.Combine(folderPath, "EmptyDocumentWithSingleParagraph.docx");
             WordDocument document = WordDocument.Create(filePath);
-            document.BuiltinDocumentProperties.Title = "This is my title";
-            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.Properties.Title = "This is my title";
+            document.Properties.Creator = "Przemysław Kłys";
+            document.Properties.Keywords = "word, docx, test";
 
             document.AddParagraph("This is my test");
 

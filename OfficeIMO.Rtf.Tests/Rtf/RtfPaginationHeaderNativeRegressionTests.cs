@@ -116,8 +116,8 @@ public class RtfPaginationHeaderNativeRegressionTests {
                 .AppendLine("LosslessBytesUnchanged=" + original.SequenceEqual(read.ToBytesLossless()))
                 .AppendLine("LoadedModelUnchanged=" + (before == read.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })));
             foreach (var diagnostic in read.Diagnostics) report.AppendLine("Parse: " + diagnostic);
-            foreach (var diagnostic in saved.FidelityDiagnostics) {
-                report.AppendLine($"Fidelity: {diagnostic.Source}|{diagnostic.Code}|{diagnostic.LossKind}|{diagnostic.Location}|{diagnostic.Message}");
+            foreach (var diagnostic in saved.ConversionDiagnostics) {
+                report.AppendLine($"Fidelity: {diagnostic.Format}|{diagnostic.Code}|{diagnostic.LossKind}|{diagnostic.Location}|{diagnostic.Message}");
             }
             foreach (string diagnostic in saved.Diagnostics) report.AppendLine("Save: " + diagnostic);
             if (saved.Succeeded) {

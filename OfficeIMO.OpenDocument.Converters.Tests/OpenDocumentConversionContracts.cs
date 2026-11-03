@@ -22,7 +22,7 @@ public sealed class OpenDocumentConversionContracts {
         var second = new DisposableProbe();
 
         Assert.Throws<OdfConversionLossException>(() =>
-            new OdfConversionResult<DisposableProbe>(first, report).RequireNoLoss());
+            new OdfConversionResult<DisposableProbe>(first, report).ThrowIfLoss());
         Assert.Throws<OdfConversionLossException>(() =>
             new OdfConversionResult<DisposableProbe>(second, report)
                 .GetValue(OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported));

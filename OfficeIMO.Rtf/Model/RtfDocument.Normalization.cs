@@ -6,7 +6,7 @@ public sealed partial class RtfDocument {
     private List<RtfConversionDiagnostic> _sourceNormalizationDiagnostics = new List<RtfConversionDiagnostic>();
 
     /// <summary>Writes normalized semantic RTF with an operation-scoped report of source content that cannot survive normalization.</summary>
-    /// <remarks>Use the read result's lossless APIs when original syntax must survive. Call RequireNoLoss on this result before accepting strict semantic output.</remarks>
+    /// <remarks>Use the read result's lossless APIs when original syntax must survive. Call ThrowIfLoss on this result before accepting strict semantic output.</remarks>
     public RtfConversionResult<string> ToRtfResult(RtfWriteOptions? options = null) {
         RtfWriteOptions resolved = options ?? new RtfWriteOptions();
         var report = new RtfConversionReport();
@@ -40,6 +40,6 @@ public sealed partial class RtfDocument {
     internal void RecordReadNormalizationDiagnostics(IEnumerable<RtfDiagnostic> diagnostics) {
         var report = new RtfConversionReport();
         report.AddReadDiagnostics(diagnostics.Where(diagnostic => diagnostic.Code != "RTF101"));
-        _sourceNormalizationDiagnostics.AddRange(report.Diagnostics);
+        _sourceNormalizationDiagnostics.AddRange(report.NativeDiagnostics);
     }
 }

@@ -24,8 +24,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(pageSettings.Code?.ToString() ?? "Code not set");
                 Console.WriteLine(pageSettings.PageSize?.ToString() ?? "Page size not set");
 
-                document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-                document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+                document.Properties.Title = "Cover Page Templates";
+                document.Properties.Subject = "How to use Cover Pages with TOC";
 
                 document.ApplicationProperties.Company = "Evotec Services";
 

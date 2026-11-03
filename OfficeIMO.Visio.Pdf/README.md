@@ -45,7 +45,7 @@ var result = diagram.ToPdfDocumentResult(new VisioToPdfOptions {
     Mode = VisioPdfProjectionMode.DiagramPages,
     DrawingOptions = drawingOptions
 });
-foreach (var diagnostic in result.FidelityDiagnostics)
+foreach (var diagnostic in result.Diagnostics)
     Console.WriteLine($"{diagnostic.Location}: {diagnostic.Code}: {diagnostic.Message}");
 result.Save("architecture.pdf");
 ```
@@ -74,8 +74,8 @@ them with `DiagramPages`, or supplying diagram settings in semantic mode,
 throws instead of ignoring settings.
 
 `SourceConversionReports` retains the typed `VisioDrawingConversionReport`.
-`RequireNoLoss` on drawing options rejects reported loss before PDF composition;
-`SaveLossless` on the PDF result rejects it before writing the destination.
+`ThrowIfLoss` on drawing options rejects reported loss before PDF composition;
+`Save(path, failOnLoss: true)` on the PDF result rejects it before writing the destination.
 `SaveAsPdfResult` and `SaveAsPdfResultAsync` retain the source report and its
 page-qualified fidelity diagnostics when strict projection fails. Their failure
 result exposes `HasLoss` and leaves the destination unchanged.

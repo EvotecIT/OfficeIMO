@@ -22,7 +22,7 @@ public sealed class PdfStyledImagePlacementTests {
         else if (path == "flow") document.Image(source, 60, 30, style: style);
         else if (path == "canvas") document.Canvas(canvas => canvas.Image(source, global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), style));
         else {
-            var image = new PdfHeaderFooterImage(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), PdfAlign.Left, style);
+            var image = new PdfHeaderFooterImage(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), OfficeAlignment.Left, style);
             document.Compose(compose => compose.Page(page => {
                 if (path == "header") page.Header(header => header.Image(image));
                 else page.Footer(footer => footer.Image(image));

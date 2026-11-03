@@ -133,7 +133,7 @@ public sealed class ReaderAsciiDocModularTests {
     [Fact]
     public void StreamReaderHonorsTheNativeCharacterLimitAndRestoresCallerPosition() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Text longer than eight characters."), writable: false);
-        var options = new ReaderAsciiDocOptions(); options.ParseOptions.MaximumInputLength = 8;
+        var options = new ReaderAsciiDocOptions(); options.ParseOptions.MaxInputLength = 8;
         Assert.Throws<InvalidDataException>(() => AsciiDocReaderAdapter.Read(stream, "limit.adoc", asciiDocOptions: options).ToArray());
         Assert.True(stream.CanRead);
         Assert.Equal(0, stream.Position);

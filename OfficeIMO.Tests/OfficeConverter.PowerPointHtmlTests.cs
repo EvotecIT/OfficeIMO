@@ -34,7 +34,7 @@ public sealed class OfficeConverterPowerPointHtmlTests {
         options.FailOnLoss = true;
         var failure = await Assert.ThrowsAsync<OfficeConversionException>(() => OfficeConverter.ConvertAsync(
             source, OfficeDocumentFormat.PowerPoint, output, OfficeDocumentFormat.Html, options));
-        Assert.Contains(failure.Report.FidelityDiagnostics, item => item.Code == diagnostic.Code && item.LossKind == diagnostic.LossKind);
+        Assert.Contains(failure.Report.Diagnostics, item => item.Code == diagnostic.Code && item.LossKind == diagnostic.LossKind);
         Assert.Equal(completed, output.ToArray());
         Assert.Equal("Native HTML review", htmlOptions.Title);
         Assert.Equal(7, source.Position);

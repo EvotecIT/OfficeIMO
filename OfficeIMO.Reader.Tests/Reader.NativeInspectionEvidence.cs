@@ -101,7 +101,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
 
     [Fact]
     public void OpenDocumentRichResultRetainsMetadataLinksAndImageBytesWithoutFetchingLinkTargets() {
-        OdtDocument document = OdtDocument.Create(); document.Metadata.Title = "Source title";
+        OdtDocument document = OdtDocument.Create(); document.Properties.Title = "Source title";
         OdtParagraph paragraph = document.AddParagraph("Body");
         paragraph.AddHyperlink("Target", "https://example.invalid/never-fetched");
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");

@@ -411,7 +411,7 @@ namespace OfficeIMO.Tests {
                 Size = 12,
                 TextWidth = 0.85,
                 TextHeight = 0.42,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
             VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.55, page.DefaultUnit)), "Done");
@@ -457,7 +457,7 @@ namespace OfficeIMO.Tests {
                 Bold = true,
                 TextWidth = 0.76,
                 TextHeight = 0.96,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 
@@ -507,7 +507,7 @@ namespace OfficeIMO.Tests {
                 Size = 11,
                 TextWidth = 1.4,
                 TextHeight = 0.8,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 

@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Pdf {
             tableStyle.SpacingAfter = OfficeLength.Points(12);
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Links & Rules Demo", PdfAlign.Left, linkUri: "https://github.com/EvotecIT/OfficeIMO")
+                .H1("Links & Rules Demo", OfficeAlignment.Left, linkUri: "https://github.com/EvotecIT/OfficeIMO")
                 .Paragraph(p => p
                     .Text("Visit ")
                     .Link("OfficeIMO GitHub", "https://github.com/EvotecIT/OfficeIMO", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180))
@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Pdf {
                     .Link("project website", "https://officeimo.com/", OfficeColor.FromRgb(20, 90, 180))
                     .Text(" for more details."))
                 .HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))
-                .TableWithLinks(rows, links, PdfAlign.Left, tableStyle)
+                .TableWithLinks(rows, links, OfficeAlignment.Left, tableStyle)
                 .PanelParagraph(
                     p => p
                         .Text("You can also place links ")
@@ -56,9 +56,9 @@ namespace OfficeIMO.Examples.Pdf {
                         PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                     })), new PdfCreateOptions {
                     HeaderFormat = "OfficeIMO.Pdf links and rules",
-                    HeaderAlign = PdfAlign.Left,
+                    HeaderAlign = OfficeAlignment.Left,
                     ShowHeader = true,
-                    FooterAlign = PdfAlign.Right,
+                    FooterAlign = OfficeAlignment.Right,
                     ShowPageNumbers = true
                 })
                 .Meta(title: "OfficeIMO.Pdf Links and Rules", author: "OfficeIMO")

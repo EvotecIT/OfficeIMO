@@ -17,8 +17,8 @@ namespace OfficeIMO.Examples.Word
             string imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
             using (WordDocument document = WordDocument.Create(filePath))
             {
-                document.BuiltinDocumentProperties.Title = "This is sparta";
-                document.BuiltinDocumentProperties.Creator = "Przemek";
+                document.Properties.Title = "This is sparta";
+                document.Properties.Creator = "Przemek";
                 var filePathImage = System.IO.Path.Combine(imagePaths, "Kulek.jpg");
                 document.PageSetup.DifferentOddAndEvenPages = true;
                 var header = document.PageSetup.Header;

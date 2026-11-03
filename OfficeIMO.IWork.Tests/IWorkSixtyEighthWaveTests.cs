@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumFormulaRenderingOperations = 1 })
+                new IWorkReadOptions { MaxFormulaRenderingOperations = 1 })
                 .ReadNumbers());
 
         Assert.Contains("Formula rendering work", exception.Message,

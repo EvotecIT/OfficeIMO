@@ -246,10 +246,10 @@ public partial class WordRtfConverterTests {
             inline => Assert.Equal("First image", Assert.IsType<RtfImage>(inline).Description),
             inline => Assert.Equal("Second image", Assert.IsType<RtfImage>(inline).Description));
         RtfConversionDiagnostic omitted = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, omitted.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -294,10 +294,10 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal("Embedded image", Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks)).Description);
         RtfConversionDiagnostic omitted = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, omitted.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -324,10 +324,10 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal("Fallback image", Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks)).Description);
         RtfConversionDiagnostic omitted = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, omitted.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -340,7 +340,7 @@ public partial class WordRtfConverterTests {
 
         WordImage image = Assert.Single(word.Images);
         Assert.Equal(OfficeImageFormat.Png, OfficeImageReader.Identify(image.ToBytes()).Format);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RtfWordDibImagesNormalized" &&
             diagnostic.Action == RtfConversionAction.Substituted);
     }
@@ -359,7 +359,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = conversion.Value;
 
         Assert.Empty(word.Images);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RtfWordImagesOmitted" &&
             diagnostic.Action == RtfConversionAction.Omitted);
     }
@@ -379,7 +379,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = conversion.Value;
 
         Assert.Empty(word.Images);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RtfWordImagesOmitted" &&
             diagnostic.Action == RtfConversionAction.Omitted);
     }
@@ -397,7 +397,7 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal(RtfImageFormat.Png, image.Format);
         Assert.Equal(OfficeImageFormat.Png, OfficeImageReader.Identify(image.Data).Format);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfImagesNormalized" &&
             diagnostic.Action == RtfConversionAction.Substituted);
     }
@@ -416,11 +416,11 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal(RtfImageFormat.Png, image.Format);
         RtfConversionDiagnostic flattened = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfImageAnimationFlattened");
         Assert.Equal(RtfConversionAction.Flattened, flattened.Action);
         Assert.Equal(1, flattened.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -438,7 +438,7 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesNormalized");
         Assert.Equal(1, diagnostic.Count);
     }
@@ -454,10 +454,10 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(2, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -475,10 +475,10 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -496,10 +496,10 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -514,10 +514,10 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -538,10 +538,10 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(2, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -563,10 +563,10 @@ public partial class WordRtfConverterTests {
 
         Assert.NotNull(conversion.Value);
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -605,10 +605,10 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(2, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -621,10 +621,10 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -731,10 +731,10 @@ public partial class WordRtfConverterTests {
 
         Assert.Empty(conversion.Value.Paragraphs.SelectMany(item => item.Inlines).OfType<RtfImage>());
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -750,10 +750,10 @@ public partial class WordRtfConverterTests {
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -774,10 +774,10 @@ public partial class WordRtfConverterTests {
 
         Assert.Empty(word.Images);
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "RtfWordImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     private static byte[] CreateOnePixelDib() {

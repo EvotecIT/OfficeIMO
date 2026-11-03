@@ -1329,7 +1329,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.EmptyComplexField.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "Current title";
+                document.Properties.Title = "Current title";
                 document._document.Body!.Append(new Paragraph(
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" TITLE ") { Space = SpaceProcessingModeValues.Preserve }),
@@ -1871,7 +1871,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.LockedSimpleField.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "Updated title";
+                document.Properties.Title = "Updated title";
                 document._document.Body!.Append(new Paragraph(
                     new Run(new Text("Title: ") { Space = SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("Locked title") { Space = SpaceProcessingModeValues.Preserve })) {

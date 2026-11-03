@@ -27,8 +27,8 @@ public static class VisioDocumentModelExtensions {
         var source = new OfficeDocumentModelSource {
             Path = logicalSourceName,
             SourceId = BuildSourceId(logicalSourceName),
-            Title = document.Title,
-            Author = document.Author
+            Title = document.Properties.Title,
+            Author = document.Properties.Author
         };
         VisioInspectionSnapshot snapshot = document.Inspect(operation.MaxTableRows);
         OfficeDocumentModelBlock[] blocks = BuildBlocks(snapshot, logicalSourceName).ToArray();

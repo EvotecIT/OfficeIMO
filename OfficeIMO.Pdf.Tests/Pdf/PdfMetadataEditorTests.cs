@@ -100,7 +100,7 @@ public class PdfMetadataEditorTests {
     public void ReplaceMetadata_ReplacesAllFields() {
         byte[] source = BuildTwoPagePdf();
 
-        byte[] edited = PdfMetadataEditor.ReplaceMetadata(source, new PdfMetadata {
+        byte[] edited = PdfMetadataEditor.ReplaceMetadata(source, new PdfDocumentProperties {
             Title = "Replacement title",
             Author = "Replacement author"
         });
@@ -116,7 +116,7 @@ public class PdfMetadataEditorTests {
     public void ReplaceMetadata_ReadsFromCurrentStreamPosition() {
         using var stream = CreatePrefixedStream(BuildTwoPagePdf());
 
-        byte[] edited = PdfMetadataEditor.ReplaceMetadata(stream, new PdfMetadata {
+        byte[] edited = PdfMetadataEditor.ReplaceMetadata(stream, new PdfDocumentProperties {
             Title = "Stream replacement",
             Subject = "Stream subject"
         });
@@ -140,7 +140,7 @@ public class PdfMetadataEditorTests {
         using var output = new MemoryStream();
         output.Write(prefix, 0, prefix.Length);
 
-        PdfMetadataEditor.ReplaceMetadata(source, output, new PdfMetadata {
+        PdfMetadataEditor.ReplaceMetadata(source, output, new PdfDocumentProperties {
             Title = "Output replacement",
             Keywords = "output,metadata"
         });
@@ -160,7 +160,7 @@ public class PdfMetadataEditorTests {
         using var input = CreatePrefixedStream(BuildTwoPagePdf());
         using var output = new MemoryStream();
 
-        PdfMetadataEditor.ReplaceMetadata(input, output, new PdfMetadata {
+        PdfMetadataEditor.ReplaceMetadata(input, output, new PdfDocumentProperties {
             Author = "Output stream author",
             Subject = "Output stream subject"
         });
@@ -206,7 +206,7 @@ public class PdfMetadataEditorTests {
             Directory.CreateDirectory(directory);
             File.WriteAllBytes(inputPath, BuildTwoPagePdf());
 
-            PdfMetadataEditor.ReplaceMetadata(inputPath, outputPath, new PdfMetadata {
+            PdfMetadataEditor.ReplaceMetadata(inputPath, outputPath, new PdfDocumentProperties {
                 Title = "Path replacement",
                 Author = "Path author"
             });
@@ -244,7 +244,7 @@ public class PdfMetadataEditorTests {
             Assert.Equal("path,bytes", updatedInfo.Metadata.Keywords);
             Assert.Equal(2, updatedInfo.PageCount);
 
-            byte[] replaced = PdfMetadataEditor.ReplaceMetadataToBytes(inputPath, new PdfMetadata {
+            byte[] replaced = PdfMetadataEditor.ReplaceMetadataToBytes(inputPath, new PdfDocumentProperties {
                 Title = "Path bytes replacement",
                 Author = "Path bytes author"
             });
@@ -292,7 +292,7 @@ public class PdfMetadataEditorTests {
             using var replaceOutput = new MemoryStream();
             replaceOutput.Write(prefix, 0, prefix.Length);
 
-            PdfMetadataEditor.ReplaceMetadata(inputPath, replaceOutput, new PdfMetadata {
+            PdfMetadataEditor.ReplaceMetadata(inputPath, replaceOutput, new PdfDocumentProperties {
                 Title = "Path stream replacement",
                 Author = "Path stream author"
             });
@@ -333,26 +333,26 @@ public class PdfMetadataEditorTests {
         Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.UpdateMetadataToBytes(null!, title: "x"));
         Assert.Throws<ArgumentException>(() => PdfMetadataEditor.UpdateMetadataToBytes(" ", title: "x"));
         Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata(source, null!));
-        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata((byte[])null!, new PdfMetadata()));
-        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata((Stream)null!, new PdfMetadata()));
+        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata((byte[])null!, new PdfDocumentProperties()));
+        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata((Stream)null!, new PdfDocumentProperties()));
         Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata(new MemoryStream(source), null!));
-        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(new WriteOnlyStream(), new PdfMetadata()));
-        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata(source, null!, new PdfMetadata()));
-        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(source, new ReadOnlyStream(), new PdfMetadata()));
-        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata(new MemoryStream(source), null!, new PdfMetadata()));
-        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(new MemoryStream(source), new ReadOnlyStream(), new PdfMetadata()));
-        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata(null!, "out.pdf", new PdfMetadata()));
-        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata("input.pdf", (string)null!, new PdfMetadata()));
+        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(new WriteOnlyStream(), new PdfDocumentProperties()));
+        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata(source, null!, new PdfDocumentProperties()));
+        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(source, new ReadOnlyStream(), new PdfDocumentProperties()));
+        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata(new MemoryStream(source), null!, new PdfDocumentProperties()));
+        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(new MemoryStream(source), new ReadOnlyStream(), new PdfDocumentProperties()));
+        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata(null!, "out.pdf", new PdfDocumentProperties()));
+        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata("input.pdf", (string)null!, new PdfDocumentProperties()));
         Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata("input.pdf", "out.pdf", null!));
-        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(" ", "out.pdf", new PdfMetadata()));
-        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata("missing.pdf", " ", new PdfMetadata()));
-        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata("input.pdf", (Stream)null!, new PdfMetadata()));
+        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(" ", "out.pdf", new PdfDocumentProperties()));
+        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata("missing.pdf", " ", new PdfDocumentProperties()));
+        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata("input.pdf", (Stream)null!, new PdfDocumentProperties()));
         Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadata("input.pdf", new MemoryStream(), null!));
-        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata("missing.pdf", new ReadOnlyStream(), new PdfMetadata()));
-        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(" ", new MemoryStream(), new PdfMetadata()));
-        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadataToBytes(null!, new PdfMetadata()));
+        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata("missing.pdf", new ReadOnlyStream(), new PdfDocumentProperties()));
+        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadata(" ", new MemoryStream(), new PdfDocumentProperties()));
+        Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadataToBytes(null!, new PdfDocumentProperties()));
         Assert.Throws<ArgumentNullException>(() => PdfMetadataEditor.ReplaceMetadataToBytes("input.pdf", null!));
-        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadataToBytes(" ", new PdfMetadata()));
+        Assert.Throws<ArgumentException>(() => PdfMetadataEditor.ReplaceMetadataToBytes(" ", new PdfDocumentProperties()));
     }
 
     [Fact]

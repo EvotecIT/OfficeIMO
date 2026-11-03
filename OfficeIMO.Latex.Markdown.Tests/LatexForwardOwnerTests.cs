@@ -39,10 +39,10 @@ public sealed class LatexForwardOwnerTests {
         string source = "\\begin{" + kind + "}\\setcounter{enumi}{4}\\item Five\\end{" + kind + "}";
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap(source)).ToMarkdownDocumentResult();
         Assert.Equal("\\setcounter{enumi}{4}", Assert.Single(result.Value.Blocks.OfType<CodeBlock>()).Content);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "list-content" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "list-content" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
         LatexToMarkdownResult omitted = LatexDocument.Parse(Wrap(source)).ToMarkdownDocumentResult(new LatexToMarkdownOptions { PreserveUnsupportedAsSource = false });
         Assert.Empty(omitted.Value.Blocks.OfType<CodeBlock>());
-        Assert.Contains(omitted.Report.Diagnostics, static diagnostic => diagnostic.Feature == "list-content" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        Assert.Contains(omitted.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "list-content" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
         LatexToMarkdownResult itemless = LatexDocument.Parse(Wrap("\\begin{" + kind + "}IMPORTANT\\end{" + kind + "}")).ToMarkdownDocumentResult();
         Assert.Equal("IMPORTANT", Assert.Single(itemless.Value.Blocks.OfType<CodeBlock>()).Content);
         Assert.True(itemless.Report.HasLoss);
@@ -113,7 +113,7 @@ public sealed class LatexForwardOwnerTests {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap("\\begin{tabular}{" + columns + "}\\textbf{C}&\\textbf{R}\\\\A&B\\\\\\end{tabular}")).ToMarkdownDocumentResult();
         TableBlock table = Assert.Single(result.Value.Blocks.OfType<TableBlock>());
         Assert.Equal(aligned ? 2 : 0, table.Alignments.Count);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Code == "LATEXMD215" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Code == "LATEXMD215" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
     }
 
     [Theory]
@@ -128,13 +128,13 @@ public sealed class LatexForwardOwnerTests {
         Assert.Empty(result.Value.Blocks.OfType<HeadingBlock>());
         Assert.Empty(result.Value.Blocks.OfType<TableBlock>());
         Assert.Empty(result.Value.Blocks.OfType<UnorderedListBlock>());
-        LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
+        LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
         Assert.StartsWith("command:", diagnostic.Feature);
         Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, diagnostic.Outcome);
         LatexToMarkdownResult omitted = LatexDocument.Parse(Wrap("Before " + command + " After")).ToMarkdownDocumentResult(new LatexToMarkdownOptions { PreserveUnsupportedAsSource = false });
         Assert.Empty(omitted.Value.Blocks.OfType<CodeBlock>());
         Assert.Equal(2, omitted.Value.Blocks.OfType<ParagraphBlock>().Count());
-        Assert.Contains(omitted.Report.Diagnostics, static item => item.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        Assert.Contains(omitted.Report.NativeDiagnostics, static item => item.Outcome == LatexMarkdownConversionOutcome.Omitted);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public sealed class LatexForwardOwnerTests {
         LatexToMarkdownResult list = LatexDocument.Parse(Wrap("\\begin{itemize}\\item Before \\unknown{\\item Hidden} After\\end{itemize}")).ToMarkdownDocumentResult();
         Assert.Single(Assert.Single(list.Value.Blocks.OfType<UnorderedListBlock>()).Items);
         Assert.Contains("\\unknown{\\item Hidden}", list.Value.ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains(list.Report.Diagnostics, static item => item.Feature == "command:unknown");
+        Assert.Contains(list.Report.NativeDiagnostics, static item => item.Feature == "command:unknown");
         MarkdownDocument figure = LatexDocument.Parse(Wrap("\\begin{figure}\\includegraphics{actual.png}\\unknown{\\caption{Hidden}}\\caption{Actual}\\end{figure}")).ToMarkdownDocument();
         Assert.Equal("Actual", Assert.Single(figure.Blocks.OfType<ImageBlock>()).Caption);
         Assert.Contains("\\unknown{\\caption{Hidden}}", Assert.Single(figure.Blocks.OfType<CodeBlock>()).Content, StringComparison.Ordinal);
@@ -155,6 +155,6 @@ public sealed class LatexForwardOwnerTests {
         LatexToMarkdownResult opaqueLabel = LatexDocument.Parse(Wrap("\\begin{theorem}\\unknown{A\\label{x}B}\\end{theorem}")).ToMarkdownDocumentResult();
         Assert.Null(Assert.Single(opaqueLabel.Value.Blocks.OfType<CalloutBlock>()).Attributes.ElementId);
         Assert.Contains("\\unknown{A\\label{x}B}", opaqueLabel.Value.ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains(opaqueLabel.Report.Diagnostics, static item => item.Feature == "command:unknown");
+        Assert.Contains(opaqueLabel.Report.NativeDiagnostics, static item => item.Feature == "command:unknown");
     }
 }

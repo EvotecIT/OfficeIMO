@@ -28,8 +28,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(calibration.Right.Y - calibration.Left.Y,
             StyledWordText(intrinsic, right.Text).Y - StyledWordText(intrinsic, left.Text).Y, 6);
         Assert.Equal(calibration.Document.Text, intrinsic.Text);
-        rendered.RequireNoLoss();
-        intrinsic.RequireNoLoss();
+        rendered.ThrowIfLoss();
+        intrinsic.ThrowIfLoss();
     }
 
     [Theory]
@@ -79,7 +79,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("https://example.com/word", left.LinkUri);
         Assert.Equal(left.LinkUri, right.LinkUri);
         Assert.Equal("A" + controlLeft.Text + controlRight.Text, StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed partial class HtmlRenderingTests {
         AssertStyledWordRun(controlLeft, left);
         AssertStyledWordRun(controlRight, right);
         Assert.Equal("steradianAfter", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed partial class HtmlRenderingTests {
         AssertStyledWordRun(StyledWordText(ordinary, "stera"), left);
         AssertStyledWordRun(StyledWordText(ordinary, "dian"), right);
         Assert.Equal("Asteradian", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
                 StyledWordText(intrinsic, "(b)").Y - StyledWordText(intrinsic, "steradian").Y, 6);
             Assert.Equal(StyledWordBox(rendered).Height, StyledWordBox(intrinsic).Height, 6);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -198,7 +198,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(text.Where(item => item.Color == OfficeColor.Blue), item => Assert.Equal(calibration.Right.FontDescriptor, item.FontDescriptor));
         Assert.Equal(OfficeColor.Blue, text[text.Length - 1].Color);
         Assert.Equal("steradian", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public sealed partial class HtmlRenderingTests {
         AssertStyledWordRun(calibration.Left, left);
         AssertStyledWordRun(calibration.Right, right);
         Assert.Equal(calibration.Document.Text, rendered.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -259,7 +259,7 @@ public sealed partial class HtmlRenderingTests {
         AssertStyledWordRun(left, suffixLeft);
         AssertStyledWordRun(right, suffixRight);
         Assert.Equal("AA-BBCC", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -312,7 +312,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(firstLine ? OfficeColor.Red : OfficeColor.Blue, broken.Color);
         Assert.Equal(OfficeColor.Blue, suffix.Color);
         Assert.Equal("Atypography", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -377,7 +377,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(StyledWordTexts(rendered), text => Assert.True(text.X >= origin - 0.001D
             && text.X + StyledWordAdvance(text) <= origin + width + 0.001D, measured));
         Assert.Equal("Atypography", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -404,7 +404,7 @@ public sealed partial class HtmlRenderingTests {
         AssertStyledWordRun(controlLeft, left);
         AssertStyledWordRun(controlRight, right);
         Assert.Equal("Atypography", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -432,7 +432,7 @@ public sealed partial class HtmlRenderingTests {
         AssertStyledWordRun(calibration.Left, left);
         AssertStyledWordRun(calibration.Right, right);
         Assert.Equal("AAAAAtypography", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -459,7 +459,7 @@ public sealed partial class HtmlRenderingTests {
             AssertStyledWordRun(StyledWordText(control, fragment.Text), fragment);
         }
         Assert.Equal("AAAAAtypography", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -495,7 +495,7 @@ public sealed partial class HtmlRenderingTests {
         AssertStyledWordRun(controlLeft, left);
         AssertStyledWordRun(controlRight, right);
         Assert.Equal(previous + "AAtypography", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -549,7 +549,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(expected.Height, actual.Height, 6);
         }
         Assert.Equal("Asteradian", StyledWordLogicalCharacters(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static (string Content, HtmlRenderText Left, HtmlRenderText Right, double Width) CalibrateStyledHyphenGlyph(bool uniformBlue = false) {

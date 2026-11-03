@@ -29,7 +29,7 @@ public sealed partial class EmailStorePstMutationTransaction {
             var writerOptions = new EmailStorePstWriterOptions(
                 _source!.DisplayName,
                 overwriteExisting: false,
-                failOnDataLoss: false,
+                failOnLoss: false,
                 maxFolderCount: _options.MaxFolderCount,
                 maxItemCount: _options.MaxItemCount,
                 maxNestedMessageDepth: _options.MaxNestedMessageDepth,
@@ -63,7 +63,7 @@ public sealed partial class EmailStorePstMutationTransaction {
                     }
                 }
                 writeReport = writer.Complete(cancellationToken);
-                _diagnostics.AddRange(writeReport.Diagnostics);
+                _diagnostics.AddRange(writeReport.NativeDiagnostics);
             }
 
             await FlushFileAsync(stagingPath, cancellationToken).ConfigureAwait(false);
@@ -103,7 +103,7 @@ public sealed partial class EmailStorePstMutationTransaction {
             _committed = true;
             writeReport = new EmailStorePstWriteReport(_sourcePath, writeReport.FolderCount,
                 writeReport.ItemCount, new FileInfo(_sourcePath).Length,
-                writeReport.Diagnostics, writeReport.DiagnosticsTruncated);
+                writeReport.NativeDiagnostics, writeReport.DiagnosticsTruncated);
             return CreateCommittedReport(committedBackupPath, plan, writeReport, verification,
                 folderMap, itemMap);
         } catch {

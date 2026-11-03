@@ -373,7 +373,7 @@ public partial class Html {
         Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("roundTripScore").ValueKind);
         Assert.Equal(JsonValueKind.Null, optionalJsonDocument.RootElement.GetProperty("resources").ValueKind);
 
-        WordHtmlImportOptions untrusted = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+        WordHtmlImportOptions untrusted = WordHtmlImportOptions.UntrustedDefaults;
         WordHtmlImportOptions trusted = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, untrusted.ImageProcessing);
         Assert.True(trusted.Clone().AllowDocumentStylesheetLinks);

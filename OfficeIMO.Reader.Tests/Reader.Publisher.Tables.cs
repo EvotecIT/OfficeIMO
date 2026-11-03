@@ -144,7 +144,7 @@ public sealed class ReaderPublisherTableTests {
         PdfDocumentConversionResult pdf = result.ToPdfDocumentResult(new PdfProjectionOptions { PagePolicy = PdfProjectionPagePolicy.ContinuousFlow });
         Assert.DoesNotContain("Bottom Right", PdfReadDocument.Open(pdf.ToBytes()).ExtractText());
         Assert.Contains(pdf.Warnings, warning => warning.Code == "PUB_READER_TABLE_ROWS_TRUNCATED" && warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => pdf.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => pdf.ThrowIfLoss());
     }
 
     [Fact]

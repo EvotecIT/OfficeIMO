@@ -171,7 +171,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (result.Succeeded) return result.Value;
 
         result.Value.Dispose();
-        throw new HtmlConversionException(result.Report.Diagnostics);
+        throw new HtmlConversionException(result.Report.NativeDiagnostics);
     }
 
     private static void ApplySheetVisibility(IElement section, ExcelSheet sheet) {

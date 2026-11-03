@@ -43,10 +43,10 @@ internal static partial class PdfConversionEvidence {
                 _ => OfficeDiagnosticSeverity.Warning
             }, warning.Message, warning.Source, warning.Converter, warning.LossKind)));
 
-    internal static OfficeConversionReport CreateReport(string source, IEnumerable<IOfficeConversionReport> stages,
+    internal static OfficeConversionReport CreateReport(string source, IEnumerable<OfficeConversionReport> stages,
         string? outputPath = null, TimeSpan elapsed = default, long itemsWritten = 0, string target = "Pdf") {
         var diagnostics = new List<OfficeDiagnostic>();
-        foreach (IOfficeConversionReport stage in stages) {
+        foreach (OfficeConversionReport stage in stages) {
             if (stage is OfficeConversionReport shared) {
                 diagnostics.AddRange(shared.Diagnostics);
             } else if (stage is PdfConversionReport pdf) {
@@ -60,9 +60,9 @@ internal static partial class PdfConversionEvidence {
                         warning.Source, warning.Converter, warning.LossKind));
                 }
             } else {
-                foreach (OfficeConversionFidelityDiagnostic diagnostic in stage.FidelityDiagnostics) {
+                foreach (OfficeDiagnostic diagnostic in stage.Diagnostics) {
                     diagnostics.Add(new OfficeDiagnostic(diagnostic.Code, OfficeDiagnosticSeverity.Warning,
-                        diagnostic.Message, diagnostic.Location, diagnostic.Source, diagnostic.LossKind));
+                        diagnostic.Message, diagnostic.Location, diagnostic.Format, diagnostic.LossKind));
                 }
             }
         }

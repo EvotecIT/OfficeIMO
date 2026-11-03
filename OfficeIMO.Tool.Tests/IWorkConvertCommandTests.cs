@@ -23,7 +23,7 @@ public sealed class IWorkConvertCommandTests {
         Assert.Equal("False", facts.GetProperty("partialEditableReconstruction").GetString());
         Assert.Equal("0", facts.GetProperty("omittedSourceUnitCount").GetString());
         Assert.Equal("0", facts.GetProperty("unassessedSourceUnitCount").GetString());
-        Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(),
+        Assert.Contains(evidence.GetProperty("diagnostics").EnumerateArray(),
             diagnostic => diagnostic.GetProperty("lossKind").GetString() == "Unassessed");
         Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "conversion-output-reopened");
         if (target == "docx") {
@@ -53,7 +53,7 @@ public sealed class IWorkConvertCommandTests {
         using JsonDocument json = JsonDocument.Parse(accepted.Output);
         JsonElement evidence = json.RootElement.GetProperty("conversionEvidence");
         Assert.Equal("True", evidence.GetProperty("facts").GetProperty("partialEditableReconstruction").GetString());
-        Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(), diagnostic =>
+        Assert.Contains(evidence.GetProperty("diagnostics").EnumerateArray(), diagnostic =>
             diagnostic.GetProperty("code").GetString() == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
             && diagnostic.GetProperty("lossKind").GetString() == "Omission");
         Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), diagnostic =>
@@ -83,7 +83,7 @@ public sealed class IWorkConvertCommandTests {
             diagnostic => diagnostic.GetProperty("code").GetString() == "conversion-output-reopened");
         JsonElement evidence = json.RootElement.GetProperty("conversionEvidence");
         Assert.Equal("True", evidence.GetProperty("facts").GetProperty("partialEditableReconstruction").GetString());
-        Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(), diagnostic =>
+        Assert.Contains(evidence.GetProperty("diagnostics").EnumerateArray(), diagnostic =>
             diagnostic.GetProperty("code").GetString() == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED"
             && diagnostic.GetProperty("lossKind").GetString() == "Omission");
     }
@@ -143,7 +143,7 @@ public sealed class IWorkConvertCommandTests {
         using JsonDocument json = JsonDocument.Parse(result.Output);
         JsonElement evidence = json.RootElement.GetProperty("conversionEvidence");
         Assert.Equal("VisualFallback", evidence.GetProperty("facts").GetProperty("projectionKind").GetString());
-        Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(),
+        Assert.Contains(evidence.GetProperty("diagnostics").EnumerateArray(),
             diagnostic => diagnostic.GetProperty("lossKind").GetString() == "Omission");
     }
 

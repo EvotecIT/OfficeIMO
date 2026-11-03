@@ -10,7 +10,7 @@ internal static partial class RtfPdfConverter {
             pdf.PageBreak();
         }
 
-        PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(document.GetParagraphFormatting(paragraph).Alignment);
+        global::OfficeIMO.OfficeAlignment align = RtfPdfMapping.ToPdfAlign(document.GetParagraphFormatting(paragraph).Alignment);
         List<PdfCore.PdfTextRun> pendingRuns = new List<PdfCore.PdfTextRun>();
         bool emitted = false;
         AppendListMarker(document, paragraph, pendingRuns, state, options);
@@ -76,7 +76,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void FlushParagraph(RtfDocument document, RtfParagraph source, PdfCore.PdfDocument pdf,
-        List<PdfCore.PdfTextRun> runs, PdfCore.PdfAlign align, PdfRenderState state) {
+        List<PdfCore.PdfTextRun> runs, global::OfficeIMO.OfficeAlignment align, PdfRenderState state) {
         List<PdfCore.PdfTextRun> snapshot = new List<PdfCore.PdfTextRun>(runs);
         EnsureParagraphLineBoxStrut(document, source, snapshot, state);
         runs.Clear();

@@ -196,7 +196,7 @@ internal static partial class PdfIncrementalUpdater {
         // budgets before allowing the generated signature reservation to grow.
         PdfLoadOptions preliminaryOptions = ResolvePersistedCompletionReadOptions(inputOptions, 0);
         Dictionary<int, PdfIndirectObject> preliminaryObjects =
-            inputOptions.Limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters
+            inputOptions.Limits.MaxObjectCharacters == new PdfReadLimits().MaxObjectCharacters
                 ? PdfSyntax.ParseObjectsWithSignatureReservation(preparedPdf, preliminaryOptions,
                     (bytes, start, end) => IsBoundedOversizedSignatureReservation(
                         bytes, start, end, inputOptions.Limits.MaxObjectCharacters))
@@ -210,7 +210,7 @@ internal static partial class PdfIncrementalUpdater {
             throw new ArgumentException("PDF contains multiple zero-filled external signature placeholders. Complete the intended PdfExternalSignaturePreparation instead.", nameof(preparedPdf));
         }
         int maximumContentsHexLength = PdfExternalSignatureOptions.MaximumReservedSignatureContentsBytes * 2;
-        if (inputOptions.Limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters &&
+        if (inputOptions.Limits.MaxObjectCharacters == new PdfReadLimits().MaxObjectCharacters &&
             contentsHexLength > maximumContentsHexLength) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters,
                 (long)inputOptions.Limits.MaxObjectCharacters + maximumContentsHexLength, signatureObjectLength);
@@ -304,7 +304,7 @@ internal static partial class PdfIncrementalUpdater {
         int maximumObjects = limits.MaxIndirectObjects > int.MaxValue - 64
             ? int.MaxValue
             : limits.MaxIndirectObjects + 64;
-        int generatedObjectCharacters = limits.MaxObjectCharacters == PdfReadLimits.Default.MaxObjectCharacters
+        int generatedObjectCharacters = limits.MaxObjectCharacters == new PdfReadLimits().MaxObjectCharacters
             ? signatureObjectLength
             : 0;
         var growth = new PdfGeneratedOutputGrowth(

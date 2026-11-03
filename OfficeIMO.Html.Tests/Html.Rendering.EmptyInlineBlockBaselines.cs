@@ -17,7 +17,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
 
         Assert.Equal(120D, Shape(rendered, "span#fill").Y, 6);
         Assert.Equal(360D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -36,7 +36,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         Assert.Equal(240D + StrutDescent(options.Fonts, 20D), Shape(rendered, "span#second").Y, 6);
         Assert.Equal(480D + StrutDescent(options.Fonts, 20D) + StrutDescent(options.Fonts, 100D),
             Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -53,7 +53,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
         Assert.Single(rendered.Pages.SelectMany(page => Enumerate(page.Scene)).OfType<HtmlRenderNamedDestination>(),
             destination => destination.Name == "anchor");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -85,7 +85,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
             + "</span><span id='fill' style='display:inline-block;width:40px;height:240px;background:lime'></span></div>" + Following), options);
 
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
 
         Assert.Equal(expectedTop, Shape(rendered, "span#fill").Y, 6);
         Assert.Equal(expectedTop + 240D + StrutDescent(options.Fonts, lineHeight), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -124,7 +124,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
 
         Assert.Equal(240D, Shape(rendered, "span#fill").Height, 6);
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         HtmlRenderDocument rendered = Render(html, options);
 
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -150,7 +150,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         HtmlRenderDocument rendered = Render(html, options);
 
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "span#second").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -192,7 +192,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         Assert.Equal(240D, Shape(rendered, "div#fill").Height, 6);
         Assert.Equal(0D, Shape(rendered, "div#fill").Y, 6);
         Assert.Equal(240D + (alignment == "baseline" ? descent : 0D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
 
         Assert.Equal(0D, Shape(rendered, "span#first").Y, 6);
         Assert.Equal(240D + descent, Shape(rendered, "span#second").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -235,7 +235,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         Assert.Equal(240D, Shape(result.RenderResult!.Document, "span#fill").Height, 6);
         Assert.Equal(240D + descent, Shape(result.RenderResult.Document, "div#following").Y, 6);
         Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(result.Document.ToBytes(), 0, 4));
-        result.RenderResult.Document.RequireNoLoss();
+        result.RenderResult.Document.ThrowIfLoss();
     }
 
     private const string Following = "<div id='following' style='height:10px;background:blue'></div>";

@@ -1,14 +1,14 @@
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
-    private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) SerializeEditableConversion(IOfficeConversionReport report,
+    private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) SerializeEditableConversion(OfficeConversionReport report,
         Action<Stream> save, long maximumOutputBytes, CancellationToken token) => SerializeReportedConversion(report, () => {
             using var output = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
             save(output);
             return output.ToArray();
         }, token);
 
-    private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) SerializeReportedConversion(IOfficeConversionReport report,
+    private static (byte[] Bytes, OfficeWorkflowConversionEvidence Evidence) SerializeReportedConversion(OfficeConversionReport report,
         Func<byte[]> serialize, CancellationToken token) {
         var evidence = new OfficeWorkflowConversionEvidence(report);
         try {

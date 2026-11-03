@@ -10,7 +10,7 @@ using OfficeIMO.Pdf;
 LatexDocument document = LatexDocument.Load("article.tex");
 PdfSaveResult result = document.SaveAsPdf("article.pdf");
 
-result.Report.RequireNoLoss(); // optional strict conversion gate
+result.Report.ThrowIfLoss(); // optional strict conversion gate
 result.Pipeline.RequireSuccess(); // exact output pipeline gate
 ```
 

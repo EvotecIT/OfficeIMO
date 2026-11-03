@@ -257,7 +257,7 @@ internal sealed class HtmlLayoutScenario {
         if (expectedPages.HasValue && rendered.Pages.Count != expectedPages.Value) {
             throw new InvalidOperationException($"{Name} produced {rendered.Pages.Count} pages; expected {expectedPages.Value}.");
         }
-        if (Name == "StaticStandards") rendered.RequireNoLoss();
+        if (Name == "StaticStandards") rendered.ThrowIfLoss();
         return renderedText.Length;
     }
 

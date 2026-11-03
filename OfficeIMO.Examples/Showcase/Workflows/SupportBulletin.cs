@@ -6,8 +6,8 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class SupportBulletin {
     internal static void Create(string folder) {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Support bulletin: delayed request notifications";
-        document.Info.Author = "OfficeIMO";
+        document.Properties.Title = "Support bulletin: delayed request notifications";
+        document.Properties.Author = "OfficeIMO";
         int navy = document.AddColor(23, 54, 93), fill = document.AddColor(232, 238, 248);
         Heading("Delayed request notifications", 22);
         document.AddParagraph("SUPPORT BULLETIN / SB-014 / ILLUSTRATIVE SERVICE SCENARIO");

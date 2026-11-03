@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == "markdown-to-word-warning" &&
                 diagnostic.Message.Contains("RemoteImageResolver", StringComparison.Ordinal));
-            Assert.Throws<WordMarkdownConversionException>(() => result.RequireNoLoss());
+            Assert.Throws<WordMarkdownConversionException>(() => result.ThrowIfLoss());
         }
 
         [Fact]

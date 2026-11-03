@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("TITLE CENTRE", centre.Text);
         if (left) Assert.Equal(37.5D, PageMarginTypographyText(page, side + "-left").Width, 6);
         if (right) Assert.Equal(37.5D, PageMarginTypographyText(page, side + "-right").Width, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -46,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(page.Width - page.Margins.Right, right.X + right.Width, 6);
         Assert.Equal(leftText, left.Text);
         Assert.Equal(rightText, right.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(lines.Length > 1);
         Assert.Equal(PageMarginTypographyCompact(centreText),
             PageMarginTypographyCompact(string.Concat(lines.Select(line => line.Text))));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -82,7 +82,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(leftWidth, PageMarginTypographyText(page, "top-left").Width, 6);
         Assert.DoesNotContain(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(),
             text => text.Source == "@page @top-center");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(75D, PageMarginTypographyText(page, "top-left").Width, 6);
         Assert.Equal(150D, PageMarginTypographyText(page, "top-center").Width, 6);
         Assert.Equal(75D, PageMarginTypographyText(page, "top-right").Width, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(900D / 7D, centre.Width, 6);
         OfficeDrawingText[] lines = MarginSizingPaintedText(page, centre);
         Assert.Equal(new[] { "A   B", "C" }, lines.Select(line => line.Text).ToArray());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(40D, PageMarginTypographyText(rendered.Pages[0], "top-center").Width, 6);
         Assert.Equal(60D, PageMarginTypographyText(rendered.Pages[9], "top-center").Width, 6);
         Assert.Equal("10", PageMarginTypographyText(rendered.Pages[9], "top-center").Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(150D, PageMarginTypographyText(rendered.Pages[0], "top-left").Width, 6);
         Assert.Equal(1500D / 11D, PageMarginTypographyText(rendered.Pages[1], "top-center").Width, 6);
         Assert.Equal("TITLE", PageMarginTypographyText(rendered.Pages[1], "top-center").Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, text.Font.Size, 6);
         Assert.InRange(text.X + text.Width, running.X, running.X + running.Width);
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static OfficeDrawingText[] MarginSizingPaintedText(HtmlRenderPage page, HtmlRenderText margin) =>

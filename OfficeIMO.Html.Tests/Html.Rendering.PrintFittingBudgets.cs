@@ -35,7 +35,7 @@ public sealed class HtmlPrintFittingBudgetTests {
         var source = HtmlConversionDocument.Parse(DecoratedRoot(decoratingTag));
         var document = source.CreateSourceDocumentForConversion();
         HtmlRenderOptions options = PrintFitOptions();
-        var styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, HtmlConversionLimits.CreateUntrustedProfile());
+        var styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, HtmlConversionLimits.UntrustedDefaults);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -52,7 +52,7 @@ public sealed class HtmlPrintFittingBudgetTests {
         var source = HtmlConversionDocument.Parse(DecoratedRoot(decoratingTag));
         var document = source.CreateSourceDocumentForConversion();
         HtmlRenderOptions options = PrintFitOptions();
-        var styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, HtmlConversionLimits.CreateUntrustedProfile());
+        var styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, HtmlConversionLimits.UntrustedDefaults);
         var budget = new HtmlRenderOperationBudget();
         budget.ChargeLayoutOperations(99L, options.MaxLayoutOperations, "previous render work");
 

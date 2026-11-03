@@ -24,7 +24,7 @@ public sealed class ProjectCustomFieldCalculationTests {
         Assert.Equal(revision, document.Revision);
         document.ApplyCustomFields(result);
         // The controlled producer fixture contains opaque lookup/UI metadata; adding absent zero values triggers the structural retention warning.
-        using var copy = document.Clone(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        using var copy = document.Clone(new ProjectSaveOptions { AllowLoss = true });
         Assert.Equal("DESIGN:" + revisedNumber.Replace('.', ','), copy.Tasks.GetByUid(1).CustomFields.Single(f => f.FieldId == "188743731").Value);
         var reopened = copy.CalculateCustomFields(options); reopened.Report.ThrowIfErrors();
         Assert.Equal(result.Values.Select(v => (v.EntityKind, v.EntityUid, v.FieldId, v.Value)), reopened.Values.Select(v => (v.EntityKind, v.EntityUid, v.FieldId, v.Value)));

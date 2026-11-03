@@ -21,13 +21,13 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a heading with its authored hierarchy level, from 1 through 9.</summary>
-    internal PdfDocument Heading(int level, string text, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    internal PdfDocument Heading(int level, string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         AddBlock(new HeadingBlock(level, text, align, color, linkUri, style, linkContents, linkDestinationName));
         return this;
     }
 
     // Adapters retain their run formatting without putting note markers in the outline title.
-    internal PdfDocument Heading(int level, string title, System.Action<PdfParagraphBuilder> build, PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfHeadingStyle? style) {
+    internal PdfDocument Heading(int level, string title, System.Action<PdfParagraphBuilder> build, OfficeAlignment align, global::OfficeIMO.OfficeColor? color, PdfHeadingStyle? style) {
         Guard.NotNull(build, nameof(build));
         var builder = new PdfParagraphBuilder(align, color);
         build(builder);
@@ -36,7 +36,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a document title above the heading hierarchy, sized from the theme title scale.</summary>
-    internal PdfDocument Title(string text, PdfAlign align = PdfAlign.Left, OfficeColor? color = null, PdfHeadingStyle? style = null) {
+    internal PdfDocument Title(string text, OfficeAlignment align = OfficeAlignment.Left, OfficeColor? color = null, PdfHeadingStyle? style = null) {
         OfficeTheme theme = _options.EffectiveTheme;
         PdfHeadingStyle resolved = style ?? new PdfHeadingStyle {
             FontSize = theme.TypeScale.Title,
@@ -52,7 +52,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a subtitle paragraph in the theme accent colour at the third heading size.</summary>
-    internal PdfDocument Subtitle(string text, PdfAlign align = PdfAlign.Left, OfficeColor? color = null) {
+    internal PdfDocument Subtitle(string text, OfficeAlignment align = OfficeAlignment.Left, OfficeColor? color = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         OfficeTheme theme = _options.EffectiveTheme;
         OfficeColor resolved = color ?? theme.Palette.Accent1;
@@ -64,15 +64,15 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a level-1 heading.</summary>
-    internal PdfDocument H1(string text, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    internal PdfDocument H1(string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         return Heading(1, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
     /// <summary>Adds a level-2 heading.</summary>
-    internal PdfDocument H2(string text, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    internal PdfDocument H2(string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         return Heading(2, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
     /// <summary>Adds a level-3 heading.</summary>
-    internal PdfDocument H3(string text, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    internal PdfDocument H3(string text, OfficeAlignment align = OfficeAlignment.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         return Heading(3, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
 

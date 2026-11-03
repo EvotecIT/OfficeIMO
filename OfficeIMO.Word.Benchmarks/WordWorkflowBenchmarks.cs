@@ -31,7 +31,7 @@ public class WordWorkflowBenchmarks {
         _mergeValues = new Dictionary<string, string>(ItemCount, StringComparer.OrdinalIgnoreCase);
 
         using (WordDocument fields = WordDocument.Create()) {
-            fields.BuiltinDocumentProperties.Creator = "Benchmark";
+            fields.Properties.Creator = "Benchmark";
             for (int index = 0; index < ItemCount; index++) fields.AddParagraph("Author: ").AddField(WordFieldType.Author);
             _fieldDocument = fields.ToBytes();
         }

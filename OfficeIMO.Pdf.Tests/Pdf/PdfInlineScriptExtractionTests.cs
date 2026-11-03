@@ -34,7 +34,7 @@ public sealed class PdfInlineScriptExtractionTests {
         PdfReadPage page = CreateTransformedCanvas(2D, 3D, 30D, canvas => {
             canvas.ActualText("mass", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), paint => paint
                 .Text("m", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(43.2D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), font: PdfStandardFont.Courier)
-                .Text("ass", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(43.2D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), align: PdfAlign.Right, font: PdfStandardFont.Courier));
+                .Text("ass", global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(43.2D), global::OfficeIMO.OfficeLength.Points(40D), fontSize: global::OfficeIMO.OfficeLength.Points(18D), align: OfficeAlignment.Right, font: PdfStandardFont.Courier));
             AddMassScript(canvas);
         });
         PdfTextSpan mass = Assert.Single(page.GetTextSpans(), span => span.Text == "mass");

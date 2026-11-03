@@ -84,7 +84,7 @@ public sealed class PdfNestedColumnBalancingTests {
 
     [Fact]
     public void Columns_NestedPanelMeasurementUsesItsMaximumWidthAndHorizontalPadding() {
-        var style = PanelStyle(); style.MaxWidth = global::OfficeIMO.OfficeLength.Points(100); style.PaddingX = global::OfficeIMO.OfficeLength.Points(10); style.Align = PdfAlign.Center;
+        var style = PanelStyle(); style.MaxWidth = global::OfficeIMO.OfficeLength.Points(100); style.PaddingX = global::OfficeIMO.OfficeLength.Points(10); style.Align = OfficeAlignment.Center;
         byte[] bytes = PdfDocument.Create(Options()).Columns(columns => columns.Panel(panel => panel.Paragraph(p =>
             p.Text(string.Join(" ", Enumerable.Range(1, 21).Select(index => $"Marker{index:D3}"))), style: ParagraphStyle()), style),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = true }).ToBytes();

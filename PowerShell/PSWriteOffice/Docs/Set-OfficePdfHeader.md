@@ -11,12 +11,12 @@ Sets a simple or fully composed running PDF header.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Set-OfficePdfHeader [[-Text] <string>] [-Compose <scriptblock>] [-Align <PdfAlign>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfHeader [[-Text] <string>] [-Compose <scriptblock>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Set-OfficePdfHeader [[-Text] <string>] -Document <PdfDocument> [-Compose <scriptblock>] [-Align <PdfAlign>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfHeader [[-Text] <string>] -Document <PdfDocument> [-Compose <scriptblock>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -61,10 +61,10 @@ The native composer owns rich runs, page tokens, zones, images, shapes, and page
 Header alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

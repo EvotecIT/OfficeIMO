@@ -108,12 +108,12 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
     [InlineData("characters")]
     public void Page_text_shares_creation_budgets_before_mutating_output(string budget) {
         var document = IWorkPagesDocument.Create(); document.AddParagraph("B"); document.SetHeader("H"); document.SetFooter("F");
-        var limits = new IWorkPagesWriteOptions { MaximumParagraphs = 3, MaximumTextRuns = 3, MaximumTextCharacters = 4 };
+        var limits = new IWorkPagesWriteOptions { MaxParagraphs = 3, MaxTextRuns = 3, MaxTextCharacters = 4 };
         byte[] expected = document.SaveBytes(limits);
         switch (budget) {
-            case "paragraphs": limits.MaximumParagraphs = 2; break;
-            case "runs": limits.MaximumTextRuns = 2; break;
-            case "characters": limits.MaximumTextCharacters = 3; break;
+            case "paragraphs": limits.MaxParagraphs = 2; break;
+            case "runs": limits.MaxTextRuns = 2; break;
+            case "characters": limits.MaxTextCharacters = 3; break;
         }
         using var output = new MemoryStream(new byte[] { 9, 8, 7 });
         Assert.Throws<InvalidDataException>(() => document.Save(output, limits)); Assert.Equal(new byte[] { 9, 8, 7 }, output.ToArray());

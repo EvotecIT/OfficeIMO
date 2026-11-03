@@ -116,7 +116,7 @@ public partial class Html {
         using WordDocument document = result.RequireValue();
 
         Assert.Empty(document.Tables);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated &&
             diagnostic.Source == "role=table");
     }

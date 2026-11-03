@@ -158,5 +158,5 @@ internal sealed class CslQuotePunctuation {
         _html.Append(value);
     }
 
-    private static InvalidDataException Limit() => new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+    private static InvalidDataException Limit() => new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
 }

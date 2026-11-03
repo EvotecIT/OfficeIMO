@@ -446,20 +446,20 @@ internal static partial class HtmlPdfRenderedConverter {
                     detail: diagnostic.Location))));
         }
 
-        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.FailOnLoss
             && diagnostics.Any(static diagnostic =>
                 diagnostic.LossKind != OfficeConversionLossKind.None
                 || diagnostic.Severity == HtmlDiagnosticSeverity.Warning
                 || diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
             throw new HtmlConversionException(diagnostics);
         }
-        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss) {
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.FailOnLoss) {
             // Font providers can decline only when the PDF writer paints a run.
             // Qualify that stage before returning a strict model or image scene,
             // as well as before exposing bytes through the direct PDF routes.
             _ = pdf.SerializeBytes(cancellationToken);
         }
-        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss && conversionReport.HasLoss) {
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.FailOnLoss && conversionReport.HasLoss) {
             throw new HtmlConversionException(diagnostics.Concat(conversionReport.Warnings
                 .Where(static warning => warning.LossKind != OfficeConversionLossKind.None)
                 .Select(static warning => new HtmlDiagnostic(
@@ -924,10 +924,10 @@ internal static partial class HtmlPdfRenderedConverter {
             OfficeConversionLossKind.Omission));
     }
 
-    private static PdfCore.PdfAlign MapAlignment(OfficeTextAlignment alignment) {
-        if (alignment == OfficeTextAlignment.Center) return PdfCore.PdfAlign.Center;
-        if (alignment == OfficeTextAlignment.Right) return PdfCore.PdfAlign.Right;
-        if (alignment == OfficeTextAlignment.Justify) return PdfCore.PdfAlign.Justify;
-        return PdfCore.PdfAlign.Left;
+    private static global::OfficeIMO.OfficeAlignment MapAlignment(OfficeTextAlignment alignment) {
+        if (alignment == OfficeTextAlignment.Center) return global::OfficeIMO.OfficeAlignment.Center;
+        if (alignment == OfficeTextAlignment.Right) return global::OfficeIMO.OfficeAlignment.Right;
+        if (alignment == OfficeTextAlignment.Justify) return global::OfficeIMO.OfficeAlignment.Justify;
+        return global::OfficeIMO.OfficeAlignment.Left;
     }
 }

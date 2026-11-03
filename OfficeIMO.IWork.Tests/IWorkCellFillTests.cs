@@ -149,7 +149,7 @@ public sealed partial class IWorkBoundaryTests {
                 : new[] { style, FillStyle(31, FillColor(0, 0, 1)) },
             ambiguous: defect == "ambiguous-catalog", listType: defect == "wrong-catalog-type" ? 2 : 4);
         var source = IWorkSourceDocument.Open(package, new IWorkReadOptions {
-            MaximumTextStyleInheritanceDepth = defect == "depth" ? 1 : 128
+            MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128
         });
         using var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
@@ -166,11 +166,11 @@ public sealed partial class IWorkBoundaryTests {
         byte[][] styles = { FillStyle(30, FillColor(1, 0, 0)) };
         using var package = CellFillPackage(styles);
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadPages());
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadPages());
         package.Position = 0;
         using var moreEntries = CellFillPackage(styles, additionalEntry: true);
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(moreEntries,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadPages());
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadPages());
     }
 
     [Fact]

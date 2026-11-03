@@ -20,7 +20,7 @@ public sealed class EmailMimeProtectionTests {
         Assert.Equal(EmailArtifactSourceSelection.PreservedSource, write.SourceSelection);
         Assert.Equal(EmailConversionLossDisposition.None, write.LossDisposition);
         Assert.Equal(EmailAttachmentContentLifetime.NotAccessed, write.AttachmentContentLifetime);
-        Assert.Same(write, write.RequireNoLoss());
+        write.ThrowIfLoss();
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class EmailMimeProtectionTests {
         Assert.Equal(EmailArtifactSourceSelection.None, result.SourceSelection);
         Assert.Equal(EmailConversionLossDisposition.Blocked, result.LossDisposition);
         Assert.Contains(EmailArtifactDiagnosticCodes.ProtectedContentRewrite, result.DiagnosticCodes);
-        Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+        Assert.Throws<InvalidDataException>(() => result.ThrowIfLoss());
         Assert.Equal(0, destination.Length);
         Assert.Throws<InvalidDataException>(() => writer.ToBytes(document, EmailFileFormat.Eml));
     }
@@ -61,7 +61,7 @@ public sealed class EmailMimeProtectionTests {
         Assert.Equal(EmailArtifactSourceSelection.Regenerated, result.SourceSelection);
         Assert.Equal(EmailConversionLossDisposition.Accepted, result.LossDisposition);
         Assert.Equal(EmailAttachmentContentLifetime.OperationScoped, result.AttachmentContentLifetime);
-        Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+        Assert.Throws<InvalidDataException>(() => result.ThrowIfLoss());
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_PROTECTED_CONTENT_REWRITE" &&
             diagnostic.Severity == EmailDiagnosticSeverity.Warning);
     }

@@ -29,7 +29,7 @@ public partial class PdfDocumentVisualQualityTests {
                 strokeColor: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 strokeWidth: 2.5,
                 fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 179, 153),
-                align: PdfAlign.Center,
+                align: OfficeAlignment.Center,
                 spacingBefore: 4,
                 spacingAfter: 6)
             .ToBytes();

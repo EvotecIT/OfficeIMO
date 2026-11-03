@@ -47,7 +47,7 @@ public sealed class AddOfficePdfPageOverlayCommand : PSWriteOffice.Cmdlets.Offic
 
     /// <summary>Horizontal placement inside the target page or rectangle.</summary>
     [Parameter]
-    public PdfAlign HorizontalAlign { get; set; } = PdfAlign.Center;
+    public OfficeAlignment HorizontalAlign { get; set; } = OfficeAlignment.Center;
 
     /// <summary>Vertical placement inside the target page or rectangle.</summary>
     [Parameter]

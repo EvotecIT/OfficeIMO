@@ -125,7 +125,7 @@ public sealed class PdfInvoiceComponent : IPdfComponent {
         content.Paragraph(paragraph => paragraph
             .Bold("Subtotal: ").Text(Money(Subtotal))
             .LineBreak().Bold("Tax: ").Text(Money(Tax))
-            .LineBreak().Bold("Total: ").Text(Money(Total)), PdfAlign.Right);
+            .LineBreak().Bold("Total: ").Text(Money(Total)), OfficeAlignment.Right);
     }
 
     private string Money(decimal value) => value.ToString("N2", _culture) + " " + CurrencyCode;

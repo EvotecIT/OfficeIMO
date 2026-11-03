@@ -117,7 +117,7 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         Assert.Empty(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues);
         package.Position = 0;
-        IWorkSourceDocument limited = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTableCatalogEntries = 1 });
+        IWorkSourceDocument limited = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 });
         Assert.Contains("catalog limit", Assert.Throws<InvalidDataException>(() => limited.ReadNumbers()).Message);
     }
 
@@ -125,7 +125,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Format_payload_field_limit_remains_fatal() {
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers,
             Message(NumericFormat(258, 0), Enumerable.Range(6, 8).Select(field => VarintField(field, 0)).SelectMany(bytes => bytes).ToArray()));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -195,7 +195,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Empty_numeric_formats_consume_the_materialized_cell_budget(uint decimals) {
         using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, decimals), columns: 2);
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     [Fact]

@@ -8,9 +8,9 @@ namespace OfficeIMO.Examples.Pdf {
 
             var options = new PdfCreateOptions {
                 HeaderFormat = "OfficeIMO.Pdf row columns",
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 ShowHeader = true,
-                FooterAlign = PdfAlign.Right,
+                FooterAlign = OfficeAlignment.Right,
                 ShowPageNumbers = true
             };
 
@@ -67,7 +67,7 @@ namespace OfficeIMO.Examples.Pdf {
                                         .Text("columns keep long notes readable without placing them over neighboring content.")));
                             });
                             content.Column(column => {
-                                column.Item().Paragraph(p => p.Text("End of row column sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
+                                column.Item().Paragraph(p => p.Text("End of row column sample."), OfficeAlignment.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                             });
                         });
                     });
@@ -88,7 +88,7 @@ namespace OfficeIMO.Examples.Pdf {
             style.RightAlignNumeric = false;
             style.SpacingBefore = OfficeLength.Points(7);
             style.SpacingAfter = OfficeLength.Points(7);
-            style.Alignments = new System.Collections.Generic.List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right };
+            style.Alignments = new System.Collections.Generic.List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right };
             style.ColumnWidthWeights = new System.Collections.Generic.List<double> { 1.2, 0.8 };
             return style;
         }

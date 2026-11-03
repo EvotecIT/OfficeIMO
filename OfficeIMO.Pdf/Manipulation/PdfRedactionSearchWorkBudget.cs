@@ -12,9 +12,13 @@ internal sealed class PdfRedactionSearchWorkBudget {
 
     internal PdfRedactionSearchWorkBudget(string phase) => _phase = phase;
 
+    internal bool IsExceeded { get; private set; }
+
     internal void Charge(long work) {
-        if (work < 0 || work > _remaining || _elapsed.Elapsed >= MaximumElapsed)
+        if (work < 0 || work > _remaining || _elapsed.Elapsed >= MaximumElapsed) {
+            IsExceeded = true;
             throw new InvalidDataException("PDF redaction " + _phase + " exceeds its logical text work limit.");
+        }
         _remaining -= work;
     }
 

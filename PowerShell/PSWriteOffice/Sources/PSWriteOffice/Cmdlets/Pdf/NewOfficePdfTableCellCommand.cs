@@ -79,7 +79,7 @@ public sealed class NewOfficePdfTableCellCommand : PSCmdlet
 
     /// <summary>Horizontal cell alignment.</summary>
     [Parameter]
-    public PdfColumnAlign? Align { get; set; }
+    public OfficeAlignment? Align { get; set; }
 
     /// <summary>Vertical cell alignment.</summary>
     [Parameter]

@@ -220,7 +220,7 @@ internal static partial class PdfWriter {
         public global::OfficeIMO.OfficeColor? BorderColor { get; set; }
         public double BorderWidth { get; set; }
         public global::OfficeIMO.OfficeColor? FillColor { get; set; }
-        public PdfAlign TextAlign { get; set; }
+        public OfficeAlignment TextAlign { get; set; }
         public double Padding { get; set; }
         public double? LineHeight { get; set; }
         public int ObjectId { get; set; }

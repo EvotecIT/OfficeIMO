@@ -29,7 +29,7 @@ internal sealed class IWorkTableCellLayoutReader {
                     layout = cached.Layout; complete = cached.Complete;
                 } else {
                     var chain = IWorkStyleReader.ReadChain(source.Index, record!.Identifier,
-                        budget.MaximumTextStyleInheritanceDepth, type => type == 6004,
+                        budget.MaxTextStyleInheritanceDepth, type => type == 6004,
                         tolerateStyleDepth: true, references, ref complete);
                     IWorkCellPadding? padding = null;
                     IWorkCellVerticalAlignment? vertical = null;

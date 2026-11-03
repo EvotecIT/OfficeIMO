@@ -550,7 +550,7 @@ public static partial class HtmlEditableLayoutProjector {
                 }
             }
         }
-        IReadOnlyList<HtmlDiagnostic> projectionDiagnostics = rendered.Diagnostics
+        IReadOnlyList<HtmlDiagnostic> projectionDiagnostics = rendered.NativeDiagnostics
             .Where(renderDiagnostic => !document.Diagnostics.Any(sourceDiagnostic =>
                 DiagnosticsAreEquivalent(sourceDiagnostic, renderDiagnostic)))
             .Concat(diagnostics.Diagnostics)

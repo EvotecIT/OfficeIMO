@@ -10,11 +10,11 @@ public sealed partial class OfficeWorkflowRunner {
             MaxOutputBytes = Math.Min(maximumOutputBytes, 128L * 1024 * 1024)
         }, token);
         bool hasLoss = false;
-        foreach (OfficeConversionFidelityDiagnostic finding in project.ImportDiagnostics.Concat(result.Report.FidelityDiagnostics)) {
+        foreach (OfficeDiagnostic finding in project.ImportDiagnostics.Concat(result.Report.Diagnostics)) {
             token.ThrowIfCancellationRequested();
             hasLoss |= finding.LossKind != OfficeConversionLossKind.None;
             var details = new Dictionary<string, string> {
-                ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString(),
+                ["source"] = finding.Format ?? string.Empty, ["lossKind"] = finding.LossKind.ToString(),
                 ["importLossAcknowledged"] = project.ImportLossAcknowledged.ToString()
             };
             if (finding.Location != null) details["location"] = finding.Location;

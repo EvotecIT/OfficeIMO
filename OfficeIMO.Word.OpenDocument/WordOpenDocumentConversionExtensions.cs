@@ -193,7 +193,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             HasOdtDefaultNoteBodyFormatting = HasOdtDefaultNoteBodyFormatting(source),
             HasOdtDefaultNoteReferenceFormatting = HasOdtDefaultNoteReferenceFormatting(source)
         };
-        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Properties.Language);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = CountUnsupportedWritingModes(source);
         OdtPageLayout sourcePageLayout = source.PageLayout;

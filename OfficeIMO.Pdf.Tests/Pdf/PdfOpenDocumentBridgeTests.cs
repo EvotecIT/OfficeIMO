@@ -42,7 +42,7 @@ public sealed class PdfOpenDocumentBridgeTests {
         Assert.Contains(result.Report.PdfReport.Warnings, warning =>
             warning.Code == "pdf-form-widget-placeholder" &&
             warning.Severity == PdfCore.PdfConversionWarningSeverity.Warning);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class PdfOpenDocumentBridgeTests {
         Assert.NotEmpty(result.Value.Sheets);
         Assert.True(result.Report.PdfReport.HasOmittedPageContent);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Equal("PK", System.Text.Encoding.ASCII.GetString(result.Value.ToBytes(), 0, 2));
     }
 

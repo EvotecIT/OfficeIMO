@@ -72,7 +72,7 @@ namespace OfficeIMO.Visio.Fluent {
         public VisioFluentShape TransformTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) { _s.TransformTextCase(textCase, culture); return this; }
 
         /// <summary>Sets whole-shape text alignment.</summary>
-        public VisioFluentShape TextAlignment(VisioTextHorizontalAlignment horizontal, VisioTextVerticalAlignment? vertical = null) {
+        public VisioFluentShape TextAlignment(OfficeAlignment horizontal, VisioTextVerticalAlignment? vertical = null) {
             VisioTextStyle style = EnsureTextStyle();
             style.HorizontalAlignment = horizontal;
             if (vertical.HasValue) {

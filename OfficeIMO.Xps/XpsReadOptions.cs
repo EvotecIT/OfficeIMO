@@ -1,26 +1,33 @@
 namespace OfficeIMO.Xps;
 
-/// <summary>Resource limits applied before materializing package parts and page XML.</summary>
+/// <summary>Options applied when loading XPS and OpenXPS packages. The defaults are bounded for untrusted input.</summary>
 public sealed class XpsReadOptions {
+    /// <summary>Resource budgets applied before materializing package parts and page XML.</summary>
+    public XpsReadLimits Limits { get; set; } = new XpsReadLimits();
+    /// <summary>Returns an independent, validated copy of these options.</summary>
+    public XpsReadOptions Clone() => new XpsReadOptions { Limits = SnapshotLimits() };
+    internal XpsReadLimits SnapshotLimits() => (Limits ?? throw new ArgumentNullException(nameof(Limits))).Snapshot();
+}
+
+/// <summary>Resource budgets applied while reading an XPS package. Every limit must be positive.</summary>
+public sealed class XpsReadLimits {
     /// <summary>Maximum compressed input bytes (default 128 MiB).</summary>
-    public int MaximumInputBytes { get; set; } = 128 * 1024 * 1024;
+    public int MaxInputBytes { get; set; } = 128 * 1024 * 1024;
     /// <summary>Maximum expanded bytes across all parts (default 256 MiB).</summary>
-    public long MaximumExpandedBytes { get; set; } = 256L * 1024 * 1024;
+    public long MaxExpandedBytes { get; set; } = 256L * 1024 * 1024;
     /// <summary>Maximum expanded bytes for one part (default 32 MiB).</summary>
-    public int MaximumPartBytes { get; set; } = 32 * 1024 * 1024;
-    /// <summary>Maximum ZIP entries.</summary>
-    public int MaximumParts { get; set; } = 10000;
-    /// <summary>Maximum page references across the document sequence.</summary>
-    public int MaximumPages { get; set; } = 5000;
-    /// <summary>Maximum XML element nesting depth.</summary>
-    public int MaximumXmlDepth { get; set; } = 64;
-    /// <summary>Returns an independent, validated copy of these package and XML limits.</summary>
-    public XpsReadOptions Clone() => Snapshot();
-    internal XpsReadOptions Snapshot() {
-        if (MaximumInputBytes <= 0 || MaximumExpandedBytes <= 0 || MaximumPartBytes <= 0 ||
-            MaximumParts <= 0 || MaximumPages <= 0 || MaximumXmlDepth <= 0)
-            throw new ArgumentOutOfRangeException(nameof(XpsReadOptions), "All XPS limits must be positive.");
-        return (XpsReadOptions)MemberwiseClone();
+    public int MaxPartBytes { get; set; } = 32 * 1024 * 1024;
+    /// <summary>Maximum ZIP entries (default 10,000).</summary>
+    public int MaxParts { get; set; } = 10000;
+    /// <summary>Maximum page references across the document sequence (default 5,000).</summary>
+    public int MaxPages { get; set; } = 5000;
+    /// <summary>Maximum XML element nesting depth (default 64).</summary>
+    public int MaxDepth { get; set; } = 64;
+    internal XpsReadLimits Snapshot() {
+        if (MaxInputBytes <= 0 || MaxExpandedBytes <= 0 || MaxPartBytes <= 0 ||
+            MaxParts <= 0 || MaxPages <= 0 || MaxDepth <= 0)
+            throw new ArgumentOutOfRangeException(nameof(XpsReadLimits), "All XPS limits must be positive.");
+        return (XpsReadLimits)MemberwiseClone();
     }
 }
 

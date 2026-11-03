@@ -883,6 +883,105 @@
       "note": "Reviewed documentation roots, retained public signatures and actual cross-assembly callers; implementation access uses existing friends."
     },
     {
+      "old": "OfficeIMO.IOfficeConversionReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "replacement": "Format reports derive from OfficeConversionReport. Use Diagnostics, HasLoss and ThrowIfLoss() on any report; typed findings moved to NativeDiagnostics where the report had its own Diagnostics list.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IOfficeConversionReport.RequireNoLoss() / format report RequireNoLoss()",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.OfficeConversionReport.ThrowIfLoss()",
+      "replacement": "ThrowIfLoss() throws OfficeConversionException or a derived format exception (HtmlConversionException, RtfConversionLossException, OdfConversionLossException, BibliographyConversionLossException) that carries the report.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IOfficeConversionReport.FidelityDiagnostics",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.OfficeConversionReport.Diagnostics",
+      "replacement": "Diagnostics returns OfficeDiagnostic entries (Code, Severity, Message, Location, Format, LossKind).",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OfficeConversionFidelityDiagnostic",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeDiagnostic",
+      "replacement": "Source is now Format; Severity is explicit.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OfficeConversionResult<TValue, TReport> / OfficeIMO.IOfficeConversionResult<TValue, TReport>",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.OfficeConversionResult<T>",
+      "replacement": "Format results derive from OfficeConversionResult<T> and narrow Report to their typed report; OfficeConversionResult<T, TReport> stays only as that thin typed subclass. IOfficeConversionResult<TValue, TReport> is removed. Use Value, Report, HasLoss and ThrowIfLoss().",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireNoLoss() (returned Value)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.OfficeConversionResult<T>.ThrowIfLoss() then Value",
+      "replacement": "var result = Convert(...); result.ThrowIfLoss(); var value = result.Value;",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireValue() / Succeeded",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use Value. Format results with a real failed state (CHM, RTF, HTML) keep their own Succeeded and RequireValue.",
+      "category": "contract",
+      "reason": "Conversions throw on failure, so the common result has no failed state.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OfficeConversionException (sealed, IOfficeConversionReport Report)",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.OfficeConversionException (OfficeConversionReport Report)",
+      "replacement": "Format exceptions derive from it and expose their typed report.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OfficeOutputResult<TReport>.RequireNoLoss() (returned the result)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.OfficeOutputResult<TReport>.ThrowIfLoss()",
+      "replacement": "ThrowIfLoss() returns void.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OfficeImageExportPolicy.RequireNoLoss",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.OfficeImageExportPolicy.FailOnLoss",
+      "category": "naming",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
       "old": "OfficeIMO.OfficeTableOptions.Name",
       "kind": "property",
       "action": "change",
@@ -892,13 +991,13 @@
       "category": "tables"
     },
     {
-      "old": "OfficeIMO.OfficeTableOptions.Name : string? (rendered as a visible PDF caption)",
       "kind": "property",
       "action": "change",
       "new": "OfficeIMO.OfficeTableOptions.Name : string? (native name); OfficeIMO.OfficeTableOptions.Caption : string? (visible caption)",
       "replacement": "Set Caption for visible caption text. Word adds a paragraph before the table and PDF renders it as the table caption; PowerPoint and Markdown throw NotSupportedException.",
       "reason": "Visible caption text is separate from the native table name.",
-      "category": "tables"
+      "category": "tables",
+      "old": "OfficeIMO.OfficeTableOptions.Name : string? (rendered as a visible PDF caption)"
     }
   ],
   "extraChanges": [

@@ -144,7 +144,7 @@ internal static class HtmlStaticBudgetWorker {
         if (expectedPages.HasValue && document.Pages.Count != expectedPages.Value) {
             throw new InvalidDataException($"{scenario.Id} rendered {document.Pages.Count} pages; expected {expectedPages.Value}.");
         }
-        if (document.Diagnostics.Any(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
+        if (document.NativeDiagnostics.Any(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
             throw new InvalidDataException(scenario.Id + " produced an error diagnostic.");
         }
         string text = string.Join(" ", document.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));

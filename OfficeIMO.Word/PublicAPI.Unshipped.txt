@@ -1,4 +1,6 @@
 #nullable enable
+*REMOVED*OfficeIMO.Word.Legacy.LegacyWordImportResult.RequireNoLoss() -> OfficeIMO.Word.WordDocument!
+OfficeIMO.Word.Legacy.LegacyWordImportResult.ThrowIfLoss() -> void
 OfficeIMO.Word.Legacy.LegacyWordRunContent.Color.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.Word.Legacy.LegacyWordRunContent.ColorHex.get -> string?
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.Color.get -> OfficeIMO.OfficeColor?
@@ -32,6 +34,9 @@ OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontFamily,
 OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<object?>! items, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Word.WordTable!
 *REMOVED*OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<object?>! items, OfficeIMO.Word.WordTableStyle style, bool includeHeader = true, OfficeIMO.Word.WordTableLayoutMode? layout = null) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordDocument.AppendDocument(OfficeIMO.Word.WordDocument! source, OfficeIMO.Word.WordDocumentMergeOptions? options) -> void
+*REMOVED*OfficeIMO.Word.WordDocument.BuiltinDocumentProperties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
+*REMOVED*OfficeIMO.Word.WordDocument.CustomDocumentProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
+OfficeIMO.Word.WordDocument.CustomProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
 *REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.get -> bool
 *REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.set -> void
 *REMOVED*OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages.get -> bool
@@ -51,6 +56,7 @@ OfficeIMO.Word.WordDocument.AppendDocument(OfficeIMO.Word.WordDocument! source, 
 *REMOVED*OfficeIMO.Word.WordDocument.PageSettings.get -> OfficeIMO.Word.WordPageSizes!
 *REMOVED*OfficeIMO.Word.WordDocument.PageSettings.set -> void
 OfficeIMO.Word.WordDocument.PageSetup.get -> OfficeIMO.Word.WordPageSetup!
+OfficeIMO.Word.WordDocument.Properties.get -> OfficeIMO.Word.WordBuiltinDocumentProperties!
 OfficeIMO.Word.WordDocumentMergeOptions
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.get -> OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.set -> void

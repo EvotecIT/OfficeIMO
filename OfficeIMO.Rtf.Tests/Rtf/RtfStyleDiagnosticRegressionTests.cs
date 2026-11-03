@@ -16,9 +16,9 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         RtfDocument document = RtfDocument.ParseResult(@"{\rtf1\ansi{\stylesheet{\s1 Named" + controls + @" Style;}}Plain\par}").Document;
         Assert.Equal("Named" + expected + "Style", document.Styles[0].Name);
         var result = document.ToRtfResult();
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         Assert.Equal(document.Styles[0].Name, RtfDocument.ParseResult(result.Value).Document.Styles[0].Name);
-        document.ToHtmlResult().RtfReport.RequireNoLoss();
+        document.ToHtmlResult().RtfReport.ThrowIfLoss();
     }
 
     [Theory]
@@ -29,8 +29,8 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         RtfReadResult read = RtfDocument.ParseResult(input, new RtfReadOptions { WarnOnUnsupportedDestinations = false });
         Assert.Equal(input, read.ToRtfLossless());
         var result = read.Document.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = false });
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == code && item.Feature == feature);
-        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == code && item.Feature == feature);
+        Assert.Throws<RtfConversionLossException>(() => result.ThrowIfLoss());
         Assert.Contains(read.Document.Clone().ToRtfResult().Report.Diagnostics, item => item.Code == code);
         Assert.Contains(read.Document.ToHtmlResult().RtfReport.Diagnostics, item => item.Code == code);
         Assert.Contains(read.Document.ToMarkdownResult().Report.Diagnostics, item => item.Code == code);
@@ -62,7 +62,7 @@ public sealed class RtfStyleDiagnosticRegressionTests {
         static void AssertDiagnostics(RtfConversionReport report) {
             Assert.Single(report.Diagnostics, item => item.Code == "RtfStyleInheritanceCycle");
             Assert.Equal(2, report.Diagnostics.Count(item => item.Code == "RtfStyleReferenceMissing"));
-            Assert.Throws<RtfConversionLossException>(() => report.RequireNoLoss());
+            Assert.Throws<RtfConversionLossException>(() => report.ThrowIfLoss());
         }
     }
 
@@ -70,8 +70,8 @@ public sealed class RtfStyleDiagnosticRegressionTests {
     public void OrdinaryImplicitStyleZeroAndEncodedStyleNamesAreLossFree() {
         const string input = @"{\rtf1\ansi{\stylesheet{\s1\uc1 Named\u233?;}}Plain\par}";
         RtfDocument document = RtfDocument.ParseResult(input).Document;
-        document.ToRtfResult().RequireNoLoss();
-        document.ToHtmlResult().RtfReport.RequireNoLoss();
+        document.ToRtfResult().ThrowIfLoss();
+        document.ToHtmlResult().RtfReport.ThrowIfLoss();
         Assert.Equal("Namedé", document.Styles[0].Name);
     }
 }

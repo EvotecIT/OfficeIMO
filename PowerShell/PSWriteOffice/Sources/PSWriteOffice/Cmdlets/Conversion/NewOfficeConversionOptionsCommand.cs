@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 /// <para>Format-specific options apply only to their matching routes.</para>
 /// <example>
 ///   <summary>Keep workbook charts in a strict conversion job.</summary>
-///   <code>$options = New-OfficeConversionOptions -RequireNoLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
+///   <code>$options = New-OfficeConversionOptions -FailOnLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
 /// ConvertTo-OfficeDocument -InputPath ./report.xlsx -OutputPath ./report.pdf -ConversionOptions $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeConversionOptions")]
@@ -97,7 +97,7 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
 
     /// <summary>Reject any reduction reported by the selected route.</summary>
     [Parameter]
-    public SwitchParameter RequireNoLoss { get; set; }
+    public SwitchParameter FailOnLoss { get; set; }
 
     /// <summary>Explicitly accept known legacy DOC import reductions.</summary>
     [Parameter]
@@ -129,7 +129,7 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
                 Rtf = RtfOptions, Draw = DrawOptions, Visio = VisioOptions, Xps = XpsOptions,
                 Chm = ChmOptions, DjVu = DjVuOptions, PublisherRead = PublisherReadOptions, PublisherPdf = PublisherPdfOptions
             },
-            CompressPdfOutput = CompressPdfOutput.IsPresent, FailOnLoss = RequireNoLoss.IsPresent,
+            CompressPdfOutput = CompressPdfOutput.IsPresent, FailOnLoss = FailOnLoss.IsPresent,
             WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = !AllowLegacyImportLoss.IsPresent },
             PdfLoad = PageRange == null ? null : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRange) },
             PdfWord = PdfWordMode == null && RasterDpi == null ? null : new WordPdfImportOptions { Mode = PdfWordMode ?? WordPdfImportMode.EditableContent, Dpi = RasterDpi ?? 144D },

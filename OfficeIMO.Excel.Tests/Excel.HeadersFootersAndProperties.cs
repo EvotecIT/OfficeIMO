@@ -25,11 +25,11 @@ namespace OfficeIMO.Tests
             {
                 // Set workbook info via fluent
                 {
-                    doc.BuiltinDocumentProperties.Title = "Roundtrip Title";
-                    doc.BuiltinDocumentProperties.Creator = "Roundtrip Author";
+                    doc.Properties.Title = "Roundtrip Title";
+                    doc.Properties.Creator = "Roundtrip Author";
                     doc.ApplicationProperties.Company = "Roundtrip Co";
                     doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
-                    doc.BuiltinDocumentProperties.Keywords = "test,excel,header,footer";
+                    doc.Properties.Keywords = "test,excel,header,footer";
                 }
 
                 var sheet = doc.AddSheet("Summary");
@@ -47,8 +47,8 @@ namespace OfficeIMO.Tests
             // Reopen read-only and verify
             using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             {
-                Assert.Equal("Roundtrip Title", verify.BuiltinDocumentProperties.Title);
-                Assert.Equal("Roundtrip Author", verify.BuiltinDocumentProperties.Creator);
+                Assert.Equal("Roundtrip Title", verify.Properties.Title);
+                Assert.Equal("Roundtrip Author", verify.Properties.Creator);
                 Assert.Equal("Roundtrip Co", verify.ApplicationProperties.Company);
                 var summary = verify.Sheets.FirstOrDefault(s => s.Name == "Summary");
                 Assert.NotNull(summary);

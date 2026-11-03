@@ -376,7 +376,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfSimpleDateFields.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfSimpleDateFields.pdf");
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.BuiltinDocumentProperties.Created = new DateTime(2020, 1, 3);
+            document.Properties.Created = new DateTime(2020, 1, 3);
             WordParagraph paragraph = document.AddParagraph("Issued ");
             paragraph._paragraph.Append(new SimpleField(new Run(new Text("stale-date") { Space = SpaceProcessingModeValues.Preserve })) {
                 Instruction = " DATE \\@ \"yyyy-MM-dd\" "

@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Projects a group as one object, retaining its child coordinate system and paragraph anchor.</summary>
         private static bool RenderNativeParagraphShapeGroups(INativePdfFlow pdf, WordParagraph paragraph,
-            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount, NativeObjectParagraphSpacing? paragraphSpacing) =>
+            IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount, NativeObjectParagraphSpacing? paragraphSpacing) =>
             ProjectNativeParagraphShapeGroups(pdf.PageSize, paragraph, runs, options, style,
                 scene => RenderNativeFlowObject(pdf, paragraphSpacing,
                     flow => flow.Drawing(scene, align, spacingAfter: 0D)), ref imageCount);

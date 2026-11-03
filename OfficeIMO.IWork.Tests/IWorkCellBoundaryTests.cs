@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(IWorkFormulaCacheStatus.Unassessed, status.CacheStatus);
                 Assert.Equal(1, report.FormulaSummary.UnassessedCacheCount);
             } else Assert.Empty(report.FormulaCells);
-            Assert.Contains(report.FidelityDiagnostics, d => d.Code == "IWORK_SOURCE_CELLS_UNDECODED"
+            Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_SOURCE_CELLS_UNDECODED"
                 && d.LossKind == OfficeConversionLossKind.Unassessed);
         }
     }
@@ -117,7 +117,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] cell = new byte[12]; cell[0] = 5;
         byte[] row = Message(VarintField(1, 0), BytesField(6, cell), BytesField(7, new byte[] { 0, 0, 255, 255, 255, 255 }));
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), tilePayload: BytesField(5, row));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTableDimensionEntries = 2 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableDimensionEntries = 2 });
         Assert.Contains("dimension", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }
@@ -144,7 +144,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Row_offset_budget_is_shared_across_selected_rows() {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), rows: 2,
             tilePayload: Message(BytesField(5, TileTestRow(0)), BytesField(5, TileTestRow(1))));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTableDimensionEntries = 1 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableDimensionEntries = 1 });
         Assert.Contains("dimension", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }

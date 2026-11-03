@@ -19,7 +19,7 @@ internal static class MpxLifecycleProof {
             using var document = input == "new" ? Create() : ProjectDocument.Load(input);
             edit.Edit(document);
             string path = Path.Combine(output, edit.Name + ".mpx");
-            var options = new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
+            var options = new ProjectSaveOptions { AllowLoss = true };
             var report = document.AssessSave(path, options); report.ThrowIfErrors(); document.Save(path, options);
             using var reopened = ProjectDocument.Load(path);
             reopened.Validate().ThrowIfErrors();
@@ -37,7 +37,7 @@ internal static class MpxLifecycleProof {
         foreach (var encoding in Enum.GetValues<ProjectMpxEncoding>()) {
             using var document = Create();
             document.Tasks[0].Name = encoding switch { ProjectMpxEncoding.Windows1252 => "Euro €", ProjectMpxEncoding.Dos437 => "Omega Ω", ProjectMpxEncoding.Dos850 => "Latin ø", _ => "Apple " };
-            document.Save(Path.Combine(output, encoding + ".mpx"), new ProjectSaveOptions { MpxEncoding = encoding, LossPolicy = OfficeConversionLossPolicy.Allow });
+            document.Save(Path.Combine(output, encoding + ".mpx"), new ProjectSaveOptions { MpxEncoding = encoding, AllowLoss = true });
         }
         return 0;
     }

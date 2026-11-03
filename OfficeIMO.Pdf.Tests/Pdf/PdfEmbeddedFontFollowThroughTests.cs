@@ -50,15 +50,15 @@ public class PdfEmbeddedFontFollowThroughTests {
     }
 
     [Theory]
-    [InlineData(PdfAlign.Left)]
-    [InlineData(PdfAlign.Center)]
-    [InlineData(PdfAlign.Right)]
-    public void StampAlignmentAnchorsTheTextAtX(PdfAlign align) {
+    [InlineData(OfficeAlignment.Left)]
+    [InlineData(OfficeAlignment.Center)]
+    [InlineData(OfficeAlignment.Right)]
+    public void StampAlignmentAnchorsTheTextAtX(OfficeAlignment align) {
         PdfDocument source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("Body"))));
         byte[] bytes = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = OfficeLength.Points(300), Y = OfficeLength.Points(36), Align = align, EmbedFont = false }).ToBytes();
 
         PdfTextSpan span = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().First(item => item.Text.Contains("Page"));
-        double expected = align == PdfAlign.Left ? span.X : align == PdfAlign.Center ? span.X + span.Advance / 2 : span.X + span.Advance;
+        double expected = align == OfficeAlignment.Left ? span.X : align == OfficeAlignment.Center ? span.X + span.Advance / 2 : span.X + span.Advance;
         Assert.InRange(expected, 299, 301);
     }
 

@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
                 string? range = child.GetAttribute("ref");
                 string formula = child.ReadElementContentAsString();
                 return type == "array" && string.Equals(range, expectedRange, StringComparison.Ordinal)
-                    && string.Equals(formula, owner.Cell.CellFormula?.Text, StringComparison.Ordinal);
+                    && string.Equals(formula, ExcelWorksheetScan.FindFormula(owner.Cell)?.Text, StringComparison.Ordinal);
             }
             return false;
         }

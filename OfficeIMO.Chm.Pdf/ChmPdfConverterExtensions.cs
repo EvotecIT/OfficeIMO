@@ -22,7 +22,7 @@ public static class ChmPdfConverterExtensions {
             // The PDF owner blocks full rewrites of tagged structure. Preserve topic CSS and page
             // boundaries through an explicitly reported untagged merge instead of bypassing that gate.
             template.PdfOptions.SetTaggedStructureMode(PdfTaggedStructureMode.None);
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_PDF_TAGGED_STRUCTURE_OMITTED", "Multi-topic PDF uses untagged pages because the PDF owner cannot preserve a merged structure tree. Select one topic for tagged output.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm.Pdf"));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_PDF_TAGGED_STRUCTURE_OMITTED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Multi-topic PDF uses untagged pages because the PDF owner cannot preserve a merged structure tree. Select one topic for tagged output.", null, "OfficeIMO.Chm.Pdf", OfficeConversionLossKind.Omission));
         }
         PdfStandardEncryptionOptions? encryption = template.PdfOptions.Encryption;
         template.PdfOptions.ClearEncryption();
@@ -42,7 +42,7 @@ public static class ChmPdfConverterExtensions {
             retainedBytes += converted.ToBytes(cancellationToken).LongLength;
             ChmDocument.EnforceOutput(retainedBytes, configured);
             pdfs.Add(converted.Value);
-            diagnostics.AddRange(converted.FidelityDiagnostics.Select(item => new OfficeConversionFidelityDiagnostic(item.Code, item.Message, item.LossKind, item.Source, topic.Path)));
+            diagnostics.AddRange(converted.Diagnostics.Select(item => new global::OfficeIMO.OfficeDiagnostic(item.Code, item.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, item.Message, topic.Path, item.Format, item.LossKind)));
         }
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument value = pdfs[0];
@@ -52,7 +52,7 @@ public static class ChmPdfConverterExtensions {
             }, pdfs, cancellationToken);
             value = merged.RequireValue();
             foreach (PdfMergeDecision decision in merged.Report.Decisions.Where(item => item.DroppedCount != 0))
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_PDF_MERGE_OMISSION", decision.Action, OfficeConversionLossKind.Omission, "OfficeIMO.Pdf", decision.Structure));
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_PDF_MERGE_OMISSION", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, decision.Action, decision.Structure, "OfficeIMO.Pdf", OfficeConversionLossKind.Omission));
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (encryption != null) {
@@ -61,8 +61,8 @@ public static class ChmPdfConverterExtensions {
             if (!encrypted.PreservationReport.IsPreserved) throw new InvalidOperationException("CHM PDF encryption did not preserve the merged document.");
             value = encrypted.ToDocument();
         }
-        if (topics.Count > 1) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_PDF_TOPIC_LINKS", "Links between separate help topics are not rebuilt as PDF destinations.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm.Pdf"));
-        if (document.Index.Count != 0) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_PDF_INDEX", "The compiled help keyword index is not recreated in PDF.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm.Pdf"));
+        if (topics.Count > 1) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_PDF_TOPIC_LINKS", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Links between separate help topics are not rebuilt as PDF destinations.", null, "OfficeIMO.Chm.Pdf", OfficeConversionLossKind.Omission));
+        if (document.Index.Count != 0) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_PDF_INDEX", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "The compiled help keyword index is not recreated in PDF.", null, "OfficeIMO.Chm.Pdf", OfficeConversionLossKind.Omission));
         var result = new PdfDocumentConversionResult(value, new PdfConversionReport())
             .WithSourceConversionReport(new ChmConversionReport(topics.Select(topic => topic.Path), diagnostics));
         return result;
@@ -74,6 +74,6 @@ public static class ChmPdfConverterExtensions {
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
         PdfDocumentConversionResult result = document.ToPdfDocumentResult(configured, pdfOptions, cancellationToken);
         byte[] bytes = result.ToBytes(cancellationToken); ChmDocument.EnforceOutput(bytes.LongLength, configured);
-        return new ChmConversionResult<byte[]>(bytes, new ChmConversionReport(document.SelectTopics(configured).Select(topic => topic.Path), result.FidelityDiagnostics));
+        return new ChmConversionResult<byte[]>(bytes, new ChmConversionReport(document.SelectTopics(configured).Select(topic => topic.Path), result.Diagnostics));
     }
 }

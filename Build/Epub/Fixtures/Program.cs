@@ -16,7 +16,7 @@ foreach (EpubTypographyProfile profile in Enum.GetValues<EpubTypographyProfile>(
         Title = profile + " typography", TypographyProfile = profile, ChapterHeadingLevel = 0,
         Identifier = "urn:officeimo:fixture:typography:" + name
     });
-    imported.Report.RequireNoLoss();
+    imported.Report.ThrowIfLoss();
     imported.Publication.SetAccessibilityMetadata(new EpubAccessibilityMetadata {
         AccessModes = new[] { "textual", "visual" }, SufficientAccessModes = new IReadOnlyList<string>[] { new[] { "textual" } },
         Features = new[] { "structuralNavigation", "tableOfContents", "alternativeText" }, Hazards = new[] { "none" },

@@ -254,7 +254,7 @@ public sealed partial class HtmlRenderingTests {
         const string avoidedHtml = "<style>@page{size:160px 45px;margin:0}table{margin:0}td{font-size:8px;line-height:14px;padding:2px}</style>"
             + "<table id='oversized'><tr style='break-inside:avoid'><td>A1<br>A2<br>A3<br>A4</td><td>B1<br>B2<br>B3<br>B4</td></tr></table>";
         HtmlRenderDocument avoided = HtmlRenderTestDriver.Render(avoidedHtml, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
-        HtmlDiagnostic diagnostic = Assert.Single(avoided.Diagnostics,
+        HtmlDiagnostic diagnostic = Assert.Single(avoided.NativeDiagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
 
         Assert.Equal("table#oversized", diagnostic.Source);

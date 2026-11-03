@@ -56,9 +56,9 @@ internal static class NativePdfScenarios {
             && evidence.Facts["omittedSourceUnitCount"] == "0" && evidence.Facts["unassessedSourceUnitCount"] == "0"
             && evidence.Facts["sourceUnitCount"] == evidence.Facts["reconstructedSourceUnitCount"],
             source.Name + " lost complete source coverage or stage evidence.");
-        Require(!evidence.FidelityDiagnostics.Any(item => item.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure),
+        Require(!evidence.Diagnostics.Any(item => item.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure),
             source.Name + " published a reported omission or failure.");
-        Require(evidence.FidelityDiagnostics.Any(item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"),
+        Require(evidence.Diagnostics.Any(item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"),
             source.Name + " concealed unassessed record fidelity.");
         Require(result.Diagnostics.Any(item => item.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened)
             && result.Diagnostics.Single(item => item.Code == "SourceSnapshot").Details["sha256"].Equals(source.Hash, StringComparison.OrdinalIgnoreCase),

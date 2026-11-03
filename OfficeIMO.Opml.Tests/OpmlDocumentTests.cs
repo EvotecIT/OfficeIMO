@@ -374,8 +374,8 @@ public sealed class OpmlDocumentTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML205");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML206");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML207");
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML208" && diagnostic.Path == "/opml/head");
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML209" && diagnostic.Path == "/opml/body");
+        Assert.Contains(result.NativeDiagnostics, diagnostic => diagnostic.Code == "OPML208" && diagnostic.Path == "/opml/head");
+        Assert.Contains(result.NativeDiagnostics, diagnostic => diagnostic.Code == "OPML209" && diagnostic.Path == "/opml/body");
     }
 
     [Fact]
@@ -567,7 +567,7 @@ public sealed class OpmlDocumentTests {
         Assert.True(structuredResult.HasLoss);
         Assert.Equal(2, structuredResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
         Assert.Equal(2, flatResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
-        Assert.All(structuredResult.FidelityDiagnostics.Where(diagnostic => diagnostic.Code == "OPML108"),
+        Assert.All(structuredResult.Diagnostics.Where(diagnostic => diagnostic.Code == "OPML108"),
             diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
     }
 
@@ -722,7 +722,7 @@ public sealed class OpmlDocumentTests {
         OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
 
         Assert.True(converted.HasLoss);
-        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == OpmlDiagnosticSeverity.Error);
+        Assert.Contains(converted.NativeDiagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == OpmlDiagnosticSeverity.Error);
     }
 
     [Fact]

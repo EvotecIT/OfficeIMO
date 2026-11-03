@@ -19,7 +19,7 @@ public sealed class PublisherGradientFillTests {
         Assert.Equal(x1, gradient.StartX, 6); Assert.Equal(y1, gradient.StartY, 6);
         Assert.Equal(x2, gradient.EndX, 6); Assert.Equal(y2, gradient.EndY, 6);
         Assert.Equal(new[] { OfficeColor.Blue, OfficeColor.Red }, gradient.Stops.Select(stop => stop.Color));
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_FILL_APPROXIMATED");
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_FILL_APPROXIMATED");
         XElement svg = XElement.Parse(document.ToSvg());
         Assert.Contains(svg.Descendants(), item => item.Name.LocalName == "linearGradient");
     }
@@ -52,7 +52,7 @@ public sealed class PublisherGradientFillTests {
         Assert.NotNull(shape.FillGradient);
         Assert.Equal(128, shape.FillGradient!.Stops[0].Color.A);
         Assert.Equal(1D, shape.FillOpacity);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_GRADIENT_OPACITY_APPROXIMATED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_GRADIENT_OPACITY_APPROXIMATED");
     }
 
     [Theory]
@@ -73,7 +73,7 @@ public sealed class PublisherGradientFillTests {
         Assert.NotNull(shape.FillGradient);
         Assert.Equal((foreground ?? 65536U) / 65536D, shape.FillOpacity);
         Assert.All(shape.FillGradient!.Stops, stop => Assert.Equal(255, stop.Color.A));
-        Assert.Equal(expectedLoss, document.ReadReport.FidelityDiagnostics.Any(item => item.Code == "PUB_GRADIENT_OPACITY_APPROXIMATED"));
+        Assert.Equal(expectedLoss, document.ReadReport.Diagnostics.Any(item => item.Code == "PUB_GRADIENT_OPACITY_APPROXIMATED"));
     }
 
     [Theory]
@@ -124,7 +124,7 @@ public sealed class PublisherGradientFillTests {
     public void Unsupported_fill_modes_retain_primary_paint_and_precise_loss(uint mode) {
         PublisherDocument document = Load(mode);
         Assert.Null(Artwork(document).FillGradient);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_FILL_APPROXIMATED"
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_FILL_APPROXIMATED"
             && item.LossKind == OfficeConversionLossKind.Approximation);
     }
 
@@ -132,7 +132,7 @@ public sealed class PublisherGradientFillTests {
     public void Invalid_focus_and_color_arrays_preserve_recoverable_primary_paint() {
         foreach (PublisherDocument document in new[] { Load(4, focus: 101), Load(4, complex: new byte[] { 1, 0, 1, 0, 8, 0 }) }) {
             Assert.Null(Artwork(document).FillGradient);
-            Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_GRADIENT_INVALID"
+            Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_GRADIENT_INVALID"
                 && item.LossKind == OfficeConversionLossKind.Approximation);
         }
     }
@@ -141,7 +141,7 @@ public sealed class PublisherGradientFillTests {
     public void Native_special_interpolation_is_reported_as_an_approximation() {
         PublisherDocument document = Load(4, extra: new() { [0x19C] = 0x40000003 });
         Assert.NotNull(Artwork(document).FillGradient);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_GRADIENT_INTERPOLATION_APPROXIMATED"
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_GRADIENT_INTERPOLATION_APPROXIMATED"
             && item.LossKind == OfficeConversionLossKind.Approximation);
     }
 
@@ -157,15 +157,15 @@ public sealed class PublisherGradientFillTests {
     [Fact]
     public void Fill_boolean_masks_control_visibility_and_custom_mapping() {
         PublisherDocument hidden = Load(4, extra: new() { [0x1BF] = 0x00100000 });
-        Assert.DoesNotContain(hidden.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_GRADIENT", StringComparison.Ordinal));
+        Assert.DoesNotContain(hidden.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_GRADIENT", StringComparison.Ordinal));
         Assert.All(PublisherNativeTests.Elements(hidden.Pages[0].Drawing).OfType<OfficeDrawingShape>()
             .Where(item => item.SourceElementIds?.Contains("publisher-object-293") == true), item => Assert.Null(item.Shape.FillGradient));
         PublisherDocument custom = Load(4, extra: new() { [0x1BF] = 0x00120012 });
         Assert.Null(Artwork(custom).FillGradient);
-        Assert.Contains(custom.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_GRADIENT_MAPPING_UNSUPPORTED");
+        Assert.Contains(custom.ReadReport.Diagnostics, item => item.Code == "PUB_GRADIENT_MAPPING_UNSUPPORTED");
         PublisherDocument anchored = Load(4, extra: new() { [0x1BF] = 0x00140010 });
         Assert.Null(Artwork(anchored).FillGradient);
-        Assert.Contains(anchored.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_GRADIENT_MAPPING_UNSUPPORTED");
+        Assert.Contains(anchored.ReadReport.Diagnostics, item => item.Code == "PUB_GRADIENT_MAPPING_UNSUPPORTED");
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public sealed class PublisherGradientFillTests {
         foreach (uint flags in new[] { 0x00100010U, 0x00300030U }) {
             PublisherDocument document = Load(4, extra: new() { [4] = 30 * 65536, [0x1BF] = flags });
             Assert.NotNull(Artwork(document).FillGradient);
-            Assert.Equal(flags != 0x00300030U, document.ReadReport.FidelityDiagnostics.Any(item => item.Code == "PUB_GRADIENT_TRANSFORM_APPROXIMATED"));
+            Assert.Equal(flags != 0x00300030U, document.ReadReport.Diagnostics.Any(item => item.Code == "PUB_GRADIENT_TRANSFORM_APPROXIMATED"));
         }
     }
 

@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(complete.Pages, page => Assert.Single(page.Scene.OfType<HtmlRenderSemanticGroup>(),
             group => group.Source == "@page @top-center element(heading)"));
         Assert.Equal(20, complete.Text.Split(new[] { 'B' }, StringSplitOptions.None).Length - 1);
-        complete.RequireNoLoss();
+        complete.ThrowIfLoss();
     }
 
     [Theory]
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2700D / 17D, PageMarginTypographyText(page, "top-center").Width, 6);
         Assert.Equal(RunningMarginSizingColumns, cells.Select(cell => cell.Text).ToArray());
         Assert.All(cells, cell => Assert.InRange(cell.X + cell.Width, running.X, running.X + running.Width));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -114,7 +114,7 @@ public sealed partial class HtmlRenderingTests {
             if (kind is "select" or "textarea") {
                 // The synthetic face cannot become an interactive PDF widget.
                 // Its existing static fallback is reported at capture and relayout.
-                HtmlDiagnostic[] losses = rendered.Diagnostics
+                HtmlDiagnostic[] losses = rendered.NativeDiagnostics
                     .Where(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None).ToArray();
                 Assert.Equal(2, losses.Length);
                 Assert.All(losses, diagnostic => {
@@ -124,7 +124,7 @@ public sealed partial class HtmlRenderingTests {
                     Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
                 });
             } else {
-                rendered.RequireNoLoss();
+                rendered.ThrowIfLoss();
             }
         }
     }
@@ -145,7 +145,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderMarginSizing(900D, "", body: source);
 
         Assert.Equal(280D, NaturalLineShape(rendered, "div#measured").Width, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -178,8 +178,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(text.Width >= label.Length * 10D);
         Assert.InRange(text.X, border.X, border.X + border.Width);
         Assert.InRange(text.X + text.Width, border.X, border.X + border.Width);
-        rendered.RequireNoLoss();
-        ordinary.RequireNoLoss();
+        rendered.ThrowIfLoss();
+        ordinary.ThrowIfLoss();
     }
 
     [Theory]
@@ -206,8 +206,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(24D, image.Height, 6);
         Assert.InRange(image.X, group.X, group.X + group.Width);
         Assert.InRange(image.X + image.Width, group.X, group.X + group.Width);
-        rendered.RequireNoLoss();
-        ordinaryDisplay.RequireNoLoss();
+        rendered.ThrowIfLoss();
+        ordinaryDisplay.ThrowIfLoss();
     }
 
     [Theory]
@@ -223,8 +223,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(NaturalLineShape(ordinaryDisplay, "input#control").Width,
             NaturalLineShape(rendered, "input#control").Width, 6);
-        rendered.RequireNoLoss();
-        ordinaryDisplay.RequireNoLoss();
+        rendered.ThrowIfLoss();
+        ordinaryDisplay.ThrowIfLoss();
     }
 
     private static HtmlRenderSemanticGroup RunningMarginSizingGroup(HtmlRenderDocument rendered) => Assert.Single(

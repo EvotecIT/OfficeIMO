@@ -8,8 +8,8 @@ internal static class PolicyBrief {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
         document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-        document.BuiltinDocumentProperties.Title = "Shared workspace guide";
-        document.BuiltinDocumentProperties.Subject = "Working agreements";
+        document.Properties.Title = "Shared workspace guide";
+        document.Properties.Subject = "Working agreements";
         document.AddParagraph("Shared workspace guide").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("Version 1.0 | Owner: Workplace team | Review: March 2027");
         document.AddParagraph("A concise working agreement for reserving shared desks and meeting spaces.");

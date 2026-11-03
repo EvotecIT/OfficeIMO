@@ -82,7 +82,7 @@ public sealed class RtfPdfFontAdmissionTests {
         Assert.DoesNotContain(result.Warnings, warning => warning.Details.TryGetValue("fontFamily", out string? family)
             && family == ExcludedFamily);
         Assert.Equal(markerVisible, result.Warnings.Any(warning => warning.Code == "NotesSkipped"));
-        if (scenario.StartsWith("detached", StringComparison.Ordinal)) result.RequireNoLoss();
+        if (scenario.StartsWith("detached", StringComparison.Ordinal)) result.ThrowIfLoss();
         Assert.Equal(sourceBefore, document.ToBytes());
     }
 
@@ -106,7 +106,7 @@ public sealed class RtfPdfFontAdmissionTests {
         Assert.Contains("NOTEONLY", string.Concat(actual.GetPage(1).Letters.Select(letter => letter.Value)));
         Assert.Single(result.Warnings, warning => warning.Code == "FontFamilySubstituted"
             && warning.Details.TryGetValue("fontFamily", out string? family) && family == ExcludedFamily);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Equal(sourceBefore, document.ToBytes());
     }
 
@@ -146,7 +146,7 @@ public sealed class RtfPdfFontAdmissionTests {
         Assert.All(actual.GetPage(1).Letters, letter => Assert.Contains("Helvetica", letter.FontName));
         Assert.DoesNotContain(result.Warnings, warning => warning.Details.TryGetValue("fontFamily", out string? family)
             && family == ExcludedFamily);
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         Assert.Equal(before, document.ToBytes());
     }
 
@@ -170,7 +170,7 @@ public sealed class RtfPdfFontAdmissionTests {
         Assert.True(actual.NumberOfPages >= 1);
         Assert.Single(result.Warnings, warning => warning.Code == "FontFamilySubstituted"
             && warning.Details.TryGetValue("fontFamily", out string? family) && family == ExcludedFamily);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Equal(before, document.ToBytes());
     }
 
@@ -205,7 +205,7 @@ public sealed class RtfPdfFontAdmissionTests {
         var options = Options();
         options.IncludeImages = scenario != "disabled-image";
         options.IncludeHeaderFooters = scenario != "disabled-story";
-        if (scenario == "plain-story") options.PdfOptions!.HeaderAlign = PdfCore.PdfAlign.Left;
+        if (scenario == "plain-story") options.PdfOptions!.HeaderAlign = global::OfficeIMO.OfficeAlignment.Left;
         int calls = 0;
         options.ImageConverter = _ => { calls++; return scenario == "failed-conversion" ? null : png; };
         byte[] before = document.ToBytes();
@@ -225,9 +225,9 @@ public sealed class RtfPdfFontAdmissionTests {
             && warning.Details.TryGetValue("fontFamily", out string? family) && family == ExcludedFamily));
         if (scenario == "field") {
             Assert.Single(result.Warnings, warning => warning.Code == "HeaderFooterFieldResultUsed");
-            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         } else if (painted) {
-            result.RequireNoLoss();
+            result.ThrowIfLoss();
         }
         if (scenario == "failed-conversion") Assert.Single(result.Warnings, warning => warning.Code == "ImageConversionFailed");
         if (scenario == "converted") {

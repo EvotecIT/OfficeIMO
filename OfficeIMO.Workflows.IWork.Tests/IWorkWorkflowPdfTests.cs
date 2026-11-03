@@ -20,7 +20,7 @@ public sealed partial class IWorkWorkflowTests {
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         request.ConversionOptions = new() { CompressPdfOutput = true };
         OfficeWorkflowResult result = await runner.RunAsync(request);
-        Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ", result.ConversionEvidence?.FidelityDiagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message) ?? []));
+        Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ", result.ConversionEvidence?.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message) ?? []));
         Assert.Contains(result.Diagnostics, item => item.Code == "pdf-output-compressed");
         Assert.Contains(result.Diagnostics, item => item.Code == "conversion-output-reopened");
         using PdfDocument pdf = PdfDocument.Load(files.Output);
@@ -50,7 +50,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(0, result.OutputBytes);
         Assert.Equal("pdf", result.ConversionEvidence!.Facts["conversionFailureStage"]);
         Assert.Equal("True", result.ConversionEvidence.Facts["pdfReportAvailable"]);
-        Assert.Contains(result.ConversionEvidence.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(result.ConversionEvidence.Diagnostics, diagnostic =>
             diagnostic.Code == "speaker-notes-omitted" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "SourceSnapshot");
         Assert.Equal("keep existing", File.ReadAllText(files.Output));
@@ -79,7 +79,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Single(pdf.Pages);
         Assert.Equal(string.Concat(text.Where(character => !char.IsWhiteSpace(character))),
             string.Concat(pdf.ExtractText().Where(character => !char.IsWhiteSpace(character))));
-        Assert.DoesNotContain(result.ConversionEvidence!.FidelityDiagnostics,
+        Assert.DoesNotContain(result.ConversionEvidence!.Diagnostics,
             diagnostic => diagnostic.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
         Assert.Equal("0", result.ConversionEvidence.Facts["omittedSourceUnitCount"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "conversion-output-reopened");
@@ -103,7 +103,7 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.True(result.Succeeded, result.Summary);
         Assert.Equal("0", result.ConversionEvidence!.Facts["omittedSourceUnitCount"]);
-        Assert.DoesNotContain(result.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(result.ConversionEvidence.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
         using PdfDocument pdf = PdfDocument.Load(files.Output);
         Assert.Equal(2, pdf.Pages.Count);
         Assert.Equal(2, Assert.Single(pdf.NamedDestinations, d => d.Name == "powerpoint-slide-2").PageNumber);
@@ -124,7 +124,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.True(result.Succeeded, result.Summary);
         Assert.Equal("False", result.ConversionEvidence!.Facts["partialEditableReconstruction"]);
         Assert.Equal("0", result.ConversionEvidence.Facts["omittedSourceUnitCount"]);
-        Assert.DoesNotContain(result.ConversionEvidence.FidelityDiagnostics,
+        Assert.DoesNotContain(result.ConversionEvidence.Diagnostics,
             diagnostic => diagnostic.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
         using PdfDocument pdf = PdfDocument.Load(files.Output);
         Assert.Equal(3, pdf.Pages.Count);
@@ -192,7 +192,7 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowRequest request = files.Request(route);
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
-        Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ", result.ConversionEvidence?.FidelityDiagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message) ?? []));
+        Assert.True(result.Succeeded, result.Summary + "; " + string.Join("; ", result.ConversionEvidence?.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message) ?? []));
         using PdfDocument pdf = PdfDocument.Load(files.Output);
         Assert.Equal(pages, pdf.Pages.Count);
         Assert.Contains(text, pdf.ExtractText());
@@ -201,7 +201,7 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal("iwork-editable,pdf", evidence.Facts["conversionStages"]);
         Assert.Equal("False", evidence.Facts["partialEditableReconstruction"]);
         Assert.Equal("0", evidence.Facts["omittedSourceUnitCount"]);
-        Assert.Contains(evidence.FidelityDiagnostics, item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED");
+        Assert.Contains(evidence.Diagnostics, item => item.Code == "IWORK_RECORD_FIDELITY_UNASSESSED");
         Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))),
             Assert.Single(result.Diagnostics, item => item.Code == "SourceSnapshot").Details["sha256"], ignoreCase: true);
     }

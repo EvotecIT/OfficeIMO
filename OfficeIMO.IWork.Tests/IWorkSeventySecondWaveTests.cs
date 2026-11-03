@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         rejected[^1] ^= 1;
         using MemoryStream package = CreatePagesImageCandidatesPackage(rejected,
             CreateSizedPreviewPng(20, 20));
-        var options = new IWorkReadOptions { MaximumPackageBytes = 2500 };
+        var options = new IWorkReadOptions { MaxPackageBytes = 2500 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages, options);
         IWorkArchiveRecord image = Assert.Single(source.Records,

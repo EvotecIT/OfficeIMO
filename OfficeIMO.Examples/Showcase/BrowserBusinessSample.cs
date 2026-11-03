@@ -7,8 +7,8 @@ internal static class BrowserBusinessSample {
     internal static void Create(string outputDirectory) {
         Directory.CreateDirectory(outputDirectory);
         using WordDocument document = WordDocument.Create(Path.Combine(outputDirectory, "business-summary.docx"));
-        document.BuiltinDocumentProperties.Title = "Monthly operations brief";
-        document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+        document.Properties.Title = "Monthly operations brief";
+        document.Properties.Creator = "OfficeIMO";
         document.Settings.FontFamily = "Carlito";
         document.Settings.FontFamilyHighAnsi = "Carlito";
         document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);

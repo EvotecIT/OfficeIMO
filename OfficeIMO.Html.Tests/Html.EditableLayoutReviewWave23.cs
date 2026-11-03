@@ -23,8 +23,8 @@ public sealed class HtmlEditableLayoutReviewWave23Tests {
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
 
-        Assert.Contains(excelResult.Report.Diagnostics, IsMixedInlineRetentionDiagnostic);
-        Assert.Contains(powerPointResult.Report.Diagnostics, IsMixedInlineRetentionDiagnostic);
+        Assert.Contains(excelResult.Report.NativeDiagnostics, IsMixedInlineRetentionDiagnostic);
+        Assert.Contains(powerPointResult.Report.NativeDiagnostics, IsMixedInlineRetentionDiagnostic);
     }
 
     [Theory]

@@ -8,14 +8,14 @@ public class RtfHtmlMetadataTests {
     [Fact]
     public void RtfDocument_ToHtml_Renders_Document_Info_Metadata_And_RoundTrips() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Clinical note";
-        document.Info.Subject = "Discharge summary";
-        document.Info.Author = "Alice";
-        document.Info.Company = "Contoso Health";
-        document.Info.Keywords = "patient,rtf";
-        document.Info.Comments = "Reviewed";
-        document.Info.Created = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
-        document.Info.NumberOfWords = 42;
+        document.Properties.Title = "Clinical note";
+        document.Properties.Subject = "Discharge summary";
+        document.Properties.Author = "Alice";
+        document.Properties.Company = "Contoso Health";
+        document.Properties.Keywords = "patient,rtf";
+        document.Properties.Comments = "Reviewed";
+        document.Properties.Created = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        document.Properties.NumberOfWords = 42;
         document.AddParagraph("Body");
 
         string html = document.ToHtml(new RtfToHtmlOptions {
@@ -32,14 +32,14 @@ public class RtfHtmlMetadataTests {
         Assert.Contains("<meta name=\"officeimo-rtf-words\" content=\"42\">", html, StringComparison.Ordinal);
 
         RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
-        Assert.Equal("Clinical note", roundTrip.Info.Title);
-        Assert.Equal("Discharge summary", roundTrip.Info.Subject);
-        Assert.Equal("Alice", roundTrip.Info.Author);
-        Assert.Equal("Contoso Health", roundTrip.Info.Company);
-        Assert.Equal("patient,rtf", roundTrip.Info.Keywords);
-        Assert.Equal("Reviewed", roundTrip.Info.Comments);
-        Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), roundTrip.Info.Created);
-        Assert.Equal(42, roundTrip.Info.NumberOfWords);
+        Assert.Equal("Clinical note", roundTrip.Properties.Title);
+        Assert.Equal("Discharge summary", roundTrip.Properties.Subject);
+        Assert.Equal("Alice", roundTrip.Properties.Author);
+        Assert.Equal("Contoso Health", roundTrip.Properties.Company);
+        Assert.Equal("patient,rtf", roundTrip.Properties.Keywords);
+        Assert.Equal("Reviewed", roundTrip.Properties.Comments);
+        Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc), roundTrip.Properties.Created);
+        Assert.Equal(42, roundTrip.Properties.NumberOfWords);
         Assert.Equal("Body", Assert.Single(roundTrip.Paragraphs).ToPlainText());
     }
 
@@ -49,10 +49,10 @@ public class RtfHtmlMetadataTests {
 
         RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
 
-        Assert.Equal("Clinical note", document.Info.Title);
-        Assert.Equal("Alice", document.Info.Author);
-        Assert.Equal("patient,rtf", document.Info.Keywords);
-        Assert.Equal("Summary", document.Info.Subject);
+        Assert.Equal("Clinical note", document.Properties.Title);
+        Assert.Equal("Alice", document.Properties.Author);
+        Assert.Equal("patient,rtf", document.Properties.Keywords);
+        Assert.Equal("Summary", document.Properties.Subject);
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Equal("Body", paragraph.ToPlainText());
     }

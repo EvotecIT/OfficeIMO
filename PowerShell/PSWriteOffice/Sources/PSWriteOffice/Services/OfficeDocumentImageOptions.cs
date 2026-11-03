@@ -71,9 +71,12 @@ internal sealed class OfficeDocumentImageOptions {
         Visio = Visio.Clone(), Html = Html.Clone(), WordLoad = WordLoad.Snapshot(), ExcelLoad = ExcelLoad.Snapshot(),
         PowerPointLoad = PowerPointLoad.Snapshot(), PdfLoad = PdfLoad.Clone(), HtmlLoad = HtmlLoad.Clone(),
         VisioLoad = new VisioLoadOptions {
-            MaxInputBytes = VisioLoad.MaxInputBytes, MaxLegacyXmlCharacters = VisioLoad.MaxLegacyXmlCharacters,
-            MaxPackageXmlCharacters = VisioLoad.MaxPackageXmlCharacters, MaxLegacyXmlDepth = VisioLoad.MaxLegacyXmlDepth,
-            MaxLegacyXmlElements = VisioLoad.MaxLegacyXmlElements, PackageSecurity = VisioLoad.PackageSecurity?.Snapshot()
+            Limits = {
+                MaxInputBytes = VisioLoad.Limits.MaxInputBytes, MaxLegacyXmlCharacters = VisioLoad.Limits.MaxLegacyXmlCharacters,
+                MaxPackageXmlCharacters = VisioLoad.Limits.MaxPackageXmlCharacters, MaxLegacyXmlDepth = VisioLoad.Limits.MaxLegacyXmlDepth,
+                MaxLegacyXmlElements = VisioLoad.Limits.MaxLegacyXmlElements
+            },
+            PackageSecurity = VisioLoad.PackageSecurity?.Snapshot()
         }
     };
 }

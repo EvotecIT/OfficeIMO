@@ -13,16 +13,16 @@ namespace OfficeIMO.Examples.Word
             using (WordDocument document = WordDocument.Create(filePath))
             {
                 {
-                    document.BuiltinDocumentProperties.Title = "Title";
-                    document.BuiltinDocumentProperties.Creator = "Author";
-                    document.BuiltinDocumentProperties.Subject = "Subject";
-                    document.BuiltinDocumentProperties.Keywords = "k1, k2";
-                    document.BuiltinDocumentProperties.Description = "Some comments";
-                    document.BuiltinDocumentProperties.Category = "Category";
+                    document.Properties.Title = "Title";
+                    document.Properties.Creator = "Author";
+                    document.Properties.Subject = "Subject";
+                    document.Properties.Keywords = "k1, k2";
+                    document.Properties.Description = "Some comments";
+                    document.Properties.Category = "Category";
                     document.ApplicationProperties.Company = "Evotec";
                     document.ApplicationProperties.Manager = "Manager1";
-                    document.BuiltinDocumentProperties.LastModifiedBy = "John";
-                    document.BuiltinDocumentProperties.Revision = "1.0";
+                    document.Properties.LastModifiedBy = "John";
+                    document.Properties.Revision = "1.0";
                     var paragraph1 = document.AddParagraph();
                     paragraph1 = paragraph1.AddText("Test");
                 }

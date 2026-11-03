@@ -115,7 +115,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.InRange(tables.Length, 2, 15);
         Assert.Equal(15, tables.Sum(table => table.Rows));
         Assert.Equal("Term 14", tables.Last().GetCell(tables.Last().Rows - 1, 0).Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
         Assert.All(tables, table =>
@@ -161,7 +161,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
         string html = "<table><tr><th>Term</th><th>Standard</th></tr>" + rows
             + "</table><p>Content after the limited table</p>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
@@ -171,7 +171,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
             box.Text == "Content after the limited table");
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && diagnostic.Detail?.Contains("firstOmittedRow=", StringComparison.Ordinal) == true);
     }
@@ -180,7 +180,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
     public void PowerPointHtml_TableLimitDoesNotAppendAnEmptyContinuationSlide() {
         string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
             $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
@@ -190,7 +190,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
 
         Assert.Single(presentation.Slides);
         Assert.Single(presentation.Slides[0].Tables);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && diagnostic.Detail?.Contains("firstOmittedRow=", StringComparison.Ordinal) == true);
     }

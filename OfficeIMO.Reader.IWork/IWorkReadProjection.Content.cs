@@ -9,7 +9,7 @@ internal sealed partial class IWorkReadProjection {
         ReportUnsupportedRotation(page, source.Geometry, "table");
         int tableIndex = _pageTables[page].Count;
         if (source.RowCount == 0 || source.ColumnCount == 0) return null;
-        int remainingCells = _options.MaximumProjectedTableCells - _projectedTableCells;
+        int remainingCells = _options.MaxProjectedTableCells - _projectedTableCells;
         if (remainingCells == 0) {
             if (!_reportedTableBudgetExhausted) {
                 _reportedTableBudgetExhausted = true;
@@ -24,7 +24,7 @@ internal sealed partial class IWorkReadProjection {
             AddTableComments(page, source, null, 0, 0, 0, 0);
             return null;
         }
-        int columnCount = Math.Min(Math.Min(source.ColumnCount, _options.MaximumTableColumns),
+        int columnCount = Math.Min(Math.Min(source.ColumnCount, _options.MaxTableColumns),
             remainingCells);
         int remainingRows = remainingCells / columnCount;
         int headerRows = Math.Min(source.HeaderRowCount, source.RowCount);

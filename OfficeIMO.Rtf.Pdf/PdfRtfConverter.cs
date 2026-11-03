@@ -20,7 +20,7 @@ internal static class PdfRtfConverter {
         AddUnsupportedContentDiagnostics(source, readOptions);
 
         if (readOptions.IncludeMetadata) {
-            CopyMetadata(source.Metadata, document.Info);
+            CopyMetadata(source.Metadata, document.Properties);
         }
 
         if (source.Pages.Count > 0) {
@@ -215,7 +215,7 @@ internal static class PdfRtfConverter {
         }
     }
 
-    private static void CopyMetadata(PdfCore.PdfMetadata source, RtfDocumentInfo target) {
+    private static void CopyMetadata(PdfCore.PdfDocumentProperties source, RtfDocumentInfo target) {
         target.Title = source.Title;
         target.Author = source.Author;
         target.Subject = source.Subject;

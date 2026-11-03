@@ -203,7 +203,7 @@ public static partial class HtmlContentSafety {
         renderOptions.Mode = HtmlRenderMode.Continuous;
         renderOptions.CssMediaContextOverride = HtmlCssMediaContext.Screen;
         ApplySafetyLimits(renderOptions, safetyOptions);
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxInputCharacters = Math.Min(limits.MaxInputCharacters ?? int.MaxValue, safetyOptions.MaxCharacters);
         limits.MaxCssBytes = Math.Min(limits.MaxCssBytes ?? long.MaxValue, renderOptions.MaxResourceBytes);
         limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, renderOptions.MaxTotalResourceBytes);
@@ -522,7 +522,7 @@ public static partial class HtmlContentSafety {
     }
 
     private static HtmlCssByteBudget CreatePackageCssBudget(OfficeContentSafetyOptions options) {
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = Math.Min(limits.MaxCssBytes ?? long.MaxValue, options.MaxInputBytes);
         limits.MaxTotalCssBytes = Math.Min(limits.MaxTotalCssBytes ?? long.MaxValue, options.MaxExpandedPackageBytes);
         return new HtmlCssByteBudget(limits);

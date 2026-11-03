@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Epub;
 
 public static partial class EpubManuscript {
-    private static void NormalizeLegacyHtml(XElement element, List<OfficeConversionFidelityDiagnostic> diagnostics) {
+    private static void NormalizeLegacyHtml(XElement element, List<OfficeDiagnostic> diagnostics) {
         string name = element.Name.LocalName;
         bool xhtml = element.Name.Namespace == Xhtml;
         bool svg = element.Name.NamespaceName == "http://www.w3.org/2000/svg";

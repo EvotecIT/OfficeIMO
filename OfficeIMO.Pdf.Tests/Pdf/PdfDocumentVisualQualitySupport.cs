@@ -117,8 +117,8 @@ public partial class PdfDocumentVisualQualityTests {
         style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(72);
         style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(130) };
         if (useCellAlignment) {
-            style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-                [(0, 0)] = PdfColumnAlign.Right
+            style.CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+                [(0, 0)] = OfficeAlignment.Right
             };
             style.CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
                 [(0, 0)] = PdfCellVerticalAlign.Bottom

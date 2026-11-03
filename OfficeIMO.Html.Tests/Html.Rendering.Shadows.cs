@@ -300,7 +300,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BoxShadowLayerLimit);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BoxShadowLayerLimit);
 
         Assert.Equal(2, rendered.Pages[0].Visuals.OfType<HtmlRenderShape>().Count(shape => shape.Source?.StartsWith("div#limited:box-shadow[", StringComparison.Ordinal) == true));
         Assert.Contains("layers=3;limit=2", diagnostic.Detail, StringComparison.Ordinal);
@@ -322,7 +322,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
 
         Assert.Equal("div#invalid-shadow", diagnostic.Source);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#invalid-shadow:box-shadow");
@@ -390,7 +390,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument limited = HtmlRenderTestDriver.Render(limitedHtml, options);
-        HtmlDiagnostic limit = Assert.Single(limited.Diagnostics, diagnostic =>
+        HtmlDiagnostic limit = Assert.Single(limited.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.TextShadowLayerLimit);
         HtmlRenderDocument invalid = HtmlRenderTestDriver.Render(
             "<p id='invalid' style='text-shadow:1px 2px -3px red'>Invalid</p>",

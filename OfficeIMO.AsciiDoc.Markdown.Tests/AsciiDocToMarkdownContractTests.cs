@@ -37,7 +37,7 @@ public sealed class AsciiDocToMarkdownContractTests {
         CodeBlock fallback = Assert.Single(result.Value.Blocks.OfType<CodeBlock>());
         Assert.Equal("asciidoc", fallback.Language);
         Assert.Contains("diagram::architecture", fallback.Content);
-        AsciiDocMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics);
+        AsciiDocMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics);
         Assert.Equal(AsciiDocMarkdownConversionOutcome.SourceFallback, diagnostic.Outcome);
         Assert.Equal(0, diagnostic.SourceSpan.Start.Offset);
         Assert.True(result.HasLoss);

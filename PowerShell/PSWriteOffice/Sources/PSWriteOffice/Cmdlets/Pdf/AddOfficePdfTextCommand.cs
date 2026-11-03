@@ -54,7 +54,7 @@ public sealed class AddOfficePdfTextCommand : PSCmdlet
 
     /// <summary>Paragraph alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Default paragraph color. Named colors and hexadecimal colors are accepted.</summary>
     [Parameter]

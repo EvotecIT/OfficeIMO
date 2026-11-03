@@ -28,7 +28,7 @@ public sealed class PdfClosedLedgerRuntimeWorkload {
     private readonly double[] _authoredBoundaries;
     private readonly double[] _rowBoundaries;
     private readonly double _baselineOffset;
-    private readonly PdfLoadOptions _loadOptions = new() { Limits = PdfReadLimits.Default };
+    private readonly PdfLoadOptions _loadOptions = new() { Limits = new PdfReadLimits() };
     private readonly PdfLoadOptions _readOptions = new() {
         Profile = PdfReadProfile.Structured, Pipeline = PdfUnderstandingPipelineOptions.Structured()
     };

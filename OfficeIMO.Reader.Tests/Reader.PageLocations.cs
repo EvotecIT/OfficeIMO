@@ -470,7 +470,7 @@ public sealed class ReaderPageLocationTests {
     [Fact]
     public void RtfReader_UsesExplicitBreaksAndSavedPageCountWithoutClaimingOverflowLayout() {
         RtfDocument rtf = RtfDocument.Create();
-        rtf.Info.NumberOfPages = 20;
+        rtf.Properties.NumberOfPages = 20;
         rtf.PageSetup.SetPaperSize(12240, 15840);
         rtf.AddParagraph("First page body.");
         RtfParagraph paragraph = rtf.AddParagraph("Needle on explicit page two.");

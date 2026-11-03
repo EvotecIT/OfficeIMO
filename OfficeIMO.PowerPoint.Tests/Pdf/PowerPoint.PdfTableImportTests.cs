@@ -309,7 +309,7 @@ public class PowerPointPdfTableImportTests {
             Assert.True(page.HasOmittedContent);
             Assert.True(result.HasLoss);
             Assert.Contains(result.Warnings, warning => warning.Code == "pdf-editable-object-limit-reached");
-            Assert.Throws<InvalidOperationException>(result.Report.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(result.Report.ThrowIfLoss);
         }
     }
 
@@ -508,7 +508,7 @@ public class PowerPointPdfTableImportTests {
             Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
             Assert.Equal("2", warning.Details["Count"]);
             Assert.Equal("Omitted", warning.Details["Disposition"]);
-            Assert.Throws<InvalidOperationException>(() => hybrid.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => hybrid.ThrowIfLoss());
         }
 
         PdfPowerPointConversionResult editable = PdfCore.PdfDocumentReadResult.Load(pdf)
@@ -518,7 +518,7 @@ public class PowerPointPdfTableImportTests {
                 warning.Code == "pdf-document-actions-not-reconstructed" &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
             Assert.True(editable.Report.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => editable.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => editable.ThrowIfLoss());
         }
 
         PdfPowerPointConversionResult visual = PdfCore.PdfDocument.Load(pdf)
@@ -1255,7 +1255,7 @@ public class PowerPointPdfTableImportTests {
         Assert.True(result.Truncated);
         Assert.False(result.HeaderRowIncluded);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
 
         using (PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false)) {
             Assert.Empty(new OpenXmlValidator().Validate(package).ToList());

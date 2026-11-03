@@ -111,7 +111,7 @@ public class RtfHtmlObjectsAndShapesTests {
         string encodedShapeText = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p><a href=\"file:///C:/secret-shape\">Shape link</a></p>"));
         string html = "<div data-officeimo-rtf-object=\"embedded\" data-officeimo-rtf-object-result=\"" + encodedObjectResult + "\"></div>" +
             "<div data-officeimo-rtf-shape=\"true\" data-officeimo-rtf-shape-text=\"" + encodedShapeText + "\"></div>";
-        var options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        var options = HtmlToRtfOptions.UntrustedDefaults;
         options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
 
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options);
@@ -124,7 +124,7 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.Equal("Object link", rtfObject.Result.ToPlainText());
         Assert.Equal("Shape link", Assert.Single(shape.TextBoxParagraphs).ToPlainText());
         Assert.Equal(2, result.RtfDiagnostics.Count(diagnostic => diagnostic.Code == "HtmlRtfHyperlinkRejected"));
-        Assert.Throws<RtfConversionLossException>(() => result.RtfReport.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.RtfReport.ThrowIfLoss());
     }
 
     [Fact]

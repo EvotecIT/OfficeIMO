@@ -30,7 +30,7 @@ public sealed class OpenOfficeEpubCommand : OfficeLifecycleCmdlet<EpubPublicatio
             RunDocument(source, isNew: false, force: false, path => EpubPublication.Load(path!),
                 (document, path, allowLoss) => {
                     EpubWriteReport report = document.Save(path);
-                    if (!allowLoss) report.RequireNoLoss();
+                    if (!allowLoss) report.ThrowIfLoss();
                     return null;
                 });
         }

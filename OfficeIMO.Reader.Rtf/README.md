@@ -63,7 +63,7 @@ RtfConversionResult<IReadOnlyList<ReaderChunk>> result =
     MaxInputBytes = 100L * 1024L * 1024L
 }, rtfOptions);
 
-IReadOnlyList<ReaderChunk> chunks = result.RequireNoLoss();
+IReadOnlyList<ReaderChunk> chunks = result.ThrowIfLoss();
 ```
 
 ### Read the semantic RTF envelope

@@ -27406,15 +27406,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Text alignment within the positioned rectangle.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -27638,15 +27640,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Text alignment within the positioned rectangle.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -27767,15 +27771,17 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Text alignment within the positioned rectangle.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -28056,15 +28062,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Field alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28192,15 +28200,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Field alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28340,15 +28350,17 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Field alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -28541,15 +28553,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Heading alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28610,15 +28624,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Heading alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -28691,15 +28707,17 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Heading alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -29086,15 +29104,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Image alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29167,15 +29187,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Image alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29260,15 +29282,17 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Image alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -29403,15 +29427,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>List alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29472,15 +29498,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>List alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29553,15 +29581,17 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>List alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -29833,15 +29863,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Horizontal placement inside the target page or rectangle.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30105,15 +30137,17 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Horizontal placement inside the target page or rectangle.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -30394,15 +30428,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Panel alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30439,15 +30475,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Panel alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30496,15 +30534,17 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Panel alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -30602,15 +30642,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Paragraph alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30659,15 +30701,17 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Paragraph alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30728,15 +30772,17 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Paragraph alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -32015,15 +32061,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Table alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -32081,15 +32129,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Caption alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -32159,14 +32209,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Per-column horizontal alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfColumnAlign[]</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfColumnAlign[]</maml:name>
+            <maml:name>OfficeAlignment[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -32567,15 +32620,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Table alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -32633,15 +32688,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Caption alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -32711,14 +32768,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Per-column horizontal alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfColumnAlign[]</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfColumnAlign[]</maml:name>
+            <maml:name>OfficeAlignment[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -33131,15 +33191,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Table alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -33197,15 +33259,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Caption alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -33275,14 +33339,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Per-column horizontal alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfColumnAlign[]</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfColumnAlign[]</maml:name>
+            <maml:name>OfficeAlignment[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -33695,15 +33762,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Table alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -33761,15 +33830,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Caption alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -33839,14 +33910,17 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Per-column horizontal alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfColumnAlign[]</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfColumnAlign[]</maml:name>
+          <maml:name>OfficeAlignment[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -34319,15 +34393,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Paragraph alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -34539,15 +34615,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Paragraph alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -34771,15 +34849,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <maml:description>
           <maml:para>Paragraph alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -35068,15 +35148,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Horizontal alignment in PDF flow.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -35185,15 +35267,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Horizontal alignment in PDF flow.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -35314,15 +35398,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Horizontal alignment in PDF flow.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -35443,15 +35529,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
           <maml:description>
             <maml:para>Horizontal alignment in PDF flow.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -35625,15 +35713,17 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
         <maml:description>
           <maml:para>Horizontal alignment in PDF flow.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -160862,14 +160952,17 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           <maml:description>
             <maml:para>Horizontal cell alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfColumnAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfColumnAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -161139,14 +161232,17 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <maml:description>
           <maml:para>Horizontal cell alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfColumnAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfColumnAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -205820,15 +205916,17 @@ Use low opacity for watermark-like page texture and -Clear to remove a previousl
           <maml:description>
             <maml:para>Footer alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -205890,15 +205988,17 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
           <maml:description>
             <maml:para>Footer alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -205972,15 +206072,17 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
         <maml:description>
           <maml:para>Footer alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -206447,15 +206549,17 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
           <maml:description>
             <maml:para>Header alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -206517,15 +206621,17 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
           <maml:description>
             <maml:para>Header alignment.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
           <command:parameterValueGroup>
             <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
             <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
           </command:parameterValueGroup>
           <dev:type>
-            <maml:name>PdfAlign</maml:name>
+            <maml:name>OfficeAlignment</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -206599,15 +206705,17 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
         <maml:description>
           <maml:para>Header alignment.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfAlign</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">OfficeAlignment</command:parameterValue>
         <command:parameterValueGroup>
           <command:parameterValue required="false" variableLength="false">Left</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Center</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Right</command:parameterValue>
           <command:parameterValue required="false" variableLength="false">Justify</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Start</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">End</command:parameterValue>
         </command:parameterValueGroup>
         <dev:type>
-          <maml:name>PdfAlign</maml:name>
+          <maml:name>OfficeAlignment</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

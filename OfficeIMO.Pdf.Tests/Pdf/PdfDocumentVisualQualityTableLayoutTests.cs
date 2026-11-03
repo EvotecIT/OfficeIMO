@@ -293,7 +293,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.Caption = "SignalCaption";
-        style.CaptionAlign = PdfAlign.Right;
+        style.CaptionAlign = OfficeAlignment.Right;
         style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
         style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8);
         style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
@@ -335,7 +335,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.Caption = "SignalCaption";
-        style.CaptionAlign = PdfAlign.Right;
+        style.CaptionAlign = OfficeAlignment.Right;
         style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
         style.CaptionFontSize = global::OfficeIMO.OfficeLength.Points(8);
         style.CaptionSpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
@@ -521,7 +521,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
                 new[] { "Alpha", "Beta" }
-            }, align: PdfAlign.Right, style: style)
+            }, align: OfficeAlignment.Right, style: style)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -559,7 +559,7 @@ public partial class PdfDocumentVisualQualityTests {
                             row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "Alpha", "Beta" }
-                                }, align: PdfAlign.Center, style: style))))))
+                                }, align: OfficeAlignment.Center, style: style))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -593,7 +593,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
                 new[] { "Alpha", "Beta" }
-            }, align: PdfAlign.Left, style: style)
+            }, align: OfficeAlignment.Left, style: style)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -632,7 +632,7 @@ public partial class PdfDocumentVisualQualityTests {
                             row.PercentColumn(100, column =>
                                 column.Table(new[] {
                                     new[] { "Alpha", "Beta" }
-                                }, align: PdfAlign.Left, style: style))))))
+                                }, align: OfficeAlignment.Left, style: style))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

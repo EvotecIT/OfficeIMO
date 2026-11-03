@@ -33,8 +33,8 @@ public partial class Word {
         Assert.Equal(PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.True(result.HasLoss);
         Assert.False(result.Report.HasErrors);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Contains("BEFOREAFTER", visible, StringComparison.Ordinal);
@@ -60,7 +60,7 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         var result = document.ConvertToPdfWithEvidence(FieldCacheDiagnosticOptions());
         Assert.DoesNotContain(result.Warnings, item => item.Code == "native-field-result-unavailable");
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Contains(cache == "stored" ? "BEFORESTOREDRESULTAFTER" : "BEFOREAFTER", visible, StringComparison.Ordinal);
@@ -98,8 +98,8 @@ public partial class Word {
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.Equal(PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Contains("BEFOREAFTER", string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)), StringComparison.Ordinal);
         Assert.Equal(sourceXml, paragraph._paragraph.OuterXml);
@@ -135,7 +135,7 @@ public partial class Word {
         var result = document.ConvertToPdfWithEvidence(FieldCacheDiagnosticOptions());
         Assert.Equal(visibleOverride ? 1 : 0, result.Warnings.Count(item => item.Code == "native-field-result-unavailable"));
         if (visibleOverride) Assert.True(result.HasLoss);
-        else result.RequireNoLoss();
+        else result.ThrowIfLoss();
     }
 
     [Theory]
@@ -152,7 +152,7 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         var result = document.ConvertToPdfWithEvidence(FieldCacheDiagnosticOptions());
         Assert.DoesNotContain(result.Warnings, item => item.Code == "native-field-result-unavailable");
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
     }
 
     [Theory]
@@ -171,7 +171,7 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         var result = document.ConvertToPdfWithEvidence(FieldCacheDiagnosticOptions());
         Assert.DoesNotContain(result.Warnings, item => item.Code == "native-field-result-unavailable");
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Contains("RUNNING1END1END1END", visible, StringComparison.Ordinal);
@@ -190,7 +190,7 @@ public partial class Word {
         Assert.Single(document.InspectFields());
         var result = document.ConvertToPdfWithEvidence(FieldCacheDiagnosticOptions());
         Assert.DoesNotContain(result.Warnings, item => item.Code == "native-field-result-unavailable");
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         var result = document.ConvertToPdfWithEvidence(FieldCacheDiagnosticOptions());
         Assert.DoesNotContain(result.Warnings, item => item.Code == "native-field-result-unavailable");
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         Assert.Contains("BEFORESTOREDRESULTAFTER", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)), StringComparison.Ordinal);
     }
@@ -231,7 +231,7 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
         var afterEdit = document.ConvertToPdfWithEvidence(options);
         Assert.DoesNotContain(afterEdit.Warnings, item => item.Code == "native-field-result-unavailable");
-        afterEdit.RequireNoLoss();
+        afterEdit.ThrowIfLoss();
         Assert.Single(first.Warnings, item => item.Code == "native-field-result-unavailable");
         Assert.Single(repeated.Warnings, item => item.Code == "native-field-result-unavailable");
         using var pdf = PdfPigDocument.Open(afterEdit.ToBytes());
@@ -251,7 +251,7 @@ public partial class Word {
         string[] xml = { start._paragraph.OuterXml, end._paragraph.OuterXml };
         var result = document.ConvertToPdfWithEvidence(FieldCacheDiagnosticOptions());
         Assert.Single(result.Warnings, item => item.Code == "native-field-result-unavailable");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string visible = string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value));
         Assert.Contains("BEFORE", visible, StringComparison.Ordinal);

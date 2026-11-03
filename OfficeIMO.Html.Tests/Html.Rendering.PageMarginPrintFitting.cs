@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(400D, page.Height, 6);
         Assert.Equal(Assert.Single(reference.ExportImages()).Bytes, Assert.Single(automatic.ExportImages()).Bytes);
         Assert.Equal("BODY", automatic.Document.Text.Trim());
-        automatic.RequireNoLoss();
+        automatic.ThrowIfLoss();
     }
 
     [Theory]
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expected.Width, actual.Width, 6);
         Assert.Equal(expected.Height, actual.Height, 6);
         Assert.Equal("BODY", decorated.Document.Text.Trim());
-        decorated.RequireNoLoss();
+        decorated.ThrowIfLoss();
     }
 
     private static string PageMarginPrintFitHtml(string? position, bool running, bool wideBody) {

@@ -104,7 +104,7 @@ public partial class PdfDocumentVisualQualityTests {
             Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255),
             PaddingX = global::OfficeIMO.OfficeLength.Points(16),
             MaxWidth = global::OfficeIMO.OfficeLength.Points(120),
-            Align = PdfAlign.Center
+            Align = OfficeAlignment.Center
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -431,7 +431,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 .Border(global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184))
                                 .Padding(vertical: global::OfficeIMO.OfficeLength.Points(6), horizontal: global::OfficeIMO.OfficeLength.Points(8))
                                 .MaxWidth(global::OfficeIMO.OfficeLength.Points(320))
-                                .Align(PdfAlign.Center)
+                                .Align(OfficeAlignment.Center)
                                 .Content(nested => nested
                                     .H3("Element Panel")
                                     .Paragraph(p => p.Text("Nested elements retain structured flow content."))))))))
@@ -488,7 +488,7 @@ public partial class PdfDocumentVisualQualityTests {
             PaddingX = global::OfficeIMO.OfficeLength.Points(7),
             PaddingY = global::OfficeIMO.OfficeLength.Points(8),
             MaxWidth = global::OfficeIMO.OfficeLength.Points(140),
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(3),
             SpacingAfter = global::OfficeIMO.OfficeLength.Points(9),
             KeepTogether = true,
@@ -503,7 +503,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.PaddingX = global::OfficeIMO.OfficeLength.Points(20);
         style.PaddingY = global::OfficeIMO.OfficeLength.Points(21);
         style.MaxWidth = global::OfficeIMO.OfficeLength.Points(200);
-        style.Align = PdfAlign.Right;
+        style.Align = OfficeAlignment.Right;
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(20);
         style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(21);
         style.KeepTogether = false;
@@ -515,7 +515,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(7, block.Style.PaddingX.ToPoints());
         Assert.Equal(8, block.Style.PaddingY.ToPoints());
         Assert.Equal(140, (block.Style.MaxWidth?.ToPoints()));
-        Assert.Equal(PdfAlign.Center, block.Style.Align);
+        Assert.Equal(OfficeAlignment.Center, block.Style.Align);
         Assert.Equal(3, block.Style.SpacingBefore.ToPoints());
         Assert.Equal(9, block.Style.SpacingAfter.ToPoints());
         Assert.True(block.Style.KeepTogether);
@@ -528,7 +528,7 @@ public partial class PdfDocumentVisualQualityTests {
             PaddingX = global::OfficeIMO.OfficeLength.Points(7),
             PaddingY = global::OfficeIMO.OfficeLength.Points(8),
             MaxWidth = global::OfficeIMO.OfficeLength.Points(140),
-            Align = PdfAlign.Center,
+            Align = OfficeAlignment.Center,
             KeepTogether = true,
             KeepWithNext = true
         };
@@ -549,7 +549,7 @@ public partial class PdfDocumentVisualQualityTests {
         renderStyle.PaddingX = global::OfficeIMO.OfficeLength.Points(20);
         renderStyle.PaddingY = global::OfficeIMO.OfficeLength.Points(21);
         renderStyle.MaxWidth = global::OfficeIMO.OfficeLength.Points(200);
-        renderStyle.Align = PdfAlign.Right;
+        renderStyle.Align = OfficeAlignment.Right;
         renderStyle.KeepTogether = false;
         renderStyle.KeepWithNext = false;
 

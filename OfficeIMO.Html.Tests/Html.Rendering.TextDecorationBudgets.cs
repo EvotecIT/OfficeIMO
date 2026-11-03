@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void TextDecorationScanPreservesSupplementaryBidiAcrossChunkBoundaries() {
         var scene = HtmlRenderTestDriver.Render("<span style='text-decoration:overline 3px'>" + new string('x', 255) + "\U0001E900</span>");
-        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
+        Assert.Contains(scene.NativeDiagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
             && d.Detail?.Contains("bidi", StringComparison.Ordinal) == true);
         Assert.Empty(DecorationLines(scene));
     }

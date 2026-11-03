@@ -184,8 +184,7 @@ public static partial class OfficeConverter {
         } catch (OfficeConversionException error) when (sourceReport != null) {
             var report = new OfficeConversionReport(settings.SourceName!, settings.TargetName!,
                 elapsed: timer.Elapsed, diagnostics: sourceReport.Diagnostics.Concat(ReferenceEquals(sourceReport, error.Report) ? Array.Empty<OfficeDiagnostic>() :
-                    error.Report is OfficeConversionReport shared ? shared.Diagnostics : error.Report.FidelityDiagnostics.Select(
-                        d => new OfficeDiagnostic(d.Code, OfficeDiagnosticSeverity.Warning, d.Message, d.Location, d.Source, d.LossKind))));
+                    error.Report.Diagnostics));
             throw new OfficeConversionException(error.Message, report, error);
         }
         return new OfficeConversionReport(settings.SourceName!, result.Target, itemsWritten: result.ItemsWritten,

@@ -32,7 +32,7 @@ public partial class Html {
         var result = new HtmlTextConversionResult("<p>Body</p>", new[] { diagnostic });
 
         Assert.True(result.HasLoss);
-        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.Diagnostics).LossKind);
     }
 
     [Fact]
@@ -47,8 +47,8 @@ public partial class Html {
 
         Assert.False(result.Succeeded);
         Assert.True(result.HasLoss);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
-        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.Diagnostics).LossKind);
+        Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Theory]
@@ -67,10 +67,10 @@ public partial class Html {
 
         Assert.False(result.Succeeded);
         Assert.True(result.HasLoss);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.Diagnostics).LossKind);
         Assert.Equal(OfficeConversionLossKind.Failure,
             diagnostic.WithLossKind(OfficeConversionLossKind.Omission).LossKind);
-        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -91,12 +91,12 @@ public partial class Html {
             new[] { diagnostic },
             Array.Empty<HtmlCapabilityGalleryCheck>());
 
-        IOfficeConversionReport report = evidence;
-        OfficeConversionFidelityDiagnostic projected = Assert.Single(report.FidelityDiagnostics);
+        OfficeConversionReport report = evidence;
+        OfficeDiagnostic projected = Assert.Single(report.Diagnostics);
         Assert.Equal(OfficeConversionLossKind.Omission, projected.LossKind);
-        Assert.Equal("OfficeIMO.Html.Tests", projected.Source);
+        Assert.Equal("OfficeIMO.Html.Tests", projected.Format);
         Assert.Equal("asset:image", projected.Location);
-        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     [Fact]
@@ -117,13 +117,13 @@ public partial class Html {
             new[] { diagnostic },
             Array.Empty<HtmlCapabilityGalleryCheck>());
 
-        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] {
+        foreach (OfficeConversionReport report in new OfficeConversionReport[] {
             conversion.Report,
             artifact
         }) {
-            OfficeConversionFidelityDiagnostic projected = Assert.Single(report.FidelityDiagnostics);
+            OfficeDiagnostic projected = Assert.Single(report.Diagnostics);
             Assert.Equal("HTML_DIAGNOSTIC_UNCATEGORIZED", projected.Code);
-            Assert.Equal("OfficeIMO.Html", projected.Source);
+            Assert.Equal("OfficeIMO.Html", projected.Format);
             Assert.Equal(OfficeConversionLossKind.Approximation, projected.LossKind);
             Assert.True(report.HasLoss);
         }

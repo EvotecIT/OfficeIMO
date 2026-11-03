@@ -52,7 +52,7 @@ public sealed class EmlxStreamingTests {
         try {
             byte[] expected = Enumerable.Range(0, 65536).Select(index => (byte)index).ToArray();
             string path = Path.Combine(root, "message.emlx");
-            new EmailStoreEmlxWriter().Write(Document(expected), path).RequireNoLoss();
+            new EmailStoreEmlxWriter().Write(Document(expected), path).ThrowIfLoss();
             IEmailContentSource source;
             Stream outstanding;
             using (EmailStoreSession session = EmailStoreSession.Open(directory ? root : path)) {
@@ -67,7 +67,7 @@ public sealed class EmlxStreamingTests {
                 input.CopyTo(content);
                 Assert.Equal(expected, content.ToArray());
                 using var rewritten = new MemoryStream();
-                new EmailStoreEmlxWriter().Write(item.Document, rewritten).RequireNoLoss();
+                new EmailStoreEmlxWriter().Write(item.Document, rewritten).ThrowIfLoss();
                 Assert.Equal(expected, new EmailStoreReader().Read(rewritten, "rewritten.emlx")
                     .Store.Folders.Single().Items.Single().Document.Attachments.Single().Content);
             }
@@ -111,7 +111,7 @@ public sealed class EmlxStreamingTests {
                 Assert.Equal("Existing artifact", File.ReadAllText(path));
             } else {
                 EmailWriteResult result = await new EmailStoreEmlxWriter().WriteAsync(document, path, cancellation.Token);
-                result.RequireNoLoss();
+                result.ThrowIfLoss();
                 Assert.Equal(new byte[] { 1, 2, 3, 4 }, new EmailStoreReader().Read(path)
                     .Store.Folders.Single().Items.Single().Document.Attachments.Single().Content);
             }

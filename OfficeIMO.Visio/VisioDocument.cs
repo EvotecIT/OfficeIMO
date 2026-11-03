@@ -156,15 +156,8 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioPackageTheme? PackageTheme { get; set; }
 
-        /// <summary>
-        /// Gets or sets the title of the document.
-        /// </summary>
-        public string? Title { get; set; }
-
-        /// <summary>
-        /// Gets or sets the author of the document.
-        /// </summary>
-        public string? Author { get; set; }
+        /// <summary>Standard package properties stored in docProps/core.xml.</summary>
+        public VisioDocumentProperties Properties { get; } = new VisioDocumentProperties();
 
         /// <summary>
         /// When true, shapes with a known <see cref="VisioShape.NameU"/> (e.g. "Rectangle")

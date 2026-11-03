@@ -56,7 +56,7 @@ public sealed partial class BookProject {
                 ?? throw new InvalidDataException("The exported EPUB does not contain its selected package.");
             package = Read(entry, MaximumDeliveryMetadataBytes, cancellationToken);
         }
-        if (_diagnostics.Count > 10_000 || result.Report.FidelityDiagnostics.Count > 10_000)
+        if (_diagnostics.Count > 10_000 || result.Report.Diagnostics.Count > 10_000)
             throw new InvalidDataException("The delivery manifest exceeds its diagnostic-count bound.");
         var manifest = new BookDeliveryManifest {
             PackagePath = _publication.PackagePath,
@@ -64,7 +64,7 @@ public sealed partial class BookProject {
             Files = [DescribeDeliveryFile("publication.epub", "application/epub+zip", result.Bytes),
                 DescribeDeliveryFile("package.opf", "application/oebps-package+xml", package)],
             ImportDiagnostics = _diagnostics.Select(DescribeDeliveryDiagnostic).ToArray(),
-            WriterDiagnostics = result.Report.FidelityDiagnostics.Select(DescribeDeliveryDiagnostic).ToArray()
+            WriterDiagnostics = result.Report.Diagnostics.Select(DescribeDeliveryDiagnostic).ToArray()
         };
         return (result.Bytes, package, manifest);
     }
@@ -73,8 +73,8 @@ public sealed partial class BookProject {
         Name = name, MediaType = mediaType, Bytes = bytes.LongLength, Sha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(bytes))
     };
 
-    private static BookDeliveryDiagnostic DescribeDeliveryDiagnostic(OfficeConversionFidelityDiagnostic diagnostic) => new() {
-        Code = diagnostic.Code, Message = diagnostic.Message, Source = diagnostic.Source,
+    private static BookDeliveryDiagnostic DescribeDeliveryDiagnostic(OfficeDiagnostic diagnostic) => new() {
+        Code = diagnostic.Code, Message = diagnostic.Message, Source = diagnostic.Format ?? string.Empty,
         Location = diagnostic.Location, LossKind = diagnostic.LossKind.ToString()
     };
 }

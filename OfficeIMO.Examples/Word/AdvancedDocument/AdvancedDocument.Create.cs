@@ -16,8 +16,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "AdvancedDocument.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 // lets add some properties to the document
-                document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-                document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+                document.Properties.Title = "Cover Page Templates";
+                document.Properties.Subject = "How to use Cover Pages with TOC";
                 document.ApplicationProperties.Company = "Evotec Services";
 
                 // we force document to update fields on open, this will be used by TOC
@@ -97,9 +97,9 @@ namespace OfficeIMO.Examples.Word {
 
                 wordListToc.AddItem("Adding custom properties and page numbers to document");
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
-                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+                document.CustomProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomProperties.Add("MyName", new WordCustomProperty("Some text"));
+                document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
                 // add page numbers
                 document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.PlainNumber);

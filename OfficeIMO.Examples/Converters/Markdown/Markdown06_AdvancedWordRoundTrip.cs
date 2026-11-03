@@ -60,9 +60,9 @@ namespace OfficeIMO.Examples.Word.Converters {
         }
 
         private static void BuildSourceDocument(WordDocument document) {
-            document.BuiltinDocumentProperties.Title = "Advanced Markdown conversion sample";
-            document.BuiltinDocumentProperties.Subject = "Word to Markdown conversion with visual fallback";
-            document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+            document.Properties.Title = "Advanced Markdown conversion sample";
+            document.Properties.Subject = "Word to Markdown conversion with visual fallback";
+            document.Properties.Creator = "OfficeIMO";
 
             document.PageSetup.Header.AddParagraph("OfficeIMO advanced Markdown conversion");
             document.PageSetup.Footer.AddParagraph("Generated from OfficeIMO.Word.Markdown");

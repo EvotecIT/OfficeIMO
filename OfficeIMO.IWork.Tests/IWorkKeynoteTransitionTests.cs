@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = KeynoteWithBuildDeclarations(BytesField(4, Message(BytesField(2,
             Message(BytesField(8, Message(StringField(1, "Transition"), StringField(2, "none"))))))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaximumProtobufDepth = 2 });
+            new IWorkReadOptions { MaxProtobufDepth = 2 });
         Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
     }
 

@@ -406,7 +406,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     internal void Validate() {
         ValidateImageExportOptions();
         if (FidelityPolicy != HtmlRenderFidelityPolicy.AllowDiagnosedLoss
-            && FidelityPolicy != HtmlRenderFidelityPolicy.RequireNoLoss) {
+            && FidelityPolicy != HtmlRenderFidelityPolicy.FailOnLoss) {
             throw new ArgumentOutOfRangeException(nameof(FidelityPolicy));
         }
         if (CssMediaContextOverride.HasValue

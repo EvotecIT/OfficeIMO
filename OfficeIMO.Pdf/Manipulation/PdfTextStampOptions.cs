@@ -8,7 +8,7 @@ public sealed class PdfTextStampOptions {
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
     private int[]? _pageNumbers;
-    private PdfAlign _align = PdfAlign.Left;
+    private OfficeAlignment _align = OfficeAlignment.Left;
     private PdfStandardFont _font = PdfStandardFont.HelveticaBold;
     private global::OfficeIMO.OfficeLength _fontSize = global::OfficeIMO.OfficeLength.Points(24);
     private double _rotationDegrees;
@@ -105,14 +105,14 @@ public sealed class PdfTextStampOptions {
     public bool BehindContent { get; set; }
 
     /// <summary>
-    /// Horizontal alignment of the text against <see cref="X"/>: <see cref="PdfAlign.Left"/> (the default) starts the
-    /// text at X, <see cref="PdfAlign.Center"/> centres it on X and <see cref="PdfAlign.Right"/> ends it at X. When X is
+    /// Horizontal alignment of the text against <see cref="X"/>: <see cref="OfficeAlignment.Left"/> (the default) starts the
+    /// text at X, <see cref="OfficeAlignment.Center"/> centres it on X and <see cref="OfficeAlignment.Right"/> ends it at X. When X is
     /// null, centred text uses the page centre and right-aligned text ends 36 points from the right page edge.
     /// </summary>
-    public PdfAlign Align {
+    public OfficeAlignment Align {
         get => _align;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(Align), "Text stamp");
+            value = Guard.LeftCenterRightAlign(value, nameof(Align), "Text stamp");
             _align = value;
         }
     }

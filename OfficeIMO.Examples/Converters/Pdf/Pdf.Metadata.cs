@@ -9,10 +9,10 @@ namespace OfficeIMO.Examples.Word {
             string docPath = Path.Combine(folderPath, "PdfWithMetadata.docx");
             string pdfPath = Path.Combine(folderPath, "PdfWithMetadata.pdf");
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.BuiltinDocumentProperties.Title = "Pdf Title";
-                document.BuiltinDocumentProperties.Creator = "Pdf Author";
-                document.BuiltinDocumentProperties.Subject = "Pdf Subject";
-                document.BuiltinDocumentProperties.Keywords = "keyword1, keyword2";
+                document.Properties.Title = "Pdf Title";
+                document.Properties.Creator = "Pdf Author";
+                document.Properties.Subject = "Pdf Subject";
+                document.Properties.Keywords = "keyword1, keyword2";
                 document.AddParagraph("Test");
                 document.Save();
                 document.SaveAsPdf(pdfPath);

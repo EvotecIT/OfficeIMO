@@ -24,7 +24,7 @@ internal static class NativePagesNumberedListWriterSmoke {
         VerifySavedWord(bytes, [7, 8, 9, 1, 2, 10, 1, 5, 3, 6, 11, 1, 4, 5]);
         using var unchanged = new MemoryStream(); unchanged.WriteByte(9);
         try {
-            document.Save(unchanged, new() { MaximumNumberedLists = 1 });
+            document.Save(unchanged, new() { MaxNumberedLists = 1 });
             throw new InvalidOperationException("The Pages list budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.CanWrite && unchanged.ToArray().SequenceEqual(new byte[] { 9 }), "List rejection changed the caller stream.");

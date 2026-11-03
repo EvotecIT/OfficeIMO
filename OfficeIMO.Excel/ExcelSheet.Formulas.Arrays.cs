@@ -60,8 +60,9 @@ namespace OfficeIMO.Excel {
         private FixedArraySheetIndex BuildFixedArraySheetIndex() {
             var index = new FixedArraySheetIndex();
             Metadata? metadata = null;
-            foreach (Cell candidate in ExcelWorksheetScan.Cells(WorksheetRoot)) {
-                if (ExcelWorksheetScan.FindFormula(candidate) != null) index.FormulaCells.Add(candidate);
+            // Array owners and formula cells are DOM cells, so the walk leaves stored cells where they are.
+            foreach (Cell candidate in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
+                index.FormulaCells.Add(candidate);
                 if (ExcelWorksheetScan.FindFormula(candidate)?.FormulaType?.Value == CellFormulaValues.Array
                     && IsSupportedArrayExpression(ExcelWorksheetScan.FindFormula(candidate)!.Text)
                     && TryFixedArrayBounds(ExcelWorksheetScan.FindFormula(candidate)!.Reference?.Value ?? "",
@@ -145,7 +146,7 @@ namespace OfficeIMO.Excel {
             // Imported or subsequently edited ranges can contain another formula.
             // Never replace that formula with an array cache.
             IEnumerable<Cell> formulaCells = _formulaEvaluationCache == null
-                ? ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c) != null)
+                ? ExcelWorksheetScan.FormulaCells(WorksheetRoot)
                 : GetFixedArraySheetIndex().FormulaCells;
             foreach (Cell occupied in formulaCells) {
                 if (occupied == cell || ExcelWorksheetScan.FindFormula(occupied) == null) continue;

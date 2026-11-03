@@ -114,7 +114,7 @@ public sealed partial class IWorkBoundaryTests {
                 ? Message(ReferenceField(3, 30), ReferenceField(3, 31)) : ReferenceField(3, 30),
             styleRecords: defect == "missing" ? Array.Empty<byte[]>() : new[] { style, TableSizingStyle(31, false) });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 });
+            new IWorkReadOptions { MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 });
         using var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Null(result.Projection.Tables[0].AutoResizeRows);

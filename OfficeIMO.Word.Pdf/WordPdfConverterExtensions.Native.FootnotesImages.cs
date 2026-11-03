@@ -250,7 +250,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordPdfExportOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null, WordSection? anchorSection = null) {
+        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, WordPdfExportOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null, WordSection? anchorSection = null) {
             if (image == null) {
                 return false;
             }

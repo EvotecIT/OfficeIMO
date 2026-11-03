@@ -19,13 +19,13 @@ public sealed partial class HtmlRenderingTests {
             "<div style='transform:rotate(not-an-angle)'>Fallback</div>");
 
         Assert.True(permissive.HasLoss);
-        HtmlConversionException documentException = Assert.Throws<HtmlConversionException>(() => permissive.RequireNoLoss());
+        HtmlConversionException documentException = Assert.Throws<HtmlConversionException>(() => permissive.ThrowIfLoss());
         Assert.StartsWith("HTML conversion did not satisfy the required no-loss contract.", documentException.Message, StringComparison.Ordinal);
         Assert.Contains(HtmlRenderDiagnosticCodes.TransformValueUnsupported, documentException.Message, StringComparison.Ordinal);
         Assert.Contains(documentException.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported);
 
         var strict = new HtmlRenderOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
         HtmlConversionException renderException = Assert.Throws<HtmlConversionException>(() =>
             HtmlRenderTestDriver.Render("<div style='transform:rotate(not-an-angle)'>Fallback</div>", strict));
@@ -35,18 +35,18 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public async Task HtmlRenderAsync_StrictLossContractReturnsCleanOutputAndRejectsFallbacks() {
         var options = new HtmlRenderOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         options.Fonts.Add("Arial", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(
             Enumerable.Range(32, 95).ToArray()));
         HtmlRenderDocument clean = await HtmlRenderTestDriver.RenderAsync("<h1>Lossless static output</h1>", options);
         Assert.False(clean.HasLoss);
-        Assert.Same(clean, clean.RequireNoLoss());
+        clean.ThrowIfLoss();
 
         await Assert.ThrowsAsync<HtmlConversionException>(() =>
             HtmlRenderTestDriver.RenderAsync("<div style='opacity:not-a-number'>Fallback</div>", options));
-        Assert.Equal(HtmlRenderFidelityPolicy.RequireNoLoss, options.Clone().FidelityPolicy);
+        Assert.Equal(HtmlRenderFidelityPolicy.FailOnLoss, options.Clone().FidelityPolicy);
     }
 
     [Fact]
@@ -258,7 +258,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task HtmlRenderAsync_EnforcesSharedCssByteLimitsAcrossResolvedStylesheets() {
         const string firstCss = ".first { color:red; }";
         const string secondCss = ".second { color:blue; }";
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = 24;
         limits.MaxTotalCssBytes = 30;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -275,7 +275,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.CssTotalSizeLimitExceeded
             && diagnostic.Source == "https://assets.example.test/second.css");
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("First", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(255, 0, 0));
@@ -288,7 +288,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] encodedCss = System.Text.Encoding.Unicode.GetPreamble()
             .Concat(System.Text.Encoding.Unicode.GetBytes(css))
             .ToArray();
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = System.Text.Encoding.UTF8.GetByteCount(css);
         limits.MaxTotalCssBytes = 128;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -301,7 +301,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
             && diagnostic.Source == "https://assets.example.test/utf16.css");
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text =>
@@ -312,7 +312,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task HtmlRenderAsync_RejectsOversizedStylesheetBeforeQueuingImports() {
         const string oversizedCss = "@import 'must-not-load.css'; .oversized { color: red; padding: 20px; }";
         var requested = new List<string>();
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = 32;
         limits.MaxTotalCssBytes = 128;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -332,14 +332,14 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
 
         Assert.Equal(new[] { "https://assets.example.test/top.css" }, requested);
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
             && diagnostic.Source == "https://assets.example.test/top.css");
     }
 
     [Fact]
     public async Task HtmlRenderAsync_EnforcesPerSheetCssByteLimitOnResolvedImports() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = 24;
         limits.MaxTotalCssBytes = 64;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -357,7 +357,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(document, options);
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.CssSizeLimitExceeded
             && diagnostic.Source == "base.css");
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Base", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(1, 2, 3));
@@ -431,7 +431,7 @@ public sealed partial class HtmlRenderingTests {
             "<link rel='stylesheet' href='https://assets.example.test/theme.css'><p>Pending sheet</p>",
             new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 240D, Margins = HtmlRenderMargins.All(8D) });
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending
             && diagnostic.Source == "https://assets.example.test/theme.css");
     }
@@ -1027,7 +1027,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.LinkUri == linkUri && text.Text.Contains("rendering", StringComparison.Ordinal));
         Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Screen", StringComparison.Ordinal) && text.Color.G > text.Color.R);
         Assert.Contains("rendering", rendered.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -2081,13 +2081,13 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument permissive = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
-        HtmlDiagnostic diagnostic = Assert.Single(permissive.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(permissive.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.DoesNotContain(permissive.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("Report", StringComparison.Ordinal));
 
         HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         }));
         Assert.Contains(exception.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
     }
@@ -2330,7 +2330,7 @@ public sealed partial class HtmlRenderingTests {
             + "<aside style='-officeimo-pdf-tag-type:artifact'>Decorative note</aside>"
             + "</main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
                 OutlineExpansionLevel = 64,
@@ -2404,7 +2404,7 @@ public sealed partial class HtmlRenderingTests {
             + "<table style='-officeimo-pdf-tag-type:artifact'><tr><td>Decorative table<input name='artifact-field' value='Must not be interactive'></td></tr></table>"
             + "</main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             ResourceUrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile(),
             PdfOptions = new PdfCore.PdfCreateOptions {
@@ -2439,7 +2439,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_InlineArtifactCannotCreateABookmark() {
         const string html = "<p>Before <span style='bookmark-level:1;bookmark-label:\"Decorative\";-officeimo-pdf-tag-type:artifact'>Hidden outline</span> after</p>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         };
 
@@ -2461,7 +2461,7 @@ public sealed partial class HtmlRenderingTests {
             + "<p style='margin:0;width:1px'><span id='narrow-before'>X</span></p>"
             + "<p style='margin:0;width:1px'><span id='narrow-bookmark' style='bookmark-level:1'>X</span></p>"
             + "<p style='margin:0;width:1px'><span id='narrow-after'>X</span></p>";
-        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderText[] textVisuals = EnumerateRenderVisuals(rendered.Pages[0].Scene)
@@ -2493,7 +2493,7 @@ public sealed partial class HtmlRenderingTests {
             + "<h2 style='bookmark-label:\"Heading label\";bookmark-state:closed'>Heading text</h2>"
             + "<div style='bookmark-level:2;bookmark-label:\"Explicit entry\"'>Explicit text</div>"
             + "</main>";
-        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
@@ -2510,7 +2510,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_BookmarkTitlesKeepLogicalSourceOrderAfterVisualRepositioning() {
         const string html = "<h1><span style='position:relative;left:100px'>A</span><span>B</span></h1>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { OutlineExpansionLevel = 64 }
         };
 
@@ -2549,7 +2549,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='artifact-contents' style='display:contents;-officeimo-pdf-tag-type:artifact'><p>Decorative first <a href='https://evotec.xyz/decorative'>link</a></p><p>Decorative second <input name='decorative-field' value='hidden'></p></div>"
             + "</main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
                 TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
@@ -2579,7 +2579,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='display:grid'><div id='grid-bookmark' style='display:contents;bookmark-level:1;bookmark-label:\"Grid entry\"'><span>Grid body</span></div><div id='grid-artifact' style='display:contents;-officeimo-pdf-tag-type:artifact'><a href='https://evotec.xyz/grid'>Grid link</a><input name='grid-field' value='hidden'></div></div>"
             + "</main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         };
 
@@ -2606,7 +2606,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='display:grid;position:relative;height:20px'><div id='grid-only' style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><span style='position:absolute;left:0;top:0'>Grid only</span></div></div>"
             + "</main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         };
 
@@ -2624,7 +2624,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_BookmarkFallbackLabelsUseCssNormalWhitespace() {
         const string html = "<h1>Alpha   <span>Beta</span>\n    Gamma</h1>";
-        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
@@ -2644,7 +2644,7 @@ public sealed partial class HtmlRenderingTests {
             + "<table style='bookmark-level:1'><tr><td>Table<span style='display:none'>Private</span><span style='-officeimo-pdf-tag-type:none'>Decorative</span> entry</td></tr></table>"
             + "<input style='bookmark-level:1' aria-label='Field entry' value='Value'>"
             + "</main>";
-        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
@@ -2663,7 +2663,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>.generated::before{content:'Generated '}</style>"
             + "<h1 class='generated' style='text-transform:uppercase'>Source title</h1>"
             + "<p>Before <span class='generated' style='bookmark-level:1;text-transform:uppercase'>Inline source</span> after</p>";
-        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+        var options = new HtmlToPdfOptions { FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
@@ -2682,7 +2682,7 @@ public sealed partial class HtmlRenderingTests {
             Mode = HtmlRenderMode.Paged,
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -2701,7 +2701,7 @@ public sealed partial class HtmlRenderingTests {
             + "<h1>Start<span style='position:absolute;left:120px'>Middle</span>End</h1>"
             + "</main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         };
 
@@ -2727,7 +2727,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a style='display:block;position:fixed;left:0;top:0' href='https://evotec.xyz/hidden'>Hidden artifact link</a>"
             + "</div></div></main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         };
 
@@ -2755,7 +2755,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a style='display:block;position:" + position + ";left:0;top:0' href='https://evotec.xyz/hidden'>Hidden nested artifact link</a>"
             + "</div></div></div></main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         };
 
@@ -2781,7 +2781,7 @@ public sealed partial class HtmlRenderingTests {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(2D), global::OfficeIMO.OfficeLength.Inches(1.25D)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         };
 
@@ -2804,7 +2804,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DisplayContentsReusesOneListStructureAcrossSiblingFragments() {
         const string html = "<main><ol style='display:contents'><li>First item body</li><li>Second item body</li></ol><ol><li style='display:contents'><p>Flattened item body</p><p>Continuation body</p></li></ol></main>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
         };
 
@@ -2827,7 +2827,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(permissive.Headings, heading => heading.Text.Contains("Not a heading", StringComparison.Ordinal));
 
         HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         }));
         Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PdfSemanticTagUnsupported);
         Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BookmarkValueUnsupported);
@@ -2837,7 +2837,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_PagedGeneratedMarginTextIsDecorativeArtifact() {
         const string html = "<style>@page{size:320px 180px;margin:32px;@top-left{content:\"Page \" counter(page)}}</style><p>Body</p>";
         var options = new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
         };
 
@@ -3008,7 +3008,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(overridden[2].X < overridden[1].X);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported);
-        HtmlDiagnostic[] shapingDiagnostics = rendered.Diagnostics.Where(diagnostic =>
+        HtmlDiagnostic[] shapingDiagnostics = rendered.NativeDiagnostics.Where(diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported).ToArray();
         // This fixture has no admitted font-directed provider. Authored Arabic
         // presentation forms are normalized for joining too; their unchanged

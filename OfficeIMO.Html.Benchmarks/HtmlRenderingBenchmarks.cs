@@ -28,7 +28,7 @@ public class HtmlRenderingStageBenchmarks {
         _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
             _document,
             _options,
-            HtmlConversionLimits.CreateUntrustedProfile());
+            HtmlConversionLimits.UntrustedDefaults);
         _fonts = new OfficeFontFaceCollection();
         _pageRules = new HtmlCssPageRuleSet();
         _resources = new HtmlResourceSession();
@@ -164,7 +164,7 @@ public class HtmlLongDocumentBenchmarks {
         _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
             _htmlDocument,
             _renderOptions,
-            HtmlConversionLimits.CreateUntrustedProfile());
+            HtmlConversionLimits.UntrustedDefaults);
         _fonts = new OfficeFontFaceCollection();
         _resources = new HtmlResourceSession();
         RequireLongDocumentContract(HtmlRenderEngine.Render(_document, _renderOptions));
@@ -267,7 +267,7 @@ public class HtmlStaticStandardsBenchmarks {
     }
 
     private static HtmlRenderDocument RequireStandardsContract(HtmlRenderDocument rendered) {
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         if (rendered.Pages.Count != 2
             || !rendered.Text.Contains("Static standards packet", StringComparison.Ordinal)
             || !rendered.Text.Contains("Second-page evidence", StringComparison.Ordinal)) {
@@ -297,7 +297,7 @@ internal static class HtmlBenchmarkCorpus {
         PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
         Margins = HtmlRenderMargins.All(32D),
         BackgroundColor = OfficeColor.White,
-        FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
     };
 
     internal static string BuildReport(int rowCount, bool includeUnicodeText = false) {

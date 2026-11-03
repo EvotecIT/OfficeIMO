@@ -70,7 +70,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append(newline);
         builder.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
         if (options.IncludeMetadata) {
-            string? title = options.Title ?? document.Info.Title;
+            string? title = options.Title ?? document.Properties.Title;
             if (!string.IsNullOrWhiteSpace(title)) {
                 builder.Append(newline);
                 builder.Append("<title>");

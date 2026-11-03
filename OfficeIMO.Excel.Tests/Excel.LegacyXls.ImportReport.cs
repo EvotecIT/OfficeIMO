@@ -31,13 +31,13 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(result.AdvancedWorkbook.Worksheets[0].Cells,
                 cell => cell.Row == 2 && (cell.Column == 2 || cell.Column == 3));
-            OfficeConversionFidelityDiagnostic omission = Assert.Single(result.FidelityDiagnostics,
+            OfficeDiagnostic omission = Assert.Single(result.Diagnostics,
                 item => item.Code == "xls-biff-sheet-record-invalid");
             Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
             Assert.True(result.HasLoss);
-            Assert.Contains(result.Summary.FidelityDiagnostics,
+            Assert.Contains(result.Summary.Diagnostics,
                 item => item.Code == omission.Code && item.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(result.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(result.ThrowIfLoss);
         }
 
         [Theory]
@@ -49,13 +49,13 @@ namespace OfficeIMO.Tests {
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
             Assert.Empty(result.AdvancedWorkbook.DefinedNames);
-            OfficeConversionFidelityDiagnostic omission = Assert.Single(result.FidelityDiagnostics,
+            OfficeDiagnostic omission = Assert.Single(result.Diagnostics,
                 item => item.Code == code);
             Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
             Assert.True(result.HasLoss);
-            Assert.Contains(result.Summary.FidelityDiagnostics,
+            Assert.Contains(result.Summary.Diagnostics,
                 item => item.Code == code && item.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(result.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(result.ThrowIfLoss);
         }
 
         [Fact]

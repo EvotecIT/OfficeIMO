@@ -323,7 +323,7 @@ public sealed partial class IWorkBoundaryTests {
         var result = new OfficeDocumentReadResult();
         var projection = new IWorkReadProjection(result, "sample.numbers",
             new ReaderOptions(), new ReaderIWorkOptions {
-                MaximumProjectedTableCells = 5
+                MaxProjectedTableCells = 5
             }, CancellationToken.None);
 
         projection.AddNumbers(numbers);

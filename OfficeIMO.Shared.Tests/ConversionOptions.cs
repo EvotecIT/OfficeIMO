@@ -69,7 +69,7 @@ public class ConversionOptionsTests {
         Assert.Null(defaultProfile.MaxHtmlNodes);
         Assert.Null(defaultProfile.MaxTableCells);
 
-        var untrustedProfile = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+        var untrustedProfile = WordHtmlImportOptions.UntrustedDefaults;
         Assert.False(untrustedProfile.AllowDocumentStylesheetLinks);
         Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, untrustedProfile.ImageProcessing);
         Assert.Equal(TimeSpan.FromSeconds(5), untrustedProfile.ResourceTimeout);

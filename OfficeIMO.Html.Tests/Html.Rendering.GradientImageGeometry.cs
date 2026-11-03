@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(35, 19));
         Assert.Equal(OfficeColor.White, raster.GetPixel(16, 17));
         Assert.Equal(OfficeColor.White, raster.GetPixel(16, 30));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(expectedWidth - 2, expectedHeight - 2));
         Assert.Equal(OfficeColor.White, raster.GetPixel(expectedWidth + 1, expectedHeight / 2));
         Assert.Equal(OfficeColor.White, raster.GetPixel(expectedWidth / 2, expectedHeight + 1));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(OfficeColor.Blue, raster.GetPixel(75, 40));
             Assert.Equal(OfficeColor.White, raster.GetPixel(4, 45));
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(31, 19));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(35, 19));
         Assert.Equal(OfficeColor.White, raster.GetPixel(13, 15));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -102,7 +102,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(75, 90));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(17, 17));
         Assert.Equal(OfficeColor.White, raster.GetPixel(9, 10));
         Assert.Equal(OfficeColor.White, raster.GetPixel(18, 10));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -140,7 +140,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(75, 84));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(5, 25));
         Assert.Equal(OfficeColor.White, raster.GetPixel(35, 35));
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange((int)overlap.B, 126, 128);
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(30, 6));
         Assert.Equal(OfficeColor.White, raster.GetPixel(60, 6));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static string BackgroundImageGeometryBox(string declarations) =>

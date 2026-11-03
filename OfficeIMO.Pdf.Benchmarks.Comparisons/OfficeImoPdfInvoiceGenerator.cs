@@ -34,12 +34,12 @@ internal static class OfficeImoPdfInvoiceGenerator {
                         linkContents: null,
                         alternativeText: "Evotec"))
                     .PercentColumn(56D, right => {
-                        right.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(18D)).Bold("Invoice", Navy), PdfAlign.Right,
+                        right.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(18D)).Bold("Invoice", Navy), OfficeAlignment.Right,
                             style: Tight(2D));
-                        right.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(20D)).Bold(invoice.Number, Navy), PdfAlign.Right,
+                        right.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(20D)).Bold(invoice.Number, Navy), OfficeAlignment.Right,
                             style: Tight(4D));
                         right.Paragraph(p => p.Color(Muted).Text($"Issued {invoice.IssueDate:dd/MM/yyyy} · Due {invoice.DueDate:dd/MM/yyyy}"),
-                            PdfAlign.Right, style: Tight(0D));
+                            OfficeAlignment.Right, style: Tight(0D));
                     }));
 
                 column.Item().Row(row => row
@@ -83,21 +83,21 @@ internal static class OfficeImoPdfInvoiceGenerator {
                         .Color(Muted).Text(invoice.Number + "\n" + invoice.PaymentTerms), CardStyle()))
                     .PercentColumn(45D, right => right.Table(TotalRows(scenario), style: TotalsStyle())));
 
-                column.Item().H2("References", PdfAlign.Left, Navy);
+                column.Item().H2("References", OfficeAlignment.Left, Navy);
                 column.Item().Table(new[] {
                     new[] { "Purchase order", invoice.PurchaseOrderReference ?? string.Empty },
                     new[] { "Document type", invoice.TypeCode }
                 }, style: DetailsStyle());
-                column.Item().H2("Payment", PdfAlign.Left, Navy);
+                column.Item().H2("Payment", OfficeAlignment.Left, Navy);
                 column.Item().Table(new[] {
                     new[] { "Payment means", invoice.Payments[0].MeansCode + " " + invoice.Payments[0].MeansText },
                     new[] { "Reference", invoice.Payments[0].Reference ?? string.Empty },
                     new[] { "IBAN", invoice.Payments[0].Account!.Identifier + "\n" + invoice.Payments[0].Account!.Name }
                 }, style: DetailsStyle());
                 column.Item().Paragraph(p => p.Text(invoice.PaymentTerms ?? string.Empty));
-                column.Item().H2("Notes", PdfAlign.Left, Navy);
+                column.Item().H2("Notes", OfficeAlignment.Left, Navy);
                 column.Item().Paragraph(p => p.Text(invoice.Notes[0].Text));
-                column.Item().H2("Approvals", PdfAlign.Left, Navy);
+                column.Item().H2("Approvals", OfficeAlignment.Left, Navy);
                 column.Item().Row(row => row
                     .Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(12D) })
                     .PercentColumn(50D, cell => Approval(cell, "PREPARED BY", "Marta Nowak", "Finance · 17/09/2026"))
@@ -147,7 +147,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
         FontSize = global::OfficeIMO.OfficeLength.Points(9D), BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5D), CornerRadius = global::OfficeIMO.OfficeLength.Points(7D), RowStripeFill = Surface,
         CellPaddingX = global::OfficeIMO.OfficeLength.Points(7D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(7D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(12D),
         ColumnWidthWeights = new List<double> { 3.7D, 1.15D, 1.55D, 1D, 1.6D },
-        Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Right }
+        Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right, OfficeAlignment.Right, OfficeAlignment.Right, OfficeAlignment.Right }
     };
 
     private static PdfTableStyle TaxStyle() => new() {
@@ -155,14 +155,14 @@ internal static class OfficeImoPdfInvoiceGenerator {
         FontSize = global::OfficeIMO.OfficeLength.Points(8.5D), BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5D), CornerRadius = global::OfficeIMO.OfficeLength.Points(7D), RowStripeFill = Surface,
         CellPaddingX = global::OfficeIMO.OfficeLength.Points(7D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(6D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(12D),
         ColumnWidthWeights = new List<double> { 1.2D, 1.5D, 1.4D, 2D },
-        Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Left }
+        Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right, OfficeAlignment.Right, OfficeAlignment.Left }
     };
 
     private static PdfTableStyle TotalsStyle() => new() {
         HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(10D), BorderColor = Border, BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6D), CornerRadius = global::OfficeIMO.OfficeLength.Points(7D),
         FooterRowCount = 1, FooterFill = Accent, FooterTextColor = global::OfficeIMO.OfficeColor.White, RowStripeFill = Surface,
         CellPaddingX = global::OfficeIMO.OfficeLength.Points(9D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(7D),
-        Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right }
+        Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right }
     };
 
     private static PdfTableStyle DetailsStyle() => new() {

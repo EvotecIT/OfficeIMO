@@ -53,7 +53,7 @@ internal sealed partial class AgentSourceRegistry {
         long maximum = maximumPackageBytes ?? ReaderToolArguments.DefaultMaxInputBytes;
         if (directoryPackage)
             return IWorkSourceDocument.Open(path, new IWorkReadOptions {
-                MaximumPackageBytes = maximum, PreserveSourceRecords = false
+                MaxPackageBytes = maximum, PreserveSourceRecords = false
             }, token).ComputePackageContentHash();
         using var input = IWorkContainerReader.OpenPackageFileForRead(path);
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);

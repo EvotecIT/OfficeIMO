@@ -11,9 +11,11 @@ public sealed partial class OfficeWorkflowRunner {
         token.ThrowIfCancellationRequested();
         using var stream = new MemoryStream(input, writable: false);
         var loadOptions = new VisioLoadOptions {
-            MaxInputBytes = request.Limits.MaximumInputBytes,
-            MaxLegacyXmlCharacters = request.Limits.MaximumXmlCharactersInPart,
-            MaxPackageXmlCharacters = request.Limits.MaximumXmlCharactersInPart,
+            Limits = {
+                MaxInputBytes = request.Limits.MaximumInputBytes,
+                MaxLegacyXmlCharacters = request.Limits.MaximumXmlCharactersInPart,
+                MaxPackageXmlCharacters = request.Limits.MaximumXmlCharactersInPart
+            },
             PackageSecurity = CreateOpenXmlPackageSecurity(request.Limits)
         };
         string extension = Path.GetExtension(request.InputPath).ToLowerInvariant();
@@ -34,10 +36,10 @@ public sealed partial class OfficeWorkflowRunner {
             conversion = source.ToPdfDocumentResult(options, token);
             if (imported != null) conversion = conversion.WithSourceConversionReport(imported.Report);
             var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
-            if (settings.RequireNoLoss) evidence.RequireNoLoss();
+            if (settings.FailOnLoss) evidence.ThrowIfLoss();
             return (bytes, evidence);
         } catch (OfficeConversionException exception) {
-            var reports = new List<IOfficeConversionReport>();
+            var reports = new List<OfficeConversionReport>();
             if (imported != null) reports.Add(imported.Report);
             reports.Add(exception.Report);
             throw new WorkflowConversionFailureException(exception, new OfficeWorkflowConversionEvidence(reports, facts));

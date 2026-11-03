@@ -23,7 +23,7 @@ public partial class RtfHtmlConverterTests {
     [Fact]
     public void RtfDocument_ToHtml_Renders_Text_Formatting_Links_And_Escaping() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Clinical note";
+        document.Properties.Title = "Clinical note";
         RtfParagraph paragraph = document.AddParagraph();
         paragraph.AddText("A < B ");
         paragraph.AddText("bold").SetBold();

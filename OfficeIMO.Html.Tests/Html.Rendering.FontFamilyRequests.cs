@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions {
             Mode = HtmlRenderMode.Continuous,
             AllowSystemFontFallback = false,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };

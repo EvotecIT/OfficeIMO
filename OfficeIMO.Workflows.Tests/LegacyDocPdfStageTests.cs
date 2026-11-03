@@ -49,11 +49,11 @@ public sealed class LegacyDocPdfStageTests {
             Assert.False(result.Succeeded);
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            var imports = evidence.FidelityDiagnostics.Where(finding => finding.Source == "Word").ToArray();
+            var imports = evidence.Diagnostics.Where(finding => finding.Format == "Word").ToArray();
             Assert.NotEmpty(imports);
             foreach (var finding in imports)
                 Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message
-                    && diagnostic.Stage == "import" && diagnostic.Details["source"] == finding.Source
+                    && diagnostic.Stage == "import" && diagnostic.Details["source"] == finding.Format
                     && diagnostic.Details["lossKind"] == finding.LossKind.ToString()
                     && (diagnostic.Details.TryGetValue("location", out string? location) ? location : null) == finding.Location);
         } finally { Directory.Delete(root, true); }

@@ -12,8 +12,8 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with Headers and Footers");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is a test for Title";
-                document.BuiltinDocumentProperties.Category = "This is a test for Category";
+                document.Properties.Title = "This is a test for Title";
+                document.Properties.Category = "This is a test for Category";
 
                 document.PageSetup.DifferentOddAndEvenPages = true;
 

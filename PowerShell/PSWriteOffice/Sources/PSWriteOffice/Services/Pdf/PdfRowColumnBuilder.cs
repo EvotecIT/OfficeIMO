@@ -232,17 +232,17 @@ internal static class PdfRowColumnBuilder
         return GetDouble(specification, "Width", "WidthPercent", "Percent") ?? defaultWidth;
     }
 
-    private static PdfAlign GetAlign(object specification, params string[] names)
+    private static OfficeAlignment GetAlign(object specification, params string[] names)
     {
         var value = names.Length == 0 ? GetValue(specification, "Align") : GetValue(specification, names);
         if (value is null)
         {
-            return PdfAlign.Left;
+            return OfficeAlignment.Left;
         }
 
-        return value is PdfAlign align
+        return value is OfficeAlignment align
             ? align
-            : (PdfAlign)Enum.Parse(typeof(PdfAlign), Convert.ToString(value, CultureInfo.InvariantCulture) ?? "Left", ignoreCase: true);
+            : (OfficeAlignment)Enum.Parse(typeof(OfficeAlignment), Convert.ToString(value, CultureInfo.InvariantCulture) ?? "Left", ignoreCase: true);
     }
 
     private static global::OfficeIMO.OfficeColor? GetColor(object specification, params string[] names)

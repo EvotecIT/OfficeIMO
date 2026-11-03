@@ -1134,7 +1134,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 warning.Details["MappedTransparencyPercent"] == "100");
             Assert.True(word.Report.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => word.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => word.ThrowIfLoss());
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
@@ -1146,7 +1146,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 warning.Details["MappedTransparencyPercent"] == "100");
             Assert.True(powerPoint.Report.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => powerPoint.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => powerPoint.ThrowIfLoss());
         }
 
         PdfHtmlConversionResult semanticHtml = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());

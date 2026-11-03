@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);
         Assert.True(report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => report.RequireCompleteEditableReconstruction());
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code.EndsWith("TABLE_VISIBILITY_OMITTED", StringComparison.Ordinal)
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code.EndsWith("TABLE_VISIBILITY_OMITTED", StringComparison.Ordinal)
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
@@ -133,7 +133,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { 1 }, Assert.Single(Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets).Tables).HiddenRows);
         package.Position = 0;
         Assert.Contains("limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 10 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxTableDimensionEntries = 10 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static byte[] VisibilityUuid(ulong lower, ulong upper = 10) => Message(VarintField(1, lower), VarintField(2, upper));

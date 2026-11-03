@@ -12,7 +12,7 @@ public static partial class WordHtmlConverterExtensions {
     public static string ToHtml(this WordDocument document, WordHtmlExportOptions? options, out OfficeConversionReport report) {
         var timer = Stopwatch.StartNew();
         var result = document.ConvertToHtmlWithEvidence(options);
-        report = HtmlConversionEvidence.CreateReport("Word", "Html", result.Report.Diagnostics, timer.Elapsed);
+        report = HtmlConversionEvidence.CreateReport("Word", "Html", result.Report.NativeDiagnostics, timer.Elapsed);
         if (options?.FailOnLoss == true) report.ThrowIfLoss();
         return result.RequireValue();
     }
@@ -29,7 +29,7 @@ public static partial class WordHtmlConverterExtensions {
     public static WordDocument ToWord(this HtmlConversionDocument document, WordHtmlImportOptions? options, out OfficeConversionReport report) {
         var timer = Stopwatch.StartNew();
         var result = document.ConvertToWordWithEvidence(options);
-        report = HtmlConversionEvidence.CreateReport("Html", "Word", result.Report.Diagnostics, timer.Elapsed);
+        report = HtmlConversionEvidence.CreateReport("Html", "Word", result.Report.NativeDiagnostics, timer.Elapsed);
         try { if (options?.FailOnLoss == true) report.ThrowIfLoss(); return result.RequireValue(); }
         catch { result.Value.Dispose(); throw; }
     }
@@ -38,7 +38,7 @@ public static partial class WordHtmlConverterExtensions {
         options = (options ?? new WordHtmlImportOptions()).Clone();
         var timer = Stopwatch.StartNew();
         var result = await document.ConvertToWordWithEvidenceAsync(options, cancellationToken).ConfigureAwait(false);
-        var report = HtmlConversionEvidence.CreateReport("Html", "Word", result.Report.Diagnostics, timer.Elapsed);
+        var report = HtmlConversionEvidence.CreateReport("Html", "Word", result.Report.NativeDiagnostics, timer.Elapsed);
         try { if (options?.FailOnLoss == true) report.ThrowIfLoss(); return new OfficeConversionResult<WordDocument>(result.RequireValue(), report); }
         catch { result.Value.Dispose(); throw; }
     }

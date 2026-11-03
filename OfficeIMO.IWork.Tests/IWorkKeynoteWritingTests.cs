@@ -168,10 +168,10 @@ public sealed class IWorkKeynoteWritingTests {
     public void Native_write_limits_reject_before_destination_mutation(string limit) {
         var options = new IWorkKeynoteWriteOptions();
         switch (limit) {
-            case "slides": options.MaximumSlides = 1; break;
-            case "boxes": options.MaximumTextBoxes = 1; break;
-            case "characters": options.MaximumTextCharacters = 1; break;
-            case "bytes": options.MaximumPackageBytes = 128; break;
+            case "slides": options.MaxSlides = 1; break;
+            case "boxes": options.MaxTextBoxes = 1; break;
+            case "characters": options.MaxTextCharacters = 1; break;
+            case "bytes": options.MaxPackageBytes = 128; break;
         }
         var document = Example();
         using var stream = new MemoryStream(new byte[] { 9, 8, 7 });
@@ -221,7 +221,7 @@ public sealed class IWorkKeynoteWritingTests {
         document.AddSlide().AddText(text, 0, 0, 960, 540);
         byte[] bytes = document.SaveBytes();
         IWorkSourceDocument source = IWorkSourceDocument.Open(new MemoryStream(bytes),
-            options: new IWorkReadOptions { MaximumSnappyChunkBytes = 65_536 });
+            options: new IWorkReadOptions { MaxSnappyChunkBytes = 65_536 });
         Assert.Equal(text + "\n", Assert.Single(source.ReadKeynote().Slides[0].TextBoxes).Content.PlainText);
         using var zip = new ZipArchive(new MemoryStream(bytes));
         using Stream entry = zip.GetEntry("Index/Document.iwa")!.Open();

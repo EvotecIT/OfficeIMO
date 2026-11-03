@@ -1368,9 +1368,9 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $document.HyperLinks.Count | Should -Be 4
-            $document.BuiltinDocumentProperties.Title | Should -Be 'DSL document'
-            $document.BuiltinDocumentProperties.Creator | Should -Be 'PSWriteOffice'
-            $document.CustomDocumentProperties['BuildNumber'].Value | Should -Be 21
+            $document.Properties.Title | Should -Be 'DSL document'
+            $document.Properties.Creator | Should -Be 'PSWriteOffice'
+            $document.CustomProperties['BuildNumber'].Value | Should -Be 21
         } finally {
             $document.Dispose()
         }

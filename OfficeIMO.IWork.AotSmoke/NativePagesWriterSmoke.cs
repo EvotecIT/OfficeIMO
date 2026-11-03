@@ -42,7 +42,7 @@ internal static class NativePagesWriterSmoke {
         Require(string.Concat(reopened.Paragraphs.Select(paragraph => paragraph.Text)) == string.Concat(projection.Paragraphs),
             "Saved Pages DOCX loses Unicode, body content or text order.");
         try {
-            document.Save(destination, new() { MaximumParagraphs = 82 });
+            document.Save(destination, new() { MaxParagraphs = 82 });
             throw new InvalidOperationException("Pages paragraph limit was not enforced.");
         } catch (InvalidDataException) {
             Require(bytes.SequenceEqual(destination.ToArray()), "Pages budget rejection mutated its destination.");

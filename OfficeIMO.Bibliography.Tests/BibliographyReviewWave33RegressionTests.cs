@@ -7,7 +7,7 @@ public sealed class BibliographyReviewWave33RegressionTests {
     [InlineData("é", true)]
     public void CSL_limit_diagnostics_use_zero_based_UTF16_offsets(string prefix, bool leadingBom) {
         string source = (leadingBom ? "\uFEFF" : "") + "[{\"id\":\"" + prefix + "\",\"x\":\"long\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = 3 };
+        var options = new BibliographyReadOptions { MaxValueLength = 3 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
 
@@ -19,7 +19,7 @@ public sealed class BibliographyReviewWave33RegressionTests {
     [Fact]
     public void CSL_large_token_parsing_observes_cancellation() {
         string source = "[{\"id\":\"x\",\"title\":\"" + new string('x', 16 * 1024 * 1024) + "\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = 20 * 1024 * 1024 };
+        var options = new BibliographyReadOptions { MaxValueLength = 20 * 1024 * 1024 };
         BibliographyCancellationTest.AssertObserved(token =>
             BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options, token));
     }
@@ -29,7 +29,7 @@ public sealed class BibliographyReviewWave33RegressionTests {
         const string opening = "[{\"id\":\"x\",\"title\":\"";
         int fillerLength = 4095 - Encoding.UTF8.GetByteCount(opening);
         string source = opening + new string('a', fillerLength) + "\\u00e9\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = fillerLength + 1 };
+        var options = new BibliographyReadOptions { MaxValueLength = fillerLength + 1 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
 
@@ -65,9 +65,9 @@ public sealed class BibliographyReviewWave33RegressionTests {
         BibliographyDocument document = CreateDocument(BibliographyFormat.Ris, scheme, value);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV228" && diagnostic.Field == "identifiers." + scheme);
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV228" && diagnostic.Field == "identifiers." + scheme);
     }
 
     [Theory]
@@ -78,9 +78,9 @@ public sealed class BibliographyReviewWave33RegressionTests {
         if (!string.Equals(scheme, "pmid", StringComparison.OrdinalIgnoreCase)) document.Items[0].Identifiers.Insert(0, new BibliographyIdentifier("PMID", "1"));
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV232" && diagnostic.Field == "identifiers." + scheme);
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV232" && diagnostic.Field == "identifiers." + scheme);
     }
 
     [Theory]
@@ -90,16 +90,16 @@ public sealed class BibliographyReviewWave33RegressionTests {
         BibliographyDocument document = CreateDocument(BibliographyFormat.EndNoteXml, scheme, "example");
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV204" && diagnostic.Field == "identifiers." + scheme);
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV204" && diagnostic.Field == "identifiers." + scheme);
     }
 
     [Fact]
     public void EndNote_serial_identifier_scheme_case_is_preserved_explicitly() {
         BibliographyDocument document = CreateDocument(BibliographyFormat.EndNoteXml, "IsBn", "978-1-4028-9462-6");
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyIdentifier reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items[0].Identifiers);
 
         Assert.Equal("IsBn", reopened.Scheme);

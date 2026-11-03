@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_duration_only_empty_cells_consume_the_materialization_budget() {
         using var package = EmptyDurationFormatPackage(IWorkDocumentKind.Numbers, columns: 2);
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     [Theory]
@@ -132,7 +132,7 @@ public sealed partial class IWorkBoundaryTests {
         }, Array.Empty<IWorkDiagnostic>(), supportsEditableReconstruction: true);
         var result = new OfficeDocumentReadResult();
         var projection = new IWorkReadProjection(result, "limited.numbers", new ReaderOptions { MaxTableRows = 1 },
-            new ReaderIWorkOptions { MaximumTableColumns = 1, MaximumProjectedTableCells = 1 }, System.Threading.CancellationToken.None);
+            new ReaderIWorkOptions { MaxTableColumns = 1, MaxProjectedTableCells = 1 }, System.Threading.CancellationToken.None);
         projection.AddNumbers(numbers); projection.Complete(source);
         Assert.Equal(new[] { "2h 24m" }, Assert.Single(result.Tables).Columns);
         Assert.Empty(result.Tables[0].Rows);

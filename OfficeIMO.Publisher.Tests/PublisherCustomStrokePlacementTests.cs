@@ -27,7 +27,7 @@ public sealed class PublisherCustomStrokePlacementTests {
         OfficeShape path = Assert.Single(PublisherNativeTests.Elements(document.Pages[0].Drawing).OfType<OfficeDrawingShape>(),
             item => item.Shape.Kind == OfficeShapeKind.Path).Shape;
         Assert.Equal(new OfficePoint(horizontal ? 10 : 0, horizontal ? 0 : 10), path.PathCommands[1].Point);
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID" || item.Code == "PUB_CUSTOM_PATH_GEOMETRY_UNSUPPORTED");
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID" || item.Code == "PUB_CUSTOM_PATH_GEOMETRY_UNSUPPORTED");
     }
     [Theory]
     [InlineData(true, 0)]
@@ -51,7 +51,7 @@ public sealed class PublisherCustomStrokePlacementTests {
         }) { Bounds = new PublisherNativeRectangle(0, 0, horizontal ? 127000 : 0, horizontal ? 0 : 127000) });
         PublisherDocument document = new PublisherPageProjector(source, new PublisherQuillText(), escher,
             new PublisherParseContext(new PublisherReadOptions(), default)).Project();
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED");
         Assert.Contains(PublisherNativeTests.Elements(document.Pages[0].Drawing), item => item is OfficeDrawingShape);
     }
 }

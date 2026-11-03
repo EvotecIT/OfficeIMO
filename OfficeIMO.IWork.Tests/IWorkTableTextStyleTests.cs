@@ -137,7 +137,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         package.Position = 0;
         Assert.Throws<InvalidDataException>(() => {
-            var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumMaterializedCells = 1 });
+            var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxMaterializedCells = 1 });
             _ = kind switch { IWorkDocumentKind.Pages => (object)bounded.ReadPages(), IWorkDocumentKind.Numbers => bounded.ReadNumbers(), _ => bounded.ReadKeynote() };
         });
     }
@@ -159,7 +159,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => TableParagraphStyle(30, 18, false, 31)
         };
         using var package = TableTextStylePackage(IWorkDocumentKind.Pages, style);
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 }).ReadPages();
+        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 }).ReadPages();
         var table = Assert.Single(projection.Tables);
         Assert.Equal(42d, table.GetCell(1, 1)!.Value);
         Assert.Null(table.GetParagraphStyle(1, 1)); Assert.NotNull(table.GetParagraphStyle(1, 3));
@@ -226,14 +226,14 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Mixed_selected_text_and_cell_styles_share_one_catalog_budget_and_preserve_both_properties() {
         using var selected = TableTextStylePackage(IWorkDocumentKind.Pages, cellStyle: true);
-        var limited = IWorkSourceDocument.Open(selected, new IWorkReadOptions { MaximumTableCatalogEntries = 2 });
+        var limited = IWorkSourceDocument.Open(selected, new IWorkReadOptions { MaxTableCatalogEntries = 2 });
         Assert.All(limited.ReadPages().Tables[0].Cells, cell => {
             Assert.Equal("FF0000", cell.Fill!.Color!.RgbHex);
             Assert.Equal(18, cell.ParagraphStyle!.TextStyle.FontSizePoints);
         });
         selected.Position = 0;
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(selected,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadPages());
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadPages());
     }
 
     [Theory]

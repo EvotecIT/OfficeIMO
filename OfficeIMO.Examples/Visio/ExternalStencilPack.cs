@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Visio {
                 Size = 22,
                 Bold = true,
                 Color = Color.FromRgb(32, 55, 75),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
             page.AddTextBox("title", OfficeLength.Inches(7), OfficeLength.Inches(8.0), OfficeLength.Inches(12.5), OfficeLength.Inches(0.5), "External VSSX stencil pack: real imported masters").TextStyle = titleStyle;
@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Visio {
                 FontFamily = "Aptos",
                 Size = 11,
                 Color = Color.FromRgb(85, 99, 113),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 
@@ -78,7 +78,7 @@ namespace OfficeIMO.Examples.Visio {
                     FontFamily = "Aptos",
                     Size = 11,
                     Color = Color.FromRgb(33, 37, 41),
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                    HorizontalAlignment = OfficeAlignment.Center,
                     VerticalAlignment = VisioTextVerticalAlignment.Middle
                 };
             }

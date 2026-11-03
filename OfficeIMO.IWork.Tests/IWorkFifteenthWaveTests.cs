@@ -57,7 +57,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("T", 1, 1, 42d, hasFormula: true)
         });
-        var options = new IWorkReadOptions { MaximumProjectedTextCharacters = 7 };
+        var options = new IWorkReadOptions { MaxProjectedTextCharacters = 7 };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options).ReadNumbers());

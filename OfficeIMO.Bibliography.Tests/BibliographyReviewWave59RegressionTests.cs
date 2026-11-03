@@ -10,9 +10,9 @@ public sealed class BibliographyReviewWave59RegressionTests {
         document.Items[0].Keywords.Add("alpha,beta\\");
 
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV134" && diagnostic.Field == "keywords");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV134" && diagnostic.Field == "keywords");
     }
 
     [Theory]
@@ -23,9 +23,9 @@ public sealed class BibliographyReviewWave59RegressionTests {
         document.NativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, kind, "<extra label=\"A\tB\"/>", "extra"));
 
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV251" && diagnostic.Field == "extra");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV251" && diagnostic.Field == "extra");
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public sealed class BibliographyReviewWave59RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.DoesNotContain("custom=\"kept\"", permissive.Content, StringComparison.Ordinal);
         Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == diagnosticCode);
@@ -84,7 +84,7 @@ public sealed class BibliographyReviewWave59RegressionTests {
         if (owner == "@record-attributes") document.Items[0].NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, owner, carrier));
         else document.NativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, "attributes", carrier, owner));
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Contains("custom=\"kept\"", written.Content, StringComparison.Ordinal);
     }

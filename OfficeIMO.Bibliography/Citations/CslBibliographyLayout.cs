@@ -24,7 +24,7 @@ public sealed class CslBibliographyLayout {
             "margin" => CslSecondFieldAlignment.Margin,
             _ => CslSecondFieldAlignment.None
         };
-        MaximumLeftMarginCharacters = maximumLeftMarginCharacters;
+        MaxLeftMarginCharacters = maximumLeftMarginCharacters;
     }
 
     /// <summary>Whether the style requests a hanging indent.</summary>
@@ -37,7 +37,7 @@ public sealed class CslBibliographyLayout {
     public CslSecondFieldAlignment SecondFieldAlignment { get; }
     /// <summary>Longest rendered left-margin field in UTF-16 characters across the returned entries.</summary>
     /// <remarks>This is a text-length hint, not a measured glyph width. A layout host may measure the actual fields.</remarks>
-    public int MaximumLeftMarginCharacters { get; }
+    public int MaxLeftMarginCharacters { get; }
 
     private static int ReadSpacing(XElement bibliography, string name, int fallback) =>
         (string?)bibliography.Attribute(name) is string value ? int.Parse(value, CultureInfo.InvariantCulture) : fallback;

@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumProjectedTextCharacters = 17 })
+                new IWorkReadOptions { MaxProjectedTextCharacters = 17 })
                 .ReadNumbers());
 
         Assert.Contains("Text character count", exception.Message,
@@ -92,7 +92,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-                new IWorkReadOptions { MaximumProjectedTextCharacters = 13 })
+                new IWorkReadOptions { MaxProjectedTextCharacters = 13 })
                 .ReadPages());
 
         Assert.Contains("Text character count", exception.Message,

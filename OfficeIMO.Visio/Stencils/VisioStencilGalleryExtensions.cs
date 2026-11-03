@@ -68,7 +68,7 @@ namespace OfficeIMO.Visio.Stencils {
                 Size = 18D,
                 Bold = true,
                 Color = effectiveOptions.TitleColor,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 
@@ -182,7 +182,7 @@ namespace OfficeIMO.Visio.Stencils {
                 Color = color,
                 BackgroundColor = OfficeColor.White,
                 BackgroundTransparency = 0,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
         }

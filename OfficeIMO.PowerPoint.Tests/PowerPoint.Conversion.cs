@@ -19,14 +19,16 @@ public sealed class PowerPointConversionTests {
 
         PowerPointDocumentConversionResult toPpt = PowerPointDocument.Convert(pptx, ppt);
 
-        Assert.Equal(ppt, toPpt.RequireNoLoss());
+        toPpt.ThrowIfLoss();
+        Assert.Equal(ppt, toPpt.Value);
         Assert.Equal("PowerPoint.Pptx", toPpt.Report.SourceFormatDescriptor.Id);
         Assert.Equal("PowerPoint.Ppt", toPpt.Report.DestinationFormatDescriptor.Id);
         Assert.True(toPpt.Report.Compatibility.IsStrictlyCompatible);
 
         PowerPointDocumentConversionResult toPptx = PowerPointDocument.Convert(ppt, roundTrip);
 
-        Assert.Equal(roundTrip, toPptx.RequireNoLoss());
+        toPptx.ThrowIfLoss();
+        Assert.Equal(roundTrip, toPptx.Value);
         using PowerPointDocument reopened = PowerPointDocument.Load(roundTrip);
         Assert.Contains(reopened.Slides[0].TextBoxes,
             textBox => textBox.Text.Contains("Conversion contract", StringComparison.Ordinal));
@@ -184,7 +186,7 @@ public sealed class PowerPointConversionTests {
         string legacy = files.Path("source.ppt");
         string destination = files.Path("restored.pptx");
         CreateTextPresentation(source);
-        PowerPointDocument.Convert(source, legacy).RequireNoLoss();
+        PowerPointDocument.Convert(source, legacy).Report.ThrowIfLoss();
         byte[] legacyBytes = File.ReadAllBytes(legacy);
 
         PowerPointDocumentConversionResult result = PowerPointDocument.Convert(
@@ -216,9 +218,9 @@ public sealed class PowerPointConversionTests {
 
         Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, exception.Reason);
         Assert.True(exception.Result.Report.HasLoss);
-        Assert.Contains(exception.Result.Report.FidelityDiagnostics,
-            diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
         Assert.Contains(exception.Result.Report.Diagnostics,
+            diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Contains(exception.Result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "power-point-legacy-destination-not-writable"
                 && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);
         Assert.False(File.Exists(destination));

@@ -58,10 +58,10 @@ namespace OfficeIMO.Word {
             };
             var snapshot = new WordDocumentInfo {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
-                Title = BuiltinDocumentProperties?.Title,
-                Author = BuiltinDocumentProperties?.Creator,
-                Subject = BuiltinDocumentProperties?.Subject,
-                Keywords = BuiltinDocumentProperties?.Keywords,
+                Title = Properties?.Title,
+                Author = Properties?.Creator,
+                Subject = Properties?.Subject,
+                Keywords = Properties?.Keywords,
             };
 
             for (int sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++) {

@@ -39,7 +39,7 @@ public sealed class PublisherTextStyleTests {
         OfficeTextTabStop stop = Assert.Single(paragraph.TabStops!.Stops);
         Assert.Equal(13.5, stop.Position); Assert.Equal(OfficeTextTabAlignment.Left, stop.Alignment);
         Assert.Equal(13.5, paragraph.Label!.TextPosition);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TAB_LAYOUT_APPROXIMATED");
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TAB_LAYOUT_APPROXIMATED");
     }
 
     [Theory]
@@ -55,7 +55,7 @@ public sealed class PublisherTextStyleTests {
         OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateParagraphs(new[] { paragraph }, 400, 400,
             (value, size, family, style) => value?.Length ?? 0);
         Assert.Equal(36 + fields[1].Length + paragraph.Margins.Right, layout.Width, 6);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, finding => finding.Code == "PUB_TAB_LAYOUT_APPROXIMATED"
+        Assert.Contains(document.ReadReport.Diagnostics, finding => finding.Code == "PUB_TAB_LAYOUT_APPROXIMATED"
             && finding.LossKind == OfficeConversionLossKind.Approximation);
     }
 
@@ -80,7 +80,7 @@ public sealed class PublisherTextStyleTests {
         }, "SampleNewsletter.pub");
         PublisherDocument document = PublisherDocument.Load(input);
         Assert.Contains(document.TextStories, story => story.Text.Contains("Living and Learning"));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_STYLE_REFERENCE_UNRESOLVED");
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TEXT_STYLE_REFERENCE_UNRESOLVED");
     }
 
     private static string Text(OfficeRichTextParagraph paragraph) => string.Concat(paragraph.Runs.Select(run => run.Text));

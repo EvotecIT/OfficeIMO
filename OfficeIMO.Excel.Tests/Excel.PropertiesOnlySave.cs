@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1).SetValue("Name");
                 sheet.Cell(2, 1).SetValue(42);
-                document.BuiltinDocumentProperties.Subject = "Kept";
+                document.Properties.Subject = "Kept";
                 document.Save(source);
             }
             using (var package = SpreadsheetDocument.Open(source, isEditable: true)) {
@@ -28,10 +28,10 @@ namespace OfficeIMO.Tests {
 
             using var output = new MemoryStream();
             using (var document = ExcelDocument.Load(new MemoryStream(original))) {
-                document.BuiltinDocumentProperties.Title = "New title";
-                document.BuiltinDocumentProperties.Category = "New category";
+                document.Properties.Title = "New title";
+                document.Properties.Category = "New category";
                 document.Save(output);
-                Assert.Equal("New title", document.BuiltinDocumentProperties.Title);
+                Assert.Equal("New title", document.Properties.Title);
             }
 
             output.Position = 0;
@@ -63,14 +63,14 @@ namespace OfficeIMO.Tests {
 
             using var output = new MemoryStream();
             using (var document = ExcelDocument.Load(new MemoryStream(source.ToArray()))) {
-                document.BuiltinDocumentProperties.Title = "Title";
+                document.Properties.Title = "Title";
                 document.Sheets[0].Cell(1, 1).SetValue("After");
                 document.Save(output);
             }
 
             output.Position = 0;
             using var reopened = ExcelDocument.Load(output);
-            Assert.Equal("Title", reopened.BuiltinDocumentProperties.Title);
+            Assert.Equal("Title", reopened.Properties.Title);
             Assert.True(reopened.Sheets[0].TryGetCellText(1, 1, out string text));
             Assert.Equal("After", text);
         }

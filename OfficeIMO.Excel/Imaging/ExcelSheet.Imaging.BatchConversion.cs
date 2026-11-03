@@ -14,7 +14,7 @@ public partial class ExcelSheet {
         var timer = Stopwatch.StartNew();
         ExcelImageExportOptions resolved = NormalizeWorksheetOptions(options);
         OfficeImageExportBatchSaveResult saved = CreateImageExportBatchOperation(resolved, resolved.Format).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("Excel", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Excel", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -26,7 +26,7 @@ public partial class ExcelSheet {
         ExcelImageExportOptions resolved = NormalizeWorksheetOptions(options);
         OfficeImageExportBatchSaveResult saved = await CreateImageExportBatchOperation(resolved, resolved.Format)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("Excel", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Excel", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 }

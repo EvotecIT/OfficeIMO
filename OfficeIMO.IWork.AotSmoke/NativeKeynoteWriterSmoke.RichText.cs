@@ -50,7 +50,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             "NativeAOT saved PPTX inherited earlier character decoration.");
         using var unchanged = new MemoryStream(new byte[] { 9, 8, 7 });
         try {
-            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaximumTextRuns = 10 });
+            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaxTextRuns = 10 });
             throw new InvalidOperationException("NativeAOT character-run budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "NativeAOT run-budget failure changed the destination.");

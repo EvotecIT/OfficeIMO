@@ -40,7 +40,7 @@ public partial class VisioForeignImageRenderingTests {
             Assert.Contains("Scope", read.ExtractText());
             Assert.Contains(result.Warnings, warning => warning.Code == "pdf-projection-visio-preview-embedded");
             Assert.False(result.Report.HasLoss);
-            result.RequireNoLoss();
+            result.ThrowIfLoss();
         }
     }
 
@@ -163,7 +163,8 @@ public partial class VisioForeignImageRenderingTests {
         Assert.Equal(renderLabels, fontDiagnostics.Any(item => item.Message.Contains("OfficeIMO Missing Label Font")));
         if (!svg && !renderText && !renderLabels) {
             var result = document.ToPdfDocumentResult(new VisioToPdfOptions { VisioOptions = options });
-            result.RequireNoLoss().ToBytes();
+            result.ThrowIfLoss();
+            result.ToBytes();
             Assert.False(result.Report.HasLoss);
         }
     }

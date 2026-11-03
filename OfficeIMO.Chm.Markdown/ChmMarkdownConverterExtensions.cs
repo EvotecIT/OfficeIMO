@@ -28,12 +28,12 @@ public static class ChmMarkdownConverterExtensions {
         ChmDocument.EnforceOutput(Encoding.UTF8.GetByteCount(markdown), configured);
         cancellationToken.ThrowIfCancellationRequested();
         var report = new ChmConversionReport(projected.Report.TopicPaths,
-            projected.Report.FidelityDiagnostics.Concat(converted.Report.FidelityDiagnostics));
+            projected.Report.Diagnostics.Concat(converted.Report.Diagnostics));
         return new ChmConversionResult<T>(select(converted.Value, markdown), report);
     }
 
     /// <summary>Exports a linked Markdown book. Use <see cref="ToMarkdownResult"/> to inspect fidelity evidence.</summary>
     public static string ToMarkdown(this ChmDocument document, ChmConversionOptions? options = null,
         MarkdownHtmlImportOptions? markdownOptions = null, CancellationToken cancellationToken = default) =>
-        document.ToMarkdownResult(options, markdownOptions, cancellationToken).RequireValue();
+        document.ToMarkdownResult(options, markdownOptions, cancellationToken).Value;
 }

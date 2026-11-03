@@ -20,7 +20,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), "5[1]/2", 1,
             IWorkSourceDeclarationIssueKind.InvalidValue);
         Assert.Empty(report.SourceCellIssues);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -35,7 +35,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(),
             tilePayload: BytesField(5, Message(TileTestRow(0), count)), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.All(Assert.Single(projection.Sheets).Tables, table => Assert.Equal(42d, Assert.Single(table.Cells).Value));
         AssertTileDeclaration(Assert.Single(projection.SourceDeclarationIssues), "5[1]/2", outerCount,
             IWorkSourceDeclarationIssueKind.InvalidValue);
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(report.SourceCellIssues);
         Assert.Empty(report.FormulaCells);
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] row = Message(VarintField(1, 0), VarintField(2, 1), BytesField(6, new byte[] { 5 }), BytesField(7, new byte[] { 255, 255 }));
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), tilePayload: BytesField(5, row));
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
+            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
     }
 
     [Fact]

@@ -14,7 +14,7 @@ public class VisioTextBackgroundTests {
     public void IndependentNxbreCalloutHasNoBackgroundAfterXmlAndPackageReopening() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyXml", "nxbre-chocolatebox.vdx");
         var imported = VisioDocument.LoadLegacyXml(path);
-        Assert.DoesNotContain(imported.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "VDX_TEXT_BACKGROUND");
+        Assert.DoesNotContain(imported.Report.Diagnostics, diagnostic => diagnostic.Code == "VDX_TEXT_BACKGROUND");
         foreach (VisioDocument candidate in ReopenedCandidates(imported.Value)) {
             var page = candidate.Pages.Single(page => page.Name == "Rules");
             VisioConnector callout = page.Connectors.Single(connector => connector.Id == "18");

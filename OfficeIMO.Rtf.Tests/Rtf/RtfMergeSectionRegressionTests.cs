@@ -50,8 +50,8 @@ public class RtfMergeSectionRegressionTests {
         second.ColumnCount = 2;
         second.AddParagraph("Source second");
 
-        destination.AppendDocument(source, new RtfDocumentMergeOptions { PreserveSections = true }).Report.RequireNoLoss();
-        Assert.Contains(destination.ToRtfResult().Report.Diagnostics, item => item.Code == "RtfNormalizationOrientationDefaultsMaterialized" && item.Action == RtfConversionAction.Flattened);
+        destination.AppendDocument(source, new RtfDocumentMergeOptions { PreserveSections = true }).Report.ThrowIfLoss();
+        Assert.Contains(destination.ToRtfResult().Report.NativeDiagnostics, item => item.Code == "RtfNormalizationOrientationDefaultsMaterialized" && item.Action == RtfConversionAction.Flattened);
         Assert.Equal(3, destination.Sections.Count);
         RtfSection imported = destination.Sections[1];
         Assert.False(imported.PageSetup.Landscape);

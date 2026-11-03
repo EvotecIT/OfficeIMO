@@ -20,6 +20,34 @@
       "replacement": "Dispose EmailReadResult after using temporary-file payloads. Memory remains the default for the ordinary ReadDocument overloads.",
       "reason": "File-backed attachment storage still materializes the message and has an explicit disposable-result lifetime.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Email PST store options FailOnDataLoss",
+      "kind": "property",
+      "action": "rename",
+      "new": "FailOnLoss",
+      "category": "naming",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Email.EmailStoreMboxExportFidelityPolicy.RequireNoLoss",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Email.EmailStoreMboxExportFidelityPolicy.FailOnLoss",
+      "category": "naming",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Email conversion and store report Diagnostics",
+      "kind": "property",
+      "action": "rename",
+      "new": "NativeDiagnostics",
+      "replacement": "Diagnostics is now the common OfficeDiagnostic list.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
     }
   ]
 }

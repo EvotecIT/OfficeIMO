@@ -64,10 +64,10 @@ public sealed partial class PdfInvoiceDocument {
         _ => 1.3D
     }).ToList();
 
-    private List<PdfColumnAlign> LineColumnAlignments() => _layout.LineColumns.Select(column => column is
+    private List<OfficeAlignment> LineColumnAlignments() => _layout.LineColumns.Select(column => column is
         InvoicePdfLineColumn.Quantity or InvoicePdfLineColumn.NetPrice or InvoicePdfLineColumn.NetAmount or
         InvoicePdfLineColumn.Vat or InvoicePdfLineColumn.GrossPrice or InvoicePdfLineColumn.PriceDiscount
-        ? PdfColumnAlign.Right : PdfColumnAlign.Left).ToList();
+        ? OfficeAlignment.Right : OfficeAlignment.Left).ToList();
 
     private string Unit(string code, decimal quantity = 1M) => CodeDescription(code, _layout.UnitCodeDisplay,
         language => language.GetQuantityUnitDescription(code, quantity));

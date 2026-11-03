@@ -38,10 +38,10 @@ internal static partial class PdfWriter {
         public global::OfficeIMO.OfficeColor? MarkerColor;
         public double MarkerXOffset;
         public double MarkerWidth;
-        public PdfAlign MarkerAlign;
+        public OfficeAlignment MarkerAlign;
         public double TextXOffset;
         public double TextWidth;
-        public PdfAlign TextAlign;
+        public OfficeAlignment TextAlign;
         public global::OfficeIMO.OfficeColor? Color;
         public double Leading;
         public double Size;
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
     private sealed class ColTable : ColItem { public PreparedFlowTableRows PreparedRows = null!; public TableSpanFlow SpanFlow = null!; public int PendingSpanTailRow = -1; public TableBlock Block = null!; public PdfTableStyle Style = null!; public int Columns; public double[] ColumnWidths = null!; public TableCellTextLayout[][] RowLines = null!; public int[] RowLineCounts = null!; public double[] RowHeights = null!; public double[] RowLeadings = null!; public double[] RowSizes = null!; public double[] RowRunFontSizeScales = null!; public bool[] RowBold = null!; public double Width; public double Size; public int HeaderRowCount; public int RepeatHeaderRowCount; public int FooterStartRowIndex; public System.Collections.Generic.IReadOnlyList<PdfTextRun>? CaptionRuns; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? CaptionLines; public System.Collections.Generic.List<double>? CaptionLineHeights; public double CaptionLeading; public double CaptionHeight; public ColTable() { Kind = "T"; } }
     private sealed class TableColumnLayout { public double[] Widths = null!; public double Width; }
     private sealed class TableCellTextLayout {
-        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<PdfAlign?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null, double topSpacing = 0D, System.Collections.Generic.List<double>? lineBoxHeights = null, System.Collections.Generic.List<TableCellParagraphRange>? paragraphRanges = null) {
+        public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<OfficeAlignment?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null, double topSpacing = 0D, System.Collections.Generic.List<double>? lineBoxHeights = null, System.Collections.Generic.List<TableCellParagraphRange>? paragraphRanges = null) {
             Lines = lines;
             LineHeights = lineHeights;
             LineHeightPrefix = new double[lineHeights.Count + 1];
@@ -85,7 +85,7 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.List<double> LineHeights { get; }
         public double[] LineHeightPrefix { get; }
         public System.Collections.Generic.List<double> LineBoxHeights { get; }
-        public System.Collections.Generic.List<PdfAlign?>? LineAlignments { get; }
+        public System.Collections.Generic.List<OfficeAlignment?>? LineAlignments { get; }
         public System.Collections.Generic.List<double>? LineXOffsets { get; }
         public System.Collections.Generic.List<double>? LineWidths { get; }
         public double TopSpacing { get; }

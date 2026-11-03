@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Collects shared PDF conversion warnings from one adapter run.
 /// </summary>
-public sealed class PdfConversionReport : IOfficeConversionReport {
+public sealed class PdfConversionReport : OfficeConversionReport {
     private readonly List<PdfConversionWarning> _warnings = new();
     private readonly List<PdfConversionReport> _linkedReports = new();
     private readonly IReadOnlyList<PdfConversionWarning> _readOnlyWarnings;
@@ -62,10 +62,11 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     public bool HasErrors => Warnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error);
 
     /// <summary>True when conversion reported an approximation, omission, failure, or unassessed fidelity.</summary>
-    public bool HasLoss => Warnings.Any(static warning => warning.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => Warnings.Any(static warning => warning.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Gets category-preserving diagnostics for composed conversion routes.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
         Warnings.Select(static warning => warning.ToFidelityDiagnostic()).ToArray());
 
     /// <summary>
@@ -109,24 +110,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
         return this;
     }
 
-    /// <summary>
-    /// Throws when conversion reported an approximation, omission, failure, or unassessed fidelity.
-    /// Informational diagnostics with no fidelity loss are allowed.
-    /// </summary>
-    public PdfConversionReport RequireNoLoss() {
-        PdfConversionWarning[] lossWarnings = Warnings
-            .Where(static warning => warning.LossKind != OfficeConversionLossKind.None)
-            .ToArray();
-        if (lossWarnings.Length > 0) {
-            throw new InvalidOperationException(CreateFailureMessage("PDF conversion reported possible content loss.", lossWarnings));
-        }
 
-        return this;
-    }
-
-    void IOfficeConversionReport.RequireNoLoss() {
-        RequireNoLoss();
-    }
 
     /// <summary>
     /// Throws when the report contains error-severity conversion warnings; otherwise returns the current report for fluent checks.

@@ -121,7 +121,7 @@ public partial class Word {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported" &&
             warning.Source == (tableDepth > 0 ? "table cell" : "header/footer"));
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.NotEqual(letters.First(letter => letter.Value == "A").StartBaseLine.Y,

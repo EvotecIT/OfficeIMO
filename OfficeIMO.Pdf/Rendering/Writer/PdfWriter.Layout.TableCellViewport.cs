@@ -120,8 +120,8 @@ internal static partial class PdfWriter {
     // fragment. Partial intersections retain their original glyphs and PDF clip.
     private static void OmitInvisibleTableCellViewportLines(
         List<List<RichSeg>> lines, IReadOnlyList<double> heights,
-        IReadOnlyList<PdfAlign?>? alignments, IReadOnlyList<double>? offsets, IReadOnlyList<double>? widths,
-        PdfAlign alignment, double baseline, double textX, double textWidth,
+        IReadOnlyList<OfficeAlignment?>? alignments, IReadOnlyList<double>? offsets, IReadOnlyList<double>? widths,
+        OfficeAlignment alignment, double baseline, double textX, double textWidth,
         double clipX, double clipBottom, double clipWidth, double clipHeight, double leading, double fontSize, PdfCreateOptions options, PdfStandardFont? baselineFont = null) {
         double lineY = baseline;
         for (int index = 0; index < lines.Count; index++) {
@@ -130,9 +130,9 @@ internal static partial class PdfWriter {
             double lineWidth = MeasureRichLineWidth(line);
             double availableWidth = widths != null && index < widths.Count ? widths[index] : textWidth;
             double lineX = textX + (offsets != null && index < offsets.Count ? offsets[index] : 0D);
-            PdfAlign lineAlignment = alignments != null && index < alignments.Count ? alignments[index] ?? alignment : alignment;
-            if (lineAlignment == PdfAlign.Center) lineX += Math.Max(0D, (availableWidth - lineWidth) / 2D);
-            else if (lineAlignment == PdfAlign.Right) lineX += Math.Max(0D, availableWidth - lineWidth);
+            OfficeAlignment lineAlignment = alignments != null && index < alignments.Count ? alignments[index] ?? alignment : alignment;
+            if (lineAlignment == OfficeAlignment.Center) lineX += Math.Max(0D, (availableWidth - lineWidth) / 2D);
+            else if (lineAlignment == OfficeAlignment.Right) lineX += Math.Max(0D, availableWidth - lineWidth);
             GetRichLineInkMetrics(line, options, out double ascender, out double descender);
             if (clipWidth <= 0D || clipHeight <= 0D || lineX + lineWidth <= clipX || lineX >= clipX + clipWidth ||
                 inkBaseline + ascender <= clipBottom || inkBaseline - descender >= clipBottom + clipHeight) {

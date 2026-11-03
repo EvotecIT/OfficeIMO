@@ -37,7 +37,7 @@ public sealed class HtmlImportTests {
 
     [Fact]
     public void EmptyTableDoesNotConsumeShapeBudget() {
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 1;
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse("<table></table><p>valid</p>")
@@ -53,7 +53,7 @@ public sealed class HtmlImportTests {
 
     [Fact]
     public void EmptyTableDoesNotConsumeTableBudget() {
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 1;
         limits.MaxTables = 1;
 

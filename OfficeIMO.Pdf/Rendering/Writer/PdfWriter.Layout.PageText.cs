@@ -241,21 +241,21 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> shapes = isHeader ? opts.GetHeaderShapesForPage(variantPage) : opts.GetFooterShapesForPage(variantPage);
         string? fontFamily = isHeader ? opts.HeaderFontFamily : opts.FooterFontFamily;
 
-        Add(PdfAlign.Left, zones.Left);
-        Add(PdfAlign.Center, zones.Center);
-        Add(PdfAlign.Right, zones.Right);
+        Add(OfficeAlignment.Left, zones.Left);
+        Add(OfficeAlignment.Center, zones.Center);
+        Add(OfficeAlignment.Right, zones.Right);
         ValidatePageTextRichZoneLayouts(opts, layouts, isHeader);
         return layouts;
 
-        void Add(PdfAlign align, System.Collections.Generic.IReadOnlyList<PdfFooterSegment>? segments) {
+        void Add(OfficeAlignment align, System.Collections.Generic.IReadOnlyList<PdfFooterSegment>? segments) {
             if (segments == null || segments.Count == 0) return;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRunsFromSegments(segments, page, pages, documentPages, font, fontSize, color, opts, fontFamily);
             double textWidth = MeasurePageTextRuns(runs, font, fontSize, opts);
             GetPageTextVerticalBoundsOrBaseline(runs, font, fontSize, opts, textBaseline, out double textBottom, out double textTop);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, MeasureHeaderFooterImagesWidth(images, align), MeasureHeaderFooterShapesWidth(shapes, align));
-            double x = align == PdfAlign.Center
+            double x = align == OfficeAlignment.Center
                 ? contentLeft + ((contentWidth - occupiedWidth) / 2D)
-                : align == PdfAlign.Right ? contentLeft + contentWidth - occupiedWidth : contentLeft;
+                : align == OfficeAlignment.Right ? contentLeft + contentWidth - occupiedWidth : contentLeft;
             layouts.Add(new PageTextRichZoneLayout(runs, x, textWidth, align, textBottom, textTop - textBottom));
         }
     }
@@ -296,10 +296,10 @@ internal static partial class PdfWriter {
             System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily);
             double textWidth = MeasurePageTextRuns(runs, font, fontSize, opts);
             GetPageTextVerticalBoundsOrBaseline(runs, font, fontSize, opts, textBaseline, out double textBottom, out double textTop);
-            double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Left);
-            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Left);
+            double imagesWidth = MeasureHeaderFooterImagesWidth(images, OfficeAlignment.Left);
+            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, OfficeAlignment.Left);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
-            layouts.Add(new PageTextZoneLayout(text, contentLeft, textWidth, PdfAlign.Left, textBottom, textTop - textBottom));
+            layouts.Add(new PageTextZoneLayout(text, contentLeft, textWidth, OfficeAlignment.Left, textBottom, textTop - textBottom));
         }
 
         if (!string.IsNullOrEmpty(zones.Center)) {
@@ -307,11 +307,11 @@ internal static partial class PdfWriter {
             System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily);
             double textWidth = MeasurePageTextRuns(runs, font, fontSize, opts);
             GetPageTextVerticalBoundsOrBaseline(runs, font, fontSize, opts, textBaseline, out double textBottom, out double textTop);
-            double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Center);
-            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Center);
+            double imagesWidth = MeasureHeaderFooterImagesWidth(images, OfficeAlignment.Center);
+            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, OfficeAlignment.Center);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             double occupiedX = contentLeft + ((contentWidth - occupiedWidth) / 2);
-            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Center, textBottom, textTop - textBottom));
+            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, OfficeAlignment.Center, textBottom, textTop - textBottom));
         }
 
         if (!string.IsNullOrEmpty(zones.Right)) {
@@ -319,11 +319,11 @@ internal static partial class PdfWriter {
             System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildPageTextRuns(text, font, fontSize, color: null, opts, fontFamily);
             double textWidth = MeasurePageTextRuns(runs, font, fontSize, opts);
             GetPageTextVerticalBoundsOrBaseline(runs, font, fontSize, opts, textBaseline, out double textBottom, out double textTop);
-            double imagesWidth = MeasureHeaderFooterImagesWidth(images, PdfAlign.Right);
-            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, PdfAlign.Right);
+            double imagesWidth = MeasureHeaderFooterImagesWidth(images, OfficeAlignment.Right);
+            double shapesWidth = MeasureHeaderFooterShapesWidth(shapes, OfficeAlignment.Right);
             double occupiedWidth = CombineHeaderFooterInlineWidths(textWidth, imagesWidth, shapesWidth);
             double occupiedX = contentLeft + contentWidth - occupiedWidth;
-            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, PdfAlign.Right, textBottom, textTop - textBottom));
+            layouts.Add(new PageTextZoneLayout(text, occupiedX, textWidth, OfficeAlignment.Right, textBottom, textTop - textBottom));
         }
 
         ValidatePageTextZoneLayouts(opts, layouts, isHeader);
@@ -353,7 +353,7 @@ internal static partial class PdfWriter {
         string source = isHeader ? "Header" : "Footer";
         var layouts = new System.Collections.Generic.List<HeaderFooterGroupLayout>(3);
 
-        foreach (PdfAlign align in new[] { PdfAlign.Left, PdfAlign.Center, PdfAlign.Right }) {
+        foreach (OfficeAlignment align in new[] { OfficeAlignment.Left, OfficeAlignment.Center, OfficeAlignment.Right }) {
             if (!TryGetHeaderFooterGroupVisibleHorizontalBounds(
                     options,
                     variantPage,
@@ -402,7 +402,7 @@ internal static partial class PdfWriter {
         int page,
         int pages,
         int documentPages,
-        PdfAlign align,
+        OfficeAlignment align,
         bool isHeader,
         out double visibleLeft,
         out double visibleRight) {
@@ -483,7 +483,7 @@ internal static partial class PdfWriter {
         int page,
         int pages,
         int documentPages,
-        PdfAlign align,
+        OfficeAlignment align,
         bool isHeader) {
         // A rich story can retain a backup projection without painting that text.
         // Match the serializer's active-text decision before measuring zone bounds.
@@ -494,13 +494,13 @@ internal static partial class PdfWriter {
         var zones = isHeader ? opts.GetHeaderZonesForPage(variantPage) : opts.GetFooterZonesForPage(variantPage);
         PdfPageTextZoneSegments? zoneSegments = isHeader ? opts.GetHeaderZoneSegmentsForPage(variantPage) : opts.GetFooterZoneSegmentsForPage(variantPage);
         System.Collections.Generic.List<PdfFooterSegment>? alignedZoneSegments = align switch {
-            PdfAlign.Center => zoneSegments?.Center,
-            PdfAlign.Right => zoneSegments?.Right,
+            OfficeAlignment.Center => zoneSegments?.Center,
+            OfficeAlignment.Right => zoneSegments?.Right,
             _ => zoneSegments?.Left
         };
         string? text = align switch {
-            PdfAlign.Center => zones.Center,
-            PdfAlign.Right => zones.Right,
+            OfficeAlignment.Center => zones.Center,
+            OfficeAlignment.Right => zones.Right,
             _ => zones.Left
         };
         System.Collections.Generic.IReadOnlyList<PdfTextRun>? runs = null;
@@ -545,7 +545,7 @@ internal static partial class PdfWriter {
         string Text,
         double X,
         double TextWidth,
-        PdfAlign Align,
+        OfficeAlignment Align,
         double TextBottom,
         double TextHeight);
 
@@ -553,7 +553,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs,
         double X,
         double TextWidth,
-        PdfAlign Align,
+        OfficeAlignment Align,
         double TextBottom,
         double TextHeight);
 

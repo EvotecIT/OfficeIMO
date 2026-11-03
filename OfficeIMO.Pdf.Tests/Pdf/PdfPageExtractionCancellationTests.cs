@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfPageExtractionCancellationTests {
     [Fact]
     public void CancellableInfoSerializationPreservesTextStringBytes() {
-        var metadata = new PdfMetadata {
+        var metadata = new PdfDocumentProperties {
             Title = "Zażółć 😀",
             Author = "OfficeIMO",
             Keywords = "PDF, cancellation"

@@ -355,8 +355,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         Assert.Equal((200D, 100D), (page.Width, page.Height));
         Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "ValidHeader");
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "bogus");
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported && diagnostic.Detail == "attr(title)");
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "bogus");
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported && diagnostic.Detail == "attr(title)");
     }
 
     [Fact]

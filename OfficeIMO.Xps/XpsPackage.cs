@@ -15,14 +15,14 @@ internal static class XpsPackage {
         using (var writer = XmlWriter.Create(stream, new XmlWriterSettings { Encoding = new UTF8Encoding(false), CloseOutput = false })) root.Save(writer);
         return stream.ToArray();
     }
-    internal static XElement Xml(byte[] bytes, XpsReadOptions limits, CancellationToken token) {
+    internal static XElement Xml(byte[] bytes, XpsReadLimits limits, CancellationToken token) {
         using var stream = new MemoryStream(bytes, false);
-        var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = limits.MaximumPartBytes };
+        var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = limits.MaxPartBytes };
         // Inspect depth before constructing a tree; deeply nested input must not reach recursive consumers.
         using (var reader = XmlReader.Create(stream, settings)) {
             while (reader.Read()) {
                 token.ThrowIfCancellationRequested();
-                if (reader.Depth > limits.MaximumXmlDepth) throw new InvalidDataException("XPS XML nesting limit exceeded.");
+                if (reader.Depth > limits.MaxDepth) throw new InvalidDataException("XPS XML nesting limit exceeded.");
             }
         }
         stream.Position = 0;

@@ -134,9 +134,9 @@ public static partial class WordPdfConverterExtensions {
     private static bool HasNativeRunningStoryOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
             ? options.FooterOffsetY.ToPoints() != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
+                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != global::OfficeIMO.OfficeAlignment.Center
             : options.HeaderOffsetY.ToPoints() != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
+                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != global::OfficeIMO.OfficeAlignment.Center);
 
     private static void ConfigureNativeRunningHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section,
         WordPdfExportOptions? options, NativeFontMap fontMap,
@@ -247,7 +247,7 @@ public static partial class WordPdfConverterExtensions {
             }
             if (addPageNumber)
                 content.Paragraph(paragraph => paragraph.Text(FormatNativeRunningPageTokens(
-                    GetNativePageNumberFormat(options), context, null)), PdfCore.PdfAlign.Right);
+                    GetNativePageNumberFormat(options), context, null)), global::OfficeIMO.OfficeAlignment.Right);
         };
     }
 

@@ -10,7 +10,7 @@ public sealed class BibliographyReviewWave20RegressionTests {
         item.Keywords.Add(keyword);
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Equal(keyword, Assert.Single(reopened.Keywords));
@@ -22,7 +22,7 @@ public sealed class BibliographyReviewWave20RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Equal(BibliographyItemType.ArticleJournal, reopened.Type);
@@ -55,7 +55,7 @@ public sealed class BibliographyReviewWave20RegressionTests {
         const int length = 128;
 #endif
         string source = shortContinuation ? "TY  - BOOK\nTI  - A\n      123456\nER  -\n" : prefix + new string('x', length);
-        var options = new BibliographyReadOptions { MaximumValueLength = shortContinuation ? 5 : 4 };
+        var options = new BibliographyReadOptions { MaxValueLength = shortContinuation ? 5 : 4 };
 #if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.Ris, options);
 #else
@@ -81,7 +81,7 @@ public sealed class BibliographyReviewWave20RegressionTests {
         item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = literal });
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = Assert.Single(Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items).Dates);
 
         Assert.Equal(literal, reopened.Literal);

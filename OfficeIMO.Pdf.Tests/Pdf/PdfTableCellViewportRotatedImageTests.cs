@@ -14,7 +14,7 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column", -90)]
     [InlineData("canvas", -90)]
     public void Rotated_image_and_link_survive_when_only_rotated_ink_intersects_the_fragment(string mode, double rotation) {
-        var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = rotation };
+        var imageStyle = new PdfImageStyle { Align = OfficeAlignment.Center, RotationAngle = rotation };
         using PdfPigDocument full = PdfPigDocument.Open(RenderRotatedImage(mode, imageStyle, fragment: false));
         Assert.Single(full.GetPage(1).GetImages());
         var fullLink = Assert.Single(full.GetPage(1).GetHyperlinks());
@@ -35,7 +35,7 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column")]
     [InlineData("canvas")]
     public void Rotated_ink_outside_the_existing_image_clip_is_omitted_with_its_link(string mode) {
-        var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = 90,
+        var imageStyle = new PdfImageStyle { Align = OfficeAlignment.Center, RotationAngle = 90,
             ClipPath = OfficeClipPath.Rectangle(12, 12) };
         using PdfPigDocument fragment = PdfPigDocument.Open(RenderRotatedImage(mode, imageStyle));
         Assert.Empty(fragment.GetPage(1).GetImages());
@@ -50,7 +50,7 @@ public sealed partial class PdfTableCellViewportTests {
     [InlineData("column", true)]
     [InlineData("canvas", true)]
     public void Source_crop_keeps_the_authored_rotation_pivot_and_rotated_link_bounds(string mode, bool top) {
-        var imageStyle = new PdfImageStyle { Align = PdfAlign.Center, RotationAngle = 90,
+        var imageStyle = new PdfImageStyle { Align = OfficeAlignment.Center, RotationAngle = 90,
             SourceCrop = top ? new PdfImageSourceCrop { Top = .5 } : new PdfImageSourceCrop { Bottom = .5 } };
         using PdfPigDocument fragment = PdfPigDocument.Open(RenderRotatedImage(mode, imageStyle));
         Assert.Single(fragment.GetPage(1).GetImages());

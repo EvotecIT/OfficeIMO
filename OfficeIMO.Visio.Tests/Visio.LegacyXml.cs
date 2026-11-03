@@ -15,7 +15,7 @@ public class VisioLegacyXmlTests {
         var imported = VisioDocument.LoadLegacyXml(path);
         VisioPage page = Assert.Single(imported.Value.Pages);
         Assert.Equal(19, page.Shapes.Count + page.Connectors.Count);
-        Assert.DoesNotContain(imported.Report.FidelityDiagnostics, item => item.Code == "VDX_CONNECTOR_PROFILE" && item.Location == "34");
+        Assert.DoesNotContain(imported.Report.Diagnostics, item => item.Code == "VDX_CONNECTOR_PROFILE" && item.Location == "34");
         VisioConnector connected = Assert.Single(page.Connectors, connector => connector.Id == "28");
         Assert.Equal("4", connected.From?.Id); Assert.Equal("11", connected.To?.Id);
         Assert.Contains(page.Shapes, shape => !string.IsNullOrWhiteSpace(shape.Text));
@@ -64,7 +64,7 @@ public class VisioLegacyXmlTests {
             page.Connectors.Add(new VisioConnector(start, end));
         }
         var exported = document.ToLegacyXmlResult();
-        Assert.DoesNotContain(exported.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "VDX_GEOMETRY" || diagnostic.Code == "VDX_SECTION");
+        Assert.DoesNotContain(exported.Report.Diagnostics, diagnostic => diagnostic.Code == "VDX_GEOMETRY" || diagnostic.Code == "VDX_SECTION");
         XDocument xml = XDocument.Load(new MemoryStream(exported.Value));
         Assert.Equal("http://schemas.microsoft.com/visio/2003/core", xml.Root!.Name.NamespaceName);
         Assert.DoesNotContain(xml.Descendants(), element => element.Name.LocalName == "Cell");
@@ -119,6 +119,6 @@ public class VisioLegacyXmlTests {
         using var wrong = new MemoryStream(Encoding.UTF8.GetBytes("<VisioDocument/>"));
         Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(wrong));
         using var deep = new MemoryStream(Encoding.UTF8.GetBytes("<VisioDocument xmlns='http://schemas.microsoft.com/visio/2003/core'><Pages><Page><Shapes/></Page></Pages></VisioDocument>"));
-        Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(deep, options: new VisioLoadOptions { MaxLegacyXmlDepth = 2 }));
+        Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(deep, options: new VisioLoadOptions { Limits = { MaxLegacyXmlDepth = 2 } }));
     }
 }

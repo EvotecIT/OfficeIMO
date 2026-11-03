@@ -66,7 +66,7 @@ public sealed class ProjectionReferenceTests {
         var projection = ImageBook("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><image " +
             attribute + "='missing.png'/></svg>").ToHtmlDocumentResult();
         Assert.DoesNotContain(projection.Value.Document.QuerySelector("image")!.Attributes, item => item.LocalName == "href");
-        Assert.Contains(projection.Report.FidelityDiagnostics, item => item.Code == "CHM_IMAGE_MISSING");
+        Assert.Contains(projection.Report.Diagnostics, item => item.Code == "CHM_IMAGE_MISSING");
     }
 
     [Fact]
@@ -139,8 +139,8 @@ public sealed class ProjectionReferenceTests {
         var projection = book.ToHtmlDocumentResult();
         Assert.Contains("Visible text", projection.Value.SourceHtml);
         Assert.DoesNotContain("onclick", projection.Value.SourceHtml);
-        Assert.Contains(projection.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "CHM_ACTIVE_CONTENT_OMITTED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<OfficeConversionException>(() => projection.RequireNoLoss());
+        Assert.Contains(projection.Report.Diagnostics, diagnostic => diagnostic.Code == "CHM_ACTIVE_CONTENT_OMITTED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<OfficeConversionException>(() => projection.ThrowIfLoss());
     }
 
     [Fact]

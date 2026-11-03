@@ -257,7 +257,7 @@ namespace OfficeIMO.Tests {
             Assert.True(second.HasValue);
             Assert.Equal("✓", first.Value.LevelText);
             Assert.Equal("◆", second.Value.LevelText);
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
+            Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic =>
                 string.Equals(diagnostic.Code, "unsupported-css-value", StringComparison.OrdinalIgnoreCase) &&
                 diagnostic.Source?.Contains("list-style", StringComparison.OrdinalIgnoreCase) == true);
         }

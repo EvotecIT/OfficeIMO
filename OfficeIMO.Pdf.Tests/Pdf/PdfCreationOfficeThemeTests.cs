@@ -247,7 +247,7 @@ public sealed class PdfCreationOfficeThemeTests {
         byte[] fixture = IndependentPdf();
         using var input = new MemoryStream(fixture, writable: false);
         using var loaded = await PdfDocument.LoadAsync(input);
-        Assert.Equal("SavedIdentity", loaded.Metadata.Title);
+        Assert.Equal("SavedIdentity", loaded.Properties.Title);
         _ = loaded.Inspect();
         Assert.Equal(11D, loaded.Options.DefaultFontSize.ToPoints());
         Assert.Equal(72D, loaded.Options.MarginLeft.ToPoints());

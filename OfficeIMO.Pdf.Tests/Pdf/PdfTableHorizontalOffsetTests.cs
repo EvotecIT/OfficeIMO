@@ -6,12 +6,12 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTableHorizontalOffsetTests {
     [Theory]
-    [InlineData("flow", PdfAlign.Left, -18)]
-    [InlineData("flow", PdfAlign.Center, 12)]
-    [InlineData("flow", PdfAlign.Right, -18)]
-    [InlineData("columns", PdfAlign.Right, 12)]
-    [InlineData("row", PdfAlign.Center, -18)]
-    public void TranslationPreservesWidthsAndPagination(string frame, PdfAlign alignment, double offset) {
+    [InlineData("flow", OfficeAlignment.Left, -18)]
+    [InlineData("flow", OfficeAlignment.Center, 12)]
+    [InlineData("flow", OfficeAlignment.Right, -18)]
+    [InlineData("columns", OfficeAlignment.Right, 12)]
+    [InlineData("row", OfficeAlignment.Center, -18)]
+    public void TranslationPreservesWidthsAndPagination(string frame, OfficeAlignment alignment, double offset) {
         using var baseline = PdfPigDocument.Open(Render(frame, alignment, 0));
         using var translated = PdfPigDocument.Open(Render(frame, alignment, offset));
         Assert.True(baseline.NumberOfPages >= 2);
@@ -47,7 +47,7 @@ public sealed class PdfTableHorizontalOffsetTests {
         Assert.True(alongside.Letters[0].StartBaseLine.X >= 190);
     }
 
-    private static byte[] Render(string frame, PdfAlign alignment, double offset) {
+    private static byte[] Render(string frame, OfficeAlignment alignment, double offset) {
         var style = new PdfTableStyle {
             LeftIndent = global::OfficeIMO.OfficeLength.Points(6), HorizontalOffset = global::OfficeIMO.OfficeLength.Points(offset), MaxWidth = global::OfficeIMO.OfficeLength.Points(120), PreserveWidth = true,
             ColumnWidthWeights = new List<double> { 1, 1 }, HeaderRowCount = 0,

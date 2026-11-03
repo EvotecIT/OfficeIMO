@@ -548,7 +548,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, HonorCssPageRules = true };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
-        HtmlDiagnostic[] diagnostics = rendered.Diagnostics
+        HtmlDiagnostic[] diagnostics = rendered.NativeDiagnostics
             .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported)
             .ToArray();
 
@@ -714,7 +714,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPage page = Assert.Single(rendered.Pages);
 
         Assert.Equal((816D, 1056D), (page.Width, page.Height));
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "A4 bogus");
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "A4 bogus");
     }
 
     [Theory]

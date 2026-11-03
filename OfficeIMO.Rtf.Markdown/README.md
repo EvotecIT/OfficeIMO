@@ -16,7 +16,7 @@ var options = new RtfToMarkdownOptions {
 };
 
 RtfConversionResult<string> result = rtf.ToMarkdownResult(options);
-string markdown = result.RequireNoLoss();
+string markdown = result.ThrowIfLoss();
 ```
 
 Footnotes and endnotes become Markdown footnote references and definitions. Tables, lists, rich inline formatting, links, and supported images have semantic mappings. Nested tables are flattened inside Markdown table cells; annotations and headers/footers are diagnostic omissions.

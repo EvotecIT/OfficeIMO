@@ -735,8 +735,8 @@ namespace OfficeIMO.Tests.Pdf {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
-                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), PdfAlign.Left).Text("HeaderImageText"))
-                .Footer(footer => footer.Image(png, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(10), PdfAlign.Center))
+                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), OfficeAlignment.Left).Text("HeaderImageText"))
+                .Footer(footer => footer.Image(png, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(10), OfficeAlignment.Center))
                 .Paragraph(paragraph => paragraph.Text("Header footer image body"));
 
             byte[] bytes = doc.ToBytes();
@@ -765,7 +765,7 @@ namespace OfficeIMO.Tests.Pdf {
                 })
                 .Header(header => header
                     .Zones(null, "Centered header", null)
-                    .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), PdfAlign.Center))
+                    .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), OfficeAlignment.Center))
                 .Paragraph(paragraph => paragraph.Text("Body"));
 
             byte[] bytes = doc.ToBytes();
@@ -807,8 +807,8 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(14), PdfAlign.Center))
-                .Footer(footer => footer.Shape(footerShape, PdfAlign.Right))
+                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(14), OfficeAlignment.Center))
+                .Footer(footer => footer.Shape(footerShape, OfficeAlignment.Right))
                 .Paragraph(paragraph => paragraph.Text("Header footer visual overflow body"))
                 .ToBytes();
 
@@ -845,7 +845,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Shape(shape, PdfAlign.Left))
+                .Header(header => header.Shape(shape, OfficeAlignment.Left))
                 .Paragraph(paragraph => paragraph.Text("Transformed header shape diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -881,7 +881,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Shape(shape, PdfAlign.Left))
+                .Header(header => header.Shape(shape, OfficeAlignment.Left))
                 .Paragraph(paragraph => paragraph.Text("Header shape clip diagnostic body"))
                 .ToBytes();
 
@@ -909,7 +909,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Shape(shape, PdfAlign.Right))
+                .Header(header => header.Shape(shape, OfficeAlignment.Right))
                 .Paragraph(paragraph => paragraph.Text("Header shape shadow diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -942,7 +942,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Shape(shape, PdfAlign.Left))
+                .Header(header => header.Shape(shape, OfficeAlignment.Left))
                 .Paragraph(paragraph => paragraph.Text("Header shape stroke diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -978,7 +978,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Shape(shape, PdfAlign.Right))
+                .Header(header => header.Shape(shape, OfficeAlignment.Right))
                 .Paragraph(paragraph => paragraph.Text("Header miter shadow diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -1011,8 +1011,8 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header
-                    .Shape(unpaintedLine, PdfAlign.Left)
-                    .Shape(emptyClippedShape, PdfAlign.Right))
+                    .Shape(unpaintedLine, OfficeAlignment.Left)
+                    .Shape(emptyClippedShape, OfficeAlignment.Right))
                 .Paragraph(paragraph => paragraph.Text("Header invisible shape diagnostic body"))
                 .ToBytes();
 
@@ -1038,7 +1038,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(14), PdfAlign.Center))
+                .Header(header => header.Image(png, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(14), OfficeAlignment.Center))
                 .Paragraph(paragraph => paragraph.Text("Physical page clipping diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -1064,7 +1064,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
             byte[] bytes = PdfDocument.Create(options)
-                .Header(header => header.Image(portraitPng, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20), PdfAlign.Center, OfficeImageFit.Contain))
+                .Header(header => header.Image(portraitPng, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20), OfficeAlignment.Center, OfficeImageFit.Contain))
                 .Paragraph(paragraph => paragraph.Text("Contained header image body"))
                 .ToBytes();
 
@@ -1090,7 +1090,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header
                     .Zones("H", null, null)
-                    .Image(portraitPng, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20), PdfAlign.Left, OfficeImageFit.Contain))
+                    .Image(portraitPng, global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20), OfficeAlignment.Left, OfficeImageFit.Contain))
                 .Paragraph(paragraph => paragraph.Text("Contained zoned header image body"))
                 .ToBytes();
 
@@ -1114,8 +1114,8 @@ namespace OfficeIMO.Tests.Pdf {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Header(header => header
-                    .Image(png, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), PdfAlign.Left)
-                    .Image(png, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), PdfAlign.Center))
+                    .Image(png, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), OfficeAlignment.Left)
+                    .Image(png, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), OfficeAlignment.Center))
                 .Paragraph(paragraph => paragraph.Text("Visual-only header overlap body"))
                 .ToBytes();
 
@@ -1149,8 +1149,8 @@ namespace OfficeIMO.Tests.Pdf {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
                 })
-                .Header(header => header.Shape(headerShape, PdfAlign.Center).Text("HeaderShapeText"))
-                .Footer(footer => footer.Shape(footerShape, PdfAlign.Right))
+                .Header(header => header.Shape(headerShape, OfficeAlignment.Center).Text("HeaderShapeText"))
+                .Footer(footer => footer.Shape(footerShape, OfficeAlignment.Right))
                 .Paragraph(paragraph => paragraph.Text("Header footer shape body"));
 
             byte[] bytes = doc.ToBytes();

@@ -19,7 +19,7 @@ public sealed class PublisherLineStyleTests {
         });
         Assert.NotNull(Artwork(publication).Shadow);
         Assert.NotNull(Artwork(publication).StrokeEndMarker);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_MARKER_SHADOW_OMITTED"
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_MARKER_SHADOW_OMITTED"
             && item.LossKind == OfficeConversionLossKind.Omission && item.Location == "Contents/object/293");
         Assert.Contains(publication.ReadReport, publication.ToPdfDocumentResult().SourceConversionReports);
     }
@@ -36,7 +36,7 @@ public sealed class PublisherLineStyleTests {
         Assert.Equal(OfficeStrokeLineCap.Square, shape.StrokeLineCap);
         Assert.Equal(OfficeStrokeLineJoin.Miter, shape.StrokeLineJoin);
         Assert.Equal(4.25, shape.StrokeMiterLimit);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, d => d.Code == "PUB_LINE_DASH_APPROXIMATED");
+        Assert.Contains(publication.ReadReport.Diagnostics, d => d.Code == "PUB_LINE_DASH_APPROXIMATED");
         Assert.Contains("stroke-miterlimit=\"4.25\"", publication.ToSvg(0));
     }
 
@@ -94,7 +94,7 @@ public sealed class PublisherLineStyleTests {
         Assert.Equal(60, shape.StrokeEndMarker.Width); Assert.Equal(80, shape.StrokeEndMarker.Length);
         string svg = publication.ToSvg(0);
         Assert.Equal(svg, OfficeDrawingSvgExporter.ToSvg(publication.Pages[0].Drawing.Clone()));
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_MARKER_APPROXIMATED"
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_MARKER_APPROXIMATED"
             && item.LossKind == OfficeConversionLossKind.Approximation && item.Location == "Contents/object/293");
         var result = publication.ToPdfDocumentResult();
         OfficeShape[] painted = PublisherNativeTests.Elements(PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[0].ToDrawing())
@@ -119,30 +119,30 @@ public sealed class PublisherLineStyleTests {
         PublisherDocument publication = Load(values);
         Assert.Null(Artwork(publication).StrokeStartMarker);
         Assert.Equal(45, Artwork(publication).StrokeEndMarker!.Width);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_MARKER_UNSUPPORTED");
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_STYLE_APPROXIMATED");
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_DETAIL_UNASSESSED");
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_MARKER_UNSUPPORTED");
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_STYLE_APPROXIMATED");
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_DETAIL_UNASSESSED");
         values[0x01FF] = 0x00080000;
         PublisherDocument hiddenStroke = Load(values);
-        Assert.DoesNotContain(hiddenStroke.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_LINE_"));
+        Assert.DoesNotContain(hiddenStroke.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_LINE_"));
         values[0x01FF] = 0x00080008;
         values[0x01C1] = 0;
         PublisherDocument transparentStroke = Load(values);
-        Assert.DoesNotContain(transparentStroke.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_LINE_"));
+        Assert.DoesNotContain(transparentStroke.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_LINE_"));
         Assert.NotNull(Artwork(transparentStroke).StrokeEndMarker);
         values[0x023F] = 0x00020002; values[0x0204] = 0;
         PublisherDocument transparentShadow = Load(values);
-        Assert.DoesNotContain(transparentShadow.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_LINE_"));
+        Assert.DoesNotContain(transparentShadow.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_LINE_"));
     }
 
     [Fact]
     public void Reserved_markers_are_ignored_and_closed_geometries_report_unsupported_decorations() {
         PublisherDocument reserved = Load(new Dictionary<ushort, uint> { [0x01D0] = 6, [0x01D1] = 7 });
         Assert.Null(Artwork(reserved).StrokeStartMarker); Assert.Null(Artwork(reserved).StrokeEndMarker);
-        Assert.DoesNotContain(reserved.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_MARKER_APPROXIMATED");
+        Assert.DoesNotContain(reserved.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_MARKER_APPROXIMATED");
         PublisherDocument rectangle = Load(new Dictionary<ushort, uint> { [0x01D0] = 1 }, shapeType: 1);
         Assert.Null(Artwork(rectangle).StrokeStartMarker);
-        Assert.Contains(rectangle.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_MARKER_GEOMETRY_UNSUPPORTED"
+        Assert.Contains(rectangle.ReadReport.Diagnostics, item => item.Code == "PUB_LINE_MARKER_GEOMETRY_UNSUPPORTED"
             && item.LossKind == OfficeConversionLossKind.Omission);
     }
 

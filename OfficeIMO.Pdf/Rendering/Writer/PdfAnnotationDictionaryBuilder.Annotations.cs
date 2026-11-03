@@ -86,13 +86,13 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildFreeTextAppearanceContent(double width, double height, string contents, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
+    internal static string BuildFreeTextAppearanceContent(double width, double height, string contents, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, OfficeAlignment textAlign = OfficeAlignment.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(contents, nameof(contents));
         Guard.Positive(fontSize, nameof(fontSize));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
-        Guard.LeftCenterRightAlign(textAlign, nameof(textAlign), "PDF free text annotation text");
+        textAlign = Guard.LeftCenterRightAlign(textAlign, nameof(textAlign), "PDF free text annotation text");
         Guard.NonNegative(padding, nameof(padding));
         if (lineHeight.HasValue) {
             Guard.Positive(lineHeight.Value, nameof(lineHeight));
@@ -153,13 +153,13 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return content + "Q\n";
     }
 
-    internal static string BuildFreeTextRichAppearanceContent(double width, double height, IReadOnlyList<PdfFreeTextRichTextRun> runs, out IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
+    internal static string BuildFreeTextRichAppearanceContent(double width, double height, IReadOnlyList<PdfFreeTextRichTextRun> runs, out IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, OfficeAlignment textAlign = OfficeAlignment.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(runs, nameof(runs));
         Guard.Positive(fontSize, nameof(fontSize));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
-        Guard.LeftCenterRightAlign(textAlign, nameof(textAlign), "PDF free text annotation text");
+        textAlign = Guard.LeftCenterRightAlign(textAlign, nameof(textAlign), "PDF free text annotation text");
         Guard.NonNegative(padding, nameof(padding));
         if (lineHeight.HasValue) {
             Guard.Positive(lineHeight.Value, nameof(lineHeight));
@@ -692,12 +692,12 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
     }
 
-    private static double ResolveFreeTextLineX(PdfAlign textAlign, double padding, double availableWidth, double lineWidth) {
-        if (textAlign == PdfAlign.Center) {
+    private static double ResolveFreeTextLineX(OfficeAlignment textAlign, double padding, double availableWidth, double lineWidth) {
+        if (textAlign == OfficeAlignment.Center) {
             return padding + Math.Max(0D, (availableWidth - lineWidth) / 2D);
         }
 
-        if (textAlign == PdfAlign.Right) {
+        if (textAlign == OfficeAlignment.Right) {
             return padding + Math.Max(0D, availableWidth - lineWidth);
         }
 

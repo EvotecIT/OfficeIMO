@@ -50,7 +50,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(1, tables.ReconstructedCount);
         Assert.Equal(1, tables.OmittedCount);
         IWorkSourceUnit omitted = Assert.Single(result.Report.SourceUnits, unit => unit.Disposition == IWorkSourceUnitDisposition.Omitted);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.RecordIdentifier == omitted.Identity.RecordIdentifier);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.RecordIdentifier == omitted.Identity.RecordIdentifier);
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;

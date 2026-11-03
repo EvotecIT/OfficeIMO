@@ -9,10 +9,10 @@ namespace OfficeIMO.Examples.Pdf {
 
             var options = new PdfCreateOptions {
                 HeaderFormat = "OfficeIMO.Pdf showcase - business statement",
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
                 ShowHeader = true,
-                FooterAlign = PdfAlign.Right,
+                FooterAlign = OfficeAlignment.Right,
                 ShowPageNumbers = true,
                 CreateOutlineFromHeadings = true
             };
@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Pdf {
                     document.Page(page => {
                         page.Margin(global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(58));
                         page.Content(content => {
-                            content.Item(item => item.H1("Statement #4048", PdfAlign.Left));
+                            content.Item(item => item.H1("Statement #4048", OfficeAlignment.Left));
                             content.Item(item => item.Paragraph(p => p.Text("Issue date: 23/12/2025 \u00B7 Due date: 06/01/2026"), style: TightParagraph()));
                             content.Spacer(OfficeLength.Points(18));
                             content.Row(row => {
@@ -158,12 +158,12 @@ namespace OfficeIMO.Examples.Pdf {
             style.KeepWithNext = true;
             style.ColumnWidths = new List<OfficeLength?> { OfficeLength.Points(26), null, OfficeLength.Points(92), OfficeLength.Points(62), OfficeLength.Points(92) };
             style.ColumnWidthWeights = new List<double> { 0.4, 4.2, 1.3, 0.9, 1.3 };
-            style.Alignments = new List<PdfColumnAlign> {
-                    PdfColumnAlign.Right,
-                    PdfColumnAlign.Left,
-                    PdfColumnAlign.Right,
-                    PdfColumnAlign.Right,
-                    PdfColumnAlign.Right
+            style.Alignments = new List<OfficeAlignment> {
+                    OfficeAlignment.Right,
+                    OfficeAlignment.Left,
+                    OfficeAlignment.Right,
+                    OfficeAlignment.Right,
+                    OfficeAlignment.Right
                 };
             return style;
         }
@@ -182,7 +182,7 @@ namespace OfficeIMO.Examples.Pdf {
             style.CellPaddingBottom = OfficeLength.Points(6);
             style.FontSize = OfficeLength.Points(10);
             style.RightAlignNumeric = true;
-            style.Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right };
+            style.Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right };
             style.ColumnWidthWeights = new List<double> { 1.2, 1.0 };
             return style;
         }

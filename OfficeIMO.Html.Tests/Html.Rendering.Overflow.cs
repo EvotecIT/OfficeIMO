@@ -236,7 +236,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument overflowing = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(overflowingHtml), options);
         HtmlRenderDocument fitting = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(fittingHtml), options);
 
-        HtmlDiagnostic diagnostic = Assert.Single(overflowing.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
+        HtmlDiagnostic diagnostic = Assert.Single(overflowing.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
         Assert.Equal("div#auto-overflow", diagnostic.Source);
         Assert.DoesNotContain(fitting.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
     }
@@ -252,7 +252,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.Single(rendered.Diagnostics, item =>
+        Assert.Single(rendered.NativeDiagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot
             && item.Source == "div#scroll-box");
     }
@@ -337,7 +337,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowValueUnsupported);
         Assert.Equal("div#invalid-overflow", diagnostic.Source);
         Assert.Contains("overflow-x=sideways", diagnostic.Detail);
         Assert.Contains("overflow-y=banana", diagnostic.Detail);
@@ -358,7 +358,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(0D)
         });
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported);
 
         Assert.Equal("div#invalid-clip-margin", diagnostic.Source);
         Assert.Contains("overflow-clip-margin=border-box -2px", diagnostic.Detail, StringComparison.Ordinal);

@@ -192,7 +192,7 @@ public sealed class VisioLayerRenderingTests {
         connector.TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Missing Hidden Connector Font" };
         page.AddToLayer("Disabled", text).AddToLayer("Disabled", foreign).AddToLayer("Disabled", connector);
         var options = new VisioImageExportOptions {
-            Supersampling = 1, Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+            Supersampling = 1, Policy = new OfficeImageExportPolicy { FailOnLoss = true }
         };
 
         foreach (VisioLayerRenderMode mode in new[] { VisioLayerRenderMode.Visible, VisioLayerRenderMode.Printable }) {

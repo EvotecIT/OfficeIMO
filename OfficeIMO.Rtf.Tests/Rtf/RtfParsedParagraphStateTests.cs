@@ -168,7 +168,7 @@ public class RtfParsedParagraphStateTests {
     [Fact]
     public void Parsed_Default_Normalization_Is_Not_Reported_As_Lost_Style_Inheritance() {
         RtfDocument parsed = RtfDocument.ParseResult(@"{\rtf1\ansi\pard Plain\par}").Document;
-        parsed.ToRtfResult().RequireNoLoss();
+        parsed.ToRtfResult().ThrowIfLoss();
         RtfDocument parsedStyleZero = RtfDocument.ParseResult(@"{\rtf1\ansi{\stylesheet{\s0\sb0\sa0 Normal;}}\pard Plain\par}").Document;
         Assert.Contains(parsedStyleZero.ToRtfResult().Report.Diagnostics,
             diagnostic => diagnostic.Code == "RtfNormalizationFormattingInheritanceMaterialized");

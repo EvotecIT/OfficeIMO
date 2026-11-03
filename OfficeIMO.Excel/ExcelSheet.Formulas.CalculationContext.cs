@@ -10,6 +10,8 @@ namespace OfficeIMO.Excel {
             internal FormulaEvaluationGuardState GuardState { get; } = new();
             internal Dictionary<string, ExcelSheet> ReferenceSheets { get; } = new(StringComparer.OrdinalIgnoreCase);
             internal Dictionary<string, Dictionary<string, string>> CacheKeys { get; } = new(StringComparer.Ordinal);
+            /// <summary>Parsed qualified or absolute references by text; the text alone determines each entry.</summary>
+            internal Dictionary<string, FormulaReferenceSyntax> ReferenceSyntax { get; } = new(StringComparer.Ordinal);
             /// <summary>Resolved ranges whose every cell held its final value for the pass, with the deepest dependency among them.</summary>
             internal Dictionary<(object Part, int R1, int C1, int R2, int C2), (FormulaArgumentValue[] Values, int Depth)> Ranges { get; } = new();
             /// <summary>Lookup ranges that hold formulas or array output, which lookups keep reading cell by cell.</summary>

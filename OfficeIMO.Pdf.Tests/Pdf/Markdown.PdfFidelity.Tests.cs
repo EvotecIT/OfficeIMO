@@ -41,7 +41,7 @@ public sealed class MarkdownPdfFidelityTests {
         Assert.Equal(text, PdfReadDocument.Open(bytes).ExtractText().Trim());
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code is
             "unsupported-bidirectional-text-layout" or "unsupported-complex-script-shaping");
-        conversion.RequireNoLoss();
+        conversion.ThrowIfLoss();
     }
 
     [Fact]

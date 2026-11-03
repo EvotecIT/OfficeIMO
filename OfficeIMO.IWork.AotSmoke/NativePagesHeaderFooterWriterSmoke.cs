@@ -25,7 +25,7 @@ internal static class NativePagesHeaderFooterWriterSmoke {
             "The native-edited page-text reference changed.");
         Verify(native, "OfficeIMO — Native header", "Zażółć café — native footer");
         using var output = new MemoryStream(new byte[] { 9, 8, 7 });
-        try { document.Save(output, new() { MaximumParagraphs = 74 }); throw new InvalidOperationException("Header/footer paragraphs escaped their budget."); }
+        try { document.Save(output, new() { MaxParagraphs = 74 }); throw new InvalidOperationException("Header/footer paragraphs escaped their budget."); }
         catch (InvalidDataException) { Require(output.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "Budget rejection mutated output."); }
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
         try { document.Save(output, cancellationToken: cancelled.Token); throw new InvalidOperationException("Cancelled page-text save succeeded."); }

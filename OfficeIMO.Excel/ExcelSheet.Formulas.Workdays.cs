@@ -35,12 +35,14 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveHolidayDates(string token, HashSet<double> holidays) {
-            List<FormulaArgumentValue> values;
+            IReadOnlyList<FormulaArgumentValue> values;
             if (token.IndexOf(':') >= 0) {
                 if (!TryResolveFormulaRange(token, out values)) {
                     return false;
                 }
-            } else if (!TryResolveFormulaArguments(token, out values)) {
+            } else if (TryResolveFormulaArguments(token, out List<FormulaArgumentValue> arguments)) {
+                values = arguments;
+            } else {
                 return false;
             }
             if (values.Any(value => value.IsUnresolvedFormula)) return false;

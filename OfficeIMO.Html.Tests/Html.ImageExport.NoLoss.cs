@@ -24,15 +24,15 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(pdf.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(pdf.HasLoss);
-        options.Policy.RequireNoLoss = true;
+        options.Policy.FailOnLoss = true;
         using var output = new MemoryStream();
         var imageOptions1 = options.Clone();
         imageOptions1.Format = format;
         Assert.Throws<OfficeImageExportPolicyException>(() => document.SaveAsImage(output, imageOptions1));
         Assert.Equal(0, output.Length);
         await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() => document.ExportImageAsync(format, options));
-        options.Policy.RequireNoLoss = false;
-        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        options.Policy.FailOnLoss = false;
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         Assert.Throws<HtmlConversionException>(() => document.ExportImage(format, options));
     }
 
@@ -45,9 +45,9 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         Assert.True(rendered.HasLoss);
-        Assert.All(rendered.Diagnostics.Where(d => d.Severity != HtmlDiagnosticSeverity.Info), diagnostic =>
+        Assert.All(rendered.NativeDiagnostics.Where(d => d.Severity != HtmlDiagnosticSeverity.Info), diagnostic =>
             Assert.NotEqual(OfficeConversionLossKind.None, diagnostic.LossKind));
-        options.Policy.RequireNoLoss = true;
+        options.Policy.FailOnLoss = true;
         Assert.Throws<OfficeImageExportPolicyException>(() => document.ExportImage(OfficeImageExportFormat.Svg, options));
     }
 
@@ -55,8 +55,8 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlImageExport_InformationalDiagnosticsDoNotInventLoss() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<table></table><div style='width:20px;height:20px;background:red'></div>");
         var options = new HtmlRenderOptions { ViewportWidth = 64D, Margins = HtmlRenderMargins.All(0D) };
-        options.Policy.RequireNoLoss = true;
-        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        options.Policy.FailOnLoss = true;
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         OfficeImageExportResult result = document.ExportImage(OfficeImageExportFormat.Png, options);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.EmptyTable);
         Assert.All(result.Diagnostics, diagnostic => Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind));

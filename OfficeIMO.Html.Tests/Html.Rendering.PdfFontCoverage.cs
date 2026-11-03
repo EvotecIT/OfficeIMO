@@ -34,7 +34,7 @@ public sealed class HtmlPdfFontCoverageTests {
     public void HtmlPdf_UncoveredUnicodeStillFailsWhenLossIsNotAllowed() {
         var request = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
 
         HtmlConversionException failure = Assert.Throws<HtmlConversionException>(() =>

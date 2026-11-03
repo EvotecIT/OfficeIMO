@@ -36,7 +36,7 @@ public class HtmlWordTablePadding {
         if (css.Contains("40000", StringComparison.Ordinal)) {
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("native margin limit", StringComparison.Ordinal));
         } else {
-            Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "unsupported-css-declaration"
+            Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "unsupported-css-declaration"
                 && (diagnostic.Source ?? string.Empty).Contains("padding", StringComparison.Ordinal));
         }
     }

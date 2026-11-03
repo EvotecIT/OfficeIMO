@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Shared_drawable_text_is_charged_for_each_destination_use(IWorkDocumentKind kind) {
         using MemoryStream package = CreatePackageWithSharedDrawableText(kind);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 11 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 11 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
             if (kind == IWorkDocumentKind.Pages) source.ReadPages();

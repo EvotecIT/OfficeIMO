@@ -221,13 +221,13 @@ public sealed partial class HtmlRenderingTests {
         string html = TableGeometrySource("<style>.sized{--sizing:" + value + ";" + property + ":var(--sizing)}</style>"
             + "<div class='sized'>Intrinsic text</div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
 
         Assert.Contains(property + "=" + value, diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         var strict = TableGeometryOptions();
-        strict.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        strict.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, strict));
     }
 
@@ -235,7 +235,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTableGeometry_DirectIntrinsicDeclarationsReportOneLossPerElement() {
         string html = TableGeometrySource("<div id='intrinsic' style='width:MAX-content;min-height:min-content;max-width:fit-content(100px)'>Text</div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported);
 
         Assert.Equal("div#intrinsic", diagnostic.Source);
         Assert.DoesNotContain("width=max-content", diagnostic.Detail);

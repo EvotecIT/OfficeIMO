@@ -14,15 +14,15 @@ public static partial class WordPdfConverterExtensions {
         // A contained table already receives its physical cell content frame.
         if (!containedTable) ApplyNativeLegacyPercentageTableDefaultIndent(table, layout, style, defaults);
         int firstColumn = GetNativeTableRowStartColumn(layout, 0);
-        PdfCore.PdfAlign alignment = MapNativeTableAlignment(ResolveNativeTableAlignment(table, defaults));
+        global::OfficeIMO.OfficeAlignment alignment = MapNativeTableAlignment(ResolveNativeTableAlignment(table, defaults));
         double firstMargin = GetNativeTableCellHorizontalMargin(style, 0, firstColumn, right: false);
         if (!containedTable && !UsesModernNativeWordLayout(table.Document)) {
             // Legacy left/right alignment uses the leading margin of the first
             // cell as a grid translation; the authored grid widths stay intact.
-            if (alignment == PdfCore.PdfAlign.Right) style.HorizontalOffset += global::OfficeIMO.OfficeLength.Points(firstMargin);
-            else if (alignment != PdfCore.PdfAlign.Center) style.HorizontalOffset -= global::OfficeIMO.OfficeLength.Points(Math.Max(firstMargin,
+            if (alignment == global::OfficeIMO.OfficeAlignment.Right) style.HorizontalOffset += global::OfficeIMO.OfficeLength.Points(firstMargin);
+            else if (alignment != global::OfficeIMO.OfficeAlignment.Center) style.HorizontalOffset -= global::OfficeIMO.OfficeLength.Points(Math.Max(firstMargin,
                 GetNativeTableCellBorderInset(style, 0, firstColumn, right: false)));
-        } else if (alignment == PdfCore.PdfAlign.Right) {
+        } else if (alignment == global::OfficeIMO.OfficeAlignment.Right) {
             int lastColumn = firstColumn;
             int column = firstColumn;
             foreach (WordTableCell cell in layout.Rows[0]) {
@@ -31,7 +31,7 @@ public static partial class WordPdfConverterExtensions {
                 column += GetNativeCellColumnSpan(cell);
             }
             style.HorizontalOffset -= global::OfficeIMO.OfficeLength.Points(GetNativeTableCellBorderInset(style, 0, lastColumn, right: true));
-        } else if (alignment != PdfCore.PdfAlign.Center) {
+        } else if (alignment != global::OfficeIMO.OfficeAlignment.Center) {
             style.HorizontalOffset += global::OfficeIMO.OfficeLength.Points(GetNativeTableCellBorderInset(style, 0, firstColumn, right: false));
         }
 

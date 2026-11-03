@@ -42,7 +42,7 @@ public sealed class PublisherTablePlacementTests {
             new PublisherParseContext(new PublisherReadOptions(), default)).Project();
         PublisherTable table = Assert.Single(document.Pages[0].Tables);
         Assert.False(table.HasPlacement);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TABLE_PLACEMENT_UNRESOLVED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TABLE_PLACEMENT_UNRESOLVED");
         Assert.True(table.HasTextMapping); Assert.Equal("retained", Assert.Single(table.Cells).Text);
         Assert.Equal(2, table.Cells[0].ColumnSpan);
         Assert.DoesNotContain("retained", document.ToSvg());

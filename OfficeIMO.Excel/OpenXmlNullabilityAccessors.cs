@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
             CaptureOriginalDynamicSpillFingerprintIfSafe();
             if (_worksheetPart.IsRootElementLoaded || !_excelDocument.AllowsWorksheetGridLoader) return;
             lock (_worksheetPart) {
-                if (!_worksheetPart.IsRootElementLoaded) ExcelWorksheetGridLoader.TryLoad(_worksheetPart);
+                if (!_worksheetPart.IsRootElementLoaded && ExcelWorksheetGridLoader.TryLoad(_worksheetPart, storeCells: true)) Persistence.UsesCellStore = true;
             }
         }
 

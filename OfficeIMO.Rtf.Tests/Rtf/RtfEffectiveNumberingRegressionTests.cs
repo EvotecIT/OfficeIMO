@@ -16,11 +16,11 @@ public class RtfEffectiveNumberingRegressionTests {
         document.ListDefinitions[0].Levels[0].NumberFormat = 10;
         document.AddParagraph("Numbered").SetList(3);
         Assert.False(new RtfListNumbering(document).Next(document.Paragraphs[0])!.IsNumberFormatSupported);
-        Assert.Contains(document.ToHtmlResult().RtfReport.Diagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened" && item.Action == RtfConversionAction.Flattened);
+        Assert.Contains(document.ToHtmlResult().RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened" && item.Action == RtfConversionAction.Flattened);
         Assert.Contains(document.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ListNumberFormatFlattened" && item.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
-        Assert.Contains(document.ToMarkdownResult().Report.Diagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
+        Assert.Contains(document.ToMarkdownResult().Report.NativeDiagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
         document.ListDefinitions[0].Levels[0].NumberFormat = 1;
-        Assert.Contains(document.ToMarkdownResult().Report.Diagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
+        Assert.Contains(document.ToMarkdownResult().Report.NativeDiagnostics, item => item.Code == "RTFMD017" && item.Action == RtfConversionAction.Flattened);
         Assert.DoesNotContain(document.ToHtmlResult().RtfReport.Diagnostics, item => item.Code == "RtfHtmlListNumberFormatFlattened");
     }
 

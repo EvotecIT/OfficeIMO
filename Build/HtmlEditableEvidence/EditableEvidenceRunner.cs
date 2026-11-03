@@ -100,7 +100,7 @@ internal static class EditableEvidenceRunner {
             long allocationStart = GC.GetTotalAllocatedBytes(precise: true);
             TargetEvidence evidence;
             try {
-                HtmlConversionDocumentOptions htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+                HtmlConversionDocumentOptions htmlOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
                 htmlOptions.Limits.MaxCssRules = maxCssRules;
                 using var archiveStream = new MemoryStream(archiveBytes, writable: false);
                 MhtmlDocument archive = MhtmlDocument.Load(archiveStream, htmlOptions: htmlOptions);
@@ -118,8 +118,8 @@ internal static class EditableEvidenceRunner {
                 string decoded = System.Net.WebUtility.HtmlDecode(export.ReopenedHtml);
                 Dictionary<string, bool> markerResults = markers.ToDictionary(marker => marker,
                     marker => decoded.Contains(marker, StringComparison.Ordinal));
-                var diagnostics = prepared.Report.Diagnostics.Concat(visible.Report.Diagnostics)
-                    .Concat(export.Report.Diagnostics).Select(diagnostic => new {
+                var diagnostics = prepared.Report.NativeDiagnostics.Concat(visible.Report.NativeDiagnostics)
+                    .Concat(export.Report.NativeDiagnostics).Select(diagnostic => new {
                         diagnostic.Component, diagnostic.Code, diagnostic.Source, diagnostic.Detail,
                         diagnostic.Message, severity = diagnostic.Severity.ToString(),
                         lossKind = diagnostic.LossKind.ToString(), diagnostic.Provenance

@@ -869,7 +869,7 @@ public class PdfDocumentWorkflowTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Annotation workflow"))
             .TextAnnotation("Review note", width: 20, height: 20, icon: PdfTextAnnotationIcon.Note, open: true)
-            .FreeTextAnnotation("Visible reviewer note", width: 140, height: 34, fontSize: 11, textAlign: PdfAlign.Center)
+            .FreeTextAnnotation("Visible reviewer note", width: 140, height: 34, fontSize: 11, textAlign: OfficeAlignment.Center)
             .ToBytes();
 
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
@@ -961,7 +961,7 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void ProofReports_StayFluentForRewritePreservationAndRedactionVerification() {
         byte[] source = PdfRewritePreservationTestSupport.BuildPreservationProofPdf();
-        PdfDocument updated = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateMetadata(title: "Updated preservation title");
+        PdfDocument updated = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateProperties(title: "Updated preservation title");
         var preservationOptions = new PdfRewritePreservationOptions()
             .AllowMetadataChanges("Title")
             .RequireTextMarkers("PreservationMarker", "SecondPageMarker");
@@ -984,7 +984,7 @@ public class PdfDocumentWorkflowTests {
         PdfRewritePreservationMatrixReport matrix = PdfDocument.Load(new System.IO.MemoryStream(source)).AssertRewritePreservationMatrix(
             "fluent-metadata-update",
             "MetadataUpdate",
-            document => document.UpdateMetadata(title: "Updated preservation title"),
+            document => document.UpdateProperties(title: "Updated preservation title"),
             options: preservationOptions,
             sourceFeatures: new[] { "metadata", "xmp", "attachments" });
         Assert.True(matrix.Passed);
@@ -998,7 +998,7 @@ public class PdfDocumentWorkflowTests {
         PdfRewritePreservationMatrixReport blockedMatrix = PdfDocument.Load(new System.IO.MemoryStream(signedSource)).AssertRewritePreservationMatrix(
             "signed-rewrite-blocked",
             "MetadataUpdate",
-            document => document.UpdateMetadata(title: "Blocked"),
+            document => document.UpdateProperties(title: "Blocked"),
             PdfRewritePreservationMatrixClassification.Blocked,
             sourceFeatures: new[] { "signature", "incremental" });
         PdfRewritePreservationMatrixEntry blockedEntry = Assert.Single(blockedMatrix.Entries);
@@ -1193,7 +1193,7 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(PdfMerger.Merge(source, appendix), byteMerged.ToBytes());
         Assert.Equal(4, byteMerged.Inspect().PageCount);
 
-        PdfDocument metadata = merged.UpdateMetadata(title: "Workflow updated", author: "OfficeIMO Tests");
+        PdfDocument metadata = merged.UpdateProperties(title: "Workflow updated", author: "OfficeIMO Tests");
         Assert.Equal(
             PdfMetadataEditor.UpdateMetadata(merged.ToBytes(), title: "Workflow updated", author: "OfficeIMO Tests"),
             metadata.ToBytes());
@@ -1344,7 +1344,7 @@ public class PdfDocumentWorkflowTests {
         Assert.False(preflight.HasRewriteBlocker(PdfRewriteBlockerKind.OptionalContent));
         Assert.True(preflight.DocumentInfo!.HasReadableOptionalContent);
 
-        PdfDocument updated = layered.UpdateMetadata(title: "Layer-preserving update");
+        PdfDocument updated = layered.UpdateProperties(title: "Layer-preserving update");
 
         PdfDocumentInfo updatedInfo = updated.Inspect();
         Assert.Equal("Layer-preserving update", updatedInfo.Metadata.Title);
@@ -1490,12 +1490,12 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(diagnostic.Message, warning.Message);
         Assert.Equal(PdfConversionWarningSeverity.Error, warning.Severity);
         Assert.Same(result.Report, Assert.Single(result.ConversionReports));
-        OfficeConversionFidelityDiagnostic failure = Assert.Single(result.FidelityDiagnostics);
+        OfficeDiagnostic failure = Assert.Single(result.ConversionDiagnostics);
         Assert.Equal(OfficeConversionLossKind.Failure, failure.LossKind);
         Assert.Equal(warning.Code, failure.Code);
         Assert.Equal("PdfParagraph", failure.Location);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(result.RequireNoLoss);
+        Assert.ThrowsAny<InvalidOperationException>(result.ThrowIfLoss);
         Assert.Equal("U+2603", warning.Details["codePoint"]);
         Assert.Equal("PdfParagraph[0].Run[0]", warning.Details["location"]);
         Assert.Equal("0", warning.Details["runIndex"]);

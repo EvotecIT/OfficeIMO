@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Text_frame_inheritance_respects_the_configured_depth_and_rejects_cycles() {
         using var limited = NativeTextFramePackage(Message());
         var source = IWorkSourceDocument.Open(limited, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 1 });
+            new IWorkReadOptions { MaxTextStyleInheritanceDepth = 1 });
         Assert.Contains("inheritance", Assert.Throws<InvalidDataException>(() => source.ReadKeynote()).Message);
         using var cyclic = NativeTextFramePackage(Message(), cyclicParent: true);
         Assert.False(IWorkSourceDocument.Open(cyclic, IWorkDocumentKind.Keynote).ReadKeynote().HasEditableContent);

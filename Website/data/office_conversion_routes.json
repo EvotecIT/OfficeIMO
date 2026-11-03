@@ -2636,7 +2636,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2656,7 +2656,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2676,7 +2676,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2696,7 +2696,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2716,7 +2716,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2736,7 +2736,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2756,7 +2756,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2776,7 +2776,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2796,7 +2796,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2816,7 +2816,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2836,7 +2836,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2856,7 +2856,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2876,7 +2876,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2896,7 +2896,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2916,7 +2916,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2936,7 +2936,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2956,7 +2956,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2976,7 +2976,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -2996,7 +2996,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3016,7 +3016,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3036,7 +3036,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3056,7 +3056,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3076,7 +3076,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3096,7 +3096,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3116,7 +3116,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3136,7 +3136,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3156,7 +3156,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3176,7 +3176,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3196,7 +3196,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -3216,7 +3216,7 @@
       "textFormattingContract":"Preserves equivalent native font family, size, color, weight, italic, decoration, script, and casing semantics where the destination supports them; diagnostics identify approximations and omissions.",
       "supportLevel":"Established",
       "supportEvidence":"Codec fixtures verify deterministic BibTeX, BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML writes, reopen behavior, native-field handling, and conversion diagnostics.",
-      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and RequireNoLoss rejects known loss.",
+      "knownLimitations":"Destination codecs cannot represent every source-native field or structure; permissive writes report approximated or omitted data and ThrowIfLoss rejects known loss.",
       "resultContract":"BibliographyWriteResult",
       "browserAvailable":false,
       "agentDiscoverable":true

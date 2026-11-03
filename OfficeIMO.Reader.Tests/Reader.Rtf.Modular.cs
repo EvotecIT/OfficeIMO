@@ -15,7 +15,7 @@ public sealed class ReaderRtfModularTests {
         var result = RtfReaderAdapter.ReadResult(document);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfStyleReferenceMissing");
         Assert.Contains(result.Value[0].Warnings!, item => item.StartsWith("RtfStyleReferenceMissing:", StringComparison.Ordinal));
-        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.ThrowIfLoss());
         var rich = RtfReaderAdapter.ReadDocument(document);
         Assert.Contains(rich.Diagnostics, item => item.Code == "RtfStyleReferenceMissing");
     }
@@ -23,8 +23,8 @@ public sealed class ReaderRtfModularTests {
     [Fact]
     public void DocumentReaderRtf_RichResult_MapsMetadataLinksFormsTablesAndImagePayloads() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Rich RTF";
-        document.Info.Author = "OfficeIMO";
+        document.Properties.Title = "Rich RTF";
+        document.Properties.Author = "OfficeIMO";
         RtfParagraph headerParagraph = document.AddHeader().AddParagraph("Confidential ");
         headerParagraph.AddText("header portal").SetHyperlink(new Uri("https://example.test/header"));
         RtfParagraph paragraph = document.AddParagraph("Portal ");
@@ -202,11 +202,10 @@ public sealed class ReaderRtfModularTests {
     [Fact]
     public void ReaderRtfOptions_CloneCopiesNestedReadOptionsIndependently() {
         var options = new ReaderRtfOptions {
-            RtfReadOptions = new RtfReadOptions {
-                MaxDepth = 32,
+            RtfReadOptions = new RtfReadOptions { Limits = {
+                MaxDepth = 32 },
                 WarnOnUnsupportedCodePages = false,
-                WarnOnUnsupportedDestinations = false
-            },
+                WarnOnUnsupportedDestinations = false},
             ChunkByBlock = false,
             IncludeHeadersAndFooters = false,
             IncludeNotes = false,
@@ -219,7 +218,7 @@ public sealed class ReaderRtfModularTests {
 
         Assert.NotSame(options, clone);
         Assert.NotSame(options.RtfReadOptions, clone.RtfReadOptions);
-        Assert.Equal(32, clone.RtfReadOptions?.MaxDepth);
+        Assert.Equal(32, clone.RtfReadOptions?.Limits.MaxDepth);
         Assert.False(clone.ChunkByBlock);
         Assert.False(clone.IncludeHeadersAndFooters);
         Assert.False(clone.IncludeNotes);
@@ -227,18 +226,18 @@ public sealed class ReaderRtfModularTests {
         Assert.False(clone.IncludeDiagnostics);
         Assert.True(clone.IncludePageLocations);
 
-        clone.RtfReadOptions!.MaxDepth = 64;
+        clone.RtfReadOptions!.Limits.MaxDepth = 64;
 
-        Assert.Equal(32, options.RtfReadOptions!.MaxDepth);
-        Assert.Equal(64, clone.RtfReadOptions.MaxDepth);
+        Assert.Equal(32, options.RtfReadOptions!.Limits.MaxDepth);
+        Assert.Equal(64, clone.RtfReadOptions.Limits.MaxDepth);
     }
 
     [Fact]
     public void ReaderRtfOptions_Defaults_To_Bounded_Core_Profile() {
         var options = new ReaderRtfOptions();
 
-        Assert.NotNull(options.RtfReadOptions?.MaxInputBytes);
-        Assert.NotNull(options.RtfReadOptions?.MaxTokenCount);
+        Assert.NotNull(options.RtfReadOptions?.Limits.MaxInputBytes);
+        Assert.NotNull(options.RtfReadOptions?.Limits.MaxTokens);
         Assert.False(options.RtfReadOptions?.ReadEmbeddedObjects);
         Assert.False(options.RtfReadOptions?.ReadFileReferences);
     }
@@ -256,8 +255,8 @@ public sealed class ReaderRtfModularTests {
 
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Object text", StringComparison.Ordinal));
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Shape text", StringComparison.Ordinal));
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
         Assert.Contains(chunks[0].Warnings!, warning => warning.StartsWith("ReaderRtfObjectFlattened:", StringComparison.Ordinal));
         OfficeDocumentReadResult rich = RtfReaderAdapter.ReadDocument(document, rtfOptions: options);
         Assert.Contains(rich.Diagnostics, diagnostic =>

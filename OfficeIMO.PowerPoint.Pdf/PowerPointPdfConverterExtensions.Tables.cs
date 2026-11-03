@@ -180,7 +180,7 @@ public static partial class PowerPointPdfConverterExtensions {
             style.CellPaddings = MergeTableCellMap(style.CellPaddings, cellPaddings);
         }
 
-        Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? cellAlignments = CreateTableCellAlignments(table);
+        Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>? cellAlignments = CreateTableCellAlignments(table);
         if (cellAlignments != null) {
             style.CellAlignments = MergeTableCellMap(style.CellAlignments, cellAlignments);
         }
@@ -296,10 +296,10 @@ public static partial class PowerPointPdfConverterExtensions {
         return paddings.Count == 0 ? null : paddings;
     }
 
-    private static Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? CreateTableCellAlignments(PptCore.PowerPointTable table) {
-        var alignments = new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
+    private static Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>? CreateTableCellAlignments(PptCore.PowerPointTable table) {
+        var alignments = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
-            PdfCore.PdfColumnAlign? align = MapColumnAlign(cell.HorizontalAlignment.ToOpenXml());
+            global::OfficeIMO.OfficeAlignment? align = MapColumnAlign(cell.HorizontalAlignment.ToOpenXml());
             if (align.HasValue) {
                 alignments[(row, column)] = align.Value;
             }

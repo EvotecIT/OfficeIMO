@@ -201,8 +201,8 @@ public class RtfPdfConverterTests {
     [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Paragraphs_Runs_And_PageSetup() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "RTF PDF";
-        document.Info.Author = "OfficeIMO";
+        document.Properties.Title = "RTF PDF";
+        document.Properties.Author = "OfficeIMO";
         document.PageSetup.SetPaperSize(11900, 16840);
         document.PageSetup.SetMargins(leftTwips: 1440, rightTwips: 1440, topTwips: 720, bottomTwips: 720);
         int red = document.AddColor(200, 20, 30);

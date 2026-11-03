@@ -36,7 +36,7 @@ public class WordRtfWorkflowTests {
     [Fact]
     public void UpdateFields_Returns_Word_Field_Report_And_Updated_Rtf() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Quarterly report";
+        document.Properties.Title = "Quarterly report";
         document.AddParagraph().AddField("TITLE").AddText("old title");
 
         RtfWordWorkflowResult<WordFieldUpdateReport> result = document.UpdateFieldsResult();
@@ -83,7 +83,7 @@ public class WordRtfWorkflowTests {
 
         RtfWordWorkflowResult<int> result = read.FindAndReplaceResult("Hello", "Hi");
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTF101" && diagnostic.SourcePath == "source");
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RTF101" && diagnostic.SourcePath == "source");
         Assert.Contains("Hi", PlainText(result.Document), StringComparison.Ordinal);
     }
 
