@@ -7,8 +7,6 @@ using V = DocumentFormat.OpenXml.Vml;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
-#nullable enable annotations
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Represents simple shapes inside a paragraph.

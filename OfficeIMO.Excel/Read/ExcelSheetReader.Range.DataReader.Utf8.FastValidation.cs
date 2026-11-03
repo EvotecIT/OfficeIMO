@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Text;
 using System.Threading;
 #if NET8_0_OR_GREATER

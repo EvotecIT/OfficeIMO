@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Retains a bounded set of large Open XML part buffers without the power-of-two

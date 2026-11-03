@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Data.Common;
 using System.Globalization;
 using System.Text;

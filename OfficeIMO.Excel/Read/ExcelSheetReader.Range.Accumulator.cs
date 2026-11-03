@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         /// <summary>Shares explicit and implicit row/cell coordinate handling across worksheet scans.</summary>

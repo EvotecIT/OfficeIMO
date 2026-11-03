@@ -7,7 +7,6 @@ using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using V = DocumentFormat.OpenXml.Vml;
 
-#nullable enable annotations
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;
