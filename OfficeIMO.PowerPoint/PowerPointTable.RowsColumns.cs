@@ -77,6 +77,9 @@ namespace OfficeIMO.PowerPoint {
 
             A.Table table = TableElement;
             var regions = CaptureMergeRegions();
+            var templateHorizontalRegions = regions
+                .Where(region => region.Row == templateRowIndex && region.RowSpan == 1)
+                .ToList();
             A.TableRow templateRow = table.Elements<A.TableRow>().ElementAt(templateRowIndex);
             A.TableRow newRow = (A.TableRow)templateRow.CloneNode(true);
             if (clearText) {
@@ -94,6 +97,14 @@ namespace OfficeIMO.PowerPoint {
             }
             if (regions.Count > 0) {
                 ShiftMergeRegionsForInsertedRow(regions, insertAt);
+                foreach (var region in templateHorizontalRegions) {
+                    // Existing ranges expanded through the inserted row take precedence.
+                    if (regions.Any(existing => existing.Row <= insertAt && insertAt < existing.Row + existing.RowSpan
+                        && existing.Column < region.Column + region.ColumnSpan
+                        && region.Column < existing.Column + existing.ColumnSpan)) continue;
+
+                    regions.Add((insertAt, region.Column, region.RowSpan, region.ColumnSpan));
+                }
                 ApplyMergeRegions(regions);
             }
 
@@ -157,7 +168,7 @@ namespace OfficeIMO.PowerPoint {
                     A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(index.Value);
                     row.InsertBefore(cell, refCell);
                 } else {
-                    row.Append(cell);
+                    row.InsertBefore(cell, row.GetFirstChild<A.ExtensionList>());
                 }
             }
             if (regions.Count > 0) {
@@ -181,6 +192,9 @@ namespace OfficeIMO.PowerPoint {
             A.TableGrid grid = table.TableGrid ?? throw new InvalidOperationException("Table grid is missing.");
             int existingColumns = Columns;
             var regions = CaptureMergeRegions();
+            var templateVerticalRegions = regions
+                .Where(region => region.Column == templateColumnIndex && region.ColumnSpan == 1)
+                .ToList();
             A.GridColumn templateColumn =grid.Elements<A.GridColumn>().ElementAt(templateColumnIndex);
             A.GridColumn newColumn = (A.GridColumn)templateColumn.CloneNode(true);
 
@@ -203,11 +217,19 @@ namespace OfficeIMO.PowerPoint {
                     A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(insertAt);
                     row.InsertBefore(newCell, refCell);
                 } else {
-                    row.Append(newCell);
+                    row.InsertBefore(newCell, row.GetFirstChild<A.ExtensionList>());
                 }
             }
             if (regions.Count > 0) {
                 ShiftMergeRegionsForInsertedColumn(regions, insertAt);
+                foreach (var region in templateVerticalRegions) {
+                    // Existing ranges expanded through the inserted column take precedence.
+                    if (regions.Any(existing => existing.Column <= insertAt && insertAt < existing.Column + existing.ColumnSpan
+                        && existing.Row < region.Row + region.RowSpan
+                        && region.Row < existing.Row + existing.RowSpan)) continue;
+
+                    regions.Add((region.Row, insertAt, region.RowSpan, region.ColumnSpan));
+                }
                 ApplyMergeRegions(regions);
             }
 

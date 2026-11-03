@@ -40,10 +40,12 @@ public partial class PowerPointTable {
     }
 
     private static void SwapCells(A.TableCell first, A.TableCell second) {
-        var firstClone = (A.TableCell)first.CloneNode(true);
-        var secondClone = (A.TableCell)second.CloneNode(true);
-        first.Parent!.ReplaceChild(secondClone, first);
-        second.Parent!.ReplaceChild(firstClone, second);
+        var firstParent = first.Parent!;
+        var secondParent = second.Parent!;
+        var placeholder = new A.TableCell();
+        firstParent.ReplaceChild(placeholder, first);
+        secondParent.ReplaceChild(first, second);
+        firstParent.ReplaceChild(second, placeholder);
     }
 
     private static void ShiftMergeRegionsForInsertedRow(List<(int Row, int Column, int RowSpan, int ColumnSpan)> regions, int index) {

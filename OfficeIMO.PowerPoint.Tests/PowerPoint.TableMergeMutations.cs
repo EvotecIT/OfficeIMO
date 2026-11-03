@@ -15,6 +15,7 @@ namespace OfficeIMO.Tests {
         [InlineData(2, 3, 0, 0, 0, 1, "RemoveColumn", 0, "Merged . / . .")]
         [InlineData(2, 3, 0, 0, 0, 1, "AddColumn", 1, "1x3 h h . / . . . .")]
         [InlineData(2, 3, 0, 0, 0, 1, "AddColumn", 2, "1x2 h . . / . . . .")]
+        [InlineData(2, 3, 0, 0, 0, 1, "AddColumn", 3, "1x2 h . . / . . . .")]
         [InlineData(2, 3, 0, 0, 0, 1, "AddColumn", 0, ". 1x2 h . / . . . .")]
         [InlineData(2, 3, 0, 0, 0, 1, "AddColumnFromTemplate", 1, "1x3 h h . / . . . .")]
         [InlineData(3, 2, 0, 0, 1, 0, "RemoveRow", 1, "Merged . / . .")]
@@ -33,7 +34,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 PowerPointTable table = presentation.AddSlide().AddTable(rows, columns);
-                table.GetCell(startRow, startColumn).Text = "Merged";
+                PowerPointTableCell anchorHandle = table.GetCell(startRow, startColumn);
+                anchorHandle.Text = "Merged";
                 table.MergeCells(startRow, startColumn, endRow, endColumn);
 
                 switch (operation) {
@@ -47,6 +49,7 @@ namespace OfficeIMO.Tests {
                     default: throw new ArgumentOutOfRangeException(nameof(operation));
                 }
 
+                anchorHandle.Text = "Updated";
                 Assert.Empty(presentation.ValidateDocument());
                 presentation.Save();
             }
@@ -62,13 +65,77 @@ namespace OfficeIMO.Tests {
                 .Select(_ => string.Join(" ", _.Elements<A.TableCell>().Select(Describe))));
             if (expected.StartsWith("Merged", StringComparison.Ordinal)) {
                 A.TableCell anchor = saved.Elements<A.TableRow>().ElementAt(startRow).Elements<A.TableCell>().ElementAt(startColumn);
-                Assert.Equal("Merged", anchor.InnerText);
+                Assert.Equal("Updated", anchor.InnerText);
                 expected = "." + expected.Substring("Merged".Length);
             } else {
                 A.TableCell anchor = saved.Descendants<A.TableCell>().Single(_ => _.GridSpan != null || _.RowSpan != null);
-                Assert.Equal("Merged", anchor.InnerText);
+                Assert.Equal("Updated", anchor.InnerText);
             }
             Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData(true, 0, false, "1x2 h . / . . . / 1x2 h . / . . .")]
+        [InlineData(true, 3, true, ". . . / 1x2 h . / . . . / 1x2 h .")]
+        [InlineData(false, 0, false, "2x1 . 2x1 . / v . v . / . . . .")]
+        [InlineData(false, 3, true, ". 2x1 . 2x1 / . v . v / . . . .")]
+        public void TemplateMutationsPreserveClonedMerges(bool cloneRow, int index, bool clearText, string expected) {
+            using var stream = new MemoryStream();
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                PowerPointTable table = presentation.AddSlide().AddTable(3, 3);
+                table.GetCell(cloneRow ? 1 : 0, cloneRow ? 0 : 1).Text = "Template";
+                if (cloneRow) {
+                    table.MergeCells(1, 0, 1, 1);
+                    table.AddRowFromTemplate(1, index, clearText);
+                } else {
+                    table.MergeCells(0, 1, 1, 1);
+                    table.AddColumnFromTemplate(1, index, clearText);
+                }
+
+                Assert.Empty(presentation.ValidateDocument());
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PresentationDocument document = PresentationDocument.Open(stream, false);
+            A.Table saved = document.PresentationPart!.SlideParts.Single().Slide.Descendants<A.Table>().Single();
+            Assert.Equal(expected, string.Join(" / ", saved.Elements<A.TableRow>()
+                .Select(row => string.Join(" ", row.Elements<A.TableCell>().Select(Describe)))));
+            int originalIndex = index <= 1 ? 2 : 1;
+            A.TableCell original = saved.Elements<A.TableRow>().ElementAt(cloneRow ? originalIndex : 0)
+                .Elements<A.TableCell>().ElementAt(cloneRow ? 0 : originalIndex);
+            A.TableCell clone = saved.Elements<A.TableRow>().ElementAt(cloneRow ? index : 0)
+                .Elements<A.TableCell>().ElementAt(cloneRow ? 0 : index);
+            Assert.Equal("Template", original.InnerText);
+            Assert.Equal(clearText ? string.Empty : "Template", clone.InnerText);
+        }
+
+        [Theory]
+        [InlineData(true, "3x1 . . / v . . / v . . / . . . / 1x2 h .")]
+        [InlineData(false, "1x3 h h . 2x1 / . . . . v / . . . . .")]
+        public void TemplateMergesDoNotOverlapRangesExpandedByInsertion(bool cloneRow, string expected) {
+            using var stream = new MemoryStream();
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                PowerPointTable table = presentation.AddSlide().AddTable(cloneRow ? 4 : 3, cloneRow ? 3 : 4);
+                if (cloneRow) {
+                    table.MergeCells(0, 0, 1, 0);
+                    table.MergeCells(3, 0, 3, 1);
+                    table.AddRowFromTemplate(3, 1);
+                } else {
+                    table.MergeCells(0, 0, 0, 1);
+                    table.MergeCells(0, 3, 1, 3);
+                    table.AddColumnFromTemplate(3, 1);
+                }
+
+                Assert.Empty(presentation.ValidateDocument());
+                presentation.Save();
+            }
+
+            stream.Position = 0;
+            using PresentationDocument document = PresentationDocument.Open(stream, false);
+            A.Table saved = document.PresentationPart!.SlideParts.Single().Slide.Descendants<A.Table>().Single();
+            Assert.Equal(expected, string.Join(" / ", saved.Elements<A.TableRow>()
+                .Select(row => string.Join(" ", row.Elements<A.TableCell>().Select(Describe)))));
         }
 
         private static string Describe(A.TableCell cell) {
