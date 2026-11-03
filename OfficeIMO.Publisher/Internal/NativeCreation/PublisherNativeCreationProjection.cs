@@ -206,10 +206,11 @@ internal static class PublisherNativeCreationProjection {
     private static PublisherPage SingleMaster(PublisherDocument document) {
         if (document.HasNativeSource || document.MasterPages.Count != 1
             || document.MasterPages[0].MasterSide != PublisherMasterPageSide.Single
-            || document.Pages.Count is < 1 or > 16
-            || document.Pages.Concat(document.MasterPages).Any(page => page.Width != 612 || page.Height != 792))
-            throw new NotSupportedException("The model projection requires source-free Letter pages and one centered master.");
+            || document.Pages.Count is < 1 or > 16)
+            throw new NotSupportedException("The model projection requires source-free pages and one centered master.");
         PublisherPage master = document.MasterPages[0];
+        if (document.Pages.Any(page => page.Width != master.Width || page.Height != master.Height))
+            throw new NotSupportedException("The single-master specimen requires common page dimensions.");
         if (document.Pages.Any(page => page.MasterPageId != master.Id))
             throw new NotSupportedException("The single-master specimen requires that master on every physical page.");
         return master;
@@ -240,7 +241,12 @@ internal static class PublisherNativeCreationProjection {
     }
 
     private static PublisherNativeCreationPlan SingleMasterSpecification(PublisherDocument document, PublisherPage master,
-        IReadOnlyList<PublisherNativeCreationObject> objects) => new(612 * 12700, 792 * 12700, objects, document.Pages.Count,
+        IReadOnlyList<PublisherNativeCreationObject> objects) {
+        if (!PublisherNativeGeometry.Emu(master.Width, 0, out int width) || width <= 0
+            || !PublisherNativeGeometry.Emu(master.Height, 0, out int height) || height <= 0)
+            throw new NotSupportedException("Native page dimensions require exact positive signed-EMU values.");
+        return new PublisherNativeCreationPlan((uint)width, (uint)height, objects, document.Pages.Count,
             new[] { new PublisherNativeCreationMaster("A", master.Name, PublisherMasterPageSide.Single) },
             Enumerable.Repeat<int?>(0, document.Pages.Count).ToArray());
+    }
 }

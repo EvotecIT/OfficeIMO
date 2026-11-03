@@ -38,8 +38,8 @@ internal sealed partial class PublisherNativeWriter {
         for (int i = 0; i < before.Count; i++) {
             // Repeated public resizes can reach the same native track through
             // slightly different floating-point arithmetic paths.
-            if (!Emu(before[i] / oldExtent * newExtent, 0, out int expected)
-                || !Emu(after[i], 0, out int actual) || expected != actual) return false;
+            if (!PublisherNativeGeometry.Emu(before[i] / oldExtent * newExtent, 0, out int expected)
+                || !PublisherNativeGeometry.Emu(after[i], 0, out int actual) || expected != actual) return false;
         }
         return true;
     }
@@ -47,8 +47,8 @@ internal sealed partial class PublisherNativeWriter {
     /// <summary>Plans fixed-size Contents changes. Expanded native rows retain their distinct nominal sizes and are refused.</summary>
     private bool PlanTableTracks(PublisherTableState before, PublisherTableState after) {
         if (!_imported.Contents.Shapes.TryGetValue(before.Id, out PublisherSourceShape? shape) || shape.Chunk.Kind != 0x10
-            || shape.Table == null || !Emu(before.Width, 0, out int oldWidth) || !Emu(before.Height, 0, out int oldHeight)
-            || !Emu(after.Width, 0, out int width) || width <= 0 || !Emu(after.Height, 0, out int height) || height <= 0) return false;
+            || shape.Table == null || !PublisherNativeGeometry.Emu(before.Width, 0, out int oldWidth) || !PublisherNativeGeometry.Emu(before.Height, 0, out int oldHeight)
+            || !PublisherNativeGeometry.Emu(after.Width, 0, out int width) || width <= 0 || !PublisherNativeGeometry.Emu(after.Height, 0, out int height) || height <= 0) return false;
         var data = new PublisherBinaryData(_imported.NativeSource!.ContentsBytes, "Contents");
         var context = new PublisherParseContext(new PublisherReadOptions { Limits = _sourceLimits }, _token);
         var reader = new PublisherBlockReader(data, context);
@@ -82,8 +82,8 @@ internal sealed partial class PublisherNativeWriter {
                 PublisherBlock[] ends = fields.Where(field => field.Id == 1).ToArray(), sizes = fields.Where(field => field.Id == 2).ToArray();
                 if (fields.Count != 2 || ends.Length != 1 || sizes.Length != 1) return false;
                 oldEnd += oldTracks[i]; newEnd += newTracks[i];
-                if (!Emu(oldEnd, 0, out oldEncodedEnd) || !Emu(newEnd, 0, out newEncodedEnd)
-                    || !Emu(oldTracks[i], 0, out int oldSize) || !Emu(newTracks[i], 0, out int newSize)
+                if (!PublisherNativeGeometry.Emu(oldEnd, 0, out oldEncodedEnd) || !PublisherNativeGeometry.Emu(newEnd, 0, out newEncodedEnd)
+                    || !PublisherNativeGeometry.Emu(oldTracks[i], 0, out int oldSize) || !PublisherNativeGeometry.Emu(newTracks[i], 0, out int newSize)
                     || !Scalar(ends[0], oldEncodedEnd, newEncodedEnd) || !Scalar(sizes[0], oldSize, newSize)) return false;
             }
             return oldEncodedEnd == oldExtent && newEncodedEnd == newExtent;

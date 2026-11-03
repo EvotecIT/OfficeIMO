@@ -158,8 +158,8 @@ internal sealed partial class PublisherNativeWriter {
         PublisherPageState? page = owner.HasValue ? _baseline.Pages.SingleOrDefault(item => item.Id == owner.Value) : null;
         if (binding == null) return;
         if (page == null || !page.SupportsPlacementEditing || binding.Anchor.Count != 4
-            || !Emu(x, page.RegistrationX, out int left) || !Emu(y, page.RegistrationY, out int top)
-            || !Emu(x + width, page.RegistrationX, out int right) || !Emu(y + height, page.RegistrationY, out int bottom)) {
+            || !PublisherNativeGeometry.Emu(x, page.RegistrationX, out int left) || !PublisherNativeGeometry.Emu(y, page.RegistrationY, out int top)
+            || !PublisherNativeGeometry.Emu(x + width, page.RegistrationX, out int right) || !PublisherNativeGeometry.Emu(y + height, page.RegistrationY, out int bottom)) {
             Reject("Contents/object/" + id, "The current bounds have no qualified complete anchor or exact signed-EMU representation."); return;
         }
         // Native endpoint direction is independent of the semantic bounding rectangle.
@@ -167,14 +167,6 @@ internal sealed partial class PublisherNativeWriter {
         if (unchecked((int)binding.Anchor[1].Original) > unchecked((int)binding.Anchor[3].Original)) (top, bottom) = (bottom, top);
         uint[] values = { unchecked((uint)left), unchecked((uint)top), unchecked((uint)right), unchecked((uint)bottom) };
         for (int index = 0; index < values.Length; index++) Patch(binding.Anchor[index], values[index]);
-    }
-
-    private static bool Emu(double point, double origin, out int result) {
-        double scaled = (point - origin) * 12700, rounded = Math.Round(scaled);
-        result = 0;
-        if (double.IsNaN(scaled) || double.IsInfinity(scaled) || rounded < int.MinValue || rounded > int.MaxValue
-            || Math.Abs(scaled - rounded) > Math.Max(0.0000001, Math.Abs(scaled) * 0.000000000000002)) return false;
-        result = (int)rounded; return true;
     }
 
     private void Paint(uint id, OfficeShape before, OfficeShape after) {

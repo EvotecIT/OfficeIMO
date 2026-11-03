@@ -39964,5 +39964,1254 @@
     "cancelledControlUntouched": true,
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "singleMasterPageSizes": {
+    "scope": "Generic source-free same-size single-centered-master model projection, checked native unit admission and measured A4/4x6 composition lifecycle; no public writer promotion.",
+    "modelContract": {
+      "entry": "PublisherDocument.Create(width, height) and current public authoring operations; final model projected through ComposedContent.",
+      "dimensions": "Common physical/master size with exact positive signed-EMU dimensions, one explicitly applied centered master, one to sixteen physical pages.",
+      "coordinates": "All four final anchor edges use the same finite/range/exactness rule as source saving, relative to actual owner registration.",
+      "layoutDistances": "Frame gaps/insets require exact nonnegative signed EMU; table extents, tracks and cumulative endpoints require exact positive signed EMU.",
+      "sharedConversion": "PublisherNativeGeometry.Emu; extracted source conversion body is unchanged.",
+      "existingContentEnvelopeRetained": true,
+      "publicCreateFinitePositivePointContractUnchanged": true,
+      "newProductionPaperEnumsFlagsOrDependencies": false
+    },
+    "inputs": [
+      {
+        "name": "A4 portrait",
+        "widthEmu": 7560000,
+        "heightEmu": 10692000
+      },
+      {
+        "name": "4x6 portrait",
+        "widthEmu": 3657600,
+        "heightEmu": 5486400
+      },
+      {
+        "name": "4x6 landscape",
+        "widthEmu": 5486400,
+        "heightEmu": 3657600
+      }
+    ],
+    "probe": {
+      "kind": "sized-composition",
+      "arguments": [
+        "WIDTH_EMUxHEIGHT_EMU",
+        "imagePath"
+      ],
+      "recipe": {
+        "role": "input formulas and independent native-control recipe",
+        "bytes": 5477,
+        "sha256": "f27d8f5cc5fcfde1d019a76563fd5d2bbaed087f682ac0cb51c23c0955ece899"
+      }
+    },
+    "semanticProfile": {
+      "physicalPages": 2,
+      "masters": 1,
+      "ownerObjectCounts": [
+        3,
+        4,
+        3
+      ],
+      "objects": 10,
+      "textFrames": 5,
+      "rectangles": 2,
+      "pictureReferences": 2,
+      "imageAssets": 1,
+      "tables": 1,
+      "storiesIncludingTable": 5,
+      "nativeAdditionalEmptyRectangleCarriers": 2,
+      "content": "Master caption/blue rule/logo, heading, two-frame ordinary linked story, two-column frame with12pt gap and3pt insets, borderless2x2calendar and physical-page shared image/red rectangle.",
+      "allRunsLanguageId": 1033,
+      "ordinaryAndTableStoryHyphenationObserved": true,
+      "noneWrappingBothNativeStages": true
+    },
+    "independentDecode": {
+      "documentAndMasterDimensionsExactForAllThree": true,
+      "tableTracksAndExtentsExactBoth": true,
+      "a4SecondColumnWidthEmu": 6036000,
+      "oneBStoreContainerOnePngTwoModelPlacements": true,
+      "pngSha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483",
+      "metadataDifferences": "Native guide endpoints use10mm insets versus generated page edges; native anchors/bar sizes can differ by4/8EMU, inactive outline widths0.75versus2pt, default tabs36versus28.3pt and source style catalogs differ.",
+      "evidence": {
+        "role": "independent binary/model decode summary",
+        "bytes": 47438,
+        "sha256": "d7a36dbdc3d98c6773c34b26803abe76e23fcc400e654cc4c319219f199c96b1"
+      }
+    },
+    "publicPictureEdit": {
+      "api": "SetPictureBounds",
+      "count": 6,
+      "targetPoints": [
+        "width - 66",
+        132,
+        54,
+        36
+      ],
+      "edit": "Move physical-page picture6points right from original width-72 position.",
+      "lossPolicy": "Allow",
+      "strictRefusesOnlyFixedPatchUnassessed": true,
+      "preservation": "Owners, complete stories, shared image payload and other picture unchanged; two references/one asset and exact no-op source copies before/after retained.",
+      "powerShellPdfSucceeded": 6,
+      "evidence": {
+        "role": "six public edits and PowerShell conversion",
+        "bytes": 5289,
+        "sha256": "7e5d3edd3c9cb0caf52cf12a6002b0c322986b40d317906b01cd6059b2b2ff32"
+      }
+    },
+    "nativeAppearance": {
+      "pagePairs": 36,
+      "dpi": 100,
+      "exactPairs": 28,
+      "nonexactPairs": 8,
+      "allExact": false,
+      "nonexact": [
+        {
+          "comparison": "fresh-versus-independent-control",
+          "size": "portrait",
+          "stage": "initial",
+          "page": 1,
+          "dpi": 100,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ]
+        },
+        {
+          "comparison": "fresh-versus-independent-control",
+          "size": "portrait",
+          "stage": "initial",
+          "page": 2,
+          "dpi": 100,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ]
+        },
+        {
+          "comparison": "public-picture-edit-versus-control-edit",
+          "size": "portrait",
+          "stage": "initial",
+          "page": 1,
+          "dpi": 100,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ]
+        },
+        {
+          "comparison": "public-picture-edit-versus-control-edit",
+          "size": "portrait",
+          "stage": "initial",
+          "page": 2,
+          "dpi": 100,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ]
+        },
+        {
+          "comparison": "fresh-versus-independent-control",
+          "size": "portrait",
+          "stage": "resaved",
+          "page": 1,
+          "dpi": 100,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ]
+        },
+        {
+          "comparison": "fresh-versus-independent-control",
+          "size": "portrait",
+          "stage": "resaved",
+          "page": 2,
+          "dpi": 100,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ]
+        },
+        {
+          "comparison": "public-picture-edit-versus-control-edit",
+          "size": "portrait",
+          "stage": "resaved",
+          "page": 1,
+          "dpi": 100,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ]
+        },
+        {
+          "comparison": "public-picture-edit-versus-control-edit",
+          "size": "portrait",
+          "stage": "resaved",
+          "page": 2,
+          "dpi": 100,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ]
+        }
+      ],
+      "boundary": "All eight portrait original/public-edit initial/resaved page comparisons retain351changedpixels in one blue top-edge band [238,326,589,327]. All pixels outside the blue path match.",
+      "visibleObjects": {
+        "pairs": 8,
+        "visibleTextExact": 8,
+        "imagesExact": 8,
+        "nonBlueDrawingValuesExact": 8,
+        "actualControlExtraWhitespaceBlocks": 12
+      },
+      "visibleObjectComparisonNormalization": [
+        "Only actual all-whitespace PDF text blocks are separated and retained as extra producer carriers.",
+        "PDF text/image block number and drawing seqno are retained as producer ordinals but excluded from visible-object value equality.",
+        "No font, glyph, character, position, color, image digest/transform or path geometry is normalized."
+      ],
+      "bluePdfTopPoints": {
+        "candidate": 234.9599609375,
+        "control": 234.96026611328125
+      },
+      "diagnosticRasterSettings": [
+        {
+          "dpi": 100,
+          "aa": 0,
+          "changedPixels": 0,
+          "bounds": null,
+          "scope": "Diagnostic renderer sensitivity only; does not replace the original100dpi/defaultAA acceptance comparison."
+        },
+        {
+          "dpi": 100,
+          "aa": 4,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ],
+          "scope": "Diagnostic renderer sensitivity only; does not replace the original100dpi/defaultAA acceptance comparison."
+        },
+        {
+          "dpi": 100,
+          "aa": 8,
+          "changedPixels": 351,
+          "bounds": [
+            238,
+            326,
+            589,
+            327
+          ],
+          "scope": "Diagnostic renderer sensitivity only; does not replace the original100dpi/defaultAA acceptance comparison."
+        },
+        {
+          "dpi": 200,
+          "aa": 8,
+          "changedPixels": 701,
+          "bounds": [
+            476,
+            652,
+            1177,
+            653
+          ],
+          "scope": "Diagnostic renderer sensitivity only; does not replace the original100dpi/defaultAA acceptance comparison."
+        },
+        {
+          "dpi": 300,
+          "aa": 8,
+          "changedPixels": 1050,
+          "bounds": [
+            715,
+            978,
+            1765,
+            979
+          ],
+          "scope": "Diagnostic renderer sensitivity only; does not replace the original100dpi/defaultAA acceptance comparison."
+        }
+      ],
+      "diagnosticScope": "Antialias-off zero difference and higher-DPI edge scaling are diagnostics; they do not replace the original default-AA comparison or close its eight differences.",
+      "comparison": {
+        "role": "original36page comparison",
+        "bytes": 16380,
+        "sha256": "c9d2c6e1cfdbdac41428f22b26f652c17a6baa0da5afd5186056729c6ace6e76"
+      },
+      "diagnosis": {
+        "role": "edge-band diagnosis",
+        "bytes": 49591,
+        "sha256": "542cd3473eb34355aab9f9e12201e64e3cbd4944f2d6e389d8a3f05f040f8297"
+      },
+      "visibleClassification": {
+        "role": "visible text/image/non-blue vector equality",
+        "bytes": 41785,
+        "sha256": "a01466a3398ada470404f53b8bb014f70e4244f7c544737ebf2038c9b914e527"
+      },
+      "causalCompanion": {
+        "scope": "Fresh model changes only the blue master rule to the height independently decoded from the control PUB; original nominal-height specimens and all36 original comparisons remain unchanged.",
+        "heightEmu": 38096,
+        "nominalHeightEmu": 38100,
+        "sourceSha256": "e45269145f8c70b05e49c52b1360d1e0980a9f234a6205601280e4dd7d1bd98c",
+        "compoundDelta": "One byte in Escher at offset5326; all other streams and public authoring inputs exact.",
+        "pagePairs": 4,
+        "initialAndResavedPagesExactAt100Dpi": true,
+        "proof": {
+          "bytes": 4108,
+          "sha256": "2feb162344014cb783fc536c4f968b3aa864d77e41be4aa807212bf56a37177f"
+        },
+        "repairStatus": "Unassessed",
+        "doesNotReplaceOriginalComparison": true
+      },
+      "directInspection": {
+        "nativeInitialPages": 6,
+        "scope": "Both pages at each size: linked continuation, column flow, heading/calendar legibility, shared-image placements and master/physical artwork inspected.",
+        "proof": {
+          "bytes": 1361,
+          "sha256": "dc686eb7dde8decfda8c6e75ed279a52fa980ff8ccac9fe523aa168c6478a3cf"
+        },
+        "generalNativeManagedParityEstablished": false
+      }
+    },
+    "publicationVersusSheet": {
+      "recordedNativePdfSheetPoints": [
+        595.32,
+        841.92
+      ],
+      "scope": "Measured native exports use approximatelyA4 sheets for all three PUB inputs. Printer/driver cause and a general default-sheet contract are unqualified.",
+      "managedPdfPublicationPoints": {
+        "a4": [
+          595.276,
+          841.89
+        ],
+        "portrait": [
+          288,
+          432
+        ],
+        "landscape": [
+          432,
+          288
+        ]
+      },
+      "nativeStoredPubDimensionsRemainExact": true,
+      "actualPrintDispatchQualified": false
+    },
+    "validation": {
+      "focusedCoreCases": 8,
+      "fullNet10": 1239,
+      "affectedNet8": 307,
+      "affectedNet472": 307,
+      "failed": 0,
+      "skipped": 0,
+      "probeCoreNetstandardAndModuleWarnings": 0,
+      "testMethods": [
+        "Exact_page_sizes_keep_mixed_content_ownership_guides_and_none_wrapping",
+        "Native_projection_refuses_unrepresentable_page_dimensions_without_mutating_the_model",
+        "Native_creation_refuses_unrepresentable_complete_anchor_edges_without_mutating_the_model",
+        "Creation_marks_each_embedded_picture_placement_independently_of_names_and_shared_assets",
+        "Native_edited_portrait_linked_story_restores_through_public_save_without_changing_other_content"
+      ],
+      "fullFrameworkSuites": [
+        {
+          "tfm": "net10.0",
+          "passed": 1239,
+          "failed": 0,
+          "skipped": 0,
+          "trx": {
+            "bytes": 2053105,
+            "sha256": "bdb89b21692e6f586030fa0013edd0559760f0a831478fc4956061cfecd87bf7"
+          }
+        },
+        {
+          "tfm": "net8.0",
+          "passed": 1239,
+          "failed": 0,
+          "skipped": 0,
+          "trx": {
+            "bytes": 2050626,
+            "sha256": "bb3c94d6849d6df9913e56a9681e08df813bd1ef401ea97aa0b29c69515f165a"
+          }
+        },
+        {
+          "tfm": "net472",
+          "passed": 1239,
+          "failed": 0,
+          "skipped": 0,
+          "trx": {
+            "bytes": 2048139,
+            "sha256": "47c4af9b1058e5c7cfe079889a76557fffd58294d0e153919a302b4c4e551e4c"
+          }
+        }
+      ],
+      "fullNet8": 1239,
+      "fullNet472": 1239,
+      "focusedNewCases": 12,
+      "nativeMarkerAndKindCases": 2,
+      "actualNativeFixtureRestorationCases": 2,
+      "finalPortableRawByteAssertionsConfirmedOnNet10AndNet8": true,
+      "netstandard20AndSourceModuleBuildWarnings": 0
+    },
+    "sourceFiles": [
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeGeometry.cs",
+        "role": "implementation/proof",
+        "bytes": 2853,
+        "sha256": "6bde4fa82ec4e0668641fe0911e850850ebb13309a6f41e8600425f0e44538ec"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+        "role": "implementation/proof",
+        "bytes": 18825,
+        "sha256": "2b53f1ffef0b2c6285c8374f5ca6444f0070ac1f76909412b29f2e8b7d98ffdc"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.FrameLayout.cs",
+        "role": "implementation/proof",
+        "bytes": 4083,
+        "sha256": "717d984f86c4924ff36f240311728c7af2ae0de85e58d329d319feeaf64d7416"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.TableDecoration.cs",
+        "role": "implementation/proof",
+        "bytes": 11207,
+        "sha256": "6f731c664b6645807cfc65795bf26f254fb5f1bd5f458efb8713ea7e5d78e393"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/PublisherNativeWriter.Tables.cs",
+        "role": "implementation/proof",
+        "bytes": 6622,
+        "sha256": "965c8fa89af07b71387a60aaa9105eceab6ee25a5c564b5e9e90c50e8ad56675"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationProjection.cs",
+        "role": "implementation/proof",
+        "bytes": 18525,
+        "sha256": "6d8ee252883462d9b774be16d51ca264cb2e306cca22aac0df442d37d9ace59f"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationArtwork.cs",
+        "role": "implementation/proof",
+        "bytes": 12493,
+        "sha256": "c9a3912b00d1c4a122d5c46ed66f89584d770e1b3c9511c352e71845166fa13f"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationTableRecords.cs",
+        "role": "implementation/proof",
+        "bytes": 3043,
+        "sha256": "8243ab173f62821076378f36597b89bc733fb264ab7db3020ec9bdfc28d6f223"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateTableCluster.cs",
+        "role": "implementation/proof",
+        "bytes": 2506,
+        "sha256": "8d6987c79e24afddd69c33b4dfe1654eb3dcaafc2f5014401f79a859f86ea500"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateSizedComposition.cs",
+        "role": "implementation/proof",
+        "bytes": 4126,
+        "sha256": "44d039ee2b997ca4c99d4deb80a642fb43c144d129c03d5b72987d018386ecac"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/CandidateCases.cs",
+        "role": "implementation/proof",
+        "bytes": 9022,
+        "sha256": "48c9420b1c154f089e5a61d106f6e5018fcc33eae6c30a76e0f75acf825020e3"
+      },
+      {
+        "path": "Build/Publisher/WriterProbe/Program.cs",
+        "role": "implementation/proof",
+        "bytes": 13636,
+        "sha256": "c49d36c06486ac351f8516a0a42c22fa49700bd8cb604da2400d70fd898ebb8d"
+      },
+      {
+        "path": "Build/Publisher/Add-NativeSizedCompositionControl.ps1",
+        "role": "implementation/proof",
+        "bytes": 28490,
+        "sha256": "0b4b0e3258d11afa1366ba4d014772bf32248b901e9d8bf46ce0f91e71513bf4"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherPageSizeCreationTests.cs",
+        "role": "implementation/proof",
+        "bytes": 14439,
+        "sha256": "47a82ea1da7b8ab9e53cbbbf522406cbc5e7dc6694b898d19049ec78a08f30dd"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationGraph.cs",
+        "role": "implementation/proof",
+        "bytes": 15659,
+        "sha256": "7cc13307c02cde5a35154cda96199527c4b8256f927aa8ab290a975d183ac0b3"
+      },
+      {
+        "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationPlan.cs",
+        "role": "implementation/proof",
+        "bytes": 5096,
+        "sha256": "6ae999d430681dba0a307ff7a68b582b4d0bba1df1735d9ee1034da4e45432a3"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherNativeCreationTests.cs",
+        "role": "implementation/proof",
+        "bytes": 15495,
+        "sha256": "9cb3c01f10fa243ff0ddb95b19e1b6070533b7040450811572584f3e418c5916"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/PublisherSizedStoryWritingTests.cs",
+        "role": "implementation/proof",
+        "bytes": 20273,
+        "sha256": "5352780d15cfb5faa25a9d8fbbe593627477def2fbeb03cf010cc59b38d386d4"
+      },
+      {
+        "path": "Build/Publisher/Get-NativeSizedStoryEditState.ps1",
+        "role": "implementation/proof",
+        "bytes": 27088,
+        "sha256": "c3ae4b2aac908462398bf4499019533cdf910ac7c3f576c332c7ac529bad534f"
+      },
+      {
+        "path": "Build/Publisher/Set-NativeCandidateText.ps1",
+        "role": "implementation/proof",
+        "bytes": 6276,
+        "sha256": "07faa1080f7de7de61c821816fe90ef7bed66208a50e3999dedfcf75f4ef3dcb"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+        "role": "implementation/proof",
+        "bytes": 23323,
+        "sha256": "336246735ae05c2ae0ccbc8e019d5dc9e6d566df98274b7865b7c4d127c42a7c"
+      },
+      {
+        "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+        "role": "implementation/proof",
+        "bytes": 72836,
+        "sha256": "b0a336694bc504be6358abc88160cab8a077c61c206511a3b22a4dc3ae6c0216"
+      },
+      {
+        "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+        "role": "implementation/proof",
+        "bytes": 14354,
+        "sha256": "dcdc643769150af7d1a73853c94627cbd3756920288e7269b8b3462348f6697f"
+      }
+    ],
+    "limits": [
+      "Native sizes beyond these measured inputs are not inferred from signed-EMU representability.",
+      "Multiple/paired-master projection remainsLetter-only; masterless/unassigned pages remain unsupported in this creation profile.",
+      "Broader layout/effects, general native/managed rendering parity and native metadata/default equivalence remain unqualified.",
+      "Repair-free acceptance, a repair-positive control and public source-free native saving remain open."
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false,
+    "baselineNativeLifecycle": {
+      "reports": [
+        {
+          "role": "a4-generated-original",
+          "bytes": 36871,
+          "sha256": "aa05be8535d6f69d1951e3d4e8fbbe462c9e4cfad659c3568ac0fa870f63394d",
+          "sourceSha256": "e8a7ffd7c25bcc82c9d5e75de1b7aa29ae04269adf2cb98431c6e4655c99b646"
+        },
+        {
+          "role": "a4-independent-control-original",
+          "bytes": 38197,
+          "sha256": "efd57b2f04d0048fd2b8aed59b95d74d6d6555384a39feaa5a3c5c55e49b057e",
+          "sourceSha256": "0f2dcdf2251e3bf2021fea4f516b1d48af61f51669e294357a8e5154faaf2ba1"
+        },
+        {
+          "role": "a4-generated-public-picture-edit",
+          "bytes": 36871,
+          "sha256": "2e90db8c716f8749f74c5bbb71ec7a919b00cef7283a41c89071f2f309242b1e",
+          "sourceSha256": "6af09e8ce78200bf289d1514c529c4edba27d26fc5f497aa7757a4286596c03f"
+        },
+        {
+          "role": "a4-independent-control-public-picture-edit",
+          "bytes": 38197,
+          "sha256": "63db6477b02aa7f731c45798f181178ab5d0b0b3958332b8de159e0b3e9f3b53",
+          "sourceSha256": "7e5fe8ae66adfa7a5cd3b8eb74bdf83ab026a9e3cffbf145fce2ee253726ba50"
+        },
+        {
+          "role": "portrait-generated-original",
+          "bytes": 36501,
+          "sha256": "ed99ea3474da303c5ff87d46916641e289ef8c796169e42287d876fbafe50069",
+          "sourceSha256": "0283993a066b30035ff9df98172714d22822a213f01d83b052fdf12f3262e4a6"
+        },
+        {
+          "role": "portrait-independent-control-original",
+          "bytes": 37735,
+          "sha256": "3a1c9f4f8e788013160c2c97407584a1535a56c848c6090b2c1042c0d2d8cb70",
+          "sourceSha256": "8ccebe124e3b5746955277146d4072662736944c1c13042e7cae58465394126a"
+        },
+        {
+          "role": "portrait-generated-public-picture-edit",
+          "bytes": 36501,
+          "sha256": "838478774383010d4d9df03bdf015770702f83a7eb42fda72594c7dc581b0b14",
+          "sourceSha256": "95ef289275e8f06d7700bf4ca821b24253ece959fdf67607ba3edf72b07ac164"
+        },
+        {
+          "role": "portrait-independent-control-public-picture-edit",
+          "bytes": 37735,
+          "sha256": "16883ff655b90baddb314656898671899eb0a907f916d0a0b4117e0a38a65ab4",
+          "sourceSha256": "5eb06fde951d0bb4f3e44993363ec77a1468f24b98424cffc9dcd8f788c3db88"
+        },
+        {
+          "role": "landscape-generated-original",
+          "bytes": 36501,
+          "sha256": "0fd45b95ae561bd34da46429a3079a30c7bd3964a806fcc059b90439cabae0ab",
+          "sourceSha256": "fd176f6fda2baa1b3b80a758f6f1ee30a8aabd353def3f85660ffd515d6745d1"
+        },
+        {
+          "role": "landscape-independent-control-original",
+          "bytes": 37739,
+          "sha256": "036530021dafc16f6aeb27921f122382beedca59d0b63c4b05418ca77a847b73",
+          "sourceSha256": "7b687643ac0a4ccad7556387b726274715799b4ea1910e6b415d0554108ac53e"
+        },
+        {
+          "role": "landscape-generated-public-picture-edit",
+          "bytes": 36501,
+          "sha256": "476d87ac1fb90ea43081529978109fea020a78ec5b1f0f6a161783c83a9ce235",
+          "sourceSha256": "897b1ec00b0940cfc7ffa117f6b499ab52de26d36c9c68bb12bcaffc6ffea2e7"
+        },
+        {
+          "role": "landscape-independent-control-public-picture-edit",
+          "bytes": 37739,
+          "sha256": "249c5294dee3367d406c6e636e5b0aa7dd33eed42413f06e2a39f141d67edaae",
+          "sourceSha256": "31b4de23b91d340ffe73fe331e3aa85f87c71651f8009625a6de917c37a53123"
+        }
+      ],
+      "fullReports": 12,
+      "qualifiedOperations": 84,
+      "originalGeneratedAndControlReports": 6,
+      "publicPictureEditReports": 6,
+      "sourceUnchanged": true,
+      "repairStatus": "Unassessed",
+      "retainedFailureBoundaries": [
+        {
+          "scope": "Initial A4 control authoring before final helper correction.",
+          "failure": "Column.Width mixed boxed Int32/Double setter rejected fractional second track during Calendar authoring.",
+          "correction": "Both supplied Column.Width values are Double, matching the installed Variant property and preserving exact fractional points; cell typography readback added.",
+          "successfulResult": "Final A4 native control and corresponding Full reports already bound above.",
+          "closure": {
+            "bytes": 1557,
+            "sha256": "5e1ade027cfbabfe450e04d8c629719862b0731fc20e3eb4c03464afbaa52335"
+          },
+          "errorLog": {
+            "bytes": 133,
+            "sha256": "2dd7b3a9fbcaf44b6a49729d2e2cf2b0b9bd8cdf6bd96a002f5ef7cb0732f8bf"
+          }
+        },
+        {
+          "scope": "One failed Publisher activation before opening the A4 control input.",
+          "failure": "COM80080005; Windows Error Reporting records MSPUB access violation in Mso30Win32Client at RVA137ce.",
+          "boundary": "Exact native binaries and COM registration unchanged; no input had opened; no Publisher remained. Later independent fresh-portrait and remaining control Fulls completed.",
+          "successfulResult": "Recovered A4 Full report bound above; original activation failure retained separately.",
+          "closure": {
+            "bytes": 469,
+            "sha256": "f155fa9c65d634ac100723c371c8d11a43d4b67baa39043febd0813b26263e08"
+          },
+          "errorLog": {
+            "bytes": 258,
+            "sha256": "6975156fb4fa7f6939c3fe5a718f598dc75caa953ceeacc55bcac68cc1222819"
+          },
+          "eventProof": {
+            "bytes": 2226,
+            "sha256": "0e137bf7e361b29a652548455a9d0d186207d3ef20fa722bf5f2402e874e978a"
+          }
+        }
+      ],
+      "operationsPerFull": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "commonInventory": {
+        "ownerObjectCounts": [
+          3,
+          4,
+          3
+        ],
+        "explicitNoneWrapObjects": 10,
+        "stages": [
+          "initial",
+          "resaved"
+        ]
+      },
+      "scope": "Initial size/geometry and public picture-bound cohort, before the populated-picture registration correction; final native content edits below use current kind1 candidates."
+    },
+    "embeddedPictureRegistration": {
+      "scope": "Current embedded creation placements use ordinary shape kind1 and its existing class descriptor plus one0308 marker per placement, independent of optional filenames, sharing, crop and page/master ownership.",
+      "nativeKind": 1,
+      "embeddedTokenHex": "0308",
+      "noPublicApiDependencyOrReaderProfileChange": true,
+      "existingSourceReplacementEncodingReused": true,
+      "historicalProfiles": 45,
+      "originalWholeFilesExact": 31,
+      "priorTableCorrectionsExact": 3,
+      "changedPictureProfiles": 11,
+      "markerAdditions": 23,
+      "pictureDirectoryKindChanges": 23,
+      "classDescriptorReplacements": 5,
+      "obsoleteClassDescriptorRemovals": 6,
+      "aggregateContentsByteDelta": -68,
+      "completeExpectedContentsAndAllOtherStreamsExact": true,
+      "unaffectedPublicModelsExact": true,
+      "unchangedSvgPages": 29,
+      "unchangedManagedPdfPairs": 11,
+      "regressionProof": {
+        "bytes": 161047,
+        "sha256": "780e6f52bb097cd05626e13ed653e51916a545d3b23c16d1c8371ab7d360570c"
+      },
+      "sizedPreservationProof": {
+        "bytes": 61638,
+        "sha256": "52d69b83fa37ffbb2b0a00b52baa20638744e9417295e06369a0ab70066f31b3"
+      },
+      "nativeFullReports": [
+        {
+          "directory": "native-registration-final-image",
+          "sourceSha256": "3d440b4247598569cef308635d1351ef1d4e324f13c3ad81159d82e789069c07",
+          "report": {
+            "bytes": 5499,
+            "sha256": "5ae48172163ebb3db1ae35554c31b3e0865a6f503400671bd3e92e235c6880ce"
+          },
+          "picturePlacementsPerStage": 1
+        },
+        {
+          "directory": "native-registration-final-combined",
+          "sourceSha256": "2e7cc8ec2bdf5afc6dafe0241f8485e4487d96a4532837659ef63b9e23e7c640",
+          "report": {
+            "bytes": 9573,
+            "sha256": "d8e7c6a6f7c1320f18647955c1a9a8e94b1cf7443e074e140f0ab5ffcf0fbf60"
+          },
+          "picturePlacementsPerStage": 1
+        },
+        {
+          "directory": "native-registration-final-object-pages",
+          "sourceSha256": "b47a953d7436d875c2a2d28b3de406a53e706a910f6e6c0da0a287a9b98125e3",
+          "report": {
+            "bytes": 9197,
+            "sha256": "f2f0e90d4e80a0ef159c5326ec1144a9bcea44fa25c1ce2ad1a86a7cf777f9b9"
+          },
+          "picturePlacementsPerStage": 1
+        },
+        {
+          "directory": "native-registration-final-mixed-object-pages",
+          "sourceSha256": "c051d7294eb2604b4064668d64b7b9098545391224130e9a54607bf5dad7b535",
+          "report": {
+            "bytes": 21213,
+            "sha256": "340f5cfe1be05ab1563707b8a60a63318b4a7c8600de1d7b29eb660f483c4506"
+          },
+          "picturePlacementsPerStage": 3
+        },
+        {
+          "directory": "native-registration-final-master-content",
+          "sourceSha256": "0539d16f951ccd4c7f90c7fbd3bdd342a32a19d1a5c7f4e2b2c2b58af5c0694c",
+          "report": {
+            "bytes": 19223,
+            "sha256": "7197af9bd8f12cf002e3efa45a9990f6caa7498f59952072269321d8b6cf3ba3"
+          },
+          "picturePlacementsPerStage": 2
+        },
+        {
+          "directory": "native-registration-final-image-pages",
+          "sourceSha256": "11782259736e8453f4d7af4583f008b866ffbc8b3658672a8a87acd3b91c6fe6",
+          "report": {
+            "bytes": 9079,
+            "sha256": "7b92f0e477e78fc257554fecc0ee5f320baa9f9710141af5b769ec5b26e97134"
+          },
+          "picturePlacementsPerStage": 2
+        },
+        {
+          "directory": "native-registration-final-named-image-pages",
+          "sourceSha256": "393d2cb052a38fa95ff68768ce523db92dea1585864b718eae07e574dda75937",
+          "report": {
+            "bytes": 9119,
+            "sha256": "d4116f1561b36630f614101bd360e9cda09ffb1885ac2f4c2bb0619daac68a43"
+          },
+          "picturePlacementsPerStage": 2
+        },
+        {
+          "directory": "native-registration-final-cropped-image-pages",
+          "sourceSha256": "9b0d86a12e0900c5471f64d8ed60e72fab51612ec5488a9fc62bdc7fb5303f75",
+          "report": {
+            "bytes": 9235,
+            "sha256": "ada71bc6e867ce26391875bd4dd824d229be117310892b56ed884de78ced5fe7"
+          },
+          "picturePlacementsPerStage": 2
+        },
+        {
+          "directory": "native-registration-final-shared-image-pages",
+          "sourceSha256": "18991ad4e6c24a51593b803e3c7c26f3c8b36a083d480bde8745de5e719d3b0d",
+          "report": {
+            "bytes": 11083,
+            "sha256": "0561c3f716182111f5448c347e7e25cb2fb7b1139382709db90be7b163c4c094"
+          },
+          "picturePlacementsPerStage": 3
+        },
+        {
+          "directory": "native-registration-final-newsletter",
+          "sourceSha256": "7ad097ec8e23e01884020a7cee1acae006fa1635ce297e448eb1f34fa0491807",
+          "report": {
+            "bytes": 41003,
+            "sha256": "ef0f67c824717a609307a4d7462f09b10fc3ca349f15251ba651e6079a2be957"
+          },
+          "picturePlacementsPerStage": 2
+        },
+        {
+          "directory": "native-registration-final-paired-brochure",
+          "sourceSha256": "76c4ecb8d3fbccea6e86a5b14eec3d2bd00ef1f1178b9e7dcbf871bf7f6b43f3",
+          "report": {
+            "bytes": 64897,
+            "sha256": "40006238dc678d4ff78f83a261e6196086d1d62894ffedfb9156a2cc793c7225"
+          },
+          "picturePlacementsPerStage": 4
+        }
+      ],
+      "operationsPerFull": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "nativePictureObservation": "The canonical inventory records picture facts only after IsEmpty equals zero; every before/resaved picture is observed and IsLinked is false.",
+      "negativeBoundaries": {
+        "originalKind20Unmarked": "Original A4 guarded native query reports IsEmpty null and IsLinked0; no true-empty inference is made.",
+        "markerOnly": "Adding0308 while retaining kind20 does not qualify populated picture state. That Full fails before mutation and Windows records an owned Publisher fail-fast.",
+        "originalQuery": {
+          "bytes": 182,
+          "sha256": "24ec867e1b2548746c47c227ed820d01d29eeec0eb78207be317d1dbdcae8f13"
+        },
+        "markerOnlyQuery": {
+          "bytes": 314,
+          "sha256": "e1d5a9fbf5cfc6d5447281276cf802b64a51b0e8f81b0ef970cb161af099a3ab"
+        },
+        "markerOnlyCrash": {
+          "bytes": 2323,
+          "sha256": "2bc3ea9e3c68055b1ae4037b9adc5b8b3efe916d18c88a9a87d049ec31cea2b6"
+        },
+        "rawControlComparison": {
+          "bytes": 49409,
+          "sha256": "064934291e1c2757dc0b4e3a5b1a46398699843d84967215d754c70f4f0cf9b7"
+        }
+      },
+      "limits": [
+        "These eleven Fulls qualify opening, inventories, PDF exports and save/reopen; actual native text mutation belongs to the six sized inputs below.",
+        "The internal null-image condition is source-inspected, not separately runtime-qualified."
+      ],
+      "nativeBeforeAfterResaveComparison": {
+        "pagePairs": 29,
+        "allExact": true,
+        "dpi": 100,
+        "scope": "Same exact current source before/after native save; not an independent-producer or repair-free claim.",
+        "proof": {
+          "bytes": 4181,
+          "sha256": "b7092b613f2b37457d4552f33d5f5b342e6eb26dfc7f78f22f59aec81c4ab074"
+        }
+      }
+    },
+    "currentSourceFreeInputs": {
+      "generationManifest": {
+        "bytes": 12053,
+        "sha256": "95577a7a46648c4dfa4832ae7c8c9e455a36f39c14103bf567e59ccda8d9a689"
+      },
+      "authorHasSource": false,
+      "inputs": [
+        {
+          "name": "a4",
+          "sourceFree": true,
+          "publication": {
+            "bytes": 13312,
+            "sha256": "65c8a2427cc83231eda8d43017c3fa8e30330ddd065e9ec03a70596604b2d134"
+          }
+        },
+        {
+          "name": "portrait",
+          "sourceFree": true,
+          "publication": {
+            "bytes": 13312,
+            "sha256": "b08a9091a3874e302201573b8395acfed881d6b84bbf579727178ba55650da14"
+          }
+        },
+        {
+          "name": "landscape",
+          "sourceFree": true,
+          "publication": {
+            "bytes": 13312,
+            "sha256": "a6848e17de6e8da584a5af03725fbbfa9701d4f2a6bed9dd00004073a8756d2d"
+          }
+        }
+      ]
+    },
+    "actualNativeStoryEditAndPublicRestoration": {
+      "nativeTarget": "SizedStoryFirstCharacter",
+      "nativeEdit": "N to M at Characters(1,1) of the complete148-unit ordinary story, including finalCR.",
+      "nativeFullReports": [
+        {
+          "directory": "native-story-kind1-a4-fresh",
+          "sourceSha256": "65c8a2427cc83231eda8d43017c3fa8e30330ddd065e9ec03a70596604b2d134",
+          "report": {
+            "bytes": 162875,
+            "sha256": "cce5be1aee75d1294d7cd943b040a2d420a16a0deb002bba554f375c226863f7"
+          },
+          "size": "a4",
+          "producer": "fresh",
+          "nativeEditedPub": {
+            "bytes": 67072,
+            "sha256": "057eda25a2eb0bc8579ade54e45d12df315fba2ffeea7c2ab89eeeb95b384f74"
+          }
+        },
+        {
+          "directory": "native-story-final-a4-control",
+          "sourceSha256": "0f2dcdf2251e3bf2021fea4f516b1d48af61f51669e294357a8e5154faaf2ba1",
+          "report": {
+            "bytes": 163624,
+            "sha256": "fccc6eedb2a25ebd0d4950c8e3623082c1e50956c665b2a52392eaa98391e879"
+          },
+          "size": "a4",
+          "producer": "control",
+          "nativeEditedPub": {
+            "bytes": 95232,
+            "sha256": "ff7d8d8c84378392ccde09fc7ce2ea22994bc23191f502081e5fdfc533db66fd"
+          }
+        },
+        {
+          "directory": "native-story-kind1-portrait-fresh",
+          "sourceSha256": "b08a9091a3874e302201573b8395acfed881d6b84bbf579727178ba55650da14",
+          "report": {
+            "bytes": 161956,
+            "sha256": "8dae625b9c60534013e9c13e8548a9dec2b0938ff3ca6ae6626461187e2d8b52"
+          },
+          "size": "portrait",
+          "producer": "fresh",
+          "nativeEditedPub": {
+            "bytes": 66048,
+            "sha256": "ec200c341debce096b23bf61f82a7416d906fc0990280da021667d54da37348a"
+          }
+        },
+        {
+          "directory": "native-story-final-portrait-control",
+          "sourceSha256": "8ccebe124e3b5746955277146d4072662736944c1c13042e7cae58465394126a",
+          "report": {
+            "bytes": 162475,
+            "sha256": "dc9dec630943f44be42f12ed9e445e8dd1433d5c511fe474bba813fe717054a1"
+          },
+          "size": "portrait",
+          "producer": "control",
+          "nativeEditedPub": {
+            "bytes": 94720,
+            "sha256": "8ecb89531afd67818d2f697b03c2b95910c76a517f3a4176d17161ebae5e10fa"
+          }
+        },
+        {
+          "directory": "native-story-kind1-landscape-fresh",
+          "sourceSha256": "a6848e17de6e8da584a5af03725fbbfa9701d4f2a6bed9dd00004073a8756d2d",
+          "report": {
+            "bytes": 161959,
+            "sha256": "e1b31b81dd4a7a8949ab14ae95e2d6e640618cfb74a6510cd9a3d5a941abcb81"
+          },
+          "size": "landscape",
+          "producer": "fresh",
+          "nativeEditedPub": {
+            "bytes": 66048,
+            "sha256": "93166c1aec094be74d438ffdcf6e2910525befaab285383c7a9612a5c9ad2d9f"
+          }
+        },
+        {
+          "directory": "native-story-final-landscape-control",
+          "sourceSha256": "7b687643ac0a4ccad7556387b726274715799b4ea1910e6b415d0554108ac53e",
+          "report": {
+            "bytes": 162488,
+            "sha256": "5eb1de48e3e9ec483bdd4019e2896ef8a7fb2465b140ba967e71482ae2ff8401"
+          },
+          "size": "landscape",
+          "producer": "control",
+          "nativeEditedPub": {
+            "bytes": 94720,
+            "sha256": "aeb3d3d94c7540ddebf240439c0c5c444698ccc64b1501b8a4efe77ec820c778"
+          }
+        }
+      ],
+      "operationsPerNativeEditFull": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSizedStoryFirstCharacterMutation",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "nativeSnapshots": [
+        "before",
+        "after",
+        "reopened"
+      ],
+      "framesPerCompleteStory": 2,
+      "firstAndFinalTypingPointsPerFrame": 2,
+      "ownerObjectCounts": [
+        3,
+        4,
+        3
+      ],
+      "nativePictureIsEmptyAndIsLinkedZero": true,
+      "fourOuterCalendarEdgesObservedZeroWidth": true,
+      "diagonalObservation": "Retained Unassessed0x80131501; no diagonal border qualification.",
+      "preservation": "Each input retains its own identities/names, owner order, assignments, bounds, full story suffix/CR and captured formatting, layout, calendar, paint and picture facts. Visible flow is separate from immutable state.",
+      "publicApi": "ReplaceStoryParagraphs and explicit Allow source saving",
+      "publicRestore": "M to N using each native-edited file own run fields, partitioning and paragraph/tab defaults.",
+      "publicCases": [
+        {
+          "case": "a4-fresh",
+          "sourceSha256": "057eda25a2eb0bc8579ade54e45d12df315fba2ffeea7c2ab89eeeb95b384f74",
+          "outputSha256": "186a37c35701e8fac233d0ffd827cb0d46f2db60f1e52cdfeeb518dfcc91f16f",
+          "storyCount": 5,
+          "runLengths": [
+            1,
+            146
+          ],
+          "defaultTabIntervalPoints": 36.0,
+          "staleThumbnailRemoved": true
+        },
+        {
+          "case": "a4-control",
+          "sourceSha256": "ff7d8d8c84378392ccde09fc7ce2ea22994bc23191f502081e5fdfc533db66fd",
+          "outputSha256": "07892c7eceaf2b5950e1706638d5130b38b7b99d5f711072631c0f99adb58a5e",
+          "storyCount": 7,
+          "runLengths": [
+            1,
+            146
+          ],
+          "defaultTabIntervalPoints": 28.3,
+          "staleThumbnailRemoved": true
+        },
+        {
+          "case": "portrait-fresh",
+          "sourceSha256": "ec200c341debce096b23bf61f82a7416d906fc0990280da021667d54da37348a",
+          "outputSha256": "95b83ce7361980d2b0cb00ddea6016d3f320cb2fa6bf57f344dac471e9a0836c",
+          "storyCount": 5,
+          "runLengths": [
+            1,
+            146
+          ],
+          "defaultTabIntervalPoints": 36.0,
+          "staleThumbnailRemoved": true
+        },
+        {
+          "case": "portrait-control",
+          "sourceSha256": "8ecb89531afd67818d2f697b03c2b95910c76a517f3a4176d17161ebae5e10fa",
+          "outputSha256": "d25c587d4ea3219559f1723bc613c323c91ed1bbdf43ecf6b83b655722ccb60b",
+          "storyCount": 7,
+          "runLengths": [
+            1,
+            146
+          ],
+          "defaultTabIntervalPoints": 28.3,
+          "staleThumbnailRemoved": true
+        },
+        {
+          "case": "landscape-fresh",
+          "sourceSha256": "93166c1aec094be74d438ffdcf6e2910525befaab285383c7a9612a5c9ad2d9f",
+          "outputSha256": "62cd38f51e15078ef0012ca958fad6fcb07ea3112996de646b55ba9d32e3dd5f",
+          "storyCount": 5,
+          "runLengths": [
+            1,
+            146
+          ],
+          "defaultTabIntervalPoints": 36.0,
+          "staleThumbnailRemoved": true
+        },
+        {
+          "case": "landscape-control",
+          "sourceSha256": "aeb3d3d94c7540ddebf240439c0c5c444698ccc64b1501b8a4efe77ec820c778",
+          "outputSha256": "c5674ecc23a80298c9f6280aad7e983bb026f89aed07ad854461da6b7dc41430",
+          "storyCount": 7,
+          "runLengths": [
+            1,
+            146
+          ],
+          "defaultTabIntervalPoints": 28.3,
+          "staleThumbnailRemoved": true
+        }
+      ],
+      "publicProof": {
+        "bytes": 61463,
+        "sha256": "4b99b70dccef73a81e977fcced301c98d636c94575140af2dedb33ee906af88e"
+      },
+      "publicPreservation": "Every complete story/terminator, own styles/run partition/defaults, other objects/assets and directory metadata preserved. Only Quill plus required stale-thumbnail removal changes; source/reloaded no-op copies exact.",
+      "restoredNativeFullReports": [
+        {
+          "directory": "native-restored-final-a4-fresh",
+          "sourceSha256": "186a37c35701e8fac233d0ffd827cb0d46f2db60f1e52cdfeeb518dfcc91f16f",
+          "report": {
+            "bytes": 37895,
+            "sha256": "2eda0091989cb8125e3ee28c2bc85a66c3fab3077b055a99ea1e2d9bc03a6c90"
+          },
+          "size": "a4",
+          "producer": "fresh"
+        },
+        {
+          "directory": "native-restored-final-a4-control",
+          "sourceSha256": "07892c7eceaf2b5950e1706638d5130b38b7b99d5f711072631c0f99adb58a5e",
+          "report": {
+            "bytes": 38197,
+            "sha256": "3b853090739492be7c14a2282bb94cca1beb1bf9a02d00fba0ed22c713038501"
+          },
+          "size": "a4",
+          "producer": "control"
+        },
+        {
+          "directory": "native-restored-final-portrait-fresh",
+          "sourceSha256": "95b83ce7361980d2b0cb00ddea6016d3f320cb2fa6bf57f344dac471e9a0836c",
+          "report": {
+            "bytes": 37525,
+            "sha256": "02e6f5619cf8d683a79ff65cc6c9d5bdd46f126d1f9a86c219ad651911787c04"
+          },
+          "size": "portrait",
+          "producer": "fresh"
+        },
+        {
+          "directory": "native-restored-final-portrait-control",
+          "sourceSha256": "d25c587d4ea3219559f1723bc613c323c91ed1bbdf43ecf6b83b655722ccb60b",
+          "report": {
+            "bytes": 37735,
+            "sha256": "9342e40bd5e8eea0269dfaaf0700ecf0b9980ccf945aa7c6ba05a2d128d28dcf"
+          },
+          "size": "portrait",
+          "producer": "control"
+        },
+        {
+          "directory": "native-restored-final-landscape-fresh",
+          "sourceSha256": "62cd38f51e15078ef0012ca958fad6fcb07ea3112996de646b55ba9d32e3dd5f",
+          "report": {
+            "bytes": 37525,
+            "sha256": "7f317b4c7b250ed4932bdd29bda260ae78f94aed777b49ea681e774f7a5187a3"
+          },
+          "size": "landscape",
+          "producer": "fresh"
+        },
+        {
+          "directory": "native-restored-final-landscape-control",
+          "sourceSha256": "c5674ecc23a80298c9f6280aad7e983bb026f89aed07ad854461da6b7dc41430",
+          "report": {
+            "bytes": 37739,
+            "sha256": "7050035ad91b61a8eb371a2f0abdf59b03e506870d4bcef273c89d595be3bc7f"
+          },
+          "size": "landscape",
+          "producer": "control"
+        }
+      ],
+      "nativePageComparisons": {
+        "pairs": 48,
+        "exact": 40,
+        "nonexact": 8,
+        "allExact": false,
+        "nonexactPixelsEach": 351,
+        "nonexactBounds": [
+          238,
+          326,
+          589,
+          327
+        ],
+        "limitation": "Only the known portrait blue-rule edge; original nominal-height result retained.",
+        "ownPristineNRestorationPairs": 24,
+        "ownPristineNRestorationPairsExact": true,
+        "proof": {
+          "bytes": 31785,
+          "sha256": "4f556a7e2d13d8a087986459035d3ccf01ae7ad11d046fa81b64ac6493088f8d"
+        }
+      },
+      "managedPageComparisons": {
+        "pairs": 24,
+        "allExact": true,
+        "scope": "Actual native M versus public expected M, and public restored N versus own pristine N; no native/managed parity claim.",
+        "proof": {
+          "bytes": 11504,
+          "sha256": "9b50d25f8747801f3c644436c41595e79b8dd0f5ed72144914f721e99e093e2b"
+        }
+      },
+      "goldenProvenance": {
+        "bytes": 3627,
+        "sha256": "6f0ff1e238a1ec6d336de9d1ac7fd4d98b1ce06ff7a83f046ad6399483954641"
+      }
+    }
+  },
+  "selectedNativeRetryObservation": {
+    "scope": "One exact current kind1 Portrait candidate first native open; eleven hooks only. Capture fence and later Full/instrumentation lifecycle are separate.",
+    "candidateSha256": "b08a9091a3874e302201573b8395acfed881d6b84bbf579727178ba55650da14",
+    "capturedRecords": 5,
+    "sequence": [
+      "ready",
+      "load-entry",
+      "severity-reset",
+      "load-return",
+      "terminal-drain"
+    ],
+    "loadEntryRva": "0x93544",
+    "severityResetRva": "0x93849",
+    "callerRva": "0x30fb6",
+    "severityDword": 0,
+    "rawLoadReturn32": 0,
+    "selectedCallerWrapperReaderMessageCallsiteRetryLoopAndAutomaticOneRecords": 0,
+    "contextItemIndexOrContinuationFlagObserved": false,
+    "exactModuleFilesAndElevenPrefixesQualified": true,
+    "readyBeforeInput": true,
+    "terminalDrain": true,
+    "captureLoss": 0,
+    "metadataHandlesClosed": 3,
+    "selectedPathConclusion": "No selected failure/continuation/same-index-retry chain occurs in this bounded first load; other loaders/message/recovery routes remain outside coverage.",
+    "instrumentedFull": "Failed after post release during InitialPdfExport; no native mutation, SaveAs or resaved reopen occurred.",
+    "lifecycle": "Unqualified: Windows records frida-agent.dll_unloaded, c0000005 at9c7e0, on the exact owned PID/start identity after nominal script unload/detach.",
+    "ordinarySameInputFull": {
+      "directory": "native-story-kind1-portrait-fresh",
+      "sourceSha256": "b08a9091a3874e302201573b8395acfed881d6b84bbf579727178ba55650da14",
+      "report": {
+        "bytes": 161956,
+        "sha256": "8dae625b9c60534013e9c13e8548a9dec2b0938ff3ca6ae6626461187e2d8b52"
+      }
+    },
+    "ordinarySameInputOutcome": "The separate uninstrumented same-source Full completes native N-to-M mutation, SaveAs/reopen and PDFs; it does not repeat the observer.",
+    "actualProof": {
+      "bytes": 14845,
+      "sha256": "8f2331bfd025d46e23d5534e44026f991afcd77b8fb13d7d3b8542c408968123"
+    },
+    "preparationProof": {
+      "bytes": 8136,
+      "sha256": "061bd2bddc279a3a1c71d228fdca3d182e6cc8082df2d81f3ab5a6a1232dde80"
+    },
+    "privateIntegration": {
+      "bytes": 24524,
+      "sha256": "72f6be4600bf8e9dc35b69171215e6c194408ce5c2899185d924ebd37e5e81ed"
+    },
+    "limits": [
+      "No universal repair-free conclusion or successful recovery control.",
+      "Nominal unload/detach receipt does not establish safe subsequent native execution.",
+      "Keeping a disabled agent until the canonical native owner exits is a future plan only; no further observer was implemented or replayed."
+    ],
+    "repairPositiveControls": 0,
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

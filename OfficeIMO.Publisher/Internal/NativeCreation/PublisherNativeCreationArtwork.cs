@@ -37,6 +37,8 @@ internal static partial class PublisherNativeCreationArtwork {
 
     internal static byte[] Create(Graph graph, IReadOnlyList<ImageBinding> images, PublisherParseContext context) {
         context.Token.ThrowIfCancellationRequested();
+        if (graph.Source.WidthEmu is 0 or > int.MaxValue || graph.Source.HeightEmu is 0 or > int.MaxValue)
+            throw new NotSupportedException("Native page dimensions require positive signed-EMU values.");
         uint shapeCount = (uint)graph.Objects.Count + 1;
         uint lastShapeId = RootShapeId + shapeCount - 1;
         var allocation = PublisherEscherDrawingAllocation.Fresh(1, context.Token);
@@ -139,7 +141,11 @@ internal static partial class PublisherNativeCreationArtwork {
         }
         if (isTextBox || isTable) {
             properties[1] = (0x1BF, 0x00100000); // Text frame has no fill.
-            uint Distance(double points) => checked((uint)Math.Round(points * 12700));
+            uint Distance(double points) {
+                if (points < 0 || !PublisherNativeGeometry.Emu(points, 0, out int encoded) || encoded < 0)
+                    throw new NotSupportedException("Native frame spacing and insets require exact nonnegative signed-EMU values.");
+                return (uint)encoded;
+            }
             if (item.Source.FrameLayout is { } layout) {
                 properties.Add((0x81, Distance(layout.Padding.Left))); properties.Add((0x82, Distance(layout.Padding.Top)));
                 properties.Add((0x83, Distance(layout.Padding.Right))); properties.Add((0x84, Distance(layout.Padding.Bottom)));
@@ -150,7 +156,7 @@ internal static partial class PublisherNativeCreationArtwork {
                 properties.Add((0x83, 0)); properties.Add((0x84, 0));
             }
             if (item.Source.FrameLayout == null && item.Source.ColumnSpacing.HasValue)
-                properties.Add((0x8D, checked((uint)(item.Source.ColumnSpacing.Value * 12700))));
+                properties.Add((0x8D, Distance(item.Source.ColumnSpacing.Value)));
         }
         if (imageIndex.HasValue) properties.Add((0x4104, imageIndex.Value)); // Native BLIP-ID flag.
         if (item.Source.Crop.HasCrop)
@@ -172,7 +178,11 @@ internal static partial class PublisherNativeCreationArtwork {
                 }, out propertyCount) ?? throw new InvalidDataException("The picture filename could not be encoded.");
             context.Token.ThrowIfCancellationRequested();
         }
-        uint Coord(double points, double origin) => unchecked((uint)(int)(points * 12700 - origin));
+        uint Coord(double points, double origin) {
+            if (!PublisherNativeGeometry.Emu(points, origin / 12700D, out int encoded))
+                throw new NotSupportedException("Native object bounds require complete exact signed-EMU coordinates.");
+            return unchecked((uint)encoded);
+        }
         return Art(15, 0xF004,
             Art((ushort)(((item.Source.Kind == PublisherNativeCreationObjectKind.Picture ? 75 : isTable ? 201 : isTextBox ? 202 : 1) << 4) | 2), 0xF00A,
                 Bytes(writer => { writer.Write(item.Spid); writer.Write(0xA00U); })),

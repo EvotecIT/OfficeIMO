@@ -1,0 +1,86 @@
+{
+  "schema": "officeimo.publisher.sized-story-writing-provenance.v1",
+  "producer": {
+    "application": "Microsoft Publisher",
+    "version": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "automationSecurity": 3
+  },
+  "sourceBaseCommit": "bc3851e7756c9e9d39d529415939148209aad807",
+  "profile": {
+    "widthEmu": 3657600,
+    "heightEmu": 5486400,
+    "ownerObjectCounts": [
+      3,
+      4,
+      3
+    ],
+    "targetNativeUtf16Length": 148,
+    "targetFramePhysicalPageOrder": [
+      1,
+      2
+    ],
+    "targetFont": "Arial",
+    "targetFontSizePoints": 10,
+    "targetLineHeightPoints": 14,
+    "targetLanguageId": 1033
+  },
+  "nativeEditTarget": "SizedStoryFirstCharacter",
+  "nativeEdit": "First N to M in the complete two-frame ordinary story; all ten mixed objects, both complete story ranges and first/final typing points are qualified before/after mutation and after native SaveAs/read-only reopen.",
+  "inputs": [
+    {
+      "file": "native-edited.pub",
+      "origin": "Fresh source-free sized-composition public model projected through the native codec with ordinary kind1 picture class and per-placement0308 markers.",
+      "sourceSha256": "b08a9091a3874e302201573b8395acfed881d6b84bbf579727178ba55650da14",
+      "nativeReportSha256": "8dae625b9c60534013e9c13e8548a9dec2b0938ff3ca6ae6626461187e2d8b52",
+      "defaultTabsPoints": 36
+    },
+    {
+      "file": "native-control-edited.pub",
+      "origin": "Independent native SizedCompositionPortrait control, then actual native N-to-M mutation/save/reopen.",
+      "sourceSha256": "8ccebe124e3b5746955277146d4072662736944c1c13042e7cae58465394126a",
+      "nativeReportSha256": "dc9dec630943f44be42f12ed9e445e8dd1433d5c511fe474bba813fe717054a1",
+      "defaultTabsPoints": 28.3
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationGraph.cs",
+      "sha256": "7cc13307c02cde5a35154cda96199527c4b8256f927aa8ab290a975d183ac0b3"
+    },
+    {
+      "path": "OfficeIMO.Publisher/Internal/NativeCreation/PublisherNativeCreationPlan.cs",
+      "sha256": "6ae999d430681dba0a307ff7a68b582b4d0bba1df1735d9ee1034da4e45432a3"
+    },
+    {
+      "path": "Build/Publisher/WriterProbe/CandidateSizedComposition.cs",
+      "sha256": "44d039ee2b997ca4c99d4deb80a642fb43c144d129c03d5b72987d018386ecac"
+    },
+    {
+      "path": "Build/Publisher/Add-NativeSizedCompositionControl.ps1",
+      "sha256": "0b4b0e3258d11afa1366ba4d014772bf32248b901e9d8bf46ce0f91e71513bf4"
+    },
+    {
+      "path": "Build/Publisher/Get-NativeSizedStoryEditState.ps1",
+      "sha256": "c3ae4b2aac908462398bf4499019533cdf910ac7c3f576c332c7ac529bad534f"
+    }
+  ],
+  "imageSha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483",
+  "files": [
+    {
+      "name": "native-edited.pub",
+      "bytes": 66048,
+      "sha256": "ec200c341debce096b23bf61f82a7416d906fc0990280da021667d54da37348a"
+    },
+    {
+      "name": "native-control-edited.pub",
+      "bytes": 94720,
+      "sha256": "8ecb89531afd67818d2f697b03c2b95910c76a517f3a4176d17161ebae5e10fa"
+    }
+  ],
+  "applicationOptionsChanged": false,
+  "repairStatus": "Unassessed. Successful native mutation, save/reopen and PDF evidence do not establish repair-free acceptance.",
+  "scope": "Inputs protect public story restoration and unaffected mixed-document preservation; no general native writing, rendering parity or public source-free save claim.",
+  "license": "MIT"
+}

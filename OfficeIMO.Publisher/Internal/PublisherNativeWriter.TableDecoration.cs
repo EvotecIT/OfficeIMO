@@ -85,7 +85,7 @@ internal sealed partial class PublisherNativeWriter {
             if (!newKeys.Add(key) || current.Side.Color.A != 255 || current.Side.Width <= 0
                 || current.Side.Width > (current.FirstRow == current.LastRow ? after.Height : after.Width)
                 || current.Side.DashStyle != OfficeStrokeDashStyle.Solid || current.Side.LineKind != OfficeBorderLineKind.Single
-                || current.Side.DoubleLineSeparation != 0 || !Emu(current.Side.Width, 0, out int width) || width <= 0) {
+                || current.Side.DoubleLineSeparation != 0 || !PublisherNativeGeometry.Emu(current.Side.Width, 0, out int width) || width <= 0) {
                 Reject(location, "Shared border saving requires unique grid ranges and opaque solid single lines with exact positive signed-EMU widths."); return;
             }
             if (!oldBorders.TryGetValue(key, out PublisherTableBorderSegment prior)) continue;

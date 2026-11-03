@@ -79,6 +79,15 @@ runtime string or a native full-key call. Button meanings, actual internal
 recovery and repair-free acceptance remain unqualified; the safety prompt is
 not a repair-positive control.
 
+The `selectedNativeRetryObservation` record binds one kind-1 portrait input to an
+eleven-site first-open capture. The load returns zero after a zero severity reset,
+without the selected failure/continuation/same-index retry route. That capture
+ends at initial inventory. The instrumented Full subsequently fails during PDF
+export with a Windows fault in an unloaded Frida agent; its instrumentation
+lifecycle remains unqualified. A separate uninstrumented Full on the same bytes
+completes native text mutation, save/reopen and PDF exports. These results leave
+other recovery paths and the repair-positive control unqualified.
+
 The internal codec in `OfficeIMO.Publisher/Internal/NativeCreation` is qualified
 through the opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
 for bounded source-free specimens. Its operation uses a `PublisherReadOptions`
@@ -1070,12 +1079,108 @@ source-free native creation remain unqualified. Public native saving retains
 `PUB_NATIVE_SOURCE_REQUIRED` for source-free models; successful native opening and
 resaving do not supply a positive recovery control.
 
+### Native single-master page sizes
+
+The internal source-free projection derives common physical/master page dimensions
+from `PublisherDocument.Create(width, height)`. The single-master profile requires
+one centered master explicitly applied to every physical page, with one to sixteen
+physical pages. Dimensions must have exact positive signed-EMU representations.
+All four object-anchor edges must also have exact signed-EMU representations
+relative to their actual page origin. Frame gaps/insets use nonnegative distances;
+table extents, individual tracks and cumulative endpoints use positive distances.
+Unrepresentable values are refused rather than truncated. Creation and source
+saving share the same point/EMU conversion rule.
+
+The `sized-composition` specimen authors the same two-page public model at A4
+portrait and 4×6-inch portrait/landscape sizes. A populated centered master combines
+with a two-frame linked story, an independent heading, a two-column frame, two
+pictures sharing one image asset and one borderless 2×2 table. Its ten semantic
+objects retain 3/4/3 ownership across the master and physical pages. The model has
+five stories; the independent native controls additionally carry two empty
+rectangle stories.
+
+Embedded picture placements use ordinary native shape kind `0x01` with its existing
+class registration and their own embedded-state token, bytes `03 08`, separately
+from the OfficeArt image binding. Native picture-format observations confirm that both pictures are
+populated and unlinked before and after native story editing, save-as and
+reopening. Complete managed model, asset, SVG and PDF comparisons retain the
+qualified content and appearance through this registration encoding.
+Eleven additional modern-generation image, mixed-content, master, newsletter and
+brochure profiles complete native opening, PDF export, save-as and reopening with
+populated, unlinked pictures at both stages. These runs qualify picture state and
+the listed file operations; six sized-story inputs supply native content-mutation
+proof below.
+
+| Publication size | Exact native width × height in EMU |
+| --- | --- |
+| A4 portrait, 210×297 mm | 7,560,000 × 10,692,000 |
+| 4×6-inch portrait | 3,657,600 × 5,486,400 |
+| 4×6-inch landscape | 5,486,400 × 3,657,600 |
+
+Native opening, inventory, PDF export, save-as and reopening retain these stored
+document/master dimensions, table tracks, complete text, intended run styles and
+None wrapping. Public `SetPictureBounds` moves the physical-page picture six points
+right on generated and independently authored sources at each size. Explicit
+`Allow` saving and reload preserve ownership, story content, the shared image
+payload and other picture bounds; no-op source copies remain exact. Default strict
+saving still refuses only `PUB_NATIVE_FIXED_PATCH_UNQUALIFIED` as `Unassessed`.
+PSWriteOffice converts all six edited sources to PDF.
+
+The `SizedStoryFirstCharacter` target also qualifies an actual native first-letter
+edit from `N` to `M` in the complete linked story at each size, on generated and
+independently authored inputs. All six native edits save and reopen with both
+frames exposing the complete 148-character native range, the intended first/final
+CR typing and all ten mixed objects' invariants retained.
+
+Public `ReplaceStoryParagraphs` restores `M` to `N` on those six native-edited
+sources. Explicit `Allow` saving preserves every story's complete text, the
+source's 1/146-character run split and final-CR formatting, its own tab profile,
+page/master and frame identities, picture bindings and shared image payload.
+Generated sources retain five stories and 36-point default tabs; native controls
+retain seven stories and 28.3-point tabs. Other logical streams and directory
+metadata remain preserved while the save rewrites Quill and invalidates the stale
+thumbnail. It reports `PUB_NATIVE_PREVIEW_INVALIDATED` and
+`PUB_NATIVE_QUILL_TEXT_UNQUALIFIED`. All six results retain exact no-op source
+copies, convert through PSWriteOffice, and complete native save/reopen. All 24
+initial/resaved page comparisons against each source's own pristine `N` state
+match at 100 dpi. The [retained portrait inputs](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedSizedComposition/provenance.json)
+protect the public restoration contract for both producer paths.
+
+The picture registration, native story editing and public restoration comparison
+covers 48 native PDF page pairs at 100 dpi. Forty match exactly. The eight
+portrait-postcard comparisons each differ by 351 pixels in one blue-bar edge band;
+every other page pixel matches. Visible glyph styling/positions, images, table content and other
+paint match. Disabling antialiasing in a diagnostic render removes that band;
+higher-resolution observations retain its edge-local behavior. These diagnostics
+do not replace the original comparison, whose eight differences remain recorded.
+The separate creation/picture comparison retains its 36-page record with the same
+edge boundary.
+
+Publication dimensions and print-sheet dimensions are separate. The recorded
+native PDF exports use 595.32×841.92-point sheets, approximately A4, for all three
+publication sizes. This observation identifies neither a printer/driver cause nor
+a general default-sheet contract. OfficeIMO's PDF uses the publication size: the
+serialized A4 MediaBox is 595.276×841.89 points, and both postcard orientations
+retain their exact point dimensions. Native PDF sheet bounds therefore do not establish the stored
+PUB size or postcard print setup. Actual Print dispatch remains unqualified.
+
+Metadata equivalence is also narrower than appearance. The controls use 10 mm
+master-guide insets while creation uses page-edge guides; their ordinary anchors
+and bar dimensions can differ by a few EMU after native point quantization.
+Generated default tabs remain 36 pt versus 28.3 pt in the controls; unused outline
+widths and style catalogs differ. These tab-free, outline-free inputs do not
+qualify those defaults. The `singleMasterPageSizes` record binds the measured
+geometry, lifecycle and appearance limits. Multiple-master dimensions beyond
+Letter, masterless and unassigned pages, broader layout/effects, repair-free
+acceptance and public source-free native saving remain unqualified.
+
 ### Mixed content with multiple masters
 
 The internal `ComposedContent` projection accepts one centered master, two
 centered masters, or a centered master followed by one named left/right pair.
-All pages are Letter size, every physical page has an explicit assignment to a
-defined master, and the profile permits one to sixteen physical pages. Master
+The single-centered-master profile uses the common dimensions described above;
+multiple-master profiles remain Letter size. Every physical page has an explicit
+assignment to a defined master, with one to sixteen physical pages. Master
 text, rectangles and embedded pictures compose with ordinary linked stories,
 unlinked frame layouts and at most one physical-page table. Object order and
 ownership come from the same public page/master model used for rendering.
@@ -1111,8 +1216,8 @@ relaxing guarded source edits.
 The `pairedMixedContentCreation` and `authoredNoWrapCreation` qualification records
 separate this composed profile from general native writing. Master tables,
 multiple physical-page tables, three centered masters, unassigned pages, other
-page sizes, linked columns/insets, wrapping and broader effects remain outside
-the profile. Matching pages do not establish metadata equivalence: generated
+multiple-master sizes, linked columns/insets, wrapping and broader effects remain
+outside the profile. Matching pages do not establish metadata equivalence: generated
 default tabs remain 36 pt while the native control uses 28.3 pt, and base-caption
 typing/defaults differ. These tab-free specimens do not qualify that metadata or
 general native/managed rendering parity. Repair-free acceptance and public

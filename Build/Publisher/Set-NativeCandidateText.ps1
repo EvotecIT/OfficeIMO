@@ -9,17 +9,45 @@ function Set-NativeCandidateText {
     .PARAMETER Target
     The sole unlinked text box, the first unmerged cell of the sole physical table,
     its first horizontal merged anchor with exactly two columns and one row,
-    or one first character of the qualified three-frame page 1/3/2 story.
+    or one first character of a qualified linked story. SizedStoryFirstCharacter
+    admits only the three existing two-page sized compositions and changes N to M.
     .PARAMETER Text
     The replacement text supplied to the controller. LinkedStoryFirstCharacter
     accepts one printable ASCII character distinct from the original M.
+    SizedStoryFirstCharacter accepts only M for the original N body.
     .OUTPUTS
     Target identity and before/requested/observed text for the validation report.
     #>
     param($Publication, [Collections.Generic.List[object]] $Objects,
-        [ValidateSet('TextBox', 'FirstTableCell', 'FirstMergedTableCell', 'LinkedStoryFirstCharacter')] [string] $Target,
+        [ValidateSet('TextBox', 'FirstTableCell', 'FirstMergedTableCell', 'LinkedStoryFirstCharacter', 'SizedStoryFirstCharacter')] [string] $Target,
         [AllowEmptyString()] [string] $Text)
 
+    if ($Target -eq 'SizedStoryFirstCharacter') {
+        if ($Publication.ReadOnly -or $Text -cne 'M') {
+            throw 'Sized story mutation requires a writable snapshot and the single replacement character M.'
+        }
+        $beforeState = Get-NativeSizedStoryEditState -Publication $Publication -Objects $Objects
+        $before = $beforeState.Snapshot.text
+        $expected = 'M' + $before.Substring(1)
+        $character = $beforeState.Range.Characters(1, 1)
+        $Objects.Add($character)
+        if ([string]$character.Text -cne 'N' -or $character.Length -ne 1) {
+            throw 'The sized story mutation did not select only its original first N character.'
+        }
+        $character.Text = $Text
+        $afterState = Get-NativeSizedStoryEditState -Publication $Publication -Objects $Objects -ExpectedText $expected
+        Assert-NativeSizedStoryEditState -Before $beforeState.Snapshot -After $afterState.Snapshot
+        return [ordered]@{
+            target = $Target
+            shapeName = $beforeState.ShapeName
+            before = $before
+            requested = $Text
+            observed = $afterState.Snapshot.text
+            beforeState = $beforeState.Snapshot
+            afterState = $afterState.Snapshot
+            reopenedState = $null
+        }
+    }
     if ($Target -eq 'LinkedStoryFirstCharacter') {
         if ($Publication.ReadOnly -or $Text.Length -ne 1 -or $Text[0] -lt [char]0x20 -or
             $Text[0] -gt [char]0x7e -or $Text -ceq 'M') {

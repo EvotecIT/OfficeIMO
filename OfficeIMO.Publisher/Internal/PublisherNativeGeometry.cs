@@ -2,8 +2,17 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Maps imported native anchors and group spaces into page-point geometry. Authored picture state never passes through this mapper.</summary>
+/// <summary>Converts point/native units and maps native anchors and group spaces into page-point geometry.</summary>
 internal static class PublisherNativeGeometry {
+    /// <summary>Encodes a point relative to its origin without losing native signed-EMU precision.</summary>
+    internal static bool Emu(double point, double origin, out int result) {
+        double scaled = (point - origin) * 12700, rounded = Math.Round(scaled);
+        result = 0;
+        if (double.IsNaN(scaled) || double.IsInfinity(scaled) || rounded < int.MinValue || rounded > int.MaxValue
+            || Math.Abs(scaled - rounded) > Math.Max(0.0000001, Math.Abs(scaled) * 0.000000000000002)) return false;
+        result = (int)rounded; return true;
+    }
+
     internal static (double X, double Y, double Width, double Height) Bounds(PublisherEscherShape shape, double originX, double originY) {
         PublisherNativeRectangle native = shape.Bounds!.Value.Unrotated(shape.Transform.RotationDegrees.GetValueOrDefault());
         var mapped = shape.LayoutTransform.TransformRectangleBounds(Math.Min(native.X1, native.X2), Math.Min(native.Y1, native.Y2),

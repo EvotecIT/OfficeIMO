@@ -49,6 +49,8 @@ dotnet $probe create master-content ./candidate-master-content.pub ./image.png
 
 dotnet $probe create newsletter ./candidate-newsletter.pub ./image.png
 
+dotnet $probe create sized-composition ./candidate-a4.pub 7560000x10692000 ./image.png
+
 dotnet $probe source-newsletter ./candidate-newsletter.pub ./replacement.jpg ./newsletter-source-saves
 
 dotnet $probe create multiple-masters ./candidate-multiple-masters.pub
@@ -404,11 +406,13 @@ and preserves the original 18×18 table for an independent inventory comparison:
 
 ## Creation cases
 
-All cases use Letter-size physical pages and the same ordered
-`PublisherNativeCreationPlan`. Most use one master; the multiple/paired-master
-specimens carry their explicitly authored definitions. Object IDs, story keys, layout identifiers and SPIDs
+The fixed cases use Letter-size physical pages; `sized-composition` takes page
+dimensions as data. All use the same ordered `PublisherNativeCreationPlan`.
+Most use one master; the multiple/paired-master specimens carry their explicitly
+authored definitions. Object IDs, story keys, layout identifiers and SPIDs
 are assigned once and shared by the Contents, OfficeArt and Quill serializers.
-Text boxes and rectangles each own an independent story; pictures have no story.
+Story bindings remain separate from object ownership: linked frames can share a
+complete story, and pictures have no story.
 Page, picture and image-asset counts depend on the selected case.
 
 | Case | Objects and content |
@@ -423,6 +427,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `mixed-object-pages` | Projects the final public model with overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
 | `master-content` | Projects the final public authoring model: one centered master owns a rectangle, picture and single-paragraph text frame and is applied to three Letter pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. Current object order, geometry, paint, stories and referenced asset identity supply the codec inputs. One PNG path required. |
 | `newsletter` | Projects one final public model combining a recurring master heading, logo and rule with linked body text, an independent sidebar, a two-column story, a borderless 2×2 calendar and a page picture sharing the master asset. Three physical pages and six complete stories; one PNG path required. |
+| `sized-composition` | Takes `<WIDTH_EMUxHEIGHT_EMU>` and one PNG path. Authors two pages through `PublisherDocument.Create(widthEmu / 12700D, heightEmu / 12700D)`, with one populated centered master, linked text, heading, two-column frame, borderless 2×2 table, rectangles and two pictures sharing one asset. A4 and 4×6 portrait/landscape inputs qualify the same dimension-driven factory. |
 | `linked-story`, `linked-story-overflow` | Projects the final public model with an empty applied master. One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
 | `multi-paragraph` | Projects three unlabelled Arial paragraphs into one frame on a Letter page with an empty applied centered master. Mixed size/bold runs, an explicitly styled empty middle paragraph and complete overflow are retained. All runs request language 1033; automatic hyphenation is explicitly disabled. Fixed content takes no additional arguments. |
 | `multi-paragraph-linked`, `multi-paragraph-linked-hyphenated` | Uses the same complete story in three frames flowing through pages 1, 3 and 2. The first case explicitly disables automatic hyphenation; the second enables it for comparison with the independently authored native linked control. Fixed content takes no additional arguments. |
@@ -486,13 +491,24 @@ none maintains a second editable object list. Current picture bounds, source
 crops, referenced image bytes and model asset identities supply the codec. Named
 profiles derive their native filename and OfficeArt basename from the current
 asset ID and PNG/JPEG content type; unnamed profiles omit both name records.
+Embedded pictures use ordinary native shape kind `0x01` with its existing class
+registration and a per-placement `03 08` embedded-state token. The OfficeArt BLIP
+identifies image content separately; native picture-format observations qualify populated,
+unlinked placements through the sized story edit and save/reopen workflow.
+Eleven further modern-generation image-bearing profiles complete native
+open/export/save/reopen with the same populated, unlinked picture observations.
+Six sized-story inputs supply the separate native content-mutation proof.
 Unused model assets are not emitted, and independent assets with identical bytes
 retain separate native bindings. New edited variants have artifact reload proof;
 their native opening, editing, saving and appearance require separate qualification.
-The projection accepts the existing source-free Letter/single-master profile.
+The single-centered-master projection derives common page dimensions from the
+source-free model and requires exact positive signed-EMU dimensions. Complete
+object edges, frame distances and table tracks use the shared checked native-unit
+conversion; unsupported values refuse output. Multiple-master profiles remain
+Letter-only.
 The ordinary object profile rejects imported publications, tables, linked or
-multicolumn text, insets, non-Top alignment, wrap references, multiple paragraphs
-and non-rectangle artwork. Those features require their separate writer profiles. Native paragraph terminators
+multicolumn text, insets, non-Top alignment, wrap references and non-rectangle
+artwork. Those features require their separate writer profiles. Native paragraph terminators
 retain the existing encoding convention. This projection does not admit public native creation or broaden
 the probe's native acceptance evidence. The text-only multiple-master projection
 accepts either two centered definitions or one centered definition followed by
@@ -519,7 +535,8 @@ remain separate qualification requirements.
 linked and unlinked layout frames and at most one qualified table. It accepts one
 centered master, two centered masters, or a centered master followed by a named
 left/right pair. Every physical page has an explicit assignment to a defined
-master; all pages are Letter size, with one to sixteen physical pages. It caches
+master, with one to sixteen physical pages. The centered single-master path uses
+the current common dimensions; multiple masters remain Letter-only. It caches
 linked stories by model identity and uses the existing graph, Quill and OfficeArt
 encoders for all objects, preserving each master/page's mixed object order.
 Master tables, multiple tables, three centered masters, linked columns/insets,
@@ -530,6 +547,7 @@ All creation objects explicitly encode disabled wrapping in Contents field 4
 field means Square wrapping in the qualified native reader. This applies to text
 frames, rectangles, pictures and tables; imported publications retain their
 existing wrap interpretation and edit safeguards.
+
 The newsletter and a later edited four-page variant have normal file-association
 opening evidence in Microsoft Publisher before any native resave, without recovery
 consent. All three initial pages and all four edited pages were inspected.
@@ -723,6 +741,47 @@ save/reload pixels are stable, but native/managed text origins differ by up to
 0.07 pt horizontally and 1.38 pt vertically; this does not establish native/managed
 pixel parity. Master inheritance, automatic parity selection, repair-free opening
 and generic public native creation remain unqualified.
+
+The `singleMasterPageSizes` record qualifies the dimension-driven
+`sized-composition` factory at A4 and 4×6-inch portrait/landscape sizes. The final
+public model supplies dimensions, anchors, master ownership, complete stories,
+frame layout and one table to the existing codec. Native initial/resaved files
+retain exact stored document/master dimensions and table tracks, ten semantic
+objects with 3/4/3 owner counts, None wrapping and one embedded PNG with two
+references. Six public picture-bound edits retain the shared asset, other picture
+bounds and complete stories with explicit `Allow`; default strict saving still
+refuses the unassessed fixed patch. All six edited files convert through
+PSWriteOffice and complete native opening/export, save-as and reopening.
+
+`SizedStoryFirstCharacter` qualifies actual native `N`-to-`M` replacement in the
+complete two-frame story on generated and native-authored inputs at all three
+sizes. Native save/reopen retains both complete 148-character ranges, first/final
+CR typing, all ten mixed objects and populated, unlinked pictures. Public
+`ReplaceStoryParagraphs` restores the initial `N` on all six sources with explicit
+`Allow`, retaining their complete models and story text, source run split
+`[1, 146]`, own 36/28.3-point tab profiles, assets and unaffected storage. The
+declared changes are Quill text and stale-thumbnail invalidation; the source save
+reports `PUB_NATIVE_QUILL_TEXT_UNQUALIFIED` and `PUB_NATIVE_PREVIEW_INVALIDATED`.
+All six restored files convert through PSWriteOffice and complete native
+save/reopen. All 24 page comparisons against their own pristine `N` states match
+at 100 dpi. The generated and independently authored portrait inputs are retained
+in [GeneratedSizedComposition](../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedSizedComposition/provenance.json).
+
+The native picture registration, story mutation and public restoration
+comparison has 48 page pairs at 100 dpi: 40 exact matches and eight
+portrait-postcard comparisons with the same 351-pixel blue-bar edge band.
+All other pixels, visible glyph observations, images and table content match.
+Antialiasing diagnostics classify the remaining edge difference; the original
+36-pair creation/picture comparison and its recipe also retain that boundary.
+Managed model/asset and SVG/PDF comparisons preserve the picture registration
+change's content and appearance. The recorded native PDF exports have
+approximately A4 sheet bounds even for the postcards; their printer/driver cause
+and a general sheet default are unqualified. OfficeIMO PDF follows publication
+dimensions. Guide insets,
+small native anchor/bar quantization, inactive outline widths, default tabs and
+style catalogs also differ. The [page-size support contract](../../../OfficeIMO.Publisher/SUPPORT.md#native-single-master-page-sizes)
+keeps these geometry, appearance and print-sheet boundaries separate from public
+writer promotion and repair-free acceptance.
 
 The `pairedMixedContentCreation` record extends composition to the qualified
 multiple-master topologies. The `paired-brochure` specimen uses three Letter

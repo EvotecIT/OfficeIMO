@@ -92,6 +92,52 @@ public sealed class PublisherNativeCreationTests {
         Assert.Equal(generated, PublisherNativeCreationCodec.Create(plan, options, MaximumBytes, CancellationToken.None));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Creation_marks_each_embedded_picture_placement_independently_of_names_and_shared_assets(bool includePictureNames) {
+        byte[] image = PublisherPictureEditingFixture.Image(OfficeColor.Red);
+        PublisherDocument document = AuthoredDocument(new PublisherReadOptions());
+        PublisherPicture first = document.AddPicture(document.Pages[0].Id, image, 72, 144, 96, 96);
+        document.AddPicture(document.Pages[0].Id, first.ImageId!.Value, 216, 144, 96, 96);
+        PublisherPicture master = document.AddPicture(document.MasterPages[0].Id, first.ImageId.Value, 24, 24, 48, 48);
+        var crop = new OfficeImageSourceCrop(.25, .125, .0625, .1875);
+        document.SetPictureCrop(master.Id, crop);
+        document.AddShape(document.MasterPages[0].Id, OfficeShape.Rectangle(40, 12), 72, 24);
+        document.AddTextFrame(document.Pages[0].Id, 72, 72, 120, 24, new[] { Paragraph("Caption") });
+
+        byte[] generated = PublisherNativeCreationCodec.Create(
+            PublisherNativeCreationProjection.SingleMasterContent(document, includePictureNames),
+            new PublisherReadOptions(), MaximumBytes, CancellationToken.None);
+        PublisherDocument decoded = PublisherDocument.Load(generated);
+        Assert.False(document.HasNativeSource);
+        PublisherImage asset = Assert.Single(decoded.Images);
+        Assert.Equal(image, asset.GetBytes());
+        Assert.Equal(2, decoded.Pages[0].Pictures.Count);
+        Assert.Equal(crop, Assert.Single(decoded.MasterPages[0].Pictures).Crop);
+        PublisherPicture[] pictures = decoded.MasterPages.Concat(decoded.Pages).SelectMany(page => page.Pictures).ToArray();
+        Assert.Equal(3, pictures.Length);
+        Assert.All(pictures, picture => Assert.Equal(asset.Id, picture.ImageId));
+
+        Assert.True(OfficeCompoundFileReader.TryRead(generated, out OfficeCompoundFile? compound, out string? error), error);
+        byte[] contentsBytes = compound!.Streams["Contents"];
+        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        PublisherContents contents = new PublisherContentsReader(new PublisherBinaryData(contentsBytes, "Contents"), context).Read();
+        var pictureIds = new HashSet<uint>(pictures.Select(picture => picture.Id));
+        foreach (PublisherPicture picture in pictures) {
+            PublisherSourceShape source = contents.Shapes[picture.Id];
+            Assert.Equal(1U, source.Chunk.Kind);
+            // Native embedded-picture state is distinct from the managed reader's BLIP resolution.
+            PublisherBlock marker = Assert.Single(source.Fields, field => field.Id == 3);
+            Assert.Equal((byte)8, marker.Type);
+            Assert.Equal(0, marker.Length);
+            Assert.Equal(new byte[] { 3, 8 }, new[] { contentsBytes[marker.Offset - 2], contentsBytes[marker.Offset - 1] });
+            Assert.Equal(includePictureNames, source.Value(0x3A).HasValue);
+        }
+        Assert.All(contents.Shapes.Values.Where(shape => !pictureIds.Contains(shape.Chunk.Id)),
+            shape => Assert.DoesNotContain(shape.Fields, field => field.Id == 3));
+    }
+
     [Fact]
     public void Table_utility_creation_uses_the_supplied_item_allowance() {
         var options = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 7 } };

@@ -41,5 +41,9 @@ internal static class PublisherNativeCreationTableRecords {
         }
     }
 
-    private static uint Emu(double points) => checked((uint)(points * 12700));
+    private static uint Emu(double points) {
+        if (points <= 0 || !PublisherNativeGeometry.Emu(points, 0, out int encoded) || encoded <= 0)
+            throw new NotSupportedException("Native table extents and tracks require exact positive signed-EMU values.");
+        return (uint)encoded;
+    }
 }

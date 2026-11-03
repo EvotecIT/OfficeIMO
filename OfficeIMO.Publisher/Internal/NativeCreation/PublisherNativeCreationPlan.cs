@@ -22,7 +22,8 @@ internal sealed record PublisherNativeCreationObject(PublisherNativeCreationObje
     PublisherNativeCreationStory? Story = null, byte[]? Image = null, int PageIndex = 0, double? ColumnSpacing = null,
     OfficeShape? Paint = null, string? ImageName = null, OfficeImageSourceCrop Crop = default, int? ImageId = null,
     bool OnMaster = false, uint FrameOrder = 0, PublisherTable? Table = null, PublisherTextFrame? FrameLayout = null) {
-    internal uint NativeKind => Kind == PublisherNativeCreationObjectKind.Picture ? 0x20U : Kind == PublisherNativeCreationObjectKind.Table ? 0x10U : 1U;
+    // Populated pictures use the ordinary shape class and its embedded-state field.
+    internal uint NativeKind => Kind == PublisherNativeCreationObjectKind.Table ? 0x10U : 1U;
 }
 
 /// <summary>Owns a complete plain or styled story; table cell endpoints refer to that same text.</summary>

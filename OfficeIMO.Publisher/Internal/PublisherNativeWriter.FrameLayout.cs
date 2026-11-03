@@ -22,7 +22,7 @@ internal sealed partial class PublisherNativeWriter {
         var changes = new Dictionary<ushort, uint>();
         void Distance(ushort id, double prior, double value) {
             if (prior == value) return;
-            if (value < 0 || !Emu(value, 0, out int encoded) || encoded < 0) {
+            if (value < 0 || !PublisherNativeGeometry.Emu(value, 0, out int encoded) || encoded < 0) {
                 Reject("Contents/object/" + before.Id, "Frame spacing or insets have no exact nonnegative signed-EMU representation."); return;
             }
             changes.Add(id, (uint)encoded);

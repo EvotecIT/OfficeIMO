@@ -119,8 +119,11 @@ internal static class PublisherNativeCreationGraph {
         }
         foreach (ObjectBinding item in objects) {
             context.Token.ThrowIfCancellationRequested();
+            var fields = new List<byte[]>();
+            if (item.Source.Kind == PublisherNativeCreationObjectKind.Picture && item.Source.Image != null)
+                fields.Add(new byte[] { 3, 8 }); // Embedded-picture state is separate from the OfficeArt BLIP.
             // Source-free authoring disables wrapping; native omission means Square.
-            var fields = new List<byte[]> { PublisherOplWriter.UInt16(4, 0x100, 0x10) };
+            fields.Add(PublisherOplWriter.UInt16(4, 0x100, 0x10));
             if (item.Story != null) {
                 fields.Add(PublisherOplWriter.UInt32(0x27, item.Story.Key, 0x20));
                 if (item.Source.Table == null) fields.Add(PublisherOplWriter.UInt32(0x28, item.Source.FrameOrder, 0x20));

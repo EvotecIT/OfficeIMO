@@ -11,7 +11,11 @@ internal static class CandidateTableCluster {
         uint page = document.Pages[0].Id;
         document.SetPageMaster(page, master.Id);
         document.AddTextFrame(page, 36, 60, 480, 42, Paragraphs($"Independent dense {size}x{size} table", 12, false, null));
-        PublisherTable table = document.AddTable(page, 36, 144, Enumerable.Repeat(480D / size, size).ToArray(),
+        // Distribute whole native units so dense grids do not truncate fractional-EMU columns.
+        int widthEmu = 480 * 12700, columnEmu = widthEmu / size, remainder = widthEmu % size;
+        double[] columns = Enumerable.Range(0, size).Select(index =>
+            (columnEmu + (index < remainder ? 1 : 0)) / 12700D).ToArray();
+        PublisherTable table = document.AddTable(page, 36, 144, columns,
             Enumerable.Repeat(360D / size, size).ToArray());
         var side = new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 0.5);
         for (int row = 0; row < size; row++) {

@@ -192,6 +192,28 @@ defines the qualified first-character edit, native page comparisons and remainin
 renderer and repair-free acceptance limits. Fixture provenance records the
 independent producer, generated/native mutation path and file hashes.
 
+`NativeComparison/GeneratedSizedComposition` retains two portrait 4×6-inch
+public-restoration inputs after actual native first-character replacement from
+`N` to `M` in a two-frame story and native save/reopen:
+
+| Fixture | Origin and expected state |
+| --- | --- |
+| `native-edited.pub` | Source-free public `sized-composition` model, encoded with ordinary shape kind `0x01` and per-placement embedded-picture state markers, then edited and saved by Publisher. |
+| `native-control-edited.pub` | Independently authored native sized-composition control after the same edit and save/reopen. |
+
+Both target ranges start with `Meighbors` and contain 148 native UTF-16 characters,
+including the final CR. The workload uses public `ReplaceStoryParagraphs` to
+restore `Neighbors`, preserving the source's `[1, 146]` run split, final-CR typing,
+all other stories and mixed objects, shared image payload, and its own tab profile.
+The generated input has five stories and 36-point default tabs; the native control
+has seven stories and 28.3-point tabs because its rectangles carry empty stories.
+Select the target through its two-frame chain and complete text, rather than
+assuming the publication contains only one story. The
+[fixture provenance](NativeComparison/GeneratedSizedComposition/provenance.json)
+binds both producer paths, picture registration, native mutation and file hashes;
+the [page-size contract](../../OfficeIMO.Publisher/SUPPORT.md#native-single-master-page-sizes)
+records the native lifecycle, restoration comparisons and remaining limits.
+
 ImplicitColumnGap retains a generated three-page input without a local or
 inherited gap property and an independently captured native inventory. Publisher
 reports 3.6 points through its half-gap automation property, corresponding to the
