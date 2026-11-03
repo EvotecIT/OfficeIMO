@@ -15,6 +15,10 @@ public sealed record OfficeInvoiceStorageWorkflowRequest {
     public OfficeInvoiceWorkflowOperation Operation { get; init; }
     /// <summary>Explicit output/inspection contract. Source editing retains its original contract.</summary>
     public InvoiceXmlOptions? Target { get; init; }
+#if NET8_0_OR_GREATER
+    /// <summary>Optional host-supplied standards validator captured for this invocation.</summary>
+    public InvoiceValidator? StandardsValidator { get; init; }
+#endif
     /// <summary>Explicit exact-byte standards release, if required.</summary>
     public InvoiceSpecificationRelease? ValidationRelease { get; init; }
     /// <summary>Captured source-field replacements for EditSource.</summary>
@@ -43,10 +47,6 @@ public sealed record OfficeInvoiceStorageWorkflowRequest {
 public interface IOfficeInvoiceWorkflowRunner {
     /// <summary>Captures bounded input, executes the invoice owner, and publishes successful output with source checks and recovery.</summary>
     Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request,
-
-#if NET8_0_OR_GREATER
-        InvoiceValidator? validator = null,
-#endif
         CancellationToken cancellationToken = default);
 }
 

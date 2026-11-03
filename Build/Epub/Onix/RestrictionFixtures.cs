@@ -13,7 +13,7 @@ internal static class RestrictionFixtures {
                 BookOnixSalesRestrictionKind.SelectedSubscriptionServices or BookOnixSalesRestrictionKind.SubscriptionServiceExclusive;
             var restriction = new BookOnixSalesRestriction(kind) {
                 Notes = [new("Publisher assertion & explanation", "eng"), new("Wyjaśnienie ograniczenia", "pol")],
-                ValidFrom = new DateOnly(2026, 10, 1), ValidUntil = new DateOnly(2026, 10, 31),
+                ValidFrom = new DateTime(2026, 10, 1), ValidUntil = new DateTime(2026, 10, 31),
                 Outlets = needsOutlet ? [new() { Name = "Example & Books", NameLanguageCode = "eng", Identifiers = [
                     new(BookOnixSalesOutletScheme.Proprietary, "retailer-1") { SchemeName = "Publisher outlets" },
                     new(BookOnixSalesOutletScheme.Onix, "AMZ"), new(BookOnixSalesOutletScheme.Gln, "1234567890128"),

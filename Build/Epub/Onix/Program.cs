@@ -94,7 +94,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             Statements = [new("Second revised and annotated edition", "eng"), new("Drugie wydanie", "pol")] }
             : profile.Name == "no-edition" ? new() { NoEdition = true } : null,
         Subjects = profile.Name == "discoverability" ? SubjectFixtures.Create() : [],
-        Subtitle = "Explicit publishing assertions", PublicationDate = new DateOnly(2026, 10, 5),
+        Subtitle = "Explicit publishing assertions", PublicationDate = new DateTime(2026, 10, 5),
         NoContributors = profile.Name == "early",
         Contributors = profile.Name == "early" ? [] : [
             new("Alice Example", BookOnixContributorRole.Author), new("Jan Kowalski", BookOnixContributorRole.Translator),

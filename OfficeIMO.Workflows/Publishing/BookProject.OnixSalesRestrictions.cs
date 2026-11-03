@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 using OfficeIMO.Internal;
 using System.Globalization;
 using System.Xml.Linq;
@@ -20,7 +17,7 @@ public sealed partial class BookProject {
             if (restriction.Outlets == null) throw new ArgumentNullException("restriction.Outlets"); if (restriction.Notes == null) throw new ArgumentNullException("restriction.Notes");
             if (restriction.Outlets.Count > 16 || restriction.Notes.Count > 16)
                 throw new ArgumentException("At most 16 outlets and 16 translated notes are supported per restriction.", nameof(restrictions));
-            if (restriction.ValidFrom > restriction.ValidUntil) throw new ArgumentException("Restriction dates cannot run backwards.", nameof(restrictions));
+            if (restriction.ValidFrom?.Date > restriction.ValidUntil?.Date) throw new ArgumentException("Restriction dates cannot run backwards.", nameof(restrictions));
             if (restriction.Kind == BookOnixSalesRestrictionKind.Unspecified && restriction.Notes.Count == 0)
                 throw new ArgumentException("Unspecified restrictions require an explanatory note.", nameof(restrictions));
             if (restriction.Kind is BookOnixSalesRestrictionKind.RetailerExclusiveOrOwnBrand or BookOnixSalesRestrictionKind.RetailerExclusive or
@@ -30,8 +27,8 @@ public sealed partial class BookProject {
             if (restriction.Kind == BookOnixSalesRestrictionKind.NoRestrictions && restriction.Outlets.Count != 0)
                 throw new ArgumentException("NoRestrictions cannot identify a restricted set of outlets.", nameof(restrictions));
             foreach (var previous in prior) {
-                bool overlap = (previous.ValidFrom ?? DateOnly.MinValue) <= (restriction.ValidUntil ?? DateOnly.MaxValue) &&
-                    (restriction.ValidFrom ?? DateOnly.MinValue) <= (previous.ValidUntil ?? DateOnly.MaxValue);
+                bool overlap = (previous.ValidFrom ?? DateTime.MinValue).Date <= (restriction.ValidUntil ?? DateTime.MaxValue).Date &&
+                    (restriction.ValidFrom ?? DateTime.MinValue).Date <= (previous.ValidUntil ?? DateTime.MaxValue).Date;
                 if (overlap && OpposedOnixRestrictions(previous.Kind, restriction.Kind))
                     throw new ArgumentException("Opposing restrictions cannot apply during overlapping date ranges.", nameof(restrictions));
             }
