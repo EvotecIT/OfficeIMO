@@ -39,9 +39,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         partial void ResetUtf8TextState() {
-            Array.Clear(_borrowableText);
-            Array.Clear(_utf8TextCacheKeys);
-            Array.Clear(_inlineTextSlices);
+            _borrowableText.AsSpan().Clear();
+            _utf8TextCacheKeys.AsSpan().Clear();
+            _inlineTextSlices.AsSpan().Clear();
             if (_utf8FieldBuffers != null) {
                 for (int ordinal = 0; ordinal < _utf8FieldBuffers.Length; ordinal++) {
                     ref Utf8FieldBuffer buffer = ref _utf8FieldBuffers[ordinal];

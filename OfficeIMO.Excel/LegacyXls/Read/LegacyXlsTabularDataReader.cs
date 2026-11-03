@@ -205,8 +205,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private bool ReadSourceRow() {
             if (_nextRow < 0 || _nextRow > _lastDataRow) return false;
 
-            Array.Clear(_kinds, 0, _kinds.Length);
-            Array.Clear(_strings, 0, _strings.Length);
+            _kinds.AsSpan().Clear();
+            _strings.AsSpan().Clear();
             int currentRow = _nextRow++;
             int pendingFormulaOrdinal = -1;
             ushort pendingFormulaStyle = 0;
