@@ -346,7 +346,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private sealed class LegacyXlsSharedStringEntry {
+        // A value entry keeps one table slot per distinct string without an object per string.
+        private readonly struct LegacyXlsSharedStringEntry {
             internal LegacyXlsSharedStringEntry(string text, IReadOnlyList<LegacyXlsTextFormattingRun> formattingRuns) {
                 Text = text;
                 FormattingRuns = formattingRuns;
