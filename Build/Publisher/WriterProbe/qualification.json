@@ -39694,5 +39694,186 @@
       "sourceReportDelta": "InspectedRecordCount increases by exactly one per added native field; 125 total.",
       "nativeFidelityBoundary": "Managed equivalence is separate from the independently qualified native brochure comparisons."
     }
+  },
+  "nativePopupRuntimeBinding": {
+    "sourceBaseCommit": "ad4372100a88178ccf0101156c9415220d6b0970",
+    "scope": "Bounded passive binding during an owned ordinary native validation, followed by execution-free inspection of the observed logical target.",
+    "images": [
+      {
+        "name": "MSPUB.EXE",
+        "version": "16.0.20527.20112",
+        "sha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a"
+      },
+      {
+        "name": "Mso30Win32Client.dll",
+        "version": "16.0.20527.20112",
+        "sha256": "fa3ce3df5121bd604fe7fcbc99d3ae756f1320420025a00dd811c32654153300"
+      },
+      {
+        "name": "MSO.DLL",
+        "version": "16.0.20527.20112",
+        "sha256": "e62f613c0f06517ff8a12ffaff7005e8101385c5dc12a01fb826d7fb18ca0df4"
+      }
+    ],
+    "passiveObservation": {
+      "candidateSha256": "c273fd335b8c9e4d148b7c662dbddb7b0754c32c4774d03ee452070f687f8781",
+      "phases": [
+        "InitialInventory",
+        "InitialPdfExport",
+        "OpenSnapshotWritable"
+      ],
+      "matchingSamples": 3,
+      "pointerReads": 9,
+      "bytesRead": 72,
+      "handlesClosed": 3,
+      "moduleQualification": "Actual mapped paths, exact versions and file hashes; reported Click-to-Run virtual paths retained separately.",
+      "sourceGlobal": {
+        "image": "Mso30Win32Client.dll",
+        "rva": "0x10d6c60",
+        "logicalVtableSlot": "0x18"
+      },
+      "observedTarget": {
+        "image": "MSO.DLL",
+        "objectRva": "0x2305598",
+        "vtableRva": "0x1a48d98",
+        "methodRva": "0x4e5420"
+      },
+      "differsFromMso30DiskDefault": true,
+      "nonAtomicObservation": true
+    },
+    "ordinaryRoute": "Mso30 export59301 -> helper863880 -> observed MSO4e5420 -> 4e55e0 -> core4e5a54; direct dispatcher4e6530 and a distinct provider virtual route remain separate.",
+    "numericOneBoundary": {
+      "condition": "On the non-provider path, readiness DWORD MSO+0x2384348 is zero and initialization routine0x97fb78 returns AL=0.",
+      "result": "Core selects numeric1 without entering the decoded direct dialog dispatcher.",
+      "initialization": "GetDC/SelectObject/ReleaseDC/LoadCursorW imports and a72-byte MSOUNISTAT callback/name record; consumer0x1925ec remains unexamined.",
+      "resultWordRva": "0x2388bd0",
+      "resultWordBits": 16,
+      "successfulInitialization": "Nonzero AX is stored in the result word, selects AL=1 and sets readiness DWORD to1.",
+      "actualRuntimeReadinessObserved": false,
+      "buttonSelectionProven": false
+    },
+    "normalReturn": {
+      "helperRva": "0x234b00",
+      "securityCookieGlobalIdentifiedFromPeLoadConfig": true,
+      "checkSuccessPreservesFullRax": true,
+      "scope": "Direct check-success RET makes no calls or RAX writes; external failure tail0xfc4af0 is unexamined."
+    },
+    "dispatchBoundary": "Observed Mso98 ordinals60102/12786 and Mso30 ordinal27300 forwarding do not establish Win32 button/flag/result enums. CFG slots are not the logical callees.",
+    "stringKeyBoundary": "Title fallback key0x4a460021 is distinct from Publisher message key0x67c40022; neither implies decoded message text.",
+    "staticInstructionCounts": {
+      "targetAndAdapter": 160,
+      "coreAndDispatcher": 853,
+      "numericHelpers": 154
+    },
+    "proofFiles": [
+      {
+        "name": "runtime-binding-proof.json",
+        "sha256": "b77d6f00ef14e57a4c3b73bf065a06209be9c70a3ccb0855994231f0ce036139"
+      },
+      {
+        "name": "actual-target-proof.json",
+        "sha256": "b9f8f2768b763a5445743457768d4eb332944ff7d77a7fdb6b89a764de30063b"
+      },
+      {
+        "name": "core-dispatch-proof.json",
+        "sha256": "5d84ed67a1be0a063e83a7f38243fc9835ae3c58167508bee0e79d8213c79258"
+      },
+      {
+        "name": "numeric-helper-proof.json",
+        "sha256": "21db2933d0527d44314d7ae7bc0d31b3e5f576782a13fa937a400a9e40b2cd5e"
+      }
+    ],
+    "targetMethodsInvokedByObservation": false,
+    "cancelledControlUntouched": true,
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
+  },
+  "nativeResourceRegistryBinding": {
+    "sourceBaseCommit": "ad4372100a88178ccf0101156c9415220d6b0970",
+    "scope": "Exact current string-loader ABI and resource-registry layout, plus bounded passive lookup of the actual Publisher key during ordinary native validation.",
+    "caller": {
+      "image": "MSPUB.EXE",
+      "rva": "0x23f710",
+      "resourceKeyGlobalRva": "0xa8d3a0",
+      "onDiskGlobalValue": 0,
+      "inlineRelocatedObject": false
+    },
+    "loader": {
+      "image": "Mso30Win32Client.dll",
+      "ordinal": 47055,
+      "name": "MsoCchLoadWz",
+      "rva": "0x2ea0",
+      "readerRva": "0x3204",
+      "abi": "RCX registry key, EDX full string key, R8 destination, R9D character capacity",
+      "negativeReaderResultsClampToZero": true
+    },
+    "registry": {
+      "image": "Mso30Win32Client.dll",
+      "managerRva": "0x10ede30",
+      "getterRva": "0x18d310",
+      "resolverRva": "0x18d240",
+      "cachedEntryOffset": "0x60",
+      "cachedKeyOffset": "0",
+      "cachedObjectOffset": "8",
+      "listSentinelOffset": "0x50",
+      "firstNode": "[sentinel]",
+      "nextNode": "[node]",
+      "nodeKeyOffset": "0x10",
+      "nodeObjectOffset": "0x18",
+      "logicalUnicodeMethodVtableOffset": "8",
+      "knownMethodRva": "0x18d0e0",
+      "keyIsNotEstablishedObjectPointer": true
+    },
+    "observedBinding": {
+      "nativeControlSha256": "1c7677c628c342b0b793bba02239d32c4a0fa0a8ee9ba668444e40190a6e8228",
+      "phases": [
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeResave"
+      ],
+      "samples": 3,
+      "matchingSnapshotPairs": 3,
+      "pointerReads": 48.0,
+      "bytesRead": 384,
+      "handlesClosed": 3,
+      "boundedListSnapshots": 4,
+      "matchingCacheSnapshots": 2,
+      "maximumListNodesVisited": 1,
+      "maximumAllowedListNodes": 16,
+      "logicalMethodImage": "Mso30Win32Client.dll",
+      "logicalMethodRva": "0x18d0e0",
+      "logicalMethodFileSha256": "fa3ce3df5121bd604fe7fcbc99d3ae756f1320420025a00dd811c32654153300",
+      "moduleFilesQualifiedByActualMappedPath": true,
+      "targetMethodsInvoked": false,
+      "nonAtomicObservation": true
+    },
+    "earlierCacheOnlyObservation": "Three initialized phases stop as inconclusive after key mismatch: nine total eight-byte reads, all three handles closed, no object dereference or resolver call.",
+    "readBoundary": "Read-only process handle0x410; every eight-byte read is contained in one committed readable non-guard region. Checked pointer addition, repeated-node detection and hard per-snapshot/total read budgets.",
+    "resourceAttribution": "The current key resolves to the observed method; backing satellite, language, payload and decoded message key0x67c40022 remain unqualified. The older PUB6INTL payload is not assumed to be the runtime backing.",
+    "proofFiles": [
+      {
+        "name": "string-loader-proof.json",
+        "sha256": "69c71be5fc5ca72896cb5e8ade1c830813a468083a4c15cbca908cb04f5e4f4a"
+      },
+      {
+        "name": "handle-kind/handle-kind-proof.json",
+        "sha256": "5c38c93d9d69ac453562aff6cb5c8ee3038b6e634cc9d4162566f198341383bf"
+      },
+      {
+        "name": "handle-resolver/handle-resolver-proof.json",
+        "sha256": "93b780da075a0256791bbe5a2a6e5b4abdcc8fb2c5c5313ca00beea794e58a5f"
+      },
+      {
+        "name": "resource-observer-v4-list-layout-proof.json",
+        "sha256": "cf7e7aa5458365afd8d2e716556dda3054e90fad5af1ae34470ff498546f1b48"
+      },
+      {
+        "name": "resource-observer-v4-preparation-proof.json",
+        "sha256": "b6d31ad80abb96f628c8f6c9572d04743caa4a6f0dafececb4ed773d910ed725"
+      }
+    ],
+    "cancelledControlUntouched": true,
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

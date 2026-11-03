@@ -62,6 +62,16 @@ a same-context, same-item-index retry, while the dispatcher decision's meaning a
 the runtime connection from a particular materializer failure remain unqualified.
 These observations supply no recovery-positive control or repair-free acceptance.
 
+The `nativePopupRuntimeBinding` record resolves the selected popup's logical
+target in an owned Publisher process to the current MSO implementation. Its
+normal check-success epilogue preserves the numeric result, but one static path
+can select `1` without entering the decoded dialog dispatcher. Numeric results
+alone therefore do not establish button selection or accepted recovery.
+The `nativeResourceRegistryBinding` record resolves Publisher's resource key
+through the current registry to its Unicode-reading method. The key is not
+assumed to be an object pointer. Backing satellite, language, payload and the
+decoded consent message remain unqualified.
+
 The internal codec in `OfficeIMO.Publisher/Internal/NativeCreation` is qualified
 through the opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
 for bounded source-free specimens. Its operation uses a `PublisherReadOptions`
