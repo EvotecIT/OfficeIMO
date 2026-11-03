@@ -317,6 +317,75 @@ change. No additional test is needed for this storage change: existing binary
 format and reader-boundary checks cover its values, indexes and duplicate strings.
 The net472 result is a cross-build, without a Windows runtime run.
 
+## XLSB source buffering and typed capture: 3 November 2026
+
+I profile `3bd89bcafe` and retain two changes in `8b98201b4c` and `231694d85e`.
+The XLSB selector profile spends its largest managed samples materializing source
+rows and projecting boxed selector results. I replace growth copies of the private
+source list with bounded chunks. Enumeration still completes and disposes before
+selectors run. Projection reads each privately captured row once and releases it
+after its final selector; caller-owned indexed sources keep their per-selector
+reads. Values are still captured before `WriteData` returns.
+
+The XLSB writer also passes typed worksheet-buffer cells through `GetValue`, which
+boxes each integer, date, double and Boolean before the native plan unboxes it.
+I capture those existing typed cells directly, including sparse coordinates and
+explicit empty text. The native plan remains a separate validated snapshot before
+any destination write. Its date system, styles, cancellation, fallback and pooled
+buffer clearing remain intact. The worksheet grid and cell/range API are unchanged.
+
+I keep typed and object-row capture in separate methods. Dispatch inside the large
+object-row method shows a 5–7% slower selector lane in the earlier mixed runs;
+that version is superseded. The [normalized evidence](excel-xlsb-buffering-2026-11-03.json)
+retains those runs, the source-only experiment, exact source/assembly hashes and
+the final qualification. Candidate assemblies were compiled before committing;
+source-file hashes bind them to the retained implementation. Harness sources are
+the same, and the actual rebuilt DLL hashes are recorded.
+
+The final launch order is candidate, baseline, candidate, with twelve samples per
+launch. This is one baseline bracketed by two candidates, not two independent
+baseline pairs. Settings remain eight warmups, sixteen invocations, unroll one and
+no outlier removal on the same M4 with ordinary OS scheduling. All eight cases
+validate every header and value through the strict reader and independent
+ExcelDataReader before timing. The buffered-cell diagnostic compares OfficeIMO
+revisions separately; the engine comparison lanes retain their matched workload.
+Every operation includes row generation, serialization, finalization and its
+complete byte array. Each operation writes 50,000 rows with four typed columns.
+
+| Write lane | Library | Baseline ms | Candidate 1 / 2 ms | Before → after MiB |
+|---|---|---:|---:|---:|
+| XLSB selectors | OfficeIMO | 16.215 | 16.069 / 16.120 | 15.469 → 14.875 |
+| XLSB typed cells, diagnostic | OfficeIMO | 17.398 | 15.371 / 15.035 | 16.171 → 12.737 |
+| XLSB | ExcelReader.NET 7.3.4 | 5.390 | 5.516 / 5.403 | 8.829 → 8.829 |
+| XLS selectors | OfficeIMO | 16.282 | 15.165 / 15.053 | 28.834 → 28.241 |
+| XLS | ExcelReader.NET 7.3.4 | 4.483 | 4.612 / 4.347 | 17.076 → 17.076 |
+| XLSX streaming | OfficeIMO | 9.969 | 9.667 / 9.658 | 9.066 → 9.066 |
+| XLSX | ExcelReader.NET 7.3.4 | 7.895 | 7.959 / 7.881 | 9.007 → 9.007 |
+| XLSX | SpreadCheetah 1.28.0 | 11.207 | 11.479 / 11.438 | 11.135 → 11.135 |
+
+Typed-cell XLSB exports allocate 3.43 MiB less, about 21%, and their medians are
+11.7–13.6% faster. The selector route saves about 0.59 MiB, or 3.8%; its final
+medians differ by less than 1%, so I claim an allocation reduction without a
+material selector throughput gain. Initial selector timings range from a faster
+source-only experiment to slower mixed runs. Those movements and the unchanged
+peer lanes remain visible in the evidence; this is no portable ranking.
+
+The public `Func<T, object?>` selectors still box value-type results. I reduce the
+source-buffer growth and overlapping source-row lifetime, and remove the later
+reboxing of already typed worksheet cells. I retain captured selector values and
+the separate native snapshot rather than borrowing mutable inputs during writes.
+
+The focused final run passes 318 cases. The new public-boundary test passes both
+against the baseline engine and this implementation: enumeration/disposal precedes
+row-major selectors across 4,097 rows, post-call mutations do not alter captured
+values, and repeated XLSB saves never invoke selectors again. Existing indexed
+source, scalar/date, sparse/blank, cancellation, failure and pool-clearing tests
+remain intact. Final net10.0 correctness runs pass 7,752 Excel tests with five
+opt-in/platform skips and all 938 CSV tests, including the twelve omitted-reference
+cases. All four framework builds have zero warnings/errors; NativeAOT publish and
+smoke pass. An independent read-only review finds no actionable issues. The net472
+result is a cross-build without a Windows runtime run.
+
 ## Remaining costs and limits
 
 Parity is incomplete; the earlier cohorts still show gaps against ExcelReader.NET
@@ -327,10 +396,11 @@ pass; ExcelReader.NET reads each row once. Inflation remains a substantial part 
 XLSX and XLSB reads. Typed parsing qualifies every mapped cell on the worksheet
 reader before the compiled mapper reads it.
 
-The XLS and XLSB writers are the `WriteData` plus `Save` route. Before it saves,
-that route retains every source row and boxed selector value, so the generated
-rows survive into older GC generations. On its own, the measured registration
-takes about 7 ms of each write against 0.7 ms to generate the same rows. XLSB
+The XLS and XLSB writers are the `WriteData` plus `Save` route. That route finishes source enumeration before
+selectors run and retains their boxed values until saving. Privately enumerated
+source rows are released as projection consumes them; caller-owned indexed sources
+keep their original lifetime. Earlier stage profiling puts registration at about
+7 ms of each write against 0.7 ms to generate the same rows. XLSB
 deflate takes about another 5 ms; exact RK encoding reduces the numeric payload
 where possible. Imported and asynchronous XLS saves retain compound-file staging.
 Removing the buffering would
