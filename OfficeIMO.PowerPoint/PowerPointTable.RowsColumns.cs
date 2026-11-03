@@ -41,6 +41,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointTableRow AddRow(int? index = null) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             int columns = Columns;
+            var regions = CaptureMergeRegions();
             A.TableRow row = new() { Height = 370840L };
             for (int c = 0; c < columns; c++) {
                 A.TableCell cell = new(
@@ -51,12 +52,16 @@ namespace OfficeIMO.PowerPoint {
                 row.Append(cell);
             }
 
-            if (index.HasValue && index.Value < Rows) {
-                A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(index.Value);
-                ContinueMergesThroughRow(row, refRow);
+            int insertAt = index.HasValue && index.Value < Rows ? index.Value : Rows;
+            if (insertAt < Rows) {
+                A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertAt);
                 table.InsertBefore(row, refRow);
             } else {
                 table.Append(row);
+            }
+            if (regions.Count > 0) {
+                ShiftMergeRegionsForInsertedRow(regions, insertAt);
+                ApplyMergeRegions(regions);
             }
             SyncFrameHeightToGrid();
             return new PowerPointTableRow(this, row);
@@ -71,6 +76,12 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.Table table = TableElement;
+            var regions = CaptureMergeRegions();
+            var templateHorizontalRegions = regions
+                .Where(region => region.Row <= templateRowIndex && templateRowIndex < region.Row + region.RowSpan
+                    && region.ColumnSpan > 1)
+                .Select(region => (region.Row, region.Column, RowSpan: 1, region.ColumnSpan))
+                .ToList();
             A.TableRow templateRow = table.Elements<A.TableRow>().ElementAt(templateRowIndex);
             A.TableRow newRow = (A.TableRow)templateRow.CloneNode(true);
             if (clearText) {
@@ -79,14 +90,24 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            KeepOnlyHorizontalMerges(newRow);
             int insertAt = index.HasValue ? Math.Min(index.Value, Rows) : Rows;
             if (insertAt < Rows) {
                 A.TableRow refRow = table.Elements<A.TableRow>().ElementAt(insertAt);
-                ContinueMergesThroughRow(newRow, refRow);
                 table.InsertBefore(newRow, refRow);
             } else {
                 table.Append(newRow);
+            }
+            if (regions.Count > 0) {
+                ShiftMergeRegionsForInsertedRow(regions, insertAt);
+                foreach (var region in templateHorizontalRegions) {
+                    // Existing ranges expanded through the inserted row take precedence.
+                    if (regions.Any(existing => existing.Row <= insertAt && insertAt < existing.Row + existing.RowSpan
+                        && existing.Column < region.Column + region.ColumnSpan
+                        && region.Column < existing.Column + existing.ColumnSpan)) continue;
+
+                    regions.Add((insertAt, region.Column, region.RowSpan, region.ColumnSpan));
+                }
+                ApplyMergeRegions(regions);
             }
 
             SyncFrameHeightToGrid();
@@ -105,10 +126,16 @@ namespace OfficeIMO.PowerPoint {
 
         internal void RemoveRow(A.TableRow row) {
             if (row.Parent == null) return;
-            ReleaseMergesInRow(row);
+            int index = TableElement.Elements<A.TableRow>().ToList().IndexOf(row);
+            var regions = index >= 0 ? CaptureMergeRegions() : new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
+            PreserveAnchorsForRemovedRow(regions, index);
             string[] discardedSoundIds = PowerPointEmbeddedSound
                 .GetRelationshipIds(row);
             row.Remove();
+            if (regions.Count > 0) {
+                ShiftMergeRegionsForRemovedRow(regions, index);
+                ApplyMergeRegions(regions);
+            }
             PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
             SyncFrameHeightToGrid();
@@ -122,6 +149,7 @@ namespace OfficeIMO.PowerPoint {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
             int existingColumns = Columns;
+            var regions = CaptureMergeRegions();
             A.GridColumn gridColumn = new() { Width = 3708400L };
 
             if (index.HasValue && index.Value < existingColumns) {
@@ -140,11 +168,15 @@ namespace OfficeIMO.PowerPoint {
 
                 if (index.HasValue && index.Value < existingColumns) {
                     A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(index.Value);
-                    ContinueMergeThroughCell(cell, refCell);
                     row.InsertBefore(cell, refCell);
                 } else {
-                    row.Append(cell);
+                    row.InsertBefore(cell, row.GetFirstChild<A.ExtensionList>());
                 }
+            }
+            if (regions.Count > 0) {
+                ShiftMergeRegionsForInsertedColumn(regions,
+                    index.HasValue && index.Value < existingColumns ? index.Value : existingColumns);
+                ApplyMergeRegions(regions);
             }
             SyncFrameWidthToGrid();
             return new PowerPointTableColumn(this, gridColumn);
@@ -161,6 +193,11 @@ namespace OfficeIMO.PowerPoint {
             A.Table table = TableElement;
             A.TableGrid grid = table.TableGrid ?? throw new InvalidOperationException("Table grid is missing.");
             int existingColumns = Columns;
+            var regions = CaptureMergeRegions();
+            var templateVerticalRegions = regions
+                .Where(region => region.Column == templateColumnIndex && region.RowSpan > 1)
+                .Select(region => (region.Row, region.Column, region.RowSpan, ColumnSpan: 1))
+                .ToList();
             A.GridColumn templateColumn = grid.Elements<A.GridColumn>().ElementAt(templateColumnIndex);
             A.GridColumn newColumn = (A.GridColumn)templateColumn.CloneNode(true);
 
@@ -179,14 +216,24 @@ namespace OfficeIMO.PowerPoint {
                     ClearCellText(newCell);
                 }
 
-                KeepOnlyVerticalMerge(newCell);
                 if (insertAt < existingColumns) {
                     A.TableCell refCell = row.Elements<A.TableCell>().ElementAt(insertAt);
-                    ContinueMergeThroughCell(newCell, refCell);
                     row.InsertBefore(newCell, refCell);
                 } else {
-                    row.Append(newCell);
+                    row.InsertBefore(newCell, row.GetFirstChild<A.ExtensionList>());
                 }
+            }
+            if (regions.Count > 0) {
+                ShiftMergeRegionsForInsertedColumn(regions, insertAt);
+                foreach (var region in templateVerticalRegions) {
+                    // Existing ranges expanded through the inserted column take precedence.
+                    if (regions.Any(existing => existing.Column <= insertAt && insertAt < existing.Column + existing.ColumnSpan
+                        && existing.Row < region.Row + region.RowSpan
+                        && region.Row < existing.Row + existing.RowSpan)) continue;
+
+                    regions.Add((region.Row, insertAt, region.RowSpan, region.ColumnSpan));
+                }
+                ApplyMergeRegions(regions);
             }
 
             SyncFrameWidthToGrid();
@@ -200,6 +247,8 @@ namespace OfficeIMO.PowerPoint {
         public void RemoveColumn(int index) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
+            var regions = CaptureMergeRegions();
+            PreserveAnchorsForRemovedColumn(regions, index);
             A.TableCell[] discardedCells = table.Elements<A.TableRow>()
                 .Select(row => row.Elements<A.TableCell>().ElementAt(index))
                 .ToArray();
@@ -207,10 +256,13 @@ namespace OfficeIMO.PowerPoint {
                 .SelectMany(PowerPointEmbeddedSound.GetRelationshipIds)
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
-            ReleaseMergesInColumn(index);
             grid.Elements<A.GridColumn>().ElementAt(index).Remove();
             foreach (A.TableCell cell in discardedCells) {
                 cell.Remove();
+            }
+            if (regions.Count > 0) {
+                ShiftMergeRegionsForRemovedColumn(regions, index);
+                ApplyMergeRegions(regions);
             }
             PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);

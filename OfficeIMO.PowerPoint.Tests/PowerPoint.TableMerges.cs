@@ -84,6 +84,16 @@ namespace OfficeIMO.Tests {
             wide.MergeCells(0, 0, 0, 1);
             wide.AddColumnFromTemplate(0);
             Assert.Equal("1x2 h - / - - -", Shape(wide));
+
+            PowerPointTable rectangleRows = Table(document.Slides[0], 2, 2);
+            rectangleRows.MergeCells(0, 0, 1, 1);
+            rectangleRows.AddRowFromTemplate(0);
+            Assert.Equal("2x2 h / v hv / 1x2 h", Shape(rectangleRows));
+
+            PowerPointTable rectangleColumns = Table(document.Slides[0], 2, 2);
+            rectangleColumns.MergeCells(0, 0, 1, 1);
+            rectangleColumns.AddColumnFromTemplate(0);
+            Assert.Equal("2x2 h 2x1 / v hv v", Shape(rectangleColumns));
         }
 
         [Fact]
