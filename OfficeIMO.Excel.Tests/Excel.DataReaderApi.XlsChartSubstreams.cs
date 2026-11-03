@@ -52,7 +52,7 @@ public sealed class ExcelDataReaderXlsChartSubstreamTests {
                 if (oversizedLength) WriteUInt16(bytes, offset + 2, ushort.MaxValue);
                 else WriteUInt16(bytes, offset + 6, 0x0010);
             });
-            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -73,7 +73,7 @@ public sealed class ExcelDataReaderXlsChartSubstreamTests {
                 }
                 throw new InvalidDataException("The test fixture contains no embedded chart EOF.");
             });
-            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }

@@ -88,7 +88,7 @@ public partial class Excel {
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                     xlsmPath,
-                    new ExcelReaderOptions { MaxWorksheets = 1 }); while (reader.Read()) { } });
+                    new ExcelReaderOptions { MaxWorksheets = 1 }); _ = reader.FieldCount; });
             Assert.Equal("excel", exception.Owner);
             Assert.Equal(nameof(ExcelReaderOptions.MaxWorksheets), exception.LimitName);
             Assert.Equal(1, exception.Maximum);
@@ -125,9 +125,9 @@ public partial class Excel {
             var options = new ExcelReaderOptions { MaxMetadataPartBytes = 64 };
             OfficeInspectionResourceLimitException exception = useBytes
                 ? Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-{ using var reader = ExcelDocument.OpenReader(File.ReadAllBytes(path), options); while (reader.Read()) { } })
+{ using var reader = ExcelDocument.OpenReader(File.ReadAllBytes(path), options); _ = reader.FieldCount; })
                 : Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-{ using var reader = ExcelDocument.OpenReader(path, options); while (reader.Read()) { } });
+{ using var reader = ExcelDocument.OpenReader(path, options); _ = reader.FieldCount; });
             Assert.Equal("excel", exception.Owner);
             Assert.Equal(nameof(ExcelReaderOptions.MaxMetadataPartBytes), exception.LimitName);
             Assert.Equal(options.MaxMetadataPartBytes, exception.Maximum);
@@ -188,7 +188,7 @@ public partial class Excel {
 
             var options = new ExcelReaderOptions { MaxMetadataPartBytes = maxMetadataPartBytes };
             OfficeInspectionResourceLimitException exception = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-{ using var reader = ExcelDocument.OpenReader(xlsmPath, options); while (reader.Read()) { } });
+{ using var reader = ExcelDocument.OpenReader(xlsmPath, options); _ = reader.FieldCount; });
 
             Assert.Equal("excel", exception.Owner);
             Assert.Equal(nameof(ExcelReaderOptions.MaxMetadataPartBytes), exception.LimitName);

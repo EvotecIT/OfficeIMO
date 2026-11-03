@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains("MULBLANK", exception.Message, StringComparison.Ordinal);
         }
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains(
                 "mini stream exceeds configured or physical bounds",
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains(
                 "declared root mini stream length",
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains(
                 "allocation table counts exceed configured or physical bounds",
@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains("physical bounds", exception.Message, StringComparison.OrdinalIgnoreCase);
         }

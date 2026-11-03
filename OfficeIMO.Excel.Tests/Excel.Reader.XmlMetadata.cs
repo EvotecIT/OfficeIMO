@@ -92,7 +92,7 @@ public partial class Excel {
                 + $"<row r=\"2\"><c r=\"&#67;2\" t=\"n\" s=\"{style}\"><v>42</v></c></row></sheetData></worksheet>");
             var error = Assert.Throws<InvalidDataException>(() => {
                 using var reader = ExcelDocument.OpenReader(path);
- while (reader.Read()) { }             });
+ _ = reader.FieldCount;             });
             Assert.Contains("cell C2 contains an invalid cell style index", error.Message);
         } finally { File.Delete(path); }
     }

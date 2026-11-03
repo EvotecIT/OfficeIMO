@@ -33,15 +33,15 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly Type[] _columnTypes;
         private readonly List<LegacyXlsBufferedRow>? _schemaRows;
         private readonly int _firstColumn;
+        private readonly int _firstDataRow;
+        private readonly int _lastDataRow;
+        private readonly int _worksheetStartOffset;
         private readonly int _worksheetLimitOffset;
-        private readonly bool _hasRows;
+        private int[]? _bufferedRowOffsets;
+        private readonly int _bufferedWorksheetEndOffset;
+        private readonly bool _usedIndexedDiscovery;
         private int _position;
         private int _nextRow;
-        // Row of the unread cell record at _position, or -1 after the worksheet EOF.
-        private int _pendingRow = -1;
-        private int _previousCellRow = -1;
-        private int _dimensionFirstColumn = int.MaxValue;
-        private int _dimensionLastColumn = -1;
         private int _schemaRowIndex;
         private int _recordsSinceCancellationCheck;
         private bool _hasCurrentRow;
@@ -65,75 +65,93 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _cancellationToken = cancellationToken;
             _activeReadCancellationToken = cancellationToken;
+            _worksheetStartOffset = sheetOffset;
             _worksheetLimitOffset = sheetEndOffset;
 
-            // Records are validated as the reader reaches them. The schema is fixed before
-            // the first row: the declared DIMENSIONS columns, widened by the header row, or
-            // without one by the first populated row.
-            int offset = sheetOffset;
-            ReadWorksheetBof(ref offset);
-            _position = offset;
-            LocateNextCellRow();
-            Dictionary<int, string?>? headerValues = null;
-            int firstColumn = _dimensionFirstColumn;
-            int lastColumn = _dimensionLastColumn;
-            if (hasHeaderRow && _pendingRow >= 0) {
-                int headerRow = _pendingRow;
-                headerValues = ReadHeaderRowRecords(headerRow);
-                foreach (int column in headerValues.Keys) {
-                    firstColumn = Math.Min(firstColumn, column);
-                    lastColumn = Math.Max(lastColumn, column);
-                }
-                LocateNextCellRow();
-                _nextRow = checked(headerRow + 1);
-            } else if (_pendingRow >= 0) {
-                PeekPendingRowColumns(out int rowFirstColumn, out int rowLastColumn);
-                firstColumn = Math.Min(firstColumn, rowFirstColumn);
-                lastColumn = Math.Max(lastColumn, rowLastColumn);
-                _nextRow = _pendingRow;
-            }
-            if (firstColumn == int.MaxValue) {
-                firstColumn = 0;
-            }
-
-            _hasRows = _pendingRow >= 0;
-            _firstColumn = firstColumn;
-            int fieldCount = lastColumn >= firstColumn
-                ? checked(lastColumn - firstColumn + 1)
-                : 0;
-            if (fieldCount > options.MaxDataReaderColumns) {
-                throw new InvalidDataException(
-                    $"XLS table column count {fieldCount} exceeds the configured limit of {options.MaxDataReaderColumns}.");
-            }
-            _headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
-                fieldCount,
-                ordinal => hasHeaderRow
-                    && headerValues != null
-                    && headerValues.TryGetValue(ordinal + firstColumn, out string? value)
-                        ? value
-                        : null,
-                options.NormalizeHeaders);
-            _ordinals = new Dictionary<string, int>(_headers.Length, StringComparer.OrdinalIgnoreCase);
-            for (int index = 0; index < _headers.Length; index++) {
-                _ordinals[_headers[index]] = index;
-            }
-
-            _kinds = new ValueKind[fieldCount];
-            _numbers = new double[fieldCount];
-            _dates = new DateTime[fieldCount];
-            _booleans = new bool[fieldCount];
-            _strings = new string?[fieldCount];
-            _columnTypes = CreateObjectColumnTypes(fieldCount);
-            _schemaRows = _options.InferSchema
-                ? BufferSchemaRows()
+            int[]? bufferedRowOffsets = _bufferedBytes != null
+                ? ArrayPool<int>.Shared.Rent(ushort.MaxValue + 1)
                 : null;
+            int bufferedWorksheetEndOffset = -1;
+            int firstRow = -1;
+            int lastRow = -1;
+            int firstColumn = 0;
+            int lastColumn = -1;
+            Dictionary<int, string?>? headerValues = null;
+            try {
+                bool indexed = bufferedRowOffsets != null
+                    && TryDiscoverIndexed(
+                        sheetOffset,
+                        sheetEndOffset,
+                        bufferedRowOffsets,
+                        out bufferedWorksheetEndOffset,
+                        out firstRow,
+                        out lastRow,
+                        out firstColumn,
+                        out lastColumn,
+                        out headerValues);
+                if (!indexed) {
+                    Discover(
+                        sheetOffset,
+                        bufferedRowOffsets,
+                        out bufferedWorksheetEndOffset,
+                        out firstRow,
+                        out lastRow,
+                        out firstColumn,
+                        out lastColumn,
+                        out headerValues);
+                }
+                _usedIndexedDiscovery = indexed;
+                _bufferedRowOffsets = bufferedRowOffsets;
+                _bufferedWorksheetEndOffset = bufferedWorksheetEndOffset;
+                _firstColumn = firstColumn;
+                _firstDataRow = hasHeaderRow && firstRow >= 0 ? checked(firstRow + 1) : firstRow;
+                _lastDataRow = lastRow;
+                _position = sheetOffset;
+                _nextRow = _firstDataRow;
+
+                int fieldCount = lastColumn >= firstColumn
+                    ? checked(lastColumn - firstColumn + 1)
+                    : 0;
+                if (fieldCount > options.MaxDataReaderColumns) {
+                    throw new InvalidDataException(
+                        $"XLS table column count {fieldCount} exceeds the configured limit of {options.MaxDataReaderColumns}.");
+                }
+                _headers = ExcelHeaderNameHelper.BuildUniqueHeaders(
+                    fieldCount,
+                    ordinal => hasHeaderRow
+                        && headerValues != null
+                        && headerValues.TryGetValue(ordinal + firstColumn, out string? value)
+                            ? value
+                            : null,
+                    options.NormalizeHeaders);
+                _ordinals = new Dictionary<string, int>(_headers.Length, StringComparer.OrdinalIgnoreCase);
+                for (int index = 0; index < _headers.Length; index++) {
+                    _ordinals[_headers[index]] = index;
+                }
+
+                _kinds = new ValueKind[fieldCount];
+                _numbers = new double[fieldCount];
+                _dates = new DateTime[fieldCount];
+                _booleans = new bool[fieldCount];
+                _strings = new string?[fieldCount];
+                _columnTypes = CreateObjectColumnTypes(fieldCount);
+                _schemaRows = _options.InferSchema
+                    ? BufferSchemaRows()
+                    : null;
+            } catch {
+                if (bufferedRowOffsets != null) {
+                    ArrayPool<int>.Shared.Return(bufferedRowOffsets);
+                }
+                throw;
+            }
         }
 
         public override object this[int ordinal] => GetValue(ordinal);
         public override object this[string name] => GetValue(GetOrdinal(name));
+        internal bool UsedIndexedDiscovery => _usedIndexedDiscovery;
         public override int Depth => 0;
         public override int FieldCount => _headers.Length;
-        public override bool HasRows => _hasRows;
+        public override bool HasRows => _firstDataRow >= 0 && _firstDataRow <= _lastDataRow;
         public override bool IsClosed => _closed;
         public override int RecordsAffected => -1;
 
@@ -185,20 +203,134 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private bool ReadSourceRow() {
-            if (_pendingRow < 0) return false;
+            if (_nextRow < 0 || _nextRow > _lastDataRow) return false;
 
             _kinds.AsSpan().Clear();
             _strings.AsSpan().Clear();
             int currentRow = _nextRow++;
-            if (currentRow < _pendingRow) {
-                // A row without cell records between populated rows.
-                _hasCurrentRow = true;
-                return true;
+            int pendingFormulaOrdinal = -1;
+            ushort pendingFormulaStyle = 0;
+
+            if (_bufferedBytes != null) {
+                int[] rowOffsets = _bufferedRowOffsets!;
+                int rowStartMarker = rowOffsets[currentRow];
+                if (rowStartMarker == 0) {
+                    _hasCurrentRow = true;
+                    return true;
+                }
+                int rowEnd = _bufferedWorksheetEndOffset;
+                for (int nextRow = currentRow + 1; nextRow <= _lastDataRow; nextRow++) {
+                    int nextMarker = rowOffsets[nextRow];
+                    if (nextMarker != 0) {
+                        rowEnd = nextMarker - 1;
+                        break;
+                    }
+                }
+                ReadBufferedCurrentRow(
+                    _bufferedBytes,
+                    currentRow,
+                    rowStartMarker - 1,
+                    rowEnd,
+                    ref pendingFormulaOrdinal,
+                    ref pendingFormulaStyle);
+            } else {
+                ReadPagedCurrentRow(currentRow, ref pendingFormulaOrdinal, ref pendingFormulaStyle);
             }
 
-            ReadPendingRowRecords(currentRow);
             _hasCurrentRow = true;
             return true;
+        }
+
+        private void ReadPagedCurrentRow(
+            int currentRow,
+            ref int pendingFormulaOrdinal,
+            ref ushort pendingFormulaStyle) {
+            while (true) {
+                int recordOffset = _position;
+                if (!TryReadRecord(_bytes, ref _position, out RecordSlice record)) {
+                    if (pendingFormulaOrdinal >= 0) {
+                        throw MissingFormulaString();
+                    }
+                    break;
+                }
+                CheckCancellation();
+
+                if (pendingFormulaOrdinal >= 0) {
+                    if (record.Type != (ushort)BiffRecordType.String) {
+                        throw MissingFormulaString();
+                    }
+                    StoreFormulaString(record, pendingFormulaOrdinal, pendingFormulaStyle, ref _position);
+                    pendingFormulaOrdinal = -1;
+                    continue;
+                }
+                if (record.Type == (ushort)BiffRecordType.Eof) break;
+                if (record.Type == (ushort)BiffRecordType.Bof && record.Offset != _worksheetStartOffset) {
+                    SkipNestedChartSubstream(record, ref _position);
+                    continue;
+                }
+
+                if (!TryGetCellBounds(record, out int row, out int firstColumn, out _)) continue;
+                if (row < currentRow) continue;
+                if (row > currentRow) {
+                    _position = recordOffset;
+                    break;
+                }
+
+                StoreCellRecord(record, ref pendingFormulaOrdinal, ref pendingFormulaStyle);
+            }
+        }
+
+        private void ReadBufferedCurrentRow(
+            byte[] bytes,
+            int currentRow,
+            int rowStart,
+            int rowEnd,
+            ref int pendingFormulaOrdinal,
+            ref ushort pendingFormulaStyle) {
+            bool checkCancellation = CanCancelCurrentRead;
+            _position = rowStart;
+            while (_position < rowEnd) {
+                int recordOffset = _position;
+                ushort type = (ushort)(bytes[recordOffset] | bytes[recordOffset + 1] << 8);
+                int length = bytes[recordOffset + 2] | bytes[recordOffset + 3] << 8;
+                int payloadOffset = recordOffset + 4;
+                _position = payloadOffset + length;
+                if (checkCancellation) {
+                    CheckCancellation();
+                }
+
+                if (pendingFormulaOrdinal >= 0) {
+                    if (type != (ushort)BiffRecordType.String) {
+                        throw MissingFormulaString();
+                    }
+                    StoreFormulaString(
+                        new RecordSlice(type, recordOffset, payloadOffset, length),
+                        pendingFormulaOrdinal,
+                        pendingFormulaStyle,
+                        ref _position);
+                    pendingFormulaOrdinal = -1;
+                    continue;
+                }
+                if (type == (ushort)BiffRecordType.Eof) break;
+                if (type == (ushort)BiffRecordType.Bof) {
+                    SkipNestedChartSubstream(new RecordSlice(type, recordOffset, payloadOffset, length), ref _position);
+                    continue;
+                }
+
+                if (!IsCellRecordType(type)) continue;
+                StoreBufferedCellRecord(
+                    bytes,
+                    currentRow,
+                    type,
+                    recordOffset,
+                    payloadOffset,
+                    length,
+                    ref pendingFormulaOrdinal,
+                    ref pendingFormulaStyle);
+            }
+            if (pendingFormulaOrdinal >= 0) {
+                throw MissingFormulaString();
+            }
         }
 
         public override bool NextResult() => false;
@@ -206,11 +338,113 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         public override void Close() {
             _closed = true;
             _hasCurrentRow = false;
+            int[]? rowOffsets = Interlocked.Exchange(ref _bufferedRowOffsets, null);
+            if (rowOffsets != null) {
+                ArrayPool<int>.Shared.Return(rowOffsets);
+            }
         }
 
         protected override void Dispose(bool disposing) {
             if (disposing) Close();
             base.Dispose(disposing);
+        }
+
+        private void Discover(
+            int sheetOffset,
+            int[]? bufferedRowOffsets,
+            out int bufferedWorksheetEndOffset,
+            out int firstRow,
+            out int lastRow,
+            out int firstColumn,
+            out int lastColumn,
+            out Dictionary<int, string?>? headerValues) {
+            int offset = sheetOffset;
+            firstRow = int.MaxValue;
+            lastRow = -1;
+            firstColumn = int.MaxValue;
+            lastColumn = -1;
+            bool sawBof = false;
+            bool sawEof = false;
+            int pendingHeaderColumn = -1;
+            int previousCellRow = -1;
+            bool checkCancellation = CanCancelCurrentRead;
+            bufferedWorksheetEndOffset = -1;
+            headerValues = null;
+
+            while (offset < _worksheetLimitOffset && TryReadDiscoveryRecord(ref offset, out RecordSlice record)) {
+                if (checkCancellation) {
+                    CheckCancellation();
+                }
+                if (record.PayloadOffset + record.Length > _worksheetLimitOffset) {
+                    throw new InvalidDataException("An XLS worksheet record extends beyond its substream boundary.");
+                }
+                if (!sawBof) {
+                    if (record.Type != (ushort)BiffRecordType.Bof || record.Length < 4) {
+                        throw new InvalidDataException("The XLS worksheet stream is missing a valid BOF record.");
+                    }
+                    ushort version = ReadUInt16(_bytes, record.PayloadOffset);
+                    ushort substreamType = ReadUInt16(_bytes, record.PayloadOffset + 2);
+                    if (version != 0x0600 || substreamType != 0x0010) {
+                        throw new InvalidDataException("The selected XLS substream is not a BIFF8 worksheet.");
+                    }
+                    sawBof = true;
+                    continue;
+                }
+                if (pendingHeaderColumn >= 0) {
+                    if (record.Type != (ushort)BiffRecordType.String) {
+                        throw MissingFormulaString();
+                    }
+                    headerValues![pendingHeaderColumn] = ReadFormulaStringValue(record, ref offset);
+                    pendingHeaderColumn = -1;
+                    continue;
+                }
+                if (record.Type == (ushort)BiffRecordType.Eof) {
+                    sawEof = true;
+                    bufferedWorksheetEndOffset = record.Offset;
+                    break;
+                }
+                if (record.Type == (ushort)BiffRecordType.Bof) {
+                    SkipNestedChartSubstream(record, ref offset);
+                    continue;
+                }
+                if (!TryGetCellBounds(record, out int row, out int recordFirstColumn, out int recordLastColumn)) {
+                    continue;
+                }
+                if (row < previousCellRow) {
+                    throw new InvalidDataException(
+                        $"The XLS worksheet contains decreasing cell row index {row} after row {previousCellRow}.");
+                }
+                if (bufferedRowOffsets != null && row != previousCellRow) {
+                    int firstUninitializedRow = previousCellRow < 0 ? row : previousCellRow + 1;
+                    for (int missingRow = firstUninitializedRow; missingRow < row; missingRow++) {
+                        bufferedRowOffsets[missingRow] = 0;
+                    }
+                    bufferedRowOffsets[row] = record.Offset + 1;
+                }
+                previousCellRow = row;
+
+                if (row < firstRow) {
+                    firstRow = row;
+                    headerValues = new Dictionary<int, string?>();
+                }
+                if (row == firstRow) {
+                    ReadHeaderCells(record, headerValues!);
+                    if (record.Type == (ushort)BiffRecordType.Formula && FormulaExpectsString(record)) {
+                        pendingHeaderColumn = recordFirstColumn;
+                    }
+                }
+                lastRow = row;
+                firstColumn = Math.Min(firstColumn, recordFirstColumn);
+                lastColumn = Math.Max(lastColumn, recordLastColumn);
+            }
+
+            if (!sawBof || !sawEof) {
+                throw new InvalidDataException("The XLS worksheet substream is truncated before EOF.");
+            }
+            if (firstRow == int.MaxValue) {
+                firstRow = -1;
+                firstColumn = 0;
+            }
         }
 
         private bool TryGetCellBounds(
@@ -380,7 +614,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int column = ReadUInt16(_bytes, payload + 2);
             int ordinal = column - _firstColumn;
             if (ordinal < 0 || ordinal >= FieldCount) {
-                throw CellOutsideSchema(column, column);
+                throw new InvalidDataException($"The XLS row contains column {column} outside its discovered schema.");
             }
             ushort style = ReadUInt16(_bytes, payload + 4);
             switch ((BiffRecordType)record.Type) {
@@ -448,7 +682,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
             int ordinal = column - _firstColumn;
             if ((uint)ordinal >= (uint)FieldCount) {
-                throw CellOutsideSchema(column, column);
+                throw new InvalidDataException(
+                    $"The XLS row contains column {column} outside its discovered schema.");
             }
             ushort style = (ushort)(bytes[payloadOffset + 4] | bytes[payloadOffset + 5] << 8);
             switch ((BiffRecordType)type) {
@@ -509,7 +744,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             if (record.Length != expectedLength) throw new InvalidDataException("A MULRK record has an invalid payload length.");
             int firstOrdinal = firstColumn - _firstColumn;
             if (firstOrdinal < 0 || firstOrdinal > FieldCount - count) {
-                throw CellOutsideSchema(firstColumn, lastColumn);
+                throw new InvalidDataException(
+                    $"The XLS row contains columns {firstColumn}..{lastColumn} outside its discovered schema.");
             }
             for (int index = 0; index < count; index++) {
                 int ordinal = firstOrdinal + index;
@@ -538,7 +774,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
             int ordinal = firstColumn - _firstColumn;
             if (ordinal < 0 || ordinal > FieldCount - count) {
-                throw CellOutsideSchema(firstColumn, lastColumn);
+                throw new InvalidDataException(
+                    $"The XLS row contains columns {firstColumn}..{lastColumn} outside its discovered schema.");
             }
             int cellOffset = payloadOffset + 4;
             for (int index = 0; index < count; index++, ordinal++, cellOffset += 6) {
@@ -679,12 +916,6 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private static InvalidDataException TruncatedCell(RecordSlice record) =>
             new($"BIFF cell record 0x{record.Type:X4} at offset {record.Offset} is truncated.");
-
-        // _nextRow already points past the row being read, which is its one-based number.
-        private InvalidDataException CellOutsideSchema(int firstColumn, int lastColumn) =>
-            new($"The XLS row {_nextRow} contains column(s) {firstColumn + 1}..{lastColumn + 1} outside the " +
-                $"{FieldCount} column(s) established by its header row, first data row or DIMENSIONS record. " +
-                "Set ExcelReaderOptions.A1Range to read a wider range.");
 
         private static InvalidDataException MissingFormulaString() =>
             new("An XLS string formula is not followed by its required String record.");

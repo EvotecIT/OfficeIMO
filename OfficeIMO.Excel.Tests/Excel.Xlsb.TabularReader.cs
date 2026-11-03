@@ -168,14 +168,12 @@ public partial class Excel {
         }
 
         using var secondWorksheet = CreateTabularWorksheet((0, 0U));
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
-            using XlsbTabularDataReader reader = CreateTabularReader(
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
                 secondWorksheet,
                 new[] { "Second" },
                 hasHeaderRow: false,
-                cellBudget);
-            while (reader.Read()) { }
-        });
+                cellBudget));
         Assert.Contains("workbook", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("populated cells", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -194,15 +192,13 @@ public partial class Excel {
         }
 
         using var secondWorksheet = CreateTabularWorksheet((0, 0U));
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
-            using XlsbTabularDataReader reader = CreateTabularReader(
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
                 secondWorksheet,
                 new[] { "Second" },
                 hasHeaderRow: false,
                 new XlsbCellReadBudget(10),
-                recordBudget: recordBudget);
-            while (reader.Read()) { }
-        });
+                recordBudget: recordBudget));
 
         Assert.Contains("workbook", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("BIFF12 records", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -450,14 +446,12 @@ public partial class Excel {
         XlsbRecordWriter.Write(worksheetPart, 130);
         worksheetPart.Position = 0;
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
-            using XlsbTabularDataReader reader = CreateTabularReader(
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
                 worksheetPart,
                 new[] { "Value" },
                 hasHeaderRow: false,
-                new XlsbCellReadBudget(10));
-            while (reader.Read()) { }
-        });
+                new XlsbCellReadBudget(10)));
 
         Assert.Contains("BrtEndSheetData", exception.Message, StringComparison.Ordinal);
     }
@@ -658,20 +652,18 @@ public partial class Excel {
             (0, firstColumn, 0U),
             (0, secondColumn, 1U));
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
-            using XlsbTabularDataReader reader = CreateTabularReader(
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            CreateTabularReader(
                 worksheetPart,
                 new[] { "First", "Second" },
                 hasHeaderRow: false,
-                new XlsbCellReadBudget(10));
-            while (reader.Read()) { }
-        });
+                new XlsbCellReadBudget(10)));
 
         Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void XlsbTabularReader_RejectsDataColumnBeyondHeaderAndDeclaredDimension() {
+    public void XlsbTabularReader_DiscoversHeadedDataColumnsBeyondHeaderAndDeclaredDimension() {
         using var worksheetPart = CreateHeaderlessTabularWorksheet(
             declaredLastColumn: 0,
             (0, 0, 0U),
@@ -682,9 +674,12 @@ public partial class Excel {
             hasHeaderRow: true,
             new XlsbCellReadBudget(10));
 
-        Assert.Equal(1, reader.FieldCount);
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => reader.Read());
-        Assert.Contains("outside the 1 column(s)", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(2, reader.FieldCount);
+        Assert.Equal("Header", reader.GetName(0));
+        Assert.Equal("Column2", reader.GetName(1));
+        Assert.True(reader.Read());
+        Assert.True(reader.IsDBNull(0));
+        Assert.Equal("Actual", reader.GetString(1));
     }
 
     [Fact]

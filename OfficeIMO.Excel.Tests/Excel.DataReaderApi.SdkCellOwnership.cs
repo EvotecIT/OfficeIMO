@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel.Tests {
 
             Action open = () => {
                 using var reader = document.CreateDataReader(new ExcelReaderOptions { UseCachedFormulaResult = false });
- while (reader.Read()) { }             };
+ _ = reader.FieldCount;             };
             if (kind == "formula") Assert.Throws<NotSupportedException>(open);
             else Assert.Throws<InvalidDataException>(open);
         }

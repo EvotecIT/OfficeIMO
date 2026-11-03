@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(0, 1)]
         [InlineData(1, 2)]
-        public void LegacyXls_ReaderIgnoresNonContiguousDbCellCoverage(
+        public void LegacyXls_IndexedDiscoveryFallsBackWhenDbCellCoverageIsNotContiguous(
             int pointerIndex,
             int replacementIndex) {
             byte[] xls = CreateDenseIndexedWorkbook(("Data", 1));
@@ -23,12 +23,13 @@ namespace OfficeIMO.Tests {
                 checked((uint)layout.DbCellOffsets[replacementIndex]));
             byte[] mutated = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
-            AssertReadsDenseValues(mutated, "Data", firstValue: 1);
+            AssertIndexedFallbackReadsDenseValues(mutated, "Data", firstValue: 1);
         }
 
         [Fact]
-        public void LegacyXls_ReaderIgnoresDbCellPointersFromAnotherWorksheet() {
+        public void LegacyXls_IndexedDiscoveryRejectsDbCellPointersFromAnotherWorksheet() {
             byte[] xls = CreateDenseIndexedWorkbook(("First", 1), ("Second", 1001));
+            AssertUsesIndexedDiscovery(xls, "First");
             byte[] workbookStream = ReadCompoundStream(xls, "Workbook");
             IReadOnlyList<IndexedWorksheetLayout> layouts = ReadIndexedWorksheetLayouts(workbookStream);
             Assert.Equal(2, layouts.Count);
@@ -41,7 +42,7 @@ namespace OfficeIMO.Tests {
                 checked((uint)layouts[1].DbCellOffsets[0]));
             byte[] mutated = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
-            AssertReadsDenseValues(mutated, "First", firstValue: 1);
+            AssertIndexedFallbackReadsDenseValues(mutated, "First", firstValue: 1);
         }
 
         [Fact]
@@ -76,7 +77,15 @@ namespace OfficeIMO.Tests {
             return workbook;
         }
 
-        private static void AssertReadsDenseValues(
+        private static void AssertUsesIndexedDiscovery(byte[] workbookBytes, string sheetName) {
+            var options = new ExcelReaderOptions();
+            using LegacyXlsTabularWorkbook workbook = LegacyXlsTabularWorkbook.Open(workbookBytes, options);
+            using var reader = Assert.IsType<LegacyXlsTabularDataReader>(
+                workbook.OpenTable(sheetName, hasHeaderRow: true, options));
+            Assert.True(reader.UsedIndexedDiscovery);
+        }
+
+        private static void AssertIndexedFallbackReadsDenseValues(
             byte[] workbookBytes,
             string sheetName,
             int firstValue) {
@@ -84,6 +93,7 @@ namespace OfficeIMO.Tests {
             using LegacyXlsTabularWorkbook workbook = LegacyXlsTabularWorkbook.Open(workbookBytes, options);
             using var reader = Assert.IsType<LegacyXlsTabularDataReader>(
                 workbook.OpenTable(sheetName, hasHeaderRow: true, options));
+            Assert.False(reader.UsedIndexedDiscovery);
 
             int rowCount = 0;
             while (reader.Read()) {

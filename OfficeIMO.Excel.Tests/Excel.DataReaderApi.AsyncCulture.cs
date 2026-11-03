@@ -65,12 +65,12 @@ public partial class Excel {
         if (invalidStyle) {
             await Assert.ThrowsAsync<InvalidDataException>(async () => {
                 using var reader = await ExcelDocument.OpenReaderAsync(source);
-                while (reader.Read()) { }
+                _ = reader.FieldCount;
             });
         } else {
             await Assert.ThrowsAnyAsync<XmlException>(async () => {
                 using var reader = await ExcelDocument.OpenReaderAsync(source);
-                while (reader.Read()) { }
+                _ = reader.FieldCount;
             });
         }
         Assert.True(source.CanRead);

@@ -79,7 +79,7 @@ public partial class Excel {
     public void OpenDataReader_LargeSharedTableRejectsMalformedUnreferencedTailBeforeDelivery(string lastItem) {
         string path = CreateIndexedSharedStringWorkbook(lastItem);
         try {
-            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -97,7 +97,7 @@ public partial class Excel {
                 MaxSharedStringItemCharacters = limit == "ItemCharacters" ? 20 : 100,
                 MaxSharedStringCharacters = limit == "AggregateCharacters" ? IndexedSharedStringFillerCount * 16L + 11 : 100_000
             };
-            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(path, options); while (reader.Read()) { } });
+            var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(path, options); _ = reader.FieldCount; });
             string limitName = limit == "Items" ? nameof(ExcelReaderOptions.MaxSharedStringItems) : limit == "ItemCharacters" ? nameof(ExcelReaderOptions.MaxSharedStringItemCharacters) : nameof(ExcelReaderOptions.MaxSharedStringCharacters);
             long maximum = limit == "Items" ? options.MaxSharedStringItems : limit == "ItemCharacters" ? options.MaxSharedStringItemCharacters : options.MaxSharedStringCharacters;
             Assert.Equal("excel", error.Owner); Assert.Equal(limitName, error.LimitName); Assert.Equal(maximum, error.Maximum);
@@ -112,7 +112,7 @@ public partial class Excel {
             includeLastRow: true, lastIndex: IndexedSharedStringFillerCount + 3,
             declaredCount: "2147483647");
         try {
-            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }

@@ -71,7 +71,7 @@ public partial class Excel {
             Assert.True(start >= 0);
             xml = xml.Insert(start + tag.Length - 1, " xmlns:x=\"urn:foreign\"");
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -83,7 +83,7 @@ public partial class Excel {
         try {
             string xml = PrefixedWorksheetXml("x").Replace("</x:worksheet>", "<!--invalid--comment--></x:worksheet>");
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
-            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }

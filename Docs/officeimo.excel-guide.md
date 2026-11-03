@@ -640,13 +640,6 @@ replace it with XML count attributes or a partial shared-string table load.
 See the [tabular lifecycle measurements](../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
 for the first-row and full-scan evidence boundaries.
 
-Native XLSB and XLS reads are single-pass. `OpenReader` validates the worksheet only up to
-its first row, and each later row is validated when `Read` reaches it, so a malformed row
-throws from that `Read` after the earlier rows were returned. The column count is fixed
-before the first row: the declared worksheet dimension, widened by the header row, or by
-the first populated row without one. A later cell outside those columns throws
-`InvalidDataException`; use `A1Range` to read a sheet with an explicit width.
-
 The XML streaming fallback completes a row before returning a cell value, so
 scalar and bulk getters agree when cell coordinates recur or arrive out of order.
 `ExcelReaderOptions.MaxXmlDataReaderBufferedCharacters` bounds this materialization

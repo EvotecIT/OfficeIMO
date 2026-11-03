@@ -73,7 +73,7 @@ public partial class Excel {
             }
             ReplaceZipXml(path, entryName, relationships);
 
-            Assert.Throws<IOException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<IOException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -112,7 +112,7 @@ public partial class Excel {
             }
             ReplaceZipXml(path, entryName, contentTypes);
 
-            Assert.Throws<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -138,7 +138,7 @@ public partial class Excel {
 
             Assert.Throws<XlsxTabularFastPathNotSupportedException>(() =>
                 XlsxTabularWorkbook.Open(path, new ExcelReaderOptions()));
-            Assert.ThrowsAny<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.ThrowsAny<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -316,7 +316,7 @@ public partial class Excel {
             worksheetRelationship.SetAttributeValue("TargetMode", "Bogus");
             ReplaceZipXml(path, entryName, relationships);
 
-            IOException exception = Assert.Throws<IOException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            IOException exception = Assert.Throws<IOException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
             var xmlException = Assert.IsType<System.Xml.XmlException>(exception.InnerException);
             Assert.IsType<ArgumentException>(xmlException.InnerException);
         } finally {
@@ -350,7 +350,7 @@ public partial class Excel {
                 new XAttribute(officeRelationships + "id", relationshipId)));
             ReplaceZipXml(path, workbookEntry, workbook);
 
-            Assert.Throws<InvalidOperationException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            Assert.Throws<InvalidOperationException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }

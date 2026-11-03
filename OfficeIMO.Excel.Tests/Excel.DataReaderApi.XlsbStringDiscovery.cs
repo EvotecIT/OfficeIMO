@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel.Tests {
         [InlineData(8, "TokenCount")]
         public void NativeXlsbRejectsLateStringPayloadFailuresBeforeReaderDelivery(int recordType, string failure) {
             byte[] workbook = CreateStringDiscoveryWorkbook(recordType, new ushort[] { 0x41, 0x42, 0x43 }, failure);
-            InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(workbook); while (reader.Read()) { } });
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(workbook); _ = reader.FieldCount; });
             string expected = failure switch {
                 "Count" => "exceeding the configured limit",
                 "Truncated" => "truncated",

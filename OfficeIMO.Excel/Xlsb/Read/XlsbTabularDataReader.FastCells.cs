@@ -4,11 +4,21 @@ using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
-        /// <summary>Stores a cell whose payload and schema ordinal were already validated.</summary>
-        private void StoreCellFast(byte[] bytes, int recordType, int position, int ordinal) {
+        private void StoreCellFast(XlsbRecordSlice record) {
+            StoreCellFast(record.Bytes, record.Type, record.PayloadOffset);
+        }
+
+        private void StoreCellFast(byte[] bytes, int recordType, int position) {
+            int column = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(position, sizeof(int)));
             uint styleIndex = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(position + sizeof(int), sizeof(uint)))
                 & 0x00FFFFFFU;
             position += sizeof(int) + sizeof(uint);
+
+            int ordinal = column - _firstColumn;
+            if (ordinal < 0 || ordinal >= FieldCount) {
+                throw new InvalidDataException(
+                    $"The XLSB row contains column {column} outside the schema established by its header or worksheet dimension.");
+            }
 
             TrackUtf8TextCell(ordinal, recordType);
             switch (recordType) {
@@ -77,8 +87,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void StoreValidatedRkCell(byte[] bytes, int position, int ordinal) {
+        private void StoreValidatedRkCell(byte[] bytes, int position) {
             ref byte payload = ref bytes[position];
+            int ordinal = Unsafe.ReadUnaligned<int>(ref payload) - _firstColumn;
             uint styleIndex = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, sizeof(int)))
                 & 0x00FFFFFFU;
             double number = BiffRkNumberReader.ReadRkNumber(
@@ -88,8 +99,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void StoreValidatedRealCell(byte[] bytes, int position, int ordinal) {
+        private void StoreValidatedRealCell(byte[] bytes, int position) {
             ref byte payload = ref bytes[position];
+            int ordinal = Unsafe.ReadUnaligned<int>(ref payload) - _firstColumn;
             uint styleIndex = Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref payload, sizeof(int)))
                 & 0x00FFFFFFU;
             double number = BitConverter.Int64BitsToDouble(
@@ -99,7 +111,35 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void StoreValidatedSharedStringCell(byte[] bytes, int position, int ordinal) {
+        private void StoreValidatedSharedStringCell(byte[] bytes, int position) {
+            ref byte payload = ref bytes[position];
+            int ordinal = Unsafe.ReadUnaligned<int>(ref payload) - _firstColumn;
+            uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
+                ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
+            _kinds[ordinal] = XlsbTabularValueKind.Text;
+            StoreSharedStringText(ordinal, (int)sharedStringIndex);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StorePlannedRkCell(byte[] bytes, int position, int ordinal, ExcelSerialDateStyle dateStyle) {
+            ref byte payload = ref bytes[position];
+            double number = BiffRkNumberReader.ReadRkNumber(
+                Unsafe.ReadUnaligned<uint>(
+                    ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))));
+            StoreNumber(ordinal, number, dateStyle);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StorePlannedRealCell(byte[] bytes, int position, int ordinal, ExcelSerialDateStyle dateStyle) {
+            ref byte payload = ref bytes[position];
+            double number = BitConverter.Int64BitsToDouble(
+                Unsafe.ReadUnaligned<long>(
+                    ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))));
+            StoreNumber(ordinal, number, dateStyle);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StorePlannedSharedStringCell(byte[] bytes, int position, int ordinal) {
             ref byte payload = ref bytes[position];
             uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
                 ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));

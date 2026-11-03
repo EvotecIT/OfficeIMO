@@ -54,7 +54,7 @@ public partial class Excel {
             "<c s=\"9\"><v>3</v></c>",
         }, "Value");
         try {
-            var exception = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            var exception = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
             Assert.Contains("cell A4 references a missing cell style", exception.Message);
         } finally {
             File.Delete(path);
@@ -76,7 +76,7 @@ public partial class Excel {
                     new SharedStringItem(new Text("first")), new SharedStringItem(new Text("second")));
                 part.SharedStringTable.Save();
             }
-            var exception = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); while (reader.Read()) { } });
+            var exception = Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
             Assert.Contains("cell A4 references a missing shared string", exception.Message);
         } finally {
             File.Delete(path);

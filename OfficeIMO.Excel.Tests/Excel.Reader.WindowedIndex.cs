@@ -44,9 +44,9 @@ public partial class Excel {
         string path = CreateWindowedIndexWorkbook(xml);
         try {
             if (malformedXml) Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path,
-                new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
+                new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
             else Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(path,
-                new ExcelReaderOptions { HasHeaderRow = false }); while (reader.Read()) { } });
+                new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -157,7 +157,7 @@ public partial class Excel {
             Assert.Throws(error, () => { using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                 HasHeaderRow = false, MaxDataReaderBufferedCells = 1, MaxDataReaderChunkRows = 1,
                 UseCachedFormulaResult = false,
-            }); while (reader.Read()) { } });
+            }); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }
@@ -168,7 +168,7 @@ public partial class Excel {
         string path = CreateWindowedIndexWorkbook(WindowedIndexWorksheet(WindowedIndexHeader, "A1:D1"));
         try {
             var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => { using var reader = ExcelDocument.OpenReader(path,
-                new ExcelReaderOptions { MaxDataReaderBufferedCells = 3 }); while (reader.Read()) { } });
+                new ExcelReaderOptions { MaxDataReaderBufferedCells = 3 }); _ = reader.FieldCount; });
             Assert.Equal("excel", error.Owner); Assert.Equal(3, error.Maximum);
             Assert.Equal(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), error.LimitName);
         } finally {

@@ -133,33 +133,17 @@ from 659.5 to 708.5 ms and calc from 43.6 to 45.8 ms; two interleaved
 baseline/candidate reruns put both within 2% of each other. Every other category
 moved by 4% or less.
 
-## Single-pass binary readers: 3 November 2026
+## Typed mapping and compact numbers: 3 November 2026
 
-The XLSB and XLS readers now validate each record when `Read` reaches it instead of
-proving the whole worksheet first. The XLSB and XLS writers store exact numbers as RK
-values, and typed mapping reads the worksheet reader directly instead of through the
-workbook wrapper. The baseline is `5d33057990`; harness, options and pinned reader inputs
-match the earlier cohorts. Other agents' builds loaded this host heavily during both
-interleaved before/after pairs (load averages from 7 to 134), and unchanged third-party
-lanes moved by up to 40%, so I report allocation and timing directions only.
+The retained changes map typed rows through the active worksheet reader and write
+only bit-exact RK numbers in XLS and XLSB. Binary readers retain complete validation
+before row delivery, used-range widening and stale-dimension trimming. Excel typed
+tables reject unsupported captions instead of silently discarding them.
 
-| Lane | Before MiB | After MiB | Timing in both pairs |
-|---|---:|---:|---|
-| XLSX, XLSB, XLS read | 2.274, 2.284, 3.269 | unchanged | within launch variation |
-| XLSB typed parse | 4.574 | 4.574 | about 8% faster |
-| XLSX typed parse | 4.562 | 4.562 | 5% to 14% faster |
-| XLS write | 36.193 | 34.459 | within launch variation |
-| XLSB write | 15.173 | 15.470 | within launch variation |
-
-Sylvan, ExcelDataReader, SpreadCheetah and every XLBench shape keep their allocation.
-The single pass did not make XLSB reads measurably faster. The old discovery pass was
-already one fused scan, and its row plan let delivery skip framing; one validating pass
-costs about the same. A profile of the new reader puts inflation at about a third of an
-XLSB read (2.3 ms alone for the 5.7 MB part) and the validating row loop at about a
-quarter. The remaining XLSB gap is per-record work, not a second pass. Typed parsing
-spent about a tenth of its time qualifying cells through the wrapper; that hop is gone,
-but the per-cell check stays, because the public getters convert more permissively than
-the mapper's own rules and the check keeps both paths' results identical.
+The original baseline is `5d33057990`. The earlier mixed cohort does not isolate
+these retained changes, so it cannot establish their independent throughput gain.
+The direct mapper keeps per-cell compatibility checks and the outer-reader conversion
+fallback. RK encoding is used only when decoding reproduces the original double bits.
 
 ## Remaining costs and limits
 
@@ -169,16 +153,13 @@ cost is structural rather than one hidden hot spot. OfficeIMO proves the whole
 part before delivering the first row and gives the data reader a fixed field
 count. It therefore makes a validation and indexing pass and then a delivery
 pass; ExcelReader.NET reads each row once. Inflation takes about a fifth of the
-XLSX and XLSB reads. Typed parsing also qualifies every mapped cell through the
-data-reader wrapper before the compiled mapper reads it.
+XLSX and XLSB reads. Typed parsing qualifies every mapped cell on the worksheet reader before the compiled mapper reads it.
 
 The XLS and XLSB writers are the `WriteData` plus `Save` route. Before it saves,
 that route retains every source row and boxed selector value, so the generated
 rows survive into older GC generations. On its own, the measured registration
 takes about 7 ms of each write against 0.7 ms to generate the same rows. XLSB
-deflate takes about another 5 ms; its BIFF12 payload is 5.7 MB against 5.1 MB from
-ExcelReader.NET; the difference matches writing the three numeric columns as
-8-byte reals instead of 4-byte RK values. XLS also
+deflate takes about another 5 ms; exact RK encoding reduces the numeric payload where possible. XLS also
 builds its compound file as one more complete copy. Removing the buffering would
 change when selectors and source enumeration run, so I leave that contract
 unchanged here.

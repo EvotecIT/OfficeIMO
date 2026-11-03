@@ -1469,7 +1469,7 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
 { using var reader = ExcelDocument.OpenReader(
                         compound,
-                        new ExcelReaderOptions { UseCachedFormulaResult = false }); while (reader.Read()) { } });
+                        new ExcelReaderOptions { UseCachedFormulaResult = false }); _ = reader.FieldCount; });
 
                 Assert.Contains("cannot be projected", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("UseCachedFormulaResult=false", exception.Message, StringComparison.Ordinal);
