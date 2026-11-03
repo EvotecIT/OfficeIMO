@@ -637,7 +637,7 @@ proof.SaveJson("deck.visual-proof.json");
 
 The bounded semantic layouts cover process, hierarchy, cycle, list, matrix, pyramid, and relationship diagrams. `AddCustomGeometry(...)` accepts shared `OfficeShape` path or polygon geometry and writes editable DrawingML `custGeom` content.
 
-The visual proof report records structural and extraction evidence, accessibility results, shared-snapshot diagnostics, PNG/SVG hashes, caller-supplied conversion artifacts, and perceptual-comparison results. PowerPoint Desktop reference rendering is available through `PowerPointDesktopReferenceRenderer.TryRender(...)` only when the caller explicitly enables it; normal generation and export never use Office automation.
+The visual proof report records structural and extraction evidence, accessibility results, shared-snapshot diagnostics, PNG/SVG hashes, caller-supplied conversion artifacts, and perceptual-comparison results. PowerPoint Desktop reference rendering lives in the opt-in development verification sources under `Build/Verification/PowerPoint`. The PowerPoint tests and ChartForgeX delivery example reuse that source; shipped generation and export use managed OfficeIMO APIs without Office automation. External rendering evidence can be attached with `PowerPointCompatibilityReport.RecordExternal(...)`.
 
 `SetGridSpacing` and guide creation use explicit `OfficeLength` values.
 `AddGuide` returns its `PowerPointGuideInfo`; `AddColumnGuides` and `AddRowGuides`
