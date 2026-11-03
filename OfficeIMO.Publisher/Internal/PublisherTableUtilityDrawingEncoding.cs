@@ -18,17 +18,36 @@ internal static class PublisherTableUtilityDrawingEncoding {
         shapes.Add(Utility(root + 2, 20, new[] { ((ushort)0x2001, 1U) }, new[] {
             ((ushort)0x01BF, 0x00100000U), ((ushort)0x01CB, 0U), ((ushort)0x01FF, 0x00080000U)
         }));
+        if (!AppendTables(shapes, root, tables, limit, token)) return null;
+        uint last = root + (uint)shapes.Count - 1;
+        return new(Drawing(drawingId, shapes, last), (uint)shapes.Count, last);
+    }
+
+    /// <summary>Encodes cell/edge siblings for the next free slot of an existing utility drawing.</summary>
+    internal static (byte[] Bytes, uint Count, uint LastSpid)? WriteCells(uint firstSpid,
+        IReadOnlyList<PublisherTableUtilityInput> tables, int maximumShapes, CancellationToken token) {
+        token.ThrowIfCancellationRequested();
+        int limit = (int)Math.Min(1024L - (firstSpid & 1023), maximumShapes);
+        if (firstSpid < 1024 || tables.Count == 0 || limit < 1) return null;
+        var shapes = new List<byte[]>();
+        if (!AppendTables(shapes, firstSpid, tables, limit, token)) return null;
+        return (Bytes(writer => { foreach (byte[] shape in shapes) writer.Write(shape); }),
+            (uint)shapes.Count, firstSpid + (uint)shapes.Count - 1);
+    }
+
+    private static bool AppendTables(List<byte[]> shapes, uint firstSpid, IReadOnlyList<PublisherTableUtilityInput> tables,
+        int limit, CancellationToken token) {
         var ids = new HashSet<uint>();
         foreach (PublisherTableUtilityInput table in tables) {
             token.ThrowIfCancellationRequested();
             if (table.Id == 0 || !ids.Add(table.Id) || table.Rows < 1 || table.Columns < 1
-                || (long)table.Rows * table.Columns != table.Fills.Count) return null;
+                || (long)table.Rows * table.Columns != table.Fills.Count) return false;
             for (int index = 0; index < table.Fills.Count; index++) {
                 token.ThrowIfCancellationRequested();
                 OfficeColor? fill = table.Fills[index];
-                if (shapes.Count >= limit || fill is { A: not 255 }) return null;
+                if (shapes.Count >= limit || fill is { A: not 255 }) return false;
                 uint color = fill.HasValue ? (uint)(fill.Value.R | fill.Value.G << 8 | fill.Value.B << 16) : 0x00FFFFFF;
-                shapes.Add(Utility(root + (uint)shapes.Count, 1, new[] { ((ushort)0x6802, table.Id), ((ushort)0x2003, (uint)index) }, new[] {
+                shapes.Add(Utility(firstSpid + (uint)shapes.Count, 1, new[] { ((ushort)0x6802, table.Id), ((ushort)0x2003, (uint)index) }, new[] {
                     ((ushort)0x0181, color), ((ushort)0x0183, 0U),
                     ((ushort)0x01BF, fill.HasValue ? 0x001F001CU : 0x001F000CU), ((ushort)0x01FF, 0x00080000U)
                 }));
@@ -37,21 +56,20 @@ internal static class PublisherTableUtilityDrawingEncoding {
                 bool horizontal = border.FirstRow == border.LastRow;
                 if (border.FirstRow < 0 || border.FirstColumn < 0 || border.LastRow > table.Rows || border.LastColumn > table.Columns
                     || border.Side.Width > (horizontal ? table.Height : table.Width)
-                    || (horizontal ? border.LastColumn <= border.FirstColumn : border.LastRow <= border.FirstRow || border.LastColumn != border.FirstColumn)) return null;
+                    || (horizontal ? border.LastColumn <= border.FirstColumn : border.LastRow <= border.FirstRow || border.LastColumn != border.FirstColumn)) return false;
                 int start = horizontal ? border.FirstColumn : border.FirstRow, end = horizontal ? border.LastColumn : border.LastRow;
                 for (int index = start; index < end; index++) {
                     token.ThrowIfCancellationRequested();
-                    if (shapes.Count >= limit) return null;
+                    if (shapes.Count >= limit) return false;
                     var unit = new PublisherTableBorderSegment(horizontal ? border.FirstRow : index, horizontal ? index : border.FirstColumn,
                         horizontal ? border.LastRow : index + 1, horizontal ? index + 1 : border.LastColumn, border.Side);
-                    byte[]? encoded = PublisherTableBorderEncoding.Write(table.Id, root + (uint)shapes.Count, unit);
-                    if (encoded == null) return null;
+                    byte[]? encoded = PublisherTableBorderEncoding.Write(table.Id, firstSpid + (uint)shapes.Count, unit);
+                    if (encoded == null) return false;
                     shapes.Add(encoded);
                 }
             }
         }
-        uint last = root + (uint)shapes.Count - 1;
-        return new(Drawing(drawingId, shapes, last), (uint)shapes.Count, last);
+        return true;
     }
 
     internal static byte[] EmptyDrawing(uint id) => Drawing(id, new[] { Root(id) }, id << 10);

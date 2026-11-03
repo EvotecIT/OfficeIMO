@@ -51,6 +51,22 @@ removes all six edges and then hides every fill: native zero-weight border edits
 can reactivate a white cell fill. These controls qualify first utility creation,
 later fill activation and edge removal independently of the source writer.
 
+TableUtilityPair independently authors a decorated table beside a bare 2-by-2
+table, with separate labels. TableUtilityPairStyled, TableUtilityPairBorders and
+TableUtilityPairFills add the second table's combined styles, borders alone or
+fills alone while retaining the first table. TableUtilityPairComposed combines
+first-table border edits with second-table styles and paragraph growth. Each
+control retains its native PUB, reference PDF, authored expectations and hashes.
+
+`NativeComparison/TableUtilityPairMissingCells/missing-second-utilities.pub` is a
+labelled derived source input rather than an independent final-state oracle.
+The probe's `table-utility-source` command reproduces it from
+`TableUtilityPair/native-tableutilitypair.pub` by removing exactly the second
+table's four hidden cell records and reducing FDG/FDGG active counts by four.
+Allocation cursors, used slots, maximum-ID history, other records and logical
+streams remain retained. Its provenance records the source and output hashes;
+the independent pair controls provide the expected saved states.
+
 TextPages has independent Arial 12/18-point stories on the first and last of
 three pages, with an empty middle page and explicit zero column spacing. It
 qualifies physical-page ownership in template-free native writer specimens.

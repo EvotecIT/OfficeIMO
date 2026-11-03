@@ -64,7 +64,7 @@ internal static partial class PublisherEscherTableUtilityPlan {
         }
     }
 
-    private static bool QualifiedDefaults(PublisherBinaryData data, IReadOnlyList<PublisherEscherRecord> records, PublisherParseContext context) {
+    internal static bool QualifiedDefaults(PublisherBinaryData data, IReadOnlyList<PublisherEscherRecord> records, PublisherParseContext context) {
         var properties = new List<OfficeArtProperty>();
         foreach (var record in records.Where(item => item.Kind is 0xF00B or 0xF122)) {
             if ((record.Initial & 15) != 3 || (record.Initial >> 4) * 6 > record.Length) return false;

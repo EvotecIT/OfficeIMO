@@ -121,14 +121,13 @@ internal sealed partial class PublisherNativeWriter {
     private void PlanTableBorderRecords() {
         if (_newTableUtilityTargets.Count == 0 && _tableBorderTargets.Count == 0) return;
         var context = new PublisherParseContext(_sourceOptions, _token);
-        if (_newTableUtilityTargets.Count != 0) {
-            if (_tableBorderTargets.Count != 0) { Reject("Escher/tables", "Missing table utilities cannot be combined with an unqualified existing drawing scope."); return; }
+        if (_newTableUtilityTargets.Count != 0 && !_imported.Artwork.HasTableCellDefault && _imported.Artwork.TableArtwork.Count == 0) {
             _tableBorderRecords = PublisherEscherTableUtilityPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork, _newTableUtilityTargets, context, out var scalars);
             if (_tableBorderRecords == null) Reject("Escher/tables", "New table utilities require qualified ordinary source bindings, compact or empty utility scopes, simple inherited defaults and unambiguous allocation history.");
             else foreach (var edit in scalars) Patch(edit.Slot, edit.Value);
             return;
         }
-        PublisherEscherTableBorderPlan? plan = PublisherEscherTableBorderPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork, _tableBorderTargets, context);
+        PublisherEscherTableBorderPlan? plan = PublisherEscherTableBorderPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork, _tableBorderTargets, context, _newTableUtilityTargets);
         if (plan == null) { Reject("Escher/tables", "Utility edits require one existing direct utility drawing, consistent shape/allocation counts and room in its current SPID cluster."); return; }
         foreach (var edit in plan.Scalars) Patch(edit.Slot, edit.Value);
         _tableBorderRecords = plan.Shapes;

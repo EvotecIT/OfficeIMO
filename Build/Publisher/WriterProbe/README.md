@@ -26,6 +26,7 @@ Invoke the built assembly with an input and unused output paths:
 $probe = 'Build/Publisher/WriterProbe/bin/Release/net10.0/OfficeIMO.Publisher.Tests.dll'
 dotnet $probe inventory ./reference.pub ./reference.inventory.json
 dotnet $probe diff ./native-text.pub ./native-textlong.pub ./text-change.diff.json
+dotnet $probe table-utility-source ./decorated-bare-pair-control.pub ./missing-second-utilities.pub
 dotnet $probe create blank ./candidate-blank.pub
 dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
 dotnet $probe create text-pages ./candidate-text-pages.pub 3
@@ -71,6 +72,14 @@ The `blank-pages` case requires a physical page count from 1 to 16. Other creati
 cases place their objects on a single physical page, except `text-pages`, which
 requires 2 to 16 pages and places independent stories on the first and last pages,
 and the three-page `object-pages`, `image-pages` and `named-image-pages` specimens.
+
+`table-utility-source` derives a synthetic source input from the independent
+`TableUtilityPair` decorated/bare two-table control. It removes exactly the bare
+second table's four hidden cell records and reduces FDG/FDGG active counts by
+four, retaining allocation cursors, used slots, maximum-ID history, other records
+and logical storage. Its output reproduces the labelled
+`TableUtilityPairMissingCells` fixture; the independent pair controls supply
+final-state expectations.
 
 `inventory` records compound metadata and hashes, known Contents fields, Quill
 directories, OfficeArt envelopes and a separate OfficeIMO reader result.
@@ -689,9 +698,11 @@ input complete Full validation: eight cell/grid inventories and eight native PDF
 pairs match independent controls at 100 dpi. Four workflows cover three distinct
 candidate byte sequences; a direct source scalar edit equals fresh edited creation.
 The earlier blank, borderless-table and merged-table bytes remain unchanged.
-Decorated merges, utility allocation beyond the initialization profile below, cluster rollover, broader native visibility definitions,
-larger/composed utility drawings, native cell editing and repair-free acceptance
-remain open; public native creation remains gated.
+Decorated merges, utility allocation beyond the initialization profiles below,
+cluster rollover, broader native visibility definitions and utility layouts
+beyond the qualified two-table source profile remain open. Native cell mutation
+uses the separate first-cell profile below; repair-free acceptance and public
+native creation remain gated.
 
 The `tableCellFillVisibility` record qualifies hiding/activating existing solid
 cell utilities and inserting a missing local RGB scalar through the existing
@@ -703,15 +714,16 @@ independent, generated and native-resaved input: ten cell/grid inventories and
 ten native PDF pairs match controls at 100 dpi. The unsupported complex-peer
 regression is fixed and confirmed; post-fix output bytes match every native-
 validated input. Non-solid/transparent paint, ambiguous/unsupported boolean
-roles, missing local visibility ownership, fill utility allocation in populated drawings/removal, broader
-native producers and repair-free acceptance remain outside this profile.
+roles, missing local visibility ownership, fill-record removal, broader native
+producers and repair-free acceptance remain outside this visibility-only profile.
+Utility allocation is qualified separately below.
 
 The `tableBorderTopology` record qualifies adding, clearing and replacing shared
 edges within an existing direct utility drawing and current SPID cluster. New
 ranges use cell edges to match native joins. Counts exclude background shapes,
 while IDs, allocation cursors and used slots retain their history after deletion.
 Re-addition uses fresh IDs. Unsupported or conflicting ownership, invalid counts
-or cursors, missing drawings outside the initialization profile below and required new clusters refuse output. Planning
+or cursors, missing drawings outside the initialization profiles below and required new clusters refuse output. Planning
 reuses source-bound artwork without decoding unrelated images again and retains
 the original read options for structural rewriting.
 
@@ -719,9 +731,10 @@ Four native controls cover topology, clear-all, text/fill composition and automa
 white cell defaults. Seven public source workflows include generated/native-resaved
 input and deletion/reload/re-add: fourteen native cell/grid inventories and fourteen
 PDF pairs match the controls at 100 dpi. The shared border encoder retains both
-decorated creation specimens' exact previous bytes. Native cell editing, broader
-paint/producer profiles, merged/composed decoration and repair-free acceptance
-remain unqualified; public native creation remains gated.
+decorated creation specimens' exact previous bytes. Broader paint/producer
+profiles, decorated merges and utility composition beyond the populated
+two-table profile below remain unqualified. Native cell mutation uses the separate
+first-cell profile; repair-free acceptance and public native creation remain gated.
 
 The `tableUtilityInitialization` record qualifies first fills and borders in
 borderless rectangular tables from compact sources and native-normalized empty
@@ -737,10 +750,32 @@ and ten PDF workflows retain text and colored primitive counts/colors.
 
 Final-size border checks reject styles wider than their perpendicular table
 extent in both source save paths and fresh encoding. Unsupported default opacity,
-ambiguous counts/history, missing cell utilities in populated drawings, cluster
-rollover, merged/composed decoration and broader producers remain outside this
-profile. Native cell mutation, managed/native text-baseline parity, repair-free
-acceptance and public source-free native creation remain unqualified.
+ambiguous counts/history, cluster rollover, decorated merges and broader producers
+remain outside this profile. Populated utility drawings and native first-cell
+mutation use the separate profiles below. Managed/native text-baseline parity,
+repair-free acceptance and public source-free native creation remain unqualified.
+
+The `populatedTableUtilityInitialization` record extends first opaque solid fills
+and shared borders to a bare unmerged rectangular table with no cell/edge utility
+records beside a decorated table in one direct populated utility drawing. It uses the
+existing counts and current SPID cluster, preserves retired-ID history, ordinary
+drawing bytes, unrelated logical storage and unchanged peer records, and composes
+peer border topology/scalar edits with new table styles and paragraph growth.
+
+Five independent `TableUtilityPair` controls qualify combined styles, borders
+or fills alone, peer/text composition and the cleared state. Eight public
+PowerShell save/PDF workflows include later fill activation, clear/reload/re-add
+with fresh edge IDs and native-resaved follow-up. Native Full opening/export and
+SaveAs/reopen retain sixteen complete inventories of both tables and labels;
+sixteen native PDF pairs match with zero changed pixels at 100 dpi. Managed
+colored primitives match, while text baselines remain approximate.
+
+Exhausted clusters, unsupported inherited opacity/defaults and grouped or
+unqualified ownership refuse output. Partially missing cell sets in a table that
+already owns utilities, new/rollover clusters, decorated merges and broader
+transforms/layouts/producers remain unqualified. This record adds no actual native
+cell mutation claim; the first-cell profile below is separate. Repair-free
+acceptance and public source-free native creation remain open.
 
 The `tableNativeCellMutation` record separately qualifies actual first-cell text
 replacement in four table outputs: fresh borderless/decorated authoring and

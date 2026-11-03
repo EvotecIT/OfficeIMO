@@ -35775,5 +35775,636 @@
       ],
       "publicReloadEmptyCell": true
     }
+  },
+  "populatedTableUtilityInitialization": {
+    "sourceBaseCommit": "0a1b55898bb6ad304c0e2762bcf5980ba7989449",
+    "scope": "First opaque fills/shared borders for a bare unmerged rectangular table with no utility records beside a decorated peer in a populated direct utility drawing/current SPID cluster; peer topology and target paragraph composition.",
+    "publicOperations": [
+      "SetTableCellFillColor",
+      "SetTableBorderStyle",
+      "ReplaceTableCellParagraphs",
+      "ToPubBytesResult"
+    ],
+    "codec": {
+      "sharedOwner": "Existing PublisherEscherTableBorderPlan owns active-count/SPID allocation and peer edge surgery; shared PublisherTableUtilityDrawingEncoding owns fresh cell/edge records.",
+      "allocation": "Validate FDG/FDGG counts, unique IDs/current-cluster ownership/used slots/cursor and utility defaults. Preserve retired identifiers; consume fresh slots, advance counts/cursor/used maximum and enclosing lengths. No rollover.",
+      "composition": "New target cells/edges, peer border removal/addition, scalar patches and Quill paragraph growth compose through the existing source writer.",
+      "preservation": "Retain original ordinary drawing bytes, unmodified peer utility records and other logical storage; Quill changes only for text growth, with explicit stale-preview invalidation.",
+      "defaults": "Fresh cells/edges must pass Dgg defaults independently of local utility-default overlays. Hidden/grouped/transformed or unsafe inherited paint and exhausted clusters refuse output even under Allow.",
+      "diagnostic": "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED"
+    },
+    "nativeBinary": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20112",
+      "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "powershell": "7.6.9",
+      "automationSecurity": 3
+    },
+    "controls": [
+      {
+        "case": "TableUtilityPair",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableutilitypair.pub",
+            "bytes": 107008,
+            "sha256": "178ed9ca6255e35b737c3cf6a9079b44c3676203d48d06c9ce7b7d916e4fba0d"
+          },
+          {
+            "name": "native-tableutilitypair.pdf",
+            "bytes": 112274,
+            "sha256": "d818e4cc71127983c82d6a1875c950e8ba49e85232aa3dd8e8996d552b211e75"
+          },
+          {
+            "name": "native-tableutilitypair.json",
+            "bytes": 18247,
+            "sha256": "11c12d52a26d7adbd14d3ba30e28932a73aa2d21db1bcb91e9048d38ea24e5be"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairStyled",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableutilitypairstyled.pub",
+            "bytes": 109568,
+            "sha256": "524fdbe22c6afb61ee3dda8da5d6245d5ed2a62802941e33d18dac9c16b67394"
+          },
+          {
+            "name": "native-tableutilitypairstyled.pdf",
+            "bytes": 112463,
+            "sha256": "194bfce770ea2470e151fabe8988d3a87df806cafdc57148877f8f702bf46ba5"
+          },
+          {
+            "name": "native-tableutilitypairstyled.json",
+            "bytes": 18255,
+            "sha256": "68c31a0138463aab4f4012a453904746330984dcf9c6ad900e9539604ff65c4f"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairBorders",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableutilitypairborders.pub",
+            "bytes": 109568,
+            "sha256": "1355a3906417895eba2c15bc77e868d967c0d79d32189bd5e7bc4600ad8940b9"
+          },
+          {
+            "name": "native-tableutilitypairborders.pdf",
+            "bytes": 112334,
+            "sha256": "cf72a490a06d9d8c40e0f15e80b08d7f5f1311860412ac336a37173207072f60"
+          },
+          {
+            "name": "native-tableutilitypairborders.json",
+            "bytes": 18255,
+            "sha256": "5686297e335fa0b8f42f049c8b36824c90fb5d1d0c6638f1f42f77cb1810af2a"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairFills",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableutilitypairfills.pub",
+            "bytes": 107520,
+            "sha256": "9bac55fc43e38daf2c46796fbbc5d75188a90aac62cadfb1669311da2ec62d73"
+          },
+          {
+            "name": "native-tableutilitypairfills.pdf",
+            "bytes": 112405,
+            "sha256": "640ac440e395b3deacf58b7e6ec3fde9fa4c55da7bd62d642623fd8717ed4304"
+          },
+          {
+            "name": "native-tableutilitypairfills.json",
+            "bytes": 18265,
+            "sha256": "e37236dc5c1af56716ddaebeb0adb73078667514429c512e48b3e8d3d249ba2f"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairComposed",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableutilitypaircomposed.pub",
+            "bytes": 109568,
+            "sha256": "20c3cab475bb3cdab1cc6fa2381e8b4dfb7a6d1e4bd55ff110a30186bde0d2a7"
+          },
+          {
+            "name": "native-tableutilitypaircomposed.pdf",
+            "bytes": 114231,
+            "sha256": "b2fdbe3ecac898d98d41a157cc828a3cb227157c8abbfe33c4ad26308256575f"
+          },
+          {
+            "name": "native-tableutilitypaircomposed.json",
+            "bytes": 18275,
+            "sha256": "b500da3d86c5d62da1e4ebcb89f8e1106073021a86d4276b34e670b0948a943f"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairMissingCells",
+        "classification": "derived-source",
+        "files": [
+          {
+            "name": "missing-second-utilities.pub",
+            "bytes": 106496,
+            "sha256": "dd3f429c1341f8a52a8021e7107bab1d97722c049f0363ed1a267a7ff48e9716"
+          }
+        ]
+      }
+    ],
+    "derivedSource": {
+      "reproduction": "dotnet <WriterProbe.dll> table-utility-source <TableUtilityPair/native-tableutilitypair.pub> <derived-input.pub>",
+      "sourceSha256": "178ed9ca6255e35b737c3cf6a9079b44c3676203d48d06c9ce7b7d916e4fba0d",
+      "sha256": "dd3f429c1341f8a52a8021e7107bab1d97722c049f0363ed1a267a7ff48e9716",
+      "removedCellUtilities": 4,
+      "retainedCursor": 3088,
+      "activeDrawingCount": 13,
+      "activeTotal": 19,
+      "intent": "Deliberate missing second-table utilities, active counts reduced by four and allocation history preserved; independently native-authored controls supply expected final states."
+    },
+    "cases": [
+      {
+        "case": "styled",
+        "control": "TableUtilityPairStyled",
+        "candidateSha256": "4ccb95bfbeb75c7d3ac46ff06bc988a452f8e6de2ec0951834e1ecf3abaa7897",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "finalPublicByteIdentical": true,
+        "files": [
+          {
+            "path": "native-styled/candidate-input.pub",
+            "sha256": "4ccb95bfbeb75c7d3ac46ff06bc988a452f8e6de2ec0951834e1ecf3abaa7897"
+          },
+          {
+            "path": "native-styled/native-initial-inventory.json",
+            "sha256": "740caf4658e32186a7ba8a7a84b52bea6f32ab2694c60f759586c07e3b9d13d3"
+          },
+          {
+            "path": "native-styled/native-initial.pdf",
+            "sha256": "1e996bdf9eed3b44b6193d418dc77247794a4e923d014bc3b1c957691e8b2440"
+          },
+          {
+            "path": "native-styled/native-resaved-inventory.json",
+            "sha256": "30f09661ccb042edd9386d2cd712f700f67b399f3db7b1feb67051734180c817"
+          },
+          {
+            "path": "native-styled/native-resaved.pdf",
+            "sha256": "50c04ae8c5c3bb6570f680f007c2e56fd68f3776891ccb975320777a95d1a854"
+          },
+          {
+            "path": "native-styled/native-resaved.pub",
+            "sha256": "1b27dfd01f35291df2be314218a2eab3abae9766fc72b3d50c75b2316f85c0f6"
+          },
+          {
+            "path": "native-styled/native-validation.json",
+            "sha256": "16dfd64c58d0d41b2e78df7a9da42b578fa8817b9433c4b5bf0f0e3537157260"
+          }
+        ]
+      },
+      {
+        "case": "borders",
+        "control": "TableUtilityPairBorders",
+        "candidateSha256": "3915fcf097961ee421d8ee991d7c8b8713506fef2e91e3989985281c4687485c",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "finalPublicByteIdentical": true,
+        "files": [
+          {
+            "path": "native-borders/candidate-input.pub",
+            "sha256": "3915fcf097961ee421d8ee991d7c8b8713506fef2e91e3989985281c4687485c"
+          },
+          {
+            "path": "native-borders/native-initial-inventory.json",
+            "sha256": "5e97d03fd0a9bcde3af63aaa4484dfc190c46481474839ac83e1c473b8f2274d"
+          },
+          {
+            "path": "native-borders/native-initial.pdf",
+            "sha256": "2c11c4d4951e9e2ef330b74625300166ebf3e0b117ffe9c70c2449ff58c85a3f"
+          },
+          {
+            "path": "native-borders/native-resaved-inventory.json",
+            "sha256": "a8505ad090cf21aaa3ee12e3595e869f5a84ef8b85c1b1523a707bb2ff97d6d5"
+          },
+          {
+            "path": "native-borders/native-resaved.pdf",
+            "sha256": "aacfecbe76fc03fafb301cedeaad5a69aaaba93a3af7179d7214612ba113f1ed"
+          },
+          {
+            "path": "native-borders/native-resaved.pub",
+            "sha256": "cde2003a71d991b248e772eb2b0649879bdfe74d02dba71666a4dd6ba661c1f8"
+          },
+          {
+            "path": "native-borders/native-validation.json",
+            "sha256": "485a2a7b98774fe10b744571ad36db7a9c30a5c82ea77e7fd1a2a4026df5ffb9"
+          }
+        ]
+      },
+      {
+        "case": "fills",
+        "control": "TableUtilityPairFills",
+        "candidateSha256": "926d3f67d0d7cb3de083c87b28841a9f5d456e95c18fc3d71d19a9e091e9d71f",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "finalPublicByteIdentical": true,
+        "files": [
+          {
+            "path": "native-fills/candidate-input.pub",
+            "sha256": "926d3f67d0d7cb3de083c87b28841a9f5d456e95c18fc3d71d19a9e091e9d71f"
+          },
+          {
+            "path": "native-fills/native-initial-inventory.json",
+            "sha256": "1210d9741ecc5b091103588961ebac8d9844758cb881c6130e8871b90b817a67"
+          },
+          {
+            "path": "native-fills/native-initial.pdf",
+            "sha256": "db9f51385326123248125609df5ba056b3f99d625a28f39dd2e48cb3f7ca3592"
+          },
+          {
+            "path": "native-fills/native-resaved-inventory.json",
+            "sha256": "4511a102962adc7e3bfe983ff2a5e6aa80399a6f40baae9c589b121e13e44cbf"
+          },
+          {
+            "path": "native-fills/native-resaved.pdf",
+            "sha256": "9b22b240c13c72f7d36a34ae57b427ae861ba3ed76632c5f9f4508ed7558bea6"
+          },
+          {
+            "path": "native-fills/native-resaved.pub",
+            "sha256": "364867aeae255ac81a2c142ddfc2d9d12ed34c33296c59ad73d6b71684cb179b"
+          },
+          {
+            "path": "native-fills/native-validation.json",
+            "sha256": "fee1f700ec48363af2b898a17cb213c02b3562d12465cf25c45f89989e0feb37"
+          }
+        ]
+      },
+      {
+        "case": "composed",
+        "control": "TableUtilityPairComposed",
+        "candidateSha256": "99d8053eeee6dee0a87b6ff14e19ba7a292211e534febbf04fb1b34553800fdd",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "finalPublicByteIdentical": true,
+        "files": [
+          {
+            "path": "native-composed/candidate-input.pub",
+            "sha256": "99d8053eeee6dee0a87b6ff14e19ba7a292211e534febbf04fb1b34553800fdd"
+          },
+          {
+            "path": "native-composed/native-initial-inventory.json",
+            "sha256": "4dc4c3c34d3459eda2b9792ccbedcc04f02696df7e241bea73760adff45db94c"
+          },
+          {
+            "path": "native-composed/native-initial.pdf",
+            "sha256": "2ca4eea5bebf2c7ec7701608192ab018f8199e6f8dc0b04b40404095acce3509"
+          },
+          {
+            "path": "native-composed/native-resaved-inventory.json",
+            "sha256": "cec635acb1bf972fa52087d132240b188b91669cf4369ad71d50729164022e70"
+          },
+          {
+            "path": "native-composed/native-resaved.pdf",
+            "sha256": "a188298d1e015cae5ac7a85a454e8b3aa093265bf86316ddae12d7981f5509ab"
+          },
+          {
+            "path": "native-composed/native-resaved.pub",
+            "sha256": "bb9ca037b8faa1e5f8e9040a44bf4ec9fe87a7a56137b929c19b651876001b4d"
+          },
+          {
+            "path": "native-composed/native-validation.json",
+            "sha256": "9c8cb2822f464ee347bab5237ef3ffc0a9c2b1d8881efd5dbf4e4d9601e4590e"
+          }
+        ]
+      },
+      {
+        "case": "cleared",
+        "control": "TableUtilityPair",
+        "candidateSha256": "8b290588ddd697197f13908af02f6100a512e0511aa82479047d0c4fb400810d",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "finalPublicByteIdentical": true,
+        "files": [
+          {
+            "path": "native-cleared/candidate-input.pub",
+            "sha256": "8b290588ddd697197f13908af02f6100a512e0511aa82479047d0c4fb400810d"
+          },
+          {
+            "path": "native-cleared/native-initial-inventory.json",
+            "sha256": "bc7b9ec1203ab455e1967974098bc11e53db33a1b3df0988411ca1d683cbee42"
+          },
+          {
+            "path": "native-cleared/native-initial.pdf",
+            "sha256": "a3e134624dd27f655d44fea9298dc3eee3630e9803fff2b3abf76a9f47ff306d"
+          },
+          {
+            "path": "native-cleared/native-resaved-inventory.json",
+            "sha256": "99f1d0312493cfc88f67441d511c7e2c71f3628c915377d314f8feed78650536"
+          },
+          {
+            "path": "native-cleared/native-resaved.pdf",
+            "sha256": "34ae7dcda63b8bdd63bb79da33edec0630d48ac7cb9a0a82865369eed8c854c6"
+          },
+          {
+            "path": "native-cleared/native-resaved.pub",
+            "sha256": "48b4b725e40a45fd85ab9e342e6df11ac7f556e5ef891d20160c4747df7ecb65"
+          },
+          {
+            "path": "native-cleared/native-validation.json",
+            "sha256": "8b0cbf856f49b73cbd93126a54e84aa9e7bfcb569e23379184e0c921d664391c"
+          }
+        ]
+      },
+      {
+        "case": "readded",
+        "control": "TableUtilityPairBorders",
+        "candidateSha256": "b1f5b74b03540c533c7c83d52b6267d08d32dde94e0fb5de3b139a44acaa9af4",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "finalPublicByteIdentical": true,
+        "files": [
+          {
+            "path": "native-readded/candidate-input.pub",
+            "sha256": "b1f5b74b03540c533c7c83d52b6267d08d32dde94e0fb5de3b139a44acaa9af4"
+          },
+          {
+            "path": "native-readded/native-initial-inventory.json",
+            "sha256": "d30c83095f8917d9d933a753ad2cac6828eeb76529c40dbed1ce37fddfdd97ea"
+          },
+          {
+            "path": "native-readded/native-initial.pdf",
+            "sha256": "cbbe7b3c9b416e0ceaa8bed0a8e386400f25cabc17b5534417d6cd83bc2e31dc"
+          },
+          {
+            "path": "native-readded/native-resaved-inventory.json",
+            "sha256": "ee1ef52e93e38b7e83b8b3f9799d68bd339014abce4cf8e46c94142a0a5ff3a2"
+          },
+          {
+            "path": "native-readded/native-resaved.pdf",
+            "sha256": "64806ecbbb05d566d42823359711b4d86f8a17a81d3d2816d16584ac993a6e2c"
+          },
+          {
+            "path": "native-readded/native-resaved.pub",
+            "sha256": "c22908889c911fb026aa436a8b402e88f439c8870ecbb3e72903ae87adfd6dde"
+          },
+          {
+            "path": "native-readded/native-validation.json",
+            "sha256": "4e825352eeeb4394de54a4ff4931a7f829cf33d6d63cab43d897572a45e08212"
+          }
+        ]
+      },
+      {
+        "case": "filledlater",
+        "control": "TableUtilityPairStyled",
+        "candidateSha256": "4ccb95bfbeb75c7d3ac46ff06bc988a452f8e6de2ec0951834e1ecf3abaa7897",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "finalPublicByteIdentical": true,
+        "files": [
+          {
+            "path": "native-filledlater/candidate-input.pub",
+            "sha256": "4ccb95bfbeb75c7d3ac46ff06bc988a452f8e6de2ec0951834e1ecf3abaa7897"
+          },
+          {
+            "path": "native-filledlater/native-initial-inventory.json",
+            "sha256": "740caf4658e32186a7ba8a7a84b52bea6f32ab2694c60f759586c07e3b9d13d3"
+          },
+          {
+            "path": "native-filledlater/native-initial.pdf",
+            "sha256": "f035bb3773f61a2f4164d7d4663d6b386688dcad67589ef6d49700d9d1e9deb0"
+          },
+          {
+            "path": "native-filledlater/native-resaved-inventory.json",
+            "sha256": "30f09661ccb042edd9386d2cd712f700f67b399f3db7b1feb67051734180c817"
+          },
+          {
+            "path": "native-filledlater/native-resaved.pdf",
+            "sha256": "9b327562f462a02141248bfde40924898cc7bd679d91be30eb8174e86a2f02c5"
+          },
+          {
+            "path": "native-filledlater/native-resaved.pub",
+            "sha256": "70d1aa723883482d816394b38a3b9ad8eb9f5b0deb97075f3d849910d0ff024e"
+          },
+          {
+            "path": "native-filledlater/native-validation.json",
+            "sha256": "04148727f5f73194bd8b253d3eb669c1b27ba6de87a298b62f774897d77b2226"
+          }
+        ]
+      },
+      {
+        "case": "native-filledlater",
+        "control": "TableUtilityPairStyled",
+        "candidateSha256": "1db21a2244ded6da29156dc1ca6b530bc2f09ed0f0f167e88d0fe6849e4313ba",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "finalPublicByteIdentical": true,
+        "files": [
+          {
+            "path": "native-native-filledlater/candidate-input.pub",
+            "sha256": "1db21a2244ded6da29156dc1ca6b530bc2f09ed0f0f167e88d0fe6849e4313ba"
+          },
+          {
+            "path": "native-native-filledlater/native-initial-inventory.json",
+            "sha256": "644500d3cd1eb5341a81f209cd9c2bf22f37923e0348d91b5ad9d61f6a19868d"
+          },
+          {
+            "path": "native-native-filledlater/native-initial.pdf",
+            "sha256": "16a48d090737b0839ef680f9efee82b1551c160aba6d0ee870641f2a92799136"
+          },
+          {
+            "path": "native-native-filledlater/native-resaved-inventory.json",
+            "sha256": "38c82fd7bf1c1b3db22c9ea1a826b3e86371cb86828c205f90fc3ddb3aa080e3"
+          },
+          {
+            "path": "native-native-filledlater/native-resaved.pdf",
+            "sha256": "5fdd8b3c7b1a76bdcfaf206524560db620133cb630703fcb48f538d95cfaaa70"
+          },
+          {
+            "path": "native-native-filledlater/native-resaved.pub",
+            "sha256": "12f49919b7564c53a032289b7f236abdd6b1623ef0dd9aee4fa3c9c1ad9d59b3"
+          },
+          {
+            "path": "native-native-filledlater/native-validation.json",
+            "sha256": "3099a807e380dcde46eab2726c122df8eca4742196edc4e0596dea7790ddb742"
+          }
+        ]
+      }
+    ],
+    "nativeComparison": {
+      "workflows": 8,
+      "completeNativeInventories": 16,
+      "tablesPerInventory": 2,
+      "labelsPerInventory": 2,
+      "pdfPairs": 16,
+      "dpi": 100,
+      "changedPixels": 0,
+      "nativeCellMutationPerformed": false,
+      "repairFreeQualified": false
+    },
+    "powerShell": {
+      "publicSaveAndPdfWorkflows": 8,
+      "finalByteIdentity": true,
+      "managedColoredPrimitiveComparisons": 8,
+      "textBaselineParityQualified": false,
+      "cases": [
+        {
+          "case": "styled",
+          "sourceSha256": "dd3f429c1341f8a52a8021e7107bab1d97722c049f0363ed1a267a7ff48e9716",
+          "publicationSha256": "4ccb95bfbeb75c7d3ac46ff06bc988a452f8e6de2ec0951834e1ecf3abaa7897",
+          "workflowSucceeded": true,
+          "diagnostics": [
+            "PUB_NATIVE_PREVIEW_INVALIDATED",
+            "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED"
+          ]
+        },
+        {
+          "case": "borders",
+          "sourceSha256": "dd3f429c1341f8a52a8021e7107bab1d97722c049f0363ed1a267a7ff48e9716",
+          "publicationSha256": "3915fcf097961ee421d8ee991d7c8b8713506fef2e91e3989985281c4687485c",
+          "workflowSucceeded": true,
+          "diagnostics": [
+            "PUB_NATIVE_PREVIEW_INVALIDATED",
+            "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED"
+          ]
+        },
+        {
+          "case": "fills",
+          "sourceSha256": "dd3f429c1341f8a52a8021e7107bab1d97722c049f0363ed1a267a7ff48e9716",
+          "publicationSha256": "926d3f67d0d7cb3de083c87b28841a9f5d456e95c18fc3d71d19a9e091e9d71f",
+          "workflowSucceeded": true,
+          "diagnostics": [
+            "PUB_NATIVE_PREVIEW_INVALIDATED",
+            "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED"
+          ]
+        },
+        {
+          "case": "composed",
+          "sourceSha256": "dd3f429c1341f8a52a8021e7107bab1d97722c049f0363ed1a267a7ff48e9716",
+          "publicationSha256": "99d8053eeee6dee0a87b6ff14e19ba7a292211e534febbf04fb1b34553800fdd",
+          "workflowSucceeded": true,
+          "diagnostics": [
+            "PUB_NATIVE_PREVIEW_INVALIDATED",
+            "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED",
+            "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+          ]
+        },
+        {
+          "case": "cleared",
+          "sourceSha256": "3915fcf097961ee421d8ee991d7c8b8713506fef2e91e3989985281c4687485c",
+          "publicationSha256": "8b290588ddd697197f13908af02f6100a512e0511aa82479047d0c4fb400810d",
+          "workflowSucceeded": true,
+          "diagnostics": [
+            "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED"
+          ]
+        },
+        {
+          "case": "readded",
+          "sourceSha256": "8b290588ddd697197f13908af02f6100a512e0511aa82479047d0c4fb400810d",
+          "publicationSha256": "b1f5b74b03540c533c7c83d52b6267d08d32dde94e0fb5de3b139a44acaa9af4",
+          "workflowSucceeded": true,
+          "diagnostics": [
+            "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED"
+          ]
+        },
+        {
+          "case": "filledlater",
+          "sourceSha256": "3915fcf097961ee421d8ee991d7c8b8713506fef2e91e3989985281c4687485c",
+          "publicationSha256": "4ccb95bfbeb75c7d3ac46ff06bc988a452f8e6de2ec0951834e1ecf3abaa7897",
+          "workflowSucceeded": true,
+          "diagnostics": [
+            "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "PUB_NATIVE_TABLE_FILL_UNQUALIFIED"
+          ]
+        },
+        {
+          "case": "native-filledlater",
+          "sourceSha256": "cde2003a71d991b248e772eb2b0649879bdfe74d02dba71666a4dd6ba661c1f8",
+          "publicationSha256": "1db21a2244ded6da29156dc1ca6b530bc2f09ed0f0f167e88d0fe6849e4313ba",
+          "workflowSucceeded": true,
+          "diagnostics": [
+            "PUB_NATIVE_PREVIEW_INVALIDATED",
+            "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "PUB_NATIVE_TABLE_FILL_UNQUALIFIED"
+          ]
+        }
+      ]
+    },
+    "freshAuthoring": {
+      "unchangedByteSequences": [
+        {
+          "kind": "table",
+          "sha256": "d774ee79377be4e3104c185c1de2a43652a554ca8875422c933a7e5619988735",
+          "matchesPreviouslyQualifiedBytes": true
+        },
+        {
+          "kind": "table-edited",
+          "sha256": "e62c3655ddb343afc7006cba946a26433d8ee082bc91ac4a1293880c80812b21",
+          "matchesPreviouslyQualifiedBytes": true
+        },
+        {
+          "kind": "table-decorated",
+          "sha256": "4386154305b4fa7ff0d97785832fe1e91a012e25891c3e1107159bfa50642900",
+          "matchesPreviouslyQualifiedBytes": true
+        },
+        {
+          "kind": "table-decorated-edited",
+          "sha256": "4e43b55045155329ab1c79abab9904e675ee5e1dd5a1aa9c0f7cbcfa66dfbcfe",
+          "matchesPreviouslyQualifiedBytes": true
+        },
+        {
+          "kind": "table-merged",
+          "sha256": "21343f85132455613677402a7739d449fe7e854f8a8ff9eecaba0fe232ba9c1e",
+          "matchesPreviouslyQualifiedBytes": true
+        },
+        {
+          "kind": "newsletter",
+          "sha256": "d35ecd90ce134e437fdf9fa42f702895cc5214e113c6547fbb3a567a3b22d552",
+          "matchesPreviouslyQualifiedBytes": true
+        }
+      ],
+      "derivedSourceReproduction": "Exact pinned bytes."
+    },
+    "validation": {
+      "focusedPassed": 42,
+      "net10FullPassed": 1166,
+      "net8TablePassed": 149,
+      "net472TablePassed": 149,
+      "netstandardBuild": "Passed",
+      "moduleAndProbeBuild": "Passed",
+      "nativeScriptParsing": "PowerShell7.6.9 and WindowsPowerShell5.1.26100.9711 pass."
+    },
+    "inheritedDefaultsRegression": {
+      "reproduced": "Local opacity1 on both utility defaults could mask Dgg opacity0.5; new-cell save succeeded without preserving requested opaque paint. The existing-cell/new-edge allocation sibling had the same Dgg inheritance gap.",
+      "redCases": 2,
+      "fix": "Validate the Dgg context alone whenever fresh cells or edges are allocated; retain independent utility-default overlays as additional qualification.",
+      "regressions": [
+        "Missing_cell_allocation_refuses_inherited_transparency_in_populated_scopes",
+        "New_borders_in_populated_scopes_refuse_inherited_transparency"
+      ],
+      "reviewConfirmation": "No remaining findings after targeted confirmation."
+    },
+    "tooling": "Native paired producer metadata records each renamed/moved object and the actual first-cell expected text slot after its label.",
+    "limitations": [
+      "Partially missing cell utility sets in an already populated table",
+      "Required new/rollover SPID cluster",
+      "Merged decoration, larger/composed layouts and additional native producers/generations",
+      "Actual native cell mutation beyond the separate qualified first-cell profile",
+      "Managed/native text-baseline parity",
+      "Positive recovery control and repair-free acceptance",
+      "Public source-free native creation remains gated"
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

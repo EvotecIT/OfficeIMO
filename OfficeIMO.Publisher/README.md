@@ -607,10 +607,14 @@ utility drawing and its current SPID allocation cluster. New ranges use native c
 edges; reopened segmentation and record order can differ while retaining shared
 grid coverage. First fills and borders can also initialize utilities for qualified
 borderless rectangular tables in compact sources and native-normalized empty
-utility scopes. The writer retains ordinary drawing bytes and validates counts,
-identifiers, inherited defaults and allocation history. Populated drawings with
-missing cell utilities, cluster rollover, inconsistent metadata, unsupported paint
-and widths without an exact signed-EMU representation refuse saving. A border
+utility scopes. A table with no cell or edge utility records can receive its first
+fills and borders beside an already decorated table in a qualified populated
+drawing, using its current SPID cluster. This can compose with supported peer
+border edits and cell-paragraph growth in one save. The writer retains ordinary
+drawing bytes, unrelated storage and unchanged peer records, and validates counts,
+identifiers, inherited defaults and allocation history. Partially missing cell
+utilities, cluster rollover, inconsistent metadata, unsupported paint and widths
+without an exact signed-EMU representation refuse saving. A border
 must fit the table's final perpendicular extent, including after resizing.
 Gradients, cell-specific padding and broader native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
@@ -737,9 +741,10 @@ again after an edit: previously returned objects remain snapshots.
 the original native decoding evidence without projection findings.
 
 These edits change the in-memory publication and rendered outputs. Native PUB
-save-back, standalone publication creation, page/master relationship edits, table topology/styling changes and arbitrary frame relinking are not provided
-by this API. Retaining private native source data does not establish opaque
-preservation or a native save contract.
+saving accepts the qualified imported-source edit profiles described above.
+Source-free native creation, new page/master topology, imported table topology
+changes and arbitrary frame relinking remain unsupported. Opaque preservation
+follows the bounded source-save contract rather than every in-memory edit.
 
 `ReadReport.CurrentObjectCount` includes retained imported objects and authored
 tables, continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects

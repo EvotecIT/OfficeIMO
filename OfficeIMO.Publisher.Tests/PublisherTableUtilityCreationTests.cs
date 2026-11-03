@@ -104,8 +104,8 @@ public sealed class PublisherTableUtilityCreationTests {
         Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
     }
 
-    internal static void Apply(PublisherDocument document, string variant) {
-        PublisherTable table = document.Pages[0].Tables[0]; uint id = table.Id;
+    internal static void Apply(PublisherDocument document, string variant, PublisherTable? selectedTable = null) {
+        PublisherTable table = selectedTable ?? document.Pages[0].Tables[0]; uint id = table.Id;
         if (variant != "TableFillsOnly") {
             var borders = new[] {
                 (0,0,1,0, OfficeColor.FromRgb(255,0,0), 2D), (0,0,0,1, OfficeColor.FromRgb(0,0,255), 3D),

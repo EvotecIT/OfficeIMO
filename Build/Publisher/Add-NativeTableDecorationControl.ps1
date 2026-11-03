@@ -28,6 +28,7 @@ function Add-NativeTableDecorationControl {
     param($FirstPage, [switch] $Edited, [switch] $TextEdited, [switch] $FillVisibility, [switch] $RestoreFillVisibility,
         [switch] $BorderTopology, [switch] $ClearBorders, [switch] $DefaultCellFill, [switch] $BorderOnly, [switch] $FillOnly)
 
+    $firstCellTextIndex = $expectedText.Count + 1 # The new label precedes the first cell.
     $null = Add-NativeTableCreationControl -FirstPage $FirstPage
     $shape = $FirstPage.Shapes.Item('AuthoredTable')
     $table = $shape.Table
@@ -161,7 +162,7 @@ function Add-NativeTableDecorationControl {
         $objects.Add($cell)
         $objects.Add($text)
         $text.Text = "Updated`rItem"
-        $expectedText[0] = "Updated`rItem"
+        $expectedText[$firstCellTextIndex] = "Updated`rItem"
     }
     return 1
 }

@@ -6,7 +6,8 @@ internal sealed class PublisherEscherTableBorderPlan {
     internal List<(PublisherNativeValueSlot Slot, uint Value)> Scalars { get; } = new();
 
     internal static PublisherEscherTableBorderPlan? Create(byte[] source, PublisherEscherData art,
-        IReadOnlyDictionary<uint, IReadOnlyList<PublisherTableBorderSegment>> desired, PublisherParseContext context) {
+        IReadOnlyDictionary<uint, IReadOnlyList<PublisherTableBorderSegment>> desired, PublisherParseContext context,
+        IReadOnlyDictionary<uint, PublisherTableState>? newTables = null) {
         var data = new PublisherBinaryData(source, "Escher/EscherStm");
         var reader = new PublisherEscherReader(data, null, context);
         IReadOnlyList<PublisherEscherRecord> top = reader.Records(0, source.Length);
@@ -35,7 +36,8 @@ internal sealed class PublisherEscherTableBorderPlan {
         IReadOnlyList<PublisherEscherRecord> utilityShapes = reader.Records(group.Offset, group.End);
         if (utilityShapes.Any(item => item.Kind != 0xF004) || utilityShapes.Count != data.U32(fdg.Offset)) return null;
         var bodies = new HashSet<int>(utilityShapes.Select(item => item.Offset));
-        PublisherEscherRecord[] globals = reader.Records(dggs[0].Offset, dggs[0].End).Where(item => item.Kind == 0xF006).ToArray();
+        var globalRecords = reader.Records(dggs[0].Offset, dggs[0].End);
+        PublisherEscherRecord[] globals = globalRecords.Where(item => item.Kind == 0xF006).ToArray();
         if (globals.Length != 1 || globals[0].Length < 16) return null;
         PublisherEscherRecord fdgg = globals[0];
         uint clusters = data.U32(fdgg.Offset + 4);
@@ -56,6 +58,29 @@ internal sealed class PublisherEscherTableBorderPlan {
         var plan = new PublisherEscherTableBorderPlan();
         var added = new List<byte[]>();
         int additions = 0;
+        if (newTables?.Count > 0) {
+            if (newTables.Keys.Any(desired.ContainsKey) || !art.HasTableCellDefault
+                || !QualifiedUtilityDefaults(data, reader, dggs[0], utilityShapes, drawingId, context)) return null;
+            var ordinary = new HashSet<int>();
+            foreach (var drawing in drawings.Where(item => item.Offset >= 12 && data.U32(item.Offset - 12) == 0))
+                foreach (var container in reader.Records(drawing.Offset, drawing.End).Where(item => item.Kind == 0xF003))
+                    foreach (var shape in reader.Records(container.Offset, container.End).Where(item => item.Kind == 0xF004)) ordinary.Add(shape.Offset);
+            var inputs = new List<PublisherTableUtilityInput>();
+            foreach (var item in newTables.OrderBy(item => item.Key)) {
+                context.Token.ThrowIfCancellationRequested();
+                var table = item.Value; var owners = art.Shapes.Where(shape => shape.Id == item.Key).ToArray();
+                if (!table.HasPlacement || table.Hidden || table.BoundsEditLimitation != null
+                    || table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1)
+                    || art.TableArtwork.Any(owner => owner.TableId == item.Key) || owners.Length != 1
+                    || owners[0].NativeBinding is not { } binding || !binding.Matches(data) || !ordinary.Contains(binding.BodyOffset)) return null;
+                inputs.Add(new(table.Id, table.Rows.Count, table.Columns.Count, table.Width, table.Height, table.CellFills, table.BorderSegments));
+            }
+            var cells = PublisherTableUtilityDrawingEncoding.WriteCells((cluster << 10) + used, inputs, (int)(1024 - used), context.Token);
+            if (cells == null) return null;
+            for (uint index = 0; index < cells.Value.Count; index++)
+                if (!spids.Add((cluster << 10) + used + index)) return null;
+            added.Add(cells.Value.Bytes); additions = (int)cells.Value.Count;
+        }
         foreach (var table in desired) {
             context.Token.ThrowIfCancellationRequested();
             var wanted = table.Value.ToDictionary(Key);
@@ -82,6 +107,9 @@ internal sealed class PublisherEscherTableBorderPlan {
         long newTotal = total + delta, newDrawingCount = utilityShapes.Count + (long)delta;
         if (newTotal < 0 || newTotal > context.Options.Limits.MaxItems || newDrawingCount < 1 || newDrawingCount > uint.MaxValue) return null;
         if (additions > 0) {
+            // Fresh cells and edges inherit Dgg properties directly. A local
+            // utility-default value must not mask unsafe document defaults.
+            if (!PublisherEscherTableUtilityPlan.QualifiedDefaults(data, globalRecords, context)) return null;
             long length = added.Sum(bytes => (long)bytes.Length);
             if (length > int.MaxValue) return null;
             using var stream = new MemoryStream((int)length);
@@ -116,4 +144,33 @@ internal sealed class PublisherEscherTableBorderPlan {
     }
 
     internal static (int, int, int, int) Key(PublisherTableBorderSegment border) => (border.FirstRow, border.FirstColumn, border.LastRow, border.LastColumn);
+
+    private static bool QualifiedUtilityDefaults(PublisherBinaryData data, PublisherEscherReader reader, PublisherEscherRecord dgg,
+        IReadOnlyList<PublisherEscherRecord> shapes, uint drawingId, PublisherParseContext context) {
+        if (shapes.Count < 3) return false;
+        var root = reader.Records(shapes[0].Offset, shapes[0].End);
+        var fsps = root.Where(item => item.Kind == 0xF00A).ToArray();
+        var spaces = root.Where(item => item.Kind == 0xF009).ToArray();
+        if (root.Count != 2 || fsps.Length != 1 || fsps[0].Length != 8 || fsps[0].Initial != 2
+            || data.U32(fsps[0].Offset) != drawingId << 10 || data.U32(fsps[0].Offset + 4) != 5
+            || spaces.Length != 1 || spaces[0].Length != 16 || Enumerable.Range(0, 4).Any(axis => data.U32(spaces[0].Offset + axis * 4) != 0)) return false;
+        var globals = reader.Records(dgg.Offset, dgg.End); int cells = 0, borders = 0;
+        foreach (var shape in shapes.Skip(1)) {
+            context.Token.ThrowIfCancellationRequested();
+            var records = reader.Records(shape.Offset, shape.End);
+            var anchors = records.Where(item => item.Kind == 0xF010).ToArray();
+            if (anchors.Length != 1) return false;
+            var anchor = reader.ClientValues(anchors[0]);
+            if (anchor.ContainsKey(0x6802)) continue;
+            var descriptors = records.Where(item => item.Kind == 0xF00A).ToArray();
+            if (descriptors.Length != 1 || data.U32(descriptors[0].Offset + 4) != 0xA00
+                || records.Any(item => item.Kind is not (0xF00A or 0xF00B or 0xF122 or 0xF010))
+                || !PublisherEscherTableUtilityPlan.QualifiedDefaults(data, globals.Concat(records).ToArray(), context)) return false;
+            int type = descriptors[0].Initial >> 4;
+            if (type == 1 && anchor.Count == 0) cells++;
+            else if (type == 20 && anchor.Count == 1 && anchor.TryGetValue(0x2001, out uint kind) && kind == 1) borders++;
+            else return false;
+        }
+        return cells == 1 && borders == 1;
+    }
 }

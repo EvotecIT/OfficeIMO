@@ -13,6 +13,7 @@ internal static class Program {
 
     public static int Main(string[] args) {
         try {
+            if (args.Length == 3 && args[0] == "table-utility-source") return SourceTableUtilityControl.Prepare(args[1], args[2]);
             if (args.Length == 4 && args[0] == "source-newsletter") return SourceNewsletterLifecycle.Run(args[1], args[2], args[3]);
             if (args.Length == 4 && args[0] == "wrap-order") return SourceWrapOrder.Prepare(args[1], args[2], args[3]);
             if ((args.Length == 3 && args[0] == "preserve") || (args.Length is 8 or 9 && args[0] == "edit")
@@ -68,6 +69,7 @@ internal static class Program {
             Console.Error.WriteLine("create <object-pages|mixed-object-pages|master-content|newsletter> <candidate.pub> <image-path>");
             Console.Error.WriteLine("create <linked-story|linked-story-overflow> <candidate.pub>");
             Console.Error.WriteLine("create <table|table-edited|table-merged|table-decorated|table-decorated-edited> <candidate.pub>");
+            Console.Error.WriteLine("table-utility-source <decorated-bare-pair-control.pub> <derived-input.pub>");
             Console.Error.WriteLine("create <table-grid|table-grid-empty|table-grid-edited> <candidate.pub> <rows>x<columns>");
             Console.Error.WriteLine("create <frame-layout|frame-layout-edited> <candidate.pub>");
             Console.Error.WriteLine("create <frame-layout-language|linked-story-language|linked-story-language-overflow> <candidate.pub>");
