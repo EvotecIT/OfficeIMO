@@ -12,9 +12,9 @@ public sealed class HtmlAllSeverityBatch16SecurityTests {
     public void WordToHtmlDropsInvalidTableColorTokens() {
         using WordDocument document = WordDocument.Create();
         WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
-        cell.ShadingFillColor = OfficeColor.Parse("ffffff;background-image:url(https://tracker.invalid/pixel)");
+        cell.ShadingFillValue = "ffffff;background-image:url(https://tracker.invalid/pixel)";
         cell.Borders.LeftStyle = OfficeIMO.Word.WordBorderStyle.Single;
-        cell.Borders.LeftColor = OfficeColor.Parse("ffffff;position:fixed");
+        cell.Borders.LeftColorValue = "ffffff;position:fixed";
 
         string html = document.ToHtml();
 
