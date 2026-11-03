@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Xlsb.Biff12;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Threading;
@@ -470,8 +471,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     WriteSimpleCellHeader(output, BrtCellBlank, payloadLength: 8, cell);
                     return;
                 case XlsbWriteCellKind.Number:
+                    double number = Convert.ToDouble(cell.Value, System.Globalization.CultureInfo.InvariantCulture);
+                    if (BiffRkNumberReader.TryEncodeRkNumber(number, out uint rk)) {
+                        WriteSimpleCellHeader(output, BrtCellRk, payloadLength: 12, cell);
+                        WriteUInt32(output, rk);
+                        return;
+                    }
                     WriteSimpleCellHeader(output, BrtCellReal, payloadLength: 16, cell);
-                    WriteDouble(output, Convert.ToDouble(cell.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    WriteDouble(output, number);
                     return;
                 case XlsbWriteCellKind.Text:
                     string text = (string?)cell.Value ?? string.Empty;

@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Diagnostics;
 using System.Threading;
 
@@ -312,8 +313,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         break;
                     case ExcelDirectTabularValueKind.Number:
                     case ExcelDirectTabularValueKind.DateTime:
-                        WriteDirectFixedCellHeader(output, ref position, 0x0203, 14, checked((ushort)directRow), legacyColumn,
-                            kind == ExcelDirectTabularValueKind.DateTime ? plan.DateStyleIndex : DirectDefaultCellStyleIndex);
+                        ushort numberStyle = kind == ExcelDirectTabularValueKind.DateTime ? plan.DateStyleIndex : DirectDefaultCellStyleIndex;
+                        if (BiffRkNumberReader.TryEncodeRkNumber(BitConverter.Int64BitsToDouble(unchecked((long)payload)), out uint rk)) {
+                            WriteDirectFixedCellHeader(output, ref position, 0x027e, 10, checked((ushort)directRow), legacyColumn, numberStyle);
+                            WriteUInt32(output, position, rk);
+                            position += 4;
+                            break;
+                        }
+                        WriteDirectFixedCellHeader(output, ref position, 0x0203, 14, checked((ushort)directRow), legacyColumn, numberStyle);
                         WriteUInt32(output, position, unchecked((uint)payload));
                         WriteUInt32(output, position + 4, unchecked((uint)(payload >> 32)));
                         position += 8;

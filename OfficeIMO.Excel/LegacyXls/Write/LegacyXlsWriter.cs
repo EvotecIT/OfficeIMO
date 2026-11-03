@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.LegacyXls.Biff;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
@@ -2016,6 +2017,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteNumberCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, double value, ushort styleIndex) {
+            // A number with an exact RK form uses the shorter RK record, as Excel does.
+            if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
+                WriteFixedCellRecordHeader(buffer, 0x027e, payloadLength: 10, row, column, styleIndex);
+                WriteUInt32(buffer, 10, rk);
+                stream.Write(buffer, 0, 14);
+                return;
+            }
             WriteFixedCellRecordHeader(buffer, 0x0203, payloadLength: 14, row, column, styleIndex);
             ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
             WriteUInt32(buffer, 10, unchecked((uint)bits));
