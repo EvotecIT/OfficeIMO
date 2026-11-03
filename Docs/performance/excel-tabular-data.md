@@ -133,6 +133,34 @@ from 659.5 to 708.5 ms and calc from 43.6 to 45.8 ms; two interleaved
 baseline/candidate reruns put both within 2% of each other. Every other category
 moved by 4% or less.
 
+## Single-pass binary readers: 3 November 2026
+
+The XLSB and XLS readers now validate each record when `Read` reaches it instead of
+proving the whole worksheet first. The XLSB and XLS writers store exact numbers as RK
+values, and typed mapping reads the worksheet reader directly instead of through the
+workbook wrapper. The baseline is `5d33057990`; harness, options and pinned reader inputs
+match the earlier cohorts. Other agents' builds loaded this host heavily during both
+interleaved before/after pairs (load averages from 7 to 134), and unchanged third-party
+lanes moved by up to 40%, so I report allocation and timing directions only.
+
+| Lane | Before MiB | After MiB | Timing in both pairs |
+|---|---:|---:|---|
+| XLSX, XLSB, XLS read | 2.274, 2.284, 3.269 | unchanged | within launch variation |
+| XLSB typed parse | 4.574 | 4.574 | about 8% faster |
+| XLSX typed parse | 4.562 | 4.562 | 5% to 14% faster |
+| XLS write | 36.193 | 34.459 | within launch variation |
+| XLSB write | 15.173 | 15.470 | within launch variation |
+
+Sylvan, ExcelDataReader, SpreadCheetah and every XLBench shape keep their allocation.
+The single pass did not make XLSB reads measurably faster. The old discovery pass was
+already one fused scan, and its row plan let delivery skip framing; one validating pass
+costs about the same. A profile of the new reader puts inflation at about a third of an
+XLSB read (2.3 ms alone for the 5.7 MB part) and the validating row loop at about a
+quarter. The remaining XLSB gap is per-record work, not a second pass. Typed parsing
+spent about a tenth of its time qualifying cells through the wrapper; that hop is gone,
+but the per-cell check stays, because the public getters convert more permissively than
+the mapper's own rules and the check keeps both paths' results identical.
+
 ## Remaining costs and limits
 
 Parity is incomplete. XLSX reads remain about 56% slower than ExcelReader.NET, XLSX
