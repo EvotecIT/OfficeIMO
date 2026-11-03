@@ -18,7 +18,7 @@ public sealed class RtfWordLegacyNumberingTests {
         RtfDocument source = RtfDocument.Parse(input);
         string before = Native(source);
 
-        RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.False(conversion.Report.HasLoss);
         conversion.Report.ThrowIfLoss();
@@ -31,7 +31,7 @@ public sealed class RtfWordLegacyNumberingTests {
         Assert.Equal(1, level.StartNumberingValue!.Val!.Value);
         Assert.Equal("Times New Roman", level.NumberingSymbolRunProperties!.RunFonts!.Ascii!.Value);
         AssertArtifact(word, "1.", "2.");
-        using WordDocument repeated = source.ToWordDocument();
+        using WordDocument repeated = source.ToWord();
         AssertArtifact(repeated, "1.", "2.");
         Assert.Equal(before, Native(source));
         Assert.All(source.Paragraphs, paragraph => Assert.Null(paragraph.ListId));
@@ -46,7 +46,7 @@ public sealed class RtfWordLegacyNumberingTests {
         Legacy(source.AddParagraph("Restarted"), 1);
         string before = Native(source);
 
-        RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.False(conversion.Report.HasLoss);
         Assert.Equal(Id(word.Paragraphs[0]), Id(word.Paragraphs[1]));
@@ -74,7 +74,7 @@ public sealed class RtfWordLegacyNumberingTests {
         source.AddParagraph("Modern continued").SetList(7, kind: RtfListKind.Decimal);
         string before = Native(source);
 
-        RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.False(conversion.Report.HasLoss);
         Assert.Equal(7, Id(word.Paragraphs[0]));
@@ -95,7 +95,7 @@ public sealed class RtfWordLegacyNumberingTests {
         Legacy(source.AddHeader().AddParagraph("Header"), 1);
         string before = Native(source);
 
-        RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         Assert.False(conversion.Report.HasLoss);
         WordParagraph cell = Assert.Single(word.Tables[0].Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Cell");
@@ -142,7 +142,7 @@ public sealed class RtfWordLegacyNumberingTests {
         if (profile != "roman-resolved") paragraph.SetListText(expected);
         string before = Native(source);
 
-        RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         WordParagraphInfo visible = Assert.Single(word.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
@@ -169,7 +169,7 @@ public sealed class RtfWordLegacyNumberingTests {
         source.AddParagraph("Continued").SetStyle(10).SetListText("10.\t");
         string before = Native(source);
 
-        RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         conversion.Report.ThrowIfLoss();
         Assert.NotEqual(Id(word.Paragraphs[0]), Id(word.Paragraphs[1]));
@@ -205,7 +205,7 @@ public sealed class RtfWordLegacyNumberingTests {
         }
         string before = Native(source);
 
-        RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         conversion.Report.ThrowIfLoss();
         AssertNoteBindings(word, kind);
@@ -260,7 +260,7 @@ public sealed class RtfWordLegacyNumberingTests {
         body.Runs[0].SetNote(note);
         string before = Native(source);
 
-        RtfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
         conversion.Report.ThrowIfLoss();
         AssertRtfInlineNote(word, kind, shape);

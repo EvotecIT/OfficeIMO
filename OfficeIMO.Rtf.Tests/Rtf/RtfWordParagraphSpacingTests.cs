@@ -17,7 +17,7 @@ public class RtfWordParagraphSpacingTests {
         RtfDocument source = RtfDocument.Create();
         source.AddParagraph("Spacing").SetLineSpacing(line, multiple);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
 
         AssertSpacing(Assert.Single(reopened._document.Body!.Elements<Paragraph>()), Math.Abs(line), rule);
@@ -40,13 +40,13 @@ public class RtfWordParagraphSpacingTests {
             Assert.Null(paragraph._paragraph.ParagraphProperties!.SpacingBetweenLines!.LineRule);
         }
 
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         RtfDocument parsed = RtfDocument.ParseResult(rtf).Document;
         RtfParagraph mapped = Assert.Single(parsed.Paragraphs);
 
         Assert.Equal(expectedLine, mapped.LineSpacingTwips);
         Assert.Equal(expectedMultiple, mapped.LineSpacingMultiple);
-        using WordDocument roundTrip = parsed.ToWordDocument();
+        using WordDocument roundTrip = parsed.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(roundTrip.ToBytes()));
         AssertSpacing(Assert.Single(reopened._document.Body!.Elements<Paragraph>()), 360, rule ?? WordLineSpacingRule.Auto);
     }
@@ -64,7 +64,7 @@ public class RtfWordParagraphSpacingTests {
         source.AddStyle(8, "Inherited spacing").BasedOnStyleId = 7;
         source.AddParagraph("Styled").SetStyle(8);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         Styles styles = reopened._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         Style mappedParent = Assert.Single(styles.Elements<Style>(), style => style.StyleId?.Value == "RtfP7");
@@ -74,7 +74,7 @@ public class RtfWordParagraphSpacingTests {
         Assert.Equal("RtfP7", mappedChild.BasedOn?.Val?.Value);
         AssertSpacing(Assert.Single(reopened._document.Body!.Elements<Paragraph>()), Math.Abs(line), rule);
 
-        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document;
+        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document;
         RtfStyle returnedParent = Assert.Single(returned.Styles, style => style.Name == "RtfP7");
         RtfStyle returnedChild = Assert.Single(returned.Styles, style => style.Name == "RtfP8");
         Assert.Equal(line, returnedParent.LineSpacingTwips);
@@ -92,7 +92,7 @@ public class RtfWordParagraphSpacingTests {
         word._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         word.AddParagraph("Styled").SetStyleId("AutomaticSpacing");
 
-        RtfStyle mapped = Assert.Single(word.ToRtfDocument().Styles, item => item.Name == "AutomaticSpacing");
+        RtfStyle mapped = Assert.Single(word.ToRtf().Styles, item => item.Name == "AutomaticSpacing");
 
         Assert.Equal(360, mapped.LineSpacingTwips);
         Assert.True(mapped.LineSpacingMultiple);
@@ -104,13 +104,13 @@ public class RtfWordParagraphSpacingTests {
         source.AddStyle(7, "Spacing omitted");
         source.AddParagraph("Plain").SetStyle(7);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         Assert.Null(Assert.Single(reopened._document.Body!.Elements<Paragraph>()).ParagraphProperties?.SpacingBetweenLines);
         Style style = Assert.Single(reopened._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>(),
             item => item.StyleId?.Value == "RtfP7");
         Assert.Null(style.StyleParagraphProperties?.SpacingBetweenLines);
-        RtfDocument returned = reopened.ToRtfDocument();
+        RtfDocument returned = reopened.ToRtf();
         Assert.Null(Assert.Single(returned.Paragraphs).LineSpacingTwips);
         Assert.Null(Assert.Single(returned.Paragraphs).LineSpacingMultiple);
         RtfStyle returnedStyle = Assert.Single(returned.Styles, item => item.Name == "RtfP7");
@@ -132,7 +132,7 @@ public class RtfWordParagraphSpacingTests {
         WordParagraph paragraph = word.AddParagraph("Inherited").SetStyleId("RuleOnlyChild");
         paragraph.NativeLineSpacingRule = WordLineSpacingRule.AtLeast;
 
-        RtfDocument authored = word.ToRtfDocument();
+        RtfDocument authored = word.ToRtf();
         RtfStyle authoredChild = Assert.Single(authored.Styles, item => item.Name == "RuleOnlyChild");
         Assert.Null(authoredChild.LineSpacingTwips);
         Assert.Null(authoredChild.LineSpacingMultiple);
@@ -147,7 +147,7 @@ public class RtfWordParagraphSpacingTests {
         Assert.Null(mappedChild.LineSpacingMultiple);
         Assert.Equal(-360, Assert.Single(mapped.Paragraphs).LineSpacingTwips);
         Assert.False(Assert.Single(mapped.Paragraphs).LineSpacingMultiple);
-        using WordDocument returned = mapped.ToWordDocument();
+        using WordDocument returned = mapped.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(returned.ToBytes()));
         AssertSpacing(Assert.Single(reopened._document.Body!.Elements<Paragraph>()), 360, WordLineSpacingRule.Exact);
     }
@@ -157,7 +157,7 @@ public class RtfWordParagraphSpacingTests {
         RtfDocument source = RtfDocument.Create();
         source.AddParagraph("Spacing").SetLineSpacing(int.MinValue, false);
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ToWordDocument());
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ToWord());
 
         Assert.Contains("line-spacing magnitude", exception.Message, StringComparison.Ordinal);
     }
@@ -178,7 +178,7 @@ public class RtfWordParagraphSpacingTests {
         source.AddParagraph("Footnote anchor").AddText(" F").SetNote(footnote);
         source.AddParagraph("Endnote anchor").AddText(" E").SetNote(endnote);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         var main = reopened._wordprocessingDocument.MainDocumentPart!;
         Document mainDocument = Assert.IsType<Document>(main.Document);
@@ -190,7 +190,7 @@ public class RtfWordParagraphSpacingTests {
         AssertSpacing(Assert.Single(main.FootnotesPart!.Footnotes!.Descendants<Paragraph>(), item => item.InnerText == "Footnote"), 360, WordLineSpacingRule.AtLeast);
         AssertSpacing(Assert.Single(main.EndnotesPart!.Endnotes!.Descendants<Paragraph>(), item => item.InnerText == "Endnote"), 360, WordLineSpacingRule.Exact);
 
-        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document;
+        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document;
         RtfTable returnedTable = Assert.Single(returned.Blocks.OfType<RtfTable>());
         AssertRawSpacing(Assert.Single(returned.Paragraphs, item => item.ToPlainText() == "Body"), 360, false);
         AssertRawSpacing(Assert.Single(returnedTable.Rows[0].Cells[0].Paragraphs, item => item.ToPlainText() == "Cell"), -360, false);

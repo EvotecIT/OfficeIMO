@@ -14,12 +14,12 @@ public class RtfSectionHeaderFooterRegressionTests {
     public void Word_Bridge_Does_Not_Create_Empty_First_Or_Even_Stories_That_Clear_Inheritance() {
         const string input = @"{\rtf1\ansi\facingp\sectd\titlepg{\headerf FirstHeader\par}{\headerl EvenHeader\par}{\footerf FirstFooter\par}{\footerl EvenFooter\par}One\par\sect\sectd\titlepg Two\par}";
         RtfDocument source = RtfDocument.ParseResult(input).Document;
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using var bytes = new MemoryStream();
         word.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
-        RtfDocument result = reopened.ToRtfDocument();
+        RtfDocument result = reopened.ToRtf();
         Assert.Equal(2, result.Sections.Count);
         Assert.Equal(4, result.Sections[0].HeaderFooters.Count);
         Assert.Empty(result.Sections[1].HeaderFooters);
@@ -46,12 +46,12 @@ public class RtfSectionHeaderFooterRegressionTests {
     [Fact]
     public void Word_Bridge_Preserves_Default_Header_Overrides_And_Footer_Inheritance() {
         RtfDocument source = RtfDocument.ParseResult(Input).Document;
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using var bytes = new MemoryStream();
         word.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
-        AssertSections(reopened.ToRtfDocument());
+        AssertSections(reopened.ToRtf());
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class RtfSectionHeaderFooterRegressionTests {
     public void Html_Metadata_RoundTrip_Preserves_Section_Ownership_And_Empty_Overrides() {
         RtfDocument document = RtfDocument.ParseResult(Input).Document;
         string html = document.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
-        AssertSections(HtmlConversionDocument.Parse(html).ToRtfDocument());
+        AssertSections(HtmlConversionDocument.Parse(html).ToRtf());
     }
 
     private static void AssertSections(RtfDocument document) {

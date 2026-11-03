@@ -30,7 +30,7 @@ public class RtfFrameLossDiagnosticTests {
         string documentXml = word._document.OuterXml;
         string stylesXml = styles.OuterXml;
 
-        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> result = word.ConvertToRtfWithEvidence();
 
         string code = frame ? "WordRtfParagraphFramesFlattened" : "WordRtfTabClearsOmitted";
         RtfConversionDiagnostic warning = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == code);
@@ -70,7 +70,7 @@ public class RtfFrameLossDiagnosticTests {
         Assert.Contains("FRAMEDMARKER", PdfCore.PdfReadDocument.Open(direct.ToBytes(),
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
 
-        RtfConversionResult<WordDocument> bridge = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> bridge = source.ConvertToWordWithEvidence();
         using WordDocument word = bridge.Value;
         if (story is "header" or "footer") {
             WordHeaderFooter runningStory = story == "header"
@@ -132,7 +132,7 @@ public class RtfFrameLossDiagnosticTests {
         RtfDocument plain = RtfDocument.Create();
         plain.AddParagraph("PLAINMARKER");
         Assert.DoesNotContain(plain.ConvertToPdfWithEvidence(options).Warnings, warning => warning.Code == "ParagraphFrameFlattened");
-        var wordResult = plain.ToWordDocumentResult();
+        var wordResult = plain.ConvertToWordWithEvidence();
         wordResult.ThrowIfLoss();
         using WordDocument word = wordResult.Value;
     }
@@ -167,7 +167,7 @@ public class RtfFrameLossDiagnosticTests {
             paragraph._paragraph.ParagraphProperties.AddChild(tabs, true);
         }
         string original = paragraph._paragraph.OuterXml;
-        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> result = word.ConvertToRtfWithEvidence();
         RtfConversionDiagnostic warning = Assert.Single(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfTabClearsOmitted");
         Assert.Equal(RtfConversionAction.Omitted, warning.Action);
@@ -201,7 +201,7 @@ public class RtfFrameLossDiagnosticTests {
         string paragraphXml = paragraph._paragraph.OuterXml;
         string stylesXml = word.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
 
-        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> result = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(result.Report.NativeDiagnostics,
             item => item.Code == "WordRtfParagraphFramesFlattened");

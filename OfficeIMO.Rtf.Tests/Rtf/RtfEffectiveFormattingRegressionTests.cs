@@ -18,9 +18,9 @@ public class RtfEffectiveFormattingRegressionTests {
         style.ForegroundColorIndex = source.AddColor(0x12, 0x34, 0x56);
         style.HighlightColorIndex = source.AddColor(0xFF, 0xFF, 0x00);
         source.AddParagraph("Inherited").StyleId = style.Id;
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument));
-        RtfDocument reopened = word.ToRtfDocument();
+        RtfDocument reopened = word.ToRtf();
         RtfParagraph paragraph = Assert.Single(reopened.Paragraphs);
         RtfRun run = reopened.ResolveRunFormatting(paragraph, Assert.Single(paragraph.Runs));
         Assert.Equal("#123456", reopened.GetColor(run.ForegroundColorIndex!.Value)!.ToString());
@@ -33,7 +33,7 @@ public class RtfEffectiveFormattingRegressionTests {
     [Fact]
     public void Docx_Contains_Explicit_Off_Values_Underneath_Inherited_Styles() {
         RtfDocument document = RtfDocument.ParseResult(Input).Document;
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         using var bytes = new MemoryStream();
         word.Save(bytes);
         bytes.Position = 0;
@@ -56,7 +56,7 @@ public class RtfEffectiveFormattingRegressionTests {
         AssertDefaults(source);
         AssertDefaults(RtfDocument.ParseResult(source.ToRtf()).Document);
         string html = source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
-        AssertDefaults(HtmlConversionDocument.Parse(html).ToRtfDocument());
+        AssertDefaults(HtmlConversionDocument.Parse(html).ToRtf());
 
         static void AssertDefaults(RtfDocument document) {
             RtfParagraph paragraph = document.Paragraphs[0];
@@ -117,8 +117,8 @@ public class RtfEffectiveFormattingRegressionTests {
         string html = document.ToHtml(new RtfHtmlExportOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
         Assert.Contains("text-align:center", html, StringComparison.Ordinal);
         Assert.Contains("<strong><em>Inherited ", html, StringComparison.Ordinal);
-        Assert.Contains("***Inherited", document.ToMarkdown(), StringComparison.Ordinal);
-        RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        Assert.Contains("***Inherited", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
+        RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtf();
         Assert.Null(reopened.Paragraphs[0].DirectAlignment);
         Assert.Null(reopened.Paragraphs[0].Runs.Single(run => run.Text == "Inherited ").DirectBold);
         Assert.False(reopened.Paragraphs[0].Runs.Single(run => run.Text == "Cleared").DirectBold);
@@ -132,7 +132,7 @@ public class RtfEffectiveFormattingRegressionTests {
         OfficeIMO.Pdf.RichParagraphBlock paragraph = Assert.IsType<OfficeIMO.Pdf.RichParagraphBlock>(pdf.Blocks.First());
         Assert.True(paragraph.Runs.First(run => run.Text == "Inherited ").Bold);
         Assert.False(paragraph.Runs.First(run => run.Text == "Cleared").Bold);
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         Assert.True(word.Paragraphs.First(run => run.Text == "Inherited ").Bold);
         Assert.False(word.Paragraphs.First(run => run.Text == "Cleared").Bold);
     }

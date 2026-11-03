@@ -15,8 +15,8 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph("Body text");
         paragraph.AddFootNote("Footnote text");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfRun run = Assert.Single(rtfParagraph.Runs);
@@ -34,8 +34,8 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph("Body text");
         paragraph.AddEndNote("Endnote text");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfRun run = Assert.Single(rtfParagraph.Runs);
@@ -54,8 +54,8 @@ public partial class WordRtfConverterTests {
         paragraph.AddFootNote("Leading footnote");
         paragraph.AddText("Body text");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Collection(rtfParagraph.Inlines,
@@ -81,7 +81,7 @@ public partial class WordRtfConverterTests {
         noteParagraph.AddText("bold").SetBold();
         bodyRun.SetNote(note);
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordFootNote footNote = Assert.Single(word.FootNotes);
         Assert.NotNull(footNote.ParentParagraph);
@@ -101,7 +101,7 @@ public partial class WordRtfConverterTests {
         noteParagraph.AddText("bold").SetBold();
         bodyRun.SetNote(note);
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordEndNote endNote = Assert.Single(word.EndNotes);
         Assert.NotNull(endNote.ParentParagraph);
@@ -116,8 +116,8 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("Target").AddBookmark("Anchor");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph paragraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("Target", paragraph.ToPlainText());
@@ -145,7 +145,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddText("Target");
         paragraph.AddBookmarkEnd("Anchor");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordBookmark bookmark = Assert.Single(word.Bookmarks);
         Assert.Equal("Anchor", bookmark.Name);
@@ -160,7 +160,7 @@ public partial class WordRtfConverterTests {
         simpleField.Append(new Run(new Text("1")));
         paragraph._paragraph.Append(simpleField);
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
+        RtfDocument rtfDocument = word.ToRtf();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfField field = Assert.IsType<RtfField>(Assert.Single(rtfParagraph.Inlines));
@@ -174,8 +174,8 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddField(WordFieldType.Page, advanced: true);
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfField field = Assert.IsType<RtfField>(Assert.Single(rtfParagraph.Inlines));
@@ -202,7 +202,7 @@ public partial class WordRtfConverterTests {
             TextRun(" After"),
             FieldRun(FieldCharValues.End));
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
+        RtfDocument rtfDocument = word.ToRtf();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfField outerField = Assert.IsType<RtfField>(Assert.Single(rtfParagraph.Inlines));
@@ -225,7 +225,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddText(" Section ");
         paragraph.AddSectionNumber("2");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         List<SimpleField> fields = word._document.Body!.Descendants<SimpleField>().ToList();
         Assert.Collection(fields,
@@ -246,7 +246,7 @@ public partial class WordRtfConverterTests {
         RtfField field = paragraph.AddField(@"PAGE \* MERGEFORMAT");
         field.AddText("1");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         SimpleField simpleField = Assert.Single(word._document.Body!.Descendants<SimpleField>());
         Assert.Equal(@"PAGE \* MERGEFORMAT", simpleField.Instruction?.Value);

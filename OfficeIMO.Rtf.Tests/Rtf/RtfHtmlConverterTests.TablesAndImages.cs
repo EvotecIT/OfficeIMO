@@ -10,7 +10,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Lists_And_Tables() {
         const string html = "<ul><li>Allergy</li><li><strong>Medication</strong></li></ul><table><tr><th>Name</th><th>Value</th></tr><tr><td>Pulse</td><td>72</td></tr></table>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         Assert.Equal(RtfListKind.Bullet, document.Paragraphs[0].ListKind);
         Assert.Equal("Allergy", document.Paragraphs[0].ToPlainText());
@@ -27,7 +27,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Table_Header_And_Cell_Styles() {
         const string html = "<table><thead><tr><th style=\"background-color:#f2f2f2;width:25%;vertical-align:middle\">Name</th><th style=\"text-align:right;width:72pt\">Value</th></tr></thead><tbody><tr><td style=\"background:#fff2cc;vertical-align:bottom\">Pulse</td><td>72</td></tr></tbody></table>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         Assert.True(table.Rows[0].RepeatHeader);
@@ -95,7 +95,7 @@ public partial class RtfHtmlConverterTests {
             EmbedImagesAsDataUri = false
         };
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
@@ -111,7 +111,7 @@ public partial class RtfHtmlConverterTests {
         document.AddImage(RtfImageFormat.Emf, new byte[] { 0x01, 0x02, 0x03 });
         RtfHtmlExportOptions options = RtfHtmlExportOptions.CreateRoundTripProfile();
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
@@ -124,7 +124,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Table_Colspan_And_Rowspan() {
         const string html = "<table><tr><th colspan=\"2\">Panel</th><th rowspan=\"2\">Flag</th></tr><tr><td>Pulse</td><td>72</td></tr></table>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         Assert.Equal(RtfTableCellMerge.First, table.Rows[0].Cells[0].HorizontalMerge);
@@ -169,7 +169,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Table_Cell_Borders_And_Padding() {
         const string html = "<table><tr><td style=\"padding:6pt 9pt 3pt 12pt;border:1pt solid #0c2238;border-bottom:2pt dashed red\">Value</td></tr></table>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         RtfTableCell cell = table.Rows[0].Cells[0];
@@ -228,7 +228,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Legacy_Table_Cell_Attributes() {
         const string html = "<table><tr><td align=\"right\" valign=\"middle\" bgcolor=\"#fff2cc\" width=\"30%\" nowrap>Result</td></tr></table>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         RtfTableCell cell = table.Rows[0].Cells[0];
@@ -270,7 +270,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Table_Row_Attributes_And_Styles() {
         const string html = "<table><tr align=\"center\" bgcolor=\"#f2f2f2\" width=\"80%\" height=\"24pt\" style=\"padding:3pt 4pt 5pt 6pt\"><td>Result</td></tr></table>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         RtfTableRow row = table.Rows[0];
@@ -320,7 +320,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Parses_Image_Dimensions() {
         const string html = "<p><img src=\"data:image/png;base64,iVBORw==\" alt=\"Chart\" width=\"96\" height=\"48\" style=\"width:120pt;height:60pt\"></p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfImage image = Assert.Single(paragraph.Inlines.OfType<RtfImage>());
@@ -345,7 +345,7 @@ public partial class RtfHtmlConverterTests {
     public void HtmlImageEmbeddedDpiPreventsUnnecessaryFitting() {
         byte[] photo = OfficePngWriter.Encode(new OfficeRasterImage(1200, 1200, OfficeColor.White),
             new OfficePngEncodeOptions { WritePhysicalResolution = true, DpiX = 300, DpiY = 300 });
-        var result = HtmlConversionDocument.Parse("<img src='data:image/png;base64," + Convert.ToBase64String(photo) + "'>").ToRtfDocumentResult();
+        var result = HtmlConversionDocument.Parse("<img src='data:image/png;base64," + Convert.ToBase64String(photo) + "'>").ConvertToRtfWithEvidence();
         RtfImage image = Assert.Single(result.RequireValue().Paragraphs.SelectMany(p => p.Inlines).OfType<RtfImage>());
         Assert.Null(image.DesiredWidthTwips);
         Assert.Null(image.DesiredHeightTwips);
@@ -360,7 +360,7 @@ public partial class RtfHtmlConverterTests {
             + "\" alt=\"Photo\"></p><p><img src=\"data:image/png;base64," + Convert.ToBase64String(icon)
             + "\" alt=\"Icon\"></p>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         RtfImage large = Assert.Single(result.RequireValue().Paragraphs[0].Inlines.OfType<RtfImage>());
         RtfImage small = Assert.Single(result.RequireValue().Paragraphs[1].Inlines.OfType<RtfImage>());
 
@@ -380,7 +380,7 @@ public partial class RtfHtmlConverterTests {
     public void Html_ToRtfDocument_Uses_Shared_Image_Source_Resolution() {
         const string html = "<p><img src=\"https://example.test/chart.png\" data-src=\"data:image/jpeg;base64,/9g=\" alt=\"Chart\"></p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfImage image = Assert.Single(Assert.Single(document.Paragraphs).Inlines.OfType<RtfImage>());
         Assert.Equal(RtfImageFormat.Jpeg, image.Format);
@@ -405,7 +405,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Equal("48", rendered.GetAttribute("height"));
         Assert.Equal("width:72pt;height:36pt;", rendered.GetAttribute("style"));
 
-        RtfImage roundTripImage = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs[0].Inlines.OfType<RtfImage>());
+        RtfImage roundTripImage = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs[0].Inlines.OfType<RtfImage>());
         Assert.Equal(96, roundTripImage.SourceWidth);
         Assert.Equal(48, roundTripImage.SourceHeight);
         Assert.Equal(1440, roundTripImage.DesiredWidthTwips);

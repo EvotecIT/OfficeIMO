@@ -119,14 +119,14 @@ internal static class RtfBenchmarkBudgetRunner {
         } else if (string.Equals(operation, "HtmlWebSafe", StringComparison.OrdinalIgnoreCase)) {
             outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToHtml(RtfHtmlExportOptions.CreateWebSafeProfile()));
         } else if (string.Equals(operation, "Markdown", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToMarkdown());
+            outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToMarkdown().ToMarkdown());
         } else if (string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)) {
             outputBytes = preparedDocument!.ToPdf(preparedPdfOptions).ToBytes().LongLength;
         } else if (string.Equals(operation, "WordModel", StringComparison.OrdinalIgnoreCase)) {
-            using WordDocument word = preparedDocument!.ToWordDocument();
+            using WordDocument word = preparedDocument!.ToWord();
             outputBytes = 0;
         } else if (string.Equals(operation, "Word", StringComparison.OrdinalIgnoreCase)) {
-            using WordDocument word = preparedDocument!.ToWordDocument();
+            using WordDocument word = preparedDocument!.ToWord();
             using MemoryStream stream = new MemoryStream(word.ToBytes());
             outputBytes = stream.Length;
         } else {

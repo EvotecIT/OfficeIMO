@@ -33,7 +33,7 @@ public class RtfHtmlDocumentSettingsTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-document-settings\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         Assert.Equal(RtfDocumentCharacterSet.Ansi, roundTrip.Settings.CharacterSet);
         Assert.Equal(1250, roundTrip.Settings.AnsiCodePage);
         Assert.Equal(2, roundTrip.Settings.UnicodeSkipCount);
@@ -87,7 +87,7 @@ public class RtfHtmlDocumentSettingsTests {
             EmbedImagesAsDataUri = true, FragmentOnly = false }));
         string html = "<html lang=\"ar-SA\" dir=\"rtl\"><head>" + settingsMeta + "</head><body><p>Body</p></body></html>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         Assert.Equal(1025, document.Settings.DefaultLanguageId);
         Assert.Equal(RtfTextDirection.RightToLeft, document.Settings.Direction);

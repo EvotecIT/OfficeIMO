@@ -10,14 +10,11 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
 
 RtfDocument rtf = RtfDocument.Load("input.rtf");
-RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
-
-using WordDocument word = conversion.Value;
-conversion.Report.ThrowIfLoss();
+using WordDocument word = rtf.ToWord(new RtfWordExportOptions { FailOnLoss = true }, out OfficeConversionReport report);
 word.Save("output.docx");
 ```
 
-The reverse API is `word.ToRtfDocumentResult()`. Compatibility helpers such as `ToWordDocument()`, `ToRtfDocument()`, `LoadFromRtf()`, and `ToRtf()` remain available when the caller does not need the report.
+The reverse direction is `word.ToRtf(options, out report)` for the RTF model and `word.SaveAsRtf(path, options)` for a file; `WordRtfExportOptions` carries the RTF writer settings and encoding. A parsed `RtfReadResult` converts with `ToWord`, adding its read diagnostics to the report.
 
 Supported text, tabs, breaks, images and note references retain their order when combined within one Word run. Conversion keeps surrounding text and each note reference without changing the Word source.
 

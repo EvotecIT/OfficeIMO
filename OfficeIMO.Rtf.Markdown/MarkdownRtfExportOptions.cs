@@ -15,4 +15,16 @@ public sealed class MarkdownRtfExportOptions {
 
     /// <summary>Maximum number of cells allocated for one converted Markdown table. Default: 100,000.</summary>
     public int MaxTableCells { get; set; } = 100_000;
+
+    /// <summary>RTF writer settings used when the converted document is saved.</summary>
+    public OfficeIMO.Rtf.RtfSaveOptions? SaveOptions { get; set; }
+
+    /// <summary>Encoding used when the RTF is saved. Null uses the RTF writer default.</summary>
+    public System.Text.Encoding? Encoding { get; set; }
+
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
+    /// <summary>Creates a copy of these settings; nested reader and writer settings are shared.</summary>
+    public MarkdownRtfExportOptions Clone() => (MarkdownRtfExportOptions)MemberwiseClone();
 }

@@ -87,7 +87,7 @@ public class RtfPaginationHeaderNativeRegressionTests {
         byte[]? mappedDocx = null;
         RtfConversionReport? mappedReport = null;
         if (throughWord) {
-            RtfConversionResult<WordDocument> mapped = read.ToWordDocumentResult(path);
+            RtfConversionResult<WordDocument> mapped = read.ConvertToWordWithEvidence(path);
             using WordDocument word = mapped.Value;
             using var docx = new MemoryStream();
             word.Save(docx);

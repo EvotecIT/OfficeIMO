@@ -25,7 +25,7 @@ public class RtfHtmlParagraphControlTests {
 
         Assert.Contains("data-officeimo-rtf-paragraph-controls=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         RtfParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.True(roundTripParagraph.KeepWithNext);
         Assert.True(roundTripParagraph.KeepLinesTogether);

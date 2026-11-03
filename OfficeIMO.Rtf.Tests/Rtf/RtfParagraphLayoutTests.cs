@@ -171,9 +171,9 @@ public class RtfParagraphLayoutTests {
         paragraph._paragraph.ParagraphProperties.WidowControl = new WidowControl { Val = false };
         paragraph._paragraph.ParagraphProperties.OutlineLevel = new OutlineLevel { Val = 2 };
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.True(rtfParagraph.PageBreakBefore);
@@ -240,7 +240,7 @@ public class RtfParagraphLayoutTests {
             .SetParagraphSpacing(beforeTwips: 180, afterTwips: 300, beforeAuto: false, afterAuto: true)
             .SetLineSpacing(480, multiple: true);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         WordParagraph paragraph = Assert.Single(word.Paragraphs);
         Assert.True(paragraph.PageBreakBefore);
@@ -266,7 +266,7 @@ public class RtfParagraphLayoutTests {
         const string rtf = @"{\rtf1\ansi\pard\qc Centred.\par\pard\qr Right.\par\pard\qj Justified.\par\pard\li720\ri360\fi-360 Indented.\par}";
 
         RtfReadResult result = RtfDocument.ParseResult(rtf);
-        using WordDocument word = result.Document.ToWordDocument();
+        using WordDocument word = result.Document.ToWord();
 
         Assert.Equal(4, word.Paragraphs.Count);
         Assert.Equal(WordParagraphAlignment.Center, word.Paragraphs[0].ParagraphAlignment);
@@ -291,9 +291,9 @@ public class RtfParagraphLayoutTests {
         indented.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
         indented.IndentationHanging = global::OfficeIMO.OfficeLength.Points(18D);
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         Assert.Equal(RtfTextAlignment.Center, rtfDocument.Paragraphs[0].DirectAlignment);
         Assert.Equal(RtfTextAlignment.Justify, rtfDocument.Paragraphs[1].DirectAlignment);
@@ -350,9 +350,9 @@ public class RtfParagraphLayoutTests {
         WordParagraph paragraph = word.AddParagraph("RTL");
         paragraph.BiDi = true;
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal(RtfTextDirection.RightToLeft, rtfParagraph.Direction);
@@ -365,7 +365,7 @@ public class RtfParagraphLayoutTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("RTL").SetDirection(RtfTextDirection.RightToLeft);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         Assert.True(Assert.Single(word.Paragraphs).BiDi);
     }

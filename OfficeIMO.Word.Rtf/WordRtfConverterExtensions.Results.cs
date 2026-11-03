@@ -11,17 +11,15 @@ namespace OfficeIMO.Word.Rtf;
 /// Provides result-bearing Word/RTF conversion APIs and fidelity analysis.
 /// </content>
 public static partial class WordRtfConverterExtensions {
-    /// <summary>Converts Word to RTF and reports any structure that was flattened or omitted.</summary>
-    public static RtfConversionResult<RtfDocument> ToRtfDocumentResult(this WordDocument document) {
+    internal static RtfConversionResult<RtfDocument> ConvertToRtfWithEvidence(this WordDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        RtfDocument converted = document.ToRtfDocument();
+        RtfDocument converted = document.ConvertToRtfDocument();
         var report = new RtfConversionReport();
         AddWordToRtfDiagnostics(document, report);
         return new RtfConversionResult<RtfDocument>(converted, report);
     }
 
-    /// <summary>Converts RTF to Word and reports any structure that was flattened or omitted.</summary>
-    public static RtfConversionResult<WordDocument> ToWordDocumentResult(this RtfDocument document) {
+    internal static RtfConversionResult<WordDocument> ConvertToWordWithEvidence(this RtfDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         var report = new RtfConversionReport();
         WordDocument converted = ToWordDocumentCore(document, report);
@@ -29,12 +27,11 @@ public static partial class WordRtfConverterExtensions {
         return new RtfConversionResult<WordDocument>(converted, report);
     }
 
-    /// <summary>Converts a native RTF read result to Word while preserving parser and bridge diagnostics.</summary>
-    public static RtfConversionResult<WordDocument> ToWordDocumentResult(
+    internal static RtfConversionResult<WordDocument> ConvertToWordWithEvidence(
         this RtfReadResult readResult,
         string? sourcePath = null) {
         if (readResult == null) throw new ArgumentNullException(nameof(readResult));
-        RtfConversionResult<WordDocument> converted = readResult.Document.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> converted = readResult.Document.ConvertToWordWithEvidence();
         var report = new RtfConversionReport();
         report.AddReadDiagnostics(readResult.Diagnostics, sourcePath);
         report.Merge(converted.Report);

@@ -50,7 +50,7 @@ internal static partial class RtfHtmlReader {
             }
 
             HtmlRtfExportOptions nestedOptions = CreateNestedOptions();
-            HtmlToRtfResult nestedResult = HtmlConversionDocument.Parse(html!).ToRtfDocumentResult(nestedOptions);
+            HtmlToRtfResult nestedResult = HtmlConversionDocument.Parse(html!).ConvertToRtfWithEvidence(nestedOptions);
             RtfDocument resultDocument = nestedResult.RequireValue();
             PropagateNestedDiagnostics(nestedResult.RtfDiagnostics);
             RtfParagraph? paragraph = resultDocument.Paragraphs.FirstOrDefault();
@@ -66,7 +66,7 @@ internal static partial class RtfHtmlReader {
             }
 
             HtmlRtfExportOptions nestedOptions = CreateNestedOptions();
-            HtmlToRtfResult nestedResult = HtmlConversionDocument.Parse(html!).ToRtfDocumentResult(nestedOptions);
+            HtmlToRtfResult nestedResult = HtmlConversionDocument.Parse(html!).ConvertToRtfWithEvidence(nestedOptions);
             RtfDocument textDocument = nestedResult.RequireValue();
             PropagateNestedDiagnostics(nestedResult.RtfDiagnostics);
             foreach (RtfParagraph paragraph in textDocument.Paragraphs) {

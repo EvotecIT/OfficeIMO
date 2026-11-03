@@ -19,7 +19,7 @@ public partial class WordRtfConverterTests {
             secondRun.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Second run image" });
         }
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.Collection(
             conversion.Value.Blocks,
@@ -41,7 +41,7 @@ public partial class WordRtfConverterTests {
         }
         new WordParagraph(word, paragraph._paragraph, newRun: true).AddText("After image");
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfParagraph converted = Assert.Single(conversion.Value.Paragraphs);
         Assert.Collection(

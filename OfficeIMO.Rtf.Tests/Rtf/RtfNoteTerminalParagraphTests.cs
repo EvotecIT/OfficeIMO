@@ -19,7 +19,7 @@ public sealed class RtfNoteTerminalParagraphTests {
         Assert.Contains("NOTE-EXACT-A", note.Paragraphs[1].ToPlainText());
         AssertTerminalState(note.Paragraphs[2]);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         using var stream = new MemoryStream();
         word.Save(stream);
         stream.Position = 0;

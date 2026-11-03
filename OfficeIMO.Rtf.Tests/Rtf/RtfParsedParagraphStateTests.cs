@@ -38,7 +38,7 @@ public class RtfParsedParagraphStateTests {
         PdfCore.PdfLineSpacing pdfSpacing = Assert.IsType<PdfCore.PdfLineSpacing>(pdfStyle.LineSpacing);
         Assert.Equal(PdfCore.PdfLineSpacingRule.Multiple, pdfSpacing.Rule);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         Paragraph persisted = Assert.Single(reopened._document.Body!.Elements<Paragraph>());
         AssertWordSpacing(persisted, "240", LineSpacingRuleValues.Auto);
@@ -84,7 +84,7 @@ public class RtfParsedParagraphStateTests {
         Assert.Null(authoredParagraph.SpaceBeforeTwips);
         Assert.Null(authoredParagraph.SpaceAfterTwips);
         Assert.Null(parsedParagraph.LineSpacingTwips);
-        using WordDocument authoredWord = authored.ToWordDocument();
+        using WordDocument authoredWord = authored.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(authoredWord.ToBytes()));
         SpacingBetweenLines persisted = Assert.IsType<SpacingBetweenLines>(Assert.Single(reopened._document.Body!.Elements<Paragraph>()).ParagraphProperties?.SpacingBetweenLines);
         Assert.Equal("120", persisted.Before?.Value);
@@ -110,7 +110,7 @@ public class RtfParsedParagraphStateTests {
         Assert.Equal(RtfTabAlignment.Decimal, tab.Alignment);
         Assert.Equal(RtfTabLeader.Hyphen, tab.Leader);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         Paragraph persisted = Assert.Single(reopened._document.Body!.Elements<Paragraph>());
         LineSpacingRuleValues wordRule = rule == WordLineSpacingRule.Exact ? LineSpacingRuleValues.Exact
@@ -133,7 +133,7 @@ public class RtfParsedParagraphStateTests {
         RtfDocument cloned = source.Clone();
         AssertParsedState(cloned);
         string html = source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
-        RtfDocument fromHtml = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument fromHtml = HtmlConversionDocument.Parse(html).ToRtf();
         AssertParsedState(fromHtml);
         if (hasStyles) {
             Assert.Equal(360, Assert.Single(fromHtml.Styles, style => style.Id == 1).LineSpacingTwips);
@@ -205,7 +205,7 @@ public class RtfParsedParagraphStateTests {
         Assert.Equal(0, terminal.SpaceBeforeTwips);
         Assert.Equal(0, terminal.SpaceAfterTwips);
         Assert.Empty(terminal.TabStops);
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         var main = reopened._wordprocessingDocument.MainDocumentPart!;
         Document document = Assert.IsType<Document>(main.Document);
@@ -236,7 +236,7 @@ public class RtfParsedParagraphStateTests {
         Assert.Equal(afterAuto, effective.SpaceAfterAuto);
         Assert.Equal(beforeAuto ? (int?)null : 0, effective.SpaceBeforeTwips);
         Assert.Equal(afterAuto ? (int?)null : 0, effective.SpaceAfterTwips);
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(Assert.Single(reopened._document.Body!.Elements<Paragraph>()).ParagraphProperties?.SpacingBetweenLines);
         Assert.Equal(beforeAuto, spacing.BeforeAutoSpacing?.Value);

@@ -44,4 +44,13 @@
     <Using Include="OfficeIMO.Drawing" />
     <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Html.EditableEvidence" />
+  </ItemGroup>
 </Project>

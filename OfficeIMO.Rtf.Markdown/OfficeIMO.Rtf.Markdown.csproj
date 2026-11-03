@@ -30,4 +30,10 @@
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO" />
+  </ItemGroup>
 </Project>

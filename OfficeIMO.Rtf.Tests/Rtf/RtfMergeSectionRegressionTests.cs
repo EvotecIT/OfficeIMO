@@ -25,7 +25,7 @@ public class RtfMergeSectionRegressionTests {
         first.ColumnSpaceTwips = 720;
         first.AddParagraph("Columns").StyleId = 1;
         document.AddSection().AddParagraph("Default columns");
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         Assert.Equal(2, word.Sections[0].ColumnCount);
         Assert.Null(word.Sections[1].ColumnCount);
         Assert.Null(word.Sections[1].ColumnsSpace);
@@ -64,7 +64,7 @@ public class RtfMergeSectionRegressionTests {
             Assert.False(value.GetEffectivePageSetup(value.Sections[1]).Landscape);
             Assert.Equal(1800, value.Sections[1].PageSetup.MarginLeftTwips);
         }
-        using WordDocument word = destination.ToWordDocument();
+        using WordDocument word = destination.ToWord();
         string[] errors = new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument).Select(item => item.Description + " " + item.Node?.OuterXml).ToArray();
         Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors));
         Assert.Equal(OfficePageOrientation.Portrait, word.Sections[1].PageOrientation);
@@ -88,7 +88,7 @@ public class RtfMergeSectionRegressionTests {
         explicitReset.PageSetup.RtlGutter = false;
         explicitReset.AddParagraph("Reset");
         foreach (RtfDocument value in new[] { document, RtfDocument.ParseResult(document.ToRtf()).Document,
-            HtmlConversionDocument.Parse(document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile())).ToRtfDocument() }) {
+            HtmlConversionDocument.Parse(document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile())).ToRtf() }) {
             Assert.True(value.GetEffectivePageSetup(value.Sections[0]).Landscape, value.ToRtf());
             Assert.True(value.GetEffectivePageSetup(value.Sections[0]).DifferentFirstPageHeaderFooter);
             Assert.True(value.GetEffectivePageSetup(value.Sections[0]).RtlGutter);
@@ -97,7 +97,7 @@ public class RtfMergeSectionRegressionTests {
             Assert.False(reset.DifferentFirstPageHeaderFooter);
             Assert.False(reset.RtlGutter);
         }
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         Assert.Equal(OfficePageOrientation.Landscape, word.Sections[0].PageOrientation);
         Assert.Equal(OfficePageOrientation.Portrait, word.Sections[1].PageOrientation);
         Assert.False(word.Sections[1].DifferentFirstPage);

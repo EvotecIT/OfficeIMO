@@ -19,13 +19,13 @@ public class RtfWordBorderWidthTests {
         table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
         table.Rows[0].Cells[0].Borders.TopSize = OfficeLength.Points(0.5);
 
-        RtfDocument rtf = word.ToRtfDocument();
+        RtfDocument rtf = word.ToRtf();
 
         Assert.Equal(30, rtf.PageSetup.PageBorders.Top.Width);
         Assert.Equal(15, rtf.Paragraphs.First(candidate => candidate.ToPlainText() == "Boxed").TopBorder.Width);
         Assert.Equal(10, rtf.Blocks.OfType<RtfTable>().Single().Rows[0].Cells[0].TopBorder.Width);
 
-        using WordDocument roundTrip = RtfDocument.ParseResult(word.ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document.ToWordDocument();
+        using WordDocument roundTrip = RtfDocument.ParseResult(word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document.ToWord();
         Assert.Equal(OfficeLength.Points(1.5), roundTrip.Borders.TopSize);
         Assert.Equal(OfficeLength.Points(0.75), roundTrip.Paragraphs.First(candidate => candidate.Text == "Boxed").Borders.TopSize);
         Assert.Equal(OfficeLength.Points(0.5), roundTrip.Tables[0].Rows[0].Cells[0].Borders.TopSize);

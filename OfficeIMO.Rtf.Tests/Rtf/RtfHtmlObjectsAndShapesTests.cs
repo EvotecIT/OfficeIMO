@@ -28,7 +28,7 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.Contains("data-officeimo-rtf-object-width=\"100\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-object-result=\"", html, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs);
         Assert.Equal("Before Display after", roundTripParagraph.ToPlainText());
         RtfObject roundTripObject = Assert.IsType<RtfObject>(roundTripParagraph.Inlines[1]);
         Assert.Equal(RtfObjectKind.Embedded, roundTripObject.Kind);
@@ -46,7 +46,7 @@ public class RtfHtmlObjectsAndShapesTests {
     public void Html_ToRtfDocument_Parses_Block_Object_Metadata() {
         const string html = "<div data-officeimo-rtf-object=\"linked\" data-officeimo-rtf-object-class=\"Package\" data-officeimo-rtf-object-name=\"Attachment\" data-officeimo-rtf-object-data=\"AQID\" data-officeimo-rtf-object-width=\"100\" data-officeimo-rtf-object-height=\"200\"></div>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfObject rtfObject = Assert.IsType<RtfObject>(Assert.Single(document.Blocks));
         Assert.Equal(RtfObjectKind.Linked, rtfObject.Kind);
@@ -80,7 +80,7 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.Contains("data-officeimo-rtf-shape-properties=\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-shape-text=\"", html, StringComparison.Ordinal);
 
-        RtfShape roundTripShape = Assert.IsType<RtfShape>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Blocks));
+        RtfShape roundTripShape = Assert.IsType<RtfShape>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Blocks));
         Assert.Contains(roundTripShape.Instructions, instruction => instruction.Name == "shpleft" && instruction.Parameter == 100);
         Assert.Contains(roundTripShape.Instructions, instruction => instruction.Name == "shpbottom" && instruction.Parameter == 900);
         Assert.Contains(roundTripShape.Properties, property => property.Name == "shapeType" && property.Value == "202");
@@ -114,7 +114,7 @@ public class RtfHtmlObjectsAndShapesTests {
         var options = HtmlRtfExportOptions.UntrustedDefaults;
         options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options);
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(options);
         RtfDocument document = result.Value;
 
         RtfObject rtfObject = Assert.IsType<RtfObject>(document.Blocks[0]);
@@ -131,7 +131,7 @@ public class RtfHtmlObjectsAndShapesTests {
     public void Html_ToRtfDocument_SourcePolicyDiagnosticsDoNotReintroduceExecutableContent() {
         const string html = "<p onclick='alert(1)'>Visible<script>Hidden script</script></p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         Assert.Equal("Visible", Assert.Single(document.Paragraphs).ToPlainText());
     }
@@ -143,7 +143,7 @@ public class RtfHtmlObjectsAndShapesTests {
         string html = "<div data-officeimo-rtf-object=\"embedded\" data-officeimo-rtf-object-result=\"" + encodedObjectResult + "\"></div>";
         var options = new HtmlRtfExportOptions { MaxHtmlNodes = 10 };
 
-        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() => HtmlConversionDocument.Parse(html).ToRtfDocument(options));
+        HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() => HtmlConversionDocument.Parse(html).ToRtf(options));
 
         Assert.Equal("MaxHtmlNodes", exception.LimitSource);
     }

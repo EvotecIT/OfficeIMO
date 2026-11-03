@@ -15,13 +15,13 @@ var options = new RtfMarkdownExportOptions {
     }
 };
 
-RtfConversionResult<string> result = rtf.ToMarkdownResult(options);
-string markdown = result.ThrowIfLoss();
+options.FailOnLoss = true;
+OfficeConversionReport report = rtf.SaveAsMarkdown("output.md", options);
 ```
 
 Footnotes and endnotes become Markdown footnote references and definitions. Tables, lists, rich inline formatting, links, and supported images have semantic mappings. Nested tables are flattened inside Markdown table cells; annotations and headers/footers are diagnostic omissions.
 
-Convert the other direction with `markdown.ToRtfDocumentFromMarkdown()` or `MarkdownDocument.ToRtfDocument()`.
+Convert the other direction with `markdown.ToRtf(options, out report)` or `markdown.SaveAsRtf(path, options)`. `ToMarkdown` returns the `MarkdownDocument` model; call its `ToMarkdown()` for text.
 
 This bridge converts document meaning, not raw control words. Use `OfficeIMO.Rtf` lossless APIs when the original RTF syntax must remain exact.
 

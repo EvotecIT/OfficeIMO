@@ -98,9 +98,9 @@ public class RtfHtmlOptionsTests {
     [Fact]
     public void RtfPrintReviewProfile_RoundTripsStructuredHtmlThroughNativeRtf() {
         const string sourceHtml = "<h1>Review</h1><ul><li>Ready</li><li>Verified</li></ul><table><thead><tr><th>State</th><th>Count</th></tr></thead><tbody><tr><td>Open</td><td>2</td></tr></tbody></table>";
-        HtmlToRtfResult import = HtmlConversionDocument.Parse(sourceHtml).ToRtfDocumentResult(HtmlRtfExportOptions.CreateOfficeIMOProfile());
+        HtmlToRtfResult import = HtmlConversionDocument.Parse(sourceHtml).ConvertToRtfWithEvidence(HtmlRtfExportOptions.CreateOfficeIMOProfile());
 
-        RtfToHtmlResult export = import.Value.ToHtmlResult(RtfHtmlExportOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report));
+        RtfToHtmlResult export = import.Value.ConvertToHtmlWithEvidence(RtfHtmlExportOptions.CreatePrintReviewProfile(OfficeVisualThemeKind.Report));
         string html = export.RequireValue();
 
         Assert.Contains("<h1", html, StringComparison.Ordinal);
@@ -129,7 +129,7 @@ public class RtfHtmlOptionsTests {
         };
 
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
-            HtmlConversionDocument.Parse("<p>One</p><p>Two</p>").ToRtfDocument(options));
+            HtmlConversionDocument.Parse("<p>One</p><p>Two</p>").ToRtf(options));
 
         Assert.Equal("HtmlNodeLimitExceeded", exception.Code);
         Assert.Equal("MaxHtmlNodes", exception.LimitSource);
@@ -144,7 +144,7 @@ public class RtfHtmlOptionsTests {
         };
 
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(() =>
-            HtmlConversionDocument.Parse("<div><section><p>Too deep</p></section></div>").ToRtfDocument(options));
+            HtmlConversionDocument.Parse("<div><section><p>Too deep</p></section></div>").ToRtf(options));
 
         Assert.Equal("HtmlDepthLimitExceeded", exception.Code);
         Assert.Equal("MaxHtmlDepth", exception.LimitSource);
@@ -160,8 +160,8 @@ public class RtfHtmlOptionsTests {
         RtfDocument clean = RtfDocument.Create();
         clean.AddParagraph("Clean");
 
-        RtfToHtmlResult first = lossy.ToHtmlResult(options);
-        RtfToHtmlResult second = clean.ToHtmlResult(options);
+        RtfToHtmlResult first = lossy.ConvertToHtmlWithEvidence(options);
+        RtfToHtmlResult second = clean.ConvertToHtmlWithEvidence(options);
 
         Assert.NotEmpty(first.RtfDiagnostics);
         Assert.True(first.Report.HasLoss);

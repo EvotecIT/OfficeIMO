@@ -20,7 +20,7 @@ public class RtfColorSlotRegressionTests {
         string html = document.ToHtml();
         Assert.Contains("#FF0000", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("#0000FF", html, StringComparison.OrdinalIgnoreCase);
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         Assert.Contains(word.Paragraphs, run => run.Text == "Blue" && run.ColorHex == "0000FF");
         PdfCore.RichParagraphBlock pdfParagraph = Assert.IsType<PdfCore.RichParagraphBlock>(Assert.Single(document.ToPdf().Blocks));
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), pdfParagraph.Runs.Last().Color);
@@ -39,7 +39,7 @@ public class RtfColorSlotRegressionTests {
         RtfDocument saved = RtfDocument.ParseResult(source.ToRtf()).Document;
         Assert.Equal("#0000FF", saved.GetColor(4)!.ToString());
         Assert.True(saved.Colors[2].IsAutomatic);
-        RtfDocument htmlRoundTrip = HtmlConversionDocument.Parse(source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false })).ToRtfDocument();
+        RtfDocument htmlRoundTrip = HtmlConversionDocument.Parse(source.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true, FragmentOnly = false })).ToRtf();
         Assert.True(htmlRoundTrip.Colors[1].IsAutomatic);
         Assert.Equal("#0000FF", htmlRoundTrip.GetColor(4)!.ToString());
 

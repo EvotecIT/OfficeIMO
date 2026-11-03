@@ -66,6 +66,15 @@ public sealed partial class HtmlRtfExportOptions {
     /// <summary>Shared HTML diagnostic report for cross-format aggregation.</summary>
     internal HtmlDiagnosticReport HtmlDiagnostics { get; } = new HtmlDiagnosticReport();
 
+    /// <summary>RTF writer settings used when the converted document is saved.</summary>
+    public OfficeIMO.Rtf.RtfSaveOptions? SaveOptions { get; set; }
+
+    /// <summary>Encoding used when the RTF is saved. Null uses the RTF writer default.</summary>
+    public System.Text.Encoding? Encoding { get; set; }
+
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>
     /// Creates a reusable copy of the current options without carrying runtime diagnostics into the clone.
     /// </summary>
@@ -78,7 +87,10 @@ public sealed partial class HtmlRtfExportOptions {
         IgnoreInsignificantWhitespace = IgnoreInsignificantWhitespace,
         ImportEditableLayoutRegions = ImportEditableLayoutRegions,
         MaxHtmlNodes = MaxHtmlNodes,
-        MaxHtmlDepth = MaxHtmlDepth
+        MaxHtmlDepth = MaxHtmlDepth,
+        SaveOptions = SaveOptions,
+        Encoding = Encoding,
+        FailOnLoss = FailOnLoss
     };
 
     internal HtmlUrlPolicy GetResourceUrlPolicy() => ResourceUrlPolicy ?? UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();

@@ -48,7 +48,7 @@ public class RtfHtmlListTableTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-lists\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfListDefinition roundTripDefinition = Assert.Single(roundTrip.ListDefinitions);
         Assert.Equal(100, roundTripDefinition.Id);
