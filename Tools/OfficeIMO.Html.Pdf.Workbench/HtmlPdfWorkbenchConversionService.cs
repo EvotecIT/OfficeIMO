@@ -103,7 +103,10 @@ public sealed class HtmlPdfWorkbenchConversionService {
             HtmlBrowserPdfSource.FromHtml(HtmlPdfPreviewComposer.ComposeForCapture(request.Html, request.Css, settings.Language)),
             pdfOptions,
             readiness: new HtmlBrowserPdfReadiness(
-                loadState: HtmlBrowserLoadState.Load,
+                // SetContent already observed DOMContentLoaded. Check the document's current
+                // completion state rather than relying on a later lifecycle notification.
+                skipLoadState: true,
+                function: "() => document.readyState === 'complete'",
                 stable: true,
                 stableMilliseconds: 250,
                 timeout: 15000),
