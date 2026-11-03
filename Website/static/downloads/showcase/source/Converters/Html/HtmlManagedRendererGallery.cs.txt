@@ -264,7 +264,7 @@ namespace OfficeIMO.Examples.Html {
 
             HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
             HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
-            HtmlDiagnostic[] fidelityDiagnostics = rendered.Diagnostics
+            HtmlDiagnostic[] fidelityDiagnostics = rendered.NativeDiagnostics
                 .Where(diagnostic => diagnostic.Severity != HtmlDiagnosticSeverity.Info)
                 .ToArray();
             foreach (HtmlDiagnostic diagnostic in fidelityDiagnostics) {

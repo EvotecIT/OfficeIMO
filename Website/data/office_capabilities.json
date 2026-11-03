@@ -5377,25 +5377,18 @@
     {
       "id": "OfficeIMO.Word",
       "slug": "word",
-      "capabilityCount": 236,
+      "capabilityCount": 231,
       "formats": [
         "DOC",
         "DOCM/XLSM/XLSB/PPTM families",
-        "DOCX",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
-        "JPEG",
-        "PNG",
-        "SVG",
-        "TIFF",
-        "WebP",
         "Word",
         "Word Open XML",
         "Word.Doc",
         "Word.OpenXml"
       ],
       "sourceCatalogs": [
-        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle",
         "OfficeIMO.ProtectedContent",
         "OfficeIMO.Provenance",
@@ -5492,17 +5485,6 @@
               "label": "Not applicable",
               "description": "The operation does not apply to this capability.",
               "count": 1
-            }
-          ]
-        },
-        {
-          "id": "Export",
-          "states": [
-            {
-              "id": "Supported",
-              "label": "Supported",
-              "description": "Implemented and backed by named evidence.",
-              "count": 5
             }
           ]
         },
@@ -5755,10 +5737,15 @@
     {
       "id": "OfficeIMO.Word.Pdf",
       "slug": "word-pdf",
-      "capabilityCount": 1,
+      "capabilityCount": 6,
       "formats": [
         "DOCX",
-        "PDF"
+        "JPEG",
+        "PDF",
+        "PNG",
+        "SVG",
+        "TIFF",
+        "WebP"
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog"
@@ -5772,6 +5759,17 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Export",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 5
             }
           ]
         }

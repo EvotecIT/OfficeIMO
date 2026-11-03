@@ -9,17 +9,17 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Drawing Gallery", OfficeAlignment.Left)
-                .Paragraph(p => p.Text("A visual baseline for shared OfficeIMO.Drawing vector descriptors rendered by the dependency-free PDF engine."))
+                .AddParagraph(p => p.AddText("A visual baseline for shared OfficeIMO.Drawing vector descriptors rendered by the dependency-free PDF engine."))
                 .Drawing(CreateDrawingScene(), OfficeAlignment.Center, spacingBefore: global::OfficeIMO.OfficeLength.Points(8), spacingAfter: global::OfficeIMO.OfficeLength.Points(10))
-                .Paragraph(p => p
-                    .Text("Covered: ")
-                    .Bold("gradients")
-                    .Text(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths."))), new PdfCreateOptions {
-                    HeaderFormat = "OfficeIMO.Drawing shared vector gate",
-                    HeaderAlign = OfficeAlignment.Left,
-                    ShowHeader = true,
-                    FooterAlign = OfficeAlignment.Right,
-                    ShowPageNumbers = true
+                .AddParagraph(p => {
+                    p.AddText("Covered: ");
+                    p.AddText("gradients").SetBold();
+                    p.AddText(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths.");
+                })), new PdfCreateOptions {
+                    PageSetup = {
+                        Header = { Format = "OfficeIMO.Drawing shared vector gate", Alignment = OfficeAlignment.Left, Show = true },
+                        Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                    }
                 })
                 .Meta(title: "OfficeIMO.Pdf Drawing Gallery", author: "OfficeIMO")
                 .Save(path);

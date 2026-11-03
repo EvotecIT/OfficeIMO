@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Html {
                 };
                 HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
                 HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
-                HtmlDiagnostic[] warnings = rendered.Diagnostics
+                HtmlDiagnostic[] warnings = rendered.NativeDiagnostics
                     .Where(diagnostic => diagnostic.Severity != HtmlDiagnosticSeverity.Info).ToArray();
                 // Warnings describe fidelity limits of the managed renderer. Report them and keep
                 // writing the showcase; only errors mean the page could not be produced.
