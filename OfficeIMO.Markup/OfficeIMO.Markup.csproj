@@ -2,8 +2,6 @@
 
     <PropertyGroup>
         <Description>Unified Markdown-inspired OfficeIMO authoring layer with a semantic AST and C#/PowerShell emitters.</Description>
-        <AssemblyName>OfficeIMO.Markup</AssemblyName>
-        <AssemblyTitle>OfficeIMO.Markup</AssemblyTitle>
         <VersionPrefix>3.3.0</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

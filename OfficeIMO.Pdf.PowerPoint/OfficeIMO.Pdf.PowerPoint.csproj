@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>Reconstruct PowerPoint presentations from PDF using the first-party OfficeIMO engines.</Description>
     <PackageId>OfficeIMO.Pdf.PowerPoint</PackageId>
-    <AssemblyName>OfficeIMO.Pdf.PowerPoint</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Pdf.PowerPoint</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
