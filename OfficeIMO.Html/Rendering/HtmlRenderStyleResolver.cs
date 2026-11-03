@@ -309,8 +309,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             parent?.TabSize ?? 8D,
             parent?.TabSizeIsLength ?? false,
             fontSize,
-            out style.TabSize,
-            out style.TabSizeIsLength);
+            out double tabSize,
+            out bool tabSizeIsLength);
+        style.TabSize = tabSize;
+        style.TabSizeIsLength = tabSizeIsLength;
         ResolveHyphenateLimitChars(computed.GetValue("hyphenate-limit-chars"), parent, style);
         style.HyphenateLimitZone = ResolveHyphenateLimitZone(computed.GetValue("hyphenate-limit-zone"), containingWidth, fontSize, parent?.HyphenateLimitZone ?? 0D);
         style.ContainerType = ResolveContainerTypeValue(computed);
@@ -530,11 +532,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         string shorthand = computed.GetValue("overflow");
         IReadOnlyList<string> values = HtmlRenderCssValues.SplitWhitespace(shorthand);
         if (values.Count == 1) {
-            style.OverflowX = NormalizeOverflow(values[0], out style.UnsupportedOverflowX);
-            style.OverflowY = NormalizeOverflow(values[0], out style.UnsupportedOverflowY);
+            SetOverflowX(style, values[0]);
+            SetOverflowY(style, values[0]);
         } else if (values.Count == 2) {
-            style.OverflowX = NormalizeOverflow(values[0], out style.UnsupportedOverflowX);
-            style.OverflowY = NormalizeOverflow(values[1], out style.UnsupportedOverflowY);
+            SetOverflowX(style, values[0]);
+            SetOverflowY(style, values[1]);
         } else if (values.Count > 2) {
             style.UnsupportedOverflowX = shorthand.Trim();
             style.UnsupportedOverflowY = shorthand.Trim();
@@ -542,23 +544,25 @@ internal sealed partial class HtmlRenderStyleResolver {
 
         string overflowX = computed.GetValue("overflow-x");
         if (!string.IsNullOrWhiteSpace(overflowX)) {
-            style.OverflowX = NormalizeOverflow(overflowX, out style.UnsupportedOverflowX);
+            SetOverflowX(style, overflowX);
         }
         string overflowY = computed.GetValue("overflow-y");
         if (!string.IsNullOrWhiteSpace(overflowY)) {
-            style.OverflowY = NormalizeOverflow(overflowY, out style.UnsupportedOverflowY);
+            SetOverflowY(style, overflowY);
         }
         string overflowClipMargin = computed.GetValue("overflow-clip-margin");
-        if (!string.IsNullOrWhiteSpace(overflowClipMargin)
-            && !HtmlCssOverflowClipMarginParser.TryParse(
+        if (!string.IsNullOrWhiteSpace(overflowClipMargin)) {
+            bool parsed = HtmlCssOverflowClipMarginParser.TryParse(
                 overflowClipMargin,
                 style.Font.Size,
                 _rootFontSize,
                 _viewportWidth,
                 _viewportHeight,
-                out style.OverflowClipMarginBox,
-                out style.OverflowClipMargin, style.CharacterAdvance)) {
-            style.UnsupportedOverflowClipMargin = overflowClipMargin.Trim().ToLowerInvariant();
+                out string clipMarginBox,
+                out double clipMargin, style.CharacterAdvance);
+            style.OverflowClipMarginBox = clipMarginBox;
+            style.OverflowClipMargin = clipMargin;
+            if (!parsed) style.UnsupportedOverflowClipMargin = overflowClipMargin.Trim().ToLowerInvariant();
         }
 
         if (style.OverflowX == "visible" && style.OverflowY != "visible" && style.OverflowY != "clip") style.OverflowX = "auto";
@@ -614,8 +618,20 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private static void ApplyFloat(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
-        style.FloatSide = NormalizeFloatSide(computed.GetValue("float"), style.Direction, out style.UnsupportedFloat);
-        style.ClearSide = NormalizeClearSide(computed.GetValue("clear"), style.Direction, out style.UnsupportedClear);
+        style.FloatSide = NormalizeFloatSide(computed.GetValue("float"), style.Direction, out string unsupportedFloat);
+        style.UnsupportedFloat = unsupportedFloat;
+        style.ClearSide = NormalizeClearSide(computed.GetValue("clear"), style.Direction, out string unsupportedClear);
+        style.UnsupportedClear = unsupportedClear;
+    }
+
+    private static void SetOverflowX(HtmlRenderBoxStyle style, string value) {
+        style.OverflowX = NormalizeOverflow(value, out string unsupported);
+        style.UnsupportedOverflowX = unsupported;
+    }
+
+    private static void SetOverflowY(HtmlRenderBoxStyle style, string value) {
+        style.OverflowY = NormalizeOverflow(value, out string unsupported);
+        style.UnsupportedOverflowY = unsupported;
     }
 
     private static string NormalizeFloatSide(string value, string direction, out string unsupported) {
