@@ -6,16 +6,16 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders a shared HTML conversion document to JPEG bytes.</summary>
-    public static byte[] ToJpeg(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        document.ExportImage(OfficeImageExportFormat.Jpeg, options, pageIndex).Bytes;
+    public static byte[] ToJpeg(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        document.ExportImage(OfficeImageExportFormat.Jpeg, options, pageIndex, cancellationToken).Bytes;
 
     /// <summary>Renders a shared HTML conversion document to TIFF bytes.</summary>
-    public static byte[] ToTiff(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        document.ExportImage(OfficeImageExportFormat.Tiff, options, pageIndex).Bytes;
+    public static byte[] ToTiff(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        document.ExportImage(OfficeImageExportFormat.Tiff, options, pageIndex, cancellationToken).Bytes;
 
     /// <summary>Renders a shared HTML conversion document to lossless WebP bytes.</summary>
-    public static byte[] ToWebp(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        document.ExportImage(OfficeImageExportFormat.Webp, options, pageIndex).Bytes;
+    public static byte[] ToWebp(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        document.ExportImage(OfficeImageExportFormat.Webp, options, pageIndex, cancellationToken).Bytes;
 
     /// <summary>Asynchronously resolves resources and renders a shared HTML conversion document to JPEG bytes.</summary>
     public static async Task<byte[]> ToJpegAsync(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>

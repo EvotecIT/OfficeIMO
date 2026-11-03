@@ -271,6 +271,15 @@
       "reason": "Image encoders measure and paint text through the PDF engine, which OfficeIMO.Html no longer carries. Plain options now throw ArgumentException for these encoders; RenderImages keeps the shared options resource policy.",
       "category": "packages",
       "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.ToPng / ToJpeg / ToTiff / ToWebp / ToSvg(HtmlRenderOptions options = null, int pageIndex = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "HtmlConversionDocument.ToPng / ToJpeg / ToTiff / ToWebp / ToSvg(HtmlRenderOptions options = null, int pageIndex = 0, CancellationToken cancellationToken = default) (package OfficeIMO.Html.Pdf)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike.",
+      "category": "cancellation",
+      "applied": true
     }
   ],
   "extraChanges": [

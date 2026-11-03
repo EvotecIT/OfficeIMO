@@ -6,13 +6,14 @@ namespace OfficeIMO.Word.Html;
 
 public static partial class WordHtmlConverterExtensions {
     /// <summary>Imports a prepared shared HTML document into Word and returns structured evidence.</summary>
-    internal static HtmlToWordResult ConvertToWordWithEvidence(this HtmlConversionDocument document, HtmlWordExportOptions? options = null) {
+    internal static HtmlToWordResult ConvertToWordWithEvidence(this HtmlConversionDocument document, HtmlWordExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         HtmlToWordConverter.ValidateDocumentLimits(
             document.CreateSourceDocumentForConversion(), resolved);
         EnsureOfflineSynchronousImport(document, resolved);
-        return ConvertToWordWithEvidenceAsync(document, resolved).GetAwaiter().GetResult();
+        return ConvertToWordWithEvidenceAsync(document, resolved, cancellationToken).GetAwaiter().GetResult();
     }
 
     /// <summary>Asynchronously imports a prepared shared HTML document into Word and returns structured evidence.</summary>

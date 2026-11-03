@@ -21,11 +21,12 @@ namespace OfficeIMO.Word.Html {
 
 
         /// <summary>Converts the document to HTML with the shared structured result contract.</summary>
-        internal static HtmlTextConversionResult ConvertToHtmlWithEvidence(this WordDocument document, WordHtmlExportOptions? options = null) {
+        internal static HtmlTextConversionResult ConvertToHtmlWithEvidence(this WordDocument document, WordHtmlExportOptions? options = null,
+            System.Threading.CancellationToken cancellationToken = default) {
             if (document == null) throw new System.ArgumentNullException(nameof(document));
             WordHtmlExportOptions resolved = (options ?? new WordHtmlExportOptions()).CloneForConversion();
             var converter = new WordToHtmlConverter();
-            string html = converter.Convert(document, resolved);
+            string html = converter.Convert(document, resolved, cancellationToken);
             return new HtmlTextConversionResult(html, resolved.ConversionReport);
         }
 

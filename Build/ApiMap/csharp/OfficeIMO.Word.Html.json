@@ -555,6 +555,42 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "WordDocument.ToHtml(WordHtmlExportOptions options = null) / ToHtml(options, out OfficeConversionReport report)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.ToHtml(WordHtmlExportOptions options = null, CancellationToken cancellationToken = default) / ToHtml(options, out OfficeConversionReport report, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "WordDocument.SaveAsHtml(string path | Stream stream, WordHtmlExportOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsHtml(string path | Stream stream, WordHtmlExportOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.ToWord(HtmlWordExportOptions options = null) / ToWord(options, out OfficeConversionReport report)",
+      "kind": "method",
+      "action": "change",
+      "new": "HtmlConversionDocument.ToWord(HtmlWordExportOptions options = null, CancellationToken cancellationToken = default) / ToWord(options, out OfficeConversionReport report, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike.",
+      "category": "cancellation",
+      "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.SaveAsWord(string path | Stream stream, HtmlWordExportOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "HtmlConversionDocument.SaveAsWord(string path | Stream stream, HtmlWordExportOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "Cancellable operations take a final CancellationToken cancellationToken = default, in synchronous and asynchronous forms alike.",
+      "category": "cancellation",
+      "applied": true
     }
   ],
   "packageMoves": [

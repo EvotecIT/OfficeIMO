@@ -6,12 +6,12 @@ namespace OfficeIMO.Html.Pdf;
 
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders a shared HTML conversion document to PNG bytes.</summary>
-    public static byte[] ToPng(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        document.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Png, options, pageIndex).Bytes;
+    public static byte[] ToPng(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        document.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Png, options, pageIndex, cancellationToken).Bytes;
 
     /// <summary>Renders a shared HTML conversion document to SVG text.</summary>
-    public static string ToSvg(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0) =>
-        Encoding.UTF8.GetString(document.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options, pageIndex).Bytes);
+    public static string ToSvg(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
+        Encoding.UTF8.GetString(document.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options, pageIndex, cancellationToken).Bytes);
 
     /// <summary>Asynchronously resolves resources and renders a shared HTML conversion document to PNG bytes.</summary>
     public static async Task<byte[]> ToPngAsync(this HtmlConversionDocument document, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) =>
