@@ -61,17 +61,38 @@ try {
             }
         }
         string output = Path.Combine(outputRoot, "converted." + target);
-        OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
+        var request = new OfficeWorkflowRequest {
             InputPath = path, OutputPath = output, Operation = OfficeWorkflowOperation.Convert,
             ConversionRouteId = route
-        });
+        };
+        if (extension == "numbers") {
+            OfficeWorkflowResult strict = await runner.RunAsync(request);
+            if (strict.Succeeded || File.Exists(output)
+                || strict.Diagnostics.Any(diagnostic => diagnostic.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened))
+                throw new InvalidOperationException("Packed Numbers conversion published a known padding omission without acceptance.");
+            request.RegisteredConversionSettings = new IWorkWorkflowSettings {
+                ConversionOptions = new IWorkConversionOptions {
+                    Mode = IWorkConversionMode.EditableOnly,
+                    NormalizeWorksheetNames = true,
+                    AllowPartialEditableReconstruction = true
+                }
+            };
+        }
+        OfficeWorkflowResult result = await runner.RunAsync(request);
         if (!result.Succeeded || !File.Exists(output)
             || !result.Diagnostics.Any(diagnostic => diagnostic.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened)
             || result.ConversionEvidence?.Facts["projectionKind"] != "EditableReconstruction"
-            || result.ConversionEvidence.Facts["partialEditableReconstruction"] != bool.FalseString
+            || result.ConversionEvidence.Facts["partialEditableReconstruction"] != (extension == "numbers").ToString()
             || result.ConversionEvidence.Facts["omittedSourceUnitCount"] != "0"
             || result.ConversionEvidence.Facts["unassessedSourceUnitCount"] != "0") {
             throw new InvalidOperationException("Packed conversion failed for " + route + ": " + result.Summary);
+        }
+        if (extension == "numbers") {
+            var omissions = result.ConversionEvidence.Diagnostics.Where(diagnostic =>
+                diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission
+                && diagnostic.Code != "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION").ToArray();
+            if (omissions.Length != 1 || omissions[0].Code != "IWORK_NUMBERS_CELL_PADDING_OMITTED")
+                throw new InvalidOperationException("Packed Numbers conversion did not retain its typed padding omission.");
         }
         switch (extension) {
             case "pages":
