@@ -109,6 +109,168 @@
       "category": "contract",
       "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlSiteBundlePdfExtensions (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfRenderRequestResult (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidator (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityValidationResult (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssue (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfAccessibilityIssueSeverity (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfDiagnosticCodes (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfResourcePolicySummary (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryExtensions (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlRenderCapabilityGalleryOptions (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.Pdf.HtmlToPdfOptions (assembly OfficeIMO.Html)",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlPdfExportOptions (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. Converter options are named {Source}{Target}ExportOptions.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.HtmlImageExportExtensions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlImageExportExtensions (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.HtmlRenderResultImageExtensions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlRenderResultImageExtensions (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.HtmlRenderResultArchiveExtensions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Html.Pdf.HtmlRenderResultArchiveExtensions (package OfficeIMO.Html.Pdf)",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf. HTML images are painted from the generated PDF page scenes, so ToPng/ToJpeg/ToTiff/ToWebp/ToSvg, ToImage, ExportImage(s), RenderImages, SaveAsImage(s) and ExportArchive move with it. Add using OfficeIMO.Html.Pdf.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Html.HtmlRenderOptions.PageSelection : OfficeIMO.Pdf.PdfPageSelection",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Html.HtmlRenderOptions.PageSelection : IReadOnlyList<int>",
+      "reason": "HtmlRenderOptions stays in OfficeIMO.Html, which no longer references OfficeIMO.Pdf. Pass the one-based page numbers, for example new[] { 3, 1, 3 }.",
+      "category": "packages",
+      "applied": true
+    },
+    {
+      "old": "HtmlRenderEngine.Execute/ExecuteAsync with a Png, Jpeg, Tiff, Webp or Svg encoder and plain HtmlRenderOptions",
+      "kind": "method",
+      "action": "change",
+      "new": "Pass HtmlPdfExportOptions in the request, or call document.RenderImages(request) from OfficeIMO.Html.Pdf",
+      "reason": "Image encoders measure and paint text through the PDF engine, which OfficeIMO.Html no longer carries. Plain options now throw ArgumentException for these encoders; RenderImages keeps the shared options resource policy.",
+      "category": "packages",
+      "applied": true
     }
   ],
   "extraChanges": [
@@ -138,6 +300,14 @@
       ],
       "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
       "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Html",
+      "to": "OfficeIMO.Html.Pdf",
+      "scope": "Pdf/ (HTML to PDF) and PDF-backed image export",
+      "reason": "HTML-to-PDF and the PDF-backed image export move into the optional pair package OfficeIMO.Html.Pdf, which now joins HTML and PDF in both directions. OfficeIMO.Html no longer references OfficeIMO.Pdf."
     }
   ]
 }

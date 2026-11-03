@@ -1,6 +1,6 @@
 # HTML to PDF and paged images
 
-`OfficeIMO.Html` owns static HTML layout, HTML-to-PDF conversion and PDF-backed image export. The public PDF types retain the `OfficeIMO.Html.Pdf` namespace. Install `OfficeIMO.Html`; use `OfficeIMO.Html.Pdf` when importing PDF as HTML.
+`OfficeIMO.Html.Pdf` owns HTML-to-PDF conversion, PDF-backed image export (PNG, JPEG, TIFF, WebP and SVG) and PDF-to-HTML import. `OfficeIMO.Html` owns parsing, CSS and the provider-neutral layout scene and does not reference `OfficeIMO.Pdf`. Install `OfficeIMO.Html.Pdf` for any of these outputs; it brings `OfficeIMO.Html` and `OfficeIMO.Pdf`.
 
 ## HTML to PDF
 
@@ -173,7 +173,7 @@ format check does not establish visual equivalence to a browser or source applic
 
 Keep data binding outside the renderer. Build finalized, encoded HTML with Razor, Scriban, Handlebars, or the template system already used by the application, then pass that HTML to `HtmlConversionDocument.Parse`. OfficeIMO does not execute JavaScript or template expressions while rendering.
 
-In paged output, table cells measure and wrap through the shared layout engine. A leading `<thead>` and a trailing `<tfoot>` repeat on each table fragment. Use `<tfoot>` for a genuine repeating table footer; put a subtotal or grand-total card that must appear once after the table and give it `break-inside: avoid`. Top-aligned, auto-height tables in one horizontal flex row or one ordinary auto grid row can continue independently, including their repeated groups and following content. See the [parallel-table contract and limits](README.md) before using more complex fragmenting containers.
+In paged output, table cells measure and wrap through the shared layout engine. A leading `<thead>` and a trailing `<tfoot>` repeat on each table fragment. Use `<tfoot>` for a genuine repeating table footer; put a subtotal or grand-total card that must appear once after the table and give it `break-inside: avoid`. Top-aligned, auto-height tables in one horizontal flex row or one ordinary auto grid row can continue independently, including their repeated groups and following content. See the [parallel-table contract and limits](../OfficeIMO.Html/README.md) before using more complex fragmenting containers.
 
 Ordinary rowspans can cross a safe row boundary without moving their whole row group to the next page. Authored cell, row, row-group and nested block keeps remain effective, and a cut must preserve text lines, atomic content and paragraph widows/orphans. The fragments retain the original cell identity and source alignment. Fragment-specific middle/bottom alignment, internal row breaks through spans and width-changing span reflow remain outside this bounded contract; changing geometry retains source layout with `HtmlRenderPagePseudoGeometryPending`.
 
@@ -214,7 +214,7 @@ Tagged output retains source hierarchy for supported text, images and rendered f
 
 The managed path supports named page rules, margin boxes, page counters, running strings, and running elements. It also maps headings and CSS bookmark controls to PDF outlines, maps supported semantic roles to the tagged structure tree, and marks repeated decorative margin content as PDF artifacts. Presentation MathML keeps its vector paint and searchable logical text inside a tagged `Formula` container. Its description follows the shared accessible-name resolution, then `alttext`, then the logical expression. Tagged formulas carry UTF-8 `application/mathml+xml` associated-file supplements. Exact original standalone MathML survives document cloning and unrelated edits; changed or recovered formulas carry current namespace-aware MathML with a normalization diagnostic. Hidden formulas and untagged output do not emit formula attachments. These associations select PDF 2.0, or PDF 1.7 when configured PDF/A-3 groundwork permits them. Association metadata alone does not establish PDF/A or PDF/UA conformance.
 
-MathML operator spacing uses the [shared rendering contract](README.md#direct-html-rendering)
+MathML operator spacing uses the [shared rendering contract](../OfficeIMO.Html/README.md#direct-html-rendering)
 for both PDF and paged image output. Supported form and side spacing affect the
 same retained drawing. Unsupported side syntax or detected authored operator presentation in unqualified
 embellished contexts retains approximation diagnostics; source attachments do not make those visual

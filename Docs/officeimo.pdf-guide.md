@@ -18,7 +18,7 @@ Page margins follow `PdfCreateOptions.Theme` (Modern by default). Setting an ind
 - [Fill a form or make its values permanent](#fill-and-flatten-a-pdf-form).
 - [Review and remove sensitive content](#review-apply-and-verify-redactions).
 - [Create an invoice and matching XML](../OfficeIMO.Invoicing.Pdf/README.md).
-- [Render HTML as PDF](../OfficeIMO.Html/PDF.md).
+- [Render HTML as PDF](../OfficeIMO.Html.Pdf/PDF.md).
 
 For complete workflows, see the [weekly brief](../OfficeIMO.Examples/Showcase/Workflows/WeeklyBrief.cs),
 [equipment inspection](../OfficeIMO.Examples/Showcase/Workflows/EquipmentInspection.cs),

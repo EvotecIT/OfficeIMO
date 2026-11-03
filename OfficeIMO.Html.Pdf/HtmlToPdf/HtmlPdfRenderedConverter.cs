@@ -105,7 +105,7 @@ internal static partial class HtmlPdfRenderedConverter {
     internal static HtmlRenderOptions PrepareNonPdfOptions(HtmlRenderRequest request) {
         HtmlRenderOptions source = request.Options;
         var options = new HtmlToPdfOptions(source);
-        bool preserveHtmlResourcePolicy = source is not HtmlToPdfOptions;
+        bool preserveHtmlResourcePolicy = source is not HtmlToPdfOptions pdfSource || pdfSource.PreservesHtmlResourcePolicy;
         if (preserveHtmlResourcePolicy) {
             // Retained EPUB, email and site-bundle resolvers already enforce their
             // container boundary. Preparing PDF fonts must not replace that policy.

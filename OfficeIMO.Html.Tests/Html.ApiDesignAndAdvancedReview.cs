@@ -437,7 +437,7 @@ public partial class Html {
                 diagnostic.Code == HtmlConversionDiagnosticCodes.ExcelPivotReviewApproximated &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.True(result.HasLoss);
-            Assert.Throws<OfficeConversionException>(() => report.ThrowIfLoss());
+            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

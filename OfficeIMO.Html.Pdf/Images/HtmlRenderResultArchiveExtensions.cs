@@ -3,7 +3,9 @@ using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Drawing;
 
-namespace OfficeIMO.Html;
+using OfficeIMO.Html;
+
+namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Packages separately encoded retained HTML surfaces with a deterministic manifest.</summary>
 public static class HtmlRenderResultArchiveExtensions {

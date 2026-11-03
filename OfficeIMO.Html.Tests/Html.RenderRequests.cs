@@ -70,7 +70,7 @@ public sealed class HtmlRenderRequestTests {
     public void RequestSnapshotsOptionsAndKeepsEncoderIndependentFromLayout() {
         var source = new HtmlRenderOptions { ViewportWidth = 480D, ViewportHeight = 320D };
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Png, source,
+            HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(source),
             HtmlRenderDocumentState.EditedSnapshot);
         source.ViewportWidth = 999D;
 
@@ -358,7 +358,7 @@ public sealed class HtmlRenderRequestTests {
             MaxSurfaceHeight = 500
         };
         HtmlRenderRequest stitched = HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, surfaceOptions)
+                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(surfaceOptions))
             .WithPageSet(HtmlRenderPageSet.Stitched());
         Assert.Throws<InvalidOperationException>(() => HtmlRenderEngine.Execute(source, stitched));
     }
@@ -373,14 +373,14 @@ public sealed class HtmlRenderRequestTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(TallHtml);
 
         HtmlRenderRequest selectedRequest = HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options)
+                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlToPdfOptions.ForImageExport(options))
             .WithPageSet(HtmlRenderPageSet.Page(1));
         HtmlRenderResult selected = HtmlRenderEngine.Execute(source, selectedRequest);
         Assert.Single(selected.Document.Pages);
         Assert.Equal(2, selected.Surfaces[0].SourcePageNumber);
 
         HtmlRenderRequest stitchedRequest = HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options)
+                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(options))
             .WithPageSet(HtmlRenderPageSet.Stitched());
         HtmlRenderResult stitched = HtmlRenderEngine.Execute(source, stitchedRequest);
         Assert.Single(stitched.Document.Pages);
@@ -404,7 +404,7 @@ public sealed class HtmlRenderRequestTests {
         OfficeImageExportResult legacy = source.ExportImage(OfficeImageExportFormat.Png, options);
 
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, options);
+            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(options));
         OfficeImageExportResult explicitResult = Assert.Single(source.RenderImages(request));
 
         Assert.Equal(legacy.Width, explicitResult.Width);

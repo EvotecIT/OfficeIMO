@@ -17,7 +17,7 @@ namespace OfficeIMO.Html.Pdf;
 /// using var pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
 /// </code>
 /// </example>
-public sealed class HtmlToPdfOptions : HtmlRenderOptions {
+public sealed class HtmlToPdfOptions : HtmlRenderOptions, IHtmlPrintRenderOptions {
     private int _maxOutlinedTextCharactersPerRun = 16_384;
     private int _maxOutlinedTextPathCommands = 1_000_000;
     private double? _printLayoutWidthCssPixels;
@@ -31,6 +31,8 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     // Retain the container resolver identity so a caller's later replacement remains authoritative.
     internal HtmlRenderResourceResolver? EmbeddedPackageConfiguredResourceResolver { get; set; }
     internal HtmlRenderResourceResolver? EmbeddedPackageHostResourceResolver { get; set; }
+    // Image export wraps shared options; the retained container policy stays authoritative.
+    internal bool PreservesHtmlResourcePolicy { get; private set; }
     internal DrawingCore.OfficePageSize? PrintOutputPageSize { get; set; }
     // One approved library-selected face snapshot supplies both layout and PDF paint.
     internal PdfCore.PdfEmbeddedFontFamily? LibrarySelectedDefaultFontFamily { get; set; }
@@ -164,8 +166,65 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     /// <summary>Returns a snapshot of the active HTML resource policy.</summary>
     public HtmlPdfResourcePolicySummary GetResourcePolicySummary() => HtmlPdfResourcePolicySummary.From(this);
 
+    /// <summary>
+    /// Creates options for PNG, JPEG, TIFF, WebP or SVG render requests from shared render options.
+    /// Text is measured and painted through the PDF engine, while the URL and resource policy of
+    /// <paramref name="source"/> stays authoritative instead of <see cref="ResourcePolicy"/>.
+    /// PDF-capable options are returned unchanged.
+    /// </summary>
+    /// <param name="source">Shared render options, or null for the defaults.</param>
+    public static HtmlToPdfOptions ForImageExport(HtmlRenderOptions? source) {
+        if (source is HtmlToPdfOptions pdf) return pdf;
+        HtmlRenderOptions shared = source ?? new HtmlRenderOptions();
+        return new HtmlToPdfOptions(shared) { UrlPolicy = shared.UrlPolicy.Clone(), PreservesHtmlResourcePolicy = true };
+    }
+
+    bool IHtmlPrintRenderOptions.UsesPrintResourcePolicy => !PreservesHtmlResourcePolicy;
+
+    HtmlRenderOptions IHtmlPrintRenderOptions.PrepareRenderOptions(HtmlRenderRequest request) =>
+        HtmlPdfRenderedConverter.PrepareNonPdfOptions(request);
+
+    IReadOnlyList<string> IHtmlPrintRenderOptions.RetainConfiguredDefaultFonts(OfficeFontFaceCollection fonts,
+        HtmlResourceSession resources, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) =>
+        HtmlPdfRenderedConverter.RetainConfiguredDefaultFonts(fonts, this, resources, diagnostics, cancellationToken);
+
+    bool IHtmlPrintRenderOptions.AllowsDocumentSystemFontFamilies =>
+        ResourcePolicy.AllowSystemFontEmbedding && ResourcePolicy.AllowDocumentFontEmbedding;
+
+    bool IHtmlPrintRenderOptions.TryPrepareLibraryFontMetrics(IEnumerable<HtmlRenderVisual> flow,
+        IEnumerable<(string Text, OfficeFontInfo Font)> marginRequirements, OfficeFontFaceCollection fonts,
+        HtmlResourceSession resources, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) =>
+        HtmlPdfRenderedConverter.TryPrepareLibraryFontMetrics(flow, marginRequirements, fonts, this, resources,
+            diagnostics, cancellationToken);
+
+    HtmlRenderRequest IHtmlPrintRenderOptions.PrepareSiteBundleRequest(HtmlSiteBundle bundle, HtmlRenderRequest request) =>
+        HtmlSiteBundlePdfExtensions.Prepare(bundle, request);
+
+    bool IHtmlPrintRenderOptions.AllowsEmbeddedPackageResources => ResourcePolicy.AllowEmbeddedPackageResources;
+
+    HtmlRenderResourceResolver? IHtmlPrintRenderOptions.EmbeddedPackageResourceResolver {
+        get => EmbeddedPackageResourceResolver;
+        set => EmbeddedPackageResourceResolver = value;
+    }
+
+    HtmlUrlPolicy? IHtmlPrintRenderOptions.EmbeddedPackageHostResourceUrlPolicy {
+        get => EmbeddedPackageHostResourceUrlPolicy;
+        set => EmbeddedPackageHostResourceUrlPolicy = value;
+    }
+
+    HtmlRenderResourceResolver? IHtmlPrintRenderOptions.EmbeddedPackageConfiguredResourceResolver {
+        get => EmbeddedPackageConfiguredResourceResolver;
+        set => EmbeddedPackageConfiguredResourceResolver = value;
+    }
+
+    HtmlRenderResourceResolver? IHtmlPrintRenderOptions.EmbeddedPackageHostResourceResolver {
+        get => EmbeddedPackageHostResourceResolver;
+        set => EmbeddedPackageHostResourceResolver = value;
+    }
+
     private void CopyPdfSettingsFrom(HtmlToPdfOptions source) {
         FailOnLoss = source.FailOnLoss;
+        PreservesHtmlResourcePolicy = source.PreservesHtmlResourcePolicy;
         TextFallbacks = source.TextFallbacks;
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;

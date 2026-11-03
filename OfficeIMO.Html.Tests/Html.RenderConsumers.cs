@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Pdf;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -194,7 +195,7 @@ public sealed class HtmlRenderConsumerTests {
         var document = new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, new HtmlDiagnosticReport());
         var result = new HtmlRenderResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Svg,
-                new HtmlRenderOptions { ViewportWidth = 100D, ViewportHeight = 60D }),
+                HtmlToPdfOptions.ForImageExport(new HtmlRenderOptions { ViewportWidth = 100D, ViewportHeight = 60D })),
             document,
             new[] { new HtmlRenderSurfaceResult(0, 1, 100D, 60D, 0D, 0D, false) });
         byte[] before = result.ExportArchive().Bytes;
@@ -215,11 +216,11 @@ public sealed class HtmlRenderConsumerTests {
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
             BackgroundColor = OfficeColor.FromRgba(10, 20, 30, 200),
-            PageSelection = OfficeIMO.Pdf.PdfPageSelection.From(2)
+            PageSelection = new[] { 2 }
         };
         HtmlRenderResult result = HtmlRenderEngine.Execute(
             HtmlConversionDocument.Parse(PagedHtml),
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options)
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlToPdfOptions.ForImageExport(options))
                 .WithPageSet(HtmlRenderPageSet.Pages(1, 2)));
 
         Assert.Equal("Page 3", Assert.Single(result.ExportImages()).Name);
@@ -262,7 +263,7 @@ public sealed class HtmlRenderConsumerTests {
         };
         HtmlRenderResult result = HtmlRenderEngine.Execute(
             HtmlConversionDocument.Parse("<div style='width:60px;height:30px;background:#369'>PNG</div>"),
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Png, options));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(options)));
         HtmlRenderArchiveResult archive = result.ExportArchive();
 
         Assert.Equal("image/png", Assert.Single(archive.Manifest.Pages).MimeType);
@@ -286,7 +287,7 @@ public sealed class HtmlRenderConsumerTests {
         };
         HtmlRenderResult result = HtmlRenderEngine.Execute(
                 HtmlConversionDocument.Parse("<div style='width:60px;height:30px;background:#369'>PNG</div>"),
-                HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Png, options))
+                HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(options)))
             .WithAdditionalDiagnostics(new[] {
                 new HtmlDiagnostic(
                     "ArchiveBoundary",

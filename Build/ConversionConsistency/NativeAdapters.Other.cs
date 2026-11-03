@@ -32,8 +32,9 @@ internal static partial class NativeAdapters {
                 var pdfOptions = new VisioToPdfOptions {
                     ProjectionOptions = new PdfProjectionOptions { PdfOptions = new PdfCreateOptions().UseRenderingProfile(profile) }
                 };
-                return Capture(document.ToPdfDocumentResult(pdfOptions, token),
-                    format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-semantic-projection" };
+                using (PdfDocument pdf = document.ToPdf(pdfOptions, out OfficeConversionReport pdfReport, token))
+                    return Capture(pdf, pdfReport,
+                        format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-semantic-projection" };
             }
             case "eml": {
                 byte[] reference = ReferencePdf(contract, source);

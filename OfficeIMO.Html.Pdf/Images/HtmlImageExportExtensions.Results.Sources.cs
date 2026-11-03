@@ -1,13 +1,15 @@
 using OfficeIMO.Drawing;
 
-namespace OfficeIMO.Html;
+using OfficeIMO.Html;
+
+namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Exports HTML surfaces from the same paged layout and PDF scene as PDF conversion.</summary>
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders one selected surface to the requested image format with dimensions and diagnostics.</summary>
     public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
-            options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
+            HtmlToPdfOptions.ForImageExport(options), MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         resolved.PageSelection = null;
         return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
@@ -36,7 +38,7 @@ public static partial class HtmlImageExportExtensions {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
-            options, MapEncoder(format), HtmlRenderPageSet.All());
+            HtmlToPdfOptions.ForImageExport(options), MapEncoder(format), HtmlRenderPageSet.All());
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
@@ -49,7 +51,7 @@ public static partial class HtmlImageExportExtensions {
     /// <summary>Asynchronously renders one selected surface to the requested image format.</summary>
     public static async Task<OfficeImageExportResult> ExportImageAsync(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
-            options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
+            HtmlToPdfOptions.ForImageExport(options), MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         resolved.PageSelection = null;
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
@@ -85,7 +87,7 @@ public static partial class HtmlImageExportExtensions {
         CancellationToken cancellationToken = default) {
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
-            options, MapEncoder(format), HtmlRenderPageSet.All());
+            HtmlToPdfOptions.ForImageExport(options), MapEncoder(format), HtmlRenderPageSet.All());
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         HtmlRenderResult? rendered = null;
         await OfficeImageExportBatchProcessor.RunAsyncWithPreflight(
@@ -108,6 +110,8 @@ public static partial class HtmlImageExportExtensions {
         this HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        request = request.WithOptions(HtmlToPdfOptions.ForImageExport(request.Options));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
@@ -123,6 +127,8 @@ public static partial class HtmlImageExportExtensions {
         this HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        request = request.WithOptions(HtmlToPdfOptions.ForImageExport(request.Options));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
             HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(

@@ -114,7 +114,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             defaultFontFamily = selectedDefaults.DefaultFontFamily,
             maxSelectorEvaluations = HtmlConversionLimits.UntrustedDefaults.MaxSelectorEvaluations,
             ownerVersions,
-            ownerBoundary = "HTML PDF option and render APIs are owned by OfficeIMO.Html; no separate forwarder assembly is attributed.",
+            ownerBoundary = "HTML PDF option and render APIs are owned by OfficeIMO.Html.Pdf over the OfficeIMO.Html layout engine.",
             conversionScope = "layout and PDF conversion of preloaded MHTML; PDF serialization included, archive load and saved-artifact inspection excluded",
             viewport = new { width = ViewportWidth, height = ViewportHeight },
             archive = new { path = "source.mhtml", bytes = archive.Length, sha256 = Sha256(archive) },

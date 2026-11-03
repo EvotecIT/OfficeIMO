@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Pdf;
 using System.IO.Compression;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;

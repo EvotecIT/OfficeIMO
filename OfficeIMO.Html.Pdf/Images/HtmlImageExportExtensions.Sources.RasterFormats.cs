@@ -1,6 +1,8 @@
 using OfficeIMO.Drawing;
 
-namespace OfficeIMO.Html;
+using OfficeIMO.Html;
+
+namespace OfficeIMO.Html.Pdf;
 
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders a shared HTML conversion document to JPEG bytes.</summary>

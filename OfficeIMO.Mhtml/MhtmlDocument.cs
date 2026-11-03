@@ -1,6 +1,5 @@
 using OfficeIMO.Email;
 using OfficeIMO.Html;
-using OfficeIMO.Html.Pdf;
 using System.Text;
 
 namespace OfficeIMO.Mhtml;
@@ -197,7 +196,7 @@ public sealed partial class MhtmlDocument {
         options.UrlPolicy ??= HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy fallbackResourceUrlPolicy = (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();
         bool includeEmbeddedResources = true;
-        HtmlToPdfOptions? pdfOptions = options as HtmlToPdfOptions;
+        IHtmlPrintRenderOptions? pdfOptions = options is IHtmlPrintRenderOptions { UsesPrintResourcePolicy: true } print ? print : null;
         if (pdfOptions != null) {
             // Image requests prepare PDF-capable options too. Keep archive bytes separate
             // from host resolution so the PDF policy can allow one without allowing the other.
@@ -206,7 +205,7 @@ public sealed partial class MhtmlDocument {
                 fallbackResourceUrlPolicy = HtmlUrlPolicy.Intersect(
                     previous.FallbackResourceUrlPolicy, fallbackResourceUrlPolicy);
             }
-            includeEmbeddedResources = pdfOptions.ResourcePolicy.AllowEmbeddedPackageResources;
+            includeEmbeddedResources = pdfOptions.AllowsEmbeddedPackageResources;
             pdfOptions.EmbeddedPackageResourceResolver = includeEmbeddedResources
                 ? CreateResourceResolver()
                 : null;

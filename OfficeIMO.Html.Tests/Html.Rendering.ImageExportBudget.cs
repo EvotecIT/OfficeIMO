@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
         options.MaximumTotalEncodedBytes = limit;
 
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, encoder, options).WithPageSet(HtmlRenderPageSet.All());
+            HtmlRenderIntentProfile.PrintPaged, encoder, HtmlToPdfOptions.ForImageExport(options)).WithPageSet(HtmlRenderPageSet.All());
         OfficeImageExportBatchLimitException legacy = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
             document.ExportImages(format, options));
         OfficeImageExportBatchLimitException explicitRequest = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
@@ -71,7 +71,7 @@ public sealed partial class HtmlRenderingTests {
 
         options.MaximumRasterPixels = 15_000L;
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, options);
+            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(options));
         OfficeImageExportLimitException legacy = Assert.Throws<OfficeImageExportLimitException>(() =>
             document.ExportImage(OfficeImageExportFormat.Png, options));
         OfficeImageExportLimitException explicitRequest = Assert.Throws<OfficeImageExportLimitException>(() =>

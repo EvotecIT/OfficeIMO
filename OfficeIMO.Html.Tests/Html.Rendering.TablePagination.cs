@@ -218,10 +218,10 @@ public sealed partial class HtmlRenderingTests {
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
 
         HtmlRenderResult svgResult = HtmlRenderEngine.Execute(document,
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlToPdfOptions.ForImageExport(options)));
         HtmlRenderArchiveResult svgArchive = svgResult.ExportArchive();
         HtmlRenderResult pngResult = HtmlRenderEngine.Execute(document,
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, HtmlToPdfOptions.ForImageExport(options)));
         HtmlRenderArchiveResult pngArchive = pngResult.ExportArchive();
         using var svgZip = new ZipArchive(new MemoryStream(svgArchive.Bytes), ZipArchiveMode.Read);
         using var pngZip = new ZipArchive(new MemoryStream(pngArchive.Bytes), ZipArchiveMode.Read);

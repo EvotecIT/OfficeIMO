@@ -6,7 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
-namespace OfficeIMO.Html;
+using OfficeIMO.Html;
+
+namespace OfficeIMO.Html.Pdf;
 
 public static partial class HtmlImageExportExtensions {
     /// <summary>Saves selected images without retaining payloads and returns aggregate conversion evidence.</summary>

@@ -25,7 +25,7 @@ public sealed class HtmlSiteBundleTests {
             new HtmlSiteBundleOptions { ArchiveBaseUri = new Uri("https://archive.example.test/site/") });
         HtmlRenderRequest prepared = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg,
-            new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() }));
+            HtmlToPdfOptions.ForImageExport(new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() })));
         var options = (HtmlToPdfOptions)prepared.Options;
         options.ResourcePolicy.AllowEmbeddedPackageResources = false;
         HtmlRenderRequest request = prepared.WithOptions(options).WithEncoder(encoder);
@@ -99,7 +99,7 @@ public sealed class HtmlSiteBundleTests {
             ? new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() }
             : new HtmlRenderOptions();
         options.Margins = HtmlRenderMargins.All(0);
-        HtmlRenderRequest original = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options);
+        HtmlRenderRequest original = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlToPdfOptions.ForImageExport(options));
         HtmlRenderResult rendered = asynchronous
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, bundle.CreateRenderRequest(original))
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, bundle.CreateRenderRequest(original));
@@ -225,7 +225,7 @@ public sealed class HtmlSiteBundleTests {
         Assert.Equal(synchronous.EntryNames, asynchronous.EntryNames);
         foreach (HtmlSiteBundle bundle in new[] { synchronous, asynchronous }) {
             HtmlRenderResult rendered = HtmlRenderEngine.Execute(bundle.HtmlDocument, bundle.CreateRenderRequest(
-                HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg)));
+                HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlToPdfOptions.ForImageExport(null))));
             Assert.Contains("#123456", Encoding.UTF8.GetString(rendered.ExportImage().Bytes), StringComparison.OrdinalIgnoreCase);
         }
     }
@@ -301,7 +301,7 @@ public sealed class HtmlSiteBundleTests {
         HtmlSiteBundle bundle = HtmlSiteBundle.Load(zip);
         HtmlRenderRequest request = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png,
-            new HtmlRenderOptions { Margins = HtmlRenderMargins.All(0) }));
+            HtmlToPdfOptions.ForImageExport(new HtmlRenderOptions { Margins = HtmlRenderMargins.All(0) })));
         HtmlRenderResult result = asynchronous
             ? await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request)
             : HtmlRenderEngine.Execute(bundle.HtmlDocument, request);

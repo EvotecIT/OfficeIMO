@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 public enum HtmlRenderUserAgentStyleMode {
     /// <summary>
     /// Preserves OfficeIMO's document-oriented defaults, including Arial fallback and, outside
-    /// direct HTML-to-PDF rendering, an uninset body. <c>new HtmlToPdfOptions()</c> keeps the browser's
+    /// direct HTML-to-PDF rendering, an uninset body. <c>new HtmlPdfExportOptions()</c> from OfficeIMO.Html.Pdf keeps the browser's
     /// eight CSS-pixel body margin so PDF output wraps as it does in a browser; author CSS such as
     /// <c>body{margin:0}</c> overrides it.
     /// </summary>

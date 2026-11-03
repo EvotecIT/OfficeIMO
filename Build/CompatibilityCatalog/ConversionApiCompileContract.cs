@@ -224,7 +224,7 @@ internal static class ConversionApiCompileContract {
         _ = word.ExportImages(imageFormat);
         _ = excel.ExportImages(imageFormat);
         _ = powerPoint.ExportImages(imageFormat);
-        _ = OfficeIMO.Html.HtmlImageExportExtensions.ExportImages(html, imageFormat);
+        _ = OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ExportImages(html, imageFormat);
         _ = OfficeIMO.OneNote.OneNoteImageExportExtensions.ExportImages(oneNote, imageFormat);
         _ = OfficeIMO.Visio.VisioImageExportExtensions.ExportImages(visio, imageFormat);
         _ = OfficeIMO.Email.EmailImageExportExtensions.ExportImages(email, imageFormat);

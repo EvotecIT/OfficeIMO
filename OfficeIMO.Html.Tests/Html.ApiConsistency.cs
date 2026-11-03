@@ -161,19 +161,25 @@ public sealed class HtmlApiConsistencyTests {
     }
 
     [Fact]
-    public void HtmlPdf_DependsOnlyOnDirectRenderingOwners() {
-        string[] references = typeof(HtmlToPdfOptions).Assembly
+    public void HtmlPdf_HostsPdfOutputWhileHtmlStaysFreeOfThePdfEngine() {
+        string[] html = typeof(HtmlConversionDocument).Assembly
+            .GetReferencedAssemblies()
+            .Select(reference => reference.Name ?? string.Empty)
+            .ToArray();
+        string[] bridge = typeof(HtmlToPdfOptions).Assembly
             .GetReferencedAssemblies()
             .Select(reference => reference.Name ?? string.Empty)
             .ToArray();
 
-        Assert.Equal(typeof(HtmlConversionDocument).Assembly, typeof(HtmlToPdfOptions).Assembly);
-        Assert.Contains("OfficeIMO.Core", references);
-        Assert.Contains("OfficeIMO.Pdf", references);
-        Assert.DoesNotContain("OfficeIMO.Markdown.Html", references);
-        Assert.DoesNotContain("OfficeIMO.Markdown.Pdf", references);
-        Assert.DoesNotContain("OfficeIMO.Word.Html", references);
-        Assert.DoesNotContain("OfficeIMO.Word.Pdf", references);
+        Assert.Equal("OfficeIMO.Html.Pdf", typeof(HtmlToPdfOptions).Assembly.GetName().Name);
+        Assert.Equal(typeof(HtmlToPdfOptions).Assembly, typeof(HtmlImageExportExtensions).Assembly);
+        Assert.DoesNotContain("OfficeIMO.Pdf", html);
+        Assert.Contains("OfficeIMO.Html", bridge);
+        Assert.Contains("OfficeIMO.Pdf", bridge);
+        Assert.DoesNotContain("OfficeIMO.Markdown.Html", bridge);
+        Assert.DoesNotContain("OfficeIMO.Markdown.Pdf", bridge);
+        Assert.DoesNotContain("OfficeIMO.Word.Html", bridge);
+        Assert.DoesNotContain("OfficeIMO.Word.Pdf", bridge);
     }
 
     private sealed class NullShapingProvider : OfficeIMO.Drawing.IOfficeTextShapingProvider {

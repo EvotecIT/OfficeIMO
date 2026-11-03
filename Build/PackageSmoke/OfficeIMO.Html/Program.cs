@@ -113,7 +113,7 @@ if (!foundationPdf.ExtractText().Contains("Packed edit"))
 HtmlRenderRequest imageRequest = HtmlRenderRequest.Create(
     HtmlRenderIntentProfile.ScreenFullPage,
     HtmlRenderEncoder.Png,
-    new HtmlRenderOptions { ViewportWidth = 480D });
+    new HtmlToPdfOptions { ViewportWidth = 480D });
 HtmlRenderResult retained = HtmlRenderEngine.Execute(conversion, imageRequest);
 retained = retained.WithAdditionalDiagnostics(new[] {
     new HtmlDiagnostic("PackageSmoke", "RetainedBoundary", "Packed retained-result evidence",

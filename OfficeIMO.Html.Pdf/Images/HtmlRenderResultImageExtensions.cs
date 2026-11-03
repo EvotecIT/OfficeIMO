@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Html;
 
-namespace OfficeIMO.Html;
+namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Encodes retained HTML surfaces through their canonical PDF page scenes.</summary>
 public static class HtmlRenderResultImageExtensions {
@@ -49,7 +50,7 @@ public static class HtmlRenderResultImageExtensions {
         IReadOnlyList<int> selection = ResolveSelection(result, options);
         int index = 0;
         global::OfficeIMO.Pdf.PdfImageExportEngine.ExportEach(pages, format, options.ToPdfImageOptions(),
-            selection: options.PageSelection, image => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber)),
+            selection: options.ToPdfPageSelection(), image => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber)),
             global::OfficeIMO.Pdf.PdfImageExportEngine.MapConversionDiagnostics(conversion), cancellationToken);
     }
 
@@ -61,17 +62,17 @@ public static class HtmlRenderResultImageExtensions {
         IReadOnlyList<int> selection = ResolveSelection(result, options);
         int index = 0;
         await global::OfficeIMO.Pdf.PdfImageExportEngine.ExportEachAsync(pages, format, options.ToPdfImageOptions(),
-            selection: options.PageSelection, (image, token) => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber), token),
+            selection: options.ToPdfPageSelection(), (image, token) => consumer(WithHtmlSource(image, result.Document.Pages[selection[index++] - 1].PageNumber), token),
             global::OfficeIMO.Pdf.PdfImageExportEngine.MapConversionDiagnostics(conversion), cancellationToken).ConfigureAwait(false);
     }
 
     internal static IReadOnlyList<int> ResolveSelection(HtmlRenderResult result, HtmlRenderOptions options) =>
-        options.PageSelection?.Resolve(result.Document.Pages.Count)
+        options.ToPdfPageSelection()?.Resolve(result.Document.Pages.Count)
         ?? Enumerable.Range(1, result.Document.Pages.Count).ToArray();
 
     private static global::OfficeIMO.Pdf.PdfDocumentConversionResult CreatePdf(HtmlRenderResult result,
-        CancellationToken cancellationToken) => Pdf.HtmlPdfConverterExtensions.CreateResult(
-            Pdf.HtmlPdfRenderedConverter.CreatePdf(result.Document, new Pdf.HtmlToPdfOptions(result.ResolvedOptions), cancellationToken));
+        CancellationToken cancellationToken) => HtmlPdfConverterExtensions.CreateResult(
+            HtmlPdfRenderedConverter.CreatePdf(result.Document, new HtmlToPdfOptions(result.ResolvedOptions), cancellationToken));
 
     private static OfficeImageExportResult WithHtmlSource(OfficeImageExportResult image, int pageNumber) =>
         image.WithIdentity("Page " + pageNumber, "HTML render page " + pageNumber);
