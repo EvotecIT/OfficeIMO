@@ -41,7 +41,7 @@ Convert-OfficeDocument [-Text] <string> -To <string> -From <string> [-OutputPath
 
 ### Document
 ```powershell
-Convert-OfficeDocument [-Document] <Object> [-To <string>] [-OutputPath <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
+Convert-OfficeDocument [-Document] <Object> [-OutputPath <string>] [-To <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
