@@ -232,7 +232,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("'domain-001'!A1", hyperlink.Location!.Value);
             }
         }
-    
+
         [Fact]
         public void Excel_LinkByHeader_ReportsCellsWhoseTargetMapsToNothing() {
             using var doc = ExcelDocument.Create(new MemoryStream());

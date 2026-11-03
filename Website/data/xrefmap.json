@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-11-03T14:15:13.2696650Z",
+  "generatedAtUtc": "2026-11-03T18:03:57.3373460Z",
   "sourceCount": 122,
-  "referenceCount": 100685,
+  "referenceCount": 100660,
   "duplicateCount": 0,
   "references": [
     {
@@ -70967,42 +70967,6 @@
       "aliases": [
         "global::OfficeIMO.PowerPoint.PowerPointRectangleAlignment.TopRight",
         "OfficeIMO.PowerPoint.PowerPointRectangleAlignment.TopRight"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Disabled",
-      "name": "PowerPointReferenceRenderStatus.Disabled",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#field-disabled",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Disabled",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Disabled"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Failed",
-      "name": "PowerPointReferenceRenderStatus.Failed",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#field-failed",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Failed",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Failed"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Succeeded",
-      "name": "PowerPointReferenceRenderStatus.Succeeded",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#field-succeeded",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Succeeded",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Succeeded"
-      ]
-    },
-    {
-      "uid": "F:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Unavailable",
-      "name": "PowerPointReferenceRenderStatus.Unavailable",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#field-unavailable",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Unavailable",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Unavailable"
       ]
     },
     {
@@ -399650,53 +399614,6 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.Equals(System.Object)",
-      "name": "PowerPointDesktopReferenceRenderer.Equals",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointdesktopreferencerenderer/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.Equals",
-        "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.Equals",
-        "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.GetHashCode",
-      "name": "PowerPointDesktopReferenceRenderer.GetHashCode",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointdesktopreferencerenderer/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.GetHashCode",
-        "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.GetType",
-      "name": "PowerPointDesktopReferenceRenderer.GetType",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointdesktopreferencerenderer/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.GetType",
-        "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.ToString",
-      "name": "PowerPointDesktopReferenceRenderer.ToString",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointdesktopreferencerenderer/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.ToString",
-        "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.TryRender(System.String,System.String,System.Boolean)",
-      "name": "PowerPointDesktopReferenceRenderer.TryRender",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointdesktopreferencerenderer/#method-tryrender-string-string-boolean",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.TryRender",
-        "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.TryRender",
-        "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.TryRender(System.String,System.String,System.Boolean)"
-      ]
-    },
-    {
       "uid": "M:OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle.CompareTo(System.Object)",
       "name": "PowerPointDirectionMotifStyle.CompareTo",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointdirectionmotifstyle/#method-compareto-object",
@@ -408308,139 +408225,6 @@
         "global::OfficeIMO.PowerPoint.PowerPointRectangleAlignment.ToString",
         "OfficeIMO.PowerPoint.PowerPointRectangleAlignment.ToString",
         "OfficeIMO.PowerPoint.PowerPointRectangleAlignment.ToString(System.String,IFormatProvider)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Equals(System.Object)",
-      "name": "PowerPointReferenceRenderResult.Equals",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Equals",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Equals",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.GetHashCode",
-      "name": "PowerPointReferenceRenderResult.GetHashCode",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.GetHashCode",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.GetType",
-      "name": "PowerPointReferenceRenderResult.GetType",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.GetType",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.ToString",
-      "name": "PowerPointReferenceRenderResult.ToString",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.ToString",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.CompareTo(System.Object)",
-      "name": "PowerPointReferenceRenderStatus.CompareTo",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-compareto-object",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.CompareTo",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.CompareTo",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.CompareTo(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Equals(System.Object)",
-      "name": "PowerPointReferenceRenderStatus.Equals",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-equals-object",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Equals",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Equals",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Equals(System.Object)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetHashCode",
-      "name": "PowerPointReferenceRenderStatus.GetHashCode",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-gethashcode",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetHashCode",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetHashCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetType",
-      "name": "PowerPointReferenceRenderStatus.GetType",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-gettype",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetType",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetType"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetTypeCode",
-      "name": "PowerPointReferenceRenderStatus.GetTypeCode",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-gettypecode",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetTypeCode",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.GetTypeCode"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.HasFlag(Enum)",
-      "name": "PowerPointReferenceRenderStatus.HasFlag",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-hasflag-enum",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.HasFlag",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.HasFlag",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.HasFlag(Enum)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString",
-      "name": "PowerPointReferenceRenderStatus.ToString",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-tostring",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString(IFormatProvider)",
-      "name": "PowerPointReferenceRenderStatus.ToString",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-tostring-iformatprovider",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString(IFormatProvider)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString(System.String)",
-      "name": "PowerPointReferenceRenderStatus.ToString",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-tostring-string",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString(System.String)"
-      ]
-    },
-    {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString(System.String,IFormatProvider)",
-      "name": "PowerPointReferenceRenderStatus.ToString",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/#method-tostring-string-iformatprovider",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.ToString(System.String,IFormatProvider)"
       ]
     },
     {
@@ -535653,13 +535437,13 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.Workflows.BookOnixUsageLimit.Date(OfficeIMO.Workflows.BookOnixUsageUnit,System.DateOnly)",
+      "uid": "M:OfficeIMO.Workflows.BookOnixUsageLimit.Date(OfficeIMO.Workflows.BookOnixUsageUnit,System.DateTime)",
       "name": "BookOnixUsageLimit.Date",
-      "href": "/api/workflows/officeimo-workflows-bookonixusagelimit/#method-date-officeimo-workflows-bookonixusageunit-dateonly",
+      "href": "/api/workflows/officeimo-workflows-bookonixusagelimit/#method-date-officeimo-workflows-bookonixusageunit-datetime",
       "aliases": [
         "global::OfficeIMO.Workflows.BookOnixUsageLimit.Date",
         "OfficeIMO.Workflows.BookOnixUsageLimit.Date",
-        "OfficeIMO.Workflows.BookOnixUsageLimit.Date(OfficeIMO.Workflows.BookOnixUsageUnit,System.DateOnly)"
+        "OfficeIMO.Workflows.BookOnixUsageLimit.Date(OfficeIMO.Workflows.BookOnixUsageUnit,System.DateTime)"
       ]
     },
     {
@@ -537583,13 +537367,13 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.Workflows.IOfficeInvoiceWorkflowRunner.RunInvoiceAsync(OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest,OfficeIMO.Invoicing.Validation.InvoiceValidator,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.Workflows.IOfficeInvoiceWorkflowRunner.RunInvoiceAsync(OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest,System.Threading.CancellationToken)",
       "name": "IOfficeInvoiceWorkflowRunner.RunInvoiceAsync",
-      "href": "/api/workflows/officeimo-workflows-iofficeinvoiceworkflowrunner/#method-runinvoiceasync-officeimo-workflows-officeinvoicestorageworkflowrequest-officeimo-invoicing-validation-invoicevalidator-threading-cancellationtoken",
+      "href": "/api/workflows/officeimo-workflows-iofficeinvoiceworkflowrunner/#method-runinvoiceasync-officeimo-workflows-officeinvoicestorageworkflowrequest-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.Workflows.IOfficeInvoiceWorkflowRunner.RunInvoiceAsync",
         "OfficeIMO.Workflows.IOfficeInvoiceWorkflowRunner.RunInvoiceAsync",
-        "OfficeIMO.Workflows.IOfficeInvoiceWorkflowRunner.RunInvoiceAsync(OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest,OfficeIMO.Invoicing.Validation.InvoiceValidator,System.Threading.CancellationToken)"
+        "OfficeIMO.Workflows.IOfficeInvoiceWorkflowRunner.RunInvoiceAsync(OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -537751,6 +537535,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunAsync(OfficeIMO.Workflows.OfficeInvoiceWorkflowRequest,System.Threading.CancellationToken)",
+      "name": "OfficeInvoiceBufferWorkflow.RunAsync",
+      "href": "/api/workflows/officeimo-workflows-officeinvoicebufferworkflow/#method-runasync-officeimo-workflows-officeinvoiceworkflowrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunAsync",
+        "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunAsync",
+        "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunAsync(OfficeIMO.Workflows.OfficeInvoiceWorkflowRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync(System.Collections.Generic.IEnumerable{OfficeIMO.Workflows.OfficeInvoiceWorkflowRequest},OfficeIMO.Workflows.OfficeInvoiceWorkflowBatchOptions,OfficeIMO.Invoicing.Validation.InvoiceValidator,System.Threading.CancellationToken)",
       "name": "OfficeInvoiceBufferWorkflow.RunBatchAsync",
       "href": "/api/workflows/officeimo-workflows-officeinvoicebufferworkflow/#method-runbatchasync-collections-generic-ienumerable-officeimo-workflows-officeinvoiceworkflowrequest-officeimo-workflows-officeinvoiceworkflowbatchoptions-officeimo-invoicing-validation-invoicevalidator-threading-cancellationtoken",
@@ -537758,6 +537552,16 @@
         "global::OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync",
         "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync",
         "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync(System.Collections.Generic.IEnumerable{OfficeIMO.Workflows.OfficeInvoiceWorkflowRequest},OfficeIMO.Workflows.OfficeInvoiceWorkflowBatchOptions,OfficeIMO.Invoicing.Validation.InvoiceValidator,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync(System.Collections.Generic.IEnumerable{OfficeIMO.Workflows.OfficeInvoiceWorkflowRequest},OfficeIMO.Workflows.OfficeInvoiceWorkflowBatchOptions,System.Threading.CancellationToken)",
+      "name": "OfficeInvoiceBufferWorkflow.RunBatchAsync",
+      "href": "/api/workflows/officeimo-workflows-officeinvoicebufferworkflow/#method-runbatchasync-collections-generic-ienumerable-officeimo-workflows-officeinvoiceworkflowrequest-officeimo-workflows-officeinvoiceworkflowbatchoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync",
+        "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync",
+        "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync(System.Collections.Generic.IEnumerable{OfficeIMO.Workflows.OfficeInvoiceWorkflowRequest},OfficeIMO.Workflows.OfficeInvoiceWorkflowBatchOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -537808,6 +537612,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunAsync(OfficeIMO.Workflows.OfficeInvoiceFileWorkflowRequest,System.Threading.CancellationToken)",
+      "name": "OfficeInvoiceFileWorkflow.RunAsync",
+      "href": "/api/workflows/officeimo-workflows-officeinvoicefileworkflow/#method-runasync-officeimo-workflows-officeinvoicefileworkflowrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunAsync",
+        "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunAsync",
+        "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunAsync(OfficeIMO.Workflows.OfficeInvoiceFileWorkflowRequest,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync(System.Collections.Generic.IEnumerable{OfficeIMO.Workflows.OfficeInvoiceFileWorkflowRequest},OfficeIMO.Workflows.OfficeInvoiceWorkflowBatchOptions,OfficeIMO.Invoicing.Validation.InvoiceValidator,System.Threading.CancellationToken)",
       "name": "OfficeInvoiceFileWorkflow.RunBatchAsync",
       "href": "/api/workflows/officeimo-workflows-officeinvoicefileworkflow/#method-runbatchasync-collections-generic-ienumerable-officeimo-workflows-officeinvoicefileworkflowrequest-officeimo-workflows-officeinvoiceworkflowbatchoptions-officeimo-invoicing-validation-invoicevalidator-threading-cancellationtoken",
@@ -537815,6 +537629,16 @@
         "global::OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync",
         "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync",
         "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync(System.Collections.Generic.IEnumerable{OfficeIMO.Workflows.OfficeInvoiceFileWorkflowRequest},OfficeIMO.Workflows.OfficeInvoiceWorkflowBatchOptions,OfficeIMO.Invoicing.Validation.InvoiceValidator,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync(System.Collections.Generic.IEnumerable{OfficeIMO.Workflows.OfficeInvoiceFileWorkflowRequest},OfficeIMO.Workflows.OfficeInvoiceWorkflowBatchOptions,System.Threading.CancellationToken)",
+      "name": "OfficeInvoiceFileWorkflow.RunBatchAsync",
+      "href": "/api/workflows/officeimo-workflows-officeinvoicefileworkflow/#method-runbatchasync-collections-generic-ienumerable-officeimo-workflows-officeinvoicefileworkflowrequest-officeimo-workflows-officeinvoiceworkflowbatchoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync",
+        "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync",
+        "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync(System.Collections.Generic.IEnumerable{OfficeIMO.Workflows.OfficeInvoiceFileWorkflowRequest},OfficeIMO.Workflows.OfficeInvoiceWorkflowBatchOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -541620,6 +541444,16 @@
         "global::OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync",
         "OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync",
         "OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync(OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest,OfficeIMO.Invoicing.Validation.InvoiceValidator,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync(OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest,System.Threading.CancellationToken)",
+      "name": "OfficeWorkflowRunner.RunInvoiceAsync",
+      "href": "/api/workflows/officeimo-workflows-officeworkflowrunner/#method-runinvoiceasync-officeimo-workflows-officeinvoicestorageworkflowrequest-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync",
+        "OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync",
+        "OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync(OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -588498,16 +588332,6 @@
       ]
     },
     {
-      "uid": "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer",
-      "name": "PowerPointDesktopReferenceRenderer",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointdesktopreferencerenderer/",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer",
-        "PowerPointDesktopReferenceRenderer",
-        "T:OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer"
-      ]
-    },
-    {
       "uid": "OfficeIMO.PowerPoint.PowerPointDirectionMotifStyle",
       "name": "PowerPointDirectionMotifStyle",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointdirectionmotifstyle/",
@@ -589315,26 +589139,6 @@
         "global::OfficeIMO.PowerPoint.PowerPointRectangleAlignment",
         "PowerPointRectangleAlignment",
         "T:OfficeIMO.PowerPoint.PowerPointRectangleAlignment"
-      ]
-    },
-    {
-      "uid": "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult",
-      "name": "PowerPointReferenceRenderResult",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult",
-        "PowerPointReferenceRenderResult",
-        "T:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult"
-      ]
-    },
-    {
-      "uid": "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus",
-      "name": "PowerPointReferenceRenderStatus",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderstatus/",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus",
-        "PowerPointReferenceRenderStatus",
-        "T:OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus"
       ]
     },
     {
@@ -804223,15 +804027,6 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop",
-      "name": "PowerPointCompatibilityOptions.EnablePowerPointDesktop",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointcompatibilityoptions/#property-enablepowerpointdesktop",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop",
-        "OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop"
-      ]
-    },
-    {
       "uid": "P:OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.LibreOfficeTimeout",
       "name": "PowerPointCompatibilityOptions.LibreOfficeTimeout",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointcompatibilityoptions/#property-libreofficetimeout",
@@ -812167,42 +811962,6 @@
       "aliases": [
         "global::OfficeIMO.PowerPoint.PowerPointProcessStep.Title",
         "OfficeIMO.PowerPoint.PowerPointProcessStep.Title"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.ImagePaths",
-      "name": "PowerPointReferenceRenderResult.ImagePaths",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/#property-imagepaths",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.ImagePaths",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.ImagePaths"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.IsSuccessful",
-      "name": "PowerPointReferenceRenderResult.IsSuccessful",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/#property-issuccessful",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.IsSuccessful",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.IsSuccessful"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Message",
-      "name": "PowerPointReferenceRenderResult.Message",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/#property-message",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Message",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Message"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Status",
-      "name": "PowerPointReferenceRenderResult.Status",
-      "href": "/api/powerpoint/officeimo-powerpoint-powerpointreferencerenderresult/#property-status",
-      "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Status",
-        "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Status"
       ]
     },
     {
@@ -881809,6 +881568,15 @@
       "aliases": [
         "global::OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest.SourceEdits",
         "OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest.SourceEdits"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest.StandardsValidator",
+      "name": "OfficeInvoiceStorageWorkflowRequest.StandardsValidator",
+      "href": "/api/workflows/officeimo-workflows-officeinvoicestorageworkflowrequest/#property-standardsvalidator",
+      "aliases": [
+        "global::OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest.StandardsValidator",
+        "OfficeIMO.Workflows.OfficeInvoiceStorageWorkflowRequest.StandardsValidator"
       ]
     },
     {
@@ -969188,7 +968956,7 @@
       ]
     }
   ],
-  "previousReferenceCount": 100587,
-  "referenceDeltaCount": 98,
-  "referenceDeltaPercent": 0.0974
+  "previousReferenceCount": 100691,
+  "referenceDeltaCount": -31,
+  "referenceDeltaPercent": -0.0308
 }
