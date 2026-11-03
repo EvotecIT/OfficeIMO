@@ -359,11 +359,21 @@ and repair-free opening remain unassessed.
 `-NativeEditTarget FirstTableCell` uses the same isolated lifecycle to change
 the first unmerged cell of the sole table on one physical page. Other objects
 may coexist on that page. The report records the target, prior text and observed
-replacement, then verifies the cell after native save/reopen. Both targets accept
+replacement, then verifies the cell after native save/reopen. These targets accept
 single-line text, including an empty replacement, and require `Validate/Full`.
 
 ```powershell
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./table.pub -OutputDirectory ./native-cell-edit -NativeEditText 'Native Item' -NativeEditTarget FirstTableCell
+```
+
+`FirstMergedTableCell` separately requires the top-left horizontal 1×2 owner of
+the sole table on one physical page. It checks native anchor `(1,1)` and its covered
+coordinate `(1,2)` after native save/reopen. The existing `FirstTableCell` target
+continues to require an unmerged 1×1 cell. The [qualified merged-anchor lifecycle](../../../OfficeIMO.Publisher/SUPPORT.md#native-horizontal-merged-cell-editing)
+includes native text replacement and public managed restoration:
+
+```powershell
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./candidate-table-merged-decorated.pub -OutputDirectory ./native-merged-cell-edit -NativeEditText 'Native Horizontal' -NativeEditTarget FirstMergedTableCell
 ```
 
 `-NativeAddClusterTable` instead adds a 2×4 table to the retained independent
@@ -785,8 +795,10 @@ edited 1/2-point lines occupy roughly 1.08/2.04 points. Centerline differences r
 and 2 points in the edited state. Text baselines differ by 2.42–4.34 points; the
 managed Helvetica and native Arial PDF font families also differ.
 Full-page 100 dpi comparisons differ by 0.836–1.196 percent, so stroke, join,
-clipping, text and font parity remain unqualified. Broader merge layouts, actual
-post-open native merged-cell editing, paragraph terminator equivalence, repair-free
+clipping, text and font parity remain unqualified. The separate [horizontal merged-anchor
+profile](../../../OfficeIMO.Publisher/SUPPORT.md#native-horizontal-merged-cell-editing)
+qualifies native text replacement and managed restoration. Broader merge layouts,
+native cell selection/formatting, paragraph terminator equivalence, repair-free
 acceptance and public native creation remain unqualified.
 
 The `tableCellDecoration` record maps solid cell fills and shared grid borders

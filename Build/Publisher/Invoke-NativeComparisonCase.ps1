@@ -8,10 +8,15 @@ Corpus content is synthetic, fonts/colors are explicit, and macros stay disabled
 Candidate validation performs only its requested Inspect, Export, Resave or Full stage;
 inventories are persisted before PDF exports and repair remains unassessed.
 NativeEditText optionally replaces the sole unlinked physical text box or the
-sole table's first unmerged cell before native save-as during Validate/Full;
-it never modifies the original input.
+sole table's first unmerged cell or first horizontal 1x2 merged anchor before
+native save-as during Validate/Full; it never modifies the original input.
 NativeAddClusterTable adds a fixed two-by-four table beside the retained
 eighteen-by-eighteen table in the writable snapshot during Validate/Full.
+.PARAMETER NativeEditTarget
+TextBox selects the sole unlinked text box. FirstTableCell requires an unmerged
+first cell; FirstMergedTableCell requires the native row/column 1,1 anchor to
+span exactly two columns and one row. Table targets require the sole physical
+table on one page. All targets require NativeEditText and Validate/Full.
 #>
 [CmdletBinding()]
 param(
@@ -31,7 +36,7 @@ param(
     [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]*\z')]
     [string] $NativeEditText,
 
-    [ValidateSet('TextBox', 'FirstTableCell')]
+    [ValidateSet('TextBox', 'FirstTableCell', 'FirstMergedTableCell')]
     [string] $NativeEditTarget = 'TextBox',
 
     [switch] $NativeAddClusterTable,
@@ -413,7 +418,11 @@ try {
             if ($nativeEditRequested) {
                 Set-NativePhase 'NativeTextMutation'
                 $nativeTextMutation = Set-NativeCandidateText -Publication $document -Objects $objects -Target $NativeEditTarget -Text $NativeEditText
-                $qualifiedOperations.Add($(if ($NativeEditTarget -eq 'FirstTableCell') { 'NativeTableCellTextMutation' } else { 'NativeTextMutation' }))
+                $qualifiedOperations.Add($(switch ($NativeEditTarget) {
+                    'TextBox' { 'NativeTextMutation' }
+                    'FirstTableCell' { 'NativeTableCellTextMutation' }
+                    'FirstMergedTableCell' { 'NativeMergedTableCellTextMutation' }
+                }))
             }
             if ($NativeAddClusterTable) {
                 Set-NativePhase 'NativeTableClusterAddition'
@@ -439,11 +448,12 @@ try {
                     if ($resavedInventory.pageCount -eq 1 -and $resavedInventory.pages[0].shapes.Count -eq 1) {
                         $editedText = $resavedInventory.pages[0].shapes[0].text
                     }
-                } elseif ($resavedInventory.pageCount -eq 1) {
+                } elseif ($NativeEditTarget -in @('FirstTableCell', 'FirstMergedTableCell') -and $resavedInventory.pageCount -eq 1) {
                     $tables = @($resavedInventory.pages[0].shapes | Where-Object type -eq 18)
                     if ($tables.Count -eq 1) {
                         $cells = @($tables[0].tableCells | Where-Object { $_.row -eq 1 -and $_.column -eq 1 })
-                        if ($cells.Count -eq 1 -and $cells[0].rowSpan -eq 1 -and $cells[0].columnSpan -eq 1) { $editedText = $cells[0].text }
+                        $expectedColumns = if ($NativeEditTarget -eq 'FirstMergedTableCell') { 2 } else { 1 }
+                        if ($cells.Count -eq 1 -and $cells[0].rowSpan -eq 1 -and $cells[0].columnSpan -eq $expectedColumns) { $editedText = $cells[0].text }
                     }
                 }
                 if ($editedText -cne ($NativeEditText + "`r")) { throw 'The native text mutation did not survive save-as and reopen.' }

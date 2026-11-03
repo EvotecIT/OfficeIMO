@@ -7,14 +7,15 @@ function Set-NativeCandidateText {
     .PARAMETER Objects
     Retains COM wrappers for the worker's lifetime.
     .PARAMETER Target
-    The sole unlinked text box, or the first unmerged cell of the sole physical table.
+    The sole unlinked text box, the first unmerged cell of the sole physical table,
+    or its first horizontal merged anchor with exactly two columns and one row.
     .PARAMETER Text
     The replacement text supplied to the controller.
     .OUTPUTS
     Target identity and before/requested/observed text for the validation report.
     #>
     param($Publication, [Collections.Generic.List[object]] $Objects,
-        [ValidateSet('TextBox', 'FirstTableCell')] [string] $Target,
+        [ValidateSet('TextBox', 'FirstTableCell', 'FirstMergedTableCell')] [string] $Target,
         [AllowEmptyString()] [string] $Text)
 
     if ($Publication.ReadOnly -or $Publication.Pages.Count -ne 1) {
@@ -46,7 +47,11 @@ function Set-NativeCandidateText {
         $Objects.Add($table)
         $Objects.Add($cells)
         $Objects.Add($cell)
-        if ($cell.Width -ne 1 -or $cell.Height -ne 1) { throw 'Native cell mutation requires an unmerged first cell.' }
+        if ($Target -eq 'FirstTableCell') {
+            if ($cell.Width -ne 1 -or $cell.Height -ne 1) { throw 'Native cell mutation requires an unmerged first cell.' }
+        } elseif ($Target -eq 'FirstMergedTableCell') {
+            if ($cell.Width -ne 2 -or $cell.Height -ne 1) { throw 'Native merged-cell mutation requires a two-column, one-row first anchor.' }
+        }
         $range = $cell.TextRange
     }
     $Objects.Add($range)

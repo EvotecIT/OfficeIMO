@@ -57,6 +57,44 @@ public sealed class PublisherMergedTableWritingTests {
     }
 
     [Fact]
+    public void Native_edited_fresh_merged_table_supports_anchor_text_restoration_with_other_storage_preserved() {
+        byte[] source = Fixture("GeneratedDecoratedMergedTable", "native-edited.pub");
+        PublisherDocument document = PublisherDocument.Load(source);
+        PublisherTable table = document.Pages[0].Tables.Single();
+        PublisherTableCell horizontal = Cell(table, 0, 0);
+        Assert.Equal((3, 4, 7), (table.RowCount, table.ColumnCount, table.Cells.Count));
+        Assert.Equal((1, 2, "Native Horizontal"), (horizontal.RowSpan, horizontal.ColumnSpan, horizontal.Text));
+        Assert.Equal(source, document.ToPubBytes());
+        Compare(PublisherDocument.Load(Fixture("GeneratedDecoratedMergedTable", "native-control-edited.pub")).Pages[0].Tables.Single(), table);
+        OfficeRichTextParagraph paragraph = Assert.Single(horizontal.Paragraphs);
+        OfficeRichTextRun run = Assert.Single(paragraph.Runs);
+        document.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] {
+            new OfficeRichTextParagraph(new[] {
+                new OfficeRichTextRun("Horizontal", run.FontSize, run.Color, run.Bold, run.Italic, run.Underline,
+                    run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
+                    run.Baseline, run.ParagraphIndent).WithLanguageId(run.LanguageId)
+                    .WithAutomaticPairKerningThreshold(run.AutomaticPairKerningThreshold)
+            }, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
+                .WithTabStops(paragraph.TabStops)
+        });
+        byte[] saved = document.ToPubBytes(Allow());
+        PublisherDocument restored = PublisherDocument.Load(saved);
+        PublisherTable restoredTable = restored.Pages[0].Tables.Single();
+        Compare(PublisherDocument.Load(Fixture("TableMergedDecoration")).Pages[0].Tables.Single(), restoredTable);
+        OfficeRichTextParagraph restoredParagraph = Assert.Single(Cell(restoredTable, 0, 0).Paragraphs);
+        OfficeRichTextRun restoredRun = Assert.Single(restoredParagraph.Runs);
+        Assert.Equal((run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily),
+            (restoredRun.FontSize, restoredRun.Color, restoredRun.Bold, restoredRun.Italic, restoredRun.Underline, restoredRun.FontFamily));
+        Assert.Equal((run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline, run.ParagraphIndent,
+            run.LanguageId, run.AutomaticPairKerningThreshold), (restoredRun.Strikethrough, restoredRun.BackgroundColor, restoredRun.UnderlineStyle,
+            restoredRun.StrikethroughStyle, restoredRun.Baseline, restoredRun.ParagraphIndent, restoredRun.LanguageId, restoredRun.AutomaticPairKerningThreshold));
+        Assert.Equal((paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor),
+            (restoredParagraph.Alignment, restoredParagraph.LineHeight, restoredParagraph.Margins, restoredParagraph.Indent, restoredParagraph.LineHeightFactor));
+        PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Quill/QuillSub/CONTENTS");
+        Assert.Equal(saved, restored.ToPubBytes());
+    }
+
+    [Fact]
     public void First_styles_on_compact_merged_source_use_logical_definitions_and_native_perimeters() {
         byte[] source = Fixture("GeneratedMergedTable", "generated.pub");
         PublisherDocument document = PublisherDocument.Load(source);

@@ -1090,9 +1090,37 @@ native/managed pixel parity.
 The [fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md) distinguishes
 independent controls from the bare generated source and the derived missing-cell
 input, which retains all logical definitions, surviving utilities and allocation
-history. Broader merge layouts, grouped/transformed tables, additional producers
-or generations, actual native post-open merged-cell editing, repair-free acceptance
-and public source-free native creation remain unqualified.
+history. Native horizontal-anchor editing has its own bounded profile below.
+Broader merge layouts, grouped/transformed tables, additional producers or
+generations, repair-free acceptance and public source-free native creation remain
+unqualified.
+
+### Native horizontal merged-cell editing
+
+The `nativeMergedCellMutation` record qualifies actual native text replacement in
+the top-left horizontal 1×2 owner of the decorated merged specimen. The native
+runner's `FirstMergedTableCell` target requires the sole table on one physical
+page, native anchor `(1,1)` and exactly one row/two columns. The original
+`FirstTableCell` target retains its separate unmerged 1×1 requirement.
+
+Both the fresh generated specimen and independent native control replace that
+anchor with `Native Horizontal`, then save and reopen. The covered native
+coordinate `(1,2)` exposes the same text and span; managed import retains all seven
+logical definitions. Public `ReplaceTableCellParagraphs` then restores `Horizontal`
+through zero-based anchor `(0,0)` in the native-edited fresh file. Managed save/reload,
+PSWriteOffice PDF conversion and native Full opening/export and SaveAs/reopen
+retain the other cell text, spans, paint and geometry. Source saving uses the
+existing `Allow` loss policy and retains `PUB_NATIVE_PREVIEW_INVALIDATED` and
+`PUB_NATIVE_QUILL_TEXT_UNQUALIFIED` diagnostics.
+
+Four native PDF comparisons match at 100 dpi with zero changed pixels: the fresh
+and independent initial outputs, their native-edited resaves, and the restored
+initial/resaved output against the pristine independent control. Inventory
+differences remain limited to the decorated profile's caption font/size/language,
+generated object names and explicit-RGB versus automatic-black edge roles.
+Managed/native font and baseline parity remains unqualified. Other native merged-cell
+targets, general native formatting, additional merge layouts, repair-free
+acceptance and public source-free native creation remain unqualified.
 
 ### Native cell fills and shared borders
 
@@ -1399,8 +1427,9 @@ glyph text/positions remain identical to the preceding writer, with a localized
 table-region raster change as automatic white backgrounds disappear; independent
 newsletter appearance parity remains unqualified. The older compact fixtures
 remain source-preservation inputs and do not establish native style stability.
-Actual post-open native merged-cell editing, additional native mutations, repair-free acceptance and
-public source-free native creation remain open criteria.
+The [horizontal merged-anchor profile](#native-horizontal-merged-cell-editing)
+qualifies a separate native cell target. Additional native mutations, repair-free
+acceptance and public source-free native creation remain open criteria.
 
 The internal `frame-layout` and `frame-layout-edited` creation specimens carry
 six frames on two pages from public `SetTextFrameLayout` snapshots into the
@@ -1429,7 +1458,7 @@ Calibri 10-point CR from a full-range Arial 12-point caption. Their observed
 language is 1033. Native clear/refill retains each control's CR font and size.
 Three public source clear/save/reload/refill workflows preserve those distinct
 font, size and language values; all six initial/resaved native inventory
-comparisons match every key. These source saves use `LossPolicy.Allow` and retain
+comparisons match every key. These source saves use the `Allow` loss policy and retain
 the existing empty-paragraph, preview-invalidation and unqualified-Quill diagnostics.
 
 Four fresh specimens cover unspecified and explicit language before and after

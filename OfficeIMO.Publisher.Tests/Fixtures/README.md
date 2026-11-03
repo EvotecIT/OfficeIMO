@@ -108,8 +108,11 @@ defines the explicit border-range and native metadata comparison limits.
 
 `NativeComparison/GeneratedDecoratedMergedTable` retains the template-free
 `table-merged-decorated` specimen as `generated.pub`, its `native-normalized.pub`
-output and `native-validation.json`. The provenance records the
-generator, native producer, validation command and hashes. Initial/resaved native
+output and `native-validation.json`. It also retains `native-edited.pub` and the
+independently mutated `native-control-edited.pub` for the [horizontal merged-anchor
+text lifecycle](../../OfficeIMO.Publisher/SUPPORT.md#native-horizontal-merged-cell-editing).
+The provenance records the generator, native producer, validation/mutation commands
+and hashes. The original specimen's initial/resaved native
 PDFs match TableMergedDecoration; caption metadata and black-edge color-type limits
 remain explicit in the support contract.
 

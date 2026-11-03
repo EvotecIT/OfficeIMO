@@ -38815,5 +38815,111 @@
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "nativeMergedCellMutation": {
+    "sourceBaseCommit": "52778f8c51543f1b6beaa1aef3a0523c087b3d61",
+    "scope": "Actual post-open native text mutation of the horizontal 1x2 anchor in the unequal 3x4 merged table, followed by public managed restoration. No engine, public API or dependency change.",
+    "nativeTarget": {
+      "name": "FirstMergedTableCell",
+      "pageAndTable": "One writable physical page and exactly one physical table",
+      "oneBasedAnchor": [
+        1,
+        1
+      ],
+      "rowSpan": 1,
+      "columnSpan": 2,
+      "preservedUnmergedTarget": "FirstTableCell retains its 1x1 guard and refusal message",
+      "reopenVerification": "Exact requested text plus CR at native coordinate (1,1) with row span 1 / column span 2; both anchor (1,1) and covered (1,2) observations retain the edited content."
+    },
+    "nativeEdit": {
+      "text": "Native Horizontal",
+      "qualifiedOperation": "NativeMergedTableCellTextMutation",
+      "sourceUnchanged": true,
+      "freshAndIndependentControl": true,
+      "nativeCoordinatesPerTable": 12,
+      "managedLogicalCells": 7
+    },
+    "publicRestoration": {
+      "operation": "ReplaceTableCellParagraphs(tableId,0,0,...)",
+      "text": "Horizontal",
+      "lossPolicy": "Allow",
+      "diagnostics": [
+        "PUB_NATIVE_PREVIEW_INVALIDATED",
+        "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+      ],
+      "preservation": "Recovered run/paragraph formatting retained; every logical cell/span/fill/border and grid track compared with the independent pristine control. All logical storage except Quill/QuillSub/CONTENTS is byte-identical; reload no-op stable.",
+      "powerShellPdfSucceeded": true
+    },
+    "nativeValidation": {
+      "runs": 3,
+      "operations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "pdfComparison": {
+        "pairs": 4,
+        "dpi": 100,
+        "changedPixels": 0,
+        "comparisons": [
+          "Fresh/control initial before edit",
+          "Fresh/control resaved after native edit",
+          "Managed restored initial versus pristine control",
+          "Managed restored resaved versus pristine control"
+        ]
+      },
+      "inventoryComparison": "All fields compared. Only existing generated shape names, caption font/size/language and R2C2 right-border explicit RGB 1 versus native automatic 2 differences remain. Every other table/cell geometry, span, text and paint field matches.",
+      "repairStatus": "Unassessed; successful native operations and exact rendered pixels do not establish repair-free opening."
+    },
+    "fixtures": {
+      "folder": "GeneratedDecoratedMergedTable",
+      "files": [
+        {
+          "name": "native-edited.pub",
+          "bytes": 71168,
+          "sha256": "9c5f3540cca25671e1aabf178ccb4e8dae51d6713c231b5f4830a6b9eb3235fc"
+        },
+        {
+          "name": "native-control-edited.pub",
+          "bytes": 100864,
+          "sha256": "536b79b8934c12e0b79dc7a8acff7617120e8f3b7d698c98803d888bc7f62477"
+        }
+      ]
+    },
+    "regression": {
+      "method": "Native_edited_fresh_merged_table_supports_anchor_text_restoration_with_other_storage_preserved",
+      "purpose": "Independent native producer compatibility at the public merged-cell restoration boundary; no artificial old-code failure or new production seam."
+    },
+    "validation": {
+      "tests": {
+        "mutation-focused-net10": 13,
+        "mutation-full-net10": 1207,
+        "mutation-tables-net8": 232,
+        "mutation-tables-net472": 232
+      },
+      "nativeScriptParsing": "Three changed scripts pass PowerShell 7.6.9 and Windows PowerShell 5.1.26100.9711; existing preflight gates, caption helper and default corpus unchanged.",
+      "nativeRunsClosed": 3,
+      "exactOwnedProcessesAbsent": true,
+      "visualInspection": "Native edited, managed restored and native restored table regions inspected. Correct content/spans/paint retained; managed/native font and baseline parity remains unqualified."
+    },
+    "review": {
+      "fullPasses": 1,
+      "actionableFindings": 0,
+      "targetedConfirmationUsed": false,
+      "disposition": "AcceptAsShaped"
+    },
+    "limitations": [
+      "Only first horizontal 1x2 merged anchor of the named 3x4 source/fresh profile; arbitrary cell selection, vertical/block merged text mutations and native formatting remain unqualified.",
+      "Imported topology edits and new merges in already bordered tables remain refused.",
+      "Broader layouts, groups, transforms, producer/generation and overflow behavior",
+      "Managed/native font and baseline parity",
+      "Positive recovery control, repair-free native acceptance and public source-free native creation"
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

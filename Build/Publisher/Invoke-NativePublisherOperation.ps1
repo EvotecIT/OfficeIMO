@@ -30,14 +30,16 @@ Bounded worker lifetime, including application startup and shutdown.
 .PARAMETER PhaseTimeoutSeconds
 Maximum time without a new worker phase. The total TimeoutSeconds bound also applies.
 .PARAMETER NativeEditText
-Optional single-line replacement for a candidate with one physical page and one
-unlinked text box. Validate/Full only. The writable snapshot is changed before
-native save-as; initial artifacts retain the original content. An empty value
-clears the text range.
+Optional single-line replacement for a candidate with one physical page.
+NativeEditTarget selects the sole unlinked text box or a qualified first table
+cell. Validate/Full only. The writable snapshot is changed before native save-as;
+initial artifacts retain the original content. An empty value clears the text range.
 .PARAMETER NativeEditTarget
 TextBox retains the sole unlinked text-box profile. FirstTableCell changes the
-first unmerged cell of the sole physical table on one page; other shapes remain
-untouched. Both targets require NativeEditText and Validate/Full.
+first unmerged cell of the sole physical table on one page. FirstMergedTableCell
+changes only its first anchor at native row/column 1,1 with exactly two columns
+and one row. Other shapes remain untouched. All targets require NativeEditText
+and Validate/Full.
 .PARAMETER NativeAddClusterTable
 Adds the fixed two-by-four ClusterRolloverProbe table to the writable snapshot
 containing one unmerged eighteen-by-eighteen physical table. Validate/Full only;
@@ -73,7 +75,7 @@ param(
     [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]*\z')]
     [string] $NativeEditText,
 
-    [ValidateSet('TextBox', 'FirstTableCell')]
+    [ValidateSet('TextBox', 'FirstTableCell', 'FirstMergedTableCell')]
     [string] $NativeEditTarget = 'TextBox',
 
     [switch] $NativeAddClusterTable,

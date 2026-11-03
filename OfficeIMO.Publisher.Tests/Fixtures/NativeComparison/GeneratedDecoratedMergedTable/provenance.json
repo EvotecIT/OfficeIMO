@@ -26,7 +26,18 @@
       "name": "native-validation.json",
       "bytes": 45731,
       "sha256": "d9cc6e4760d91dd4d8589d8cf6c820cf878afd6d2373f9632f353f29ea771357"
+    },
+    {
+      "name": "native-edited.pub",
+      "bytes": 71168,
+      "sha256": "9c5f3540cca25671e1aabf178ccb4e8dae51d6713c231b5f4830a6b9eb3235fc"
+    },
+    {
+      "name": "native-control-edited.pub",
+      "bytes": 100864,
+      "sha256": "536b79b8934c12e0b79dc7a8acff7617120e8f3b7d698c98803d888bc7f62477"
     }
   ],
-  "scope": "Template-free 3x4 merged table with seven logical cell definitions, five visible fills and nineteen physical edge ranges including five long merged sides. Native normalized output retained. Initial and resaved native PDF exports match the independent TableMergedDecoration control at 100 dpi. Whole-range caption font, size and language and automatic-black versus explicit-RGB border roles differ. Repair-free acceptance, actual post-open native merged-cell editing and public source-free saving remain unqualified."
+  "scope": "Template-free 3x4 merged table with seven logical cell definitions, five visible fills and nineteen physical edge ranges including five long merged sides. Native normalized output retained. Initial and resaved native PDF exports match the independent TableMergedDecoration control at 100 dpi. Whole-range caption font, size and language and automatic-black versus explicit-RGB border roles differ. Repair-free acceptance, actual post-open native merged-cell editing and public source-free saving remain unqualified. Actual post-open horizontal merged-anchor text mutation and managed restoration are qualified separately from arbitrary merged-cell selection or formatting.",
+  "nativeMutation": "Native validation Full with -NativeEditText 'Native Horizontal' -NativeEditTarget FirstMergedTableCell on generated.pub and independently on TableMergedDecoration. Only native anchor (1,1), row span 1 / column span 2 is edited; original FirstTableCell unmerged profile remains unchanged."
 }
