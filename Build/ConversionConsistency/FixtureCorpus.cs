@@ -88,9 +88,12 @@ internal static partial class FixtureCorpus {
                         "The native OneNote visual PDF contains raster pages and has no searchable text layer. SVG labels and PDF pixels are checked.",
                         "The OneNote title requests bold. This regular-face fixture profile deliberately exercises synthetic bold and accepts the reported substitution to its pinned regular face."
                     } : new(),
-                AllowedDiagnostics = item.Item1 == "ods" ? new() { "ODF_IMAGE_COLUMN_LAYOUT_APPROXIMATED", "ODF_IMAGE_CELL_STYLES_APPROXIMATED" }
-                    : item.Item1 == "one" ? new() { global::OfficeIMO.OfficeDiagnosticCodes.FontFamilySubstitution }
-                    : item.Item1 == "odp" ? new() { "ODF_IMAGE_MASTERS_LAYOUTS_APPROXIMATED" } : new(),
+                AllowedDiagnostics = item.Item1 == "ods" ? new() {
+                    "ODF_CONVERTED", "ODF_APPROXIMATED:column-layout", "ODF_APPROXIMATED:cell-styles",
+                    "ODF_IMAGE_COLUMN_LAYOUT_APPROXIMATED", "ODF_IMAGE_CELL_STYLES_APPROXIMATED"
+                } : item.Item1 == "one" ? new() { global::OfficeIMO.OfficeDiagnosticCodes.FontFamilySubstitution }
+                    : item.Item1 == "odp" ? new() { "ODF_CONVERTED", "ODF_IMAGE_MASTERS_LAYOUTS_APPROXIMATED" }
+                    : item.Item1 == "odt" ? new() { "ODF_CONVERTED" } : new(),
                 Pages = Enumerable.Range(1,2).Select(number => new PageExpectation {
                     Width = item.Item2, Height = item.Item3,
                     PdfWidth = item.Item1 is "xlsx" or "ods" ? 816 : null,
