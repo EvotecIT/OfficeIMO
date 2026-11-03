@@ -21,6 +21,14 @@ namespace OfficeIMO.Excel {
                 int maximumCellRow = _maximumCellRow;
                 int minimumCellColumn = _minimumCellColumn;
                 int maximumCellColumn = _maximumCellColumn;
+                if (_cachedImplicitRowReady) {
+                    if (TryIndexCachedImplicitRow(ref position, rowIndex, rowOffset, ct)) return true;
+                    // A changing layout keeps the adaptive per-cell parser. Do not
+                    // repeatedly scan prefixes through a rejected whole-row shape.
+                    _cachedImplicitRowRejected = true;
+                    position = originalPosition;
+                }
+                _cachedImplicitRowReady = false;
                 if (TryIndexCanonicalImplicitDenseRowCore(ref position, rowIndex, rowOffset, ct)) {
                     return true;
                 }
@@ -53,6 +61,10 @@ namespace OfficeIMO.Excel {
                         }
                         position += 6;
                         UpdateUsedBounds(rowIndex, columnIndex - 1);
+                        // The first row commonly holds headers. All slots must have
+                        // qualified tags before a later complete row can reuse them.
+                        _cachedImplicitRowReady = !_cachedImplicitRowRejected && _rowCount > 0
+                            && _firstColumn == 1 && columnIndex - 1 == _fieldCount;
                         return true;
                     }
 
