@@ -547,6 +547,9 @@ jobs:
         shell: pwsh
         run: ./Build/Test-HtmlPackages.ps1
 
+      - name: Test the HTML PDF workbench
+        run: dotnet test Tools/OfficeIMO.Html.Pdf.Workbench.Tests/OfficeIMO.Html.Pdf.Workbench.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 -m:2 --logger trx
+
   typography-package-consumers:
     needs: changes
     name: 'OfficeIMO typography providers / ${{ matrix.os }}'
@@ -609,7 +612,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
-            'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
@@ -644,7 +646,6 @@ jobs:
           $readerEmailVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Email'
           $readerImageVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Image'
           $coreVersion = Get-PackedPackageVersion 'OfficeIMO.Core'
-          $pdfVersion = Get-PackedPackageVersion 'OfficeIMO.Pdf'
           $markdownVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
           $htmlCoreVersion = Get-PackedPackageVersion 'OfficeIMO.Html.Core'
@@ -680,7 +681,6 @@ jobs:
           $localMapping.SetAttribute('key', 'OfficeIMOLocal')
           foreach ($packageId in @(
             'OfficeIMO.Core',
-            'OfficeIMO.Pdf',
             'OfficeIMO.Markdown',
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
@@ -715,7 +715,6 @@ jobs:
             @{ Id = 'officeimo.reader.email'; Version = $readerEmailVersion },
             @{ Id = 'officeimo.reader.image'; Version = $readerImageVersion },
             @{ Id = 'officeimo.core'; Version = $coreVersion },
-            @{ Id = 'officeimo.pdf'; Version = $pdfVersion },
             @{ Id = 'officeimo.markdown'; Version = $markdownVersion },
             @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
             @{ Id = 'officeimo.html.core'; Version = $htmlCoreVersion },
@@ -1398,6 +1397,7 @@ jobs:
             if ci_project_selected "OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj"; then dotnet restore OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj"; then dotnet restore OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet restore OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj; fi
+            if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet restore OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"; then dotnet restore OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj"; then dotnet restore OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj; fi
             if ci_project_selected "OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj"; then dotnet restore OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj; fi
@@ -1456,6 +1456,7 @@ jobs:
             if ci_project_selected "OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj"; then dotnet build OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj"; then dotnet build OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet build OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
+            if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet build OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"; then dotnet build OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj"; then dotnet build OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj"; then dotnet build OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
@@ -1697,6 +1698,7 @@ jobs:
               run_publisher_tests
               run_reader_tests
               if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
+              if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet test OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               run_shared_tests "shared-contracts"
               if ci_project_selected "OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj"; then dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj"; then dotnet test OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi

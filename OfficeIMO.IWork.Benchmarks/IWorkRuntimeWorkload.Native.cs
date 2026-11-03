@@ -57,8 +57,10 @@ public sealed partial class IWorkRuntimeWorkload {
                 && !(diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission
                     && diagnostic.Code is "IWORK_NUMBERS_CELL_PADDING_OMITTED" or "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION")
                 && !(diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation
-                    && diagnostic.Code is "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED" or "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED")))
-            throw new InvalidDataException("The pinned Numbers workload accepts only its known cell-padding omission: "
+                    && diagnostic.Code is "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED" or "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED")
+                && !(diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Unassessed
+                    && diagnostic.Code == "IWORK_RECORD_FIDELITY_UNASSESSED")))
+            throw new InvalidDataException("The pinned Numbers workload requires its known padding omission, two approximations and source-record assessment metadata: "
                 + string.Join("; ", report.Diagnostics.Select(diagnostic => diagnostic.Code)));
     }
 
