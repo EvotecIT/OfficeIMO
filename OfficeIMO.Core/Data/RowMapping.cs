@@ -45,6 +45,14 @@ internal interface IDataReaderFastMappingValues {
     bool HasOnlyNonNullFastValues { get; }
 }
 
+/// <summary>
+/// Exposes the reader that owns the current row when a reader forwards to another one,
+/// so typed mapping can qualify and read fields without the forwarding layer.
+/// </summary>
+internal interface IDataReaderMappingRowSource {
+    DbDataReader? CurrentRowReader { get; }
+}
+
 internal interface IDataReaderFastValueSource {
     IDataReaderFastValueSource? FastValueSource { get; }
     bool TryGetUtf8Value(int ordinal, out ArraySegment<byte> value);
@@ -201,13 +209,15 @@ public static partial class DataReaderMappingExtensions {
             yield break;
         }
 
+        var rowSource = reader as IDataReaderMappingRowSource;
         while (reader.Read()) {
             yield return plan.MapReaderRow(
                 reader,
                 culture,
                 dateTimeFormats,
                 typeConverter,
-                errorValuePolicy);
+                errorValuePolicy,
+                rowSource?.CurrentRowReader ?? reader);
         }
     }
 
