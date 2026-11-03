@@ -2,8 +2,6 @@
 
     <PropertyGroup>
         <Description>Excel workbook renderer for OfficeIMO Markup semantic AST.</Description>
-        <AssemblyName>OfficeIMO.Markup.Excel</AssemblyName>
-        <AssemblyTitle>OfficeIMO.Markup.Excel</AssemblyTitle>
         <VersionPrefix>3.3.0</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

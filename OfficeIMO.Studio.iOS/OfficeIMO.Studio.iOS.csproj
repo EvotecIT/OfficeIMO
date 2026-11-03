@@ -3,7 +3,6 @@
     <OfficeIMOStudioAppleTargetFramework Condition="'$(OfficeIMOStudioAppleTargetFramework)' == ''">net10.0-ios26.5</OfficeIMOStudioAppleTargetFramework>
     <TargetFramework>$(OfficeIMOStudioAppleTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
-    <AssemblyName>OfficeIMO.Studio.iOS</AssemblyName>
     <RootNamespace>OfficeIMO.Studio.iOS</RootNamespace>
     <ApplicationId>com.evotec.officeimo.studio</ApplicationId>
     <ApplicationTitle>OfficeIMO Studio</ApplicationTitle>

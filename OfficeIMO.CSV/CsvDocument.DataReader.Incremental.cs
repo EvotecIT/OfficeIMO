@@ -1,4 +1,3 @@
-#nullable enable
 #if NET8_0_OR_GREATER
 using System.Data.Common;
 using System.Threading;

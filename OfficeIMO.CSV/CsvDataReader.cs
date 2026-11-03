@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Collections;
 using System.Buffers;
 using System.Data;

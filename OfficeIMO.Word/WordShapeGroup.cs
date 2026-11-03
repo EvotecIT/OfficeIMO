@@ -9,8 +9,6 @@ using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
-#nullable enable annotations
-
 namespace OfficeIMO.Word {
     /// <summary>
     /// Describes one bounded DrawingML shape inside a Word shape group.

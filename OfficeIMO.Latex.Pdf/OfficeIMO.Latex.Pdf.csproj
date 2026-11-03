@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>Loss-aware LaTeX to PDF adapter over the first-party OfficeIMO Markdown and PDF engines.</Description>
     <PackageId>OfficeIMO.Latex.Pdf</PackageId>
-    <AssemblyName>OfficeIMO.Latex.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Latex.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

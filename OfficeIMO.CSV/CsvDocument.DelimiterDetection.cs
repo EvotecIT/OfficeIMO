@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.CSV;
 
 public sealed partial class CsvDocument

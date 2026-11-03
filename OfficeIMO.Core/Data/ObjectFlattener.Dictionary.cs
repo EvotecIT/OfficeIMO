@@ -1,7 +1,5 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 
 namespace OfficeIMO.Data {
     internal partial class ObjectFlattener {

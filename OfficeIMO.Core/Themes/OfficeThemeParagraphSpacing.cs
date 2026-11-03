@@ -1,6 +1,3 @@
-using System;
-using OfficeIMO.Drawing;
-
 namespace OfficeIMO;
 
 /// <summary>Space before and after one paragraph level, in physical units.</summary>

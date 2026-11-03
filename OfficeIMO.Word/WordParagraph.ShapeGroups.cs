@@ -3,8 +3,6 @@ using System.Linq;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 
-#nullable enable annotations
-
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         /// <summary>Gets the native DrawingML shape group hosted by this paragraph, when present.</summary>

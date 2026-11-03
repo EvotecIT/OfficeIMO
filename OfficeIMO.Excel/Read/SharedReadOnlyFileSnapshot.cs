@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.IO;
 
 namespace OfficeIMO.Excel {

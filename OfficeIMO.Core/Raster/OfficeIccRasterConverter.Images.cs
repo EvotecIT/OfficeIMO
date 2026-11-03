@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeIccRasterConverter {

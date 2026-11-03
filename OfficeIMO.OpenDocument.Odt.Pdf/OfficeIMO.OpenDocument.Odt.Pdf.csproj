@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>Bidirectional, loss-aware ODT and PDF conversion through the Word semantic engine.</Description>
     <PackageId>OfficeIMO.OpenDocument.Odt.Pdf</PackageId>
-    <AssemblyName>OfficeIMO.OpenDocument.Odt.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.OpenDocument.Odt.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

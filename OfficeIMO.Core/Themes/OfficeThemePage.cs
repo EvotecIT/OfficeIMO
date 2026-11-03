@@ -1,6 +1,3 @@
-using System;
-using OfficeIMO.Drawing;
-
 namespace OfficeIMO;
 
 /// <summary>Page margins for paged documents (Word and PDF), in physical units.</summary>

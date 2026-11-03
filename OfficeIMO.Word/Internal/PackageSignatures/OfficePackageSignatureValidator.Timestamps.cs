@@ -1,4 +1,3 @@
-#nullable enable
 using OfficeIMO.Security;
 using System.Text;
 using System.Xml;

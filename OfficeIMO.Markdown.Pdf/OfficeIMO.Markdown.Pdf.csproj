@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>PDF converter for OfficeIMO.Markdown - Export Markdown documents to PDF using the first-party OfficeIMO.Pdf engine.</Description>
     <PackageId>OfficeIMO.Markdown.Pdf</PackageId>
-    <AssemblyName>OfficeIMO.Markdown.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Markdown.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>

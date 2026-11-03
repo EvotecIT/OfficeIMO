@@ -1,5 +1,3 @@
-#nullable enable
-
 using OfficeIMO.Core.Internal;
 using System.Data.Common;
 using System.Threading;
