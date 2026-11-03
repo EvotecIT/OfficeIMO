@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Creates a new, first-party XLSB package from the supported workbook subset.</summary>
-    internal static class XlsbNewPackageWriter {
+    internal static partial class XlsbNewPackageWriter {
         private static readonly DateTimeOffset ReproducibleEntryTime =
             new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -76,6 +76,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     sharedStrings, cancellationToken);
             }
 
+            // Freeze a flat source as a compressed package before publishing to an
+            // ordinary memory destination. Other streams keep their existing path.
+            if (destination.GetType() == typeof(MemoryStream)
+                && destination.Length == 0 && destination.Position == 0
+                && !cancellationToken.CanBeCanceled && document.Execution.OnTiming == null
+                && ExcelDocument.HasFlatTabularSnapshot(source.Rows)) {
+                return TryWriteStagedDirectTabularPackage(document, dateSystem, sheet, source, destination,
+                    sharedStrings, cancellationToken, pooledSnapshot: true);
+            }
+
             XlsbDirectTabularPlan? plan = null;
             try {
                 if (!XlsbDirectTabularPlan.TryCreate(dateSystem, sheet, source, sharedStrings, cancellationToken, out plan)) return false;
@@ -102,10 +112,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDirectTabularSource source,
             Stream destination,
             XlsbSharedStringTable? sharedStrings,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            bool pooledSnapshot = false) {
             // Staging the compressed package preserves the read-once input contract
             // without retaining a complete uncompressed BIFF12 worksheet.
-            using var package = new MemoryStream(XlsbWorksheetPartWriter.EstimateDirectWorksheetCapacity(source));
+            using Stream package = pooledSnapshot
+                ? new XlsbPackageBuffer()
+                : new MemoryStream(XlsbWorksheetPartWriter.EstimateDirectWorksheetCapacity(source));
             using (var archive = new ZipArchive(package, ZipArchiveMode.Create, leaveOpen: true)) {
                 ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest);
                 entry.LastWriteTime = ReproducibleEntryTime;
@@ -127,8 +140,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            if (pooledSnapshot && destination is MemoryStream memory && memory.Capacity < package.Length) {
+                memory.Capacity = checked((int)package.Length);
+            }
             if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
-            destination.Write(package.GetBuffer(), 0, checked((int)package.Length));
+            if (package is XlsbPackageBuffer buffered) {
+                buffered.WriteTo(destination);
+            } else {
+                destination.Write(((MemoryStream)package).GetBuffer(), 0, checked((int)package.Length));
+            }
             if (destination.CanSeek) destination.SetLength(destination.Position);
             return true;
         }
