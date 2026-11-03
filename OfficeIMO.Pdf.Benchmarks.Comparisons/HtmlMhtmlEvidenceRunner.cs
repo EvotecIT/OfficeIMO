@@ -80,13 +80,17 @@ internal static class HtmlMhtmlEvidenceRunner {
         if (document != null) {
             switch (isolatedIntent) {
                 case "print":
-                    await RunConversionAsync("officeimo-print", () => document.ConvertToPdfWithEvidenceAsync(userAgent == "document" ? null : CreatePdfOptions(userAgent), default), output, results, failures).ConfigureAwait(false);
+                    await RunConversionAsync("officeimo-print", () => document.RenderToPdfDocumentResultAsync(
+                        HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf,
+                            userAgent == "document" ? new HtmlPdfExportOptions() : CreatePdfOptions(userAgent))),
+                        output, results, failures).ConfigureAwait(false);
                     break;
                 case "print-zero-margin":
                     await RunConversionAsync("officeimo-print-zero-margin", () => {
                         HtmlPdfExportOptions options = CreatePdfOptions(userAgent);
                         options.Margins = HtmlRenderMargins.All(0);
-                        return document.ConvertToPdfWithEvidenceAsync(options, default);
+                        return document.RenderToPdfDocumentResultAsync(
+                            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
                     }, output, results, failures).ConfigureAwait(false);
                     break;
                 case "screen-media":

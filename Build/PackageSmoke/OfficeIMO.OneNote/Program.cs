@@ -28,9 +28,11 @@ if (!string.Equals(edited.Pages[0].Title, "Edited packed page", StringComparison
     throw new InvalidOperationException("The packed core package failed native write/edit/read validation.");
 }
 
-string markdown = edited.ToMarkdown();
+using var markdownDocument = edited.ToMarkdown();
+string markdown = markdownDocument.ToMarkdown();
 string html = edited.ToHtml();
-byte[] pdf = edited.ToPdfBytes();
+using var pdfDocument = edited.ToPdf();
+byte[] pdf = pdfDocument.ToBytes();
 if (markdown.IndexOf("Packed OneNote content", StringComparison.Ordinal) < 0 ||
     html.IndexOf("Packed OneNote content", StringComparison.Ordinal) < 0 ||
     pdf.Length < 5 ||

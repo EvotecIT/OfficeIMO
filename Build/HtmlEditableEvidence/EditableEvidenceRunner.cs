@@ -78,12 +78,12 @@ internal static class EditableEvidenceRunner {
             ["runner"] = VersionOf(typeof(EditableEvidenceRunner)),
             ["HTML"] = VersionOf(typeof(HtmlConversionDocument)),
             ["MHTML"] = VersionOf(typeof(MhtmlDocument)),
-            ["Word HTML"] = VersionOf(typeof(OfficeIMO.Word.Html.HtmlToWordResult)),
-            ["Excel HTML"] = VersionOf(typeof(OfficeIMO.Excel.Html.HtmlToExcelResult)),
-            ["PowerPoint HTML"] = VersionOf(typeof(OfficeIMO.PowerPoint.Html.HtmlToPowerPointResult)),
-            ["OneNote HTML"] = VersionOf(typeof(OfficeIMO.OneNote.Html.HtmlToOneNoteSectionResult)),
-            ["RTF HTML"] = VersionOf(typeof(HtmlToRtfResult)),
-            ["Markdown HTML"] = VersionOf(typeof(OfficeIMO.Markdown.Html.HtmlToMarkdownResult))
+            ["Word HTML"] = VersionOf(typeof(OfficeIMO.Word.Html.WordHtmlConverterExtensions)),
+            ["Excel HTML"] = VersionOf(typeof(OfficeIMO.Excel.Html.HtmlExcelConverterExtensions)),
+            ["PowerPoint HTML"] = VersionOf(typeof(OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions)),
+            ["OneNote HTML"] = VersionOf(typeof(OfficeIMO.OneNote.Html.HtmlOneNoteConverterExtensions)),
+            ["RTF HTML"] = VersionOf(typeof(HtmlRtfConverterExtensions)),
+            ["Markdown HTML"] = VersionOf(typeof(OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions))
         };
         if (options.ContainsKey("require-clean-source") && (!sourceClean || ownerVersions.Values.Any(version =>
                 version == null || !version.EndsWith("+" + commit, StringComparison.OrdinalIgnoreCase)))) {
@@ -118,13 +118,13 @@ internal static class EditableEvidenceRunner {
                 string decoded = System.Net.WebUtility.HtmlDecode(export.ReopenedHtml);
                 Dictionary<string, bool> markerResults = markers.ToDictionary(marker => marker,
                     marker => decoded.Contains(marker, StringComparison.Ordinal));
-                var diagnostics = prepared.Report.NativeDiagnostics.Concat(visible.Report.NativeDiagnostics)
-                    .Concat(export.Report.NativeDiagnostics).Select(diagnostic => new {
-                        diagnostic.Component, diagnostic.Code, diagnostic.Source, diagnostic.Detail,
-                        diagnostic.Message, severity = diagnostic.Severity.ToString(),
-                        lossKind = diagnostic.LossKind.ToString(), diagnostic.Provenance
+                var diagnostics = prepared.Report.Diagnostics.Concat(visible.Report.Diagnostics)
+                    .Concat(export.Report.Diagnostics).Select(diagnostic => new {
+                        diagnostic.Code, diagnostic.Location, diagnostic.Format, diagnostic.Message,
+                        severity = diagnostic.Severity.ToString(), lossKind = diagnostic.LossKind.ToString()
                     }).ToArray();
-                bool reportSucceeded = prepared.Report.Succeeded && visible.Report.Succeeded && export.Report.Succeeded;
+                bool reportSucceeded = prepared.Report.Succeeded && visible.Report.Succeeded
+                    && !export.Report.Diagnostics.Any(diagnostic => diagnostic.Severity == OfficeDiagnosticSeverity.Error);
                 bool reportHasLoss = prepared.Report.HasLoss || visible.Report.HasLoss || export.Report.HasLoss;
                 evidence = new TargetEvidence(target, reportSucceeded && markerResults.Values.All(value => value),
                     reportSucceeded, reportHasLoss, markerResults, export.Artifact, new FileInfo(export.Artifact).Length,
@@ -132,7 +132,8 @@ internal static class EditableEvidenceRunner {
                     visible.AppliedStylesheetCount, visible.OmittedElementCount, export.MarkdownTableRows,
                     export.MarkdownTableColumns, export.PictureCount, export.LinkedPictureCount,
                     timer.Elapsed.TotalMilliseconds, GC.GetTotalAllocatedBytes(precise: true) - allocationStart,
-                    diagnostics, null, export.NativeTables);
+                    diagnostics, null, export.NativeTables,
+                    NativeDiagnostics: prepared.Report.NativeDiagnostics.Concat(visible.Report.NativeDiagnostics).ToArray());
             } catch (Exception exception) {
                 evidence = new TargetEvidence(target, false, false, true, null, null, null, null,
                     null, null, null, null, null, null, null, null, timer.Elapsed.TotalMilliseconds,
@@ -204,4 +205,5 @@ internal sealed record TargetEvidence(
     int? EmbeddedResourceCount, long? EmbeddedResourceBytes, int? AppliedStylesheetCount,
     int? OmittedElementCount, int? MarkdownTableRows, int? MarkdownTableColumns,
     int? PictureCount, int? LinkedPictureCount, double ElapsedMs, long AllocatedBytes,
-    object? Diagnostics, string? Error, IReadOnlyList<NativeTableEvidence>? NativeTables = null);
+    object? Diagnostics, string? Error, IReadOnlyList<NativeTableEvidence>? NativeTables = null,
+    object? NativeDiagnostics = null);
