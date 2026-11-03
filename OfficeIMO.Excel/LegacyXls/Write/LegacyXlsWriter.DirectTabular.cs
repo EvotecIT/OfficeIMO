@@ -259,23 +259,39 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ref int position,
             DirectTabularPlan plan,
             int directRow) {
-            Span<byte> rowKinds = stackalloc byte[256];
-            Span<ulong> rowPayloads = stackalloc ulong[256];
             if (!plan.HasCachedCells) {
-                PrepareUncachedDirectRow(plan, directRow, rowKinds, rowPayloads);
+                WriteUncachedDirectRowCells(output, ref position, plan, directRow);
+                return;
             }
 
+            int rowStart = checked(directRow * plan.ColumnCount);
+            WriteDirectRowCells(output, ref position, plan, directRow,
+                plan.CellKinds.AsSpan(rowStart, plan.ColumnCount),
+                plan.CellPayloads.AsSpan(rowStart, plan.ColumnCount));
+        }
+
+        // Only uncached rows need the zero-initialized per-row stack buffers.
+        private static void WriteUncachedDirectRowCells(
+            byte[] output,
+            ref int position,
+            DirectTabularPlan plan,
+            int directRow) {
+            Span<byte> rowKinds = stackalloc byte[256];
+            Span<ulong> rowPayloads = stackalloc ulong[256];
+            PrepareUncachedDirectRow(plan, directRow, rowKinds, rowPayloads);
+            WriteDirectRowCells(output, ref position, plan, directRow, rowKinds, rowPayloads);
+        }
+
+        private static void WriteDirectRowCells(
+            byte[] output,
+            ref int position,
+            DirectTabularPlan plan,
+            int directRow,
+            ReadOnlySpan<byte> rowKinds,
+            ReadOnlySpan<ulong> rowPayloads) {
             for (int column = 0; column < plan.ColumnCount; column++) {
-                ExcelDirectTabularValueKind kind;
-                ulong payload;
-                if (plan.HasCachedCells) {
-                    int cellSlot = checked((directRow * plan.ColumnCount) + column);
-                    kind = (ExcelDirectTabularValueKind)plan.CellKinds[cellSlot];
-                    payload = plan.CellPayloads[cellSlot];
-                } else {
-                    kind = (ExcelDirectTabularValueKind)rowKinds[column];
-                    payload = rowPayloads[column];
-                }
+                var kind = (ExcelDirectTabularValueKind)rowKinds[column];
+                ulong payload = rowPayloads[column];
                 ushort legacyColumn = checked((ushort)column);
                 switch (kind) {
                     case ExcelDirectTabularValueKind.Empty:
