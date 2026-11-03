@@ -1,6 +1,5 @@
 using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Package;
-using System.Text;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbSharedStringTable {
@@ -70,12 +69,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             values = new List<string>(entries.Count);
                             foreach (TextEntry entry in entries) {
                                 checkCancellation();
-                                values.Add(Encoding.Unicode.GetString(part.Buffer, entry.Offset, entry.ByteCount));
+                                values.Add(XlsbWideText.Decode(part.Buffer, entry.Offset, entry.ByteCount));
                             }
                             entries = null;
                         }
                         if (entries != null) entries.Add(new TextEntry(offset, byteCount));
-                        else values!.Add(value ?? Encoding.Unicode.GetString(part.Buffer, offset, byteCount));
+                        else values!.Add(value ?? XlsbWideText.Decode(part.Buffer, offset, byteCount));
                     } else if (!began || ended) {
                         throw new InvalidDataException($"The XLSB shared-string part '{partName}' contains records outside its boundary records.");
                     }
