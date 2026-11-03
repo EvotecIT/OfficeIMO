@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
     /// Provides bounded, exact-size reads for package parts whose OPC streams do not expose
     /// their declared uncompressed length. This avoids repeated growth copies on large sheets.
     /// </summary>
-    internal sealed class OpenXmlPackagePartBufferReader : IDisposable {
+    internal sealed partial class OpenXmlPackagePartBufferReader : IDisposable {
         private readonly Stream _stream;
         private readonly ZipArchive _archive;
         private readonly Dictionary<string, ZipArchiveEntry> _entries;
@@ -18,7 +18,8 @@ namespace OfficeIMO.Excel {
         private string? _prefetchPartName;
         private bool _disposed;
 
-        private OpenXmlPackagePartBufferReader(Stream stream) {
+        private OpenXmlPackagePartBufferReader(Stream stream, bool allowPipelining = false) {
+            AllowsPipelining = allowPipelining;
             _stream = stream;
             _archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
             try {
@@ -33,10 +34,10 @@ namespace OfficeIMO.Excel {
         /// Opens a ZIP reader that takes ownership of the supplied stream, including when
         /// the stream does not contain a readable ZIP archive.
         /// </summary>
-        internal static OpenXmlPackagePartBufferReader? TryOpen(Stream stream) {
+        internal static OpenXmlPackagePartBufferReader? TryOpen(Stream stream, bool allowPipelining = false) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             try {
-                var reader = new OpenXmlPackagePartBufferReader(stream);
+                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining);
                 return reader;
             } catch (OpenXmlPackagePartIndexException) {
                 stream.Dispose();
@@ -59,11 +60,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static OpenXmlPackagePartBufferReader? TryOpen(byte[] bytes) {
+        internal static OpenXmlPackagePartBufferReader? TryOpen(byte[] bytes, bool allowPipelining = false) {
             MemoryStream? stream = null;
             try {
                 stream = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false);
-                var reader = new OpenXmlPackagePartBufferReader(stream);
+                var reader = new OpenXmlPackagePartBufferReader(stream, allowPipelining);
                 stream = null;
                 return reader;
             } catch (OpenXmlPackagePartIndexException) {
@@ -299,7 +300,8 @@ namespace OfficeIMO.Excel {
             int length,
             string normalizedPartName,
             CancellationToken cancellationToken,
-            int offset = 0) {
+            int offset = 0,
+            Action<int>? publish = null) {
             while (offset < length) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(output, offset, length - offset);
@@ -308,6 +310,7 @@ namespace OfficeIMO.Excel {
                         $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended after {offset} of {length} declared bytes.");
                 }
                 offset += read;
+                publish?.Invoke(offset);
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (input.ReadByte() >= 0) {

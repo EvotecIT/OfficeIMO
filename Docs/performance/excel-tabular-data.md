@@ -698,14 +698,88 @@ zero warnings/errors; osx-arm64 NativeAOT publish and smoke pass. Test compilati
 retains warnings in unchanged test sources. net472 remains a cross-build without
 Windows or PowerShell 5.1 runtime qualification.
 
+## Pipelined XLSX inflation and indexing (3 November)
+
+I require at least 20% lower medians for both cell-by-cell reading and typed
+parsing in two matched pairs. The baseline is `8f3ed39a61`; the runtime change is
+`79d839035a`. Both lanes meet that threshold in both pairs. The
+[normalized evidence](excel-xlsx-pipeline-2026-11-03.json) retains every sample,
+the initial baseline, the rejected numeric-fusion experiment, preliminary
+pipeline trials and the four stable launches in baseline/candidate order.
+
+Each stable launch runs all six lanes against the same pinned 50,000-row XLSX.
+The harness and every dependency DLL are identical; only `OfficeIMO.Excel.dll`
+differs. I use eight warmups, twelve measurements and thirty-two invocations,
+without removing outliers. Every lane validates every value before measurement
+and checks row counts and checksums while measuring. The comparison packages
+remain ExcelReader.NET 7.3.4, Sylvan.Data.Excel 0.5.8 and ExcelDataReader 3.9.0,
+all isolated in the opt-in benchmark project.
+
+| Lane | Library | Pair 1 before → after ms | Pair 2 before → after ms | Allocation before → after MiB |
+|---|---|---:|---:|---:|
+| Cell-by-cell read | OfficeIMO | 9.627 → 7.406 | 9.823 → 7.470 | 2.273–2.274 → 2.285 |
+| Cell-by-cell read | ExcelReader.NET | 6.414 → 6.486 | 6.394 → 6.394 | 2.217 → 2.217 |
+| Cell-by-cell read | Sylvan | 28.947 → 29.484 | 29.178 → 29.216 | 2.545–2.546 → 2.546 |
+| Cell-by-cell read | ExcelDataReader | 62.082 → 62.972 | 61.360 → 61.638 | 33.880 → 33.880 |
+| Typed parse | OfficeIMO | 10.406 → 8.282 | 10.562 → 8.290 | 4.562 → 4.574 |
+| Typed parse | ExcelReader.NET | 8.384 → 8.347 | 8.315 → 8.240 | 4.506 → 4.506 |
+
+Reading improves by 23.1% and 24.0%; typed parsing by 20.4% and 21.5%.
+Unchanged peer movement remains host and launch variation. OfficeIMO typed
+parsing is close to ExcelReader.NET in this workload; raw reading still trails
+it by about 14–17%. I do not infer a portable ranking or a result for other
+workbook shapes from these M4 runs.
+
+The serial profile puts native inflation at 26.1% of sampled raw-read thread
+time, dense-row indexing at 18.6% and complete canonical XML proof at 5.6%.
+I overlap foreground inflation with one indexing worker on an independent
+archive. Unknown row counts use a provisional index and promote to the existing
+bounded windows when necessary. The complete decompressed part, row index and
+XML proof must finish before any source is published. Numeric/date conversion
+and model construction retain their delivery timing.
+
+The new profiles include both threads and JIT-shortened worker stacks. The
+worker accounts for 32.6% of attributed raw-read thread time and 30.1% for typed
+parsing, including synchronization waits. Native inflation remains substantial
+at 24.0% and 22.6% respectively; it has not become a faster decompressor. These
+sampled shares locate work and waiting, rather than proving lower total CPU.
+Inlining shifts attribution between indexing and synchronization frames, so I
+do not claim a standalone indexing speedup from their frame percentages.
+
+This path applies to compressed UTF-8 parts of at least 1 MiB, on net8.0/net10.0
+when execution permits parallel work. Sequential execution, `MaxDegreeOfParallelism=1`,
+diagnostic callbacks, explicit ranges, worksheet prefetch and legacy frameworks
+retain the serial path. Small or unsupported parts fall back. The independent
+archive and worker add about 12 KiB of allocation per operation; physical-row
+positions also use pooled metadata. I have not qualified peak memory or a
+small-workbook timing benefit.
+
+The independent ZIP/XML reader-boundary proof checks implicit coordinates,
+bounded windows, early formula text, late invalid shared strings, CDATA and
+trailing comments containing row-like text. The trailing-comment case and the
+formula/window case fail before their fixes. All 486 focused cases pass, and
+independent review confirms both defect classes are closed. NativeAOT executes
+50,000 implicit rows through scalar reads and constructor-bound mapping.
+
+Final net10.0 suites with `Category!=Performance` pass 7,760 Excel tests with
+five skips and all 938 CSV tests, including the twelve original independent
+omitted-reference cases. Builds for netstandard2.0, net8.0, net10.0 and net472
+have zero warnings/errors; osx-arm64 NativeAOT publish and execution pass. net472
+is cross-built on macOS, without Windows or PowerShell 5.1 execution. The existing
+direct-XLS destination fact uses the equivalent offset/count stream write so it
+also compiles on net472. Test compilation retains warnings in unchanged sources.
+The grid loader, writers, binary formats, CSV runtime and public API are unchanged.
+
 ## Remaining costs and limits
 
-Parity is incomplete; the earlier cohorts still show gaps against ExcelReader.NET
-in XLSX/XLSB reads and typed parsing. The remaining read cost is structural rather
-than one hidden hot spot. OfficeIMO proves the whole part before delivering the first row and gives the data reader a fixed field
-count. It therefore makes a validation and indexing pass and then a delivery
-pass; ExcelReader.NET reads each row once. Inflation remains a substantial part of the
-XLSX and XLSB reads. Typed parsing qualifies every mapped cell on the worksheet
+Parity is incomplete. The latest XLSX cohort brings typed parsing close to
+ExcelReader.NET, while raw reading still trails it. Earlier binary-format cohorts
+also retain gaps. The remaining read cost is structural rather than one hidden
+hot spot. OfficeIMO proves the whole part before delivering the first row and
+gives the data reader a fixed field count. It therefore makes a validation and indexing pass and then a delivery
+pass; ExcelReader.NET reads each row once. Eligible large XLSX reads now overlap
+inflation and indexing, while preserving complete proof before delivery. Inflation
+remains a substantial part of the XLSX and XLSB reads. Typed parsing qualifies every mapped cell on the worksheet
 reader before the compiled mapper reads it.
 
 The XLS and XLSB writers are the `WriteData` plus `Save` route. That route finishes source enumeration before
