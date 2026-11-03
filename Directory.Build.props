@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <!-- ArgumentNullException.ThrowIfNull and related guard helpers for targets older than net8.0. -->
-  <ItemGroup Condition="'$(EnableArgumentPolyfills)' != 'false' and '$(MSBuildProjectExtension)' == '.csproj'">
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
     <Compile Include="$(OfficeIMOSharedSourceDir)\Compatibility\ArgumentExceptions\*.cs"
              Link="Shared\Compatibility\ArgumentExceptions\%(Filename)%(Extension)" />
   </ItemGroup>
