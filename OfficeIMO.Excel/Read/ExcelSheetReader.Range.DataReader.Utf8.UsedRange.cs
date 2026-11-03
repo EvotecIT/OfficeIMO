@@ -1,4 +1,9 @@
 using System.Threading;
+#if NET8_0_OR_GREATER
+using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+#endif
 
 namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
@@ -94,6 +99,33 @@ namespace OfficeIMO.Excel {
                 ReadOnlySpan<byte> document = _buffer!.AsSpan(0, _length);
                 int position = 0;
                 int count = 0;
+#if NET8_0_OR_GREATER
+                if (Vector128.IsHardwareAccelerated) {
+                    // Keep multiple candidates from one vector instead of restarting
+                    // the span search for each row. The scalar tail also covers tokens
+                    // crossing the final vector and tokens without a following byte.
+                    ref byte start = ref MemoryMarshal.GetReference(document);
+                    Vector128<byte> head = Vector128.Create((byte)'<');
+                    Vector128<byte> tail = Vector128.Create((byte)'w');
+                    int lastVectorStart = document.Length - Vector128<byte>.Count - 4;
+                    for (; position <= lastVectorStart; position += Vector128<byte>.Count) {
+                        if ((position & 0xFFFF) == 0) ct.ThrowIfCancellationRequested();
+                        uint matches = Vector128.BitwiseAnd(
+                            Vector128.Equals(Vector128.LoadUnsafe(ref start, (nuint)position), head),
+                            Vector128.Equals(Vector128.LoadUnsafe(ref start, (nuint)(position + 3)), tail))
+                            .ExtractMostSignificantBits();
+                        while (matches != 0) {
+                            int candidate = position + BitOperations.TrailingZeroCount(matches);
+                            matches &= matches - 1;
+                            if (document[candidate + 1] == (byte)'r'
+                                && document[candidate + 2] == (byte)'o'
+                                && document[candidate + 4] is (byte)'>' or (byte)'/' or (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n') {
+                                if (++count > ExcelA1.MaxRows) return 0;
+                            }
+                        }
+                    }
+                }
+#endif
                 while (position < document.Length) {
                     ct.ThrowIfCancellationRequested();
                     int relative = document.Slice(position).IndexOf("<row"u8);

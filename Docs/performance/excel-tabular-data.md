@@ -195,14 +195,14 @@ both sides. These runs do not establish a persistent timing regression or a quie
 host result.
 
 The matrix uses the existing runner, with the pinned input root supplied through
-`OFFICEIMO_EXCEL_GENERATED_INPUT`:
+`OFFICEIMO_EXCEL_GENERATED_INPUT`. Set `EVOTEC_SCRATCH_ROOT` to the local scratch directory:
 
 ```sh
-lockf -k /Volumes/Samsung/Development/Scratch/heavy-run.lock \
+lockf -k "${EVOTEC_SCRATCH_ROOT:?Set EVOTEC_SCRATCH_ROOT}/heavy-run.lock" \
   dotnet OfficeIMO.Excel.Benchmarks/bin/Release/net10.0/OfficeIMO.Excel.Benchmarks.dll \
   --filter '*ExcelReaderGenerated*' --inProcess --warmupCount 8 --iterationCount 12 \
   --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts <output>/bdn
-lockf -k /Volumes/Samsung/Development/Scratch/heavy-run.lock \
+lockf -k "${EVOTEC_SCRATCH_ROOT:?Set EVOTEC_SCRATCH_ROOT}/heavy-run.lock" \
   dotnet OfficeIMO.Excel.Benchmarks/bin/Release/net10.0/OfficeIMO.Excel.Benchmarks.dll \
   --compare-xlbench-shapes 9 2
 ```
@@ -586,6 +586,117 @@ CSV tests. All four framework builds have zero warnings/errors; osx-arm64
 NativeAOT publish and smoke pass. net472 remains a cross-build without Windows
 runtime validation. Inflation, range discovery, owned strings and the retained
 validation/indexing pass still account for the remaining XLSX read gap.
+
+## Inflation profile and XLBench comparison (3 November)
+
+I measured `28881d6e68` again before changing inflation or range discovery. The
+[baseline evidence](excel-xlsx-inflation-baseline-2026-11-03.json) retains all six
+lanes, twelve samples per lane, assembly/input identities and the sampled profile.
+The pinned input, complete-value preflight and benchmark settings match the
+preceding indexing cohort. These are baseline results; no new runtime change is
+measured here.
+
+| Lane | Library | Median ms | Allocated MiB |
+|---|---|---:|---:|
+| Cell-by-cell read | OfficeIMO | 9.966 | 2.274 |
+| Cell-by-cell read | ExcelReader.NET | 6.782 | 2.217 |
+| Cell-by-cell read | Sylvan | 28.954 | 2.546 |
+| Cell-by-cell read | ExcelDataReader | 62.882 | 33.880 |
+| Typed parse | OfficeIMO | 10.514 | 4.562 |
+| Typed parse | ExcelReader.NET | 8.105 | 4.506 |
+
+Inflation accounts for 26.3% of sampled read time and 22.8% of typed-parse time;
+dimensionless range discovery accounts for 5.2% and 4.9%. Complete canonical XML
+proof takes another 5.7% and 5.1%. Inflation already writes into an exact-size
+pooled buffer and validates the declared decompressed length. A previous read-size
+experiment gave no useful improvement. I retain complete validation; removing it
+would change the accepted-input contract.
+
+I also checked the [XLBench results](https://jafin.github.io/XLBench/results.html)
+and source at `c9b94c5bf41fdb0013a66f4df32a84fd6eb79365`. The results use OfficeIMO
+3.5.3 on Windows and a Ryzen 9 5950X, rather than this local source on an M4.
+The earlier local [shape comparison](excel-tabular-compatible-2026-11-03.json)
+already shows a substantially different picture:
+
+| Shape | Local OfficeIMO ms / MiB | Local SDK ms / MiB |
+|---|---:|---:|
+| Write | 30.4 / 9.29 | 97.4 / 134.88 |
+| Read all | 232.1 / 50.55 | 723.6 / 627.85 |
+| 20 sheets | 62.2 / 13.08 | 300.6 / 184.22 |
+| Report | 5.1 / 4.08 | 4.9 / 5.25 |
+| Delete rows and recalculate | 8.1 / 3.87 | 17.8 / 9.99 |
+| Insert columns and recalculate | 9.1 / 3.80 | 22.8 / 13.45 |
+| Calculation | 46.0 / 16.57 | n/a |
+| Template | 9.3 / 7.90 | 11.6 / 13.83 |
+| Properties | 0.3 / 0.70 | 0.2 / 0.41 |
+
+These are retained measurements from `40734fa5ac`, not a fresh run of the current
+source or a ranking against XLBench's whole field. Saved outputs receive scenario
+validation; the earlier read-all and 20-sheet lanes check consumption/counts but
+still need complete-value preflight before supporting a validated ranking.
+The stock inputs are deterministic stand-ins. The two hosts' timings cannot prove
+that OfficeIMO wins. XLBench's OfficeIMO read opens an editable workbook, whereas
+Sylvan streams rows. Its Sylvan and MiniExcel writers use a precomputed total;
+formula-capable writers emit a SUM formula. IronXL's published row is an older
+snapshot. I keep those differences explicit in any comparison.
+
+There is no CSV timing scenario in the inspected XLBench results. The existing
+matched CSV cohort above is the useful baseline: raw reading remains about
+8.0 ms against Sep's 4.6 ms, while typed parsing is about 10.8 ms against
+ExcelReader.NET's 13.9 ms and CsvHelper's 32.5 ms. The next comparison should
+qualify full-value XLBench-shaped reads across the leading libraries, keep
+editable-workbook and tabular contracts visible, and broaden equivalent CSV
+writer coverage before claiming overall parity.
+
+## Batched implicit-row discovery (3 November)
+
+I count possible implicit row tags in batches on net8.0 and net10.0, rather than
+restarting the span search for each row. The scan retains every middle-byte and
+token-boundary check, the row-count cap and a scalar tail. Cancellation is checked
+initially and every 64 KiB. Older targets and hardware without acceleration keep
+the scalar implementation. The proposed range still requires complete indexing,
+coordinate qualification and XML validation before delivery. The public API,
+dependencies, grid loader, writers and selector timing are unchanged.
+
+The implementation is `9a2876d8eb`, against `28881d6e68`. The
+[normalized comparison](excel-xlsx-range-discovery-2026-11-03.json) retains the
+initial baseline, all narrow trials and three stable six-lane launches. The
+stable baseline uses the same harness, unchanged dependency DLLs, pinned input,
+eight warmups, twelve measurements and thirty-two invocations as both candidates.
+Every heavy command takes the shared lock separately, allowing other validation
+to run between launches. No outliers are removed.
+
+| Lane | Library | Before ms | Candidate 1 / 2 ms | Before → candidate 1 / 2 MiB |
+|---|---|---:|---:|---:|
+| Cell-by-cell read | OfficeIMO | 9.669 | 9.567 / 9.462 | 2.273 → 2.273 / 2.273 |
+| Cell-by-cell read | ExcelReader.NET | 6.411 | 6.381 / 6.384 | 2.217 → 2.216 / 2.217 |
+| Cell-by-cell read | Sylvan | 29.116 | 28.876 / 28.134 | 2.546 → 2.546 / 2.546 |
+| Cell-by-cell read | ExcelDataReader | 61.512 | 61.053 / 59.839 | 33.880 → 33.880 / 33.880 |
+| Typed parse | OfficeIMO | 10.454 | 10.342 / 10.295 | 4.562 → 4.562 / 4.562 |
+| Typed parse | ExcelReader.NET | 8.052 | 7.865 / 8.152 | 4.506 → 4.506 / 4.506 |
+
+Reading improves by 1.1–2.1% and typed parsing by 1.1–1.5% in the stable cohort;
+allocation is effectively unchanged. Unchanged controls move too: Sylvan improves
+by up to 3.4% and ExcelDataReader by up to 2.7%. I do not attribute every timing
+movement to the change or claim parity with ExcelReader.NET. The earlier narrow
+trial's slower typed-parse launch, 12.520 ms against 10.826 ms, remains in the
+evidence alongside its second candidate at 10.296 ms.
+
+The sampled raw-read share in the general byte-sequence span search falls from
+5.57% to 1.67%. Attribution shifts into the range-creation caller after JIT
+optimization, so I do not report a precise standalone after percentage for range
+discovery. Missing inference frames do not mean zero cost. Native inflation stays
+at about 26.6% and complete canonical XML proof at about 5.5%. I retain the existing
+exact-size inflation path and all its length checks; the earlier read-size trials
+provided no useful improvement.
+
+All 479 focused reader cases pass. Independent read-only review finds no actionable
+issues. No tests change. The final net10.0 suites with `Category!=Performance` pass
+7,754 Excel tests with five skips and all 938 CSV tests, including all twelve
+independently authored omitted-reference cases. All four framework builds have
+zero warnings/errors; osx-arm64 NativeAOT publish and smoke pass. Test compilation
+retains warnings in unchanged test sources. net472 remains a cross-build without
+Windows or PowerShell 5.1 runtime qualification.
 
 ## Remaining costs and limits
 
