@@ -5,14 +5,15 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelSheet {
     /// <summary>Adds an attached native table using explicit AOT-safe column selectors and the ordinary table options.</summary>
-    /// <remarks>Table column names must be nonblank and unique. Use WriteData when duplicate or blank display headers are needed.</remarks>
+    /// <remarks>Table column names must be nonblank and unique. Use WriteData when duplicate or blank display headers are needed.
+    /// Excel tables have no visible caption, so a non-null <see cref="OfficeTableOptions.Caption"/> throws <see cref="NotSupportedException"/>.</remarks>
     public ExcelTable AddTable<T>(IEnumerable<T> rows,
         (string Header, Func<T, object?> Selector)[] columns,
         OfficeTableOptions? options = null, int row = 1, int column = 1) {
         if (rows == null) throw new ArgumentNullException(nameof(rows));
         if (columns == null || columns.Length == 0) throw new ArgumentException("At least one column selector is required.", nameof(columns));
         ValidateTypedTableOrigin(row, column);
-        ObjectDataHelpers.ValidateTableAlignments(options);
+        ValidateTypedTableOptions(options);
         string[] sourceNames = columns.Select((field, index) => field.Header ?? $"Column{index + 1}").ToArray();
         string[] selectedNames = ObjectDataHelpers.SelectTableColumns(sourceNames, options);
         var selected = selectedNames.Select(name => columns[Array.IndexOf(sourceNames, name)]).ToArray();

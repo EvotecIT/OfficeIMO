@@ -8,6 +8,29 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelTypedTableColumnDefaultsTests {
     [Theory]
+    [InlineData("typed")]
+    [InlineData("data-table")]
+    [InlineData("selectors")]
+    public void TypedTablesRejectAVisibleCaption(string route) {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Data");
+        var options = new OfficeTableOptions { Caption = "Table 1. Sales" };
+        var rows = new[] { new { Name = "North", Amount = 12m } };
+        using var data = new DataTable();
+        data.Columns.Add("Name", typeof(string));
+        data.Rows.Add("North");
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => route switch {
+            "typed" => sheet.AddTable(rows, options),
+            "data-table" => sheet.AddTable(data, options),
+            _ => sheet.AddTable(new[] { "North" },
+                new (string Header, Func<string, object?> Selector)[] { ("Name", value => value) }, options)
+        });
+
+        Assert.Contains("no visible caption", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void TypedTablesFitProjectedColumnsAndKeepExplicitWorksheetWidths(bool dataTable) {
