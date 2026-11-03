@@ -2797,6 +2797,7 @@ namespace OfficeIMO.Tests {
 
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0200, BuildDimensionsPayload(firstRow: 0, rowAfterLast: 5, firstColumn: 0, columnAfterLast: 3));
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Inline"));
                 WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(7)));
                 WriteRecord(stream, 0x00bd, BuildMulRkPayload(1, 1, (0, EncodeRkInteger(-3)), (0, EncodeRkInteger(12345, divideBy100: true))));

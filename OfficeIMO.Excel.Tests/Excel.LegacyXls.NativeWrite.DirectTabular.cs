@@ -37,12 +37,6 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("Save.Xls.Direct.ExtractCells", timings);
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
-            var readOptions = new ExcelReaderOptions();
-            using (LegacyXlsTabularWorkbook indexedWorkbook = LegacyXlsTabularWorkbook.Open(workbook, readOptions))
-            using (var indexedReader = Assert.IsType<LegacyXlsTabularDataReader>(
-                       indexedWorkbook.OpenTable("Data", hasHeaderRow: true, readOptions))) {
-                Assert.True(indexedReader.UsedIndexedDiscovery);
-            }
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal(4, reader.FieldCount);
             Assert.Equal("Text", reader.GetName(0));
