@@ -39,7 +39,7 @@ public sealed class IWorkPagesNumberedListNativeExportTests {
         Assert.All(items, item => Assert.Equal(12, item.Style.TextStyle.FontSizePoints));
         Assert.Single(projection.Tables); Assert.Single(projection.Images);
         Assert.Null(projection.Body.Paragraphs.Last().ListNumber);
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray())))
@@ -94,7 +94,7 @@ public sealed class IWorkPagesNumberedListNativeExportTests {
         var source = IWorkSourceDocument.Open(document.SaveBytes()); var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete); Assert.Empty(projection.Diagnostics);
         Assert.Equal(new int?[] { 1, 1, null }, projection.Body.Paragraphs.Select(paragraph => paragraph.ListNumber));
-        using var word = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var word = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         word.RequireCompleteEditableReconstruction();
     }
 

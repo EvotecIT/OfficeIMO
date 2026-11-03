@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(expected, display);
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult();
+            using var result = source.ToExcelResult();
             result.Report.RequireCompleteEditableReconstruction();
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED"
                 && d.LossKind == OfficeConversionLossKind.Approximation);
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
             Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         } else if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_NUMBER_FORMAT_APPROXIMATED"
                 && d.LossKind == OfficeConversionLossKind.Approximation);
             result.Value.Save(saved); saved.Position = 0;
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(expected, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else {
-            using var result = source.ToPowerPointDocumentResult();
+            using var result = source.ToPowerPointResult();
             result.Report.RequireCompleteEditableReconstruction();
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_NUMBER_FORMAT_APPROXIMATED"
                 && d.LossKind == OfficeConversionLossKind.Approximation);
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Blank_millisecond_cells_preserve_selected_native_Xlsx_precision(IWorkDurationUnit largest, string code) {
         using var package = EmptyDurationFormatPackage(IWorkDocumentKind.Numbers,
             format: DurationFormat(largest: (ulong)largest, smallest: 32));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);

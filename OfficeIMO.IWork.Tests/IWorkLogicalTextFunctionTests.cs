@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     public void True_function_preserves_a_stale_boolean_cache_and_recalculates_a_typed_true_result() {
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, 0d,
             boolean: true, hasFormula: true, formulaPayload: FunctionPayload(156, 0)) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         IWorkTableCell source = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.True(source.FormulaIsComplete);
         Assert.Equal("=TRUE()", source.Formula);
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, 1)))));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, 0d,
             textValue: expected, hasFormula: true, formulaPayload: formula) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         IWorkTableCell source = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.True(source.FormulaIsComplete);
         string expression = name + "(\"" + input.Replace("\"", "\"\"") + "\")";

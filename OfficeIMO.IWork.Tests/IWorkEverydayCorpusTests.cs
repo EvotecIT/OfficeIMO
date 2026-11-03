@@ -19,10 +19,8 @@ public sealed class IWorkEverydayCorpusTests {
         string applePath = Corpus(manifest.GetProperty("export").GetString()!);
         Assert.Equal(manifest.GetProperty("sourceSha256").GetString(), Hash(path));
         Assert.Equal(manifest.GetProperty("exportSha256").GetString(), Hash(applePath));
-        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         Assert.Empty(result.Report.SourceDeclarationIssues);
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
@@ -51,8 +49,7 @@ public sealed class IWorkEverydayCorpusTests {
             }
         }
         Assert.Empty(actual.ValidateOpenXml());
-        Assert.Throws<InvalidOperationException>(() => ExcelIWorkConverter.ConvertNumbersToExcel(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        Assert.Throws<InvalidOperationException>(() => IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }).RequireCompleteEditableReconstruction());
     }
 
     [Fact]
@@ -67,7 +64,7 @@ public sealed class IWorkEverydayCorpusTests {
         var reference = apple.MainDocumentPart!.Document!.Body!;
         var expected = reference.Elements<Paragraph>().ToArray();
         Assert.Equal(3, expected.Length);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(path);
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult();
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Empty(result.Report.SourceDeclarationIssues);
         Assert.Equal(expected.Select(paragraph => paragraph.InnerText),

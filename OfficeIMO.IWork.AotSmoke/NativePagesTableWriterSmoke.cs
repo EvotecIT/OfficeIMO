@@ -27,8 +27,7 @@ internal static class NativePagesTableWriterSmoke {
             && table.GetVerticalAlignment(3, 3) == IWorkCellVerticalAlignment.Top
             && table.GetCell(1, 2)?.Kind == IWorkCellKind.Text
             && Equals(table.GetCell(2, 1)?.Value, -1234.5), "Pages effective layout or scalar types were lost.");
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
@@ -46,8 +45,7 @@ internal static class NativePagesTableWriterSmoke {
             Require(output.CanWrite && before.SequenceEqual(output.ToArray()), "Pages budget rejection changed its caller stream.");
         }
         var only = IWorkPagesDocument.Create(); only.AddTable(IWorkTableData.Create(2, 2).SetText(1, 1, "Table only"));
-        using var tableOnly = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(only.SaveBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var tableOnly = IWorkSourceDocument.Open(new MemoryStream(only.SaveBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         tableOnly.RequireCompleteEditableReconstruction();
         Require(tableOnly.Value.Tables.Count == 1 && only.Paragraphs.Count == 0, "Table-only Pages body was not editable.");
         Console.WriteLine($"PASS | native Pages inline scalar-table creation | {AcceptedSha256} | {bytes.Length} bytes | deterministic body order, typed Unicode cells, inherited layout, strict saved/reopened DOCX, table-only body and atomic grid bounds");

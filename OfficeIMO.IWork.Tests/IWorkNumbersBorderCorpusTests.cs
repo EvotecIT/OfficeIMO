@@ -14,8 +14,7 @@ public sealed partial class IWorkBoundaryTests {
         var expected = decoded.RootElement;
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), BorderCorpusHash(source));
         Assert.Equal(expected.GetProperty("nativeXlsxSha256").GetString(), BorderCorpusHash(reference));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(source,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);

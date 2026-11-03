@@ -10,8 +10,7 @@ internal static class NativeNumbersIntegerFunctionSmoke {
         string nativeXlsx = Path.Combine(AppContext.BaseDirectory, "integer-functions-native.xlsx");
         const string xlsxHash = "0A6259A8DF8FC6119DC90D8EB814B3E3B4F8F43531A3CC627D15A959A86A904D";
         Require(Hash(source) == sourceHash && Hash(nativeXlsx) == xlsxHash, "Integer-function reference changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(source,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = result.Projection.Sheets.Single().Tables.Single();
         Require(table.Cells.Count(c => c.Kind == IWorkCellKind.Formula) == 70
             && table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete) == 39,

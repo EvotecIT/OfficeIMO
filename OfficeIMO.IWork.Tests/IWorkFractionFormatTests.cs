@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(FractionFormat(8))))),
                 ArchiveRecord(14, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))));
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(converted.IsVisualFallback);
         IWorkTableCell projected = Assert.Single(Assert.Single(Assert.Single(converted.Projection.Sheets).Tables).Cells);
         Assert.Equal(IWorkCellKind.Formula, projected.Kind);

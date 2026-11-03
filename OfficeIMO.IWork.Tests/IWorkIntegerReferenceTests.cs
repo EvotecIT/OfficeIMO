@@ -18,9 +18,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(input.GetProperty("sha256").GetString(),
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
         }
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture(
-            "native-exports/" + evidence.GetProperty("source").GetString()),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture(
+            "native-exports/" + evidence.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
         Assert.Equal(39, table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete));
         Assert.False(table.GetCell(10, 6)!.FormulaIsComplete);

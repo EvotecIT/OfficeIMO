@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_owner_preserves_cross_type_drawable_order() {
         using MemoryStream package = CreateKeynotePackageWithImageBeforeTable();
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         IWorkKeynoteSlide sourceSlide = Assert.Single(result.Projection.Slides);
         PowerPointSlide targetSlide = Assert.Single(result.Value.Slides);
 
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_placeholder_fallback_scales_to_the_recovered_canvas() {
         using MemoryStream package = CreateKeynotePackageWithCanvasTitle(720f, 540f);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         PowerPointTextBox title = Assert.Single(Assert.Single(result.Value.Slides).TextBoxes);
 
         Assert.False(result.IsVisualFallback);
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Errors", 1, 1, 0d, hasFormula: cachedFormula, error: true)
         });
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         ExcelSheet sheet = Assert.Single(result.Value.Sheets);
         IWorkTableCell sourceCell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);

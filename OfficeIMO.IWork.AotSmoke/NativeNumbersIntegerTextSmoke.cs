@@ -13,8 +13,7 @@ internal static class NativeNumbersIntegerTextSmoke {
     private static void Verify(string file, string expectedHash, string text) {
         string path = Path.Combine(AppContext.BaseDirectory, file);
         Require(Hash(path) == expectedHash, "Native integer-text source changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var input = result.Projection.Sheets[0].Tables.Single().GetCell(4, 2)!;
         Require(input.Kind == IWorkCellKind.Text && input.Value is string value && value == text,
             "Native numeric text lost its scalar type.");

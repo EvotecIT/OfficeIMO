@@ -23,13 +23,13 @@ public sealed partial class IWorkBoundaryTests {
         }
         switch (kind) {
             case IWorkDocumentKind.Pages:
-                using (var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
+                using (var result = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
                 break;
             case IWorkDocumentKind.Numbers:
-                using (var result = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
+                using (var result = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
                 break;
             default:
-                using (var result = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
+                using (var result = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
                 break;
         }
         package.Position = 0;
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("Ab.")]
     public void Literal_text_markers_survive_docx_without_becoming_counters(string label) {
         using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         Assert.False(result.IsVisualFallback);
         Assert.Equal(IWorkListMarkerKind.Text, Assert.Single(result.Projection.Body.Paragraphs).ListMarkerKind);
         using var saved = new MemoryStream();
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] fields = Message(VarintField(11, 3), VarintField(15, (ulong)kind));
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using (MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Pages, fields, inherited: false, indent: 0)) {
-            using var result = IWorkSourceDocument.Open(package).ToWordDocumentResult(policy);
+            using var result = IWorkSourceDocument.Open(package).ToWordResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             using var saved = new MemoryStream();
             result.Value.Save(saved); saved.Position = 0;
@@ -96,7 +96,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document));
         }
         using (MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Keynote, fields, inherited: false, indent: 0)) {
-            using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(policy);
+            using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             using var saved = new MemoryStream();
             result.Value.Save(saved); saved.Position = 0;
@@ -136,7 +136,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("a")]
     public void PowerPoint_does_not_infer_numbering_from_literal_text(string label) {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, text: "Item", listLabel: label);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         if (label.Length > 1) {
             Assert.True(result.IsVisualFallback);
         } else {

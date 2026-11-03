@@ -16,8 +16,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("third-level")]
     public void Saved_DOCX_child_starts_apply_once_before_parent_reset(string boundary) {
         using var package = ChildResetMappingPackage(IWorkDocumentKind.Pages, boundary);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly,
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         var source = Assert.Single(result.Projection.Tables).Cells[0].RichText!;
         Assert.True(source.IsFormattingComplete);
@@ -54,8 +53,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("third-level")]
     public void Saved_Keynote_PPTX_table_counters_reach_drawing_and_PDF(string boundary) {
         using var package = ChildResetMappingPackage(IWorkDocumentKind.Keynote, boundary);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly,
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         var source = Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells[0].RichText!;
         Assert.True(source.IsFormattingComplete);

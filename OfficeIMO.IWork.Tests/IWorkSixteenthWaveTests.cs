@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Distinct_pages_list_identities_start_distinct_word_lists() {
         using MemoryStream package = CreatePagesPackageWithDistinctAdjacentLists();
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;

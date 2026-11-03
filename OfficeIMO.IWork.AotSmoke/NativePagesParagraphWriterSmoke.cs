@@ -42,8 +42,7 @@ internal static class NativePagesParagraphWriterSmoke {
             && paragraphs[4].Style.TextStyle.FontSizePoints == 18 && paragraphs[5].Style.LineSpacingMultiplier == 1.25
             && paragraphs[6].Style.LineSpacingMultiplier == 1 && paragraphs[6].Style.TabStops!.Count == 0,
             "Native Pages spacing, tabs or paragraph resets differ.");
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var reopened = WordDocument.Load(output);

@@ -38,7 +38,7 @@ public sealed class IWorkPagesImageWritingTests {
         var projection = source.ReadPages();
         Assert.Equal(3, projection.Images.Count); Assert.Empty(projection.Diagnostics);
         if (edited) Assert.Equal(20.392578125, projection.Images[0].Geometry!.TopPoints);
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_DOCX_PRECISION");
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
@@ -80,7 +80,7 @@ public sealed class IWorkPagesImageWritingTests {
             Assert.Equal(index == 0 ? 80 : 120, actual.Geometry.HeightPoints);
         }
         Assert.Equal("Alt 😀", projection.Images[0].AccessibilityDescription);
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false); Assert.Empty(new OpenXmlValidator().Validate(saved));
@@ -116,7 +116,7 @@ public sealed class IWorkPagesImageWritingTests {
         Assert.Equal(before, document.SaveBytes()); Assert.Same(image, Assert.Single(document.BodyBlocks));
         Assert.Empty(document.Paragraphs); Assert.Empty(document.Tables);
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkPagesImage>)document.Images).Clear());
-        using var result = IWorkSourceDocument.Open(before).ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(before).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.Equal(expected, Assert.Single(IWorkSourceDocument.Open(before).ReadPages().Images).GetBytes());
     }

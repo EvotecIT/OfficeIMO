@@ -36,8 +36,7 @@ internal static class NativePreservationSmoke {
         Require(moved.Geometry!.LeftPoints == 100 && moved.Geometry.TopPoints == 130 && moved.GetBytes().SequenceEqual(image.GetBytes())
             && image.Geometry!.LeftPoints == 80 && translated.Report.UpdatedRecords.Count == 1,
             "Image translation lost geometry, image bytes, immutable source or edit reporting.");
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(translated.GetPackageBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Open(new MemoryStream(translated.GetPackageBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         conversion.RequireCompleteEditableReconstruction(); using var saved = new MemoryStream(); conversion.Value.Save(saved); saved.Position = 0;
         using var presentation = PowerPointDocument.Load(saved);
         Require(presentation.Slides.Count == 3 && !presentation.ValidateDocument().Any(), "Translated source failed saved PowerPoint reconstruction.");

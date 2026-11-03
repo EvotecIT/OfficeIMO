@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var converted = source.ToWordDocumentResult(policy);
+            using var converted = source.ToWordResult(policy);
             IWorkTable projected = Assert.Single(converted.Projection.Tables);
             Assert.True(projected.HasBorderDeclarations);
             Assert.Null(projected.GetBorders(1, 1).Top);
@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(WordBorderStyle.Nil, cell.Borders.LeftStyle);
             Assert.Equal(WordBorderStyle.Single, cell.Borders.RightStyle);
         } else {
-            using var converted = source.ToPowerPointDocumentResult(policy);
+            using var converted = source.ToPowerPointResult(policy);
             converted.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved);
             Assert.Empty(reopened.ValidateDocument());

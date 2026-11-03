@@ -21,15 +21,15 @@ public static partial class IWorkWorkflow {
         IWorkConversionOptions conversion = (conversionOptions ?? new IWorkConversionOptions { RequireCompleteVisualCoverage = true }).Clone();
         var registrations = new List<OfficeWorkflowConversionRegistration> {
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("pages-docx", (input, output, limits, settings, token) => {
-                using PagesToWordResult result = WordIWorkConverter.ConvertPagesToWordResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
+                using PagesToWordResult result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Pages, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToWordResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
                 return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("numbers-xlsx", (input, output, limits, settings, token) => {
-                using NumbersToExcelResult result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
+                using NumbersToExcelResult result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Numbers, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToExcelResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
                 return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("keynote-pptx", (input, output, limits, settings, token) => {
-                using KeynoteToPowerPointResult result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
+                using KeynoteToPowerPointResult result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToPowerPointResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
                 return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits))
         };

@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Table", 1, 1, 42d)
         }, includePreview: true, includeWrongWireDrawableReference: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -80,7 +80,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Tall table", 4097, 1, 42d, defaultRowHeight: 20d)
         });
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20d)), result.Value.Sheets[0].DefaultRowHeight);
     }

@@ -39,7 +39,7 @@ public sealed class IWorkPagesTableWritingTests {
                 }
             }
         }
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var actual = WordprocessingDocument.Open(output, false);
@@ -81,8 +81,7 @@ public sealed class IWorkPagesTableWritingTests {
         Assert.Equal(4, table.GetPadding(3, 3)!.BottomPoints);
         Assert.Equal(IWorkCellVerticalAlignment.Top, table.GetVerticalAlignment(3, 3));
         Assert.Equal("003366", table.GetParagraphStyle(3, 3)!.TextStyle.Color!.RgbHex);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -113,8 +112,7 @@ public sealed class IWorkPagesTableWritingTests {
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkPagesBodyBlock>)document.BodyBlocks).Clear());
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkPagesTable>)document.Tables).Clear());
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkTableCell>)table.Cells).Clear());
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);

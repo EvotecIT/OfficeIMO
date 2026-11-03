@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_owner_preserves_cross_type_drawable_stacking(bool imageFirst) {
         using MemoryStream package = CreatePagesPackageWithRestackedImageAndTextBox(imageFirst);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         IWorkPagesDrawable[] drawables = result.Projection.Drawables.ToArray();
         WordTextBox textBox = Assert.Single(result.Value.TextBoxes);
         WordImage image = Assert.Single(result.Value.Images);
@@ -43,7 +43,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: null,
             includePreview: true, documentLayoutFields: layout);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         WordSection section = Assert.Single(result.Value.Sections);
         WordImage preview = Assert.Single(result.Value.Images);
 
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             rotation: float.MaxValue, slideWidth: 720f, slideHeight: 360f);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         PowerPointPicture preview = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
 
         Assert.True(result.IsVisualFallback);

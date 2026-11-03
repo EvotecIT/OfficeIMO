@@ -19,7 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             result.Value.Save(saved); saved.Position = 0;
             using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
             var paragraph = Assert.Single(document.MainDocumentPart!.Document!.Descendants<Paragraph>(),
@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("Courier New", level.NumberingSymbolRunProperties.RunFonts.HighAnsi!.Value);
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document));
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var paragraph = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs[0];

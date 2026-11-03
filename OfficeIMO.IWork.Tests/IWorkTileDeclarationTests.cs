@@ -65,25 +65,25 @@ public sealed partial class IWorkBoundaryTests {
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options);
+            using var partial = source.ToWordResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using WordDocument reopened = WordDocument.Load(saved);
             Assert.Equal("42", reopened.Tables[0].Rows[1].Cells[0].Paragraphs[0].Text);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options);
+            using var partial = source.ToExcelResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
             Assert.Equal(42d, reopened.Sheets[0].Cell(2, 1).GetValue<double>());
         } else {
-            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointDocumentResult(options);
+            using var partial = source.ToPowerPointResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using PowerPointDocument reopened = PowerPointDocument.Load(saved);

@@ -50,7 +50,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: null, includePreview: false);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            source.ToWordDocumentResult(
+            source.ToWordResult(
                 new IWorkConversionOptions { Mode = (IWorkConversionMode)99 }));
 
         Assert.Equal("Mode", exception.ParamName);
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Underflow", 1, 1, 0d, decimal128Underflow: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 

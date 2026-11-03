@@ -114,8 +114,7 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
     [Fact]
     public void Saved_cross_table_formulas_use_actual_worksheet_names_and_preserve_caches() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var converted = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(converted.IsVisualFallback);
         Assert.ThrowsAny<OfficeConversionException>(() => converted.Report.ThrowIfLoss());
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;

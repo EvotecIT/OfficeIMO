@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(value.CachedValueIsComplete);
         Assert.Equal("GBP", value.NumberFormat!.CurrencyCode);
         package.Position = 0;
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.DoesNotContain(converted.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);

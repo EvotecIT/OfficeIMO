@@ -14,8 +14,7 @@ public static partial class IWorkWorkflow {
     private static void AddPdfRegistrations(List<OfficeWorkflowConversionRegistration> registrations,
         IWorkReadOptions reading, IWorkConversionOptions conversion) {
         Add("pages-pdf", (input, output, limits, settings, token) => {
-            using PagesToWordResult editable = WordIWorkConverter.ConvertPagesToWordResult(input,
-                Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
+            using PagesToWordResult editable = IWorkSourceDocument.Open(input, IWorkDocumentKind.Pages, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToWordResult(CompleteEditableOptions(settings?.ConversionOptions ?? conversion), cancellationToken: token);
             editable.Report.RequireCompleteEditableReconstruction();
             return SavePdf(() => editable.Value.ConvertToPdfWithEvidence(settings?.PagesPdfOptions, token), editable.Report, editable.Source, output, token);
         });
@@ -29,8 +28,7 @@ public static partial class IWorkWorkflow {
                 || !options.UseWorksheetHeadersAndFooters || !options.UseWorksheetHyperlinks
                 || !options.UseWorksheetCellStyles || !options.UseWorksheetMergedCells)
                 throw new NotSupportedException("Complete Numbers PDF conversion requires worksheet content, styles, hyperlinks, images, charts, headers and footers to remain enabled.");
-            using NumbersToExcelResult editable = ExcelIWorkConverter.ConvertNumbersToExcelResult(input,
-                Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
+            using NumbersToExcelResult editable = IWorkSourceDocument.Open(input, IWorkDocumentKind.Numbers, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToExcelResult(CompleteEditableOptions(settings?.ConversionOptions ?? conversion), cancellationToken: token);
             editable.Report.RequireCompleteEditableReconstruction();
             return SavePdf(() => editable.Value.ConvertToPdfWithEvidence(options, token), editable.Report, editable.Source, output, token);
         });
@@ -41,8 +39,7 @@ public static partial class IWorkWorkflow {
             if (!options.IncludeTextBoxes || !options.IncludePictures || !options.IncludeAutoShapes
                 || !options.IncludeTables || !options.IncludeCharts || !options.IncludeSmartArt || !options.IncludeSlideBackgrounds)
                 throw new NotSupportedException("Complete Keynote PDF conversion requires every supported slide content type and background to remain enabled.");
-            using KeynoteToPowerPointResult editable = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input,
-                Bound(settings?.ReadOptions ?? reading, limits), CompleteEditableOptions(settings?.ConversionOptions ?? conversion), token);
+            using KeynoteToPowerPointResult editable = IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToPowerPointResult(CompleteEditableOptions(settings?.ConversionOptions ?? conversion), cancellationToken: token);
             editable.Report.RequireCompleteEditableReconstruction();
             return SavePdf(() => editable.Value.ConvertToPdfWithEvidence(options, token), editable.Report, editable.Source, output, token);
         });

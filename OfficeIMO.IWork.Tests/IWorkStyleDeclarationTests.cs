@@ -25,14 +25,14 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             Assert.False(result.IsVisualFallback); Assert.True(result.Report.IsPartialEditableReconstruction);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var run = Assert.Single(reopened.Tables[0].Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Value");
             Assert.False(run.Bold);
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.False(result.IsVisualFallback); Assert.True(result.Report.IsPartialEditableReconstruction);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);

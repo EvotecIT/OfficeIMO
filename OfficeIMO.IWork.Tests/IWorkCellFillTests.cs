@@ -11,8 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture(expectedSource.GetProperty("path").GetString()!);
         Assert.Equal(expectedSource.GetProperty("sha256").GetString(), Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -42,8 +41,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Independent_selected_Pages_cell_fills_and_layout_survive_saved_DOCX_including_empty_cells() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-cell-fills.json")));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
@@ -101,7 +99,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[]? declaration = mode == "inherit" ? null : mode == "none" ? Array.Empty<byte>() : FillColor(0, 0, 1);
         using var package = CellFillPackage(new[] { FillStyle(30, declaration, 31), FillStyle(31, FillColor(1, 0, 0)) });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var result = source.ToWordDocumentResult();
+        using var result = source.ToWordResult();
         Assert.False(result.IsVisualFallback);
         IWorkTable table = Assert.Single(result.Projection.Tables);
         Assert.Equal(2, table.Cells.Count);
@@ -151,7 +149,7 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package, new IWorkReadOptions {
             MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128
         });
-        using var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         IWorkTable table = Assert.Single(result.Projection.Tables);
         Assert.Equal(42d, table.GetCell(1, 1)!.Value);
@@ -195,7 +193,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelResult(policy);
             Assert.False(result.IsVisualFallback);
             Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_FILL_OMITTED");
             result.Value.Save(saved); saved.Position = 0;
@@ -205,7 +203,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
             Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.False(result.IsVisualFallback);
             Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_CELL_FILL_OMITTED");
             result.Value.Save(saved); saved.Position = 0;
@@ -245,18 +243,18 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) {
                 Assert.Equal(2, result.Value.Tables[0].Rows[0].Cells[0].ColumnSpan);
                 Assert.Equal("42", result.Value.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             }
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToExcelResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) Assert.Equal("A1:B1", Assert.Single(result.Value.Sheets[0].GetMergedRanges()).A1Range);
         } else {
-            using var result = source.ToPowerPointDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) Assert.Equal((1, 2), Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).Merge);
         }

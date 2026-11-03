@@ -22,8 +22,7 @@ public sealed class IWorkPagesParagraphWritingTests {
         Assert.True(projection.Body.Paragraphs[5].Runs[0].Style.Bold);
         Assert.False(projection.Body.Paragraphs[5].Runs[1].Style.Bold);
         Assert.Equal(12, projection.Body.Paragraphs[5].Runs[1].Style.FontSizePoints);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -67,8 +66,7 @@ public sealed class IWorkPagesParagraphWritingTests {
         Assert.Empty(paragraphs[1].Style.TabStops!);
         Assert.Equal(2, paragraphs[2].Style.LineSpacingMultiplier); Assert.Equal(12, paragraphs[2].Style.SpaceBeforePoints);
         Assert.Equal(18, paragraphs[2].Style.SpaceAfterPoints); Assert.Equal("", paragraphs[2].Text);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);

@@ -97,7 +97,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             AssertListDeclaration(Assert.Single(result.Report.SourceDeclarationIssues), "16", 2);
             result.Value.Save(saved); saved.Position = 0;
@@ -114,7 +114,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(NumberFormatValues.Bullet, level.NumberingFormat!.Val!.Value);
             Assert.Equal("c", level.LevelText!.Val!.Value);
         } else {
-            using var result = source.ToPowerPointDocumentResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             AssertListDeclaration(Assert.Single(result.Report.SourceDeclarationIssues), "16", 2);
             result.Value.Save(saved); saved.Position = 0;
@@ -194,7 +194,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Keynote,
             Message(VarintField(11, 3), BytesField(15, new byte[] { 0 })),
             inherited: false, indent: 0);
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(
             new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         Assert.True(result.Report.IsPartialEditableReconstruction);

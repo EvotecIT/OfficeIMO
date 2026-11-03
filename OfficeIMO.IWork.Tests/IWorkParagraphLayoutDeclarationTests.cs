@@ -17,13 +17,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(text.IsFormattingComplete);
         package.Position = 0;
         if (kind == IWorkDocumentKind.Pages) {
-            using var fallback = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var fallback = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else {
-            using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         }
         package.Position = 0;
@@ -86,8 +86,7 @@ public sealed partial class IWorkBoundaryTests {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-paragraph-layout.json")));
         string path = CorpusFixture(manifest.RootElement.GetProperty("source").GetString()!);
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(), HashFile(path));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         foreach (var style in manifest.RootElement.GetProperty("styles").EnumerateArray()) {
             ulong identifier = style.GetProperty("recordIdentifier").GetUInt64();
             foreach (var declaration in style.GetProperty("declarations").EnumerateArray()) {

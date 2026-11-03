@@ -44,7 +44,7 @@ public sealed class IWorkNumericFormatWritingTests {
         var data = IWorkTableData.Create(3, 1).SetNumber(1, 1, -1234.5, IWorkNumberFormat.CreateNumber(2, true, IWorkNegativeNumberStyle.Parentheses))
             .SetNumber(2, 1, -0.125, IWorkNumberFormat.CreatePercentage(1, negativeStyle: IWorkNegativeNumberStyle.RedAndParentheses))
             .SetNumber(3, 1, 1234.5, IWorkNumberFormat.CreateScientific(4));
-        using var result = IWorkSourceDocument.Open(Save(IWorkDocumentKind.Numbers, data)).ToExcelDocumentResult(
+        using var result = IWorkSourceDocument.Open(Save(IWorkDocumentKind.Numbers, data)).ToExcelResult(
             new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;

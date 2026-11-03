@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Offsets", 1, 1, 42d, trailingEmptyOffsetCount: 100_000)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -92,7 +92,7 @@ public sealed partial class IWorkBoundaryTests {
             ($"Data/{imageName}", ValidPreviewPng()),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;

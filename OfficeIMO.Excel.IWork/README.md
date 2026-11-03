@@ -11,7 +11,7 @@ using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
 IWorkSourceDocument source = IWorkSourceDocument.Open("source.numbers");
-using NumbersToExcelResult result = source.ToExcelDocumentResult(
+using NumbersToExcelResult result = source.ToExcelResult(
     new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
 Console.WriteLine(result.Report.ProjectionKind);
@@ -19,7 +19,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("converted.xlsx");
 ```
 
-`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToExcelDocument` returns a complete editable workbook and rejects partial reconstruction or preview output; `ToExcelDocumentResult` also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `ExcelIWorkConverter.ConvertNumbersToExcel*` provides equivalent path and stream convenience entry points.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToExcel(options, out report)` and `SaveAsExcel` return the workbook with the common `OfficeConversionReport`; `FailOnLoss` rejects reported loss. `ToExcelResult` is the evidence operation: it also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result.
 
 Supported formula functions use qualified native identifiers and argument counts; see the [function subset](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#formula-functions). Nested `OR`, `POWER`, qualified `TEXTJOIN`, `MINA`, `MAXA`, `AVERAGEA`, `OFFSET`, `PROB` and `RANDBETWEEN` retain editable expressions and typed caches. Native Numbers 14.5 exports qualify `OFFSET`, `PROB` and `RANDBETWEEN`. `GCD` and `LCM` calls retain numeric literals and bounded scalar-numeric references within the [qualified fifteen-digit and conservative product bounds](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#formula-functions), including `GCD(B2,C2,D2)` and `LCM($B$2,$C$2:$D$2,1)`. Blank/mixed-type, formula-dependent, whole-axis, coercion and larger-operand cases retain caches with incomplete-expression diagnostics. Local recalculation supports bounded rectangular `OFFSET` range arguments and single-cell results, finite numeric `PROB` vectors, and nonempty integer intersections of finite `RANDBETWEEN` bounds through ±(2^53−1), including qualified fractional bounds. Empty integer intervals retain their source caches because native Numbers and Excel produce different results for these cases. See the shared [Excel calculation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.excel-guide.md#formula-inspection-and-calculation-policy) for limits.
 
@@ -66,20 +66,20 @@ Selected and applicable body/header/footer region top/middle/bottom cell alignme
 Set `NormalizeWorksheetNames = true` to use the Excel owner's rules for invalid, long, or colliding worksheet names. The result's `WorksheetMappings` links each destination name to its one-based source sheet/table position and original name. Each source table still receives its own worksheet; table-local formulas retain their references. Renames produce `IWORK_NUMBERS_WORKSHEET_RENAMED`, an approximation diagnostic. Coordinate-backed single-cell, same-target endpoint ranges and finite rectangular cross-table references bind native table identities to the actual destination worksheet names, including forward references and normalized collision suffixes. Mixed absolute and relative endpoints retain their flags. Table-local and cross-table whole-row/column and header-named axis references map to explicit ranges over the current target table body: header columns are excluded from row references, and header/footer rows are excluded from column references. `IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED` reports fixed extents and lost native named labels or automatic table expansion; `ThrowIfLoss()` rejects it. Other named-reference families remain unqualified. Single cells retain mixed flags and do not introduce the fixed-body approximation; endpoint ranges use one qualifier and require the same target identity. Unresolved identities or ambiguous body metadata retain caches with incomplete expressions; an empty destination body requires fallback.
 
 ```csharp
-using NumbersToExcelResult normalized = source.ToExcelDocumentResult(
+using NumbersToExcelResult normalized = source.ToExcelResult(
     new IWorkConversionOptions { NormalizeWorksheetNames = true });
 foreach (NumbersWorksheetMapping mapping in normalized.WorksheetMappings) {
     Console.WriteLine($"{mapping.SourceSheetIndex}/{mapping.SourceTableIndex}: {mapping.RequestedName} -> {mapping.DestinationName}");
 }
 ```
 
-The path and stream convenience APIs accept cancellation after the options:
+Opening and converting both accept cancellation:
 
 ```csharp
 using var cancellation = new CancellationTokenSource();
-using NumbersToExcelResult cancellable = ExcelIWorkConverter.ConvertNumbersToExcelResult(
-    "source.numbers", readOptions: null, conversionOptions: options,
-    cancellationToken: cancellation.Token);
+IWorkSourceDocument cancellableSource = IWorkSourceDocument.Open(
+    "source.numbers", IWorkDocumentKind.Numbers, null, cancellation.Token);
+using NumbersToExcelResult cancellable = cancellableSource.ToExcelResult(options, cancellation.Token);
 ```
 
 This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; use `cancellable.Source.WithCancellation(newToken)` to reuse the loaded package with a new operation token. This replaces the previous token while sharing source bytes and parsed messages. Saving is a separate destination-owner operation.

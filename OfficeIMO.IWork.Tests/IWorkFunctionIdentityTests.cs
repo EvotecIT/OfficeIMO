@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Functions", 1, 1, 42d, hasFormula: true,
                 formulaPayload: FunctionPayload(index, arguments))
         });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         IWorkTableCell source = Assert.Single(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
         Assert.False(source.FormulaIsComplete);
         Assert.True(source.CachedValueIsComplete);
@@ -45,8 +45,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Native_nested_or_and_power_formulas_keep_their_identities_and_saved_typed_caches() {
         using var manifest = ReadFunctionIdentityManifest();
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser", "cross-table-formulas.numbers");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var reopened = ExcelDocument.Load(output);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("nativeCases").EnumerateArray()) {

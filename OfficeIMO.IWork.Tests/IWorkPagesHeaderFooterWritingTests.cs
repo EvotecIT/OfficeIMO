@@ -18,8 +18,7 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
         Assert.Equal("OfficeIMO — Pages header", Assert.Single(section.DefaultPageHeaderContents).PlainText);
         Assert.Equal("Zażółć café — footer", Assert.Single(section.DefaultPageFooterContents).PlainText);
         Assert.Equal(30, projection.PageLayout!.HeaderMarginPoints); Assert.Equal(36, projection.PageLayout.FooterMarginPoints);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false); Assert.Empty(new OpenXmlValidator().Validate(saved));
@@ -43,7 +42,7 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
         IWorkPagesSection section = Assert.Single(projection.Sections);
         Assert.Equal("OfficeIMO — Native header", Assert.Single(section.DefaultPageHeaderContents).PlainText);
         Assert.Equal("Zażółć café — native footer", Assert.Single(section.DefaultPageFooterContents).PlainText);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source, conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -71,8 +70,7 @@ public sealed class IWorkPagesHeaderFooterWritingTests {
         var document = IWorkPagesDocument.Create(); document.AddParagraph("Body");
         if (header) document.SetHeader(text, distancePoints: 0);
         if (footer) document.SetFooter(text, distancePoints: 0);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(document.SaveBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         IWorkPagesProjection projection = IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes())).ReadPages();
         Assert.Equal(header ? text : "", string.Concat(projection.Sections.Single().SelectedHeaderContents.Select(content => content.PlainText)));

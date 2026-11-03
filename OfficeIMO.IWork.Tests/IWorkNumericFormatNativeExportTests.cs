@@ -59,7 +59,7 @@ public sealed class IWorkNumericFormatNativeExportTests {
         }
         using var output = new MemoryStream();
         if (kind == IWorkDocumentKind.Numbers) {
-            using var converted = source.ToExcelDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly,
+            using var converted = source.ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
             Assert.Contains(converted.Report.Diagnostics, item => item.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
             converted.Value.Save(output); output.Position = 0;
@@ -79,14 +79,14 @@ public sealed class IWorkNumericFormatNativeExportTests {
             output.Position = 0; using var reopened = ExcelDocument.Load(output);
             Assert.Equal(edited ? -9876d : 1234.5, reopened.Sheets[0].Cell(4, 2).GetValue<double>());
         } else if (kind == IWorkDocumentKind.Pages) {
-            using var converted = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var converted = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
             converted.RequireCompleteEditableReconstruction(); converted.Value.Save(output); output.Position = 0;
             using var saved = WordprocessingDocument.Open(output, false); Assert.Empty(new OpenXmlValidator().Validate(saved));
             var rows = saved.MainDocumentPart!.Document!.Body!.Elements<W.Table>().Single().Elements<W.TableRow>().ToArray();
             VerifyText(root, edited, rows.Select(row => row.Elements<W.TableCell>().Last().InnerText).ToArray());
             Assert.Contains(rows[6].Descendants<W.Color>(), color => color.Val?.Value == "FF0000");
         } else {
-            using var converted = source.ToPowerPointDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var converted = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
             converted.RequireCompleteEditableReconstruction(); converted.Value.Save(output); output.Position = 0;
             using var saved = PresentationDocument.Open(output, false); Assert.Empty(new OpenXmlValidator().Validate(saved));
             var rows = saved.PresentationPart!.SlideParts.Single().Slide!.Descendants<A.Table>().Single().Elements<A.TableRow>().ToArray();

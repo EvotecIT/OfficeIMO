@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(manifest.RootElement.GetProperty("source").GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
         IWorkSourceDocument source = IWorkSourceDocument.Open(path);
-        using var result = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable[] tables = result.Projection.Sheets.SelectMany(sheet => sheet.Tables).ToArray();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_hidden_rows_and_columns_keep_populated_cells_and_reader_content() {
         using MemoryStream package = MappedHiddenPackage(IWorkDocumentKind.Numbers);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var result = source.ToExcelDocumentResult();
+        using var result = source.ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.False(result.Report.IsPartialEditableReconstruction);
         IWorkTable table = result.Projection.Sheets[0].Tables[0];
@@ -75,9 +75,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = MappedHiddenPackage(kind);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
         } else {
-            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
         }
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);

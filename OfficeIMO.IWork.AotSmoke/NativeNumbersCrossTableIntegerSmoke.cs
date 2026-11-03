@@ -16,8 +16,7 @@ internal static class NativeNumbersCrossTableIntegerSmoke {
         Require(hash == (changed ? "0DBFFD11551FFF2D830A671F04E0E7FE0F6E071156F50E2E98F2D31C4E1835BD"
             : "5551AAD4E3BA7E2B918681C39282499A6E409FDE7139C268DE32C63367DF68FD"),
             "Native cross-table integer fixture changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var tables = result.Projection.Sheets.SelectMany(sheet => sheet.Tables).ToArray();
         Require(tables.Select(table => table.Name).SequenceEqual(new[] { "Data", "Totals", "Empty" })
             && tables.Sum(table => table.Cells.Count(cell => cell.Kind == IWorkCellKind.Formula && cell.FormulaIsComplete)) == 9,

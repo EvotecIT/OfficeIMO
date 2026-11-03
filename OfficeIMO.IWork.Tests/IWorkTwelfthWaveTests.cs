@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithUnlabeledList(
             nested: true, includePreview: true);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -65,7 +65,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_inline_breaks_keep_run_styling_on_each_segment() {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             bodyText: "First\u2028Second", bold: true);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
@@ -89,8 +89,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithLargeTables(tableCount: 11);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
 
         Assert.Contains("destination cell budget", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -101,8 +100,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithLargeTables(tableCount: 11);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            WordIWorkConverter.ConvertPagesToWordResult(package,
-                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
 
         Assert.Contains("destination cell budget", exception.Message,
             StringComparison.OrdinalIgnoreCase);

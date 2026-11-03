@@ -15,8 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] formula = SingleCellFormula(SingleCellReference(true, true), last, VarintField(1, 29),
             Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, 1)));
         using var package = CrossBindingPackage(formulaPayload: formula);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;

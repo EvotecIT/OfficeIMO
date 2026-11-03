@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, 42d,
             hasFormula: true, formulaPayload: BytesField(1, Message(nodes.ToArray()))) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.Equal("=" + expression, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.Formula);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

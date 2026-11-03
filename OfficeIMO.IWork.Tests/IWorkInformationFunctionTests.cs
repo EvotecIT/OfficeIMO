@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, 1)) }).ToArray());
         using var package = CreateNumbersPackage(new[] { new TableSpec("Information", 1, 1, expected ? 0d : 1d,
             boolean: true, hasFormula: true, formulaPayload: formula) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -48,8 +48,7 @@ public sealed partial class IWorkBoundaryTests {
         int index, string name, bool numberResult, bool textResult, bool blankResult) {
         using var package = CrossBindingPackage(formulaPayload: SingleCellFormula(SingleCellReference(true, true),
             Message(VarintField(1, 16), VarintField(2, (ulong)index), VarintField(3, 1))));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         string target = result.WorksheetMappings[1].DestinationName.Replace("'", "''");
@@ -75,7 +74,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(1, 16), VarintField(2, 25), VarintField(3, 2)));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Text", 1, 1, 0d,
             textValue: "old", hasFormula: true, formulaPayload: formula) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("CONCATENATE(\"A\"\"😀\",\" B\")", reopened.Sheets[0].GetFormulaText(1, 1));

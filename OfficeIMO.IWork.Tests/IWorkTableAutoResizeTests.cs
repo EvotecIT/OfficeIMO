@@ -17,8 +17,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Independent_Pages_sizing_declarations_become_minimum_DOCX_heights() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-table-sizing.json")));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         var expected = manifest.RootElement.GetProperty("tables").EnumerateArray().ToArray();
         Assert.Equal(expected.Length, result.Projection.Tables.Count);
@@ -57,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         Assert.Equal(autoResize, table.AutoResizeRows);
         if (kind != IWorkDocumentKind.Pages) return;
-        using var result = source.ToWordDocumentResult();
+        using var result = source.ToWordResult();
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream();
         result.Value.Save(saved);
@@ -115,7 +114,7 @@ public sealed partial class IWorkBoundaryTests {
             styleRecords: defect == "missing" ? Array.Empty<byte[]>() : new[] { style, TableSizingStyle(31, false) });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             new IWorkReadOptions { MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 });
-        using var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Null(result.Projection.Tables[0].AutoResizeRows);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_SIZING_UNSUPPORTED");

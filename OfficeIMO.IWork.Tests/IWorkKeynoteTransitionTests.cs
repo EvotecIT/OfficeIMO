@@ -13,14 +13,13 @@ public sealed partial class IWorkBoundaryTests {
             VarintField(11, 123), VarintField(16, 0));
         using MemoryStream package = KeynoteWithBuildDeclarations(
             BytesField(4, Message(BytesField(2, Message(BytesField(8, animation))))));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.Equal(fallback, result.IsVisualFallback);
         Assert.Equal(fallback, result.Report.Diagnostics.Any(d => d.Code == "IWORK_KEYNOTE_TRANSITION_UNSUPPORTED"));
         if (fallback) {
             Assert.Equal("4/2/8", Assert.Single(result.Report.SourceDeclarationIssues).FieldPath);
             package.Position = 0;
-            using var partial = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+            using var partial = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                     AllowPartialEditableReconstruction = true });
             Assert.False(partial.IsVisualFallback);
             Assert.Contains(partial.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_TRANSITION_UNSUPPORTED"
@@ -52,7 +51,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_malformed_transition_retains_nested_path() {
         using MemoryStream package = KeynoteWithBuildDeclarations(
             BytesField(4, Message(BytesField(2, Message(BytesField(8, new byte[] { 0x80 }))))));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         IWorkSourceDeclarationIssue issue = Assert.Single(result.Report.SourceDeclarationIssues);
         Assert.Equal("4/2/8", issue.FieldPath);

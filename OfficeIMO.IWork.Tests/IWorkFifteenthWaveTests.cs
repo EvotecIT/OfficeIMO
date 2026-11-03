@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithLargeTables(1,
             rotation: 30f, rows: 1, columns: 1);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.Equal(30d, Assert.Single(Assert.Single(result.Value.Slides).Tables).Rotation);
         using var bytes = new MemoryStream();
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_nested_lists_use_native_word_numbering_and_level() {
         using MemoryStream package = CreatePagesPackageWithResolvedNestedList();
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
 
         WordParagraph paragraph = Assert.Single(result.Value.Paragraphs,
             candidate => candidate.Text == "Item");

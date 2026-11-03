@@ -34,10 +34,8 @@ public sealed class IWorkNumbersWritingTests {
     public void Native_edited_source_retains_all_tables_and_matches_Apple_saved_Excel_typed_values() {
         string path = Fixture("numbers-created-edited-v14.5.numbers");
         VerifyTables(IWorkSourceDocument.Open(path).ReadNumbers(), 20.75);
-        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly }));
-        using var conversion = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
+        using var conversion = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
         Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireCompleteEditableReconstruction());
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;

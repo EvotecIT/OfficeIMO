@@ -11,8 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         foreach (var fixture in manifest.RootElement.GetProperty("fixtures").EnumerateArray()) {
             foreach (var artifact in fixture.GetProperty("artifacts").EnumerateArray())
                 Assert.Equal(artifact.GetProperty("sha256").GetString(), HashFile(CorpusFixture("native-exports/" + artifact.GetProperty("path").GetString())));
-            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" + fixture.GetProperty("source").GetString()),
-                conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/" + fixture.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
             Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_FORMULA_PARTIAL");
             var table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);

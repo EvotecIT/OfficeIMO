@@ -57,7 +57,7 @@ public sealed class IWorkPagesMixedFontListNativeExportTests {
                 Assert.Equal(runs[run].GetProperty("color").GetString(), style.Color!.RgbHex);
             }
         }
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output);
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray()))) {
             Assert.Equal(expected.Select(item => item.GetProperty("number").GetInt32()),

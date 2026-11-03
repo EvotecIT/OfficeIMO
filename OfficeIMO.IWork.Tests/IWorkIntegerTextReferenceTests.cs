@@ -17,9 +17,8 @@ public sealed partial class IWorkBoundaryTests {
             byte[] bytes = File.ReadAllBytes(CorpusFixture("native-exports/" + input.GetProperty("path").GetString()));
             Assert.Equal(input.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
         }
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" +
-            evidence.GetProperty(changed ? "changedSource" : "source").GetString()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/" +
+            evidence.GetProperty(changed ? "changedSource" : "source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_FORMULA_PARTIAL");
         IWorkTable operands = result.Projection.Sheets[0].Tables.Single(), checks = result.Projection.Sheets[1].Tables.Single();
         Assert.Equal(IWorkCellKind.Text, operands.GetCell(4, 2)!.Kind);
@@ -114,8 +113,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("12", true)]
     public void Integer_text_references_require_complete_decoded_rich_text(string nativeText, bool complete) {
         using var package = CreateNumbersWithPartialRichCell(hasFormula: false, richText: nativeText);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         IWorkTable table = result.Projection.Sheets.Single().Tables.Single();
         IWorkTableCell source = table.Cells.Single();
         Assert.Equal("12", source.Value);

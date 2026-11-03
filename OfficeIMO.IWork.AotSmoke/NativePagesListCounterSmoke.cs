@@ -17,8 +17,7 @@ internal static class NativePagesListCounterSmoke {
     private static void Verify(string fixture, string expectedHash) {
         string path = Path.Combine(AppContext.BaseDirectory, fixture);
         Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == expectedHash, "Native list fixture changed.");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         var source = result.Projection.Body.Paragraphs;
         Require(result.Projection.Body.IsFormattingComplete

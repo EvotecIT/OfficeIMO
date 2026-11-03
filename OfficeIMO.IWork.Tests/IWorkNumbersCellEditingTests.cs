@@ -29,8 +29,7 @@ public sealed class IWorkNumbersCellEditingTests {
         Assert.Equal(tables[0].GetCell(2, 2)!.NumberFormat!.DecimalPlaces, data.GetCell(2, 2)!.NumberFormat!.DecimalPlaces);
         Assert.Equal(tables[0].GetPadding(2, 2)!.LeftPoints, data.GetPadding(2, 2)!.LeftPoints);
         Assert.Equal(tables[0].GetPadding(2, 2)!.BottomPoints, data.GetPadding(2, 2)!.BottomPoints);
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(new MemoryStream(result.GetPackageBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(converted.Report.Diagnostics, item => item.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
         using var stream = new MemoryStream(); converted.Value.Save(stream); stream.Position = 0;
         using var reopened = ExcelDocument.Load(stream);

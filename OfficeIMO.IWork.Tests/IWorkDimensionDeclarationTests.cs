@@ -206,9 +206,9 @@ public sealed partial class IWorkBoundaryTests {
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options);
+            using var partial = source.ToWordResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using WordDocument reopened = WordDocument.Load(saved);
@@ -216,9 +216,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(new[] { 200, 200, unknownIndex ? 200 : 600 }, table.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
             Assert.Equal(new[] { 810, 400 }.Select(value => (WordTableWidth?)WordTableWidth.Length(OfficeLength.Emus((long)value * 635))), table.ColumnWidth);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options);
+            using var partial = source.ToExcelResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -234,9 +234,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal((40.5d * 96d / 72d - 5d) / 7d, double.Parse(sheet.Descendants(SpreadsheetNs + "col")
                 .Single().Attribute("width")!.Value, CultureInfo.InvariantCulture), 10);
         } else {
-            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointDocumentResult(options);
+            using var partial = source.ToPowerPointResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             Assert.Equal(!unknownIndex, partial.Report.Diagnostics.Any(issue => issue.Code == "IWORK_KEYNOTE_TABLE_SIZING_SCALED"));
             partial.Value.Save(saved); saved.Position = 0;

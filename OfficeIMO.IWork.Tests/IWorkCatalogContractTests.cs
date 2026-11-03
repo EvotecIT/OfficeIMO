@@ -106,20 +106,20 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         IWorkConversionReport report;
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(options);
+            using var result = source.ToWordResult(options);
             report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved);
             Assert.Equal("42", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(options);
+            using var result = source.ToExcelResult(options);
             report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
             Assert.Null(reopened.Sheets[0].Cell(1, 1).GetValue().Formula);
         } else {
-            using var result = source.ToPowerPointDocumentResult(options);
+            using var result = source.ToPowerPointResult(options);
             report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved);

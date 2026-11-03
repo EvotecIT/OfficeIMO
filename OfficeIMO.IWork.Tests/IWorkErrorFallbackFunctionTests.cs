@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
         nodes.Add(Message(VarintField(1, 16), VarintField(2, 235), VarintField(3, 2)));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Fallback", 1, 1, 42d,
             hasFormula: true, formulaPayload: SingleCellFormula(nodes.ToArray())) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

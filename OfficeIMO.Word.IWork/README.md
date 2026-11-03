@@ -11,7 +11,7 @@ using OfficeIMO.IWork;
 using OfficeIMO.Word.IWork;
 
 IWorkSourceDocument source = IWorkSourceDocument.Open("source.pages");
-using PagesToWordResult result = source.ToWordDocumentResult(
+using PagesToWordResult result = source.ToWordResult(
     new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
 Console.WriteLine(result.Report.ProjectionKind);
@@ -19,7 +19,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("converted.docx");
 ```
 
-`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToWordDocument` returns a complete editable document and rejects partial reconstruction or preview output; `ToWordDocumentResult` also exposes the typed Pages projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `WordIWorkConverter.ConvertPagesToWord*` provides equivalent path and stream convenience entry points.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToWord(options, out report)` and `SaveAsWord` return the document with the common `OfficeConversionReport`; `FailOnLoss` rejects reported loss. `ToWordResult` is the evidence operation: it also exposes the typed Pages projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result.
 
 Qualified body image attachments retain their inline run positions and point-sized frames. Native-saved cached flow positions do not become floating DOCX offsets or require measurement rounding. The [Pages image reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-images-v15.4.json) covers PNG alpha, JPEG, descriptions and a native resize through strict save/reopen. Floating image and preview frames also convert source points to Word’s pixel API. A qualified table attachment occupies its own paragraph and becomes a Word table between the surrounding body paragraphs. The adapter removes an empty, neutral attachment paragraph when no floating object needs it as a page anchor. Consecutive tables retain a paragraph separator so receiving applications keep them distinct. Meaningful paragraph spacing, indentation, alignment and pagination flags retain their host paragraph. Nonzero placement modes, tables mixed with other paragraph content, repeated attachment positions for one drawable, and attachment-run hyperlinks remain unsupported. Other source or destination limits can still require the explicit partial policy.
 
@@ -61,13 +61,13 @@ The [Pages continuation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus
 
 The [counter component references](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/list-counter-mapping-v15.4.json) check child restart at five followed by a parent reset, continuation through ordinary text, and continuation after a marker-font change. Pages 15.4 retains every counter and paragraph in the saved DOCX cases. These synthetic partial-conversion cases qualify counter acceptance only.
 
-The path and stream convenience APIs accept cancellation after the options:
+Opening and converting both accept cancellation:
 
 ```csharp
 using var cancellation = new CancellationTokenSource();
-using PagesToWordResult cancellable = WordIWorkConverter.ConvertPagesToWordResult(
-    "source.pages", readOptions: null, conversionOptions: options,
-    cancellationToken: cancellation.Token);
+IWorkSourceDocument cancellableSource = IWorkSourceDocument.Open(
+    "source.pages", IWorkDocumentKind.Pages, null, cancellation.Token);
+using PagesToWordResult cancellable = cancellableSource.ToWordResult(options, cancellation.Token);
 ```
 
 This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; use `cancellable.Source.WithCancellation(newToken)` to reuse the loaded package with a new operation token. This replaces the previous token while sharing source bytes and parsed messages. Saving is a separate destination-owner operation.

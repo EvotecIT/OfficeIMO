@@ -9,8 +9,7 @@ public sealed class IWorkWholeAxisFormulaCorpusTests {
     public void Independent_whole_axis_references_preserve_source_coordinates_and_saved_table_body_ranges() {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser");
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "whole-axis-formulas.json")));
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(Path.Combine(root, "cross-table-formulas.numbers"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var converted = IWorkSourceDocument.Open(Path.Combine(root, "cross-table-formulas.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(converted.IsVisualFallback);
         IWorkDiagnostic diagnostic = Assert.Single(converted.Report.NativeDiagnostics,
             d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED");
