@@ -9,6 +9,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>Exposes the existing typed cells to native writers without reboxing them.</summary>
+        internal static ExcelCellValueBuffer? GetBufferedTabularCells(IExcelSheetTabularRowSource source)
+            => (source as DirectDataSetTableModel)?.CellValueBuffer;
+
         private sealed partial class DirectDataSetTableModel : IExcelSheetTabularRowSource {
             private const int MaxAutoFitStringWidthCacheEntriesPerColumn = 1024;
             private const long BufferedDictionaryCellLimit = 500_000;

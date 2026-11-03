@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
     /// The snapshot prevents a second read of mutable input during emission and
     /// lets the worksheet stream without retaining its complete BIFF12 payload.
     /// </summary>
-    internal sealed class XlsbDirectTabularPlan : IDisposable {
+    internal sealed partial class XlsbDirectTabularPlan : IDisposable {
         private const int MaximumCellSlots = 1_048_576;
         internal const byte DateKind = 5;
         private readonly int _cellSlots;
@@ -43,24 +43,25 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbSharedStringTable? sharedStrings,
             CancellationToken cancellationToken,
             out XlsbDirectTabularPlan plan) {
+            ExcelCellValueBuffer? bufferedCells = ExcelDocument.GetBufferedTabularCells(source.Rows);
+            return bufferedCells != null && !source.IncludeHeaders && source.PreserveMissingValues
+                ? TryCreateBuffered(dateSystem, sheet, source, bufferedCells, sharedStrings, cancellationToken, out plan)
+                : TryCreateObjectRows(dateSystem, sheet, source, sharedStrings, cancellationToken, out plan);
+        }
+
+        private static bool TryCreateObjectRows(
+            ExcelDateSystem dateSystem,
+            ExcelSheet sheet,
+            ExcelDirectTabularSource source,
+            XlsbSharedStringTable? sharedStrings,
+            CancellationToken cancellationToken,
+            out XlsbDirectTabularPlan plan) {
             IExcelSheetTabularRowSource rows = source.Rows;
             int rowOffset = source.IncludeHeaders ? 1 : 0;
-            int totalRows = checked(rows.RowCount + rowOffset);
-            if (totalRows > 1_048_576 || rows.ColumnCount > 16_384) {
-                throw new NotSupportedException("Native XLSB saving supports 1,048,576 rows and 16,384 columns per worksheet.");
-            }
-            if (!CanCapture(source)) throw new ArgumentOutOfRangeException(nameof(source));
-
-            var candidate = new XlsbDirectTabularPlan(totalRows, rows.ColumnCount, sharedStrings != null);
+            var candidate = CreateCandidate(source, sharedStrings);
             bool captured = false;
             try {
-                if (sharedStrings == null) {
-                    candidate._initialTextCapacity = candidate.EstimateInitialTextCapacity(source, cancellationToken);
-                }
-                if (candidate._cellSlots != 0) {
-                    candidate._kinds = ArrayPool<byte>.Shared.Rent(candidate._cellSlots);
-                    candidate._payloads = ArrayPool<ulong>.Shared.Rent(candidate._cellSlots);
-                }
+                candidate.InitializeStorage(source, sharedStrings, cancellationToken);
                 if (source.IncludeHeaders) {
                     for (int column = 0; column < rows.ColumnCount; column++) {
                         candidate.CaptureText(column, rows.GetColumnName(column), sharedStrings);
@@ -117,6 +118,25 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return true;
             } finally {
                 if (!captured) candidate.Dispose();
+            }
+        }
+
+        private static XlsbDirectTabularPlan CreateCandidate(
+            ExcelDirectTabularSource source, XlsbSharedStringTable? sharedStrings) {
+            int totalRows = checked(source.Rows.RowCount + (source.IncludeHeaders ? 1 : 0));
+            if (totalRows > 1_048_576 || source.Rows.ColumnCount > 16_384) {
+                throw new NotSupportedException("Native XLSB saving supports 1,048,576 rows and 16,384 columns per worksheet.");
+            }
+            if (!CanCapture(source)) throw new ArgumentOutOfRangeException(nameof(source));
+            return new XlsbDirectTabularPlan(totalRows, source.Rows.ColumnCount, sharedStrings != null);
+        }
+
+        private void InitializeStorage(ExcelDirectTabularSource source,
+            XlsbSharedStringTable? sharedStrings, CancellationToken cancellationToken) {
+            if (sharedStrings == null) _initialTextCapacity = EstimateInitialTextCapacity(source, cancellationToken);
+            if (_cellSlots != 0) {
+                _kinds = ArrayPool<byte>.Shared.Rent(_cellSlots);
+                _payloads = ArrayPool<ulong>.Shared.Rent(_cellSlots);
             }
         }
 
