@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Word
                     var image9 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"));
                     image9.Width = OfficeIMO.OfficeLength.Pixels(100);
                     image9.Title = "Chart";
-                    image9.Description = "Quarterly chart";
+                    image9.AltText = "Quarterly chart";
                     document.Save();
                 }
             }

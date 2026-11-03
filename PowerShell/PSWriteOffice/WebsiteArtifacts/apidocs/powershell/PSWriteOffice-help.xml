@@ -37857,7 +37857,7 @@ URI links and bookmark links are supported; a single run cannot target both.</ma
     <command:returnValues>
       <command:returnValue>
         <dev:type>
-          <maml:name>OfficeIMO.PowerPoint.PowerPointPicture</maml:name>
+          <maml:name>OfficeIMO.PowerPoint.PowerPointImage</maml:name>
         </dev:type>
       </command:returnValue>
     </command:returnValues>

@@ -37,7 +37,7 @@ public static partial class OfficeVisualPlacementExtensions {
         if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
-        WordImage image = paragraph.AddImage(stream, ResolveFileName(conversion.Id, conversion.PlacementFileExtension), OfficeIMO.OfficeLength.Pixels(conversion.WidthPoints / PointsPerOfficePixel), OfficeIMO.OfficeLength.Pixels(conversion.HeightPoints / PointsPerOfficePixel), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, Description = conversion.AlternativeText });
+        WordImage image = paragraph.AddImage(stream, ResolveFileName(conversion.Id, conversion.PlacementFileExtension), OfficeIMO.OfficeLength.Pixels(conversion.WidthPoints / PointsPerOfficePixel), OfficeIMO.OfficeLength.Pixels(conversion.HeightPoints / PointsPerOfficePixel), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, AltText = conversion.AlternativeText });
         if (!conversion.IsDecorative) image.Title = ResolveTitle(conversion);
         return image;
     }
@@ -81,7 +81,7 @@ public static partial class OfficeVisualPlacementExtensions {
     }
 
     /// <summary>Renders and inserts a ChartForgeX artifact on a PowerPoint slide, returning its conversion and fidelity report.</summary>
-    public static PowerPointPicture AddVisualArtifact(
+    public static PowerPointImage AddVisualArtifact(
         this PowerPointSlide slide,
         VisualArtifact artifact,
         double leftPoints,
@@ -93,7 +93,7 @@ public static partial class OfficeVisualPlacementExtensions {
     }
 
     /// <summary>Inserts a converted ChartForgeX artifact using its selected SVG or PNG payload on a PowerPoint slide.</summary>
-    public static PowerPointPicture AddVisualArtifact(
+    public static PowerPointImage AddVisualArtifact(
         this PowerPointSlide slide,
         OfficeVisualConversionResult conversion,
         double leftPoints = 0D,
@@ -103,7 +103,7 @@ public static partial class OfficeVisualPlacementExtensions {
         ValidateFinite(leftPoints, nameof(leftPoints));
         ValidateFinite(topPoints, nameof(topPoints));
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
-        PowerPointPicture picture = slide.AddImage(
+        PowerPointImage picture = slide.AddImage(
             stream,
             conversion.PlacementFormat == OfficeVisualMediaFormat.Svg ? OfficeImageFormat.Svg : OfficeImageFormat.Png,
             global::OfficeIMO.OfficeLength.Points(leftPoints),
@@ -114,7 +114,7 @@ public static partial class OfficeVisualPlacementExtensions {
             picture.Decorative = true;
         } else {
             picture.Title = ResolveTitle(conversion);
-            picture.Description = conversion.AlternativeText;
+            picture.AltText = conversion.AlternativeText;
         }
         return picture;
     }

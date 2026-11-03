@@ -50,7 +50,7 @@ public sealed class WordImageWorkflowTests {
             Assert.Equal(OfficeLength.Points(48), placed.Width);
             Assert.Equal(OfficeLength.Centimeters(1), placed.Height);
             Assert.Equal("Edited", placed.Title);
-            Assert.Equal("Service availability", placed.Description);
+            Assert.Equal("Service availability", placed.AltText);
             Assert.Equal("Original", visual.Title);
             Assert.Equal("Original description", visual.AlternativeText);
             Assert.Equal(payload, visual.GetPlacementBytes());

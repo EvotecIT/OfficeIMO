@@ -193,9 +193,9 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the image's description.
+        /// Gets or sets the image's alternative text.
         /// </summary>
-        public string? Description {
+        public string? AltText {
             get => _vmlShape != null ? _vmlShape.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "alt").Value : GetDocProperties()?.Description;
             set {
                 if (_vmlShape != null) {

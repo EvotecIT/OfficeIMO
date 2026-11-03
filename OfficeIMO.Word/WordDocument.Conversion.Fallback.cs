@@ -154,7 +154,7 @@ public partial class WordDocument {
                 $"compatibility-page-{index + 1:D4}.png",
                 OfficeLength.Points(page.Width),
                 OfficeLength.Points(page.Height),
-                new WordImageOptions { Description = $"Static visual compatibility fallback page {index + 1}" });
+                new WordImageOptions { AltText = $"Static visual compatibility fallback page {index + 1}" });
             if (index + 1 < plan.Pages.Count) fallback.AddPageBreak();
         }
 

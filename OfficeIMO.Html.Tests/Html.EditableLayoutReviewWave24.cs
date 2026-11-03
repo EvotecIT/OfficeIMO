@@ -146,7 +146,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
 
         Assert.Empty(document.TextBoxes);
         WordImage image = Assert.Single(document.Images);
-        Assert.Equal("Remote region", image.Description);
+        Assert.Equal("Remote region", image.AltText);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "unrenderedRegionImage=true; semanticFlow=true");

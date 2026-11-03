@@ -378,7 +378,7 @@ public static partial class PdfPowerPointConverterExtensions {
                     bounds = bounds.SwapDimensionsAroundCenter();
                 }
                 using var stream = new MemoryStream(image.SourceImage.Bytes, writable: false);
-                PptCore.PowerPointPicture picture = slide.AddImage(
+                PptCore.PowerPointImage picture = slide.AddImage(
                     stream,
                     format,
                     OfficeIMO.OfficeLength.Points(bounds.Left),

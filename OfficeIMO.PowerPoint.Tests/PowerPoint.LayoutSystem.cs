@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create();
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddImage(portrait, OfficeLength.Points(100), OfficeLength.Points(100), OfficeLength.Points(300), OfficeLength.Points(200));
+                PowerPointImage picture = slide.AddImage(portrait, OfficeLength.Points(100), OfficeLength.Points(100), OfficeLength.Points(300), OfficeLength.Points(200));
                 Assert.Equal(0.7, picture.Width.ToPoints() / picture.Height.ToPoints(), 2);
                 Assert.Equal(200, (picture.Height).ToPoints(), 1);
                 Assert.Equal(100 + (300 - 140) / 2D, (picture.Left).ToPoints(), 1);

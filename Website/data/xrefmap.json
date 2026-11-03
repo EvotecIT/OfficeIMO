@@ -408854,453 +408854,453 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.BringToFront",
-      "name": "PowerPointPicture.BringToFront",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.BringToFront",
+      "name": "PowerPointImage.BringToFront",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-bringtofront",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.BringToFront",
-        "OfficeIMO.PowerPoint.PowerPointPicture.BringToFront"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.BringToFront",
+        "OfficeIMO.PowerPoint.PowerPointImage.BringToFront"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ClearBlur",
-      "name": "PowerPointPicture.ClearBlur",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ClearBlur",
+      "name": "PowerPointImage.ClearBlur",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-clearblur",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClearBlur",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClearBlur"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClearBlur",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClearBlur"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ClearClickSound",
-      "name": "PowerPointPicture.ClearClickSound",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ClearClickSound",
+      "name": "PowerPointImage.ClearClickSound",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-clearclicksound",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClearClickSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClearClickSound"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClearClickSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClearClickSound"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ClearGlow",
-      "name": "PowerPointPicture.ClearGlow",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ClearGlow",
+      "name": "PowerPointImage.ClearGlow",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-clearglow",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClearGlow",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClearGlow"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClearGlow",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClearGlow"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ClearHyperlink",
-      "name": "PowerPointPicture.ClearHyperlink",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ClearHyperlink",
+      "name": "PowerPointImage.ClearHyperlink",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-clearhyperlink",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClearHyperlink",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClearHyperlink"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClearHyperlink",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClearHyperlink"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ClearMouseOverSound",
-      "name": "PowerPointPicture.ClearMouseOverSound",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ClearMouseOverSound",
+      "name": "PowerPointImage.ClearMouseOverSound",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-clearmouseoversound",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClearMouseOverSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClearMouseOverSound"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClearMouseOverSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClearMouseOverSound"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ClearReflection",
-      "name": "PowerPointPicture.ClearReflection",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ClearReflection",
+      "name": "PowerPointImage.ClearReflection",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-clearreflection",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClearReflection",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClearReflection"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClearReflection",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClearReflection"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ClearShadow",
-      "name": "PowerPointPicture.ClearShadow",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ClearShadow",
+      "name": "PowerPointImage.ClearShadow",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-clearshadow",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClearShadow",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClearShadow"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClearShadow",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClearShadow"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ClearSoftEdges",
-      "name": "PowerPointPicture.ClearSoftEdges",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ClearSoftEdges",
+      "name": "PowerPointImage.ClearSoftEdges",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-clearsoftedges",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClearSoftEdges",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClearSoftEdges"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClearSoftEdges",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClearSoftEdges"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.Crop(System.Double,System.Double,System.Double,System.Double)",
-      "name": "PowerPointPicture.Crop",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.Crop(System.Double,System.Double,System.Double,System.Double)",
+      "name": "PowerPointImage.Crop",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-crop-double-double-double-double",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Crop",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Crop",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Crop(System.Double,System.Double,System.Double,System.Double)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Crop",
+        "OfficeIMO.PowerPoint.PowerPointImage.Crop",
+        "OfficeIMO.PowerPoint.PowerPointImage.Crop(System.Double,System.Double,System.Double,System.Double)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.Duplicate(OfficeLength,OfficeLength)",
-      "name": "PowerPointPicture.Duplicate",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.Duplicate(OfficeLength,OfficeLength)",
+      "name": "PowerPointImage.Duplicate",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-duplicate-officelength-officelength",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Duplicate",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Duplicate",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Duplicate(OfficeLength,OfficeLength)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Duplicate",
+        "OfficeIMO.PowerPoint.PowerPointImage.Duplicate",
+        "OfficeIMO.PowerPoint.PowerPointImage.Duplicate(OfficeLength,OfficeLength)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.Equals(System.Object)",
-      "name": "PowerPointPicture.Equals",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.Equals(System.Object)",
+      "name": "PowerPointImage.Equals",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-equals-object",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Equals",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Equals",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Equals(System.Object)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Equals",
+        "OfficeIMO.PowerPoint.PowerPointImage.Equals",
+        "OfficeIMO.PowerPoint.PowerPointImage.Equals(System.Object)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.FitToBox",
-      "name": "PowerPointPicture.FitToBox",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.FitToBox",
+      "name": "PowerPointImage.FitToBox",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-fittobox",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.FitToBox",
-        "OfficeIMO.PowerPoint.PowerPointPicture.FitToBox"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.FitToBox",
+        "OfficeIMO.PowerPoint.PowerPointImage.FitToBox"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(System.Boolean)",
-      "name": "PowerPointPicture.FitToBox",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.FitToBox(System.Boolean)",
+      "name": "PowerPointImage.FitToBox",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-fittobox-boolean",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.FitToBox",
-        "OfficeIMO.PowerPoint.PowerPointPicture.FitToBox",
-        "OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(System.Boolean)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.FitToBox",
+        "OfficeIMO.PowerPoint.PowerPointImage.FitToBox",
+        "OfficeIMO.PowerPoint.PowerPointImage.FitToBox(System.Boolean)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(System.Double,System.Double,System.Boolean)",
-      "name": "PowerPointPicture.FitToBox",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.FitToBox(System.Double,System.Double,System.Boolean)",
+      "name": "PowerPointImage.FitToBox",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-fittobox-double-double-boolean",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.FitToBox",
-        "OfficeIMO.PowerPoint.PowerPointPicture.FitToBox",
-        "OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(System.Double,System.Double,System.Boolean)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.FitToBox",
+        "OfficeIMO.PowerPoint.PowerPointImage.FitToBox",
+        "OfficeIMO.PowerPoint.PowerPointImage.FitToBox(System.Double,System.Double,System.Boolean)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.GetClickSoundBytes",
-      "name": "PowerPointPicture.GetClickSoundBytes",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.GetClickSoundBytes",
+      "name": "PowerPointImage.GetClickSoundBytes",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-getclicksoundbytes",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.GetClickSoundBytes",
-        "OfficeIMO.PowerPoint.PowerPointPicture.GetClickSoundBytes"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.GetClickSoundBytes",
+        "OfficeIMO.PowerPoint.PowerPointImage.GetClickSoundBytes"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.GetHashCode",
-      "name": "PowerPointPicture.GetHashCode",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.GetHashCode",
+      "name": "PowerPointImage.GetHashCode",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-gethashcode",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.GetHashCode",
-        "OfficeIMO.PowerPoint.PowerPointPicture.GetHashCode"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.GetHashCode",
+        "OfficeIMO.PowerPoint.PowerPointImage.GetHashCode"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.GetImageBytes",
-      "name": "PowerPointPicture.GetImageBytes",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.GetImageBytes",
+      "name": "PowerPointImage.GetImageBytes",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-getimagebytes",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.GetImageBytes",
-        "OfficeIMO.PowerPoint.PowerPointPicture.GetImageBytes"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.GetImageBytes",
+        "OfficeIMO.PowerPoint.PowerPointImage.GetImageBytes"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.GetMouseOverSoundBytes",
-      "name": "PowerPointPicture.GetMouseOverSoundBytes",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.GetMouseOverSoundBytes",
+      "name": "PowerPointImage.GetMouseOverSoundBytes",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-getmouseoversoundbytes",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.GetMouseOverSoundBytes",
-        "OfficeIMO.PowerPoint.PowerPointPicture.GetMouseOverSoundBytes"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.GetMouseOverSoundBytes",
+        "OfficeIMO.PowerPoint.PowerPointImage.GetMouseOverSoundBytes"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.GetType",
-      "name": "PowerPointPicture.GetType",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.GetType",
+      "name": "PowerPointImage.GetType",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-gettype",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.GetType",
-        "OfficeIMO.PowerPoint.PowerPointPicture.GetType"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.GetType",
+        "OfficeIMO.PowerPoint.PowerPointImage.GetType"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.MoveBy(OfficeLength,OfficeLength)",
-      "name": "PowerPointPicture.MoveBy",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.MoveBy(OfficeLength,OfficeLength)",
+      "name": "PowerPointImage.MoveBy",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-moveby-officelength-officelength",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.MoveBy",
-        "OfficeIMO.PowerPoint.PowerPointPicture.MoveBy",
-        "OfficeIMO.PowerPoint.PowerPointPicture.MoveBy(OfficeLength,OfficeLength)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.MoveBy",
+        "OfficeIMO.PowerPoint.PowerPointImage.MoveBy",
+        "OfficeIMO.PowerPoint.PowerPointImage.MoveBy(OfficeLength,OfficeLength)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.MoveToReadingOrder(System.Int32)",
-      "name": "PowerPointPicture.MoveToReadingOrder",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.MoveToReadingOrder(System.Int32)",
+      "name": "PowerPointImage.MoveToReadingOrder",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-movetoreadingorder-int32",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.MoveToReadingOrder",
-        "OfficeIMO.PowerPoint.PowerPointPicture.MoveToReadingOrder",
-        "OfficeIMO.PowerPoint.PowerPointPicture.MoveToReadingOrder(System.Int32)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.MoveToReadingOrder",
+        "OfficeIMO.PowerPoint.PowerPointImage.MoveToReadingOrder",
+        "OfficeIMO.PowerPoint.PowerPointImage.MoveToReadingOrder(System.Int32)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.Remove",
-      "name": "PowerPointPicture.Remove",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.Remove",
+      "name": "PowerPointImage.Remove",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-remove",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Remove",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Remove"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Remove",
+        "OfficeIMO.PowerPoint.PowerPointImage.Remove"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ResetClassicEffects",
-      "name": "PowerPointPicture.ResetClassicEffects",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ResetClassicEffects",
+      "name": "PowerPointImage.ResetClassicEffects",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-resetclassiceffects",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ResetClassicEffects",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ResetClassicEffects"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ResetClassicEffects",
+        "OfficeIMO.PowerPoint.PowerPointImage.ResetClassicEffects"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ResetCrop",
-      "name": "PowerPointPicture.ResetCrop",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ResetCrop",
+      "name": "PowerPointImage.ResetCrop",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-resetcrop",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ResetCrop",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ResetCrop"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ResetCrop",
+        "OfficeIMO.PowerPoint.PowerPointImage.ResetCrop"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.Resize(OfficeLength,OfficeLength,PowerPointShapeAnchor)",
-      "name": "PowerPointPicture.Resize",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.Resize(OfficeLength,OfficeLength,PowerPointShapeAnchor)",
+      "name": "PowerPointImage.Resize",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-resize-officelength-officelength-powerpointshapeanchor",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Resize",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Resize",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Resize(OfficeLength,OfficeLength,PowerPointShapeAnchor)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Resize",
+        "OfficeIMO.PowerPoint.PowerPointImage.Resize",
+        "OfficeIMO.PowerPoint.PowerPointImage.Resize(OfficeLength,OfficeLength,PowerPointShapeAnchor)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.Scale(System.Double,PowerPointShapeAnchor)",
-      "name": "PowerPointPicture.Scale",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.Scale(System.Double,PowerPointShapeAnchor)",
+      "name": "PowerPointImage.Scale",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-scale-double-powerpointshapeanchor",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Scale",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Scale",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Scale(System.Double,PowerPointShapeAnchor)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Scale",
+        "OfficeIMO.PowerPoint.PowerPointImage.Scale",
+        "OfficeIMO.PowerPoint.PowerPointImage.Scale(System.Double,PowerPointShapeAnchor)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.Scale(System.Double,System.Double,PowerPointShapeAnchor)",
-      "name": "PowerPointPicture.Scale",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.Scale(System.Double,System.Double,PowerPointShapeAnchor)",
+      "name": "PowerPointImage.Scale",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-scale-double-double-powerpointshapeanchor",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Scale",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Scale",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Scale(System.Double,System.Double,PowerPointShapeAnchor)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Scale",
+        "OfficeIMO.PowerPoint.PowerPointImage.Scale",
+        "OfficeIMO.PowerPoint.PowerPointImage.Scale(System.Double,System.Double,PowerPointShapeAnchor)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SendToBack",
-      "name": "PowerPointPicture.SendToBack",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SendToBack",
+      "name": "PowerPointImage.SendToBack",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-sendtoback",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SendToBack",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SendToBack"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SendToBack",
+        "OfficeIMO.PowerPoint.PowerPointImage.SendToBack"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetBlur(OfficeLength,System.Boolean)",
-      "name": "PowerPointPicture.SetBlur",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetBlur(OfficeLength,System.Boolean)",
+      "name": "PowerPointImage.SetBlur",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setblur-officelength-boolean",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetBlur",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetBlur",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetBlur(OfficeLength,System.Boolean)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetBlur",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetBlur",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetBlur(OfficeLength,System.Boolean)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetClickSound(Stream,System.String,System.String,System.String)",
-      "name": "PowerPointPicture.SetClickSound",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetClickSound(Stream,System.String,System.String,System.String)",
+      "name": "PowerPointImage.SetClickSound",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setclicksound-stream-string-string-string",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetClickSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetClickSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetClickSound(Stream,System.String,System.String,System.String)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetClickSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetClickSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetClickSound(Stream,System.String,System.String,System.String)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetClickStopsSound(System.Boolean)",
-      "name": "PowerPointPicture.SetClickStopsSound",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetClickStopsSound(System.Boolean)",
+      "name": "PowerPointImage.SetClickStopsSound",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setclickstopssound-boolean",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetClickStopsSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetClickStopsSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetClickStopsSound(System.Boolean)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetClickStopsSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetClickStopsSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetClickStopsSound(System.Boolean)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetGlow(System.String,Nullable{OfficeLength},System.Int32)",
-      "name": "PowerPointPicture.SetGlow",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetGlow(System.String,Nullable{OfficeLength},System.Int32)",
+      "name": "PowerPointImage.SetGlow",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setglow-string-nullable-officelength-int32",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetGlow",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetGlow",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetGlow(System.String,Nullable{OfficeLength},System.Int32)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetGlow",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetGlow",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetGlow(System.String,Nullable{OfficeLength},System.Int32)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetHyperlink(PowerPointSlide,System.String)",
-      "name": "PowerPointPicture.SetHyperlink",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetHyperlink(PowerPointSlide,System.String)",
+      "name": "PowerPointImage.SetHyperlink",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-sethyperlink-powerpointslide-string",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetHyperlink",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetHyperlink",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetHyperlink(PowerPointSlide,System.String)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetHyperlink",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetHyperlink",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetHyperlink(PowerPointSlide,System.String)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetHyperlink(Uri,System.String)",
-      "name": "PowerPointPicture.SetHyperlink",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetHyperlink(Uri,System.String)",
+      "name": "PowerPointImage.SetHyperlink",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-sethyperlink-uri-string",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetHyperlink",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetHyperlink",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetHyperlink(Uri,System.String)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetHyperlink",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetHyperlink",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetHyperlink(Uri,System.String)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetLanguage(System.String)",
-      "name": "PowerPointPicture.SetLanguage",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetLanguage(System.String)",
+      "name": "PowerPointImage.SetLanguage",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setlanguage-string",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetLanguage",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetLanguage",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetLanguage(System.String)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetLanguage",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetLanguage",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetLanguage(System.String)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetLineEnds(Nullable{OfficeLineMarkerKind},Nullable{OfficeLineMarkerKind},Nullable{PowerPointLineEndWidth},Nullable{PowerPointLineEndLength})",
-      "name": "PowerPointPicture.SetLineEnds",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetLineEnds(Nullable{OfficeLineMarkerKind},Nullable{OfficeLineMarkerKind},Nullable{PowerPointLineEndWidth},Nullable{PowerPointLineEndLength})",
+      "name": "PowerPointImage.SetLineEnds",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setlineends-nullable-officelinemarkerkind-nullable-officelinemarkerkind-nullable-powerpointlineendwidth-nullable-powerpointlineendlength",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetLineEnds",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetLineEnds",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetLineEnds(Nullable{OfficeLineMarkerKind},Nullable{OfficeLineMarkerKind},Nullable{PowerPointLineEndWidth},Nullable{PowerPointLineEndLength})"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetLineEnds",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetLineEnds",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetLineEnds(Nullable{OfficeLineMarkerKind},Nullable{OfficeLineMarkerKind},Nullable{PowerPointLineEndWidth},Nullable{PowerPointLineEndLength})"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetMouseOverSound(Stream,System.String,System.String,System.String)",
-      "name": "PowerPointPicture.SetMouseOverSound",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetMouseOverSound(Stream,System.String,System.String,System.String)",
+      "name": "PowerPointImage.SetMouseOverSound",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setmouseoversound-stream-string-string-string",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetMouseOverSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetMouseOverSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetMouseOverSound(Stream,System.String,System.String,System.String)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetMouseOverSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetMouseOverSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetMouseOverSound(Stream,System.String,System.String,System.String)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetMouseOverStopsSound(System.Boolean)",
-      "name": "PowerPointPicture.SetMouseOverStopsSound",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetMouseOverStopsSound(System.Boolean)",
+      "name": "PowerPointImage.SetMouseOverStopsSound",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setmouseoverstopssound-boolean",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetMouseOverStopsSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetMouseOverStopsSound",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetMouseOverStopsSound(System.Boolean)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetMouseOverStopsSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetMouseOverStopsSound",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetMouseOverStopsSound(System.Boolean)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetPosition(OfficeLength,OfficeLength)",
-      "name": "PowerPointPicture.SetPosition",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetPosition(OfficeLength,OfficeLength)",
+      "name": "PowerPointImage.SetPosition",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setposition-officelength-officelength",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetPosition",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetPosition",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetPosition(OfficeLength,OfficeLength)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetPosition",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetPosition",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetPosition(OfficeLength,OfficeLength)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetReflection(Nullable{OfficeLength},Nullable{OfficeLength},System.Double,System.Double,System.Int32,System.Int32,System.Int32,System.Int32,Nullable{PowerPointRectangleAlignment},System.Boolean)",
-      "name": "PowerPointPicture.SetReflection",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetReflection(Nullable{OfficeLength},Nullable{OfficeLength},System.Double,System.Double,System.Int32,System.Int32,System.Int32,System.Int32,Nullable{PowerPointRectangleAlignment},System.Boolean)",
+      "name": "PowerPointImage.SetReflection",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setreflection-nullable-officelength-nullable-officelength-double-double-int32-int32-int32-int32-nullable-powerpointrectanglealignment-boolean",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetReflection",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetReflection",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetReflection(Nullable{OfficeLength},Nullable{OfficeLength},System.Double,System.Double,System.Int32,System.Int32,System.Int32,System.Int32,Nullable{PowerPointRectangleAlignment},System.Boolean)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetReflection",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetReflection",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetReflection(Nullable{OfficeLength},Nullable{OfficeLength},System.Double,System.Double,System.Int32,System.Int32,System.Int32,System.Int32,Nullable{PowerPointRectangleAlignment},System.Boolean)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetShadow(System.String,Nullable{OfficeLength},Nullable{OfficeLength},System.Double,System.Int32,System.Boolean)",
-      "name": "PowerPointPicture.SetShadow",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetShadow(System.String,Nullable{OfficeLength},Nullable{OfficeLength},System.Double,System.Int32,System.Boolean)",
+      "name": "PowerPointImage.SetShadow",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setshadow-string-nullable-officelength-nullable-officelength-double-int32-boolean",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetShadow",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetShadow",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetShadow(System.String,Nullable{OfficeLength},Nullable{OfficeLength},System.Double,System.Int32,System.Boolean)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetShadow",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetShadow",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetShadow(System.String,Nullable{OfficeLength},Nullable{OfficeLength},System.Double,System.Int32,System.Boolean)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetSize(OfficeLength,OfficeLength)",
-      "name": "PowerPointPicture.SetSize",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetSize(OfficeLength,OfficeLength)",
+      "name": "PowerPointImage.SetSize",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setsize-officelength-officelength",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetSize",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetSize",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetSize(OfficeLength,OfficeLength)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetSize",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetSize",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetSize(OfficeLength,OfficeLength)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.SetSoftEdges(OfficeLength)",
-      "name": "PowerPointPicture.SetSoftEdges",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.SetSoftEdges(OfficeLength)",
+      "name": "PowerPointImage.SetSoftEdges",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-setsoftedges-officelength",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.SetSoftEdges",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetSoftEdges",
-        "OfficeIMO.PowerPoint.PowerPointPicture.SetSoftEdges(OfficeLength)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.SetSoftEdges",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetSoftEdges",
+        "OfficeIMO.PowerPoint.PowerPointImage.SetSoftEdges(OfficeLength)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.ToString",
-      "name": "PowerPointPicture.ToString",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.ToString",
+      "name": "PowerPointImage.ToString",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-tostring",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ToString",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ToString"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ToString",
+        "OfficeIMO.PowerPoint.PowerPointImage.ToString"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(System.IO.Stream,OfficeIMO.Drawing.OfficeImageFormat)",
-      "name": "PowerPointPicture.UpdateImage",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.UpdateImage(System.IO.Stream,OfficeIMO.Drawing.OfficeImageFormat)",
+      "name": "PowerPointImage.UpdateImage",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-updateimage-io-stream-officeimo-drawing-officeimageformat",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage",
-        "OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage",
-        "OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(System.IO.Stream,OfficeIMO.Drawing.OfficeImageFormat)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.UpdateImage",
+        "OfficeIMO.PowerPoint.PowerPointImage.UpdateImage",
+        "OfficeIMO.PowerPoint.PowerPointImage.UpdateImage(System.IO.Stream,OfficeIMO.Drawing.OfficeImageFormat)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(System.String)",
-      "name": "PowerPointPicture.UpdateImage",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointImage.UpdateImage(System.String)",
+      "name": "PowerPointImage.UpdateImage",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#method-updateimage-string",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage",
-        "OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage",
-        "OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(System.String)"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.UpdateImage",
+        "OfficeIMO.PowerPoint.PowerPointImage.UpdateImage",
+        "OfficeIMO.PowerPoint.PowerPointImage.UpdateImage(System.String)"
       ]
     },
     {
@@ -413410,13 +413410,13 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(OfficeIMO.PowerPoint.PowerPointGroupShape)",
-      "name": "PowerPointSlide.GetGroupPictures",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(OfficeIMO.PowerPoint.PowerPointGroupShape)",
+      "name": "PowerPointSlide.GetGroupImages",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointslide/#method-getgrouppictures-officeimo-powerpoint-powerpointgroupshape",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures",
-        "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures",
-        "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(OfficeIMO.PowerPoint.PowerPointGroupShape)"
+        "global::OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages",
+        "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages",
+        "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(OfficeIMO.PowerPoint.PowerPointGroupShape)"
       ]
     },
     {
@@ -413497,13 +413497,13 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(System.String)",
+      "uid": "M:OfficeIMO.PowerPoint.PowerPointSlide.GetImage(System.String)",
       "name": "PowerPointSlide.GetPicture",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointslide/#method-getpicture-string",
       "aliases": [
         "global::OfficeIMO.PowerPoint.PowerPointSlide.GetPicture",
         "OfficeIMO.PowerPoint.PowerPointSlide.GetPicture",
-        "OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(System.String)"
+        "OfficeIMO.PowerPoint.PowerPointSlide.GetImage(System.String)"
       ]
     },
     {
@@ -590599,13 +590599,13 @@
       ]
     },
     {
-      "uid": "OfficeIMO.PowerPoint.PowerPointPicture",
-      "name": "PowerPointPicture",
+      "uid": "OfficeIMO.PowerPoint.PowerPointImage",
+      "name": "PowerPointImage",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture",
-        "PowerPointPicture",
-        "T:OfficeIMO.PowerPoint.PowerPointPicture"
+        "global::OfficeIMO.PowerPoint.PowerPointImage",
+        "PowerPointImage",
+        "T:OfficeIMO.PowerPoint.PowerPointImage"
       ]
     },
     {
@@ -810927,444 +810927,444 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.AltText",
-      "name": "PowerPointPicture.AltText",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.AltText",
+      "name": "PowerPointImage.AltText",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-alttext",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.AltText",
-        "OfficeIMO.PowerPoint.PowerPointPicture.AltText"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.AltText",
+        "OfficeIMO.PowerPoint.PowerPointImage.AltText"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.BlackWhiteThreshold",
-      "name": "PowerPointPicture.BlackWhiteThreshold",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold",
+      "name": "PowerPointImage.BlackWhiteThreshold",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-blackwhitethreshold",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.BlackWhiteThreshold",
-        "OfficeIMO.PowerPoint.PowerPointPicture.BlackWhiteThreshold"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold",
+        "OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Bottom",
-      "name": "PowerPointPicture.Bottom",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Bottom",
+      "name": "PowerPointImage.Bottom",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-bottom",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Bottom",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Bottom"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Bottom",
+        "OfficeIMO.PowerPoint.PowerPointImage.Bottom"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Bounds",
-      "name": "PowerPointPicture.Bounds",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Bounds",
+      "name": "PowerPointImage.Bounds",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-bounds",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Bounds",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Bounds"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Bounds",
+        "OfficeIMO.PowerPoint.PowerPointImage.Bounds"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.CenterX",
-      "name": "PowerPointPicture.CenterX",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.CenterX",
+      "name": "PowerPointImage.CenterX",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-centerx",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.CenterX",
-        "OfficeIMO.PowerPoint.PowerPointPicture.CenterX"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.CenterX",
+        "OfficeIMO.PowerPoint.PowerPointImage.CenterX"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.CenterY",
-      "name": "PowerPointPicture.CenterY",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.CenterY",
+      "name": "PowerPointImage.CenterY",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-centery",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.CenterY",
-        "OfficeIMO.PowerPoint.PowerPointPicture.CenterY"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.CenterY",
+        "OfficeIMO.PowerPoint.PowerPointImage.CenterY"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.ClickSoundName",
-      "name": "PowerPointPicture.ClickSoundName",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.ClickSoundName",
+      "name": "PowerPointImage.ClickSoundName",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-clicksoundname",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ClickSoundName",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ClickSoundName"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ClickSoundName",
+        "OfficeIMO.PowerPoint.PowerPointImage.ClickSoundName"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.ContentType",
-      "name": "PowerPointPicture.ContentType",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.ContentType",
+      "name": "PowerPointImage.ContentType",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-contenttype",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ContentType",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ContentType"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ContentType",
+        "OfficeIMO.PowerPoint.PowerPointImage.ContentType"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.CropBottomRatio",
-      "name": "PowerPointPicture.CropBottomRatio",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.CropBottomRatio",
+      "name": "PowerPointImage.CropBottomRatio",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-cropbottomratio",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.CropBottomRatio",
-        "OfficeIMO.PowerPoint.PowerPointPicture.CropBottomRatio"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.CropBottomRatio",
+        "OfficeIMO.PowerPoint.PowerPointImage.CropBottomRatio"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.CropLeftRatio",
-      "name": "PowerPointPicture.CropLeftRatio",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.CropLeftRatio",
+      "name": "PowerPointImage.CropLeftRatio",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-cropleftratio",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.CropLeftRatio",
-        "OfficeIMO.PowerPoint.PowerPointPicture.CropLeftRatio"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.CropLeftRatio",
+        "OfficeIMO.PowerPoint.PowerPointImage.CropLeftRatio"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.CropRightRatio",
-      "name": "PowerPointPicture.CropRightRatio",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.CropRightRatio",
+      "name": "PowerPointImage.CropRightRatio",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-croprightratio",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.CropRightRatio",
-        "OfficeIMO.PowerPoint.PowerPointPicture.CropRightRatio"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.CropRightRatio",
+        "OfficeIMO.PowerPoint.PowerPointImage.CropRightRatio"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.CropTopRatio",
-      "name": "PowerPointPicture.CropTopRatio",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.CropTopRatio",
+      "name": "PowerPointImage.CropTopRatio",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-croptopratio",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.CropTopRatio",
-        "OfficeIMO.PowerPoint.PowerPointPicture.CropTopRatio"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.CropTopRatio",
+        "OfficeIMO.PowerPoint.PowerPointImage.CropTopRatio"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Decorative",
-      "name": "PowerPointPicture.Decorative",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Decorative",
+      "name": "PowerPointImage.Decorative",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-decorative",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Decorative",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Decorative"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Decorative",
+        "OfficeIMO.PowerPoint.PowerPointImage.Decorative"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Description",
-      "name": "PowerPointPicture.Description",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Description",
+      "name": "PowerPointImage.Description",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-description",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Description",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Description"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Description",
+        "OfficeIMO.PowerPoint.PowerPointImage.Description"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.DrawingOrder",
-      "name": "PowerPointPicture.DrawingOrder",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.DrawingOrder",
+      "name": "PowerPointImage.DrawingOrder",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-drawingorder",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.DrawingOrder",
-        "OfficeIMO.PowerPoint.PowerPointPicture.DrawingOrder"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.DrawingOrder",
+        "OfficeIMO.PowerPoint.PowerPointImage.DrawingOrder"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.FillColor",
-      "name": "PowerPointPicture.FillColor",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.FillColor",
+      "name": "PowerPointImage.FillColor",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-fillcolor",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.FillColor",
-        "OfficeIMO.PowerPoint.PowerPointPicture.FillColor"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.FillColor",
+        "OfficeIMO.PowerPoint.PowerPointImage.FillColor"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.FillTransparency",
-      "name": "PowerPointPicture.FillTransparency",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.FillTransparency",
+      "name": "PowerPointImage.FillTransparency",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-filltransparency",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.FillTransparency",
-        "OfficeIMO.PowerPoint.PowerPointPicture.FillTransparency"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.FillTransparency",
+        "OfficeIMO.PowerPoint.PowerPointImage.FillTransparency"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.GrayScale",
-      "name": "PowerPointPicture.GrayScale",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.GrayScale",
+      "name": "PowerPointImage.GrayScale",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-grayscale",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.GrayScale",
-        "OfficeIMO.PowerPoint.PowerPointPicture.GrayScale"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.GrayScale",
+        "OfficeIMO.PowerPoint.PowerPointImage.GrayScale"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Height",
-      "name": "PowerPointPicture.Height",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Height",
+      "name": "PowerPointImage.Height",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-height",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Height",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Height"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Height",
+        "OfficeIMO.PowerPoint.PowerPointImage.Height"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Hidden",
-      "name": "PowerPointPicture.Hidden",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Hidden",
+      "name": "PowerPointImage.Hidden",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-hidden",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Hidden",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Hidden"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Hidden",
+        "OfficeIMO.PowerPoint.PowerPointImage.Hidden"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.HorizontalFlip",
-      "name": "PowerPointPicture.HorizontalFlip",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.HorizontalFlip",
+      "name": "PowerPointImage.HorizontalFlip",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-horizontalflip",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.HorizontalFlip",
-        "OfficeIMO.PowerPoint.PowerPointPicture.HorizontalFlip"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.HorizontalFlip",
+        "OfficeIMO.PowerPoint.PowerPointImage.HorizontalFlip"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Hyperlink",
-      "name": "PowerPointPicture.Hyperlink",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Hyperlink",
+      "name": "PowerPointImage.Hyperlink",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-hyperlink",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Hyperlink",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Hyperlink"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Hyperlink",
+        "OfficeIMO.PowerPoint.PowerPointImage.Hyperlink"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Id",
-      "name": "PowerPointPicture.Id",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Id",
+      "name": "PowerPointImage.Id",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-id",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Id",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Id"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Id",
+        "OfficeIMO.PowerPoint.PowerPointImage.Id"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Language",
-      "name": "PowerPointPicture.Language",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Language",
+      "name": "PowerPointImage.Language",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-language",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Language",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Language"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Language",
+        "OfficeIMO.PowerPoint.PowerPointImage.Language"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Languages",
-      "name": "PowerPointPicture.Languages",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Languages",
+      "name": "PowerPointImage.Languages",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-languages",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Languages",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Languages"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Languages",
+        "OfficeIMO.PowerPoint.PowerPointImage.Languages"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Left",
-      "name": "PowerPointPicture.Left",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Left",
+      "name": "PowerPointImage.Left",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-left",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Left",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Left"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Left",
+        "OfficeIMO.PowerPoint.PowerPointImage.Left"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.LuminanceBrightness",
-      "name": "PowerPointPicture.LuminanceBrightness",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.LuminanceBrightness",
+      "name": "PowerPointImage.LuminanceBrightness",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-luminancebrightness",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.LuminanceBrightness",
-        "OfficeIMO.PowerPoint.PowerPointPicture.LuminanceBrightness"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.LuminanceBrightness",
+        "OfficeIMO.PowerPoint.PowerPointImage.LuminanceBrightness"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.LuminanceContrast",
-      "name": "PowerPointPicture.LuminanceContrast",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.LuminanceContrast",
+      "name": "PowerPointImage.LuminanceContrast",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-luminancecontrast",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.LuminanceContrast",
-        "OfficeIMO.PowerPoint.PowerPointPicture.LuminanceContrast"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.LuminanceContrast",
+        "OfficeIMO.PowerPoint.PowerPointImage.LuminanceContrast"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.MimeType",
-      "name": "PowerPointPicture.MimeType",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.MimeType",
+      "name": "PowerPointImage.MimeType",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-mimetype",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.MimeType",
-        "OfficeIMO.PowerPoint.PowerPointPicture.MimeType"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.MimeType",
+        "OfficeIMO.PowerPoint.PowerPointImage.MimeType"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.MouseOverSoundName",
-      "name": "PowerPointPicture.MouseOverSoundName",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.MouseOverSoundName",
+      "name": "PowerPointImage.MouseOverSoundName",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-mouseoversoundname",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.MouseOverSoundName",
-        "OfficeIMO.PowerPoint.PowerPointPicture.MouseOverSoundName"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.MouseOverSoundName",
+        "OfficeIMO.PowerPoint.PowerPointImage.MouseOverSoundName"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Name",
-      "name": "PowerPointPicture.Name",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Name",
+      "name": "PowerPointImage.Name",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-name",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Name",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Name"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Name",
+        "OfficeIMO.PowerPoint.PowerPointImage.Name"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.OutlineColor",
-      "name": "PowerPointPicture.OutlineColor",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.OutlineColor",
+      "name": "PowerPointImage.OutlineColor",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-outlinecolor",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.OutlineColor",
-        "OfficeIMO.PowerPoint.PowerPointPicture.OutlineColor"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.OutlineColor",
+        "OfficeIMO.PowerPoint.PowerPointImage.OutlineColor"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.OutlineDash",
-      "name": "PowerPointPicture.OutlineDash",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.OutlineDash",
+      "name": "PowerPointImage.OutlineDash",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-outlinedash",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.OutlineDash",
-        "OfficeIMO.PowerPoint.PowerPointPicture.OutlineDash"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.OutlineDash",
+        "OfficeIMO.PowerPoint.PowerPointImage.OutlineDash"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.OutlineTransparency",
-      "name": "PowerPointPicture.OutlineTransparency",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.OutlineTransparency",
+      "name": "PowerPointImage.OutlineTransparency",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-outlinetransparency",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.OutlineTransparency",
-        "OfficeIMO.PowerPoint.PowerPointPicture.OutlineTransparency"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.OutlineTransparency",
+        "OfficeIMO.PowerPoint.PowerPointImage.OutlineTransparency"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.OutlineWidth",
-      "name": "PowerPointPicture.OutlineWidth",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.OutlineWidth",
+      "name": "PowerPointImage.OutlineWidth",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-outlinewidth",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.OutlineWidth",
-        "OfficeIMO.PowerPoint.PowerPointPicture.OutlineWidth"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.OutlineWidth",
+        "OfficeIMO.PowerPoint.PowerPointImage.OutlineWidth"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.ReadingOrder",
-      "name": "PowerPointPicture.ReadingOrder",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.ReadingOrder",
+      "name": "PowerPointImage.ReadingOrder",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-readingorder",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ReadingOrder",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ReadingOrder"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ReadingOrder",
+        "OfficeIMO.PowerPoint.PowerPointImage.ReadingOrder"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.RecolorColor",
-      "name": "PowerPointPicture.RecolorColor",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.RecolorColor",
+      "name": "PowerPointImage.RecolorColor",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-recolorcolor",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.RecolorColor",
-        "OfficeIMO.PowerPoint.PowerPointPicture.RecolorColor"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.RecolorColor",
+        "OfficeIMO.PowerPoint.PowerPointImage.RecolorColor"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Right",
-      "name": "PowerPointPicture.Right",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Right",
+      "name": "PowerPointImage.Right",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-right",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Right",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Right"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Right",
+        "OfficeIMO.PowerPoint.PowerPointImage.Right"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Rotation",
-      "name": "PowerPointPicture.Rotation",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Rotation",
+      "name": "PowerPointImage.Rotation",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-rotation",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Rotation",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Rotation"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Rotation",
+        "OfficeIMO.PowerPoint.PowerPointImage.Rotation"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.ShapeContentType",
-      "name": "PowerPointPicture.ShapeContentType",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.ShapeContentType",
+      "name": "PowerPointImage.ShapeContentType",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-shapecontenttype",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ShapeContentType",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ShapeContentType"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ShapeContentType",
+        "OfficeIMO.PowerPoint.PowerPointImage.ShapeContentType"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderIndex",
-      "name": "PowerPointPicture.ShapePlaceholderIndex",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderIndex",
+      "name": "PowerPointImage.ShapePlaceholderIndex",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-shapeplaceholderindex",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderIndex",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderIndex"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderIndex",
+        "OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderIndex"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderOrientation",
-      "name": "PowerPointPicture.ShapePlaceholderOrientation",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderOrientation",
+      "name": "PowerPointImage.ShapePlaceholderOrientation",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-shapeplaceholderorientation",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderOrientation",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderOrientation"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderOrientation",
+        "OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderOrientation"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderSize",
-      "name": "PowerPointPicture.ShapePlaceholderSize",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderSize",
+      "name": "PowerPointImage.ShapePlaceholderSize",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-shapeplaceholdersize",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderSize",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderSize"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderSize",
+        "OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderSize"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderType",
-      "name": "PowerPointPicture.ShapePlaceholderType",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderType",
+      "name": "PowerPointImage.ShapePlaceholderType",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-shapeplaceholdertype",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderType",
-        "OfficeIMO.PowerPoint.PowerPointPicture.ShapePlaceholderType"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderType",
+        "OfficeIMO.PowerPoint.PowerPointImage.ShapePlaceholderType"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Title",
-      "name": "PowerPointPicture.Title",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Title",
+      "name": "PowerPointImage.Title",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-title",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Title",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Title"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Title",
+        "OfficeIMO.PowerPoint.PowerPointImage.Title"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Top",
-      "name": "PowerPointPicture.Top",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Top",
+      "name": "PowerPointImage.Top",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-top",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Top",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Top"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Top",
+        "OfficeIMO.PowerPoint.PowerPointImage.Top"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.TransparentColor",
-      "name": "PowerPointPicture.TransparentColor",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.TransparentColor",
+      "name": "PowerPointImage.TransparentColor",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-transparentcolor",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.TransparentColor",
-        "OfficeIMO.PowerPoint.PowerPointPicture.TransparentColor"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.TransparentColor",
+        "OfficeIMO.PowerPoint.PowerPointImage.TransparentColor"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.VerticalFlip",
-      "name": "PowerPointPicture.VerticalFlip",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.VerticalFlip",
+      "name": "PowerPointImage.VerticalFlip",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-verticalflip",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.VerticalFlip",
-        "OfficeIMO.PowerPoint.PowerPointPicture.VerticalFlip"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.VerticalFlip",
+        "OfficeIMO.PowerPoint.PowerPointImage.VerticalFlip"
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointPicture.Width",
-      "name": "PowerPointPicture.Width",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointImage.Width",
+      "name": "PowerPointImage.Width",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointpicture/#property-width",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointPicture.Width",
-        "OfficeIMO.PowerPoint.PowerPointPicture.Width"
+        "global::OfficeIMO.PowerPoint.PowerPointImage.Width",
+        "OfficeIMO.PowerPoint.PowerPointImage.Width"
       ]
     },
     {
@@ -812763,12 +812763,12 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.PowerPoint.PowerPointSlide.Pictures",
-      "name": "PowerPointSlide.Pictures",
+      "uid": "P:OfficeIMO.PowerPoint.PowerPointSlide.Images",
+      "name": "PowerPointSlide.Images",
       "href": "/api/powerpoint/officeimo-powerpoint-powerpointslide/#property-pictures",
       "aliases": [
-        "global::OfficeIMO.PowerPoint.PowerPointSlide.Pictures",
-        "OfficeIMO.PowerPoint.PowerPointSlide.Pictures"
+        "global::OfficeIMO.PowerPoint.PowerPointSlide.Images",
+        "OfficeIMO.PowerPoint.PowerPointSlide.Images"
       ]
     },
     {

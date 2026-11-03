@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointFileFormat.Ppt, projected.SourceFormat);
             Assert.Contains(projected.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Encrypted binary deck");
-            Assert.Single(projected.Slides[0].Pictures);
+            Assert.Single(projected.Slides[0].Images);
         }
 
         [Fact]

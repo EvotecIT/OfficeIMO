@@ -89,7 +89,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             label.Color = OfficeColor.Parse("1F4E79");
 
             if (File.Exists(imagePath)) {
-                PowerPointPicture picture = slide.AddImage(imagePath,rightColumn);
+                PowerPointImage picture = slide.AddImage(imagePath,rightColumn);
                 // AddPicture keeps the image's aspect ratio; to fill the column instead, restore the box and crop.
                 picture.Left = rightColumn.Left;
                 picture.Top = rightColumn.Top;

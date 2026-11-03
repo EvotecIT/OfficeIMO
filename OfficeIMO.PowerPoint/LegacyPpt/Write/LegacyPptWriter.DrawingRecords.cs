@@ -221,7 +221,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         "The media shape has no external-object reference.");
                 }
                 children.Add(clientData);
-            } else if (shape is PowerPointPicture picture) {
+            } else if (shape is PowerPointImage picture) {
                 LegacyPptWriterPicture catalogPicture = pictureCatalog?.Get(
                         picture)
                     ?? throw new InvalidOperationException(

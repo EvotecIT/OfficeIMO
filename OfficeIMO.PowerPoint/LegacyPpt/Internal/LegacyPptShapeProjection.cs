@@ -241,14 +241,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return visual;
         }
 
-        internal bool PictureFormattingMatches(PowerPointPicture picture) =>
+        internal bool PictureFormattingMatches(PowerPointImage picture) =>
             string.Equals(PictureFormattingFingerprint,
                 CreatePictureFormattingFingerprint(picture),
                 StringComparison.Ordinal);
 
         internal static string? CreatePictureFormattingFingerprint(
             PowerPointShape shape) {
-            if (shape is not PowerPointPicture
+            if (shape is not PowerPointImage
                 || shape is PowerPointMedia
                 || shape.Element is not P.Picture picture) {
                 return null;
@@ -280,7 +280,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static string CreateShapeMetadataFingerprint(
             PowerPointShape shape) {
             string name = shape.Name ?? string.Empty;
-            string description = shape.Description ?? string.Empty;
+            string description = shape.AltText ?? string.Empty;
             return string.Concat(name.Length.ToString(
                     System.Globalization.CultureInfo.InvariantCulture),
                 ":", name, "\n", description.Length.ToString(

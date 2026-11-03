@@ -37,7 +37,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         int tableFormatting = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordTableInfo>().Count(HasUnsupportedTableFormatting);
         int imageLayout = convertedParagraphs.SelectMany(paragraph => paragraph.Runs)
             .SelectMany(run => run.PositionedImages).Count(positioned =>
-                !string.IsNullOrWhiteSpace(positioned.Image.Description) || !string.IsNullOrWhiteSpace(positioned.Image.Title) ||
+                !string.IsNullOrWhiteSpace(positioned.Image.AltText) || !string.IsNullOrWhiteSpace(positioned.Image.Title) ||
                 (!positioned.Image.IsInline && !string.IsNullOrWhiteSpace(positioned.Image.WrapText)));
         if (snapshot.Sections.Count > 0) ApplyWordPageLayout(snapshot.Sections[0], target.PageLayout);
         for (int sectionIndex = 0; sectionIndex < snapshot.Sections.Count; sectionIndex++) {

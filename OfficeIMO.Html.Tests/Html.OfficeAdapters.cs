@@ -1187,7 +1187,7 @@ public partial class HtmlOfficeAdapters {
         slide.AddTextBox("HTML end to end");
         slide.Notes.Text = "Presenter reminder";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
+            PowerPointImage picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.Name = "Architecture badge";
             picture.AltText = "Reusable renderer badge";
         }
@@ -1224,7 +1224,7 @@ public partial class HtmlOfficeAdapters {
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBox("Positioned",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
+            PowerPointImage picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.AltText = "Positioned image";
         }
 
@@ -1257,7 +1257,7 @@ public partial class HtmlOfficeAdapters {
         PowerPointTextBox hidden = slide.AddTextBox("Hidden briefing");
         hidden.Hidden = true;
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture hiddenPicture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(72));
+            PowerPointImage hiddenPicture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(72));
             hiddenPicture.Name = "Hidden image marker";
             hiddenPicture.Hidden = true;
         }
@@ -1348,7 +1348,7 @@ public partial class HtmlOfficeAdapters {
         slide.AddTextBox("Positioned proof",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         slide.Notes.Text = "Gallery notes";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
+            PowerPointImage picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.AltText = "Gallery picture";
         }
 
@@ -1429,7 +1429,7 @@ public partial class HtmlOfficeAdapters {
         slide.AddTextBox("HTML end to end",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         slide.Notes.Text = "Presenter reminder";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
+            PowerPointImage picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.Name = "Architecture badge";
             picture.AltText = "Reusable renderer badge";
         }
@@ -1466,7 +1466,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("Roundtrip Roadmap", StringComparison.Ordinal));
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("HTML end to end", StringComparison.Ordinal));
         Assert.Contains(importedSlide.Tables, importedTable => importedTable.GetCell(1, 1).Text == "Rich proof");
-        PowerPointPicture importedPicture = Assert.Single(importedSlide.Pictures);
+        PowerPointImage importedPicture = Assert.Single(importedSlide.Images);
         Assert.Equal("Reusable renderer badge", importedPicture.AltText);
         Assert.Equal(72D, importedPicture.Left.ToPoints(), 3);
         Assert.Equal(180D, importedPicture.Top.ToPoints(), 3);
@@ -1514,7 +1514,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
         using PowerPointDocument imported = result.Value;
 
-        PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
+        PowerPointImage picture = Assert.Single(imported.Slides[0].Images);
         Assert.Equal(-18D, picture.Left.ToPoints(), 3);
         Assert.Equal(-12D, picture.Top.ToPoints(), 3);
     }
@@ -1524,7 +1524,7 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(72));
+            PowerPointImage picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(72));
             // Exercise a deliberately stretched source frame rather than the contain default.
             picture.SetSize(OfficeLength.Points(120), OfficeLength.Points(72));
             picture.SetPosition(OfficeLength.Points(80), OfficeLength.Points(90));
@@ -1547,7 +1547,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
         using PowerPointDocument imported = result.Value;
 
-        PowerPointPicture importedPicture = Assert.Single(imported.Slides[0].Pictures);
+        PowerPointImage importedPicture = Assert.Single(imported.Slides[0].Images);
         Assert.Equal("Transformed alt", importedPicture.AltText);
         Assert.Equal(80D, importedPicture.Left.ToPoints(), 3);
         Assert.Equal(90D, importedPicture.Top.ToPoints(), 3);
@@ -1580,7 +1580,7 @@ public partial class HtmlOfficeAdapters {
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
         using PowerPointDocument imported = result.Value;
-        PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
+        PowerPointImage picture = Assert.Single(imported.Slides[0].Images);
 
         Assert.Equal(0D, picture.CropLeftRatio);
         Assert.Equal(0D, picture.CropRightRatio);
@@ -1601,7 +1601,7 @@ public partial class HtmlOfficeAdapters {
         chart.HorizontalFlip = true;
         chart.VerticalFlip = true;
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(64));
+            PowerPointImage picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(64));
             picture.Name = "Top picture";
         }
 
@@ -1620,7 +1620,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(1, result.Pictures);
         Assert.Empty(result.Report.Diagnostics);
         PowerPointChart importedChart = Assert.Single(importedSlide.Charts);
-        PowerPointPicture importedPicture = Assert.Single(importedSlide.Pictures);
+        PowerPointImage importedPicture = Assert.Single(importedSlide.Images);
         Assert.Equal(18.75D, importedChart.Rotation!.Value, 3);
         Assert.True(importedChart.HorizontalFlip);
         Assert.True(importedChart.VerticalFlip);
@@ -1902,7 +1902,7 @@ public partial class HtmlOfficeAdapters {
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
         using PowerPointDocument imported = result.Value;
-        PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
+        PowerPointImage picture = Assert.Single(imported.Slides[0].Images);
 
         Assert.Equal(1, result.Pictures);
         Assert.Equal("image/tiff", picture.ContentType);

@@ -21,15 +21,15 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointLayoutImage CopyRepeatedNativeImage(PowerPointLayoutImage image) {
             var copy = new PowerPointLayoutImage(image.Path, image.AlternativeText) {
                 FocalX = image.FocalX, FocalY = image.FocalY, Contain = image.Contain, Caption = image.Caption,
-                NativePicture = (PowerPointPicture)image.NativePicture!.OwnerSlide!.DuplicateShape(image.NativePicture)
+                NativePicture = (PowerPointImage)image.NativePicture!.OwnerSlide!.DuplicateShape(image.NativePicture)
             };
             copy.Annotations.AddRange(image.Annotations);
             return copy;
         }
 
-        private static PowerPointPicture RenderNativeImage(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
+        private static PowerPointImage RenderNativeImage(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
             PowerPointLayoutImage image, PowerPointLayoutRect box, bool cover) {
-            PowerPointPicture picture = image.NativePicture!;
+            PowerPointImage picture = image.NativePicture!;
             bool hasCrop = ((Picture)picture.Element).BlipFill?.SourceRectangle != null;
             if (PowerPointImageSize.TryRead(picture.GetImageBytes(), out int width, out int height)) {
                 if (!cover) {

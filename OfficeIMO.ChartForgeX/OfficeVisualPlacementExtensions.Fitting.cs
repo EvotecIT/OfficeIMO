@@ -8,13 +8,13 @@ namespace OfficeIMO.ChartForgeX;
 
 public static partial class OfficeVisualPlacementExtensions {
     /// <summary>Inserts a visual proportionally inside a slide layout box.</summary>
-    public static PowerPointPicture AddVisualArtifact(this PowerPointSlide slide, VisualArtifact artifact,
+    public static PowerPointImage AddVisualArtifact(this PowerPointSlide slide, VisualArtifact artifact,
         PowerPointLayoutBox box, OfficeVisualConversionOptions? options = null) =>
         slide.AddVisualArtifact(artifact, box, out _, options);
 
     /// <summary>Converts a visual and inserts it inside a slide layout box, returning the fitted conversion for inspection.</summary>
     /// <remarks>The box controls placement size. Options control conversion fidelity and proportional or stretched fitting.</remarks>
-    public static PowerPointPicture AddVisualArtifact(this PowerPointSlide slide, VisualArtifact artifact,
+    public static PowerPointImage AddVisualArtifact(this PowerPointSlide slide, VisualArtifact artifact,
         PowerPointLayoutBox box, out OfficeVisualConversionResult conversion, OfficeVisualConversionOptions? options = null) {
         if (slide == null) throw new ArgumentNullException(nameof(slide));
         conversion = artifact.ToOfficeVisual(options).WithSize(box.Width.ToPoints(), box.Height.ToPoints(), options?.Fit ?? OfficeImageFit.Contain);
@@ -22,7 +22,7 @@ public static partial class OfficeVisualPlacementExtensions {
     }
 
     /// <summary>Places a reusable conversion inside a slide layout box without rendering it again.</summary>
-    public static PowerPointPicture AddVisualArtifact(this PowerPointSlide slide, OfficeVisualConversionResult conversion,
+    public static PowerPointImage AddVisualArtifact(this PowerPointSlide slide, OfficeVisualConversionResult conversion,
         PowerPointLayoutBox box, OfficeImageFit fit = OfficeImageFit.Contain) {
         if (slide == null) throw new ArgumentNullException(nameof(slide));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
@@ -57,7 +57,7 @@ public static partial class OfficeVisualPlacementExtensions {
         return PlaceInRange(sheet, bounds.r1, bounds.c1, size.Width, size.Height, fitted);
     }
 
-    private static PowerPointPicture PlaceInSlideBox(PowerPointSlide slide, OfficeVisualConversionResult fitted, PowerPointLayoutBox box) =>
+    private static PowerPointImage PlaceInSlideBox(PowerPointSlide slide, OfficeVisualConversionResult fitted, PowerPointLayoutBox box) =>
         slide.AddVisualArtifact(fitted, box.Left.ToPoints() + (box.Width.ToPoints() - fitted.WidthPoints) / 2D,
             box.Top.ToPoints() + (box.Height.ToPoints() - fitted.HeightPoints) / 2D);
 

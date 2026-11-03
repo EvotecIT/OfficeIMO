@@ -30,11 +30,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.AddTitle("Update Picture",global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.3));
 
             if (File.Exists(imagePath)) {
-                PowerPointPicture original = slide.AddImage(imagePath, leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
+                PowerPointImage original = slide.AddImage(imagePath, leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
                 slide.AddTextBox("Original", leftColumn.Left, global::OfficeIMO.OfficeLength.Emus(leftColumn.Top.ToEmus() + leftColumn.Height.ToEmus() - global::OfficeIMO.OfficeLength.Centimeters(0.8).ToEmus()),
                     leftColumn.Width, global::OfficeIMO.OfficeLength.Centimeters(0.6));
 
-                PowerPointPicture updated = slide.AddImage(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
+                PowerPointImage updated = slide.AddImage(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
                 if (File.Exists(newImagePath)) {
                     updated.UpdateImage(newImagePath);
                 }

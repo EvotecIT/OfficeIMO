@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 WordImage image;
                 using (var input = new MemoryStream(expected, writable: false)) {
                     input.Position = 3;
-                    image = header.AddParagraph().AddImage(input, "stream.png", OfficeLength.Points(24.5D), OfficeLength.Points(12.25D), new WordImageOptions { Vml = true, Description = "Stream image" });
+                    image = header.AddParagraph().AddImage(input, "stream.png", OfficeLength.Points(24.5D), OfficeLength.Points(12.25D), new WordImageOptions { Vml = true, AltText = "Stream image" });
                     Assert.True(input.CanRead);
                     Assert.Equal(3L, input.Position);
                 }
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expected, payload.ToArray());
                 WordImage persisted = reopened.Sections[0].PageSetup.Header.Paragraphs.Single(paragraph => paragraph.IsImage).Image!;
                 Assert.Equal(expected, persisted.ToBytes());
-                Assert.Equal("Stream image", persisted.Description);
+                Assert.Equal("Stream image", persisted.AltText);
                 Assert.Contains("width:24.5pt", persisted._vmlShape!.Style!.Value);
                 Assert.Contains("height:12.25pt", persisted._vmlShape.Style.Value);
             } finally {

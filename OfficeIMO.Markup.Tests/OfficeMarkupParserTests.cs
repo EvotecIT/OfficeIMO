@@ -1612,7 +1612,7 @@ profile: presentation
 
             using var presentation = PowerPointDocument.Load(path);
             var slide = Assert.Single(presentation.Slides);
-            var picture = Assert.Single(slide.Pictures);
+            var picture = Assert.Single(slide.Images);
             Assert.True(picture.Width.ToInches() < 3.0, "Contained JPEG should not stretch to the full placement width.");
             Assert.InRange(picture.Height.ToInches(), 1.12, 1.13);
         } finally {

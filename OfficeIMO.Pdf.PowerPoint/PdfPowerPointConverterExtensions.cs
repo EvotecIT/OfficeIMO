@@ -464,7 +464,7 @@ public static partial class PdfPowerPointConverterExtensions {
                 presentation.SlideSize.Width.ToPoints(),
                 presentation.SlideSize.Height.ToPoints());
             using var image = new MemoryStream(bytes, writable: false);
-            PptCore.PowerPointPicture picture = slide.AddImage(image, OfficeImageFormat.Png,
+            PptCore.PowerPointImage picture = slide.AddImage(image, OfficeImageFormat.Png,
                 OfficeLength.Points(placement.Left), OfficeLength.Points(placement.Top),
                 OfficeLength.Points(placement.Width), OfficeLength.Points(placement.Height));
             picture.Bounds = new PptCore.PowerPointLayoutBox(OfficeLength.Points(placement.Left),

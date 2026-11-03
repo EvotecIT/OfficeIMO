@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.Equal(new[] { IWorkKeynoteDrawableKind.Image, IWorkKeynoteDrawableKind.TextBox },
             sourceSlide.Drawables.Select(drawable => drawable.Kind));
-        Assert.IsType<PowerPointPicture>(targetSlide.Shapes[0]);
+        Assert.IsType<PowerPointImage>(targetSlide.Shapes[0]);
         Assert.IsType<PowerPointTextBox>(targetSlide.Shapes[1]);
     }
 

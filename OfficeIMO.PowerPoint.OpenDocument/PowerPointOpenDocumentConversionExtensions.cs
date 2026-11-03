@@ -111,7 +111,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     CopyPowerPointParagraphsToOdp(textBox.Paragraphs,
                         () => converted.AddParagraph(), effective, textState);
                     textBoxes++;
-                } else if (shape is PowerPointPicture picture) {
+                } else if (shape is PowerPointImage picture) {
                     if (!effective.IncludeImages) { unsupportedPictures++; continue; }
                     try {
                         byte[] imageBytes = picture.GetImageBytes();
@@ -409,7 +409,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                             continue;
                         }
                         using var stream = new MemoryStream(imageBytes, writable: false);
-                        PowerPointPicture converted = targetSlide.AddImage(stream, imageInfo.Format, imageBounds);
+                        PowerPointImage converted = targetSlide.AddImage(stream, imageInfo.Format, imageBounds);
                         // Import retains the source frame, including intentional stretching.
                         converted.Bounds = imageBounds;
                         converted.Name = image.Name;

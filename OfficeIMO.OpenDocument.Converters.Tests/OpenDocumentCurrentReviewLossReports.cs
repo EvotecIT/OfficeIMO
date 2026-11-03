@@ -1319,7 +1319,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         PowerPointSlide converted = Assert.Single(target.Slides);
 
         Assert.Equal(new[] { "First", "Second" }, converted.TextBoxes.Single().Paragraphs.Select(paragraph => paragraph.Text));
-        Assert.Single(converted.Pictures);
+        Assert.Single(converted.Images);
         Assert.Equal("445566", converted.GetBackground().Color);
     }
 

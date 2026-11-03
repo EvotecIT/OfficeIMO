@@ -27,7 +27,7 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         using PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.Empty(Assert.Single(workbook.Sheets).Images);
-        Assert.Empty(Assert.Single(presentation.Slides).Pictures);
+        Assert.Empty(Assert.Single(presentation.Slides).Images);
         Assert.Contains(excelResult.Report.Diagnostics, IsRejectedImageDiagnostic);
         Assert.Contains(powerPointResult.Report.Diagnostics, IsRejectedImageDiagnostic);
     }
@@ -44,7 +44,7 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointAutoShape backingFill = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
             shape => shape.FillColor == "123456");
-        PowerPointPicture picture = Assert.Single(slide.Pictures);
+        PowerPointImage picture = Assert.Single(slide.Images);
         PowerPointTextBox textBox = Assert.Single(slide.TextBoxes, box => box.Text == "Layered");
         List<PowerPointShape> shapes = slide.Shapes.ToList();
 
@@ -69,7 +69,7 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
-        Assert.Empty(slide.Pictures);
+        Assert.Empty(slide.Images);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }

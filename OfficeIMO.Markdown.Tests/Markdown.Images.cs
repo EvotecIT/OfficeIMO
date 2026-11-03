@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
             var image = OfficeIMO.Drawing.OfficeImageReader.Identify(imagePath);
 
             Assert.Single(doc.Images);
-            Assert.Equal("Local", doc.Images[0].Description);
+            Assert.Equal("Local", doc.Images[0].AltText);
             Assert.Equal(image.Width, (doc.Images[0].Width?.ToPixels()));
             Assert.Equal(image.Height, (doc.Images[0].Height?.ToPixels()));
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             using var source = WordDocument.Create();
             source.AddParagraph("Before ");
-            source.AddParagraph().AddImage(imagePath,options:new OfficeIMO.Word.WordImageOptions { Description = "Logo" });
+            source.AddParagraph().AddImage(imagePath,options:new OfficeIMO.Word.WordImageOptions { AltText = "Logo" });
             source.AddParagraph("After");
 
             string markdown = ((source.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("data:image/png;base64", markdown, StringComparison.Ordinal);
             Assert.Single(restored.Images);
-            Assert.Equal("Logo", restored.Images[0].Description);
+            Assert.Equal("Logo", restored.Images[0].AltText);
         }
 
         [Fact]
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             doc.AddParagraph().AddImage(imagePath);
-            doc.Images[0].Description = "Sample";
+            doc.Images[0].AltText = "Sample";
 
             string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown()));
 

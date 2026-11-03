@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(imageParagraph.Runs);
             Assert.Equal("Image ", imageParagraph.Text);
             Assert.NotNull(imageParagraph.Runs[0].InlineImage);
-            Assert.Equal("Logo", imageParagraph.Runs[0].InlineImage!.Description);
+            Assert.Equal("Logo", imageParagraph.Runs[0].InlineImage!.AltText);
             Assert.Equal("Brand", imageParagraph.Runs[0].InlineImage!.Title);
             Assert.Equal("image/jpeg", imageParagraph.Runs[0].InlineImage!.ContentType);
             Assert.True(imageParagraph.Runs[0].InlineImage!.IsInline);
@@ -3685,7 +3685,7 @@ namespace OfficeIMO.Tests {
             intro.AddHyperLink(" Portal", new Uri("https://example.com"));
 
             var imageParagraph = document.AddParagraph("Image ");
-            var image = imageParagraph.AddImage(imagePath, width: OfficeIMO.OfficeLength.Pixels(2), height: OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { Description = "Logo" });
+            var image = imageParagraph.AddImage(imagePath, width: OfficeIMO.OfficeLength.Pixels(2), height: OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { AltText = "Logo" });
             image.Title = "Brand";
 
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
@@ -4023,7 +4023,7 @@ namespace OfficeIMO.Tests {
 
             var table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             var paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-            var image = paragraph.AddImage(imagePath, width: OfficeIMO.OfficeLength.Pixels(1), height: OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { Description = "CellLogo" });
+            var image = paragraph.AddImage(imagePath, width: OfficeIMO.OfficeLength.Pixels(1), height: OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { AltText = "CellLogo" });
             image.Title = "CellBrand";
 
             return document;

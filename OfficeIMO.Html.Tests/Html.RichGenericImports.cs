@@ -328,7 +328,7 @@ public class HtmlRichGenericImports {
         HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
             new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
-        Assert.Equal("Inline evidence", Assert.Single(Assert.Single(presentation.Slides).Pictures).AltText);
+        Assert.Equal("Inline evidence", Assert.Single(Assert.Single(presentation.Slides).Images).AltText);
 
         HtmlToOneNoteSectionResult oneNoteResult = source.ToOneNoteSectionResult();
         OneNotePage page = Assert.Single(oneNoteResult.Value.Pages);

@@ -54,7 +54,7 @@ internal static class NativeImageResizeSmoke {
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "Resized source failed saved PowerPoint reconstruction.");
         for (int index = 0; index < 3; index++) {
             var image = projection.Slides[index].Images.Single(); var expected = before.Slides[index].Images.Single();
-            var frame = image.Geometry!; var picture = saved.Slides[index].Pictures.Single();
+            var frame = image.Geometry!; var picture = saved.Slides[index].Images.Single();
             Require(image.GetBytes().SequenceEqual(expected.GetBytes()) && image.AccessibilityDescription == expected.AccessibilityDescription
                 && image.PixelWidth == 96 && image.PixelHeight == 64
                 && before.Slides[index].Drawables.Select(item => item.Kind).SequenceEqual(projection.Slides[index].Drawables.Select(item => item.Kind))

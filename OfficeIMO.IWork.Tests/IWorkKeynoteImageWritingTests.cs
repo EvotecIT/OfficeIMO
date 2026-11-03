@@ -21,8 +21,8 @@ public sealed class IWorkKeynoteImageWritingTests {
         for (int i = 0; i < 3; i++) {
             Assert.Equal(apple.Slides[i].Shapes.Select(shape => shape.GetType()),
                 saved.Slides[i].Shapes.Select(shape => shape.GetType()));
-            PowerPointPicture actual = Assert.Single(saved.Slides[i].Pictures);
-            PowerPointPicture oracle = Assert.Single(apple.Slides[i].Pictures);
+            PowerPointImage actual = Assert.Single(saved.Slides[i].Images);
+            PowerPointImage oracle = Assert.Single(apple.Slides[i].Images);
             Assert.Equal(oracle.GetImageBytes(), actual.GetImageBytes());
             Assert.Equal(oracle.AltText, actual.AltText);
             Assert.Equal(oracle.Left.ToEmus(), actual.Left.ToEmus()); Assert.Equal(oracle.Top.ToEmus(), actual.Top.ToEmus());
@@ -54,7 +54,7 @@ public sealed class IWorkKeynoteImageWritingTests {
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(reopened.ValidateDocument());
-        Assert.Equal(80 * 12700, reopened.Slides[2].Pictures.Single().Left.ToEmus());
+        Assert.Equal(80 * 12700, reopened.Slides[2].Images.Single().Left.ToEmus());
     }
 
     [Theory]
@@ -107,8 +107,8 @@ public sealed class IWorkKeynoteImageWritingTests {
         Assert.Empty(reopened.ValidateDocument());
         PowerPointShape[] shapes = reopened.Slides[0].Shapes.ToArray();
         Assert.Equal(4, shapes.Length);
-        Assert.IsType<PowerPointTextBox>(shapes[0]); Assert.IsType<PowerPointPicture>(shapes[1]);
-        Assert.IsType<PowerPointTextBox>(shapes[2]); Assert.IsType<PowerPointPicture>(shapes[3]);
+        Assert.IsType<PowerPointTextBox>(shapes[0]); Assert.IsType<PowerPointImage>(shapes[1]);
+        Assert.IsType<PowerPointTextBox>(shapes[2]); Assert.IsType<PowerPointImage>(shapes[3]);
         Assert.Equal("Native image 😀", shapes[1].AltText);
         using var zip = new ZipArchive(new MemoryStream(saved.ToArray()));
         Assert.Contains(zip.Entries, entry => entry.FullName.StartsWith("ppt/media/", StringComparison.Ordinal)

@@ -88,7 +88,7 @@ public sealed partial class IWorkBoundaryTests {
         result.Value.Save(saved);
         saved.Position = 0;
         using PowerPointDocument reopened = PowerPointDocument.Load(saved);
-        PowerPointPicture picture = Assert.Single(Assert.Single(reopened.Slides).Pictures);
+        PowerPointImage picture = Assert.Single(Assert.Single(reopened.Slides).Images);
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal("Visual fallback from the source Keynote package", picture.AltText);

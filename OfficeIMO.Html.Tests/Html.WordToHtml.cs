@@ -730,10 +730,10 @@ namespace OfficeIMO.Tests {
 
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             var paragraph = doc.AddParagraph();
-            paragraph.AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Description = "Company logo" });
+            paragraph.AddImage(assetPath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { AltText = "Company logo" });
 
             Assert.NotNull(paragraph.Image);
-            Assert.Equal("Company logo", paragraph.Image!.Description);
+            Assert.Equal("Company logo", paragraph.Image!.AltText);
 
             string html = doc.ToHtml();
 

@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.Equal("Source slide", duplicate.TextBoxes.First().Text);
-                Assert.Single(duplicate.Pictures);
+                Assert.Single(duplicate.Images);
                 Assert.True(duplicate.Hidden);
                 Assert.Equal("Speaker notes", duplicate.Notes.Text);
 
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
 
                     Assert.Single(target.Slides);
                     Assert.Equal("Imported slide", imported.TextBoxes.First().Text);
-                    Assert.Single(imported.Pictures);
+                    Assert.Single(imported.Images);
                     Assert.True(imported.Hidden);
                     Assert.Equal("Imported notes", imported.Notes.Text);
 
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument target = PowerPointDocument.Load(targetPath)) {
                 Assert.Single(target.Slides);
                 Assert.Equal("Imported slide", target.Slides[0].TextBoxes.First().Text);
-                Assert.Single(target.Slides[0].Pictures);
+                Assert.Single(target.Slides[0].Images);
                 Assert.True(target.Slides[0].Hidden);
                 Assert.Equal("Imported notes", target.Slides[0].Notes.Text);
             }

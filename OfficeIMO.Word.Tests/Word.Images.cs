@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             const string vp8 = "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoQABAAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=";
             using var document = WordDocument.Create();
             using (var image = new MemoryStream(Convert.FromBase64String(vp8))) {
-                document.AddParagraph().AddImage(image, "sample.webp", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Red sample" });
+                document.AddParagraph().AddImage(image, "sample.webp", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Red sample" });
             }
 
             using var packageStream = new MemoryStream(document.ToBytes());
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
             var filePathImageEvotec = System.IO.Path.Combine(imagePaths, fileNameImageEvotec);
             var paragraphHeader = evenHeader.AddParagraph();
             using (var imageStream = System.IO.File.OpenRead(filePathImageEvotec)) {
-                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "This is a test" });
+                paragraphHeader.AddImage(imageStream, fileNameImageEvotec, OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "This is a test" });
                 var headerImage = paragraphHeader.Image;
                 Assert.NotNull(headerImage);
                 Assert.True(headerImage!.CompressionQuality == WordImageCompressionQuality.Print);
@@ -275,16 +275,16 @@ namespace OfficeIMO.Tests {
             Assert.True(defaultHeader.Images.Count == 1);
             Assert.True(evenHeader.Images.Count == 1);
             Assert.True(evenHeader.Images[0].FileName == fileNameImageEvotec);
-            Assert.True(evenHeader.Images[0].Description == "This is a test");
+            Assert.True(evenHeader.Images[0].AltText == "This is a test");
 
             var headerEvenImage = evenHeader.Images[0];
             Assert.NotNull(headerEvenImage);
-            headerEvenImage!.Description = "Different description";
+            headerEvenImage!.AltText = "Different description";
             Assert.True(headerEvenImage.VerticalFlip == null);
             Assert.True(headerEvenImage.HorizontalFlip == null);
             headerEvenImage.VerticalFlip = true;
 
-            Assert.True(headerEvenImage.Description == "Different description");
+            Assert.True(headerEvenImage.AltText == "Different description");
             Assert.True(headerEvenImage.VerticalFlip == true);
             Assert.True(headerEvenImage.CompressionQuality == WordImageCompressionQuality.Print);
             headerEvenImage.CompressionQuality = WordImageCompressionQuality.HighQualityPrint;

@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.Projection.HasEditableContent);
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
-        PowerPointPicture picture = Assert.Single(result.Value.Slides[0].Pictures);
+        PowerPointImage picture = Assert.Single(result.Value.Slides[0].Images);
         Assert.True(picture.Width.ToEmus() > 0);
         Assert.True(picture.Height.ToEmus() > 0);
     }

@@ -195,7 +195,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             PptCore.PowerPointTable => " officeimo-shape-table",
             PptCore.PowerPointMedia => " officeimo-shape-media",
             PptCore.PowerPointSmartArt => " officeimo-shape-smartart",
-            PptCore.PowerPointPicture => " officeimo-shape-picture",
+            PptCore.PowerPointImage => " officeimo-shape-picture",
             PptCore.PowerPointChart => " officeimo-shape-chart",
             _ => string.Empty
         };
@@ -227,7 +227,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             AppendMediaPoster(body, media);
         } else if (shape is PptCore.PowerPointSmartArt smartArt && options.IncludeSmartArt) {
             AppendSmartArt(body, smartArt);
-        } else if (shape is PptCore.PowerPointPicture picture) {
+        } else if (shape is PptCore.PowerPointImage picture) {
             AppendPictureShape(body, picture);
         } else if (shape is PptCore.PowerPointChart chart) {
             AppendChartVisual(body, chart, width, height);
@@ -259,9 +259,9 @@ public static partial class PowerPointHtmlConverterExtensions {
 
     private static void AppendSlideFeatureInventory(StringBuilder body, PptCore.PowerPointSlide slide,
         PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
-        IEnumerable<PptCore.PowerPointPicture> pictures = options.IncludeHiddenShapes
-            ? slide.Pictures.Where(picture => picture is not PptCore.PowerPointMedia)
-            : slide.Pictures.Where(picture => picture is not PptCore.PowerPointMedia && !picture.Hidden);
+        IEnumerable<PptCore.PowerPointImage> pictures = options.IncludeHiddenShapes
+            ? slide.Images.Where(picture => picture is not PptCore.PowerPointMedia)
+            : slide.Images.Where(picture => picture is not PptCore.PowerPointMedia && !picture.Hidden);
         IEnumerable<PptCore.PowerPointChart> charts = options.IncludeHiddenShapes
             ? slide.Charts
             : slide.Charts.Where(chart => !chart.Hidden);
@@ -271,15 +271,15 @@ public static partial class PowerPointHtmlConverterExtensions {
         AppendAdvancedReviewInventory(body, slide, options, diagnostics);
     }
 
-    private static void AppendPictureInventory(StringBuilder body, IEnumerable<PptCore.PowerPointPicture> pictures,
+    private static void AppendPictureInventory(StringBuilder body, IEnumerable<PptCore.PowerPointImage> pictures,
         PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
-        List<PptCore.PowerPointPicture> pictureList = pictures.ToList();
+        List<PptCore.PowerPointImage> pictureList = pictures.ToList();
         if (pictureList.Count == 0) {
             return;
         }
 
         body.Append("<section class=\"officeimo-feature officeimo-images\"><h3>Pictures</h3><ul class=\"officeimo-feature-list\">");
-        foreach (PptCore.PowerPointPicture picture in pictureList) {
+        foreach (PptCore.PowerPointImage picture in pictureList) {
             if (options.IncludeAdvancedEffects) AddPictureEffectDiagnostic(picture, diagnostics);
             string label = GetShapeLabel(picture);
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"picture\" data-officeimo-layer-index=\"")
@@ -391,7 +391,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("</ul></section>");
     }
 
-    private static void AppendPictureShape(StringBuilder body, PptCore.PowerPointPicture picture) {
+    private static void AppendPictureShape(StringBuilder body, PptCore.PowerPointImage picture) {
         string label = GetShapeLabel(picture);
         string? dataUri = TryCreatePictureDataUri(picture);
         if (dataUri == null) {
@@ -408,7 +408,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append("\">");
     }
 
-    private static bool AppendPicturePreview(StringBuilder body, PptCore.PowerPointPicture picture, string label) {
+    private static bool AppendPicturePreview(StringBuilder body, PptCore.PowerPointImage picture, string label) {
         string? dataUri = TryCreatePictureDataUri(picture);
         if (dataUri == null) {
             body.Append("<div class=\"officeimo-diagnostic\">Picture bytes unavailable.</div>");
@@ -423,7 +423,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         return true;
     }
 
-    private static string? TryCreatePictureDataUri(PptCore.PowerPointPicture picture) {
+    private static string? TryCreatePictureDataUri(PptCore.PowerPointImage picture) {
         try {
             byte[] bytes = picture.GetImageBytes();
             if (bytes.Length == 0) {

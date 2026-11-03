@@ -40,7 +40,7 @@ public sealed class WordPageBreakConversionTests {
         byte[] bytes = OfficeIMO.Drawing.OfficePngWriter.Encode(new OfficeIMO.Drawing.OfficeRasterImage(2, 2, OfficeIMO.OfficeColor.Red));
         using (var first = new System.IO.MemoryStream(bytes)) paragraph.AddImage(first, "first.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
         using (var second = new System.IO.MemoryStream(bytes)) paragraph.AddImage(second, "second.png", OfficeIMO.OfficeLength.Pixels(12), OfficeIMO.OfficeLength.Pixels(12));
-        paragraph.GetPositionedImages().Last().Image.Description = "Second image description";
+        paragraph.GetPositionedImages().Last().Image.AltText = "Second image description";
         var result = source.ToOpenDocumentResult();
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "image-layout" && mapping.Count == 1);
         Assert.Throws<OfficeIMO.OpenDocument.OdfConversionLossException>(() => source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {

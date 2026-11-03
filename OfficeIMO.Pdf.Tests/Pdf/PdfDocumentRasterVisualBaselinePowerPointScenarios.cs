@@ -134,7 +134,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         table.GetCell(1, 1).HorizontalAlignment = OfficeIMO.PowerPoint.PowerPointTextAlignment.Center;
 
         byte[] logoBytes = File.ReadAllBytes(System.IO.Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png"));
-        PowerPointPicture picture = slide.AddImage(new MemoryStream(logoBytes), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(220)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(64)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
+        PowerPointImage picture = slide.AddImage(new MemoryStream(logoBytes), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(220)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(64)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
         picture.AltText = "OfficeIMO visual gate logo";
 
         var chartData = new PowerPointChartData(

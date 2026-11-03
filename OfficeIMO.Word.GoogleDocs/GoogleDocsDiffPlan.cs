@@ -214,7 +214,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         private static string InlineImageFingerprint(WordInlineImageInfo? image) => image == null
             ? string.Empty
-            : GoogleWorkspaceCheckpointFormat.Format($"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width?.ToPixels()}|{image.Height?.ToPixels()}|{image.IsInline}|{image.WrapText}");
+            : GoogleWorkspaceCheckpointFormat.Format($"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.AltText}|{image.Title}|{image.Width?.ToPixels()}|{image.Height?.ToPixels()}|{image.IsInline}|{image.WrapText}");
 
         private static string CommentFingerprint(CommentThreadEntry entry) =>
             $"{entry.Comment.Author}|{entry.Comment.Initials}|{entry.Comment.Text}|{entry.IsResolved}";

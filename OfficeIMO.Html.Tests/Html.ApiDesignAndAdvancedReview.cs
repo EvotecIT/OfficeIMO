@@ -252,7 +252,7 @@ public partial class Html {
             "iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII=");
         using var imageStream = new MemoryStream(pixels);
         WordParagraph paragraph = document.AddParagraph();
-        paragraph.AddImage(imageStream, "floating.png", OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(36), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = "Floating marker" });
+        paragraph.AddImage(imageStream, "floating.png", OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(36), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, AltText = "Floating marker" });
         WordImage image = Assert.IsType<WordImage>(paragraph.Image);
         image.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
         image.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;

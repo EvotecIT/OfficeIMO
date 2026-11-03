@@ -29,7 +29,7 @@ public sealed class WordPdfImageTransformTests {
             _ => document.AddParagraph()
         };
         using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-        WordImage image = paragraph.AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Description = "Transformed picture" });
+        WordImage image = paragraph.AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { AltText = "Transformed picture" });
         image.CropLeftRatio = ((double?)(25000)) / 100000D; image.CropTopRatio = ((double?)(12500)) / 100000D;
         image.CropRightRatio = ((double?)(12500)) / 100000D; image.CropBottomRatio = ((double?)(25000)) / 100000D;
         image.Rotation = rotation;

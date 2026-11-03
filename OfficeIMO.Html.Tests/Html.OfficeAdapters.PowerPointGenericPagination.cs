@@ -189,7 +189,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         Assert.True(result.Slides >= 3);
         Assert.Equal(18, presentation.Slides.Sum(slide =>
             slide.TextBoxes.Count(box => box.Text.StartsWith("Entry ", StringComparison.Ordinal))));
-        Assert.Equal(1, presentation.Slides.Sum(slide => slide.Pictures.Count()));
+        Assert.Equal(1, presentation.Slides.Sum(slide => slide.Images.Count()));
         Assert.All(presentation.Slides, slide => Assert.All(slide.Shapes, shape => {
             Assert.True(shape.Bounds.Left >= OfficeLength.Zero && shape.Bounds.Top >= OfficeLength.Zero);
             Assert.True(shape.Bounds.Right <= presentation.SlideSize.Width);
@@ -203,7 +203,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         Assert.Equal(presentation.Slides.Count, reopened.Slides.Count);
         Assert.Contains(reopened.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "Entry 18");
-        Assert.Equal(1, reopened.Slides.Sum(slide => slide.Pictures.Count()));
+        Assert.Equal(1, reopened.Slides.Sum(slide => slide.Images.Count()));
     }
 
     [Fact]

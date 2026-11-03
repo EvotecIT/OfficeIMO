@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                     Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
                     Assert.Equal(14, presentation.Slides.Count);
                     Assert.Equal(2, presentation.Slides.SelectMany(slide => slide.Charts).Count());
-                    Assert.Equal(2, presentation.Slides.SelectMany(slide => slide.Pictures).Count());
+                    Assert.Equal(2, presentation.Slides.SelectMany(slide => slide.Images).Count());
                     Assert.True(presentation.Slides.SelectMany(slide => slide.Tables).Count() >= 2);
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.Shapes),
                         shape => shape.Name.StartsWith("Architecture Node", StringComparison.Ordinal));
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument reopened = PowerPointDocument.Load(output)) {
                     List<OfficeOpenXmlValidationError> errors = reopened.ValidateDocument();
                     Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
-                    PowerPointPicture picture = reopened.Slides.SelectMany(slide => slide.Pictures).First();
+                    PowerPointImage picture = reopened.Slides.SelectMany(slide => slide.Images).First();
                     Assert.Equal("Product dashboard showing deployment progress", picture.AltText);
                     Assert.True(picture.CropLeftRatio > 0 || picture.CropRightRatio > 0 ||
                         picture.CropTopRatio > 0 || picture.CropBottomRatio > 0);
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
                         Variant = PowerPointScreenshotStoryLayoutVariant.HeroAnnotated
                     });
 
-                PowerPointPicture picture = Assert.Single(slide.Pictures);
+                PowerPointImage picture = Assert.Single(slide.Images);
                 PowerPointAutoShape marker = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
                     shape => shape.Name == "Screenshot Annotation 1");
                 double expectedX = picture.Left.ToCentimeters() +

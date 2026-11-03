@@ -1520,7 +1520,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>406 changes</summary>
+<summary>410 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1930,6 +1930,10 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.Word.WordPackageCompatibility` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Word.WordParagraphBorder` | Internal | &mdash; | Unused enum; documented paragraph authoring uses WordBorder and WordParagraphBorderType, which remain public. |
 | Visibility | `OfficeIMO.Word.WordTableStyles` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| accessibility | `OfficeIMO.Word.WordImage.Description` | Renamed | `OfficeIMO.Word.WordImage.AltText` | AltText is the shared alternative-text name for images in Word, PowerPoint and Markdown. |
+| accessibility | `OfficeIMO.Word.WordImageOptions.Description` | Renamed | `OfficeIMO.Word.WordImageOptions.AltText` | AltText is the shared alternative-text name for images. |
+| accessibility | `OfficeIMO.Word.WordInlineImageInfo.Description` | Renamed | `OfficeIMO.Word.WordInlineImageInfo.AltText` | The inspection snapshot uses the same name as WordImage.AltText. |
+| accessibility | `OfficeIMO.Word.WordTemplateImage.Description / WordTemplateImage(byte[] content, string fileName, OfficeLength? width = null, OfficeLength? height = null, string description = "")` | Renamed | `OfficeIMO.Word.WordTemplateImage.AltText / WordTemplateImage(..., string altText = "")` | Read AltText; pass altText: instead of description: when using a named argument. |
 
 </details>
 
@@ -2474,7 +2478,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>582 changes</summary>
+<summary>588 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3060,6 +3064,12 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.PowerPoint.PowerPointFormatCatalog` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.PowerPoint.PowerPointImageExportDiagnosticCodes` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.PowerPoint.PowerPointNumberingFormatter` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| accessibility | `OfficeIMO.PowerPoint.PowerPointShape.Description` | Removed | `OfficeIMO.PowerPoint.PowerPointShape.AltText` | Use AltText. It reads and writes the same OOXML descr value. Description trimmed surrounding whitespace; trim the value yourself if you relied on that. |
+| images | `OfficeIMO.PowerPoint.PowerPointPicture` | Renamed | `OfficeIMO.PowerPoint.PowerPointImage` | Use PowerPointImage wherever PowerPointPicture was declared, cast or pattern-matched. Members (UpdateImage, Crop, Fit, effects, image bytes) are unchanged. |
+| images | `OfficeIMO.PowerPoint.PowerPointSlide.AddImage(...) : PowerPointPicture` | Changed | `OfficeIMO.PowerPoint.PowerPointSlide.AddImage(...) : PowerPointImage` | Return type follows the PowerPointPicture -&gt; PowerPointImage rename; parameters are unchanged. |
+| images | `OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointPicture>` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointImage>` | The lookup is named after the shared image handle type. |
+| images | `OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(string name) : PowerPointPicture?` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.GetImage(string name) : PowerPointImage?` | The lookup is named after the shared image handle type. |
+| images | `OfficeIMO.PowerPoint.PowerPointSlide.Pictures : IEnumerable<PowerPointPicture>` | Renamed | `OfficeIMO.PowerPoint.PowerPointSlide.Images : IEnumerable<PowerPointImage>` | The collection is named after the shared image handle type. |
 
 </details>
 

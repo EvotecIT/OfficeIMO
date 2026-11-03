@@ -80,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
                     shape is PowerPointTextBox textBox) {
                     InspectText(textBox, reportShapeIndex, slideIndex, options, findings);
                 }
-                if (options.DetectMissingVisualAssets && shape is PowerPointPicture picture) {
+                if (options.DetectMissingVisualAssets && shape is PowerPointImage picture) {
                     InspectPicture(picture, reportShapeIndex, slideIndex, findings);
                 }
                 if (shape is PowerPointGroupShape groupShape) {
@@ -209,7 +209,7 @@ namespace OfficeIMO.PowerPoint {
                 textBox.RelationshipOwnerPart) ?? "Aptos";
         }
 
-        private static void InspectPicture(PowerPointPicture picture, int shapeIndex, int slideIndex,
+        private static void InspectPicture(PowerPointImage picture, int shapeIndex, int slideIndex,
             IList<PowerPointDeckPreflightFinding> findings) {
             try {
                 if (string.IsNullOrWhiteSpace(picture.ContentType)) {

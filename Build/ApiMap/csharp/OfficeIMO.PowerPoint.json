@@ -12301,6 +12301,56 @@
       "replacement": "run.BackgroundColor = OfficeColor.Parse(\"FFFF00\"). The DrawingML highlight is written as before, including native opacity.",
       "reason": "The arbitrary-colour text background shares the BackgroundColor name and OfficeColor type with Word.",
       "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointPicture",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointImage",
+      "replacement": "Use PowerPointImage wherever PowerPointPicture was declared, cast or pattern-matched. Members (UpdateImage, Crop, Fit, effects, image bytes) are unchanged.",
+      "reason": "AddImage returns a {Format}Image handle in Word, PowerPoint and Markdown.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.Pictures : IEnumerable<PowerPointPicture>",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.Images : IEnumerable<PowerPointImage>",
+      "reason": "The collection is named after the shared image handle type.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(string name) : PowerPointPicture?",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.GetImage(string name) : PowerPointImage?",
+      "reason": "The lookup is named after the shared image handle type.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointPicture>",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(PowerPointGroupShape groupShape) : IReadOnlyList<PowerPointImage>",
+      "reason": "The lookup is named after the shared image handle type.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddImage(...) : PowerPointPicture",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddImage(...) : PowerPointImage",
+      "reason": "Return type follows the PowerPointPicture -> PowerPointImage rename; parameters are unchanged.",
+      "category": "images"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointShape.Description",
+      "kind": "property",
+      "action": "remove",
+      "new": "OfficeIMO.PowerPoint.PowerPointShape.AltText",
+      "replacement": "Use AltText. It reads and writes the same OOXML descr value. Description trimmed surrounding whitespace; trim the value yourself if you relied on that.",
+      "reason": "Description was a second name for AltText; AltText is the shared alternative-text name.",
+      "category": "accessibility"
     }
   ],
   "packageMoves": [

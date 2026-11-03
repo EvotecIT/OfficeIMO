@@ -54,7 +54,7 @@ public sealed class MermaidMarkupRegressionTests {
         var parsed = Parse(source, OfficeMarkupProfile.Presentation);
         using var deck = parsed.Document.ToPowerPointDocument();
         var slide = Assert.Single(deck.Slides);
-        Assert.Single(slide.Shapes.OfType<PowerPointPicture>());
+        Assert.Single(slide.Shapes.OfType<PowerPointImage>());
         Assert.Contains(slide.TextBoxes, box => box.Text == "Approval caption");
         Assert.Contains(slide.TextBoxes, box => box.Text.Contains("Complete"));
     }
@@ -69,7 +69,7 @@ public sealed class MermaidMarkupRegressionTests {
         var parsed = Parse(source, OfficeMarkupProfile.Presentation);
         Assert.Single(parsed.Document.DescendantsAndSelf().OfType<OfficeMarkupImageBlock>());
         using var deck = parsed.Document.ToPowerPointDocument();
-        Assert.Single(deck.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>());
+        Assert.Single(deck.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointImage>());
         Assert.Contains(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("Complete"));
     }
 
@@ -88,7 +88,7 @@ public sealed class MermaidMarkupRegressionTests {
         if (!removeInTransform) column.Blocks.Clear();
         Assert.Empty(column.Blocks);
         using var deck = parsed.Document.ToPowerPointDocument(new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
-        Assert.Empty(deck.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointPicture>());
+        Assert.Empty(deck.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointImage>());
         Assert.DoesNotContain(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("A --> B"));
         Assert.Contains(deck.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "Summary");
     }

@@ -79,7 +79,7 @@ public sealed partial class OfficeVisualIntegrationTests {
             using (var document = WordDocument.Load(wordPath)) {
                 var image = Assert.Single(document.Images);
                 Assert.Equal(Math.Min(600D, available), image.Width!.Value.ToPoints(), 3);
-                Assert.Equal("Two measured requests.", image.Description);
+                Assert.Equal("Two measured requests.", image.AltText);
                 Assert.Equal(2D, image.Width.Value.ToPoints() / image.Height!.Value.ToPoints(), 3);
             }
             string excelPath = Path.Combine(folder, "fit.xlsx");
@@ -103,11 +103,11 @@ public sealed partial class OfficeVisualIntegrationTests {
                 presentation.Save();
             }
             using (var presentation = PowerPointDocument.Load(slidesPath)) {
-                var picture = Assert.Single(presentation.Slides[0].Pictures);
+                var picture = Assert.Single(presentation.Slides[0].Images);
                 Assert.Equal(200D, picture.Width.ToPoints(), 3);
                 Assert.Equal(100D, picture.Height.ToPoints(), 3);
                 Assert.Equal(86D, picture.Left.ToPoints(), 3);
-                Assert.Equal("Two measured requests.", picture.Description);
+                Assert.Equal("Two measured requests.", picture.AltText);
             }
             var pdfOptions = new PdfCreateOptions { CompressContentStreams = false };
             pdfOptions.EnableTaggedPdfCatalogMarkers();

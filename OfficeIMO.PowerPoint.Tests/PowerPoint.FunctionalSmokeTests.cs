@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.First();
-                    Assert.True(slide.Pictures.Any());
+                    Assert.True(slide.Images.Any());
                     Assert.True(slide.Tables.Any());
                     Assert.True(slide.Charts.Any());
                 }

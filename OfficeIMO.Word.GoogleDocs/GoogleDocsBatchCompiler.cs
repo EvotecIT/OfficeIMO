@@ -479,7 +479,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                         FileName = run.InlineImage.FileName,
                         ContentType = run.InlineImage.ContentType,
                         Bytes = run.InlineImage.Bytes,
-                        Description = run.InlineImage.Description,
+                        Description = run.InlineImage.AltText,
                         Title = run.InlineImage.Title,
                         Width = run.InlineImage.Width?.ToPixels(),
                         Height = run.InlineImage.Height?.ToPixels(),

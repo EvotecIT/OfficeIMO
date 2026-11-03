@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                 var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
                     .ToWord(WordHtmlImportOptions.CreateTrustedDocumentProfile());
                 Assert.Single(doc.Images);
-                Assert.Equal("Logo", doc.Images[0].Description);
+                Assert.Equal("Logo", doc.Images[0].AltText);
             } finally {
                 File.Delete(dest);
                 Directory.Delete(dir);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
                 var doc = conversion.Value;
                 Assert.Single(doc.Images);
-                Assert.Equal("Logo", doc.Images[0].Description);
+                Assert.Equal("Logo", doc.Images[0].AltText);
             } finally {
                 File.Delete(dest);
                 Directory.Delete(dir);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                 .ToWord(WordHtmlImportOptions.CreateTrustedDocumentProfile());
 
             var image = Assert.Single(doc.Images);
-            Assert.Equal("Company logo", image.Description);
+            Assert.Equal("Company logo", image.AltText);
             Assert.Equal("Quarterly report logo", image.Title);
 
             using MemoryStream stream = new System.IO.MemoryStream(doc.ToBytes());
@@ -965,9 +965,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, doc.Images.Count);
             Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
-            Assert.Equal("First logo", doc.Images[0].Description);
+            Assert.Equal("First logo", doc.Images[0].AltText);
             Assert.Equal("First title", doc.Images[0].Title);
-            Assert.Equal("Second logo", doc.Images[1].Description);
+            Assert.Equal("Second logo", doc.Images[1].AltText);
             Assert.Equal("Second title", doc.Images[1].Title);
 
             using MemoryStream stream = new System.IO.MemoryStream(doc.ToBytes());

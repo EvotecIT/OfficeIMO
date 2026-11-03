@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
-            PowerPointPicture picture = slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
+            PowerPointImage picture = slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
                 global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20),
                 global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20));
             PowerPointAutoShape anchor = slide.AddRectangle(OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(12));

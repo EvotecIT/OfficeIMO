@@ -95,10 +95,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Returns the child pictures of a group shape.
+        ///     Returns the child images of a group shape.
         /// </summary>
-        public IReadOnlyList<PowerPointPicture> GetGroupPictures(PowerPointGroupShape groupShape) {
-            return GetGroupChildren(groupShape).OfType<PowerPointPicture>().ToList();
+        public IReadOnlyList<PowerPointImage> GetGroupImages(PowerPointGroupShape groupShape) {
+            return GetGroupChildren(groupShape).OfType<PowerPointImage>().ToList();
         }
 
         /// <summary>

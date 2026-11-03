@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                     new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.OfficeColor.White));
                 var values = new Dictionary<string, object?> {
                     ["Logo"] = new WordTemplateImage(png, "logo.png", width: global::OfficeIMO.OfficeLength.Inches(1),
-                        height: global::OfficeIMO.OfficeLength.Millimeters(12.7), description: "Company logo"),
+                        height: global::OfficeIMO.OfficeLength.Millimeters(12.7), altText: "Company logo"),
                     ["AutoLogo"] = new WordTemplateImage(png, "auto.png", width: global::OfficeIMO.OfficeLength.Centimeters(2.54)),
                     ["NaturalLogo"] = new WordTemplateImage(png, "natural.png"),
                     ["Portal"] = new WordTemplateHyperlink("customer portal", new Uri("https://example.com/customer"))
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new long[] { 457200, 914400, 9525 }, extents.Select(extent => extent.Cy!.Value));
             Assert.Equal(new long[] { 914400, 914400, 9525 }, reopened.Images.Select(image => image.Width!.Value.ToEmus()));
             Assert.Equal(new long[] { 457200, 914400, 9525 }, reopened.Images.Select(image => image.Height!.Value.ToEmus()));
-            Assert.Equal("Company logo", reopened.Images[0].Description);
+            Assert.Equal("Company logo", reopened.Images[0].AltText);
             Assert.Equal(new Uri("https://example.com/customer"), Assert.Single(reopened.HyperLinks).Uri);
             Assert.Empty(new OpenXmlValidator().Validate(reopened._wordprocessingDocument));
         }

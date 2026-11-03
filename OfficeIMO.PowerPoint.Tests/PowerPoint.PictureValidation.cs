@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class PowerPointPictureValidationTests {
+    public class PowerPointImageValidationTests {
         [Fact]
         public void AddPictureStream_ThrowsOnNullStream() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");

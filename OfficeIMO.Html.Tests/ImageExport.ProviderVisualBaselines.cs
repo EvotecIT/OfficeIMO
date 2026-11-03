@@ -51,7 +51,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         document.AddParagraph("Polished previews with predictable output.")
             .SetFontFamily(PortableFontFamily);
         using (var image = new MemoryStream(CreateVisualBadge())) {
-            document.AddParagraph().AddImage(image, "delivery-status.png", OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "Delivery status visualization" });
+            document.AddParagraph().AddImage(image, "delivery-status.png", OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "Delivery status visualization" });
         }
         var options = new WordImageExportOptions {
             Format = OfficeImageExportFormat.Png,

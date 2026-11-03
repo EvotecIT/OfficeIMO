@@ -29,17 +29,17 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         Assert.Equal(4, deck.Slides.Count);
         var figure = Assert.IsAssignableFrom<PowerPointShape>(System.Management.Automation.PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("figure")).BaseObject);
         if (chart) Assert.Contains(deck.Slides[0].Charts, item => ReferenceEquals(item, figure));
-        else Assert.Contains(deck.Slides[0].Pictures, item => ReferenceEquals(item, figure));
+        else Assert.Contains(deck.Slides[0].Images, item => ReferenceEquals(item, figure));
         using var saved = PowerPointDocument.Load(Save(deck, "repeated-native-figure.pptx"));
         for (int i = 0; i < saved.Slides.Count; i++) {
-            PowerPointShape stored = chart ? Assert.Single(saved.Slides[i].Charts) : Assert.Single(saved.Slides[i].Pictures);
+            PowerPointShape stored = chart ? Assert.Single(saved.Slides[i].Charts) : Assert.Single(saved.Slides[i].Images);
             Assert.Equal(i == 0 ? "First page edited" : "Repeated context", stored.AltText);
             Assert.Equal("https://contoso.com/repeated-figure", stored.Hyperlink?.AbsoluteUri);
             Assert.Equal(new byte[] { 1, 2, 3, 4 }, stored.GetClickSoundBytes());
             if (chart) {
                 Assert.True(((PowerPointChart)stored).TryGetOfficeSnapshot(out var snapshot));
                 Assert.Equal(i == 0 ? "First chart edited" : "Repeated chart", snapshot.Title);
-            } else Assert.Equal(File.ReadAllBytes(imagePath), ((PowerPointPicture)stored).GetImageBytes());
+            } else Assert.Equal(File.ReadAllBytes(imagePath), ((PowerPointImage)stored).GetImageBytes());
         }
         Assert.Empty(saved.ValidateDocument());
     }
@@ -82,10 +82,10 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         Assert.Equal(index + 1, deck.Slides.Count);
         Assert.Equal("https://contoso.com/before-figure-arrangement", Get<string>(runspace, "arrangedLink"));
         if (chart) Assert.Contains(deck.Slides[index].Charts, item => ReferenceEquals(item, figure));
-        else Assert.Contains(deck.Slides[index].Pictures, item => ReferenceEquals(item, figure));
+        else Assert.Contains(deck.Slides[index].Images, item => ReferenceEquals(item, figure));
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, figure.GetClickSoundBytes());
         using var saved = PowerPointDocument.Load(Save(deck, "native-figure.pptx"));
-        PowerPointShape stored = chart ? Assert.Single(saved.Slides[index].Charts) : Assert.Single(saved.Slides[index].Pictures);
+        PowerPointShape stored = chart ? Assert.Single(saved.Slides[index].Charts) : Assert.Single(saved.Slides[index].Images);
         Assert.Equal("Edited after arrangement", stored.AltText);
         Assert.Equal("https://contoso.com/after-figure-arrangement", stored.Hyperlink?.AbsoluteUri);
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, stored.GetClickSoundBytes());
@@ -93,7 +93,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
             Assert.True(((PowerPointChart)stored).TryGetOfficeSnapshot(out var snapshot));
             Assert.Equal("Edited after arrangement", snapshot.Title);
             Assert.Equal(new[] { 12D, 18D, 14D }, snapshot.Data.Series[0].Values);
-        } else Assert.Equal(image, ((PowerPointPicture)stored).GetImageBytes());
+        } else Assert.Equal(image, ((PowerPointImage)stored).GetImageBytes());
         Assert.DoesNotContain(saved.OpenXmlDocument.PresentationPart!.SlideParts.SelectMany(p => p.HyperlinkRelationships),
             link => link.Uri.AbsoluteUri == "https://contoso.com/before-figure-arrangement");
         Assert.Empty(saved.ValidateDocument());

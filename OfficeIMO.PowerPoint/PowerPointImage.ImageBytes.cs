@@ -3,7 +3,7 @@ using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.PowerPoint {
-    public partial class PowerPointPicture {
+    public partial class PowerPointImage {
         /// <summary>
         ///     Returns a snapshot of the embedded image bytes for export adapters.
         /// </summary>

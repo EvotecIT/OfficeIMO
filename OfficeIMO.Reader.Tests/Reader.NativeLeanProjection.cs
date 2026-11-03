@@ -50,12 +50,12 @@ public sealed class ReaderNativeLeanProjectionTests {
     public void WordNativeSnapshotRetainsImageDescriptorsWithoutCopyingBytes() {
         using WordDocument document = WordDocument.Create();
         using var image = new MemoryStream(Pixel, writable: false);
-        document.AddParagraph("Body evidence").AddImage(image, "pixel.png", OfficeIMO.OfficeLength.Pixels(1), OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { Description = "Source alt text" });
+        document.AddParagraph("Body evidence").AddImage(image, "pixel.png", OfficeIMO.OfficeLength.Pixels(1), OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { AltText = "Source alt text" });
         WordDocumentInfo lean = document.Inspect(includeImageBytes: false);
         WordRunInfo descriptor = lean.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
             .SelectMany(paragraph => paragraph.Runs).Single(run => run.InlineImage != null);
         Assert.Null(descriptor.InlineImage!.Bytes);
-        Assert.Equal("Source alt text", descriptor.InlineImage.Description);
+        Assert.Equal("Source alt text", descriptor.InlineImage.AltText);
         Assert.Equal("pixel.png", descriptor.InlineImage.FileName);
         WordDocumentInfo full = document.Inspect();
         Assert.Equal(Pixel, full.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>()

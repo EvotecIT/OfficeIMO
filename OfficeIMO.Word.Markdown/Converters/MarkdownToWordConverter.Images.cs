@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Markdown {
                         out var finalH,
                         out _);
 
-                    paragraph.AddImage(imageSource, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
+                    paragraph.AddImage(imageSource, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { AltText = alt ?? string.Empty });
                 } else {
                     ReportImageLoss(options, OfficeDiagnosticCodes.ImageSkippedByPolicy,
                         options.AllowLocalImages
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Markdown {
                                 out _);
 
                             using var stream = new System.IO.MemoryStream(bytes, writable: false);
-                            paragraph.AddImage(stream, fileName, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
+                            paragraph.AddImage(stream, fileName, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { AltText = alt ?? string.Empty });
                         } catch (Exception ex) {
                             options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
                             if (options.FallbackRemoteImagesToHyperlinks) {
@@ -307,7 +307,7 @@ namespace OfficeIMO.Word.Markdown {
 
             using var stream = new System.IO.MemoryStream(bytes, writable: false);
             try {
-                paragraph.AddImage(stream, fileName, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { Description = alt ?? string.Empty });
+                paragraph.AddImage(stream, fileName, finalW, finalH, options: new OfficeIMO.Word.WordImageOptions { AltText = alt ?? string.Empty });
             } catch (Exception ex) when (IsRecoverableDataUriImageInsertionException(ex)) {
                 options.OnWarning?.Invoke($"Data URI image could not be inserted as a supported Word image. {ex.Message}");
                 AddImageFallbackText(paragraph, alt, string.Empty, options);

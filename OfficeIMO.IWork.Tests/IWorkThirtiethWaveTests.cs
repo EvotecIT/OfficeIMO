@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
             rotation: float.MaxValue, slideWidth: 720f, slideHeight: 360f);
 
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
-        PowerPointPicture preview = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
+        PowerPointImage preview = Assert.Single(Assert.Single(result.Value.Slides).Images);
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal(720d, result.Value.SlideSize.Width.ToPoints(), 3);

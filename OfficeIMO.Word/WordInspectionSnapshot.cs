@@ -332,7 +332,7 @@ namespace OfficeIMO.Word {
         /// <summary>Gets embedded image bytes, or null for external images and snapshots that explicitly omit image payloads.</summary>
         public byte[]? Bytes { get; internal set; }
         /// <summary>Gets image alternative text.</summary>
-        public string? Description { get; internal set; }
+        public string? AltText { get; internal set; }
         /// <summary>Gets the image title.</summary>
         public string? Title { get; internal set; }
         /// <summary>Gets the rendered image width.</summary>

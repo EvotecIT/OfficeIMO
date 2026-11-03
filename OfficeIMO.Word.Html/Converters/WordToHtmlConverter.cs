@@ -325,8 +325,8 @@ namespace OfficeIMO.Word.Html {
                                 if (imgObj.Height is { } displayHeight) {
                                     SetOutputAttribute(imgSvg, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                                 }
-                                if (!string.IsNullOrEmpty(imgObj.Description)) {
-                                    SetOutputAttribute(imgSvg, "alt", imgObj.Description!, "Image:alt");
+                                if (!string.IsNullOrEmpty(imgObj.AltText)) {
+                                    SetOutputAttribute(imgSvg, "alt", imgObj.AltText!, "Image:alt");
                                 }
                                 if (!string.IsNullOrEmpty(imgObj.Title)) {
                                     SetOutputAttribute(imgSvg, "title", imgObj.Title!, "Image:title");
@@ -359,8 +359,8 @@ namespace OfficeIMO.Word.Html {
                             if (imgObj.Height is { } displayHeight) {
                                 SetOutputAttribute(img, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                             }
-                            if (!string.IsNullOrEmpty(imgObj.Description)) {
-                                SetOutputAttribute(img, "alt", imgObj.Description!, "Image:alt");
+                            if (!string.IsNullOrEmpty(imgObj.AltText)) {
+                                SetOutputAttribute(img, "alt", imgObj.AltText!, "Image:alt");
                             }
                             if (!string.IsNullOrEmpty(imgObj.Title)) {
                                 SetOutputAttribute(img, "title", imgObj.Title!, "Image:title");

@@ -163,7 +163,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                     includeAuthorization: false,
                                     maxResponseBytes: options.MaxImageBytes).ConfigureAwait(false);
                                 using var image = new MemoryStream(bytes, writable: false);
-                                PowerPointPicture picture = slide.AddImage(image, DetectImageType(bytes), OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
+                                PowerPointImage picture = slide.AddImage(image, DetectImageType(bytes), OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                                 ApplyTransform(picture, geometry);
                             } catch (Exception ex) when (!(ex is OperationCanceledException)) {
                                 report.Add(TranslationSeverity.Warning, "Images", "A native Google Slides image could not be downloaded; Drive-export import remains the broad fallback.", code: "SLIDES.IMPORT.IMAGE_FALLBACK", action: TranslationAction.Skip);

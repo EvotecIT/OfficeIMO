@@ -67,7 +67,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
                 WordImage image = document.AddParagraph("Logo:").AddImage(imagePath);
-                image.Description = "Company logo alt text";
+                image.AltText = "Company logo alt text";
                 image.Title = "Company logo title";
                 document.Save();
             }
@@ -117,7 +117,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Intro slide");
-            PowerPointPicture picture = slide.AddImage(imagePath);
+            PowerPointImage picture = slide.AddImage(imagePath);
             picture.AltText = "Slide logo alt text";
             presentation.Save();
         }

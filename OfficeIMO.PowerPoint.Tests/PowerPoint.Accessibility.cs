@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                     accent.Decorative = true;
                     PowerPointTextBox text = slide.AddTextBox("Accessible documentation",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(30));
                     text.Title = "Slide title";
-                    text.Description = "Documentation link";
+                    text.AltText = "Documentation link";
                     text.SetLanguage("en-GB");
                     PowerPointTextRun run = text.Paragraphs.Single().Runs.Single();
                     run.SetHyperlink("https://example.test/docs", "Open the documentation");
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                     PowerPointTextBox text = presentation.Slides[0].TextBoxes.Single();
                     PowerPointAutoShape accent = presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>().Single();
                     Assert.Equal("Slide title", text.Title);
-                    Assert.Equal("Documentation link", text.Description);
+                    Assert.Equal("Documentation link", text.AltText);
                     Assert.Equal("en-GB", text.Language);
                     Assert.True(accent.Decorative);
                     Assert.Equal(0, text.ReadingOrder);

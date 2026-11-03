@@ -1608,7 +1608,7 @@ namespace OfficeIMO.Word.Markdown {
                 return new ImageInline(string.Empty, string.Empty);
             }
 
-            string alt = image.Description ?? string.Empty;
+            string alt = image.AltText ?? string.Empty;
             string title = image.Title ?? string.Empty;
             string source = BuildImageSource(image, options);
             return new ImageInline(alt, source, string.IsNullOrEmpty(title) ? null : title);

@@ -114,16 +114,16 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox summary = Assert.Single(slide.TextBoxes,
                 shape => shape.Text == "Summary");
             Assert.Equal("Quarter Summary", summary.Name);
-            Assert.Equal("Rounded summary of quarter performance", summary.Description);
+            Assert.Equal("Rounded summary of quarter performance", summary.AltText);
 
-            PowerPointPicture picture = Assert.Single(slide.Pictures);
+            PowerPointImage picture = Assert.Single(slide.Images);
             Assert.Equal("Four Colors", picture.Name);
-            Assert.Equal("Blue field with a yellow circle", picture.Description);
+            Assert.Equal("Blue field with a yellow circle", picture.AltText);
 
             PowerPointConnectionShape connector = Assert.Single(
                 slide.Shapes.OfType<PowerPointConnectionShape>());
             Assert.Equal("Trend Link", connector.Name);
-            Assert.Equal("Connector from summary to picture", connector.Description);
+            Assert.Equal("Connector from summary to picture", connector.AltText);
             Assert.Empty(presentation.ValidateDocument());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(source, presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
             PowerPointShape target = shapeKind switch {
                 "text" => Assert.Single(presentation.Slides[0].TextBoxes,
                     shape => shape.Text == "Summary"),
-                "picture" => Assert.Single(presentation.Slides[0].Pictures),
+                "picture" => Assert.Single(presentation.Slides[0].Images),
                 "connector" => Assert.Single(presentation.Slides[0].Shapes
                     .OfType<PowerPointConnectionShape>()),
                 _ => throw new ArgumentOutOfRangeException(nameof(shapeKind))
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
             string editedName = $"Edited {shapeKind} name";
             string editedDescription = $"Edited {shapeKind} alternative text";
             target.Name = editedName;
-            target.Description = editedDescription;
+            target.AltText = editedDescription;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite,
@@ -188,10 +188,10 @@ namespace OfficeIMO.Tests {
         public void ImportedAccessibilityDescriptionCanBeRemoved() {
             using PowerPointDocument presentation = PowerPointDocument.Load(
                 AccessibilityFixturePath);
-            PowerPointPicture picture = Assert.Single(
-                presentation.Slides[0].Pictures);
+            PowerPointImage picture = Assert.Single(
+                presentation.Slides[0].Images);
 
-            picture.Description = null;
+            picture.AltText = null;
 
             LegacyPptWritePreflightReport preflight =
                 presentation.AnalyzeLegacyPptWrite();
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(reason);
 
             target.Name = "Edited master object";
-            target.Description = "Edited master alternative text";
+            target.AltText = "Edited master alternative text";
 
             LegacyPptWritePreflightReport preflight =
                 presentation.AnalyzeLegacyPptWrite();
@@ -251,15 +251,15 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox text = slide.AddTextBox(
                     "Accessible text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(35));
                 text.Name = "Summary object";
-                text.Description = "Summary alternative text";
-                PowerPointPicture picture = slide.AddImage(
+                text.AltText = "Summary alternative text";
+                PowerPointImage picture = slide.AddImage(
                     new MemoryStream(image), OfficeIMO.Drawing.OfficeImageFormat.Png,
                     global::OfficeIMO.OfficeLength.Points(20),
                     global::OfficeIMO.OfficeLength.Points(70),
                     global::OfficeIMO.OfficeLength.Points(90),
                     global::OfficeIMO.OfficeLength.Points(60));
                 picture.Name = "Chart preview";
-                picture.Description = "Blue chart preview";
+                picture.AltText = "Blue chart preview";
                 PowerPointConnectionShape connector = slide
                     .AddConnectionShape(A.ShapeTypeValues.StraightConnector1,
                         global::OfficeIMO.OfficeLength.Points(25).ToEmus(),
@@ -267,20 +267,20 @@ namespace OfficeIMO.Tests {
                         global::OfficeIMO.OfficeLength.Points(170).ToEmus(),
                         global::OfficeIMO.OfficeLength.Points(145).ToEmus());
                 connector.Name = "Trend connector";
-                connector.Description = "Connects the summary to detail";
+                connector.AltText = "Connects the summary to detail";
                 PowerPointAutoShape child = slide.AddShape(
                     OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(190), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(70), OfficeIMO.OfficeLength.Points(45));
                 child.Name = "Grouped child";
-                child.Description = "Child description";
+                child.AltText = "Child description";
                 PowerPointAutoShape secondChild = slide.AddShape(
                     OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(205), OfficeIMO.OfficeLength.Points(75), OfficeIMO.OfficeLength.Points(45), OfficeIMO.OfficeLength.Points(35));
                 secondChild.Name = "Second grouped child";
-                secondChild.Description = "Second child description";
+                secondChild.AltText = "Second child description";
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { child, secondChild },
                     "Accessible group");
                 group.Name = "Accessible group";
-                group.Description = "Group description";
+                group.AltText = "Group description";
 
                 LegacyPptWritePreflightReport preflight =
                     source.AnalyzeLegacyPptWrite();
@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Load(input);
             Assert.Contains(projected.Slides[0].Shapes,
                 shape => shape.Name == "Chart preview"
-                    && shape.Description == "Blue chart preview");
+                    && shape.AltText == "Blue chart preview");
             Assert.Empty(projected.ValidateDocument());
         }
 

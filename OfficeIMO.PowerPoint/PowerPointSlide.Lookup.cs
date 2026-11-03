@@ -83,14 +83,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Retrieves a picture by its name.
+        ///     Retrieves an image by its name.
         /// </summary>
-        public PowerPointPicture? GetPicture(string name) {
+        public PowerPointImage? GetImage(string name) {
             if (name == null) {
                 throw new ArgumentNullException(nameof(name));
             }
 
-            return Pictures.FirstOrDefault(p => p.Name == name);
+            return Images.FirstOrDefault(p => p.Name == name);
         }
 
         /// <summary>

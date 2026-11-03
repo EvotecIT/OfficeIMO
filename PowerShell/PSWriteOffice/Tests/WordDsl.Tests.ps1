@@ -1646,7 +1646,7 @@ Describe 'Word DSL surface' {
 
         $images.Count | Should -Be 1
         $images[0].Title | Should -Be 'Status Logo'
-        $images[0].Description | Should -Be 'Logo alt text'
+        $images[0].AltText | Should -Be 'Logo alt text'
         $images[0].HorizontalFlip | Should -BeTrue
 
         $shapes.Count | Should -Be 1

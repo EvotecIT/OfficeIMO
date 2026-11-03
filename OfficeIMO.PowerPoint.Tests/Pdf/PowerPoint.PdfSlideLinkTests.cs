@@ -200,7 +200,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
-        PowerPointPicture picture = first.AddImage(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
+        PowerPointImage picture = first.AddImage(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
             OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40)).WithFrame(PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(40));
         picture.Rotation = 30; picture.SetHyperlink(second);
         PowerPointTableCell cell = first.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(90)).GetCell(0, 0);

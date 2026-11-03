@@ -433,7 +433,7 @@ public sealed class HtmlWordChartTests {
         document.AddChart(OfficeChartType.ColumnClustered, Data(), new OfficeIMO.Word.WordChartOptions { Title = "First chart" });
         document.AddChart(OfficeChartType.Doughnut, Data(), new OfficeIMO.Word.WordChartOptions { Title = "Second chart" });
         using var pixels = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII="));
-        document.AddParagraph().AddImage(pixels, "marker.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), options: new OfficeIMO.Word.WordImageOptions { Description = "Picture marker" });
+        document.AddParagraph().AddImage(pixels, "marker.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), options: new OfficeIMO.Word.WordImageOptions { AltText = "Picture marker" });
         var runs = document.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Select(run => run._run!).ToArray();
         var secondDrawing = runs[1].GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
         var pictureDrawing = runs[2].GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;

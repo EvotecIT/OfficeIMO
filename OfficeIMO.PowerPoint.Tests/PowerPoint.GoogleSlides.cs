@@ -1129,7 +1129,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(40d, rotatedShape.Left.ToPoints(), 6);
                 Assert.Equal(70d, rotatedShape.Top.ToPoints(), 6);
                 Assert.Equal(90d, Assert.Single(slide.Tables).Rotation ?? 0, 6);
-                Assert.Equal(90d, Assert.Single(slide.Pictures).Rotation ?? 0, 6);
+                Assert.Equal(90d, Assert.Single(slide.Images).Rotation ?? 0, 6);
                 Assert.Contains(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.TRANSFORM_PARTIAL"
                     && notice.Message.Contains("shape-skewed", StringComparison.Ordinal));
             }
@@ -1152,7 +1152,7 @@ namespace OfficeIMO.Tests {
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient, quotaUser: "tenant-user"), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
             using (imported.Document) {
                 PowerPointSlide slide = Assert.Single(imported.Document.Slides);
-                PowerPointPicture picture = Assert.Single(slide.Pictures);
+                PowerPointImage picture = Assert.Single(slide.Images);
                 Assert.Equal("image/gif", picture.ContentType);
                 Assert.Equal(PowerPointSlideBackgroundKind.Image, slide.GetBackground().Kind);
                 Assert.Equal("image/gif", slide.GetBackground().ImageContentType);
@@ -1187,7 +1187,7 @@ namespace OfficeIMO.Tests {
 
             using (imported.Document) {
                 Assert.Equal(0, untrustedRequests);
-                Assert.Empty(Assert.Single(imported.Document.Slides).Pictures);
+                Assert.Empty(Assert.Single(imported.Document.Slides).Images);
                 Assert.Contains(imported.Report.Notices, notice =>
                     notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
             }
@@ -1219,7 +1219,7 @@ namespace OfficeIMO.Tests {
                     });
 
             using (imported.Document) {
-                Assert.Empty(Assert.Single(imported.Document.Slides).Pictures);
+                Assert.Empty(Assert.Single(imported.Document.Slides).Images);
                 Assert.Contains(imported.Report.Notices, notice =>
                     notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
             }
@@ -1275,7 +1275,7 @@ namespace OfficeIMO.Tests {
             secondImage[secondImage.Length - 12] ^= 0x01;
             using PowerPointDocument presentation = PowerPointDocument.Create();
             using var firstStream = new MemoryStream(firstImage);
-            PowerPointPicture picture = presentation.AddSlide().AddImage(firstStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
+            PowerPointImage picture = presentation.AddSlide().AddImage(firstStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
             using (var secondStream = new MemoryStream(secondImage)) picture.UpdateImage(secondStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
@@ -1297,7 +1297,7 @@ namespace OfficeIMO.Tests {
             shape.Rotation = 22.5D;
             shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.25D);
             using var imageStream = new MemoryStream(imageBytes);
-            PowerPointPicture picture = slide.AddImage(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(10.5D), OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(40.75D), OfficeIMO.OfficeLength.Points(30.5D));
+            PowerPointImage picture = slide.AddImage(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(10.5D), OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(40.75D), OfficeIMO.OfficeLength.Points(30.5D));
             picture.Crop(10, 5, 0, 0);
 
             CultureInfo previousCulture = CultureInfo.CurrentCulture;

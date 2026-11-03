@@ -41,7 +41,7 @@ public partial class Word {
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
-        (mixedRun ? paragraph : paragraph.AddText(string.Empty)).AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Description = "Inline marker" });
+        (mixedRun ? paragraph : paragraph.AddText(string.Empty)).AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { AltText = "Inline marker" });
         paragraph.AddText("After");
         document.Save();
         string originalXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;

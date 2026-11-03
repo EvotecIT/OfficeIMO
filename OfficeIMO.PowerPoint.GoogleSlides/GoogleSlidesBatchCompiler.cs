@@ -103,12 +103,12 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             target.Add(PreserveTransform(new GoogleSlidesTable(id, shape.Left.ToPoints(), shape.Top.ToPoints(), shape.Width.ToPoints(), shape.Height.ToPoints(), cells), shape));
                             plan.NativeTableCount++;
                             break;
-                        case PowerPointPicture picture when IsSupportedSlidesImage(picture):
+                        case PowerPointImage picture when IsSupportedSlidesImage(picture):
                             target.Add(PreserveTransform(new GoogleSlidesImage(id, shape.Left.ToPoints(), shape.Top.ToPoints(), shape.Width.ToPoints(), shape.Height.ToPoints(),
                                 picture.GetImageBytes(), picture.ContentType ?? "image/png", $"picture-{slideIndex + 1}-{elementIndex}{ImageExtension(picture.ContentType)}"), shape));
                             plan.NativeImageCount++;
                             break;
-                        case PowerPointPicture picture when HasImageCrop(picture):
+                        case PowerPointImage picture when HasImageCrop(picture):
                             plan.UnsupportedElementCount++;
                             report.Add(
                                 TranslationSeverity.Warning,
@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 code: "SLIDES.IMAGE.CROP_SKIPPED",
                                 action: TranslationAction.Skip);
                             break;
-                        case PowerPointPicture picture:
+                        case PowerPointImage picture:
                             plan.UnsupportedElementCount++;
                             report.Add(
                                 TranslationSeverity.Warning,
@@ -364,7 +364,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             _ => null,
         };
 
-        private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointPicture picture && (!IsSupportedSlidesImage(picture) || HasImageCrop(picture)))
+        private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointImage picture && (!IsSupportedSlidesImage(picture) || HasImageCrop(picture)))
             || (shape is PowerPointAutoShape autoShape && !TryMapShape(autoShape, out _))
             || (shape is PowerPointTable table && HasMergedCells(table))
             || shape.ShapeContentType == PowerPointShapeContentType.Chart
@@ -375,11 +375,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             || shape.ShapeContentType == PowerPointShapeContentType.OleObject
             || shape.ShapeContentType == PowerPointShapeContentType.Unknown;
 
-        private static bool IsSupportedSlidesImage(PowerPointPicture picture) {
+        private static bool IsSupportedSlidesImage(PowerPointImage picture) {
             return IsSupportedSlidesImageContentType(picture.ContentType) && !HasImageCrop(picture);
         }
 
-        private static bool HasImageCrop(PowerPointPicture picture) =>
+        private static bool HasImageCrop(PowerPointImage picture) =>
             Math.Abs(picture.CropLeftRatio) > double.Epsilon
             || Math.Abs(picture.CropTopRatio) > double.Epsilon
             || Math.Abs(picture.CropRightRatio) > double.Epsilon

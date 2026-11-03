@@ -29,6 +29,8 @@ OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind
 OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontFamily, OfficeIMO.OfficeColor? color, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 *REMOVED*OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontName, string! colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 *REMOVED*OfficeIMO.Word.WordDocument.AddHeadersAndFooters() -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
+OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<object?>! items, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Word.WordTable!
+*REMOVED*OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<object?>! items, OfficeIMO.Word.WordTableStyle style, bool includeHeader = true, OfficeIMO.Word.WordTableLayoutMode? layout = null) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordDocument.AppendDocument(OfficeIMO.Word.WordDocument! source, OfficeIMO.Word.WordDocumentMergeOptions? options) -> void
 *REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.get -> bool
 *REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.set -> void
@@ -80,16 +82,26 @@ OfficeIMO.Word.WordHeaderFooter.AddTable(int rows, int columns, OfficeIMO.Word.W
 *REMOVED*OfficeIMO.Word.WordHeadersAndFooters
 *REMOVED*OfficeIMO.Word.WordImage.AlphaInversionColorHex.get -> string?
 *REMOVED*OfficeIMO.Word.WordImage.AlphaInversionColorHex.set -> void
+OfficeIMO.Word.WordImage.AltText.get -> string?
+OfficeIMO.Word.WordImage.AltText.set -> void
 *REMOVED*OfficeIMO.Word.WordImage.ColorChangeFromHex.get -> string?
 *REMOVED*OfficeIMO.Word.WordImage.ColorChangeFromHex.set -> void
 *REMOVED*OfficeIMO.Word.WordImage.ColorChangeToHex.get -> string?
 *REMOVED*OfficeIMO.Word.WordImage.ColorChangeToHex.set -> void
 *REMOVED*OfficeIMO.Word.WordImage.ColorReplacementHex.get -> string?
 *REMOVED*OfficeIMO.Word.WordImage.ColorReplacementHex.set -> void
+*REMOVED*OfficeIMO.Word.WordImage.Description.get -> string?
+*REMOVED*OfficeIMO.Word.WordImage.Description.set -> void
 *REMOVED*OfficeIMO.Word.WordImage.DuotoneColor1Hex.get -> string?
 *REMOVED*OfficeIMO.Word.WordImage.DuotoneColor1Hex.set -> void
 *REMOVED*OfficeIMO.Word.WordImage.DuotoneColor2Hex.get -> string?
 *REMOVED*OfficeIMO.Word.WordImage.DuotoneColor2Hex.set -> void
+OfficeIMO.Word.WordImageOptions.AltText.get -> string!
+OfficeIMO.Word.WordImageOptions.AltText.set -> void
+*REMOVED*OfficeIMO.Word.WordImageOptions.Description.get -> string!
+*REMOVED*OfficeIMO.Word.WordImageOptions.Description.set -> void
+OfficeIMO.Word.WordInlineImageInfo.AltText.get -> string?
+*REMOVED*OfficeIMO.Word.WordInlineImageInfo.Description.get -> string?
 *REMOVED*OfficeIMO.Word.WordLine.ColorHex.get -> string!
 *REMOVED*OfficeIMO.Word.WordLine.ColorHex.set -> void
 OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordBulletSymbol symbol, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
@@ -271,12 +283,22 @@ OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(System.Collections.
 *REMOVED*OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, OfficeIMO.OfficeColor matchFillColor, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
 OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, OfficeIMO.OfficeColor? matchFillColor = null, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
 *REMOVED*OfficeIMO.Word.WordTableConditionalFormattingBuilder.AddRule(string! columnName, string? matchText, OfficeIMO.Word.WordTextMatchType matchType, string? matchFillColorHex = null, string? matchFontColorHex = null, string? noMatchFillColorHex = null, string? noMatchFontColorHex = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> OfficeIMO.Word.WordTableConditionalFormattingBuilder!
+OfficeIMO.Word.WordTableOptions
+OfficeIMO.Word.WordTableOptions.LayoutMode.get -> OfficeIMO.Word.WordTableLayoutMode?
+OfficeIMO.Word.WordTableOptions.LayoutMode.set -> void
+OfficeIMO.Word.WordTableOptions.Style.get -> OfficeIMO.Word.WordTableStyle
+OfficeIMO.Word.WordTableOptions.Style.set -> void
+OfficeIMO.Word.WordTableOptions.WordTableOptions() -> void
 OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(OfficeIMO.Word.WordTableBorderSide side) -> (OfficeIMO.Word.WordBorderStyle? Style, OfficeIMO.OfficeLength? Size, OfficeIMO.OfficeColor? Color)
 *REMOVED*OfficeIMO.Word.WordTableStyleDetails.GetBorderProperties(OfficeIMO.Word.WordTableBorderSide side) -> (OfficeIMO.Word.WordBorderStyle? Style, OfficeIMO.OfficeLength? Size, string? ColorHex)
 *REMOVED*OfficeIMO.Word.WordTableStyleDetails.ShadingColorHex.get -> string!
 *REMOVED*OfficeIMO.Word.WordTableStyleDetails.ShadingColorHex.set -> void
 *REMOVED*OfficeIMO.Word.WordTableStyleDetails.ShadingFillColorHex.get -> string!
 *REMOVED*OfficeIMO.Word.WordTableStyleDetails.ShadingFillColorHex.set -> void
+OfficeIMO.Word.WordTemplateImage.AltText.get -> string!
+*REMOVED*OfficeIMO.Word.WordTemplateImage.Description.get -> string!
+OfficeIMO.Word.WordTemplateImage.WordTemplateImage(byte[]! content, string! fileName, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string! altText = "") -> void
+*REMOVED*OfficeIMO.Word.WordTemplateImage.WordTemplateImage(byte[]! content, string! fileName, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string! description = "") -> void
 OfficeIMO.Word.WordTextBox.FillColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Word.WordTextBox.FillColor.set -> void
 *REMOVED*OfficeIMO.Word.WordTextBox.FillColorHex.get -> string!

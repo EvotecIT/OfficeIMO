@@ -94,7 +94,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         PowerPointSlide generatedSlide = Assert.Single(result.Value.Slides);
-        PowerPointPicture background = Assert.Single(generatedSlide.Pictures);
+        PowerPointImage background = Assert.Single(generatedSlide.Images);
         PowerPointTextBox text = Assert.Single(generatedSlide.TextBoxes, box =>
             box.Name?.StartsWith("HTML ", StringComparison.Ordinal) == true);
         Assert.True(background.DrawingOrder < text.DrawingOrder);
@@ -105,7 +105,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         using PowerPointDocument reopened = PowerPointDocument.Load(
             new MemoryStream(stream.ToArray()),
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-        Assert.Single(Assert.Single(reopened.Slides).Pictures);
+        Assert.Single(Assert.Single(reopened.Slides).Images);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
-        Assert.Empty(slide.Pictures);
+        Assert.Empty(slide.Images);
         Assert.Contains(slide.TextBoxes, box => box.Text == "Region");
     }
 
@@ -191,7 +191,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             Assert.InRange(box.Height.ToPoints(), 1D, 50D);
         });
         Assert.DoesNotContain(slide.TextBoxes, box => box.Text.Contains("metadata is much", StringComparison.Ordinal));
-        Assert.All(slide.Pictures, picture => {
+        Assert.All(slide.Images, picture => {
             Assert.InRange(picture.Left.ToPoints(), -50D, 50D);
             Assert.InRange(picture.Top.ToPoints(), -50D, 50D);
             Assert.InRange(picture.Width.ToPoints(), 1D, 50D);
@@ -284,7 +284,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.FillColor == "DBEAFE");
         Assert.Equal("FEF3C7", grid.FillColor);
         Assert.False(Overlaps(positioned, grid));
-        Assert.Contains(slide.Pictures, picture => picture.FillTransparency == 60);
+        Assert.Contains(slide.Images, picture => picture.FillTransparency == 60);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
@@ -355,7 +355,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.Value;
 
-        Assert.Single(Assert.Single(presentation.Slides).Pictures);
+        Assert.Single(Assert.Single(presentation.Slides).Images);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }

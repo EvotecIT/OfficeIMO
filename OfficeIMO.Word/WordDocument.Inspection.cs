@@ -386,7 +386,7 @@ namespace OfficeIMO.Word {
             FileName = image.FileName,
             ContentType = ResolveImageContentType(image),
             Bytes = !includeImageBytes || image.IsExternal ? null : image.ToBytes(),
-            Description = image.Description,
+            AltText = image.AltText,
             Title = image.Title,
             Width = image.Width,
             Height = image.Height,

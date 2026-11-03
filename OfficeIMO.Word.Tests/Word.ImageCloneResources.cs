@@ -50,8 +50,8 @@ public sealed class WordImageCloneResourcesTests {
             Id = "alt-source", Style = "width:15pt;height:15pt"
         }));
         var image = paragraph.Image!;
-        image.Description = "Chart summary";
-        Assert.Equal("Chart summary", image.Description);
+        image.AltText = "Chart summary";
+        Assert.Equal("Chart summary", image.AltText);
         using var package = new System.IO.MemoryStream(document.ToBytes());
         using var reopened = WordDocument.Load(package);
         Assert.Equal("Chart summary", reopened.MainDocumentPartRoot.Document!.Descendants<V.Shape>()

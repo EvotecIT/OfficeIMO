@@ -31,6 +31,34 @@ OfficeIMO.PowerPoint.PowerPointDocument.ApplyTheme(OfficeIMO.OfficeTheme! theme,
 OfficeIMO.PowerPoint.PowerPointDocument.GetTheme(int masterIndex = 0) -> OfficeIMO.OfficeTheme!
 OfficeIMO.PowerPoint.PowerPointDocument.ImportSlides(OfficeIMO.PowerPoint.PowerPointDocument! sourcePresentation, System.Collections.Generic.IEnumerable<int>! sourceIndices, int? insertAt = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointSlide!>!
 OfficeIMO.PowerPoint.PowerPointDocument.SetThemeName(string! name, int masterIndex = 0) -> void
+OfficeIMO.PowerPoint.PowerPointImage
+OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold.get -> int?
+OfficeIMO.PowerPoint.PowerPointImage.BlackWhiteThreshold.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.ContentType.get -> string?
+OfficeIMO.PowerPoint.PowerPointImage.Crop(double leftPercent, double topPercent, double rightPercent, double bottomPercent) -> void
+OfficeIMO.PowerPoint.PowerPointImage.CropBottomRatio.get -> double
+OfficeIMO.PowerPoint.PowerPointImage.CropLeftRatio.get -> double
+OfficeIMO.PowerPoint.PowerPointImage.CropRightRatio.get -> double
+OfficeIMO.PowerPoint.PowerPointImage.CropTopRatio.get -> double
+OfficeIMO.PowerPoint.PowerPointImage.FitToBox() -> void
+OfficeIMO.PowerPoint.PowerPointImage.FitToBox(bool crop) -> void
+OfficeIMO.PowerPoint.PowerPointImage.FitToBox(double imageWidth, double imageHeight, bool crop = true) -> void
+OfficeIMO.PowerPoint.PowerPointImage.GetImageBytes() -> byte[]!
+OfficeIMO.PowerPoint.PowerPointImage.GrayScale.get -> bool
+OfficeIMO.PowerPoint.PowerPointImage.GrayScale.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.LuminanceBrightness.get -> int?
+OfficeIMO.PowerPoint.PowerPointImage.LuminanceBrightness.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.LuminanceContrast.get -> int?
+OfficeIMO.PowerPoint.PowerPointImage.LuminanceContrast.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.MimeType.get -> string?
+OfficeIMO.PowerPoint.PowerPointImage.RecolorColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointImage.RecolorColor.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.ResetClassicEffects() -> void
+OfficeIMO.PowerPoint.PowerPointImage.ResetCrop() -> void
+OfficeIMO.PowerPoint.PowerPointImage.TransparentColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.PowerPoint.PowerPointImage.TransparentColor.set -> void
+OfficeIMO.PowerPoint.PowerPointImage.UpdateImage(System.IO.Stream! newImage, OfficeIMO.Drawing.OfficeImageFormat type) -> void
+OfficeIMO.PowerPoint.PowerPointImage.UpdateImage(string! imagePath) -> void
 OfficeIMO.PowerPoint.PowerPointKpiDirection
 OfficeIMO.PowerPoint.PowerPointKpiDirection.Down = 1 -> OfficeIMO.PowerPoint.PowerPointKpiDirection
 OfficeIMO.PowerPoint.PowerPointKpiDirection.Up = 0 -> OfficeIMO.PowerPoint.PowerPointKpiDirection
@@ -153,9 +181,51 @@ OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(OfficeIMO.OfficeColor color) -
 OfficeIMO.PowerPoint.PowerPointParagraph.SetFontFamily(string! fontFamily) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetFontName(string! fontName) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetHighlightColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointPicture.FitToBox() -> void
-OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(bool crop) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.BlackWhiteThreshold.get -> int?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.BlackWhiteThreshold.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.ContentType.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.Crop(double leftPercent, double topPercent, double rightPercent, double bottomPercent) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.CropBottomRatio.get -> double
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.CropLeftRatio.get -> double
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.CropRightRatio.get -> double
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.CropTopRatio.get -> double
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.FitToBox(double imageWidth, double imageHeight, bool crop = true) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.GetImageBytes() -> byte[]!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.GrayScale.get -> bool
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.GrayScale.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.LuminanceBrightness.get -> int?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.LuminanceBrightness.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.LuminanceContrast.get -> int?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.LuminanceContrast.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.MimeType.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.RecolorColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.RecolorColor.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.ResetClassicEffects() -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.ResetCrop() -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.TransparentColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.TransparentColor.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(System.IO.Stream! newImage, OfficeIMO.Drawing.OfficeImageFormat type) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(string! imagePath) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Description.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Description.set -> void
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(OfficeIMO.PowerPoint.PowerPointImageAsset! asset, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(OfficeIMO.PowerPoint.PowerPointImageAsset! asset, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointImage!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointPicture!
 OfficeIMO.PowerPoint.PowerPointSlide.ClearBackground() -> void
+OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointImage!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointPicture!>!
+OfficeIMO.PowerPoint.PowerPointSlide.GetImage(string! name) -> OfficeIMO.PowerPoint.PowerPointImage?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.GetPicture(string! name) -> OfficeIMO.PowerPoint.PowerPointPicture?
+OfficeIMO.PowerPoint.PowerPointSlide.Images.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointImage!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.Pictures.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointPicture!>!
 OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundColor(OfficeIMO.OfficeColor color) -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTableCell.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!

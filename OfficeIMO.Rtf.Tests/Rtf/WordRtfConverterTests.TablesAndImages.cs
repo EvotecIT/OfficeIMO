@@ -153,7 +153,7 @@ public partial class WordRtfConverterTests {
         byte[] png = CreateOnePixelPng();
         using WordDocument word = WordDocument.Create();
         using (var stream = new MemoryStream(png)) {
-            word.AddParagraph().AddImage(stream, "pixel.png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "Pixel image" });
+            word.AddParagraph().AddImage(stream, "pixel.png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "Pixel image" });
         }
 
         RtfDocument rtfDocument = word.ToRtfDocument();
@@ -173,7 +173,7 @@ public partial class WordRtfConverterTests {
         Assert.Contains("89504e470d0a1a0a", rtf, StringComparison.Ordinal);
 
         using WordDocument semanticBridge = rtfDocument.ToWordDocument();
-        Assert.Equal("Pixel image", Assert.Single(semanticBridge.Images).Description);
+        Assert.Equal("Pixel image", Assert.Single(semanticBridge.Images).AltText);
         WordImage roundTripImage = Assert.Single(roundTrip.Images);
         Assert.Equal(png, roundTripImage.ToBytes());
         RtfImage semanticRoundTripImage = Assert.IsType<RtfImage>(Assert.Single(roundTripRtf.Blocks));
@@ -189,7 +189,7 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddText("Before ");
         using (var stream = new MemoryStream(png)) {
-            paragraph.AddImage(stream, "pixel.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(12), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "Inline pixel" });
+            paragraph.AddImage(stream, "pixel.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(12), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "Inline pixel" });
         }
 
         paragraph.AddText(" after");
@@ -231,12 +231,12 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddText("Before ");
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "first.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "First image" });
+            paragraph.AddImage(stream, "first.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "First image" });
         }
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Second image" });
+            paragraph.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Second image" });
         }
-        paragraph.AddImage(new Uri("https://example.test/external.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "External image" });
+        paragraph.AddImage(new Uri("https://example.test/external.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "External image" });
 
         RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
         RtfParagraph converted = Assert.Single(conversion.Value.Paragraphs);
@@ -258,10 +258,10 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "first.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "First image" });
+            paragraph.AddImage(stream, "first.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "First image" });
         }
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Second image" });
+            paragraph.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Second image" });
         }
 
         RtfDocument converted = word.ToRtfDocument();
@@ -278,9 +278,9 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "embedded.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Embedded image" });
+            paragraph.AddImage(stream, "embedded.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Embedded image" });
         }
-        paragraph.AddImage(new Uri("https://example.test/external.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "External image" });
+        paragraph.AddImage(new Uri("https://example.test/external.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "External image" });
 
         Run run = Assert.IsType<Run>(paragraph._run);
         List<WordDrawing> drawings = run.Elements<WordDrawing>().ToList();
@@ -306,9 +306,9 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "embedded.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Fallback image" });
+            paragraph.AddImage(stream, "embedded.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Fallback image" });
         }
-        paragraph.AddImage(new Uri("https://example.test/fallback.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Description = "Fallback external image" });
+        paragraph.AddImage(new Uri("https://example.test/fallback.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Fallback external image" });
 
         Run run = Assert.IsType<Run>(paragraph._run);
         List<WordDrawing> drawings = run.Elements<WordDrawing>().ToList();

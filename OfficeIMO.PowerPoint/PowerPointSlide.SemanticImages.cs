@@ -6,10 +6,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a semantic image with deterministic fit/fill behavior, focal-point crop, and alternative text.
         /// </summary>
-        public PowerPointPicture AddImage(PowerPointImageAsset asset, PowerPointLayoutBox bounds) {
+        public PowerPointImage AddImage(PowerPointImageAsset asset, PowerPointLayoutBox bounds) {
             if (asset == null) throw new ArgumentNullException(nameof(asset));
             asset.Validate();
-            PowerPointPicture picture = AddImage(asset.Path,bounds);
+            PowerPointImage picture = AddImage(asset.Path,bounds);
             picture.AltText = asset.AlternativeText;
             picture.Name = string.IsNullOrWhiteSpace(asset.Caption) ? "Semantic Image" : asset.Caption!;
             if (asset.Placement == PowerPointImagePlacement.Stretch) return picture;
@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint {
             return picture;
         }
 
-        private static void ApplyFocalCrop(PowerPointPicture picture, double imageWidth, double imageHeight,
+        private static void ApplyFocalCrop(PowerPointImage picture, double imageWidth, double imageHeight,
             double boxWidth, double boxHeight, double focalX, double focalY) {
             double imageAspect = imageWidth / imageHeight;
             double boxAspect = boxWidth / boxHeight;

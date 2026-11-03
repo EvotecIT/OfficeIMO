@@ -1059,7 +1059,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
-        PowerPointPicture picture = presentation.AddSlide().AddImage(
+        PowerPointImage picture = presentation.AddSlide().AddImage(
             new MemoryStream(CreateMinimalRgbPng()),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
             global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
@@ -1146,7 +1146,7 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.Equal("Slide 1", warning.Source);
         Assert.NotNull(warning.LayoutDiagnostic);
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
-        Assert.Equal("PowerPointPicture", warning.LayoutDiagnostic.Source);
+        Assert.Equal("PowerPointImage", warning.LayoutDiagnostic.Source);
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("80 0 0 80 40 40 cm", raw, StringComparison.Ordinal);
     }
@@ -1185,7 +1185,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
-        PowerPointPicture picture = presentation.AddSlide().AddImage(
+        PowerPointImage picture = presentation.AddSlide().AddImage(
             new MemoryStream(CreateMinimalRgbPng()),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
             global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)),
@@ -1209,7 +1209,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
-        PowerPointPicture picture = presentation.AddSlide().AddImage(
+        PowerPointImage picture = presentation.AddSlide().AddImage(
             new MemoryStream(CreateMinimalRgbPng()),
             OfficeIMO.Drawing.OfficeImageFormat.Png,
             global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)),
