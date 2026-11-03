@@ -10,7 +10,7 @@ function Add-NativeTableUtilityPairControl {
     .OUTPUTS
     The physical page count.
     #>
-    param($FirstPage, [ValidateSet('Bare', 'Styled', 'Borders', 'Fills', 'Composed')] [string] $Kind)
+    param($FirstPage, [ValidateSet('Bare', 'Styled', 'Borders', 'Fills', 'Composed', 'SingleFill', 'TargetComposed')] [string] $Kind)
 
     $null = Add-NativeTableDecorationControl -FirstPage $FirstPage -BorderTopology:($Kind -eq 'Composed')
     $first = $FirstPage.Shapes.Item('AuthoredTable')
@@ -22,10 +22,10 @@ function Add-NativeTableUtilityPairControl {
     @($expectedShapes | Where-Object name -eq 'AuthoredTable')[-1].name = 'FirstDecoratedTable'
     @($expectedShapes | Where-Object name -eq 'TableLabel')[-1].name = 'FirstTableLabel'
 
-    if ($Kind -eq 'Bare') {
+    if ($Kind -in @('Bare', 'SingleFill')) {
         $null = Add-NativeTableCreationControl -FirstPage $FirstPage
     } else {
-        $null = Add-NativeTableDecorationControl -FirstPage $FirstPage -BorderOnly:($Kind -eq 'Borders') -FillOnly:($Kind -eq 'Fills') -TextEdited:($Kind -eq 'Composed')
+        $null = Add-NativeTableDecorationControl -FirstPage $FirstPage -BorderOnly:($Kind -eq 'Borders') -FillOnly:($Kind -eq 'Fills') -TextEdited:($Kind -in @('Composed', 'TargetComposed')) -BorderTopology:($Kind -eq 'TargetComposed')
     }
     $second = $FirstPage.Shapes.Item('AuthoredTable')
     $secondLabel = $FirstPage.Shapes.Item('TableLabel')
@@ -35,6 +35,18 @@ function Add-NativeTableUtilityPairControl {
     $second.Top = 360
     $secondLabel.Name = 'SecondTableLabel'
     $secondLabel.Top = 300
+    if ($Kind -eq 'SingleFill') {
+        $table = $second.Table
+        $range = $table.Cells(1, 1, 1, 1)
+        $cell = $range.Item(1)
+        $fill = $cell.Fill
+        $color = $fill.ForeColor
+        foreach ($value in @($table, $range, $cell, $fill, $color)) { $objects.Add($value) }
+        $fill.Solid()
+        $fill.Visible = -1
+        $fill.Transparency = 0
+        $color.RGB = 0x00A0E0FF
+    }
     $secondExpected = @($expectedShapes | Where-Object name -eq 'AuthoredTable')[-1]
     $secondExpected.name = 'SecondTable'
     $secondExpected.top = 360

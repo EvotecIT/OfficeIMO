@@ -610,12 +610,19 @@ borderless rectangular tables in compact sources and native-normalized empty
 utility scopes. A table with no cell or edge utility records can receive its first
 fills and borders beside an already decorated table in a qualified populated
 drawing, using its current SPID cluster. This can compose with supported peer
-border edits and cell-paragraph growth in one save. The writer retains ordinary
-drawing bytes, unrelated storage and unchanged peer records, and validates counts,
-identifiers, inherited defaults and allocation history. Partially missing cell
-utilities, cluster rollover, inconsistent metadata, unsupported paint and widths
-without an exact signed-EMU representation refuse saving. A border
-must fit the table's final perpendicular extent, including after resizing.
+border edits and cell-paragraph growth in one save. A fill or border decoration
+change can also initialize selectively missing cell utilities in qualified
+unmerged tables. Only missing native cell-definition indices receive the final
+fill/no-fill state; existing invisible cell records retain their ownership.
+Text or bounds edits alone do not initialize missing cells. Selective
+initialization composes with supported border edits on the same table or a peer,
+and with cell-paragraph growth. The writer retains ordinary drawing bytes,
+unrelated storage and unchanged cell/edge records, and validates counts,
+identifiers, inherited defaults and allocation history. Duplicate or unknown raw
+ownership, exhausted clusters, cluster rollover, unsafe defaults, inconsistent
+metadata, unsupported paint and widths without an exact signed-EMU representation
+refuse saving. A border must fit the table's final perpendicular extent, including
+after resizing.
 Gradients, cell-specific padding and broader native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
 

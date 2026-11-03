@@ -7,36 +7,64 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherPopulatedTableUtilityTests {
     [Theory]
-    [InlineData("Styled")]
-    [InlineData("Borders")]
-    [InlineData("Fills")]
-    [InlineData("Composed")]
-    public void First_styles_in_a_populated_utility_drawing_match_independent_tables_and_preserve_peers(string variant) {
-        byte[] source = MissingCells();
+    [InlineData("Styled", "Whole")]
+    [InlineData("Borders", "Whole")]
+    [InlineData("Fills", "Whole")]
+    [InlineData("Composed", "Whole")]
+    [InlineData("Styled", "First")]
+    [InlineData("Borders", "First")]
+    [InlineData("Fills", "First")]
+    [InlineData("Composed", "First")]
+    [InlineData("SingleFill", "First")]
+    [InlineData("Styled", "Diagonal")]
+    [InlineData("Borders", "Diagonal")]
+    [InlineData("Fills", "Diagonal")]
+    [InlineData("Composed", "Diagonal")]
+    [InlineData("SingleFill", "Diagonal")]
+    [InlineData("Fills", "Bordered")]
+    [InlineData("TargetComposed", "Bordered")]
+    public void First_styles_in_a_populated_utility_drawing_match_independent_tables_and_preserve_peers(string variant, string sourceProfile) {
+        byte[] source = MissingCells(sourceProfile);
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable[] original = Tables(document);
         Assert.Equal(2, original.Length);
-        Assert.All(original[1].Cells, cell => Assert.Null(cell.FillColor)); Assert.Empty(original[1].BorderSegments);
-        Assert.Empty(Utilities(source, original[1].Id, cellsOnly: false));
+        Assert.All(original[1].Cells, cell => Assert.Null(cell.FillColor));
+        Assert.Equal(sourceProfile == "Bordered" ? 6 : 0, original[1].BorderSegments.Count);
+        var originalTarget = Utilities(source, original[1].Id, cellsOnly: false);
+        Assert.Equal(sourceProfile == "Whole" ? 0 : sourceProfile == "First" ? 3 : sourceProfile == "Bordered" ? 9 : 2, originalTarget.Count);
         Assert.Equal(source, document.ToPubBytes());
         uint cursor = Cursor(source);
         if (variant == "Composed") PublisherTableBorderTopologyTests.Apply(document, "TableBorderTopology");
-        PublisherTableUtilityCreationTests.Apply(document, variant switch {
-            "Borders" => "TableBordersOnly", "Fills" => "TableFillsOnly", "Composed" => "TableDecorationText", _ => "TableDecoration"
+        if (variant == "SingleFill") document.SetTableCellFillColor(original[1].Id, 0, 0, OfficeColor.FromRgb(255, 224, 160));
+        else PublisherTableUtilityCreationTests.Apply(document, variant switch {
+            "Borders" => "TableBordersOnly", "Fills" => "TableFillsOnly", "Composed" or "TargetComposed" => "TableDecorationText", _ => "TableDecoration"
         }, original[1]);
+        if (variant == "TargetComposed") {
+            uint id = original[1].Id;
+            document.SetTableBorderStyle(id, 0, 0, 1, 0, null);
+            document.SetTableBorderStyle(id, 0, 0, 0, 2, new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 2));
+            document.SetTableBorderStyle(id, 2, 0, 2, 1, new OfficeBorderSide(OfficeColor.FromRgb(255, 128, 0), 2));
+        }
         var result = document.ToPubBytesResult(Allow());
         PublisherDocument loaded = PublisherDocument.Load(result.Value);
-        Compare(Control(variant), loaded);
+        PublisherDocument expected = Control(sourceProfile == "Bordered" && variant == "Fills" ? "Styled" : variant);
+        Compare(expected, loaded);
         PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value, "Escher/EscherStm",
-            variant == "Composed" ? new[] { "Quill/QuillSub/CONTENTS" } : Array.Empty<string>());
+            variant is "Composed" or "TargetComposed" ? new[] { "Quill/QuillSub/CONTENTS" } : Array.Empty<string>());
         Assert.Equal(Ordinary(source), Ordinary(result.Value));
         var peer = Utilities(source, original[0].Id, cellsOnly: variant == "Composed");
         var afterPeer = Utilities(result.Value, original[0].Id, cellsOnly: variant == "Composed");
         Assert.Equal(peer.Keys.OrderBy(id => id), afterPeer.Keys.OrderBy(id => id));
         foreach (var record in peer) Assert.Equal(record.Value, afterPeer[record.Key]);
         var added = Utilities(result.Value, original[1].Id, cellsOnly: false);
-        Assert.Equal(variant == "Fills" ? 4 : 10, added.Count);
-        Assert.All(added.Keys, id => Assert.True(id > cursor));
+        Assert.Equal(4 + Tables(expected)[1].BorderSegments.Count, added.Count);
+        Assert.All(added.Keys.Except(originalTarget.Keys), id => Assert.True(id > cursor));
+        if (variant == "SingleFill") foreach (var record in originalTarget) Assert.Equal(record.Value, added[record.Key]);
+        if (sourceProfile == "Bordered" && variant == "Fills") {
+            var borderIds = originalTarget.Keys.Except(Utilities(source, original[1].Id, cellsOnly: true).Keys).ToArray();
+            Assert.Equal(6, borderIds.Length);
+            foreach (uint id in borderIds) Assert.Equal(originalTarget[id], added[id]);
+        }
         Assert.True(Cursor(result.Value) >= added.Keys.Max());
         Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED"
             && item.LossKind == OfficeConversionLossKind.Unassessed);
@@ -44,10 +72,14 @@ public sealed class PublisherPopulatedTableUtilityTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Later_edits_of_allocated_cells_preserve_peers_and_identifier_history(bool activateFills) {
-        PublisherDocument document = PublisherDocument.Load(MissingCells());
+    [InlineData(false, "Whole")]
+    [InlineData(true, "Whole")]
+    [InlineData(false, "First")]
+    [InlineData(true, "First")]
+    [InlineData(false, "Diagonal")]
+    [InlineData(true, "Diagonal")]
+    public void Later_edits_of_allocated_cells_preserve_peers_and_identifier_history(bool activateFills, string sourceProfile) {
+        PublisherDocument document = PublisherDocument.Load(MissingCells(sourceProfile));
         PublisherTable second = Tables(document)[1];
         PublisherTableUtilityCreationTests.Apply(document, "TableBordersOnly", second);
         byte[] bordered = document.ToPubBytes(Allow()); uint cursor = Cursor(bordered);
@@ -109,6 +141,24 @@ public sealed class PublisherPopulatedTableUtilityTests {
     }
 
     [Fact]
+    public void Partial_cell_allocation_refuses_ambiguous_existing_definition_ownership() {
+        byte[] original = MissingCells("First"); uint tableId = Tables(PublisherDocument.Load(original))[1].Id;
+        OfficeCompoundFile compound = Compound(original); byte[] art = (byte[])compound.Streams["Escher/EscherStm"].Clone();
+        var reader = Reader(art);
+        var owner = Assert.Single(reader.Read().TableArtwork, item => item.TableId == tableId && item.Value(0x2001) == 0 && item.Value(0x2003) == 2);
+        var binding = owner.Shape.NativeBinding!;
+        var anchor = reader.Records(binding.BodyOffset, binding.BodyOffset + binding.BodyLength).Single(item => item.Kind == 0xF010);
+        int slot = Enumerable.Range(0, (anchor.Length - 4) / 6).Select(index => anchor.Offset + 4 + index * 6)
+            .Single(offset => BitConverter.ToUInt16(art, offset) == 0x2003);
+        BitConverter.GetBytes(1U).CopyTo(art, slot + 2);
+        byte[] source = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = art });
+        PublisherDocument document = PublisherDocument.Load(source); Assert.Equal(source, document.ToPubBytes());
+        document.SetTableCellFillColor(tableId, 0, 0, OfficeColor.FromRgb(255, 224, 160));
+        var error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(Allow()));
+        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+    }
+
+    [Fact]
     public void New_borders_in_populated_scopes_refuse_inherited_transparency() {
         byte[] original = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TableUtilityPairFills/native-tableutilitypairfills.pub"));
         OfficeCompoundFile compound = Compound(original); byte[] art = (byte[])compound.Streams["Escher/EscherStm"].Clone();
@@ -148,7 +198,11 @@ public sealed class PublisherPopulatedTableUtilityTests {
     private static PublisherTable[] Tables(PublisherDocument document) => document.Pages[0].Tables.OrderBy(table => table.Y).ToArray();
     private static PublisherDocument Control(string variant) => PublisherDocument.Load(PublisherNativeTests.Fixture(
         "NativeComparison/TableUtilityPair" + variant + "/native-tableutilitypair" + variant.ToLowerInvariant() + ".pub"));
-    private static byte[] MissingCells() => File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TableUtilityPairMissingCells/missing-second-utilities.pub"));
+    private static byte[] MissingCells(string profile = "Whole") => File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/" + (profile switch {
+        "First" => "TableUtilityPairMissingFirstCell/missing-first.pub", "Diagonal" => "TableUtilityPairMissingDiagonalCells/missing-diagonal.pub",
+        "Bordered" => "TableUtilityPairMissingBorderedCell/missing-bordered-first.pub",
+        _ => "TableUtilityPairMissingCells/missing-second-utilities.pub"
+    })));
     private static void Compare(PublisherDocument expected, PublisherDocument actual) {
         var left = Tables(expected); var right = Tables(actual); Assert.Equal(left.Length, right.Length);
         for (int index = 0; index < left.Length; index++) {

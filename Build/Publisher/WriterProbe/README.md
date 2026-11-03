@@ -27,6 +27,9 @@ $probe = 'Build/Publisher/WriterProbe/bin/Release/net10.0/OfficeIMO.Publisher.Te
 dotnet $probe inventory ./reference.pub ./reference.inventory.json
 dotnet $probe diff ./native-text.pub ./native-textlong.pub ./text-change.diff.json
 dotnet $probe table-utility-source ./decorated-bare-pair-control.pub ./missing-second-utilities.pub
+dotnet $probe table-utility-source ./decorated-bare-pair-control.pub ./missing-first.pub 0
+dotnet $probe table-utility-source ./decorated-bare-pair-control.pub ./missing-diagonal.pub 0,3
+dotnet $probe table-utility-source ./pair-borders-control.pub ./missing-bordered-first.pub 0
 dotnet $probe create blank ./candidate-blank.pub
 dotnet $probe create blank-pages ./candidate-two-blank-pages.pub 2
 dotnet $probe create text-pages ./candidate-text-pages.pub 3
@@ -73,13 +76,20 @@ cases place their objects on a single physical page, except `text-pages`, which
 requires 2 to 16 pages and places independent stories on the first and last pages,
 and the three-page `object-pages`, `image-pages` and `named-image-pages` specimens.
 
-`table-utility-source` derives a synthetic source input from the independent
-`TableUtilityPair` decorated/bare two-table control. It removes exactly the bare
-second table's four hidden cell records and reduces FDG/FDGG active counts by
-four, retaining allocation cursors, used slots, maximum-ID history, other records
-and logical storage. Its output reproduces the labelled
-`TableUtilityPairMissingCells` fixture; the independent pair controls supply
-final-state expectations.
+`table-utility-source <pair-control.pub> <derived-input.pub> [missing-cell-indices]`
+derives a synthetic source input from an independent two-table control with a
+decorated first table and four hidden, unmerged second-table cells. The target
+may retain shared borders. The optional comma-separated indices select distinct
+zero-based native cell-definition indices from 0 through 3, rather than public
+row/column coordinates. Omitting them removes all four records and retains the
+exact derived bytes of the legacy `TableUtilityPairMissingCells` fixture.
+Selective examples reproduce the labelled `TableUtilityPairMissingFirstCell`,
+`TableUtilityPairMissingDiagonalCells` and `TableUtilityPairMissingBorderedCell`
+inputs. The command reduces FDG/FDGG active counts by the number removed while
+retaining allocation cursors, used slots, maximum-ID history, surviving cell/edge
+records and other logical storage. Its JSON output records source/output hashes,
+selected definition indices and retained allocation metadata. These are derived
+source inputs; independent pair controls supply final-state expectations.
 
 `inventory` records compound metadata and hashes, known Contents fields, Quill
 directories, OfficeArt envelopes and a separate OfficeIMO reader result.
@@ -771,11 +781,36 @@ sixteen native PDF pairs match with zero changed pixels at 100 dpi. Managed
 colored primitives match, while text baselines remain approximate.
 
 Exhausted clusters, unsupported inherited opacity/defaults and grouped or
-unqualified ownership refuse output. Partially missing cell sets in a table that
-already owns utilities, new/rollover clusters, decorated merges and broader
-transforms/layouts/producers remain unqualified. This record adds no actual native
+unqualified ownership refuse output. Selectively missing cell sets in a table that
+already owns utilities use the separate profile below. New/rollover clusters,
+decorated merges and broader transforms/layouts/producers remain unqualified. This record adds no actual native
 cell mutation claim; the first-cell profile below is separate. Repair-free
 acceptance and public source-free native creation remain open.
+
+The `partialTableCellUtilityInitialization` record qualifies missing first-cell
+and diagonal-cell utility records, including a target with six surviving borders,
+within the qualified direct two-table drawing and current SPID cluster. An actual
+fill or border decoration change initializes only missing native cell-definition
+indices with the final fill/no-fill state. Existing hidden records retain their
+ownership and bytes when unchanged. Text or bounds edits alone do not allocate
+cell utilities; semantic no-op saves retain exact source bytes. Same-table and
+peer border topology/scalar edits and cell-paragraph growth compose with this
+selective allocation while unchanged cell/edge records, ordinary drawings and
+unrelated storage remain preserved.
+
+Independent `TableUtilityPairSingleFill` and `TableUtilityPairTargetComposed`
+controls add a single filled target cell and target topology/text composition.
+Sixteen public PowerShell save/PDF workflows cover first/diagonal holes, border-only,
+single-fill and three-fill states, peer and target composition, clear/re-add, later fill
+activation and native-resaved follow-up. Native Full validation retains
+thirty-two complete inventories of both tables and labels; thirty-two native PDF
+pairs match controls with zero changed pixels at 100 dpi. Sixteen managed
+colored-primitive comparisons match, with approximate managed text baselines.
+Duplicate/unknown raw ownership, unsafe inherited drawing-group properties or defaults,
+exhausted clusters and inconsistent metadata refuse output. Larger grids,
+transformed/grouped or merged tables, new clusters and broader producers remain
+unqualified. Actual native cell text mutation uses the separate first-cell profile;
+this record does not qualify it, repair-free acceptance or public native creation.
 
 The `tableNativeCellMutation` record separately qualifies actual first-cell text
 replacement in four table outputs: fresh borderless/decorated authoring and

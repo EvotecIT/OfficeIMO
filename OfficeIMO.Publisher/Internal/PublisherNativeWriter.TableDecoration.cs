@@ -5,6 +5,7 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed partial class PublisherNativeWriter {
     private readonly Dictionary<uint, IReadOnlyList<PublisherTableBorderSegment>> _tableBorderTargets = new();
     private readonly Dictionary<uint, PublisherTableState> _newTableUtilityTargets = new();
+    private readonly Dictionary<uint, PublisherTableState> _missingTableCellTargets = new();
     private PublisherEscherShapeEdits? _tableBorderRecords;
     /// <summary>Edits utility fills and shared edges within the qualified existing drawing and allocation cluster.</summary>
     private void CompareTableDecoration(PublisherTableState before, PublisherTableState after) {
@@ -22,15 +23,25 @@ internal sealed partial class PublisherNativeWriter {
             _newTableUtilityTargets.Add(before.Id, after);
             return;
         }
+        var cellOwners = artwork.Where(item => item.Value(0x2001) == 0).ToLookup(item => item.Value(0x2003));
+        bool missingCells = false;
         for (int i = 0; i < before.CellFills.Count; i++) {
             _token.ThrowIfCancellationRequested();
+            PublisherTableArtwork[] owners = cellOwners[(uint)i].ToArray();
+            if (owners.Length == 0) {
+                if (before.CellFills[i].HasValue) { Reject(location, "An existing cell fill has no native utility owner."); return; }
+                missingCells = true;
+                continue;
+            }
             if (before.CellFills[i] == after.CellFills[i]) continue;
-            PublisherTableArtwork[] owners = artwork.Where(item => item.Value(0x2001) == 0 && item.Value(0x2003) == i).ToArray();
             if (owners.Length != 1) {
                 Reject(location, "Cell fill saving requires one unambiguous existing native utility record."); continue;
             }
             TableFill(owners[0], before.CellFills[i], after.CellFills[i], location);
         }
+        // An edited table owns explicit fill/no-fill records for its complete
+        // grid. Existing invisible records are owners, not missing utilities.
+        if (missingCells) _missingTableCellTargets.Add(before.Id, after);
         if (before.BorderSegments.SequenceEqual(after.BorderSegments)) return;
         var oldBorders = new Dictionary<(int, int, int, int), PublisherTableBorderSegment>();
         var ownersByEdge = new Dictionary<(int, int, int, int), PublisherTableArtwork>();
@@ -119,7 +130,7 @@ internal sealed partial class PublisherNativeWriter {
     }
 
     private void PlanTableBorderRecords() {
-        if (_newTableUtilityTargets.Count == 0 && _tableBorderTargets.Count == 0) return;
+        if (_newTableUtilityTargets.Count == 0 && _missingTableCellTargets.Count == 0 && _tableBorderTargets.Count == 0) return;
         var context = new PublisherParseContext(_sourceOptions, _token);
         if (_newTableUtilityTargets.Count != 0 && !_imported.Artwork.HasTableCellDefault && _imported.Artwork.TableArtwork.Count == 0) {
             _tableBorderRecords = PublisherEscherTableUtilityPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork, _newTableUtilityTargets, context, out var scalars);
@@ -127,7 +138,8 @@ internal sealed partial class PublisherNativeWriter {
             else foreach (var edit in scalars) Patch(edit.Slot, edit.Value);
             return;
         }
-        PublisherEscherTableBorderPlan? plan = PublisherEscherTableBorderPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork, _tableBorderTargets, context, _newTableUtilityTargets);
+        PublisherEscherTableBorderPlan? plan = PublisherEscherTableBorderPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork,
+            _tableBorderTargets, context, _newTableUtilityTargets, _missingTableCellTargets);
         if (plan == null) { Reject("Escher/tables", "Utility edits require one existing direct utility drawing, consistent shape/allocation counts and room in its current SPID cluster."); return; }
         foreach (var edit in plan.Scalars) Patch(edit.Slot, edit.Value);
         _tableBorderRecords = plan.Shapes;

@@ -7,7 +7,8 @@ internal sealed class PublisherEscherTableBorderPlan {
 
     internal static PublisherEscherTableBorderPlan? Create(byte[] source, PublisherEscherData art,
         IReadOnlyDictionary<uint, IReadOnlyList<PublisherTableBorderSegment>> desired, PublisherParseContext context,
-        IReadOnlyDictionary<uint, PublisherTableState>? newTables = null) {
+        IReadOnlyDictionary<uint, PublisherTableState>? newTables = null,
+        IReadOnlyDictionary<uint, PublisherTableState>? partialTables = null) {
         var data = new PublisherBinaryData(source, "Escher/EscherStm");
         var reader = new PublisherEscherReader(data, null, context);
         IReadOnlyList<PublisherEscherRecord> top = reader.Records(0, source.Length);
@@ -58,28 +59,47 @@ internal sealed class PublisherEscherTableBorderPlan {
         var plan = new PublisherEscherTableBorderPlan();
         var added = new List<byte[]>();
         int additions = 0;
-        if (newTables?.Count > 0) {
-            if (newTables.Keys.Any(desired.ContainsKey) || !art.HasTableCellDefault
+        if (newTables?.Count > 0 || partialTables?.Count > 0) {
+            if (newTables?.Keys.Any(desired.ContainsKey) == true
+                || (partialTables != null && newTables?.Keys.Any(partialTables.ContainsKey) == true) || !art.HasTableCellDefault
                 || !QualifiedUtilityDefaults(data, reader, dggs[0], utilityShapes, drawingId, context)) return null;
             var ordinary = new HashSet<int>();
             foreach (var drawing in drawings.Where(item => item.Offset >= 12 && data.U32(item.Offset - 12) == 0))
                 foreach (var container in reader.Records(drawing.Offset, drawing.End).Where(item => item.Kind == 0xF003))
                     foreach (var shape in reader.Records(container.Offset, container.End).Where(item => item.Kind == 0xF004)) ordinary.Add(shape.Offset);
             var inputs = new List<PublisherTableUtilityInput>();
-            foreach (var item in newTables.OrderBy(item => item.Key)) {
+            var selectedCells = new List<PublisherTableCellUtilityInput>();
+            if (newTables != null) foreach (var item in newTables.OrderBy(item => item.Key)) {
                 context.Token.ThrowIfCancellationRequested();
-                var table = item.Value; var owners = art.Shapes.Where(shape => shape.Id == item.Key).ToArray();
-                if (!table.HasPlacement || table.Hidden || table.BoundsEditLimitation != null
-                    || table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1)
-                    || art.TableArtwork.Any(owner => owner.TableId == item.Key) || owners.Length != 1
-                    || owners[0].NativeBinding is not { } binding || !binding.Matches(data) || !ordinary.Contains(binding.BodyOffset)) return null;
+                var table = item.Value;
+                if (!QualifiedTable(item.Key, table) || art.TableArtwork.Any(owner => owner.TableId == item.Key)) return null;
                 inputs.Add(new(table.Id, table.Rows.Count, table.Columns.Count, table.Width, table.Height, table.CellFills, table.BorderSegments));
             }
-            var cells = PublisherTableUtilityDrawingEncoding.WriteCells((cluster << 10) + used, inputs, (int)(1024 - used), context.Token);
+            if (partialTables != null) foreach (var item in partialTables.OrderBy(item => item.Key)) {
+                context.Token.ThrowIfCancellationRequested();
+                var table = item.Value;
+                if (!QualifiedTable(item.Key, table) || !TryCellOwners(data, art.TableArtwork.Where(owner => owner.TableId == item.Key),
+                    table, bodies, context, out var existingCells)) return null;
+                int start = selectedCells.Count;
+                for (int index = 0; index < table.CellFills.Count; index++) {
+                    context.Token.ThrowIfCancellationRequested();
+                    if (!existingCells.Contains(index)) selectedCells.Add(new(table.Id, index, table.CellFills[index]));
+                }
+                if (selectedCells.Count == start) return null;
+            }
+            var cells = PublisherTableUtilityDrawingEncoding.WriteCells((cluster << 10) + used, inputs, selectedCells, (int)(1024 - used), context.Token);
             if (cells == null) return null;
             for (uint index = 0; index < cells.Value.Count; index++)
                 if (!spids.Add((cluster << 10) + used + index)) return null;
             added.Add(cells.Value.Bytes); additions = (int)cells.Value.Count;
+
+            bool QualifiedTable(uint id, PublisherTableState table) {
+                var owners = art.Shapes.Where(shape => shape.Id == id).ToArray();
+                return table.Id == id && table.HasPlacement && !table.Hidden && table.BoundsEditLimitation == null
+                    && table.Rows.Count > 0 && table.Columns.Count > 0 && (long)table.Rows.Count * table.Columns.Count == table.Cells.Count
+                    && !table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1)
+                    && owners.Length == 1 && owners[0].NativeBinding is { } binding && binding.Matches(data) && ordinary.Contains(binding.BodyOffset);
+            }
         }
         foreach (var table in desired) {
             context.Token.ThrowIfCancellationRequested();
@@ -144,6 +164,34 @@ internal sealed class PublisherEscherTableBorderPlan {
     }
 
     internal static (int, int, int, int) Key(PublisherTableBorderSegment border) => (border.FirstRow, border.FirstColumn, border.LastRow, border.LastColumn);
+
+    /// <summary>Qualifies the complete retained ownership before filling holes, including unchanged invisible cells.</summary>
+    private static bool TryCellOwners(PublisherBinaryData data, IEnumerable<PublisherTableArtwork> records, PublisherTableState table,
+        HashSet<int> bodies, PublisherParseContext context, out HashSet<int> cells) {
+        cells = new HashSet<int>();
+        var edges = new HashSet<(uint, uint, uint, uint)>();
+        foreach (PublisherTableArtwork owner in records) {
+            context.Token.ThrowIfCancellationRequested();
+            var shape = owner.Shape; var style = shape.Style;
+            if (shape.NativeBinding is not { } binding || !binding.Matches(data) || !bodies.Contains(binding.BodyOffset)
+                || shape.Type != 1 || shape.Flags != 0xA00 || shape.Hidden
+                || shape.Transform.RotationDegrees.GetValueOrDefault() != 0 || shape.Transform.FlipHorizontal || shape.Transform.FlipVertical
+                || style.ShadowEnabled == true || style.FillType.GetValueOrDefault() != 0 || style.FillOpacity.GetValueOrDefault(1) != 1) return false;
+            uint kind = owner.Value(0x2001);
+            if (kind == 0) {
+                uint index = owner.Value(0x2003);
+                if (index >= table.CellFills.Count || !cells.Add((int)index)
+                    || owner.Anchor.Keys.Any(key => key is not (0x6802 or 0x2001 or 0x2003))) return false;
+            } else if (kind is 1 or 2) {
+                uint row = owner.Value(0x2004), column = owner.Value(0x2005), endRow = owner.Value(0x2006), endColumn = owner.Value(0x2007);
+                if (row > table.Rows.Count || endRow > table.Rows.Count || column > table.Columns.Count || endColumn > table.Columns.Count
+                    || (kind == 1 ? row != endRow || endColumn <= column : column != endColumn || endRow <= row)
+                    || !edges.Add((row, column, endRow, endColumn)) || style.FillEnabled == false
+                    || owner.Anchor.Keys.Any(key => key is not (0x6802 or 0x2001 or 0x2004 or 0x2005 or 0x2006 or 0x2007))) return false;
+            } else return false;
+        }
+        return true;
+    }
 
     private static bool QualifiedUtilityDefaults(PublisherBinaryData data, PublisherEscherReader reader, PublisherEscherRecord dgg,
         IReadOnlyList<PublisherEscherRecord> shapes, uint drawingId, PublisherParseContext context) {

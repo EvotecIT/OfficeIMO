@@ -1,0 +1,20 @@
+{
+  "schema": "officeimo.publisher.derived-partial-cell-source.v1",
+  "license": "MIT",
+  "derivedFrom": "../TableUtilityPair/native-tableutilitypair.pub",
+  "sourceSha256": "178ed9ca6255e35b737c3cf6a9079b44c3676203d48d06c9ce7b7d916e4fba0d",
+  "removedDefinitionIndices": [
+    0,
+    3
+  ],
+  "reproduction": "dotnet <WriterProbe.dll> table-utility-source <TableUtilityPair/native-tableutilitypair.pub> <output.pub> 0,3",
+  "operation": "Remove only selected second-table hidden cell records and reduce active FDG/FDGG counts by the selected count. Preserve other records, cursor, used slots and maximum-ID history.",
+  "files": [
+    {
+      "name": "missing-diagonal.pub",
+      "bytes": 107008,
+      "sha256": "d761eec4330c54c261c195c95b3dff7508f76b47aaaaaa57b42c74b769904386"
+    }
+  ],
+  "scope": "Labelled native-derived codec input. Independently native-authored complete pair controls provide expected edited states."
+}

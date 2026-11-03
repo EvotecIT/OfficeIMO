@@ -36406,5 +36406,839 @@
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "partialTableCellUtilityInitialization": {
+    "sourceBaseCommit": "2cf8c69b2c588bacff1ce67a2ccb84b5278fbc60",
+    "scope": "Selective missing cell utilities in qualified unmerged two-table source profiles, including surviving target borders and same-table/peer border topology and paragraph composition.",
+    "publicOperations": [
+      "SetTableCellFillColor",
+      "SetTableBorderStyle",
+      "ReplaceTableCellParagraphs",
+      "ToPubBytesResult"
+    ],
+    "codec": {
+      "selection": "After a fill/border decoration change, raw absent definition indices receive explicit final-model fill/no-fill records. Existing invisible records remain owners; unchanged existing cell/edge containers stay byte-identical. Text/bounds changes alone do not materialize utilities; semantic no-ops preserve source bytes.",
+      "sharedOwner": "Shared single-cell encoder serves full/fresh and selective inputs; existing populated border planner owns current-cluster allocation, active counts, retained history and combined edge surgery.",
+      "guards": "Direct ordinary unmerged placement, complete raw binding ownership, valid unique definition indices and edge keys, qualified utility/default roots, independent Dgg inheritance and current-cluster capacity. Duplicate/unknown ownership and unsafe defaults refuse even under Allow.",
+      "composition": "Selective cells may overlap desired border topology on the same table. Peer border scalar/record edits, cell changes, enclosing lengths and Quill paragraph growth compose through current owners.",
+      "diagnostic": "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED"
+    },
+    "nativeBinary": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20112",
+      "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "powershell": "7.6.9",
+      "automationSecurity": 3
+    },
+    "fixtures": [
+      {
+        "case": "TableUtilityPairMissingFirstCell",
+        "classification": "derived-source",
+        "files": [
+          {
+            "name": "missing-first.pub",
+            "bytes": 107008,
+            "sha256": "12068b2b90928e6d8cebf5e114e0652ad23d49a08c1595551a6cb320ce967b14"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairMissingDiagonalCells",
+        "classification": "derived-source",
+        "files": [
+          {
+            "name": "missing-diagonal.pub",
+            "bytes": 107008,
+            "sha256": "d761eec4330c54c261c195c95b3dff7508f76b47aaaaaa57b42c74b769904386"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairMissingBorderedCell",
+        "classification": "derived-source",
+        "files": [
+          {
+            "name": "missing-bordered-first.pub",
+            "bytes": 109056,
+            "sha256": "88ef50485589018932b1e8ea58e43c377b9f3bea8e95fae056306ee64e14c9ba"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairSingleFill",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableutilitypairsinglefill.pub",
+            "bytes": 98816,
+            "sha256": "91fd2a7346a50102e7fb4d90f593e7dd010e3c0bbd70f66a87d00958cb4ed80b"
+          },
+          {
+            "name": "native-tableutilitypairsinglefill.pdf",
+            "bytes": 112314,
+            "sha256": "4d38c7e1bbbde73040b03bdc5d6b383c63c1554950d017ac6a59225f217482e3"
+          },
+          {
+            "name": "native-tableutilitypairsinglefill.json",
+            "bytes": 18278,
+            "sha256": "cd6b9b338a55c7a5ee1aecafc9f4fa9bcd1f84688b7aae3db4299add0dce952c"
+          }
+        ]
+      },
+      {
+        "case": "TableUtilityPairTargetComposed",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-tableutilitypairtargetcomposed.pub",
+            "bytes": 101376,
+            "sha256": "f2fb17ecec94afd3bf4c01123af50a697dd766e7288df32e010473cc060cd702"
+          },
+          {
+            "name": "native-tableutilitypairtargetcomposed.pdf",
+            "bytes": 114231,
+            "sha256": "6337bd74e8b1e3da0237d13cb52b2750eec53ab45255c735de2658b341866445"
+          },
+          {
+            "name": "native-tableutilitypairtargetcomposed.json",
+            "bytes": 18293,
+            "sha256": "a339952bef7716663fe9d66a2c62597f4079572a9a7cb4764d536582047df374"
+          }
+        ]
+      }
+    ],
+    "sourceReproduction": {
+      "command": "dotnet <WriterProbe.dll> table-utility-source <pair-control.pub> <derived-input.pub> [comma-separated-definition-indices]",
+      "default": "No indices retains the exact earlier all-four removal behavior.",
+      "sources": [
+        {
+          "profile": "first",
+          "sourceSha256": "178ed9ca6255e35b737c3cf6a9079b44c3676203d48d06c9ce7b7d916e4fba0d",
+          "outputSha256": "12068b2b90928e6d8cebf5e114e0652ad23d49a08c1595551a6cb320ce967b14",
+          "firstTableId": 294,
+          "secondTableId": 298,
+          "removedCellUtilities": 1,
+          "removedCellIndices": [
+            0
+          ],
+          "retainedAllocationCursor": 3088,
+          "activeDrawingCount": 16,
+          "activeTotal": 22,
+          "scope": "Derived source input; native control remains independently authored. Cursors, used slots, other records and logical streams retained."
+        },
+        {
+          "profile": "diagonal",
+          "sourceSha256": "178ed9ca6255e35b737c3cf6a9079b44c3676203d48d06c9ce7b7d916e4fba0d",
+          "outputSha256": "d761eec4330c54c261c195c95b3dff7508f76b47aaaaaa57b42c74b769904386",
+          "firstTableId": 294,
+          "secondTableId": 298,
+          "removedCellUtilities": 2,
+          "removedCellIndices": [
+            0,
+            3
+          ],
+          "retainedAllocationCursor": 3088,
+          "activeDrawingCount": 15,
+          "activeTotal": 21,
+          "scope": "Derived source input; native control remains independently authored. Cursors, used slots, other records and logical streams retained."
+        },
+        {
+          "profile": "bordered",
+          "sourceSha256": "1355a3906417895eba2c15bc77e868d967c0d79d32189bd5e7bc4600ad8940b9",
+          "outputSha256": "88ef50485589018932b1e8ea58e43c377b9f3bea8e95fae056306ee64e14c9ba",
+          "firstTableId": 294,
+          "secondTableId": 298,
+          "removedCellUtilities": 1,
+          "removedCellIndices": [
+            0
+          ],
+          "retainedAllocationCursor": 3096,
+          "activeDrawingCount": 22,
+          "activeTotal": 28,
+          "scope": "Derived source input; native control remains independently authored. Cursors, used slots, other records and logical streams retained."
+        }
+      ],
+      "legacyWholeSourceExact": true
+    },
+    "cases": [
+      {
+        "case": "first-styled",
+        "control": "TableUtilityPairStyled",
+        "candidateSha256": "bdae9af3e25d4a94ba7b2676071a5a945baac1ac209f6d3d7061e1d7296df310",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-first-styled/candidate-input.pub",
+            "sha256": "bdae9af3e25d4a94ba7b2676071a5a945baac1ac209f6d3d7061e1d7296df310"
+          },
+          {
+            "path": "native-first-styled/native-initial-inventory.json",
+            "sha256": "b38acd7d7676ddb951566111451353850dc5bbf1fc0fc3568abbaef792ab0ce8"
+          },
+          {
+            "path": "native-first-styled/native-initial.pdf",
+            "sha256": "2aa22543b27ca62c87d0c2d0a246c8721f12702b0af2ddb4c6c05cf23a63b130"
+          },
+          {
+            "path": "native-first-styled/native-resaved-inventory.json",
+            "sha256": "77a551c5611fd13bad382d61d02950b4e5b41eadefa0045385d8d10288539d75"
+          },
+          {
+            "path": "native-first-styled/native-resaved.pdf",
+            "sha256": "c8b8a794213181602e203b9499bf447b00347690cf575e54c9c196cb9ccf7cec"
+          },
+          {
+            "path": "native-first-styled/native-resaved.pub",
+            "sha256": "43147d95486d071503353a27bdbe9f6428b29ebd71d7ff6336c2f06013d79b1b"
+          },
+          {
+            "path": "native-first-styled/native-validation.json",
+            "sha256": "4d21646c6a32481301f3b8228760a5e8ef759a258c467b155e0082e498b5648d"
+          }
+        ]
+      },
+      {
+        "case": "first-borders",
+        "control": "TableUtilityPairBorders",
+        "candidateSha256": "ca02e074b0af915626f18e588476e06ceb943b9ab66c382858e02dd88e5eec21",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-first-borders/candidate-input.pub",
+            "sha256": "ca02e074b0af915626f18e588476e06ceb943b9ab66c382858e02dd88e5eec21"
+          },
+          {
+            "path": "native-first-borders/native-initial-inventory.json",
+            "sha256": "4971b3f71a09a29f8324a2bb38257f72ad45de5bb401d29274dc6c2a482a7b66"
+          },
+          {
+            "path": "native-first-borders/native-initial.pdf",
+            "sha256": "e9a7dead91a97bd3fb384996b79e4745c39adefb3848463b53fb1e347ed85f29"
+          },
+          {
+            "path": "native-first-borders/native-resaved-inventory.json",
+            "sha256": "43b83fc6ff83aac03355b2ce5e6ee66d766fc6072fb863f286dc409895c428f0"
+          },
+          {
+            "path": "native-first-borders/native-resaved.pdf",
+            "sha256": "fb8cb57a8d7b5e8446a9b027b8a794845d75506cc65d181ee3792a17acdabfb8"
+          },
+          {
+            "path": "native-first-borders/native-resaved.pub",
+            "sha256": "54690113bf128bffb13c5cd213cff3c29d933b70480eff5bbd731f0e51188abf"
+          },
+          {
+            "path": "native-first-borders/native-validation.json",
+            "sha256": "1c03f53af8dd99458e9eb48e407562b0c9b3fb3fb28dcc724581cd369c735050"
+          }
+        ]
+      },
+      {
+        "case": "first-fills",
+        "control": "TableUtilityPairFills",
+        "candidateSha256": "848de058ba28a92365e5ed08081bf3c67160f0450063cfe4a10dd942b0505000",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-first-fills/candidate-input.pub",
+            "sha256": "848de058ba28a92365e5ed08081bf3c67160f0450063cfe4a10dd942b0505000"
+          },
+          {
+            "path": "native-first-fills/native-initial-inventory.json",
+            "sha256": "50727ec444686cbdf32221edf09b980847b857b0dbc28b638f8606972ab21195"
+          },
+          {
+            "path": "native-first-fills/native-initial.pdf",
+            "sha256": "dfa8af0c60bd4272c2718a349039b9ee2e3653c064cb151e38581490fa8e3640"
+          },
+          {
+            "path": "native-first-fills/native-resaved-inventory.json",
+            "sha256": "80f5bc10cf3b2f45ff10ce29e800b476ee9f8bd270a22b8b3c869ef0935dc41c"
+          },
+          {
+            "path": "native-first-fills/native-resaved.pdf",
+            "sha256": "2b2f98f71e983a08610c237ca16cb2ee0f0c59a6a7c180cbea94be5fc0601da5"
+          },
+          {
+            "path": "native-first-fills/native-resaved.pub",
+            "sha256": "df9ab89298877a214bd6552a12eb71ae5e4f19a29697bb70a053fd2e4d0971a2"
+          },
+          {
+            "path": "native-first-fills/native-validation.json",
+            "sha256": "e7e866c1804b0076128ad4ea5f430b07b39ab281b2e4866f4ca564bbf51c8467"
+          }
+        ]
+      },
+      {
+        "case": "first-single",
+        "control": "TableUtilityPairSingleFill",
+        "candidateSha256": "8c3e77b3f1b8ac4ced5b2ad494da592af71e7d2405f61326a28d8dc9263bea3d",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-first-single/candidate-input.pub",
+            "sha256": "8c3e77b3f1b8ac4ced5b2ad494da592af71e7d2405f61326a28d8dc9263bea3d"
+          },
+          {
+            "path": "native-first-single/native-initial-inventory.json",
+            "sha256": "74a71396a3ea929930eb42a8ac1cc1635af168d017977c1631d474063990d69b"
+          },
+          {
+            "path": "native-first-single/native-initial.pdf",
+            "sha256": "9677440608655e131a9006831adaace8b0c04202df6031a16a95186a785b2332"
+          },
+          {
+            "path": "native-first-single/native-resaved-inventory.json",
+            "sha256": "6b4a0111b3c337ef0b7f362b7d2fd8c0c1c66e8bc36cd3deece9fe7f356eabdd"
+          },
+          {
+            "path": "native-first-single/native-resaved.pdf",
+            "sha256": "f01596b787680bd554b22dfd8b8b7f2148e699449f4d8d4f263ec6a4901babf5"
+          },
+          {
+            "path": "native-first-single/native-resaved.pub",
+            "sha256": "6cf0f43bfc3895c8849a25a53b495d5055621bd5b14df13788c2fbb358df7cab"
+          },
+          {
+            "path": "native-first-single/native-validation.json",
+            "sha256": "32b84b8151559b24eaa85a414cf95d1f443d0d9ac66c764c5fea917b7637c624"
+          }
+        ]
+      },
+      {
+        "case": "first-composed",
+        "control": "TableUtilityPairComposed",
+        "candidateSha256": "bfaf842b067076d0e75753c53cd4346d14c1044baf1317aa66ca8c556a244c62",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-first-composed/candidate-input.pub",
+            "sha256": "bfaf842b067076d0e75753c53cd4346d14c1044baf1317aa66ca8c556a244c62"
+          },
+          {
+            "path": "native-first-composed/native-initial-inventory.json",
+            "sha256": "24b465864aa00636136970ab86d1b7648fd5a5230e5bc807e67869b54d946627"
+          },
+          {
+            "path": "native-first-composed/native-initial.pdf",
+            "sha256": "f423e12b5b6061e5e9bb85c1d7f63fcebf65073b182eac9b3a10037a5e26f196"
+          },
+          {
+            "path": "native-first-composed/native-resaved-inventory.json",
+            "sha256": "3adb1ddae3edc6643cd37e7628c47d3d17290d92191ba7a7833bc38b51b87461"
+          },
+          {
+            "path": "native-first-composed/native-resaved.pdf",
+            "sha256": "0cf5f4083c42c27492cb655c2036b22277b9b25490d6875c183cd6dd555139a1"
+          },
+          {
+            "path": "native-first-composed/native-resaved.pub",
+            "sha256": "4c78e61ba58685e71ce3af9926d1d8d712326cb5490368013ab498479244edaf"
+          },
+          {
+            "path": "native-first-composed/native-validation.json",
+            "sha256": "2c13e06959da9ef436e5a9343bfde7cf495a4ada62c8584ecc970348947e25fa"
+          }
+        ]
+      },
+      {
+        "case": "diagonal-styled",
+        "control": "TableUtilityPairStyled",
+        "candidateSha256": "1e5e27e383b3dd3613053d4ae773aecb8a277f5d1088c5eceb065db2adc4bacf",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-diagonal-styled/candidate-input.pub",
+            "sha256": "1e5e27e383b3dd3613053d4ae773aecb8a277f5d1088c5eceb065db2adc4bacf"
+          },
+          {
+            "path": "native-diagonal-styled/native-initial-inventory.json",
+            "sha256": "345c8ac92b90f2f203914345d14c4b7e698aa873357d15fb00791f1a3faef944"
+          },
+          {
+            "path": "native-diagonal-styled/native-initial.pdf",
+            "sha256": "c5891fe826b697b041135677903fbfc9b33994d8130faee16c67c1859ac2669f"
+          },
+          {
+            "path": "native-diagonal-styled/native-resaved-inventory.json",
+            "sha256": "a008ffa5355b51c99484130bda270a24bde5e2c5680220df4e7870004eb1f0d4"
+          },
+          {
+            "path": "native-diagonal-styled/native-resaved.pdf",
+            "sha256": "7d79ee12e12f5afe8120a818cd7cf1c81b71e855e016a416446a7962eea31cb7"
+          },
+          {
+            "path": "native-diagonal-styled/native-resaved.pub",
+            "sha256": "2250877c3db295a2c468d5c9e487d6362806d9aaec5ed5f9917b60eb8bdc79e8"
+          },
+          {
+            "path": "native-diagonal-styled/native-validation.json",
+            "sha256": "0645244e8bfe688cb42874b43af266ee631095e0576a31207470c9933cc74207"
+          }
+        ]
+      },
+      {
+        "case": "diagonal-borders",
+        "control": "TableUtilityPairBorders",
+        "candidateSha256": "8bc86d1b426843e76c35da7b9354bf51c249cb30fc926c332b1c7b5f67e2841b",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-diagonal-borders/candidate-input.pub",
+            "sha256": "8bc86d1b426843e76c35da7b9354bf51c249cb30fc926c332b1c7b5f67e2841b"
+          },
+          {
+            "path": "native-diagonal-borders/native-initial-inventory.json",
+            "sha256": "7b6f20c5225917865c33c7d98133b6b60630b6d69e582ae1fa6baf36a3aa631f"
+          },
+          {
+            "path": "native-diagonal-borders/native-initial.pdf",
+            "sha256": "4cffa360844b4df83cb2cf1879d7cf723de1d5c6b0f8c4e66f22c2e4446ba59e"
+          },
+          {
+            "path": "native-diagonal-borders/native-resaved-inventory.json",
+            "sha256": "ea76ee676b9301f3fbaef2c9aed90cf537f365cca29f7236d3bbfeacd2eec356"
+          },
+          {
+            "path": "native-diagonal-borders/native-resaved.pdf",
+            "sha256": "d93465c1aeef8a4b1d6f8b93872d2593c2a43a1a410d3899a0a4891f6db448c9"
+          },
+          {
+            "path": "native-diagonal-borders/native-resaved.pub",
+            "sha256": "82bfdd3388720b18ec7199942b1978c7158fc58956adf047fe985bdb1ed245ca"
+          },
+          {
+            "path": "native-diagonal-borders/native-validation.json",
+            "sha256": "e0626c710db73a5520b2be38276207fccd142f7face33ca8318246bfeb5b1cc4"
+          }
+        ]
+      },
+      {
+        "case": "diagonal-fills",
+        "control": "TableUtilityPairFills",
+        "candidateSha256": "d0f5c8d9215424a250f39402b30cef344cecd17e127c4ab1450489c436d9f053",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-diagonal-fills/candidate-input.pub",
+            "sha256": "d0f5c8d9215424a250f39402b30cef344cecd17e127c4ab1450489c436d9f053"
+          },
+          {
+            "path": "native-diagonal-fills/native-initial-inventory.json",
+            "sha256": "5ae958d9bfa6b34c59d3d7117cb89acc41226af37a73de0d9e9819448a7c4a21"
+          },
+          {
+            "path": "native-diagonal-fills/native-initial.pdf",
+            "sha256": "ea14bc3537aa909cebb295c753cc4932aefd45e35364aa7792ee1bedd209e09b"
+          },
+          {
+            "path": "native-diagonal-fills/native-resaved-inventory.json",
+            "sha256": "828cb1b587a975a350f340f9b56d4b3778dd5998e6477bdb85c1089ee6f38657"
+          },
+          {
+            "path": "native-diagonal-fills/native-resaved.pdf",
+            "sha256": "27119e62d0a52394c5b8cadfce346f0c848fde97710807adf83470b837398196"
+          },
+          {
+            "path": "native-diagonal-fills/native-resaved.pub",
+            "sha256": "fcfebf1326db65478c784ea218a4889d718210f1c08c8c8f0c51f79205281969"
+          },
+          {
+            "path": "native-diagonal-fills/native-validation.json",
+            "sha256": "35d3cb9a63afed4a82db2d2a7e534ff71d5dd6e858a350d4a7f146fa4532ce82"
+          }
+        ]
+      },
+      {
+        "case": "diagonal-single",
+        "control": "TableUtilityPairSingleFill",
+        "candidateSha256": "0946c2b9c04ad877acbafa915f43547fa77560184892f4c56a4641face292d3f",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-diagonal-single/candidate-input.pub",
+            "sha256": "0946c2b9c04ad877acbafa915f43547fa77560184892f4c56a4641face292d3f"
+          },
+          {
+            "path": "native-diagonal-single/native-initial-inventory.json",
+            "sha256": "1b529851e5b43bf265fc1ac51574d70e8c96d259d7c81cd398981f2dded1ccdd"
+          },
+          {
+            "path": "native-diagonal-single/native-initial.pdf",
+            "sha256": "ef5837cb55a60bab5a5c7373e395e36cc2ca19d7415ab7f76ac412cf95c612a1"
+          },
+          {
+            "path": "native-diagonal-single/native-resaved-inventory.json",
+            "sha256": "eb9bc2d4f5a07423acbb259c382ba2a0651b8a42a2f6a0c8088c6577a7cd6722"
+          },
+          {
+            "path": "native-diagonal-single/native-resaved.pdf",
+            "sha256": "d1e9e8030968552ae8927119941dc6fbaaed7d181c8c564888a61dacf99de957"
+          },
+          {
+            "path": "native-diagonal-single/native-resaved.pub",
+            "sha256": "fab65492f5ad8eb1ccd68f068a60bd200c974557b73a13dcdf948f5afbed7efa"
+          },
+          {
+            "path": "native-diagonal-single/native-validation.json",
+            "sha256": "04b570ca62cb985e68872c51ff57416eb692b0d7173f0d8aaa7bba18006e2ef6"
+          }
+        ]
+      },
+      {
+        "case": "diagonal-composed",
+        "control": "TableUtilityPairComposed",
+        "candidateSha256": "4ec0c418d5840a299c8480ecb09158ae774cb0ac1b2482c8395d30eb7b80fb0a",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-diagonal-composed/candidate-input.pub",
+            "sha256": "4ec0c418d5840a299c8480ecb09158ae774cb0ac1b2482c8395d30eb7b80fb0a"
+          },
+          {
+            "path": "native-diagonal-composed/native-initial-inventory.json",
+            "sha256": "fd8c107dc22bba03518ea5231d90b3149de1c77a2c73a9ef63773f8be6097e14"
+          },
+          {
+            "path": "native-diagonal-composed/native-initial.pdf",
+            "sha256": "e963ba14096bdec86bd8a516449894490fdd67b243b4fa00cb151694db02b1b7"
+          },
+          {
+            "path": "native-diagonal-composed/native-resaved-inventory.json",
+            "sha256": "43492b9882fe6477d792dba7b9bb69ebd8ab193d44659cfa806d5127b4c81796"
+          },
+          {
+            "path": "native-diagonal-composed/native-resaved.pdf",
+            "sha256": "0db27890296c4349f4c538aa0a2df0cfdb12c8f9f06ba9b3a2fbc524e3e0076d"
+          },
+          {
+            "path": "native-diagonal-composed/native-resaved.pub",
+            "sha256": "8dab18b2546de386dfe2ea8e59c5d00e3ce4d739b6d5de51cc8821158ec52fe5"
+          },
+          {
+            "path": "native-diagonal-composed/native-validation.json",
+            "sha256": "481af88de2272bb2ac945a733db83e4e28bc0d78ee159313c03187790df468ec"
+          }
+        ]
+      },
+      {
+        "case": "bordered-fills",
+        "control": "TableUtilityPairStyled",
+        "candidateSha256": "45a9f7c0805816f80f4fb6ad890e2c199e04c2a7058c06e6d9468a98ee3a1aab",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-bordered-fills/candidate-input.pub",
+            "sha256": "45a9f7c0805816f80f4fb6ad890e2c199e04c2a7058c06e6d9468a98ee3a1aab"
+          },
+          {
+            "path": "native-bordered-fills/native-initial-inventory.json",
+            "sha256": "c39257046ee0811ec8d342aa5883bc4bc9c318c30a49276d8c04e1d61e2007a9"
+          },
+          {
+            "path": "native-bordered-fills/native-initial.pdf",
+            "sha256": "710ea19052c43df61c04fa7807e195aea982242f8ea48fcebbb3697ea017f92a"
+          },
+          {
+            "path": "native-bordered-fills/native-resaved-inventory.json",
+            "sha256": "5b02eafc05ebc17153fdc3342ca2eff10e49748588aa36520281df5cd7d644a0"
+          },
+          {
+            "path": "native-bordered-fills/native-resaved.pdf",
+            "sha256": "3f450fe643b57596147dd50f9563f222fa77d706be710686ad0590ee320e8fbd"
+          },
+          {
+            "path": "native-bordered-fills/native-resaved.pub",
+            "sha256": "3dfa23afe51417b6712b5adf8e6cccc45fc12eec439918fac380bf91fb2bf806"
+          },
+          {
+            "path": "native-bordered-fills/native-validation.json",
+            "sha256": "b78d295ea95d9c981c6e0c8d273ac6f7d2fcc878f18bb0aaf22d090a16bb557d"
+          }
+        ]
+      },
+      {
+        "case": "bordered-target",
+        "control": "TableUtilityPairTargetComposed",
+        "candidateSha256": "e079b27e2891a0581d45661ccc38610a3437533d87975128401a98bd5a7394ff",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-bordered-target/candidate-input.pub",
+            "sha256": "e079b27e2891a0581d45661ccc38610a3437533d87975128401a98bd5a7394ff"
+          },
+          {
+            "path": "native-bordered-target/native-initial-inventory.json",
+            "sha256": "ce8df68b4cc6e2cd5291fe9e05d47793983a2a04c3f893e7ff6063bd133798e4"
+          },
+          {
+            "path": "native-bordered-target/native-initial.pdf",
+            "sha256": "4157072fb79dd6116fff52526e54d7e743e083fe8a889ba650fef5c3b12db960"
+          },
+          {
+            "path": "native-bordered-target/native-resaved-inventory.json",
+            "sha256": "cddff485509252c46e8ec6f94a78770447f0d4676ae8116e98296b6449b1acd9"
+          },
+          {
+            "path": "native-bordered-target/native-resaved.pdf",
+            "sha256": "eee8817981628808fd43f5febc2a3463605e519c49f55e1563e668d7de75fff7"
+          },
+          {
+            "path": "native-bordered-target/native-resaved.pub",
+            "sha256": "f21b45d281d11c135d59d6dc74841e8d935c36cac04d2572135749a5c1ed8c28"
+          },
+          {
+            "path": "native-bordered-target/native-validation.json",
+            "sha256": "d2031c05ec659cd36438a29f7ffb7ef689c203313e4701edf2772a1b2ae465f3"
+          }
+        ]
+      },
+      {
+        "case": "cleared",
+        "control": "TableUtilityPair",
+        "candidateSha256": "7569f26b4fde06c364d61ee779e6bc46e1c58c2738836c242774cdd6cbdf0f74",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-cleared/candidate-input.pub",
+            "sha256": "7569f26b4fde06c364d61ee779e6bc46e1c58c2738836c242774cdd6cbdf0f74"
+          },
+          {
+            "path": "native-cleared/native-initial-inventory.json",
+            "sha256": "5e283308e5a52424ab8ab7f39b376c78284a9b81fea75bff73261b716fdb4a50"
+          },
+          {
+            "path": "native-cleared/native-initial.pdf",
+            "sha256": "b4252ba3e112302c1f79c32cd827616e0aaa966a62560a2b95176f807f2b8c98"
+          },
+          {
+            "path": "native-cleared/native-resaved-inventory.json",
+            "sha256": "743e60965829ac55b0f08535aa902baea1a0cb422a847c347cebeef9f8969c2d"
+          },
+          {
+            "path": "native-cleared/native-resaved.pdf",
+            "sha256": "7e9d4fa32d92c06ddbb4860bd84a610f21db271380f18f3f0290f708f967d0b8"
+          },
+          {
+            "path": "native-cleared/native-resaved.pub",
+            "sha256": "2f8870e2aff7ad40d161bdb42f4779cacb0d2a77b9b6ea13b2e4143f2ce79bb6"
+          },
+          {
+            "path": "native-cleared/native-validation.json",
+            "sha256": "161ba4341dc8f87648948a53e3a93d8c7f9fafb465eea719bb88de9100d71456"
+          }
+        ]
+      },
+      {
+        "case": "readded",
+        "control": "TableUtilityPairBorders",
+        "candidateSha256": "adebe2fd8b7c483d3cddd0d03fcce10f302ce8658cbc1e5235ac770840d37224",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-readded/candidate-input.pub",
+            "sha256": "adebe2fd8b7c483d3cddd0d03fcce10f302ce8658cbc1e5235ac770840d37224"
+          },
+          {
+            "path": "native-readded/native-initial-inventory.json",
+            "sha256": "d5a7e004f28a0aa7c3c8d208712bf3379c1e623197097a4a956cb25407509099"
+          },
+          {
+            "path": "native-readded/native-initial.pdf",
+            "sha256": "a460f8137afb364ed9a9d1a99b10e8f48652334b94967d77212b20d7f24c381e"
+          },
+          {
+            "path": "native-readded/native-resaved-inventory.json",
+            "sha256": "0f33c4973355bd0e01f1d8fcba0321102b89d63c412d7753596da159c3649c97"
+          },
+          {
+            "path": "native-readded/native-resaved.pdf",
+            "sha256": "a829348a430f539c2da39b98234102a7a4a5a5910caabdb1b6898d868bdb24d5"
+          },
+          {
+            "path": "native-readded/native-resaved.pub",
+            "sha256": "fc3af4a989f9a494a4ad5ae629fe51e29a24c0fb9e75f2ccbb7f13f0c8b72d5f"
+          },
+          {
+            "path": "native-readded/native-validation.json",
+            "sha256": "7f5adf97746983bcacd9599e11d97f64c852500acc97ba73fce6437ba39aa050"
+          }
+        ]
+      },
+      {
+        "case": "filledlater",
+        "control": "TableUtilityPairStyled",
+        "candidateSha256": "bdae9af3e25d4a94ba7b2676071a5a945baac1ac209f6d3d7061e1d7296df310",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-filledlater/candidate-input.pub",
+            "sha256": "bdae9af3e25d4a94ba7b2676071a5a945baac1ac209f6d3d7061e1d7296df310"
+          },
+          {
+            "path": "native-filledlater/native-initial-inventory.json",
+            "sha256": "b38acd7d7676ddb951566111451353850dc5bbf1fc0fc3568abbaef792ab0ce8"
+          },
+          {
+            "path": "native-filledlater/native-initial.pdf",
+            "sha256": "f39fb35e229d629df320c50b99e83b86c42c6cf13052b43bebd4751729a67a88"
+          },
+          {
+            "path": "native-filledlater/native-resaved-inventory.json",
+            "sha256": "77a551c5611fd13bad382d61d02950b4e5b41eadefa0045385d8d10288539d75"
+          },
+          {
+            "path": "native-filledlater/native-resaved.pdf",
+            "sha256": "a4134f871864867d5fe29646681445ecbd5f832ef07dac3ba3a91ee8d633b85f"
+          },
+          {
+            "path": "native-filledlater/native-resaved.pub",
+            "sha256": "b6b4e4fec13d2948cab36e6dbf2dabac967ca28b47cf2f1b52dfd454e8a878d4"
+          },
+          {
+            "path": "native-filledlater/native-validation.json",
+            "sha256": "13f9bd5ab8ab21310a3a0ae2e13bcc2ced69b2c06ff48cbfa2c794ea31dccb4f"
+          }
+        ]
+      },
+      {
+        "case": "native-filledlater",
+        "control": "TableUtilityPairStyled",
+        "candidateSha256": "9ec52f89c3a4d0f8a1a92dd79aac4eff1a0a73424e506aa108df82863bfa1379",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "sourceUnchanged": true,
+        "files": [
+          {
+            "path": "native-native-filledlater/candidate-input.pub",
+            "sha256": "9ec52f89c3a4d0f8a1a92dd79aac4eff1a0a73424e506aa108df82863bfa1379"
+          },
+          {
+            "path": "native-native-filledlater/native-initial-inventory.json",
+            "sha256": "43d2c4a3bea10a4026f7da53d27061907d1940344f54ee4f6bd3b0a4eb148b05"
+          },
+          {
+            "path": "native-native-filledlater/native-initial.pdf",
+            "sha256": "3413728b38dcc8c10f191842e293be86b2a6a4326ead7be91d528f52b640cc28"
+          },
+          {
+            "path": "native-native-filledlater/native-resaved-inventory.json",
+            "sha256": "e5dbf74a2fbba1c59659dbfd166c5389ca02f33bee321a6770f7a7bd270be7e9"
+          },
+          {
+            "path": "native-native-filledlater/native-resaved.pdf",
+            "sha256": "872af8c0a81f2ce1f578d9c31169f996e434985a0bd321d66adaa3b1f60fe178"
+          },
+          {
+            "path": "native-native-filledlater/native-resaved.pub",
+            "sha256": "331f4a17c8153fbf70f43f02da7361cd587c25057d02ed6e5aa945cad639c579"
+          },
+          {
+            "path": "native-native-filledlater/native-validation.json",
+            "sha256": "bd9bc669cc1a5c5b4da611b9aff4923193ecf953f123f0372aa796f68b0b3fc4"
+          }
+        ]
+      }
+    ],
+    "nativeComparison": {
+      "workflows": 16,
+      "completeInventories": 32,
+      "tablesPerInventory": 2,
+      "labelsPerInventory": 2,
+      "pdfPairs": 32,
+      "dpi": 100,
+      "changedPixels": 0,
+      "nativeCellTextMutationPerformed": false,
+      "repairFreeQualified": false
+    },
+    "powerShell": {
+      "publicSavePdfWorkflows": 16,
+      "coloredPrimitiveComparisons": 16,
+      "textAndParagraphGrowthChecks": "Passed",
+      "managedNativeTextBaselineParityQualified": false
+    },
+    "freshAuthoring": {
+      "unchangedByteSequences": [
+        {
+          "kind": "table",
+          "sha256": "d774ee79377be4e3104c185c1de2a43652a554ca8875422c933a7e5619988735",
+          "unchangedQualifiedBytes": true
+        },
+        {
+          "kind": "table-edited",
+          "sha256": "e62c3655ddb343afc7006cba946a26433d8ee082bc91ac4a1293880c80812b21",
+          "unchangedQualifiedBytes": true
+        },
+        {
+          "kind": "table-decorated",
+          "sha256": "4386154305b4fa7ff0d97785832fe1e91a012e25891c3e1107159bfa50642900",
+          "unchangedQualifiedBytes": true
+        },
+        {
+          "kind": "table-decorated-edited",
+          "sha256": "4e43b55045155329ab1c79abab9904e675ee5e1dd5a1aa9c0f7cbcfa66dfbcfe",
+          "unchangedQualifiedBytes": true
+        },
+        {
+          "kind": "table-merged",
+          "sha256": "21343f85132455613677402a7739d449fe7e854f8a8ff9eecaba0fe232ba9c1e",
+          "unchangedQualifiedBytes": true
+        },
+        {
+          "kind": "newsletter",
+          "sha256": "d35ecd90ce134e437fdf9fa42f702895cc5214e113c6547fbb3a567a3b22d552",
+          "unchangedQualifiedBytes": true
+        }
+      ],
+      "legacyAndPartialSourceReproduction": "Four exact derived PUB byte sequences."
+    },
+    "validation": {
+      "focusedPassed": 59,
+      "net10FullPassed": 1183,
+      "net8TablePassed": 166,
+      "net472TablePassed": 166,
+      "netstandardBuild": "Passed",
+      "moduleAndProbeBuild": "Passed",
+      "nativeScriptParsing": "PowerShell7.6.9 and WindowsPowerShell5.1.26100.9711 pass."
+    },
+    "regressionProof": {
+      "initialPartialRun": {
+        "failed": 14,
+        "passed": 11,
+        "reason": "Current codec refused missing owners or omitted required cell records while retained source/safety cases passed."
+      },
+      "additionalBorderedCases": "Added after initial red proof; fill-only retains existing six border records, same-target topology/text composition is qualified independently."
+    },
+    "review": {
+      "fullPasses": 1,
+      "findings": "No actionable findings in the frozen executable candidate.",
+      "targetedConfirmationRequired": false
+    },
+    "limitations": [
+      "Qualified two-by-two unmerged source profiles; larger grids and additional producers remain unqualified",
+      "Required new/rollover SPID clusters",
+      "Grouped/transformed/merged decoration and broader layouts",
+      "Actual native cell text mutation beyond the earlier separate first-cell profile",
+      "Managed/native text-baseline parity",
+      "Positive repair/recovery control and repair-free acceptance",
+      "Public source-free native creation remains gated"
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

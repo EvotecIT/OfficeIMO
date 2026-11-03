@@ -57,6 +57,9 @@ TableUtilityPairFills add the second table's combined styles, borders alone or
 fills alone while retaining the first table. TableUtilityPairComposed combines
 first-table border edits with second-table styles and paragraph growth. Each
 control retains its native PUB, reference PDF, authored expectations and hashes.
+TableUtilityPairSingleFill fills only the second table's first cell while keeping
+the decorated peer. TableUtilityPairTargetComposed retains the peer and combines
+seven target edges, three fills and two paragraphs in the target's first cell.
 
 `NativeComparison/TableUtilityPairMissingCells/missing-second-utilities.pub` is a
 labelled derived source input rather than an independent final-state oracle.
@@ -66,6 +69,23 @@ table's four hidden cell records and reducing FDG/FDGG active counts by four.
 Allocation cursors, used slots, maximum-ID history, other records and logical
 streams remain retained. Its provenance records the source and output hashes;
 the independent pair controls provide the expected saved states.
+
+The following inputs remove only selected hidden cell utility records:
+
+| Derived source under `NativeComparison` | Independent source control | Removed native cell-definition indices |
+| --- | --- | --- |
+| `TableUtilityPairMissingFirstCell/missing-first.pub` | `TableUtilityPair` | `0` |
+| `TableUtilityPairMissingDiagonalCells/missing-diagonal.pub` | `TableUtilityPair` | `0,3` |
+| `TableUtilityPairMissingBorderedCell/missing-bordered-first.pub` | `TableUtilityPairBorders` | `0`; all six target borders remain |
+
+The probe's `table-utility-source` command reproduces them with the optional
+comma-separated, zero-based native definition indices. These indices describe native cell records,
+not public row/column coordinates. FDG/FDGG active counts decrease by the number
+removed; allocation history, surviving hidden cell records, edges, other records
+and logical streams remain retained. Each provenance file records the source and
+derived hashes. These inputs qualify selective initialization after fill/border
+edits against the independent final-state controls; they are not independent
+native producers or native repair controls.
 
 TextPages has independent Arial 12/18-point stories on the first and last of
 three pages, with an empty middle page and explicit zero column spacing. It
