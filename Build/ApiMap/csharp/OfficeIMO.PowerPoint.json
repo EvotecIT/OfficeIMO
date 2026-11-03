@@ -12414,6 +12414,61 @@
       "replacement": "Pass new OfficeTextSearchOptions { MatchCase = true } to keep case-sensitive matching.",
       "reason": "Same name, options and case-insensitive default as the document ReplaceAll. Matches remain run-based.",
       "category": "search"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use PowerPointSlide.ExportImage(...) or ToImage() for managed runtime rendering. Native Office rendering lives only in the opt-in development source under Build/Verification/PowerPoint, linked by PowerPoint tests and the non-packable ChartForgeX example.",
+      "reason": "Shipped OfficeIMO libraries are COM-free; Office automation belongs only to opt-in development verification. Other compatibility lanes are unchanged.",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesktopReferenceRenderer.cs",
+      "category": "visibility",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointReferenceRenderResult",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Native reference-render results belong to the development verifier under Build/Verification/PowerPoint. Record independently produced native evidence with PowerPointCompatibilityReport.RecordExternal(...).",
+      "reason": "Shipped OfficeIMO libraries are COM-free; Office automation belongs only to opt-in development verification. Other compatibility lanes are unchanged.",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesktopReferenceRenderer.cs",
+      "category": "visibility",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus",
+      "kind": "enum",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use the development verifier status only for opt-in native verification. Product compatibility evidence uses PowerPointCompatibilityStatus with PowerPointCompatibilityReport.RecordExternal(...).",
+      "reason": "Shipped OfficeIMO libraries are COM-free; Office automation belongs only to opt-in development verification. Other compatibility lanes are unchanged.",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesktopReferenceRenderer.cs",
+      "category": "visibility",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.TryRender(string presentationPath, string outputDirectory, bool enabled = false)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use PowerPointSlide.ExportImage(...) or ToImage() in applications. For native Office proof on Windows, run the opt-in PowerPoint tests or the ChartForgeX example with --native-powerpoint; both reuse Build/Verification/PowerPoint.",
+      "reason": "Shipped OfficeIMO libraries are COM-free; Office automation belongs only to opt-in development verification. Other compatibility lanes are unchanged.",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesktopReferenceRenderer.cs",
+      "category": "visibility",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop",
+      "kind": "property",
+      "action": "remove",
+      "new": null,
+      "replacement": "Remove this property from compatibility options. The inspector no longer runs or prepopulates the PowerPointDesktop lane. Attach independently produced native proof with PowerPointCompatibilityReport.RecordExternal(\"PowerPointDesktop\", ...); other compatibility lanes remain unchanged.",
+      "reason": "Shipped OfficeIMO libraries are COM-free; Office automation belongs only to opt-in development verification. Other compatibility lanes are unchanged.",
+      "file": "OfficeIMO.PowerPoint/PowerPointCompatibilityReport.cs",
+      "category": "visibility",
+      "applied": true
     }
   ],
   "packageMoves": [
@@ -13158,25 +13213,29 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 574,
+    "changes": 600,
     "byAction": {
-      "change": 179,
-      "rename": 9,
-      "merge": 366,
-      "remove": 7,
+      "change": 190,
+      "rename": 17,
+      "merge": 367,
+      "remove": 13,
       "internalize": 11,
       "keep": 1,
       "move": 1
     },
     "byCategory": {
-      "authoring": 38,
-      "naming": 2,
+      "authoring": 43,
+      "naming": 6,
       "lifecycle": 30,
       "units": 452,
       "options": 5,
       "conversion": 39,
       "package": 1,
-      "visibility": 7
+      "visibility": 12,
+      "images": 5,
+      "accessibility": 1,
+      "tables": 1,
+      "search": 5
     },
     "packageMoves": 3
   }

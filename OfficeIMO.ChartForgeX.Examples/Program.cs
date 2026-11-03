@@ -1,5 +1,5 @@
 using OfficeIMO.ChartForgeX.Examples;
-using OfficeIMO.PowerPoint;
+using OfficeIMO.Verification.PowerPoint;
 
 if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "--native-powerpoint")) {
     Console.Error.WriteLine("Usage: OfficeIMO.ChartForgeX.Examples <output-directory> [--native-powerpoint]");
