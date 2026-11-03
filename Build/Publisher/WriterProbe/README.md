@@ -63,6 +63,8 @@ dotnet $probe create frame-layout ./candidate-frame-layout.pub
 dotnet $probe create frame-layout-edited ./candidate-frame-layout-edited.pub
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create styled-text ./candidate-styled-text.pub
+dotnet $probe create caption-typing ./candidate-caption-typing.pub
+dotnet $probe create caption-typing-language ./candidate-caption-typing-language.pub
 dotnet $probe create shape ./candidate-shape.pub
 dotnet $probe create image ./candidate-image.pub ./picture.png
 dotnet $probe create combined ./candidate-combined.pub ./picture.png
@@ -403,6 +405,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
+| `caption-typing`, `caption-typing-language` | Projects one ordinary Arial 12-point caption with 18-point line height through the public typed model. Optional text replaces the default caption. The language case requests 1033 through `WithLanguageId`; the other leaves language unspecified. Both extend final-run character formatting through the generated CR. |
 | `shape` | Solid red rectangle at `(72,72)`, size `288×108`, with a CR-only story. |
 | `image` | PNG or JPEG at `(72,72)`, size `288×108`; image path required. |
 | `combined` | Styled text box at `(72,72)`, size `288×108`; red rectangle at `(72,216)`, size `144×72`; picture at `(330,216)`, size `96×96`. Image path required. |
@@ -410,7 +413,8 @@ Page, picture and image-asset counts depend on the selected case.
 The styled text uses one shared `OfficeRichTextParagraph` containing Arial runs:
 `Plain 12 | ` at 12 points/plain, `Bold 18` at 18 points/bold, and
 ` | Plain 12` at 12 points/plain. Each run explicitly selects generated font
-index zero, its size and its bold state. A native CR follows the final run.
+index zero, its size and its bold state. The generated CR extends the final run's
+character formatting; language is emitted only when explicitly requested.
 In the combined case, the rectangle owns a second CR-only story. Its formatting
 positions follow the styled story in the global text stream.
 
@@ -586,6 +590,16 @@ producer's implicit CR typing is separate from the generated CR that follows its
 last body run. Sixteen pages has managed/structural coverage. The six original
 one-page specimens and three qualified multiple-blank-page specimens remain
 byte-identical.
+
+The `captionTypingDefaults` record separately qualifies the [existing final-run
+CR policy, source typing preservation and language limits](../../../OfficeIMO.Publisher/SUPPORT.md#authored-caption-cr-typing).
+Independent pre-range, reacquired full-range and explicit-CR controls retain point
+observations before/after native clear/refill, checked against their saved raw
+character carriers. The observations establish distinct body/CR defaults and
+their typing consequences; they do not expose the original COM wrapper's identity
+or range membership. The two caption creation cases exercise unspecified and
+explicit language without selecting machine-local font or language defaults.
+Managed PDF text and page geometry match; font faces and baselines remain approximate.
 
 This work also qualifies an omitted native column gap and a subsequent explicit
 zero-gap edit. OfficeIMO exposes the full gap: the native automation value is half
@@ -945,8 +959,9 @@ wide control at 100 dpi with zero changed pixels. Generated shape names differ.
 The caption's whole-text-range query reports Arial/12 points/language 0 for the
 fresh output, versus an empty font name, mixed-size sentinel `-9999999` and language
 1033 for the native control's range including its paragraph terminator. Those
-caption font/size/language observations remain unqualified despite identical
-rendering. Six earlier complete PUB specimens remain byte-identical.
+caption font/size/language observations remain different despite identical
+rendering; the [caption typing profile](../../../OfficeIMO.Publisher/SUPPORT.md#authored-caption-cr-typing)
+explains the CR policies. Six earlier complete PUB specimens remain byte-identical.
 Broader grids, merge layouts beyond the bounded profile above, grouped/transformed tables and additional
 producer/generation profiles remain unqualified. The fresh dense specimen and
 independent wide control also complete native first-unmerged-cell text replacement

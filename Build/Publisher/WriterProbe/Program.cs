@@ -82,6 +82,7 @@ internal static class Program {
             Console.Error.WriteLine("create <table-grid|table-grid-empty|table-grid-edited> <candidate.pub> <rows>x<columns>");
             Console.Error.WriteLine("create <frame-layout|frame-layout-edited> <candidate.pub>");
             Console.Error.WriteLine("create <frame-layout-language|linked-story-language|linked-story-language-overflow> <candidate.pub>");
+            Console.Error.WriteLine("create <caption-typing|caption-typing-language> <candidate.pub> [text]");
             Console.Error.WriteLine("create <image-pages|named-image-pages|cropped-image-pages|shared-image-pages> <candidate.pub> <first-image-path> <last-image-path>");
             return 2;
         } catch (Exception exception) {

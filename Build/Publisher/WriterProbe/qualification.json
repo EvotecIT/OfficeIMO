@@ -38510,5 +38510,310 @@
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "captionTypingDefaults": {
+    "sourceBaseCommit": "1301cfb6662e07711cfe92d0f4f41a7ea13d6b3f",
+    "scope": "Ordinary sole-caption final paragraph-CR formatting, explicit versus unspecified language and source clear/save/reload/refill typing. Qualifies the existing policy; no product codec, default, public API or dependency change.",
+    "publicOperations": [
+      "OfficeRichTextRun.WithLanguageId",
+      "ReplaceStoryParagraphs",
+      "ToPubBytesResult",
+      "ConvertTo-OfficeDocument"
+    ],
+    "specimens": [
+      "caption-typing",
+      "caption-typing-language"
+    ],
+    "nativeProducer": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20112",
+      "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "powershell": "7.6.9",
+      "automationSecurity": 3
+    },
+    "codecContract": {
+      "fresh": "The last requested visible run supplies formatting through the final CR. Explicit language is serialized; null remains unspecified, not an alias for language1033.",
+      "imported": "Retain the distinct native final-CR typing definition. Clear, save, reload and refill from that style through existing public source APIs.",
+      "rawPartitions": "Native FullRange can retain separate FDPC ranges with identical effective styles; exact physical partition identity is not required for equivalent point properties."
+    },
+    "observedProfiles": [
+      {
+        "mode": "PreRange",
+        "visible": "Arial12/language1033",
+        "finalCR": "Calibri10/language1033 through inherited source default",
+        "afterClearRefill": "Calibri10/language1033"
+      },
+      {
+        "mode": "FullRange or Explicit",
+        "visible": "Arial12/language1033",
+        "finalCR": "Arial12/language1033",
+        "afterClearRefill": "Arial12/language1033"
+      }
+    ],
+    "semanticsCounts": {
+      "independentNativeControls": 6,
+      "nativeObservedStates": 22,
+      "nativeObservedPointSelections": 60,
+      "nativeSavedPointManagedDecoderAgreements": 18,
+      "freshCarrierInputs": 4,
+      "publicClearReloadRefillInputs": 3
+    },
+    "nativeValidation": {
+      "candidates": 7,
+      "operations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "sourceUnchanged": true,
+      "nativePdfComparison": {
+        "pairs": 14,
+        "dpi": 100,
+        "changedPixels": 0
+      },
+      "completeInventoryComparisons": {
+        "count": 6,
+        "cases": [
+          "managed-refilled-prerange",
+          "managed-refilled-fullrange",
+          "managed-refilled-explicit"
+        ],
+        "stages": [
+          "initial",
+          "resaved"
+        ]
+      },
+      "freshMetadata": "All four fresh specimens match full-range font and size. Explicit variants match language1033; unspecified variants report native0. All retain inactive one-column spacing0 versus2.8346457481384277points and generated shape names. These are declared differences, not complete inventory equivalence.",
+      "repairStatus": "Unassessed; the operations do not establish repair-free opening."
+    },
+    "sourceSavePolicy": {
+      "lossPolicy": "Allow",
+      "clearDiagnostics": [
+        "PUB_NATIVE_EMPTY_STORY_PARAGRAPH",
+        "PUB_NATIVE_PREVIEW_INVALIDATED",
+        "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+      ],
+      "refillDiagnostics": [
+        "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+      ]
+    },
+    "fixtures": [
+      {
+        "case": "CaptionTypingPreRange",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-captiontypingprerange.pub",
+            "bytes": 89600,
+            "sha256": "dfd9ac352d4ce937450a24dcdb00f0aea293707f28df2601de5bd3fa8e6bb297"
+          },
+          {
+            "name": "native-captiontypingprerange.pdf",
+            "bytes": 90577,
+            "sha256": "7b485d56b793708266d4770f7686e02c8685843756584c9cb109b45753344ce7"
+          },
+          {
+            "name": "native-captiontypingprerange.json",
+            "bytes": 6355,
+            "sha256": "3d8a68c0039881f701d1a53cd70b1b03c400561525878a7ba352c542cd65f5f5"
+          }
+        ]
+      },
+      {
+        "case": "CaptionTypingFullRange",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-captiontypingfullrange.pub",
+            "bytes": 89088,
+            "sha256": "bd6b74ab90d3050954f750af5a1707c7cb4d088a9670a302dc67410b139dc487"
+          },
+          {
+            "name": "native-captiontypingfullrange.pdf",
+            "bytes": 27204,
+            "sha256": "4ec5c0404fed22e24f8c7fd715f64aea4ceebb3ac56f13c4e2336151b0f4399f"
+          },
+          {
+            "name": "native-captiontypingfullrange.json",
+            "bytes": 7830,
+            "sha256": "f76271490570d0b5a60d534475886aa76622339cb34bdb6d29bca0cf0c1ea808"
+          }
+        ]
+      },
+      {
+        "case": "CaptionTypingExplicit",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-captiontypingexplicit.pub",
+            "bytes": 89088,
+            "sha256": "327127f38e8a6b064980d9909dba9b7b95ef54f7600ff8564d1eff305f2ce109"
+          },
+          {
+            "name": "native-captiontypingexplicit.pdf",
+            "bytes": 27204,
+            "sha256": "5c14de605c8c46926da6fbc9689640bc85f8e06f6b8944da029371503a6e217d"
+          },
+          {
+            "name": "native-captiontypingexplicit.json",
+            "bytes": 7826,
+            "sha256": "06475006a0ea44947c5a884b606ef1c812b14bd7f14d94b70f5ceb20cfce0481"
+          }
+        ]
+      },
+      {
+        "case": "CaptionTypingPreRangeRefilled",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-captiontypingprerangerefilled.pub",
+            "bytes": 89088,
+            "sha256": "b6cffe3bdc1f8cc7bc1a73b13a9a3222fe714b302719dab11a62d29f745c14c7"
+          },
+          {
+            "name": "native-captiontypingprerangerefilled.pdf",
+            "bytes": 76748,
+            "sha256": "7e6acbbd0d82cfe829499406635efe6871b58bae488b487ac8af7c7d8af35fa4"
+          },
+          {
+            "name": "native-captiontypingprerangerefilled.json",
+            "bytes": 8751,
+            "sha256": "e637c3a9bc1b955ee3301f022a54d0ac4bb5ac0f3b46a77057be3c68acc795b8"
+          }
+        ]
+      },
+      {
+        "case": "CaptionTypingFullRangeRefilled",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-captiontypingfullrangerefilled.pub",
+            "bytes": 89088,
+            "sha256": "85bd7cb405ea42841340c9ced49a969581834e3ef10d41ebc65388e343eb94c1"
+          },
+          {
+            "name": "native-captiontypingfullrangerefilled.pdf",
+            "bytes": 29110,
+            "sha256": "e7648dd739574bc798f82cfa6ce641d150910b934a7d242b8ed10ab76c77e7f2"
+          },
+          {
+            "name": "native-captiontypingfullrangerefilled.json",
+            "bytes": 10208,
+            "sha256": "ff8e1ead292973c5f5e5506bb44edaa61abd59c60d28e5688fa42c935aa531d0"
+          }
+        ]
+      },
+      {
+        "case": "CaptionTypingExplicitRefilled",
+        "classification": "independent-native-control",
+        "files": [
+          {
+            "name": "native-captiontypingexplicitrefilled.pub",
+            "bytes": 89088,
+            "sha256": "9920fa489f80ed0d7a282b28904b282337d9c0c1f9b2373ed7901c7826d765fb"
+          },
+          {
+            "name": "native-captiontypingexplicitrefilled.pdf",
+            "bytes": 29110,
+            "sha256": "17131ad5863d297d67ea872229798125d8d7b2001bd2232035b0d104dda8d21a"
+          },
+          {
+            "name": "native-captiontypingexplicitrefilled.json",
+            "bytes": 10204,
+            "sha256": "d9368130cb102d1540ab84ba4c4db492cd5982831ceeede2c98d8a5874ed08aa"
+          }
+        ]
+      },
+      {
+        "case": "GeneratedCaptionTyping",
+        "classification": "template-free-caption-and-native-normalized-output",
+        "files": [
+          {
+            "name": "fresh-unspecified.pub",
+            "bytes": 8192,
+            "sha256": "6a58b2a6d1395a9ee8482498eb1c3385c8fd2d20a19bd9a7c2fef6f9444e80d7"
+          },
+          {
+            "name": "fresh-unspecified-native-normalized.pub",
+            "bytes": 65536,
+            "sha256": "81a14052655d7fcf7dcee32e8fec4c2f25a5e9c64661c615c2a773f824b7e47a"
+          },
+          {
+            "name": "fresh-explicit.pub",
+            "bytes": 8192,
+            "sha256": "b1b64ac199794aa368846964fa3bc2ebedcf977c9e63a4cc0aa20a4afeb366b7"
+          },
+          {
+            "name": "fresh-explicit-native-normalized.pub",
+            "bytes": 65536,
+            "sha256": "a87d363f8fcff4b7e36f31a54e3ae12ed835acf5118be6cc4fc76252df32cc3b"
+          },
+          {
+            "name": "fresh-unspecified-refilled.pub",
+            "bytes": 8192,
+            "sha256": "d0eba4be1def343b0a0e410c1a46d6c3fe66647bb3aec8713ac6dcb5b86e9065"
+          },
+          {
+            "name": "fresh-unspecified-refilled-native-normalized.pub",
+            "bytes": 65536,
+            "sha256": "5092d02a2cfebbd5aa2538f55fae484dc9e550cc45c961ed48a4f9183baeb7bb"
+          },
+          {
+            "name": "fresh-explicit-refilled.pub",
+            "bytes": 8192,
+            "sha256": "c2ae8fc45ea7c5168df9d987fe561602291a897da7b01686a3302229e0005a37"
+          },
+          {
+            "name": "fresh-explicit-refilled-native-normalized.pub",
+            "bytes": 65536,
+            "sha256": "b4c9ffb341d2790dde2d76a7e3a85d96459fb61bbfd15bc660fbfc6dbcfc3388"
+          }
+        ]
+      }
+    ],
+    "validation": {
+      "focusedExistingTests": 102,
+      "newOrChangedTests": 0,
+      "testClasses": [
+        "PublisherLanguageWritingTests",
+        "PublisherEmptyTypingWritingTests",
+        "PublisherEmptyParagraphRetentionWritingTests",
+        "PublisherFormattedEmptyRefillWritingTests",
+        "PublisherZeroParagraphWritingTests",
+        "PublisherTextFormattingReplacementTests"
+      ],
+      "probeBuild": "Passed, zero warnings/errors",
+      "earlierFreshSpecimensByteIdentical": 8,
+      "managedPdf": {
+        "workflows": 7,
+        "pageGeometryAndNormalizedTextMatch": true,
+        "fontAndBaselineParity": false
+      },
+      "nativeScriptParsing": "Four changed scripts parse PowerShell7.6.9 and WindowsPowerShell5.1.26100.9711; corpus defaults unchanged, six controls explicit-only.",
+      "closedNativeRuns": 13
+    },
+    "review": {
+      "fullPasses": 1,
+      "targetedConfirmations": 1,
+      "originalP3Findings": 2,
+      "remainingFindings": 0,
+      "disposition": "AcceptAsShaped",
+      "finalByteManifestSha256": "7a643760d3eef77a3d3a07988150386c99b702444d6a02c5f0b6f54c6d449169"
+    },
+    "limitations": [
+      "The original pre-acquired COM range identity and exact live membership remain unassessed; point observations establish the resulting formatting, not that object's membership.",
+      "Unspecified language is not qualified as equivalent to1033, nor as a machine-independent inherited language default.",
+      "Mixed-script fonts, general inherited style libraries, multiple paragraphs, linked frames and other producers/generations remain outside this bounded control.",
+      "Public clear/refill uses the existing allowed-loss path and retains its empty-story/preview-invalidated/Quill-unqualified diagnostics.",
+      "Managed/native PDF font faces and text baselines differ.",
+      "Positive recovery control, repair-free native acceptance and public source-free native creation remain unqualified."
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

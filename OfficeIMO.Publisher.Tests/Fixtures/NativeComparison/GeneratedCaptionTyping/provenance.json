@@ -1,0 +1,57 @@
+{
+  "schema": "officeimo.publisher.generated-caption-typing-fixture.v1",
+  "license": "MIT",
+  "generator": "dotnet <WriterProbe.dll> create <caption-typing|caption-typing-language> <candidate.pub> [text]; refilled text is Refilled caption",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "automationSecurity": 3
+  },
+  "nativeValidation": "pwsh Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <candidate.pub> -OutputDirectory <empty-directory> -TimeoutSeconds 180 -PhaseTimeoutSeconds 45",
+  "files": [
+    {
+      "name": "fresh-unspecified.pub",
+      "bytes": 8192,
+      "sha256": "6a58b2a6d1395a9ee8482498eb1c3385c8fd2d20a19bd9a7c2fef6f9444e80d7"
+    },
+    {
+      "name": "fresh-unspecified-native-normalized.pub",
+      "bytes": 65536,
+      "sha256": "81a14052655d7fcf7dcee32e8fec4c2f25a5e9c64661c615c2a773f824b7e47a"
+    },
+    {
+      "name": "fresh-explicit.pub",
+      "bytes": 8192,
+      "sha256": "b1b64ac199794aa368846964fa3bc2ebedcf977c9e63a4cc0aa20a4afeb366b7"
+    },
+    {
+      "name": "fresh-explicit-native-normalized.pub",
+      "bytes": 65536,
+      "sha256": "a87d363f8fcff4b7e36f31a54e3ae12ed835acf5118be6cc4fc76252df32cc3b"
+    },
+    {
+      "name": "fresh-unspecified-refilled.pub",
+      "bytes": 8192,
+      "sha256": "d0eba4be1def343b0a0e410c1a46d6c3fe66647bb3aec8713ac6dcb5b86e9065"
+    },
+    {
+      "name": "fresh-unspecified-refilled-native-normalized.pub",
+      "bytes": 65536,
+      "sha256": "5092d02a2cfebbd5aa2538f55fae484dc9e550cc45c961ed48a4f9183baeb7bb"
+    },
+    {
+      "name": "fresh-explicit-refilled.pub",
+      "bytes": 8192,
+      "sha256": "c2ae8fc45ea7c5168df9d987fe561602291a897da7b01686a3302229e0005a37"
+    },
+    {
+      "name": "fresh-explicit-refilled-native-normalized.pub",
+      "bytes": 65536,
+      "sha256": "b4c9ffb341d2790dde2d76a7e3a85d96459fb61bbfd15bc660fbfc6dbcfc3388"
+    }
+  ],
+  "scope": "Four template-free sole captions and their native-normalized outputs. Final run Arial12 applies through CR. Explicit profiles request language1033; unspecified language remains omitted/null and native0. Native initial/resaved PDF exports match independent FullRange/Explicit controls at100dpi. Single-column inactive spacing differs0vs2.8346457481384277pt and generated shape names differ. Repair-free acceptance and public source-free saving remain unqualified."
+}

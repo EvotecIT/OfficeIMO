@@ -37,7 +37,7 @@ param(
     [switch] $NativeAddClusterTable,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'TableCreation', 'TableCreationEdited', 'TableCreationMerged', 'TableCreationMergedEdited', 'TableMergedDecoration', 'TableMergedDecorationEdited', 'TableMergedDecorationText', 'TableMergedDecorationComposed', 'TableMergedFills', 'TableMergedBorders', 'TableDecoration', 'TableDecorationEdited', 'TableDecorationText', 'TableBordersOnly', 'TableBordersOnlyText', 'TableFillsOnly', 'TableBordersOnlyCleared', 'TableUtilityPair', 'TableUtilityPairStyled', 'TableUtilityPairBorders', 'TableUtilityPairFills', 'TableUtilityPairComposed', 'TableUtilityPairSingleFill', 'TableUtilityPairTargetComposed', 'TableClusterNear', 'TableClusterNearEdited', 'TableClusterWide', 'TableFillVisibility', 'TableFillVisibilityRestored', 'TableFillVisibilityText', 'TableBorderTopology', 'TableBordersCleared', 'TableBorderTopologyTextFill', 'TableBorderDefaultFill', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
+    [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'TableCreation', 'TableCreationEdited', 'TableCreationMerged', 'TableCreationMergedEdited', 'TableMergedDecoration', 'TableMergedDecorationEdited', 'TableMergedDecorationText', 'TableMergedDecorationComposed', 'TableMergedFills', 'TableMergedBorders', 'CaptionTypingPreRange', 'CaptionTypingFullRange', 'CaptionTypingExplicit', 'CaptionTypingPreRangeRefilled', 'CaptionTypingFullRangeRefilled', 'CaptionTypingExplicitRefilled', 'TableDecoration', 'TableDecorationEdited', 'TableDecorationText', 'TableBordersOnly', 'TableBordersOnlyText', 'TableFillsOnly', 'TableBordersOnlyCleared', 'TableUtilityPair', 'TableUtilityPairStyled', 'TableUtilityPairBorders', 'TableUtilityPairFills', 'TableUtilityPairComposed', 'TableUtilityPairSingleFill', 'TableUtilityPairTargetComposed', 'TableClusterNear', 'TableClusterNearEdited', 'TableClusterWide', 'TableFillVisibility', 'TableFillVisibilityRestored', 'TableFillVisibilityText', 'TableBorderTopology', 'TableBordersCleared', 'TableBorderTopologyTextFill', 'TableBorderDefaultFill', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -150,6 +150,7 @@ if ($Case -in @('TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs'))
     $height = 612
 }
 $layout = $null
+$captionRangeObservations = $null
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonLayout.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonPictures.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativePictureCropBasis.ps1')
@@ -161,6 +162,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeTableCreationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableDecorationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeMergedTableDecorationControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeCaptionTypingControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableUtilityPairControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableClusterControl.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeTableCellStyle.ps1')
@@ -549,6 +551,11 @@ try {
     $page = $document.Pages.Item(1)
     $objects.Add($page)
     switch ($Case) {
+        { $_ -in @('CaptionTypingPreRange', 'CaptionTypingFullRange', 'CaptionTypingExplicit', 'CaptionTypingPreRangeRefilled', 'CaptionTypingFullRangeRefilled', 'CaptionTypingExplicitRefilled') } {
+            $mode = if ($Case -like 'CaptionTypingPreRange*') { 'PreRange' } elseif ($Case -like 'CaptionTypingFullRange*') { 'FullRange' } else { 'Explicit' }
+            $captionRangeObservations = Add-NativeCaptionTypingControl -FirstPage $page -Mode $mode -Refilled:($Case.EndsWith('Refilled', [StringComparison]::Ordinal))
+            $pageCount = 1
+        }
         'Blank' { }
         'BlankPages' {
             $pageCount = 2
@@ -874,6 +881,14 @@ try {
     Set-NativePhase 'SaveCorpusCase'
     # 1 is pbFilePublication; exclude task output from recent files.
     $document.SaveAs($publication, 1, $false)
+    if ($null -ne $captionRangeObservations) {
+        Set-NativePhase 'ObserveCaptionAfterSave'
+        $captionShapes = $page.Shapes
+        $objects.Add($captionShapes)
+        $captionShape = $captionShapes.Item('CaptionTyping')
+        $objects.Add($captionShape)
+        $captionRangeObservations.observations.Add((Get-NativeCaptionRangeObservation -Shape $captionShape -Stage 'AfterSave'))
+    }
     Set-NativePhase 'ExportCorpusReference'
     $document.ExportAsFixedFormat(2, $reference)
     Set-NativePhase 'ObserveCorpusProducer'
@@ -917,6 +932,9 @@ try {
             publication = [ordered]@{ name = [IO.Path]::GetFileName($publication); sha256 = (Get-FileHash -LiteralPath $publication -Algorithm SHA256).Hash.ToLowerInvariant() }
             reference = [ordered]@{ name = [IO.Path]::GetFileName($reference); sha256 = (Get-FileHash -LiteralPath $reference -Algorithm SHA256).Hash.ToLowerInvariant() }
         }
+    }
+    if ($null -ne $captionRangeObservations) {
+        $contract.captionRangeObservations = $captionRangeObservations
     }
     if ($null -ne $layout) {
         $contract.expected.masterAssignments = $layout.masterAssignments

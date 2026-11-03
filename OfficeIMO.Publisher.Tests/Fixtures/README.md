@@ -150,6 +150,19 @@ defines the caption metadata comparison limits. The provenance records generatio
 native mutation, producer identity and file hashes; repair-free acceptance remains
 unassessed.
 
+CaptionTypingPreRange, CaptionTypingFullRange and CaptionTypingExplicit retain
+independent native ordinary-caption controls; their corresponding `Refilled`
+cases retain native clear/refill results. Each directory contains the PUB, PDF,
+native point/inventory JSON and provenance. Point observations distinguish visible
+character formatting from final-CR typing defaults without relying on whole-range
+aggregate font/size values.
+
+`NativeComparison/GeneratedCaptionTyping` retains four fresh specimens for
+unspecified/explicit language and their refilled variants, plus each corresponding
+native-normalized PUB. Its provenance records generation, native validation and
+hashes. The [caption typing contract](../../OfficeIMO.Publisher/SUPPORT.md#authored-caption-cr-typing)
+defines the final-run CR policy and the deliberate language/inactive-spacing limits.
+
 TextPages has independent Arial 12/18-point stories on the first and last of
 three pages, with an empty middle page and explicit zero column spacing. It
 qualifies physical-page ownership in template-free native writer specimens.

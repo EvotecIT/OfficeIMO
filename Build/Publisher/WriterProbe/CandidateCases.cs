@@ -5,6 +5,10 @@ internal static class CandidateCases {
     private static readonly CandidatePlacement DefaultPlacement = new(72, 72, 288, 108);
 
     internal static CandidatePublicationSpec Create(string kind, string? value, string? secondValue = null) {
+        if (kind is "caption-typing" or "caption-typing-language") {
+            if (secondValue != null) throw new ArgumentException("The caption specimen accepts one text value.");
+            return CandidateCaptionTyping.Create(value, kind == "caption-typing-language" ? 1033U : null);
+        }
         if (kind is "multiple-masters" or "paired-masters") {
             if (value != null || secondValue != null) throw new ArgumentException("The master specimens use fixed text and assignments.");
             return CandidateMasterPages.Create(kind == "paired-masters");

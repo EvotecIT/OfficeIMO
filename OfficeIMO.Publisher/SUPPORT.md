@@ -1076,8 +1076,9 @@ language 1033. Generated object names also differ. All table fields match apart
 from the listed black-edge color type; caption text, bounds, layout and rendered
 appearance match. Native aggregate merged-cell side getters can expose mixed or
 partial observations, so exact raw utility anchors and native PDFs establish the
-qualified shared-edge result. Caption and paragraph terminator metadata equivalence
-remain unqualified.
+qualified shared-edge result. The [caption typing profile](#authored-caption-cr-typing)
+explains the distinct CR policies; these historical caption metadata differences
+remain.
 
 Nine PSWriteOffice PDF conversions retain 612×792-point pages and normalized text.
 Cell-fill RGB values match; fill rectangles differ by at most 0.0011 point. All 279 unit-edge
@@ -1347,8 +1348,9 @@ fields match, as do caption text, bounds, frame layout and kerning. Generated
 shape names differ. The caption's whole-text-range font, size and language metadata
 also differ: the fresh output reports Arial, 12 points and language 0; the native
 control reports mixed font/size and language 1033 for the range including its native
-paragraph terminator. Caption font, size, language and paragraph terminator
-metadata remain unqualified. Six earlier complete PUB specimens retain their bytes.
+paragraph terminator. The [caption typing profile](#authored-caption-cr-typing)
+qualifies those distinct CR policies without changing these historical metadata
+observations. Six earlier complete PUB specimens retain their bytes.
 
 The fresh 20×20 specimen and independent wide control also qualify native text
 replacement in their first unmerged cell, from `0101` to `N101`, followed by native
@@ -1413,6 +1415,38 @@ the two baseline page-one comparisons retain a native hyphenation and column-bre
 difference. Every edited output matches its independent control. Native column
 balancing, general layout parity, repair-free opening and generic public native
 creation remain unqualified.
+
+### Authored caption CR typing
+
+The `captionTypingDefaults` record qualifies the internal native writer's existing
+ordinary-caption policy: the generated paragraph CR uses the final visible run's
+character formatting. `WithLanguageId(1033)` explicitly carries that language
+through the body and CR; an unspecified language remains unspecified. Imported
+source CR typing remains governed by the separate preservation/edit contracts.
+
+Independent native controls distinguish Arial 12-point visible text with a
+Calibri 10-point CR from a full-range Arial 12-point caption. Their observed
+language is 1033. Native clear/refill retains each control's CR font and size.
+Three public source clear/save/reload/refill workflows preserve those distinct
+font, size and language values; all six initial/resaved native inventory
+comparisons match every key. These source saves use `LossPolicy.Allow` and retain
+the existing empty-paragraph, preview-invalidation and unqualified-Quill diagnostics.
+
+Four fresh specimens cover unspecified and explicit language before and after
+refill. Font/size observations match the full-range native controls; explicit 1033
+matches their language, while unspecified output deliberately reports language 0.
+All four retain an inactive one-column spacing difference: generated 0 versus
+native approximately 2.834646 points. Generated object names also differ, so these
+are bounded typing comparisons rather than complete inventory equivalence.
+All seven source/fresh candidates complete native Full validation with unchanged
+inputs; fourteen initial/resaved native PDF pairs match at 100 dpi with zero
+changed pixels. Seven PSWriteOffice PDF workflows retain normalized text and page
+geometry; managed/native font faces and text baselines still differ.
+
+The [fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md) identifies the
+independent controls and retained fresh/native-normalized specimens. Broader CR
+defaults, languages, styles and layout profiles, repair-free acceptance and public
+source-free native creation remain unqualified.
 
 ### Native pair-kerning metadata
 

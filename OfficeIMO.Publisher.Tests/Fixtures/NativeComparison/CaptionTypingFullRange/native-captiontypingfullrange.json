@@ -1,0 +1,278 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "CaptionTypingFullRange",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 1,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Independent table label"
+    ],
+    "shapes": [
+      {
+        "name": "CaptionTyping",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 300.0,
+        "height": 54.0,
+        "font": "Arial",
+        "size": 12.0
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "CaptionTyping",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 300.0,
+          "height": 54.0,
+          "text": "Independent table label\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "automaticPairKerningThresholdPoints": 14.0,
+          "manualKerningPoints": 0.0,
+          "fontSizePoints": 12.0,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null,
+          "tableCells": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-captiontypingfullrange.pub",
+      "sha256": "bd6b74ab90d3050954f750af5a1707c7cb4d088a9670a302dc67410b139dc487"
+    },
+    "reference": {
+      "name": "native-captiontypingfullrange.pdf",
+      "sha256": "4ec5c0404fed22e24f8c7fd715f64aea4ceebb3ac56f13c4e2336151b0f4399f"
+    }
+  },
+  "captionRangeObservations": {
+    "schema": "officeimo.publisher.native-caption-typing-observations.v1",
+    "mode": "FullRange",
+    "refilled": false,
+    "originalRangeMembership": "Unassessed: Add-TextFrame retains its original COM range internally and does not expose its identity.",
+    "pointSelection": "TextRange.Characters(Start, Length); one-based requested indices are checked against the returned character text.",
+    "observations": [
+      {
+        "stage": "AfterTextFrameHelper",
+        "text": "Independent table label\r",
+        "utf16Length": 24,
+        "start": 0,
+        "end": 24,
+        "length": 24,
+        "font": "",
+        "fontSizePoints": -9999999.0,
+        "languageId": 1033,
+        "finalCrStatus": "Observed",
+        "points": [
+          {
+            "role": "FirstVisible",
+            "requestedIndex": 1,
+            "status": "Observed",
+            "text": "I",
+            "expectedCharacter": "I",
+            "start": 0,
+            "end": 1,
+            "length": 1,
+            "font": "Arial",
+            "fontSizePoints": 12.0,
+            "languageId": 1033
+          },
+          {
+            "role": "LastVisible",
+            "requestedIndex": 23,
+            "status": "Observed",
+            "text": "l",
+            "expectedCharacter": "l",
+            "start": 22,
+            "end": 23,
+            "length": 1,
+            "font": "Arial",
+            "fontSizePoints": 12.0,
+            "languageId": 1033
+          },
+          {
+            "role": "FinalCR",
+            "requestedIndex": 24,
+            "status": "Observed",
+            "text": "\r",
+            "expectedCharacter": "\r",
+            "start": 23,
+            "end": 24,
+            "length": 1,
+            "font": "Calibri",
+            "fontSizePoints": 10.0,
+            "languageId": 1033
+          }
+        ]
+      },
+      {
+        "stage": "AfterFullRangeFormatting",
+        "text": "Independent table label\r",
+        "utf16Length": 24,
+        "start": 0,
+        "end": 24,
+        "length": 24,
+        "font": "Arial",
+        "fontSizePoints": 12.0,
+        "languageId": 1033,
+        "finalCrStatus": "Observed",
+        "points": [
+          {
+            "role": "FirstVisible",
+            "requestedIndex": 1,
+            "status": "Observed",
+            "text": "I",
+            "expectedCharacter": "I",
+            "start": 0,
+            "end": 1,
+            "length": 1,
+            "font": "Arial",
+            "fontSizePoints": 12.0,
+            "languageId": 1033
+          },
+          {
+            "role": "LastVisible",
+            "requestedIndex": 23,
+            "status": "Observed",
+            "text": "l",
+            "expectedCharacter": "l",
+            "start": 22,
+            "end": 23,
+            "length": 1,
+            "font": "Arial",
+            "fontSizePoints": 12.0,
+            "languageId": 1033
+          },
+          {
+            "role": "FinalCR",
+            "requestedIndex": 24,
+            "status": "Observed",
+            "text": "\r",
+            "expectedCharacter": "\r",
+            "start": 23,
+            "end": 24,
+            "length": 1,
+            "font": "Arial",
+            "fontSizePoints": 12.0,
+            "languageId": 1033
+          }
+        ]
+      },
+      {
+        "stage": "AfterSave",
+        "text": "Independent table label\r",
+        "utf16Length": 24,
+        "start": 0,
+        "end": 24,
+        "length": 24,
+        "font": "Arial",
+        "fontSizePoints": 12.0,
+        "languageId": 1033,
+        "finalCrStatus": "Observed",
+        "points": [
+          {
+            "role": "FirstVisible",
+            "requestedIndex": 1,
+            "status": "Observed",
+            "text": "I",
+            "expectedCharacter": "I",
+            "start": 0,
+            "end": 1,
+            "length": 1,
+            "font": "Arial",
+            "fontSizePoints": 12.0,
+            "languageId": 1033
+          },
+          {
+            "role": "LastVisible",
+            "requestedIndex": 23,
+            "status": "Observed",
+            "text": "l",
+            "expectedCharacter": "l",
+            "start": 22,
+            "end": 23,
+            "length": 1,
+            "font": "Arial",
+            "fontSizePoints": 12.0,
+            "languageId": 1033
+          },
+          {
+            "role": "FinalCR",
+            "requestedIndex": 24,
+            "status": "Observed",
+            "text": "\r",
+            "expectedCharacter": "\r",
+            "start": 23,
+            "end": 24,
+            "length": 1,
+            "font": "Arial",
+            "fontSizePoints": 12.0,
+            "languageId": 1033
+          }
+        ]
+      }
+    ]
+  }
+}
