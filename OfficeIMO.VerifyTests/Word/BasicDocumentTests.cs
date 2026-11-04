@@ -12,11 +12,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Provides baseline document generation tests.
 /// </summary>
 public class BasicDocumentTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task BasicEmptyWord() {
         using var document = WordDocument.Create();
@@ -25,7 +20,7 @@ public class BasicDocumentTests {
         document.BuiltinDocumentProperties.Keywords = "word, docx, test";
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     [Fact]
@@ -45,7 +40,7 @@ public class BasicDocumentTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     [Fact]
@@ -67,7 +62,7 @@ public class BasicDocumentTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     [Fact]
@@ -85,7 +80,7 @@ public class BasicDocumentTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     [Fact]
@@ -106,6 +101,6 @@ public class BasicDocumentTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 }

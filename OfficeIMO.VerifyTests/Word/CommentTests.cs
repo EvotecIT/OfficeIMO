@@ -10,11 +10,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Tests adding and verifying comments in documents.
 /// </summary>
 public class CommentTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task PlayingWithComments() {
         using var document = WordDocument.Create();
@@ -29,6 +24,6 @@ public class CommentTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 }

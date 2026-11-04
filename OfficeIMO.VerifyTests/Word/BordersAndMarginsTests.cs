@@ -12,11 +12,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Verifies border and margin related functionality.
 /// </summary>
 public class BordersAndMarginsTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task BasicPageBorders() {
         using var document = WordDocument.Create();
@@ -41,7 +36,7 @@ public class BordersAndMarginsTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     [Fact]
@@ -58,7 +53,7 @@ public class BordersAndMarginsTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     [Fact]
@@ -85,6 +80,6 @@ public class BordersAndMarginsTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 }

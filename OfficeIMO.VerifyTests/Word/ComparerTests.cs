@@ -8,11 +8,6 @@ using Xunit;
 namespace OfficeIMO.VerifyTests.Word;
 
 public class ComparerTests {
-    private static async Task DoTest(string sourcePath, string targetPath) {
-        using var result = WordDocumentComparer.Compare(sourcePath, targetPath);
-        await Verifier.Verify(result._wordprocessingDocument);
-    }
-
     private static string CreateTempDocxPath() {
         return Path.Combine(Path.GetTempPath(), "OfficeIMO.VerifyTests." + Guid.NewGuid().ToString("N") + ".docx");
     }
@@ -35,7 +30,10 @@ public class ComparerTests {
                 document.Save();
             }
 
-            await DoTest(sourcePath, targetPath);
+            using (var result = WordDocumentComparer.Compare(sourcePath, targetPath))
+            {
+                await Verifier.Verify(result._wordprocessingDocument);
+            }
         } finally {
             if (File.Exists(sourcePath)) {
                 File.Delete(sourcePath);
@@ -66,7 +64,10 @@ public class ComparerTests {
                 document.Save();
             }
 
-            await DoTest(sourcePath, targetPath);
+            using (var result = WordDocumentComparer.Compare(sourcePath, targetPath))
+            {
+                await Verifier.Verify(result._wordprocessingDocument);
+            }
         } finally {
             if (File.Exists(sourcePath)) {
                 File.Delete(sourcePath);

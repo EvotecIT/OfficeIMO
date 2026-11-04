@@ -13,11 +13,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Tests generating documents that contain charts.
 /// </summary>
 public class ChartTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task AddingMultipleCharts() {
         using var document = WordDocument.Create();
@@ -75,7 +70,7 @@ public class ChartTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
 }

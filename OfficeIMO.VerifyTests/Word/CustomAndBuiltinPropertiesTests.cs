@@ -13,11 +13,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Verifies custom and built‑in document property handling.
 /// </summary>
 public class CustomAndBuiltinPropertiesTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task ValidateDocument() {
         using var document = WordDocument.Create();
@@ -30,7 +25,7 @@ public class CustomAndBuiltinPropertiesTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     [Fact]
@@ -46,6 +41,6 @@ public class CustomAndBuiltinPropertiesTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 }

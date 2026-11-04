@@ -11,11 +11,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Tests bookmark creation and removal within documents.
 /// </summary>
 public class BookmarkTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task BasicWordWithBookmarks() {
         using var document = WordDocument.Create();
@@ -58,6 +53,6 @@ public class BookmarkTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 }

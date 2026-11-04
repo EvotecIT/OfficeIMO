@@ -10,11 +10,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Validates cover page functionality within generated documents.
 /// </summary>
 public class CoverPageTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task AddingCoverPage() {
         using var document = WordDocument.Create();
@@ -40,7 +35,7 @@ public class CoverPageTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument!);
+        await Verifier.Verify(document._wordprocessingDocument!);
     }
 
     [Fact]
@@ -75,6 +70,6 @@ public class CoverPageTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument!);
+        await Verifier.Verify(document._wordprocessingDocument!);
     }
 }

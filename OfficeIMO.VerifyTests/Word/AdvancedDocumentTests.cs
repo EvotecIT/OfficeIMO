@@ -14,11 +14,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Exercises advanced document features such as sections and headers.
 /// </summary>
 public class AdvancedDocumentTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task AdvancedWordCreate() {
         using var document = WordDocument.Create();
@@ -121,6 +116,6 @@ public class AdvancedDocumentTests {
 
         _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument!);
+        await Verifier.Verify(document._wordprocessingDocument!);
     }
 }

@@ -14,11 +14,6 @@ namespace OfficeIMO.VerifyTests.Word;
 /// Tests removal of images and related cleanup.
 /// </summary>
 public class ImageRemoveTests {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        await Verifier.Verify(document);
-    }
-
     [Fact]
     public async Task RemoveImageDeletesPart() {
         using var stream = new MemoryStream(new byte[] {
@@ -49,6 +44,6 @@ public class ImageRemoveTests {
         Assert.Empty(headerPart.ImageParts);
 
         _ = document.ToBytes();
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 }

@@ -9,12 +9,6 @@ using Xunit;
 namespace OfficeIMO.VerifyTests.Word;
 
 public class EmbeddedContentTests {
-    private static async Task DoTest(WordDocument document) {
-        _ = document.ToBytes();
-
-        await Verifier.Verify(document._wordprocessingDocument);
-    }
-
     private static string GetSampleImagePath() {
         return Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
@@ -44,7 +38,7 @@ public class EmbeddedContentTests {
         Assert.Equal("text/html", embedded.ContentType);
         Assert.Equal("<html><body><p>frag</p><p><strong>bold</strong></p></body></html>", embedded.GetHtml());
 
-        await DoTest(document);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     [Fact]
@@ -63,7 +57,7 @@ public class EmbeddedContentTests {
             Assert.Equal("PictureAlias", pictureControl.Alias);
             Assert.Equal("UpdatedPictureTag", pictureControl.Tag);
 
-            await DoTest(document);
+            await Verifier.Verify(document._wordprocessingDocument);
         } finally {
             if (File.Exists(textFilePath)) {
                 File.Delete(textFilePath);
@@ -86,7 +80,7 @@ public class EmbeddedContentTests {
             Assert.Empty(document.EmbeddedDocuments);
             Assert.Empty(document._wordprocessingDocument.MainDocumentPart!.AlternativeFormatImportParts);
 
-            await DoTest(document);
+            await Verifier.Verify(document._wordprocessingDocument);
         } finally {
             if (File.Exists(htmlFilePath)) {
                 File.Delete(htmlFilePath);
