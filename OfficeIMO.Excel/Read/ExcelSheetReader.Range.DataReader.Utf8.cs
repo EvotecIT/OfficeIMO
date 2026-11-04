@@ -1038,6 +1038,7 @@ namespace OfficeIMO.Excel {
                 // count and that neither entity nor CR normalization is needed.
                 if (!_canonicalTextHasNonSimpleBytes && length <= _validatedCanonicalTextLength - start)
                     return Encoding.ASCII.GetString(_buffer!, start, length);
+                if (TryDecodePredefinedXmlEntities(start, length, out string decoded)) return decoded;
 #endif
                 string text = Encoding.UTF8.GetString(_buffer!, start, length);
                 // XML normalizes literal line endings before expanding character references.

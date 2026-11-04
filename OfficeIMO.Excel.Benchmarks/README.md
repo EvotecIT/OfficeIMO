@@ -10,6 +10,8 @@ read the same file for each of XLSX, XLSB and XLS. Every read materializes the
 name and consumes the three typed values; the object-parsing methods separately
 compare `RowsAs<T>` with `ExcelParser<T>`. Setup checks every value and header;
 measured reads verify the row count and a checksum over every value.
+`EscapedNames` selects either `Name 123` or `Name <123> & "quoted" 'apostrophe'`.
+I measure both profiles independently, including the owned strings each returns.
 
 `ExcelReaderGeneratedXlsxWriteBenchmarks` compares complete in-memory XLSX
 packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
@@ -31,6 +33,8 @@ For before/after reader comparisons I set `OFFICEIMO_EXCEL_GENERATED_INPUT` to a
 read-only corpus directory containing `generated-four-columns-50000.xlsx`,
 `.xlsb` and `.xls`, and retain each file's SHA-256 and producer revision with the
 results. This keeps changes to the writer from changing the reader's input.
+The escaped profile requires `generated-four-columns-escaped-50000` with the
+same extensions for the selected formats. Missing pinned inputs fail setup.
 Without that variable, setup generates and cleanup deletes its own fixtures.
 Read and object-parse methods form separate BenchmarkDotNet categories.
 

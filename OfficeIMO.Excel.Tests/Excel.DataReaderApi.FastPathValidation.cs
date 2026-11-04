@@ -335,21 +335,24 @@ public partial class Excel {
         }
     }
 
-    [Fact]
-    public void OpenDataReader_RejectsDuplicateExpandedNamespaceAttributes() {
+    [Theory]
+    [InlineData("urn:officeimo:test", "urn:officeimo:test")]
+    [InlineData("urn:officeimo:test'a", "urn:officeimo:test&apos;a")]
+    public void OpenDataReader_RejectsDuplicateExpandedNamespaceAttributes(string firstNamespace, string secondNamespace) {
         string path = CreateCompactFastPathWorkbook();
         try {
             const string entryName = "xl/worksheets/sheet1.xml";
-            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
-            string malformedXml = worksheetXml
-                .Replace(
-                    "<worksheet ",
-                    "<worksheet xmlns:p=\"urn:officeimo:test\" xmlns:q=\"urn:officeimo:test\" ")
-                .Replace(
-                    "<row r=\"2\"",
-                    "<row p:value=\"one\" q:value=\"two\" r=\"2\"");
-            Assert.NotEqual(worksheetXml, malformedXml);
-            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+            var xml = new StringBuilder(
+                "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\""
+                + $" xmlns:p=\"{firstNamespace}\" xmlns:q=\"{secondNamespace}\"><sheetData>"
+                + "<row><c t=\"inlineStr\"><is><t>Value</t></is></c></row>");
+            string padding = new string('x', 320);
+            for (int row = 0; row < 6_000; row++) {
+                xml.Append(row == 0 ? "<row p:value=\"one\" q:value=\"two\">" : "<row>");
+                xml.Append("<c t=\"inlineStr\"><is><t>").Append(padding).Append("</t></is></c></row>");
+            }
+            xml.Append("</sheetData></worksheet>");
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(xml.ToString()));
 
             Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
