@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
 
@@ -11,8 +13,16 @@ public sealed class OfficeColorTransformationAttribute : ArgumentTransformationA
     public bool AllowNull { get; set; }
 
     /// <inheritdoc />
-    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) =>
-        AllowNull && OfficeArgumentValue.Unwrap(inputData) == null ? null! : Bind(inputData);
+    public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) {
+        object? value = OfficeArgumentValue.Unwrap(inputData);
+        if (AllowNull && value == null) return null!;
+        if (value is IEnumerable values && value is not string) {
+            var colors = new List<OfficeColor>();
+            foreach (object? item in values) colors.Add(Bind(item));
+            return colors.ToArray();
+        }
+        return Bind(value);
+    }
 
     internal static OfficeColor Bind(object? inputData) {
         var value = OfficeArgumentValue.Unwrap(inputData);
