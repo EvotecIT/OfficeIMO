@@ -1644,6 +1644,11 @@
       "reason": "Read the referenced DrawingML palette and Latin heading/body fonts from DOCX/DOTX, XLSX/XLTX or PPTX/POTX without copying document content. PowerPoint uses its first declared slide master; composition sizes and spacing retain Modern defaults.",
       "file": "OfficeIMO.Core/Themes/OfficeTheme.FromDocument.cs",
       "applied": "implemented"
+    },
+    {
+      "subject": "Common read-only validation evidence",
+      "note": "OfficeDocumentCheck and OfficeValidationReport provide IsValid, detached diagnostics/native evidence, ToMarkdown and ThrowIfFailed for the native validation operation. Unsupported checks are explicitly not applicable; no file is repaired or saved.",
+      "status": "applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

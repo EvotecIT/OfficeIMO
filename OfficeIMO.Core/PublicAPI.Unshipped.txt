@@ -128,3 +128,16 @@ static OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform.get -> OfficeIMO.Drawi
 static OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform.set -> void
 *REMOVED*OfficeIMO.Drawing.OfficeColorExtensions
 *REMOVED*static OfficeIMO.Drawing.OfficeColorExtensions.ToHexColor(this OfficeIMO.OfficeColor color) -> string!
+OfficeIMO.OfficeDocumentCheck
+OfficeIMO.OfficeDocumentCheck.Accessibility = 3 -> OfficeIMO.OfficeDocumentCheck
+OfficeIMO.OfficeDocumentCheck.Compliance = 4 -> OfficeIMO.OfficeDocumentCheck
+OfficeIMO.OfficeDocumentCheck.Schema = 1 -> OfficeIMO.OfficeDocumentCheck
+OfficeIMO.OfficeDocumentCheck.Security = 2 -> OfficeIMO.OfficeDocumentCheck
+OfficeIMO.OfficeDocumentCheck.Structure = 0 -> OfficeIMO.OfficeDocumentCheck
+OfficeIMO.OfficeValidationReport
+OfficeIMO.OfficeValidationReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.OfficeValidationReport.IsValid.get -> bool
+OfficeIMO.OfficeValidationReport.NativeReports.get -> System.Collections.Generic.IReadOnlyList<object!>!
+OfficeIMO.OfficeValidationReport.OfficeValidationReport(System.Collections.Generic.IEnumerable<OfficeIMO.OfficeDiagnostic!>! diagnostics, System.Collections.Generic.IEnumerable<object!>? nativeReports = null) -> void
+OfficeIMO.OfficeValidationReport.ThrowIfFailed() -> void
+OfficeIMO.OfficeValidationReport.ToMarkdown() -> string!
