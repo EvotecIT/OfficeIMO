@@ -7,11 +7,10 @@ using Xunit;
 
 namespace OfficeIMO.VerifyTests.Word;
 
-public class ComparerTests : VerifyTestBase {
+public class ComparerTests {
     private static async Task DoTest(string sourcePath, string targetPath) {
         using var result = WordDocumentComparer.Compare(sourcePath, targetPath);
-        var verifyResult = await ToVerifyResult(result._wordprocessingDocument);
-        await Verifier.Verify(verifyResult);
+        await Verifier.Verify(result._wordprocessingDocument);
     }
 
     private static string CreateTempDocxPath() {

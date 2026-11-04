@@ -12,11 +12,10 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Verifies custom and built‑in document property handling.
 /// </summary>
-public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
+public class CustomAndBuiltinPropertiesTests {
 
     private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result);
+        await Verifier.Verify(document);
     }
 
     [Fact]

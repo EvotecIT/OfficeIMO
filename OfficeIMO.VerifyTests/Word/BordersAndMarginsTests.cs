@@ -11,11 +11,10 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Verifies border and margin related functionality.
 /// </summary>
-public class BordersAndMarginsTests : VerifyTestBase {
+public class BordersAndMarginsTests {
 
     private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result);
+        await Verifier.Verify(document);
     }
 
     [Fact]

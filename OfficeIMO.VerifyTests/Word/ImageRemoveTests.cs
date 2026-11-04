@@ -13,11 +13,10 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Tests removal of images and related cleanup.
 /// </summary>
-public class ImageRemoveTests : VerifyTestBase {
+public class ImageRemoveTests {
 
     private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result);
+        await Verifier.Verify(document);
     }
 
     [Fact]

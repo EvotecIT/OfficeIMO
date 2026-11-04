@@ -11,11 +11,10 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Provides baseline document generation tests.
 /// </summary>
-public class BasicDocumentTests : VerifyTestBase {
+public class BasicDocumentTests {
 
     private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result);
+        await Verifier.Verify(document);
     }
 
     [Fact]

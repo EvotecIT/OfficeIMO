@@ -12,11 +12,10 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Tests generating documents that contain charts.
 /// </summary>
-public class ChartTests : VerifyTestBase {
+public class ChartTests {
 
     private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result);
+        await Verifier.Verify(document);
     }
 
     [Fact]

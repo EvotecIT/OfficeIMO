@@ -8,12 +8,11 @@ using Xunit;
 
 namespace OfficeIMO.VerifyTests.Word;
 
-public class ImageAndTextBoxTests : VerifyTestBase {
+public class ImageAndTextBoxTests {
     private static async Task DoTest(WordDocument document) {
         _ = document.ToBytes();
 
-        var result = await ToVerifyResult(document._wordprocessingDocument);
-        await Verifier.Verify(result);
+        await Verifier.Verify(document._wordprocessingDocument);
     }
 
     private static string GetSampleImagePath() {

@@ -9,11 +9,10 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Tests adding and verifying comments in documents.
 /// </summary>
-public class CommentTests : VerifyTestBase {
+public class CommentTests {
 
     private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result);
+        await Verifier.Verify(document);
     }
 
     [Fact]

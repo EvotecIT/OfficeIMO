@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -19,23 +20,18 @@ using Hyperlink = DocumentFormat.OpenXml.Wordprocessing.Hyperlink;
 
 namespace OfficeIMO.VerifyTests;
 
-public abstract class VerifyTestBase {
+/// <summary>
+/// Verify file converter that snapshots a <see cref="WordprocessingDocument"/> as its package properties followed by
+/// the normalized XML of every part.
+/// </summary>
+public static class WordprocessingDocumentConverter {
     private const string RowDelimiter = "<!--------------------------------------------------------------------------------------------------------------------->";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
     private static readonly string LastTime =
         DateTimeOffset.MaxValue.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
-    static VerifyTestBase() {
-        // To disable Visual Studio popping up on every test execution.
-        var diffDisabled = Environment.GetEnvironmentVariable("DiffEngine_Disabled");
-        if (string.IsNullOrEmpty(diffDisabled))
-            Environment.SetEnvironmentVariable("DiffEngine_Disabled", "true");
-
-        Environment.SetEnvironmentVariable("Verify_DisableClipboard", "true");
-    }
-
-    protected static async Task<string> ToVerifyResult(WordprocessingDocument document) {
+    public static async Task<ConversionResult> Convert(WordprocessingDocument document, IReadOnlyDictionary<string, object> context) {
         NormalizeWord(document);
 
         var result = new StringBuilder();
@@ -46,31 +42,31 @@ public abstract class VerifyTestBase {
         result.AppendLine(packageProperties);
         result.AppendLine(RowDelimiter);
 
-        foreach (var id in document.Parts) {
-            var r = await GetVerifyResult(id);
-            if (string.IsNullOrEmpty(r)) continue;
-            result.Append(r);
+        foreach (var pair in document.Parts) {
+            var partResult = await GetVerifyResult(pair);
+            if (string.IsNullOrEmpty(partResult)) continue;
+            result.Append(partResult);
         }
 
-        return result.ToString();
+        return new ConversionResult(null, [new Target("txt", result)]);
     }
 
-    private static async Task<string> GetVerifyResult(IdPartPair id) {
+    private static async Task<string> GetVerifyResult(IdPartPair pair) {
         var result = new StringBuilder();
-        var content = await GetPartContent(id.OpenXmlPart);
+        var content = await GetPartContent(pair.OpenXmlPart);
         if (string.IsNullOrEmpty(content)) {
             return "";
         }
 
-        result.AppendLine(id.OpenXmlPart.Uri.ToString());
+        result.AppendLine(pair.OpenXmlPart.Uri.ToString());
         result.AppendLine(RowDelimiter);
         result.AppendLine(content);
         result.AppendLine(RowDelimiter);
 
-        foreach (var part in id.OpenXmlPart.Parts) {
-            var r = await GetVerifyResult(part);
-            if (string.IsNullOrEmpty(r)) continue;
-            result.Append(r);
+        foreach (var part in pair.OpenXmlPart.Parts) {
+            var partResult = await GetVerifyResult(part);
+            if (string.IsNullOrEmpty(partResult)) continue;
+            result.Append(partResult);
         }
 
         return result.ToString();
