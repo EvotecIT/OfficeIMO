@@ -24,6 +24,19 @@ Describe 'PDF forms and stamps' {
         $fields.Name | Should -Contain 'Plan'
         $fields.Name | Should -Contain 'Regions'
 
+        $live = Open-OfficePdf -LiteralPath $formPath
+        try {
+            $preview = @($live | Set-OfficePdfFormField -Value @{ CustomerName = 'Preview' } -PassThru -WhatIf)
+            try { $preview.Count | Should -Be 0 }
+            finally { foreach ($result in $preview) { if (-not [object]::ReferenceEquals($result, $live)) { $result.Dispose() } } }
+        } finally { $live.Dispose() }
+
+        $contextPath = Join-Path $TestDrive 'context-filled.pdf'
+        Open-OfficePdf -LiteralPath $formPath -OutputPath $contextPath {
+            Set-OfficePdfFormField -Value @{ CustomerName = 'After' }
+        } | Out-Null
+        (Get-OfficePdfFormField -LiteralPath $contextPath -Name CustomerName).Value | Should -Be 'After'
+
         $filledPath = Join-Path $TestDrive 'filled.pdf'
         Set-OfficePdfFormField -Path $formPath -OutputPath $filledPath -Value @{
             CustomerName = 'Alice Example'

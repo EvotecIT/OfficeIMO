@@ -12,10 +12,11 @@ using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Fills AcroForm fields from a hashtable, optionally flattening the result.</summary>
+/// <summary>Fills existing AcroForm fields from a hashtable, optionally flattening the result.</summary>
+/// <para>Use Open-OfficePdf editing blocks for existing fields. Set initial field values with Add-OfficePdfFormField when composing a new PDF.</para>
 /// <example><summary>Use the native OfficePdfFormField command.</summary><code>Set-OfficePdfFormField -Path .\Forms\Access-Request.pdf -OutputPath .\Forms\Access-Request-Ada.pdf -Value @{ Requester = 'Ada Lovelace'; System = 'ERP' }</code></example>
 [Cmdlet("Set", "OfficePdfFormField", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
-[OutputType(typeof(object))]
+[OutputType(typeof(FileInfo), typeof(PdfDocument))]
 public sealed class SetOfficePdfFormFieldCommand : OfficeCmdlet {
     /// <summary>Path for this operation.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
@@ -104,22 +105,26 @@ public sealed class SetOfficePdfFormFieldCommand : OfficeCmdlet {
     [Alias("PSPath", "FullName")]
     public string[]? LiteralPath { get; set; }
     /// <summary>Document for this operation.</summary>
-    [Parameter(ParameterSetName = "Document", Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
     public PdfDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
         if (Incremental && (Flatten || AppearanceFontPath != null)) throw new PSArgumentException("Incremental revisions cannot flatten fields or use a custom appearance font.");
         var values = PdfCommandUtilities.ConvertFieldValues(Value!);
-        if (Document != null) {
-            var changed = Fill(Document, values);
-            if (PassThru) WriteObject(changed);
+        if (ParameterSetName == "Document") {
+            var document = Document ?? OfficeDocumentContext.Find<PdfDocument>()
+                ?? throw new PSArgumentException("Provide Document or use an Open-OfficePdf content block.");
+            if (!ShouldProcess("PDF document", "Fill PDF form fields")) return;
+            var changed = Fill(document, values);
+            bool adopted = OfficeDocumentContext.Replace(document, changed);
+            if (PassThru || !adopted) WriteObject(changed);
             return;
         }
         foreach (var pair in PdfFileCommandInputs.Resolve(this, Path, LiteralPath, OutputPath, OutputDirectory, false)) {
             if (!ShouldProcess(pair.Output, "Fill PDF form fields")) continue;
-            var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
-            var changed = Fill(document, values);
+            using var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
+            using var changed = Fill(document, values);
             PdfCommandUtilities.EnsureDirectory(pair.Output);
             changed.Save(pair.Output);
             if (PassThru) WriteObject(new FileInfo(pair.Output));
