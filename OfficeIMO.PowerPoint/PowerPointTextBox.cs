@@ -523,7 +523,8 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointDrawingColor.Read(run?.RunProperties?.GetFirstChild<A.SolidFill>());
             }
             set {
-                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetColor(runProps, value));
+                OfficeTheme theme = OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart);
+                PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetColor(runProps, value, theme));
             }
         }
 

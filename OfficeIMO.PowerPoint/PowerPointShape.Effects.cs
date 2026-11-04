@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
             shadow.RotateWithShape = rotateWithShape;
 
             RemoveShadowColors(shadow);
-            OpenXmlElement rgb = PowerPointDrawingColor.Create(color, OwnerSlide?.AuthoringTheme);
+            OpenXmlElement rgb = PowerPointDrawingColor.Create(color, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart));
             int alpha = rgb.GetFirstChild<A.Alpha>()?.Val?.Value ?? 100000;
             rgb.RemoveAllChildren<A.Alpha>();
             rgb.Append(new A.Alpha { Val = (int)Math.Round(alpha * (100 - transparencyPercent) / 100D) });
@@ -75,7 +75,7 @@ namespace OfficeIMO.PowerPoint {
             glow.Radius = resolvedRadius.ToEmus();
             RemoveGlowColors(glow);
 
-            OpenXmlElement rgb = PowerPointDrawingColor.Create(color, OwnerSlide?.AuthoringTheme);
+            OpenXmlElement rgb = PowerPointDrawingColor.Create(color, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart));
             int alpha = rgb.GetFirstChild<A.Alpha>()?.Val?.Value ?? 100000;
             rgb.RemoveAllChildren<A.Alpha>();
             rgb.Append(new A.Alpha { Val = (int)Math.Round(alpha * (100 - transparencyPercent) / 100D) });

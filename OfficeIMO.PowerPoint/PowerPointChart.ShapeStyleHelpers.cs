@@ -11,7 +11,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
         public partial class PowerPointChart : PowerPointShape {
-        private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, OfficeLength? fontSize, bool? bold,
+        private void ApplyTextStyle(A.TextCharacterPropertiesType runProps, OfficeLength? fontSize, bool? bold,
             bool? italic, OfficeColor? color, string? fontFamily) {
             if (fontSize != null) {
                 runProps.FontSize = PowerPointTextDefaults.ToDrawingFontSize(fontSize?.ToPoints(), nameof(fontSize));
@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
                 runProps.Italic = italic.Value;
             }
             if (color != null) {
-                PowerPointTextPropertyFormatting.SetColor(runProps, color);
+                PowerPointTextPropertyFormatting.SetColor(runProps, color, ColorTheme);
             }
             if (fontFamily != null) {
                 PowerPointTextPropertyFormatting.SetFontFamily(runProps, fontFamily);
@@ -132,14 +132,14 @@ namespace OfficeIMO.PowerPoint {
             return props;
         }
 
-        private static void ApplySolidFill(OpenXmlCompositeElement props, OfficeColor? color) {
+        private void ApplySolidFill(OpenXmlCompositeElement props, OfficeColor? color) {
             props.RemoveAllChildren<A.SolidFill>();
             props.RemoveAllChildren<A.NoFill>();
             props.RemoveAllChildren<A.GradientFill>();
             props.RemoveAllChildren<A.PatternFill>();
             props.RemoveAllChildren<A.BlipFill>();
             props.RemoveAllChildren<A.GroupFill>();
-            props.AddChild(PowerPointDrawingColor.Fill(color), true);
+            props.AddChild(PowerPointDrawingColor.Fill(color, ColorTheme), true);
         }
 
         private static void ApplyNoFill(OpenXmlCompositeElement props) {
@@ -162,7 +162,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyLine(OpenXmlCompositeElement props, OfficeColor? color, OfficeLength? width) {
+        private void ApplyLine(OpenXmlCompositeElement props, OfficeColor? color, OfficeLength? width) {
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             outline.RemoveAllChildren<A.SolidFill>();
             outline.RemoveAllChildren<A.NoFill>();
@@ -171,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
             outline.RemoveAllChildren<A.BlipFill>();
             outline.RemoveAllChildren<A.GroupFill>();
             outline.AddChild(
-                PowerPointDrawingColor.Fill(color), true);
+                PowerPointDrawingColor.Fill(color, ColorTheme), true);
             if (width != null) {
                 outline.Width = checked((int)width.Value.ToEmus());
             }
@@ -181,7 +181,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyOptionalLine(OpenXmlCompositeElement props, OfficeColor? color, OfficeLength? width) {
+        private void ApplyOptionalLine(OpenXmlCompositeElement props, OfficeColor? color, OfficeLength? width) {
             if (color == null && width == null) {
                 return;
             }
@@ -195,7 +195,7 @@ namespace OfficeIMO.PowerPoint {
                 outline.RemoveAllChildren<A.BlipFill>();
                 outline.RemoveAllChildren<A.GroupFill>();
                 outline.AddChild(
-                    PowerPointDrawingColor.Fill(color), true);
+                    PowerPointDrawingColor.Fill(color, ColorTheme), true);
             }
             if (width != null) {
                 outline.Width = checked((int)width.Value.ToEmus());
@@ -206,13 +206,13 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyGridlines(OpenXmlCompositeElement axis, bool showMajor, bool showMinor,
+        private void ApplyGridlines(OpenXmlCompositeElement axis, bool showMajor, bool showMinor,
             OfficeColor? lineColor, OfficeLength? lineWidth) {
             ApplyGridline<C.MajorGridlines>(axis, showMajor, lineColor, lineWidth);
             ApplyGridline<C.MinorGridlines>(axis, showMinor, lineColor, lineWidth);
         }
 
-        private static void ApplyAreaStyle(OpenXmlCompositeElement props, OfficeColor? fillColor, OfficeColor? lineColor,
+        private void ApplyAreaStyle(OpenXmlCompositeElement props, OfficeColor? fillColor, OfficeColor? lineColor,
             OfficeLength? lineWidth, bool noFill, bool noLine) {
             if (noFill) {
                 ApplyNoFill(props);
@@ -227,7 +227,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyGridline<TGridlines>(OpenXmlCompositeElement axis, bool show,
+        private void ApplyGridline<TGridlines>(OpenXmlCompositeElement axis, bool show,
             OfficeColor? lineColor, OfficeLength? lineWidth) where TGridlines : OpenXmlCompositeElement, new() {
             TGridlines? gridlines = axis.GetFirstChild<TGridlines>();
             if (!show) {
@@ -249,7 +249,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyTrendline(OpenXmlCompositeElement series, OfficeChartTrendlineType type, int? order, int? period,
+        private void ApplyTrendline(OpenXmlCompositeElement series, OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
             OfficeColor? lineColor, OfficeLength? lineWidth) {
             if (!IsTrendlineSupportedSeries(series)) {
@@ -503,7 +503,7 @@ namespace OfficeIMO.PowerPoint {
             return runProps;
         }
 
-        private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, OfficeLength? size, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
+        private void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, OfficeLength? size, OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth) {
             marker.Symbol = new C.Symbol { Val = style.ToOpenXml() };
             if (size != null) {
                 marker.Size = new C.Size { Val = checked((byte)decimal.Round(size.Value.ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero)) };

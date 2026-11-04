@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 RemoveFillChoiceChildren(outline);
-                InsertOutlineChild(outline, PowerPointDrawingColor.Fill(value, OwnerSlide?.AuthoringTheme));
+                InsertOutlineChild(outline, PowerPointDrawingColor.Fill(value, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart)));
             }
         }
 

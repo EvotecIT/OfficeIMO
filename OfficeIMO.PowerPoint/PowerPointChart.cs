@@ -26,6 +26,8 @@ namespace OfficeIMO.PowerPoint {
             _initialOwnerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
         }
 
+        private OfficeTheme ColorTheme => OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(_ownerPart);
+
         private GraphicFrame Frame => (GraphicFrame)Element;
 
         /// <summary>
@@ -110,7 +112,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (chart.GetFirstChild<C.Title>() == null) {
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(chartTitle,
-                    OwnerSlide?.AuthoringTheme ?? OfficeTheme.Default);
+                    ColorTheme);
                 chart.InsertAt(chartTitle, 0);
             }
 

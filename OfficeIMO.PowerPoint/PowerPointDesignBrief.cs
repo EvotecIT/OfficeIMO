@@ -722,19 +722,19 @@ namespace OfficeIMO.PowerPoint {
                     design.Theme.ApplyTypographyStyle(TypographyStyle.Value, design.Seed);
                 }
                 if (SecondaryAccentColor != null) {
-                    design.Theme.Accent2Color = SecondaryAccentColor;
+                    design.Theme.Accent2Color = OfficeColor.ParseHex(SecondaryAccentColor);
                 }
                 if (TertiaryAccentColor != null) {
-                    design.Theme.Accent3Color = TertiaryAccentColor;
+                    design.Theme.Accent3Color = OfficeColor.ParseHex(TertiaryAccentColor);
                 }
                 if (WarmAccentColor != null) {
-                    design.Theme.WarningColor = WarmAccentColor;
+                    design.Theme.WarningColor = OfficeColor.ParseHex(WarmAccentColor);
                 }
                 if (SurfaceColor != null) {
-                    design.Theme.SurfaceColor = SurfaceColor;
+                    design.Theme.SurfaceColor = OfficeColor.ParseHex(SurfaceColor);
                 }
                 if (PanelBorderColor != null) {
-                    design.Theme.PanelBorderColor = PanelBorderColor;
+                    design.Theme.PanelBorderColor = OfficeColor.ParseHex(PanelBorderColor);
                 }
                 if (!string.IsNullOrWhiteSpace(HeadingFontFamily)) {
                     design.Theme.HeadingFontFamily = HeadingFontFamily!;

@@ -221,7 +221,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public global::OfficeIMO.OfficeColor? Color {
             get => PowerPointDrawingColor.Read(GetRun()?.RunProperties?.GetFirstChild<A.SolidFill>());
-            set => FormatRuns(props => PowerPointTextPropertyFormatting.SetColor(props, value));
+            set {
+                OfficeTheme theme = PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart);
+                FormatRuns(props => PowerPointTextPropertyFormatting.SetColor(props, value, theme));
+            }
         }
 
         /// <summary>
@@ -430,14 +433,14 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyLine(LinePropertiesType line, OfficeColor color, double? widthPoints) {
-            SetBorderLineFill(line, PowerPointDrawingColor.Fill(color));
+        private void ApplyLine(LinePropertiesType line, OfficeColor color, double? widthPoints) {
+            SetBorderLineFill(line, PowerPointDrawingColor.Fill(color, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart)));
             if (widthPoints != null) {
                 line.Width = PowerPointShape.ToDrawingLineWidth(widthPoints.Value, nameof(widthPoints));
             }
         }
 
-        private static void ApplyLine(LinePropertiesType line, OfficeColor color, double? widthPoints, PowerPointLineDashStyle? dash) {
+        private void ApplyLine(LinePropertiesType line, OfficeColor color, double? widthPoints, PowerPointLineDashStyle? dash) {
             ApplyLine(line, color, widthPoints);
             if (dash.HasValue) {
                 line.RemoveAllChildren<A.PresetDash>();

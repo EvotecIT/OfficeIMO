@@ -70,22 +70,22 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Primary brand accent.
         /// </summary>
-        public string AccentColor { get; }
+        public OfficeColor AccentColor { get; }
 
         /// <summary>
         ///     Secondary accent color.
         /// </summary>
-        public string Accent2Color { get; }
+        public OfficeColor Accent2Color { get; }
 
         /// <summary>
         ///     Tertiary accent color.
         /// </summary>
-        public string Accent3Color { get; }
+        public OfficeColor Accent3Color { get; }
 
         /// <summary>
         ///     Warm accent used for markers and highlights.
         /// </summary>
-        public string WarningColor { get; }
+        public OfficeColor WarningColor { get; }
 
         /// <summary>
         ///     Supporting palette strategy used by this alternative.

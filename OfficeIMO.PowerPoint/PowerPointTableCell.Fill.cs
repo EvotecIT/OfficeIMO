@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
                 RemoveCellFillChoices();
-                Cell.TableCellProperties.AddChild(PowerPointDrawingColor.Fill(value), true);
+                Cell.TableCellProperties.AddChild(PowerPointDrawingColor.Fill(value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart)), true);
             }
         }
 

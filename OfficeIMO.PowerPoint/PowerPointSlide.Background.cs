@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
                 Background bg = common.Background ?? new Background();
                 BackgroundProperties props = bg.BackgroundProperties ?? new BackgroundProperties();
                 RemoveBackgroundFillChildren(props);
-                props.Append(PowerPointDrawingColor.Fill(value, OwnerDocument?.LayoutTheme.Theme));
+                props.Append(PowerPointDrawingColor.Fill(value, AuthoringTheme));
                 bg.BackgroundProperties = props;
                 common.Background = bg;
             }

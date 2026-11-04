@@ -11,7 +11,7 @@ internal static class PowerPointTextPropertyFormatting {
     }
 
     /// <summary>Writes a text fill, retaining native theme slots and opacity.</summary>
-    internal static void SetColor(A.TextCharacterPropertiesType properties, OfficeColor? value) {
+    internal static void SetColor(A.TextCharacterPropertiesType properties, OfficeColor? value, OfficeTheme theme) {
         properties.RemoveAllChildren<A.SolidFill>();
         if (!value.HasValue) return;
         properties.RemoveAllChildren<A.NoFill>();
@@ -19,13 +19,13 @@ internal static class PowerPointTextPropertyFormatting {
         properties.RemoveAllChildren<A.BlipFill>();
         properties.RemoveAllChildren<A.PatternFill>();
         properties.RemoveAllChildren<A.GroupFill>();
-        properties.AddChild(PowerPointDrawingColor.Fill(value), true);
+        properties.AddChild(PowerPointDrawingColor.Fill(value, theme), true);
         PowerPointTextHyperlinkColor.UseExplicitTextColor(properties);
     }
 
     /// <summary>Writes the run highlight color, retaining native theme slots and opacity.</summary>
-    internal static void SetBackgroundColor(A.TextCharacterPropertiesType properties, OfficeColor? value) {
+    internal static void SetBackgroundColor(A.TextCharacterPropertiesType properties, OfficeColor? value, OfficeTheme theme) {
         properties.RemoveAllChildren<A.Highlight>();
-        if (value.HasValue) properties.AddChild(new A.Highlight(PowerPointDrawingColor.Create(value.Value)), true);
+        if (value.HasValue) properties.AddChild(new A.Highlight(PowerPointDrawingColor.Create(value.Value, theme)), true);
     }
 }

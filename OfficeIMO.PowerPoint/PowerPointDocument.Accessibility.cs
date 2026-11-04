@@ -152,9 +152,10 @@ namespace OfficeIMO.PowerPoint {
             if (!background.HasValue) return;
             bool inspectedRun = false;
             foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
-                foreach (PowerPointTextRun run in paragraph.Runs) {
-                    if (string.IsNullOrWhiteSpace(run.Text)) continue;
-                    OfficeColor? foreground = (run.Color ?? textBox.Color)?.Resolve(slide.AuthoringTheme);
+                foreach (PowerPointParagraphInline inline in paragraph.InlineNodes) {
+                    PowerPointTextRun? run = inline.Run;
+                    if (run == null || string.IsNullOrWhiteSpace(run.Text)) continue;
+                    OfficeColor? foreground = PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(run, paragraph, textBox);
                     double? fontSize = run.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints();
                     if (!foreground.HasValue || !fontSize.HasValue) continue;
                     inspectedRun = true;
@@ -175,7 +176,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (!inspectedRun && !string.IsNullOrWhiteSpace(textBox.Text)) {
-                OfficeColor? foreground = textBox.Color?.Resolve(slide.AuthoringTheme);
+                OfficeColor? foreground = PowerPointEffectiveRunStyleResolver.ResolveTextColorForExport(null, textBox.Paragraphs.FirstOrDefault(), textBox);
                 double? fontSize = textBox.FontSize?.ToPoints();
                 if (foreground.HasValue && fontSize.HasValue) {
                     double required = fontSize.Value >= options.LargeTextThreshold.ToPoints()
@@ -228,8 +229,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeColor? ResolveBackgroundColor(PowerPointSlide slide, PowerPointTextBox textBox,
             IReadOnlyList<PowerPointShape> shapes) {
-            if (textBox.FillColor.HasValue && (textBox.FillTransparency ?? 0) < 50) {
-                return textBox.ResolveFillColorForExport();
+            if (textBox.ResolveFillColorForExport() is OfficeColor ownFill && (textBox.FillTransparency ?? 0) < 50) {
+                return ownFill;
             }
             int textBoxIndex = IndexOfReference(shapes, textBox);
             IEnumerable<PowerPointShape> earlierShapes = textBoxIndex >= 0
@@ -237,7 +238,7 @@ namespace OfficeIMO.PowerPoint {
                 : shapes.Where(shape => shape.DrawingOrder < textBox.DrawingOrder);
             PowerPointShape? containingShape = earlierShapes
                 .Where(shape => !ReferenceEquals(shape, textBox) && !shape.Hidden &&
-                                shape.FillColor.HasValue &&
+                                shape.ResolveFillColorForExport().HasValue &&
                                 (shape.FillTransparency ?? 0) < 50 && Contains(shape, textBox))
                 .LastOrDefault();
             if (containingShape != null) return containingShape.ResolveFillColorForExport();

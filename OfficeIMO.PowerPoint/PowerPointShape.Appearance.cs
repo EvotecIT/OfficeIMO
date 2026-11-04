@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 RemoveFillChoiceChildren(props);
                 InsertShapePropertyChild(props,
-                    PowerPointDrawingColor.Fill(value, OwnerSlide?.AuthoringTheme));
+                    PowerPointDrawingColor.Fill(value, OwnerSlide?.AuthoringTheme ?? PowerPointDrawingColor.ThemeFor(RelationshipOwnerPart)));
             }
         }
 

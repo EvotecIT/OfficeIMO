@@ -269,7 +269,7 @@ namespace OfficeIMO.PowerPoint {
         public global::OfficeIMO.OfficeColor? Color {
             get => PowerPointDrawingColor.Read(RunProperties?.GetFirstChild<A.SolidFill>());
             set {
-                PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
+                PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart));
                 SyncLineContinuation();
             }
         }
@@ -280,7 +280,7 @@ namespace OfficeIMO.PowerPoint {
         public global::OfficeIMO.OfficeColor? BackgroundColor {
             get => PowerPointDrawingColor.Read(RunProperties?.GetFirstChild<A.Highlight>());
             set {
-                PowerPointTextPropertyFormatting.SetBackgroundColor(EnsureRunProperties(), value);
+                PowerPointTextPropertyFormatting.SetBackgroundColor(EnsureRunProperties(), value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart));
                 SyncLineContinuation();
             }
         }

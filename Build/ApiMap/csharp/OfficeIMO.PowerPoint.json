@@ -13602,6 +13602,204 @@
       "category": "authoring",
       "phase": "B",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.BackgroundColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.BackgroundColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.SurfaceColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.SurfaceColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.PanelColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.PanelColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.PanelBorderColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.PanelBorderColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.PrimaryTextColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.PrimaryTextColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.SecondaryTextColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.SecondaryTextColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.MutedTextColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.MutedTextColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.AccentColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.AccentColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.AccentDarkColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.AccentDarkColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.AccentLightColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.AccentLightColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.AccentContrastColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.AccentContrastColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.Accent2Color : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.Accent2Color : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.Accent3Color : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.Accent3Color : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDesignTheme.WarningColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDesignTheme.WarningColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDesignTheme.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.AccentColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.AccentColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDeckDesignSummary.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Accent2Color : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Accent2Color : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDeckDesignSummary.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Accent3Color : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.Accent3Color : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDeckDesignSummary.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.WarningColor : string",
+      "new": "OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.WarningColor : OfficeColor",
+      "reason": "Design palette paints use the shared typed color value. Assign OfficeColor.ParseHex(rgb); use value.ToRgbHex() only at an RGB lexical output boundary. Resolve roles against the consuming OfficeTheme first.",
+      "kind": "property",
+      "action": "change",
+      "file": "OfficeIMO.PowerPoint/PowerPointDeckDesignSummary.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
     }
   ],
   "packageMoves": [
@@ -14346,9 +14544,9 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 703,
+    "changes": 721,
     "byAction": {
-      "change": 274,
+      "change": 292,
       "internalize": 11,
       "keep": 1,
       "merge": 367,
@@ -14358,7 +14556,7 @@
     },
     "byCategory": {
       "accessibility": 1,
-      "authoring": 146,
+      "authoring": 164,
       "conversion": 39,
       "images": 5,
       "lifecycle": 30,
@@ -14374,7 +14572,9 @@
   },
   "authoringNotes": {
     "wholeTextFormatting": "PowerPointTextBox and PowerPointTableCell expose SetBold(bool), SetItalic(bool), SetFontSize(OfficeLength?), SetFontFamily(string?) and SetColor(OfficeColor?) on the existing all-run property mutation paths. Nullable values clear overrides.",
-    "nativeFormatting": "Shape, cell, chart, text, slide-background and effect color writes preserve theme slots and literal alpha. NoFill, inherited fills and explicit colors remain distinct.",
-    "geometry": "SetPosition, SetSize, MoveBy, Resize and both Scale overloads return PowerPointShape. Resize and Scale retain their anchor behavior; derived handles remain available through typed variables."
+    "nativeFormatting": "Shape, cell, chart, text, slide-background and effect color writes preserve native theme slots and literal alpha; non-native status roles resolve through the consuming presentation, including layout-owned text. NoFill, inherited fills and explicit colors remain distinct.",
+    "geometry": "SetPosition, SetSize, MoveBy, Resize and both Scale overloads return PowerPointShape. Resize and Scale retain their anchor behavior; derived handles remain available through typed variables.",
+    "designPalette": "PowerPointDesignTheme stores 14 OfficeColor paints; PowerPointDeckDesignSummary exposes four OfficeColor accents. FromBrand(string), brief palette strings and recipe/card brand inputs remain RGB parsing/configuration entry points; layout presets/contrast policies are retained.",
+    "contrast": "Accessibility uses the existing native text/fill resolver, including master/layout/slide color maps and overrides, paragraph defaults, font references and dynamic fields."
   }
 }

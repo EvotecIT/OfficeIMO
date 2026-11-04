@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
                 headingFontFamily: "Aptos Display", bodyFontFamily: "Aptos");
 
             Assert.Equal("Brand Theme", theme.Name);
-            Assert.Equal("7A3E9D", theme.AccentColor);
+            Assert.Equal("7A3E9D", theme.AccentColor.ToRgbHex());
             Assert.NotEqual(theme.AccentColor, theme.AccentDarkColor);
             Assert.NotEqual(theme.AccentColor, theme.AccentLightColor);
             Assert.Equal("Aptos Display", theme.HeadingFontFamily);
@@ -242,7 +242,7 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual(first.Accent2Color, second.Accent2Color);
             Assert.NotEqual(first.Accent3Color, second.Accent3Color);
             Assert.NotEqual(first.WarningColor, second.WarningColor);
-            Assert.Contains(first.WarningColor, new[] { "F4A100", "F59E0B", "E9B44C", "FF8A3D", "D4AF37", "F97316", "EF4444" });
+            Assert.Contains(first.WarningColor.ToRgbHex(), new[] { "F4A100", "F59E0B", "E9B44C", "FF8A3D", "D4AF37", "F97316", "EF4444" });
         }
 
         [Fact]
@@ -252,7 +252,7 @@ namespace OfficeIMO.Tests {
             PowerPointDesignTheme styled =
                 theme.WithPaletteStyle(PowerPointPaletteStyle.SplitComplementary, "client-a");
 
-            Assert.Equal("008C95", styled.AccentColor);
+            Assert.Equal("008C95", styled.AccentColor.ToRgbHex());
             Assert.Equal(PowerPointPaletteStyle.SplitComplementary, styled.PaletteStyle);
             Assert.NotEqual(styled.AccentColor, styled.Accent2Color);
             Assert.NotEqual(styled.Accent2Color, styled.Accent3Color);
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDesignMood.Editorial, name: "Client A", eyebrow: "Portfolio",
                 footerLeft: "CLIENT A", footerRight: "Service deck");
 
-            Assert.Equal("008C95", design.Theme.AccentColor);
+            Assert.Equal("008C95", design.Theme.AccentColor.ToRgbHex());
             Assert.Equal(PowerPointDesignMood.Editorial, design.BaseIntent.Mood);
             Assert.Equal(PowerPointSlideDensity.Relaxed, design.BaseIntent.Density);
             Assert.Equal(PowerPointVisualStyle.Soft, design.BaseIntent.VisualStyle);
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
                     footerLeft: "CLIENT A", footerRight: "Service deck");
 
             Assert.Equal(5, alternatives.Count);
-            Assert.All(alternatives, design => Assert.Equal("008C95", design.Theme.AccentColor));
+            Assert.All(alternatives, design => Assert.Equal("008C95", design.Theme.AccentColor.ToRgbHex()));
             Assert.Equal(PowerPointDesignMood.Corporate, alternatives[0].BaseIntent.Mood);
             Assert.Equal(PowerPointDesignMood.Editorial, alternatives[1].BaseIntent.Mood);
             Assert.Equal(PowerPointDesignMood.Minimal, alternatives[2].BaseIntent.Mood);
@@ -666,7 +666,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Architecture Map", summaries[0].DirectionName);
             Assert.Equal("Runbook", summaries[1].DirectionName);
             Assert.Equal(PowerPointDesignMood.Minimal, summaries[1].Mood);
-            Assert.Equal("008C95", summaries[2].AccentColor);
+            Assert.Equal("008C95", summaries[2].AccentColor.ToRgbHex());
             Assert.Equal("Segoe UI", summaries[2].BodyFontFamily);
             Assert.NotEqual(summaries[0].Accent2Color, summaries[1].Accent2Color);
             Assert.Contains("Delivery Signal", summaries[2].ToString());
@@ -686,15 +686,15 @@ namespace OfficeIMO.Tests {
             IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
             IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
 
-            Assert.Equal("008C95", alternatives[0].Theme.AccentColor);
-            Assert.Equal("6D5BD0", alternatives[0].Theme.Accent2Color);
-            Assert.Equal("24A148", alternatives[0].Theme.Accent3Color);
-            Assert.Equal("FFB000", alternatives[0].Theme.WarningColor);
-            Assert.Equal("F2F6F8", alternatives[0].Theme.SurfaceColor);
-            Assert.Equal("B8C7D3", alternatives[0].Theme.PanelBorderColor);
-            Assert.Equal("6D5BD0", alternatives[1].Theme.Accent2Color);
-            Assert.Equal("6D5BD0", summaries[0].Accent2Color);
-            Assert.Equal("FFB000", summaries[0].WarningColor);
+            Assert.Equal("008C95", alternatives[0].Theme.AccentColor.ToRgbHex());
+            Assert.Equal("6D5BD0", alternatives[0].Theme.Accent2Color.ToRgbHex());
+            Assert.Equal("24A148", alternatives[0].Theme.Accent3Color.ToRgbHex());
+            Assert.Equal("FFB000", alternatives[0].Theme.WarningColor.ToRgbHex());
+            Assert.Equal("F2F6F8", alternatives[0].Theme.SurfaceColor.ToRgbHex());
+            Assert.Equal("B8C7D3", alternatives[0].Theme.PanelBorderColor.ToRgbHex());
+            Assert.Equal("6D5BD0", alternatives[1].Theme.Accent2Color.ToRgbHex());
+            Assert.Equal("6D5BD0", summaries[0].Accent2Color.ToRgbHex());
+            Assert.Equal("FFB000", summaries[0].WarningColor.ToRgbHex());
         }
 
         [Fact]
@@ -709,9 +709,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointPaletteStyle.Monochrome, brief.PaletteStyle);
             Assert.All(alternatives, design => Assert.Equal(PowerPointPaletteStyle.Monochrome,
                 design.Theme.PaletteStyle));
-            Assert.All(alternatives, design => Assert.Equal("6D5BD0", design.Theme.Accent2Color));
+            Assert.All(alternatives, design => Assert.Equal("6D5BD0", design.Theme.Accent2Color.ToRgbHex()));
             Assert.Equal(PowerPointPaletteStyle.Monochrome, summaries[0].PaletteStyle);
-            Assert.Equal("6D5BD0", summaries[0].Accent2Color);
+            Assert.Equal("6D5BD0", summaries[0].Accent2Color.ToRgbHex());
         }
 
         [Fact]
@@ -773,8 +773,8 @@ namespace OfficeIMO.Tests {
             Assert.Null(brief.HeadingFontFamily);
             Assert.Null(brief.BodyFontFamily);
             Assert.Equal(PowerPointPaletteStyle.SplitComplementary, alternatives[0].Theme.PaletteStyle);
-            Assert.NotEqual("6D5BD0", alternatives[0].Theme.Accent2Color);
-            Assert.NotEqual("F2F6F8", alternatives[0].Theme.SurfaceColor);
+            Assert.NotEqual("6D5BD0", alternatives[0].Theme.Accent2Color.ToRgbHex());
+            Assert.NotEqual("F2F6F8", alternatives[0].Theme.SurfaceColor.ToRgbHex());
             Assert.NotEqual("Segoe UI Semibold", alternatives[0].Theme.HeadingFontFamily);
             Assert.NotEqual("Segoe UI", alternatives[0].Theme.BodyFontFamily);
         }
