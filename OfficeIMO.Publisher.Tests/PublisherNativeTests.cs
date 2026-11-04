@@ -1,9 +1,22 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using OfficeIMO.Publisher.Pdf;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherNativeTests {
+    [Fact]
+    public void Omitted_zero_client_anchor_coordinates_keep_all_independently_positioned_frames() {
+        PublisherDocument document = PublisherDocument.Load(Fixture("NativeComparison/ZeroAnchors/native-zeroanchors.pub"));
+        PublisherPage page = Assert.Single(document.Pages);
+        var expected = new[] { (306D, 72D, 234D, 72D), (72D, 396D, 360D, 72D), (72D, 216D, 234D, 72D), (72D, 288D, 360D, 108D) };
+        Assert.Equal(4, page.TextFrames.Count);
+        Assert.Equal(expected, page.TextFrames.Select(frame => (frame.X, frame.Y, frame.Width, frame.Height)));
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_OBJECT_ANCHOR_UNRESOLVED"
+            || diagnostic.Code == "PUB_STORY_NOT_PLACED");
+    }
+
     [Fact]
     public void Publisher_authored_frames_keep_native_no_line_style_and_page_geometry() {
         PublisherDocument document = PublisherDocument.Load(Fixture("native-authored.pub"));
@@ -12,11 +25,11 @@ public sealed class PublisherNativeTests {
         Assert.Equal(792, page.Height);
         Assert.Contains(document.TextStories, story => story.Text.Contains("Native Publisher qualification"));
         Assert.Contains(document.TextStories, story => story.Text.Contains("Alpha") && story.Text.Contains("Beta"));
-        OfficeDrawingRichText[] text = Elements(page.Drawing).OfType<OfficeDrawingRichText>().ToArray();
+        OfficeDrawingRichText[] text = Elements(page.CreateDrawing()).OfType<OfficeDrawingRichText>().ToArray();
         Assert.Contains(text, frame => Text(frame).Contains("Native Publisher qualification"));
         Assert.Contains(text, frame => Text(frame).Contains("Alpha"));
         string[] textIds = text.SelectMany(frame => frame.SourceElementIds ?? Array.Empty<string>()).Distinct().ToArray();
-        OfficeDrawingShape[] frames = Elements(page.Drawing).OfType<OfficeDrawingShape>()
+        OfficeDrawingShape[] frames = Elements(page.CreateDrawing()).OfType<OfficeDrawingShape>()
             .Where(shape => shape.SourceElementIds?.Any(id => textIds.Contains(id)) == true).ToArray();
         Assert.DoesNotContain(frames, frame => frame.Shape.StrokeColor.HasValue);
     }
@@ -51,7 +64,7 @@ public sealed class PublisherNativeTests {
         Assert.False(normal.Bold);
         Assert.False(normal.Italic);
         PublisherTextFrame frame = document.Pages[0].TextFrames.Single(item => item.Id == 293);
-        OfficeDrawingRichText column = Elements(document.Pages[0].Drawing).OfType<OfficeDrawingRichText>()
+        OfficeDrawingRichText column = Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingRichText>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-293") == true);
         Assert.Equal(85.03937, frame.X, 4);
         Assert.Equal(70.86614, frame.Y, 4);
@@ -63,7 +76,7 @@ public sealed class PublisherNativeTests {
     [Fact]
     public void Table_text_maps_to_native_rows_and_columns_without_consuming_adjacent_cell_text() {
         PublisherDocument document = PublisherDocument.Load(Fixture("Sample.pub"));
-        OfficeDrawingRichText[] cells = Elements(document.Pages[1].Drawing).OfType<OfficeDrawingRichText>()
+        OfficeDrawingRichText[] cells = Elements(document.Pages[1].CreateDrawing()).OfType<OfficeDrawingRichText>()
             .Where(item => item.SourceElementIds?.Contains("publisher-object-299") == true).ToArray();
         Assert.Equal(new[] { "Table on page 2", "Top right", "P2 table left", "P2 table right", "Bottom Left", "Bottom Right" }, cells.Select(Text));
         Assert.Equal(107.71654, cells[0].X, 4);
@@ -84,7 +97,7 @@ public sealed class PublisherNativeTests {
         Assert.All(document.Images, image => Assert.True(image.ByteCount > 0));
         Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_GROUP_COORDINATES_UNRESOLVED");
         Assert.True(document.ReadReport.HasLoss);
-        Assert.All(document.Pages, page => Assert.NotEmpty(Elements(page.Drawing).OfType<OfficeDrawingImage>()));
+        Assert.All(document.Pages, page => Assert.NotEmpty(Elements(page.CreateDrawing()).OfType<OfficeDrawingImage>()));
     }
 
     [Fact]
@@ -126,6 +139,12 @@ public sealed class PublisherNativeTests {
     [InlineData("Sample98.pub")]
     public void Earlier_native_generations_are_rejected_instead_of_returning_text_salvage(string file) {
         Assert.Throws<NotSupportedException>(() => PublisherDocument.Load(Fixture(file)));
+    }
+
+    internal static PdfDocument ExportAndReloadPdf(PublisherDocument document, PdfCreateOptions? options = null) {
+        using PdfDocument pdf = document.ToPdf(options == null ? null : new PublisherPdfExportOptions { PdfOptions = options });
+        using var stream = new MemoryStream(pdf.ToBytes(), writable: false);
+        return PdfDocument.Load(stream);
     }
 
     internal static string Fixture(string file) => Path.Combine(AppContext.BaseDirectory, "Fixtures", file);

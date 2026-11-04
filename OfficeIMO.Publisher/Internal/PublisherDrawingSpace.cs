@@ -39,6 +39,10 @@ internal readonly struct PublisherGroupSpace {
         LayoutTransform = group.LayoutTransform;
         ClientLayoutTransform = LayoutTransform;
         Hidden = group.Hidden;
+        // OfficeArt's fPatriarch (bit 2) denotes the drawing's structural root.
+        // Its ordinary page objects have a parent drawing space without being
+        // members of a publication group. Real groups and their descendants do.
+        HasPublicationGroup = group.HasPublicationGroupParent || (group.Flags & 4) == 0;
         if (_absolute.HasValue) {
             PublisherNativeRectangle bounds = _absolute.Value;
             var frame = new OfficeImageFrameTransform(group.Transform.RotationDegrees.GetValueOrDefault(),
@@ -70,6 +74,7 @@ internal readonly struct PublisherGroupSpace {
     internal OfficeTransform ClientTransform { get; }
     internal OfficeTransform ClientLayoutTransform { get; }
     internal bool Hidden { get; }
+    internal bool HasPublicationGroup { get; }
 
     internal bool TryResolve(PublisherNativeRectangle relative, out PublisherNativeRectangle resolved) {
         resolved = default;

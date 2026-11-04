@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.native-table-utility-pair-fixture.v1",
+  "license": "MIT",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableUtilityPair",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tableutilitypair.pub",
+      "bytes": 107008,
+      "sha256": "178ed9ca6255e35b737c3cf6a9079b44c3676203d48d06c9ce7b7d916e4fba0d"
+    },
+    {
+      "name": "native-tableutilitypair.pdf",
+      "bytes": 112274,
+      "sha256": "d818e4cc71127983c82d6a1875c950e8ba49e85232aa3dd8e8996d552b211e75"
+    },
+    {
+      "name": "native-tableutilitypair.json",
+      "bytes": 18247,
+      "sha256": "11c12d52a26d7adbd14d3ba30e28932a73aa2d21db1bcb91e9048d38ea24e5be"
+    }
+  ],
+  "scope": "Independent native two-table control; each table has its own cell utilities and shared-border bindings. Second placement is 72/360/300/96 points."
+}

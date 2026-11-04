@@ -25,6 +25,12 @@ OfficeIMO.Drawing.OfficeImageExportReport.NativeDiagnostics.get -> System.Collec
 *REMOVED*OfficeIMO.Drawing.OfficeImageMetadataReport.RequireNoLoss() -> void
 *REMOVED*OfficeIMO.Drawing.OfficeImageMetadataReport.Source.get -> OfficeIMO.Drawing.OfficeImageMetadataKinds
 OfficeIMO.Drawing.OfficeImageMetadataReport.SourceKinds.get -> OfficeIMO.Drawing.OfficeImageMetadataKinds
+OfficeIMO.Drawing.OfficeRichTextParagraph.SuppressAutomaticHyphenation.get -> bool?
+OfficeIMO.Drawing.OfficeRichTextParagraph.WithAutomaticHyphenationSuppressed(bool suppressed) -> OfficeIMO.Drawing.OfficeRichTextParagraph!
+OfficeIMO.Drawing.OfficeRichTextRun.AutomaticPairKerningThreshold.get -> double?
+OfficeIMO.Drawing.OfficeRichTextRun.LanguageId.get -> uint?
+OfficeIMO.Drawing.OfficeRichTextRun.WithAutomaticPairKerningThreshold(double? thresholdPoints) -> OfficeIMO.Drawing.OfficeRichTextRun!
+OfficeIMO.Drawing.OfficeRichTextRun.WithLanguageId(uint? languageId) -> OfficeIMO.Drawing.OfficeRichTextRun!
 *REMOVED*OfficeIMO.IOfficeConversionReport
 *REMOVED*OfficeIMO.IOfficeConversionReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 *REMOVED*OfficeIMO.IOfficeConversionReport.HasLoss.get -> bool

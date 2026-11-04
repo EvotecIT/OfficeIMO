@@ -1,0 +1,39 @@
+{
+  "schema": "officeimo.publisher.native-table-utility-fixture.v1",
+  "license": "MIT",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableBordersOnly",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tablebordersonly.pub",
+      "bytes": 93696,
+      "sha256": "55850ee2722f1282d99d56dbd2957ae9d94d9a72e320f2d0cb5ac1465f68481a"
+    },
+    {
+      "name": "native-tablebordersonly.pdf",
+      "bytes": 111540,
+      "sha256": "5db4a51cfabc2bff2a65a37c0646fc7c93ebb5a6b5fca16b69c767047f6d0bc7"
+    },
+    {
+      "name": "native-tablebordersonly.json",
+      "bytes": 10017,
+      "sha256": "acf8dba71c19e3be27f8876f7145d8ee3473b91912ccf6e897a798ff4a06378e"
+    }
+  ],
+  "observed": "Independent fixed2x2 table. Border-only cases set the six original shared edges and explicitly hide all cell fills; text grows the first cell, cleared removes all six edges. Fill-only sets three opaque fills without edges.",
+  "limits": "Modern producer control. Native repair-free acceptance, broader layout/generation and public source-free writing remain unqualified."
+}

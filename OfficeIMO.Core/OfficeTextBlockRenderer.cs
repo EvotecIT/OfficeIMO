@@ -328,7 +328,8 @@ public static partial class OfficeTextBlockRenderer {
                 DrawRasterRichTextSegmentBackground(canvas, segment, cursor, segmentTop, rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                 if (segment.TabLinePaint != null) DrawRasterTabLineLeader(canvas, segment.TabLinePaint, cursor, renderedBaseline,
                     rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-                canvas.DrawTextLine(
+                using var preparedScope = canvas.PushPreparedShaping(segment.PreparedShaping);
+                canvas.DrawTextLineWithFeatures(segment.KerningFeatures,
                     segment.Text,
                     cursor,
                     segmentTop,
@@ -380,7 +381,13 @@ public static partial class OfficeTextBlockRenderer {
             ResolveRichTextRenderedBaseline(segment, baseline), rotationDegrees, rotationCenterX, rotationCenterY);
 
         bool linked = AppendSvgRichTextLinkStart(builder, segment.LinkUri);
-        builder.AppendSvgTextElement(
+        if (segment.PreparedShaping != null) {
+            OfficeDrawingSvgExporter.AppendPreparedRichTextSegment(builder, segment, x, baseline,
+                rotationDegrees, rotationCenterX, rotationCenterY);
+            if (linked) builder.Append("</a>");
+            return builder;
+        }
+        builder.AppendSvgPositionedTextElement(
             segment.Text,
             x,
             baseline,
@@ -395,10 +402,10 @@ public static partial class OfficeTextBlockRenderer {
             rotationDegrees,
             rotationCenterX,
             rotationCenterY,
-            strikethrough: segment.Strikethrough,
+            strikethrough: segment.Strikethrough, textAdvanceWidth: null,
             underlineStyle: segment.UnderlineStyle,
             strikethroughStyle: segment.StrikethroughStyle,
-            baseline: segment.Baseline);
+            baseline: segment.Baseline, featureSettings: segment.KerningFeatures);
         if (linked) builder.Append("</a>");
         return builder;
     }
@@ -668,6 +675,7 @@ public static partial class OfficeTextBlockRenderer {
         double lineTop,
         double lineHeight,
         bool centerLineInLineHeight) {
+        if (line.BaselineOffset.HasValue) return lineTop + line.BaselineOffset.Value;
         OfficeTextLayoutEngine.ResolveRichTextVerticalExtents(line.Segments, out double contentTop, out double contentBottom);
         double contentHeight = Math.Max(0D, contentBottom - contentTop);
         double leading = centerLineInLineHeight ? Math.Max(0D, lineHeight - contentHeight) / 2D : 0D;

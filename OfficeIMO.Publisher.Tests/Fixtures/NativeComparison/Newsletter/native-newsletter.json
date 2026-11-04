@@ -1,0 +1,176 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "Newsletter",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 2,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Publisher comparison newsletter",
+      "Section 1. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 2. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 3. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 4. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 5. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 6. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 7. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 8. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 9. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 10. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation."
+    ],
+    "shapes": [
+      {
+        "name": "NewsletterTitle",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 36.0,
+        "width": 504.0,
+        "height": 42.0,
+        "font": "Arial",
+        "size": 20.0
+      },
+      {
+        "name": "StoryStart",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 108.0,
+        "width": 228.0,
+        "height": 120.0,
+        "font": "Arial",
+        "size": 11.0
+      },
+      {
+        "name": "StoryEnd",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 600.0,
+        "font": "Arial",
+        "size": 11.0
+      },
+      {
+        "name": "NewsletterImage",
+        "kind": "Image",
+        "left": 330,
+        "top": 108,
+        "width": 144,
+        "height": 144
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "NewsletterTitle",
+          "type": 17,
+          "left": 54.0,
+          "top": 36.0,
+          "width": 504.0,
+          "height": 42.0,
+          "text": "Publisher comparison newsletter\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "StoryStart",
+          "type": 17,
+          "left": 54.0,
+          "top": 108.0,
+          "width": 228.0,
+          "height": 120.0,
+          "text": "Section 1. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 2. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\r",
+          "font": "Arial",
+          "nextLink": true,
+          "previousLink": false
+        },
+        {
+          "name": "NewsletterImage",
+          "type": 13,
+          "left": 330.0,
+          "top": 108.0,
+          "width": 144.0,
+          "height": 144.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554725,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "StoryEnd",
+          "type": 17,
+          "left": 54.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 600.0,
+          "text": "Section 3. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 4. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 5. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 6. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 7. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 8. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 9. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\rSection 10. Linked stories preserve reading order across publication pages. This paragraph uses explicit Arial text, ordinary spaces, and a visible page continuation.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": true
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-newsletter.pub",
+      "sha256": "def04c4f03de132d9b0f652e3acf63ce7340e3057e2e70738ae255a89e6a2c83"
+    },
+    "reference": {
+      "name": "native-newsletter.pdf",
+      "sha256": "f6526c85d317c319794cbbf9b24f73bc7b819630fa495d51304339fafa67c4a1"
+    },
+    "sourceImage": {
+      "name": "native-newsletter.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "limits": "Explicit Arial star bullets only; no numbering, arbitrary marker font, repair-free or general opaque-preservation claim.",
+  "date": "2026-11-01",
+  "sourceFiles": [
+    {
+      "name": "native-textlabelfitting.json",
+      "sha256": "7e765a047750b1e137d4efde37c82e32d2b49d697a3cc88647fa944fe767859c"
+    },
+    {
+      "name": "native-textlabelfitting.pdf",
+      "sha256": "10025a65c239650760530bc122feee03c081f8459b53419e201ece2b187c1b2c"
+    },
+    {
+      "name": "native-textlabelfitting.pub",
+      "sha256": "f72ba7cb3313e1d646c2b6018a40d06234230b2ff53832e264a3a2adbb47123d"
+    }
+  ],
+  "native": {
+    "executableVersion": "16.0.20527.20088",
+    "initialResavedPixelPairsEqual": 8,
+    "stage": "OpenedExportedResavedAndReopened",
+    "automationSecurity": 3,
+    "dpi": 144,
+    "version": "16.0",
+    "frames": 23,
+    "pages": 8,
+    "repairStatus": "Unassessed"
+  },
+  "font": {
+    "family": "Arial",
+    "file": "arial.ttf",
+    "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+  },
+  "origin": "Independently authored Microsoft Publisher corpus; no seed publication",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TextLabelFitting",
+  "sourceBaseCommit": "8bcf3442b8afde2f7d85eaaec8fca51e2dcd2d38",
+  "generatorBindings": [
+    {
+      "path": "Build/Publisher/Add-NativeLabelFittingControl.ps1",
+      "sha256": "8fc8e2aecc10af25dc306c602c111cab1f000adc7f3e7828796062c9da6c7eaf"
+    },
+    {
+      "path": "Build/Publisher/Invoke-NativeComparisonCase.ps1",
+      "sha256": "8e1027b2cd8aed705e6f6f29d1c795be3c8d705517e88d7768274c69d04d6cca"
+    },
+    {
+      "path": "Build/Publisher/Invoke-NativePublisherOperation.ps1",
+      "sha256": "0e8e417120e8efa0530c533e34a94baddee282ab430c67f3f5338e013900343d"
+    },
+    {
+      "path": "Build/Publisher/New-NativeComparisonCorpus.ps1",
+      "sha256": "68b340a1b0e3181195a82e8b57d8640c29e53a9041086f095ffd66c1f69ee139"
+    }
+  ]
+}

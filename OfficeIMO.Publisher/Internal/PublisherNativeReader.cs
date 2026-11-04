@@ -3,7 +3,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Publisher.Internal;
 
 internal static class PublisherNativeReader {
-    internal static PublisherDocument Read(OfficeCompoundFile compound, PublisherLoadOptions options, CancellationToken token) {
+    internal static PublisherDocument Read(OfficeCompoundFile compound, PublisherLoadOptions options, CancellationToken token, byte[] originalBytes) {
         var context = new PublisherParseContext(options, token);
         PublisherBinaryData contents = Required(compound, "Contents");
         contents.Range(0, 4);
@@ -13,7 +13,10 @@ internal static class PublisherNativeReader {
             throw new NotSupportedException("The earlier Publisher 97/98 or 2000 Contents generation is not decoded. Its shared signature does not establish the exact producer release.");
         if (contents.U8(2) != 0x2C) throw new NotSupportedException("Unsupported Publisher native version marker.");
         PublisherContents publication = new PublisherContentsReader(contents, context).Read();
-        PublisherQuillText text = new PublisherQuillTextReader(Required(compound, "Quill/QuillSub/CONTENTS"), context).Read(publication.Palette);
+        PublisherStoryHyphenation.Read(contents, publication, context);
+        PublisherTextFrameCatalogReader.Read(contents, publication, context);
+        PublisherQuillText text = new PublisherQuillTextReader(Required(compound, "Quill/QuillSub/CONTENTS"), context,
+            publication.DefaultTabInterval, publication.StoryHyphenation).Read(publication.Palette);
         PublisherEscherData escher = new PublisherEscherReader(Required(compound, "Escher/EscherStm"), Optional(compound, "Escher/EscherDelayStm"), context).Read();
         context.Add("PUB_NATIVE_FIELDS_UNASSESSED", "This bounded native recovery does not establish field-level fidelity for every publication record, auxiliary stream, or embedded object.",
             OfficeConversionLossKind.Unassessed, "Contents");
@@ -21,7 +24,8 @@ internal static class PublisherNativeReader {
             if (stream.StartsWith("VBA/", StringComparison.OrdinalIgnoreCase) || stream.StartsWith("Objects/", StringComparison.OrdinalIgnoreCase))
                 context.Add("PUB_ACTIVE_CONTENT_OMITTED", "Macros and embedded application objects remain inert and are not projected onto publication pages.", OfficeConversionLossKind.Omission, stream);
         }
-        return new PublisherPageProjector(publication, text, escher, context).Project();
+        return new PublisherModelState(publication, text, escher, context,
+            new PublisherNativeSource(originalBytes, compound)).Project(token);
     }
     private static PublisherBinaryData Required(OfficeCompoundFile compound, string name) =>
         Optional(compound, name) ?? throw new InvalidDataException("Required Publisher stream is missing: " + name);

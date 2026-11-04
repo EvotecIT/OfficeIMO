@@ -6,7 +6,7 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed partial class PublisherPageProjector {
     private OfficeArtPictureEffectProjector PictureEffects(OfficeArtPictureProperties picture, uint objectId) {
         OfficeArtPictureEffectProjector effects = OfficeArtPictureEffectProjector.Create(picture,
-            reference => reference.TryResolve(index => index < _source.Palette.Count ? _source.Palette[index] : null,
+            reference => reference.TryResolve(index => index < NativeContents.Palette.Count ? NativeContents.Palette[index] : null,
                 out OfficeColor color) ? color : null);
         string location = PublisherEscherReader.ShapeLocation(objectId);
         if ((effects.Limits & (OfficeArtPictureEffectLimit.InvalidBrightness | OfficeArtPictureEffectLimit.InvalidContrast)) != 0)

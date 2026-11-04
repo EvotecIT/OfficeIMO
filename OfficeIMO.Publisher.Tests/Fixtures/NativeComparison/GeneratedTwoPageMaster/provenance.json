@@ -1,0 +1,20 @@
+{
+  "schema": "officeimo.publisher.generated-master-pages-fixture.v1",
+  "reproduction": "WriterProbe create paired-masters <output.pub>; Invoke-NativePublisherOperation -Operation Validate -Stage Full -InputPath <output.pub>",
+  "sourcePublication": null,
+  "files": [
+    {
+      "name": "generated-twopagemaster.pub",
+      "sha256": "84180ed143e18eed63689ed29133982acfab849c6dbb2d5353905cde9c2f4134"
+    },
+    {
+      "name": "native-normalized.pub",
+      "sha256": "dce15df06a9eb9853d41fb8704f88a489bf411aa27316517e019a5481bfe56c8"
+    }
+  ],
+  "nativeProducer": "Microsoft Publisher 16.0.20527.20088",
+  "qualifiedOperations": 7,
+  "independentReference": "../TwoPageMaster",
+  "equalIndependentNativePagePairsAt144Dpi": 6,
+  "limits": "Closed source-free multiple/paired-master specimen. General public native creation, inheritance, automatic parity selection and repair-free opening remain unqualified."
+}

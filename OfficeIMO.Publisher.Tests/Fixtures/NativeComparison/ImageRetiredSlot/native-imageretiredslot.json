@@ -1,0 +1,52 @@
+{
+  "schema": "officeimo.publisher.native-lifecycle-fixture.v1",
+  "license": "MIT",
+  "purpose": "Read and re-edit a native resave retaining stale zero-count delayed-image slots.",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "candidateSha256": "f387410afbcb8260403dafbe5339ae1beaf344c7b735d29db0301b19332765f7",
+  "candidateOrigin": "PublisherDocument.Load(PictureOwnership).ReplacePictureImage for all three placements, then SaveAsync with explicit Allow.",
+  "fixtureSha256": "366072c0246e22cae37aeda439cd37ced2c8ea6f8178038a094cbd6e5e036b5b",
+  "qualifiedOperations": [
+    "ReadOnlyOpen",
+    "InitialInventory",
+    "InitialPdfExport",
+    "NativeSaveAs",
+    "ReadOnlyReopen",
+    "ResavedInventory",
+    "ResavedPdfExport"
+  ],
+  "sourceUnchanged": true,
+  "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+  "scope": "Derived source-save/native-resave regression; not independent template-free creation qualification.",
+  "artifacts": [
+    {
+      "name": "candidate-input.pub",
+      "sha256": "f387410afbcb8260403dafbe5339ae1beaf344c7b735d29db0301b19332765f7"
+    },
+    {
+      "name": "native-initial.pdf",
+      "sha256": "c1203a1e510b6c05f029bb2b7e99714f24aaa7d82327cbb030811014513ae121"
+    },
+    {
+      "name": "native-resaved.pub",
+      "sha256": "366072c0246e22cae37aeda439cd37ced2c8ea6f8178038a094cbd6e5e036b5b"
+    },
+    {
+      "name": "native-resaved.pdf",
+      "sha256": "3b1b8ef84475efcdd564f32221255de1c07e4ac4ea6fae992116af4a1b16056c"
+    },
+    {
+      "name": "native-initial-inventory.json",
+      "sha256": "bc6f589fdd6fd8dc74fd7d6ece3f7b1f40e644fc396ccf78c365a94a93da2b2e"
+    },
+    {
+      "name": "native-resaved-inventory.json",
+      "sha256": "dd8f90faeff4db135caf4e0dd8f79951419e4cc80c56478e3bec8c4f7f287660"
+    }
+  ]
+}

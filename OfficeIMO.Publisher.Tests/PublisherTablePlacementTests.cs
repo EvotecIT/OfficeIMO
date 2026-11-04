@@ -26,7 +26,7 @@ public sealed class PublisherTablePlacementTests {
         var text = new PublisherQuillText();
         var paragraphs = new[] { new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("retained", 10, OfficeColor.Black) }) };
         text.Stories.Add(3, new PublisherTextStory(3, "retained", paragraphs));
-        text.CellParagraphs.Add(3, new List<IReadOnlyList<OfficeRichTextParagraph>> { paragraphs });
+        text.TableStories.Add(3, new PublisherTableStory(new[] { new PublisherTextStory(3, "retained", paragraphs) }));
         byte[] vertices = PublisherCustomPathTests.Vertices(new[] { (0, 0), (21600, 21600) });
         byte[] segments = PublisherCustomPathTests.Segments(new ushort[] { 0x4000, 0x0001, 0x8000 });
         var shape = new PublisherEscherShape(2, 1, 0, geometry == 4 ? new[] {
@@ -38,8 +38,8 @@ public sealed class PublisherTablePlacementTests {
             LayoutTransform = geometry == 1 ? OfficeTransform.Scale(0, 1) : OfficeTransform.Identity
         };
         var escher = new PublisherEscherData(); if (geometry != 3) escher.Shapes.Add(shape);
-        PublisherDocument document = new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherLoadOptions(), default)).Project();
+        PublisherDocument document = PublisherProjectionFixture.Project(source, text, escher,
+            new PublisherParseContext(new PublisherLoadOptions(), default));
         PublisherTable table = Assert.Single(document.Pages[0].Tables);
         Assert.False(table.HasPlacement);
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TABLE_PLACEMENT_UNRESOLVED");

@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using OfficeIMO.Pdf;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Pdf;
 
@@ -99,12 +101,24 @@ public static class PublisherPdfConversionExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         var report = new PdfConversionReport();
         PdfCreateOptions operation = options?.PdfOptions?.Clone() ?? new PdfCreateOptions();
-        operation.ReportDiagnosticsTo(report, "OfficeIMO.Publisher.Pdf");
-        PdfDocument pdf = PdfDocument.CreateForImportedLayout(operation);
+        var drawings = new List<OfficeDrawing>(document.Pages.Count);
+        var fonts = new OfficeFontFaceCollection();
         foreach (PublisherPage page in document.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            pdf.Compose(builder => builder.Page(surface => surface.Size(global::OfficeIMO.OfficeLength.Points(page.Width), global::OfficeIMO.OfficeLength.Points(page.Height)).Margin(global::OfficeIMO.OfficeLength.Points(0))
-                .Canvas(canvas => canvas.Drawing(page.Drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(page.Width), global::OfficeIMO.OfficeLength.Points(page.Height)))));
+            OfficeDrawing drawing = page.CreateDrawing();
+            drawings.Add(drawing);
+            fonts.AddRange(drawing.Fonts);
+        }
+        if (fonts.Faces.Count != 0)
+            operation.UseRenderingProfile(new OfficeRenderingProfile("Publisher", fonts), OfficeRenderingProfileApplyMode.Overlay);
+        operation.ReportDiagnosticsTo(report, "OfficeIMO.Publisher.Pdf");
+        PdfDocument pdf = PdfDocument.CreateForImportedLayout(operation);
+        foreach (OfficeDrawing drawing in drawings) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeLength width = OfficeLength.Points(drawing.Width);
+            OfficeLength height = OfficeLength.Points(drawing.Height);
+            pdf.Compose(builder => builder.Page(surface => surface.Size(width, height).Margin(OfficeLength.Zero)
+                .Canvas(canvas => canvas.Drawing(drawing, OfficeLength.Zero, OfficeLength.Zero, width, height))));
         }
         return new PdfDocumentConversionResult(pdf, report).WithSourceConversionReport(document.ReadReport);
     }

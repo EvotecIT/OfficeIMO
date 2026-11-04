@@ -29,18 +29,22 @@ internal sealed class PublisherEscherReader {
         }
         foreach (PublisherEscherRecord record in records)
             Visit(record, null, 0, groupChildren.TryGetValue(record.Offset, out var children) ? children : null);
+        // Publisher can leave zero-reference descriptors pointing at repacked
+        // delay data. Resolve them only after every native BLIP role is known.
+        foreach (PublisherEscherRecord store in _result.ImageStores) ReadImages(store, _result.ImageReferences);
         return _result;
     }
     private void Visit(PublisherEscherRecord record, PublisherGroupSpace? space, int depth,
-        IReadOnlyList<PublisherEscherRecord>? cachedChildren = null) {
+        IReadOnlyList<PublisherEscherRecord>? cachedChildren = null, uint? drawingInstance = null) {
         _context.CheckDepth(depth);
-        if (record.Kind == 0xF001) { ReadImages(record); return; }
-        if (record.Kind == 0xF004) { ReadShape(record, space); return; }
+        if (record.Kind == 0xF002) drawingInstance = record.Offset >= 12 ? _data.U32(record.Offset - 12) : null;
+        if (record.Kind == 0xF001) { _result.ImageStores.Add(record); return; }
+        if (record.Kind == 0xF004) { ReadShape(record, space, drawingInstance); return; }
         if ((record.Initial & 15) != 15) return;
         PublisherGroupSpace? childSpace = space;
         foreach (PublisherEscherRecord child in cachedChildren ?? Records(record.Offset, record.End)) {
             if (record.Kind == 0xF003 && child.Kind == 0xF004) {
-                PublisherEscherShape? shape = ReadShape(child, childSpace);
+                PublisherEscherShape? shape = ReadShape(child, childSpace, drawingInstance);
                 if (shape != null && shape.IsGroup) {
                     childSpace = new PublisherGroupSpace(shape);
                     if (!shape.Bounds.HasValue && (shape.Transform.RotationDegrees.GetValueOrDefault() != 0
@@ -48,16 +52,17 @@ internal sealed class PublisherEscherReader {
                         _context.Add("PUB_GROUP_TRANSFORM_UNRESOLVED", "A transformed group has no resolved anchor. Its inherited transform remains unavailable.",
                             OfficeConversionLossKind.Omission, ShapeLocation(shape.Id));
                 }
-            } else Visit(child, childSpace, depth + 1);
+            } else Visit(child, childSpace, depth + 1, drawingInstance: drawingInstance);
         }
     }
-    private PublisherEscherShape? ReadShape(PublisherEscherRecord record, PublisherGroupSpace? space) {
+    private PublisherEscherShape? ReadShape(PublisherEscherRecord record, PublisherGroupSpace? space, uint? drawingInstance) {
         IReadOnlyList<PublisherEscherRecord> children = Records(record.Offset, record.End);
         PublisherEscherRecord? fsp = Single(children, 0xF00A), client = Single(children, 0xF011);
         if (fsp == null) throw new InvalidDataException("Publisher shape has no OfficeArt shape descriptor.");
         _data.Range(fsp.Offset, 8, fsp.End);
         uint flags = _data.U32(fsp.Offset + 4);
-        IReadOnlyList<OfficeArtProperty> properties = ReadProperties(children);
+        IReadOnlyList<OfficeArtProperty> localProperties = ReadProperties(children);
+        IReadOnlyList<OfficeArtProperty> properties = localProperties;
         if (_defaultProperties.Count != 0) {
             // Like client-property pairs, inherited property applications are
             // native record work. Charge before copying the expanded table.
@@ -76,27 +81,74 @@ internal sealed class PublisherEscherReader {
             accountGradientStops: _context.AccountParsedGradientStops) {
             GroupTransform = (anchor != null ? space?.ClientTransform : space?.Transform) ?? OfficeTransform.Identity,
             LayoutTransform = (anchor != null ? space?.ClientLayoutTransform : space?.LayoutTransform) ?? OfficeTransform.Identity,
+            HasPublicationGroupParent = space?.HasPublicationGroup ?? false,
             HiddenByGroup = space?.Hidden ?? false
         };
         if (anchor != null) {
             Dictionary<ushort, uint> values = ClientValues(anchor);
-            if (values.TryGetValue(0x2001, out uint x1) && values.TryGetValue(0x2002, out uint y1)
-                && values.TryGetValue(0x2003, out uint x2) && values.TryGetValue(0x2004, out uint y2))
+            // Native client anchors omit zero-valued coordinates. Require an
+            // actual coordinate record, then recover absent axes as zero.
+            if (values.Keys.Any(key => key is >= 0x2001 and <= 0x2004)) {
+                values.TryGetValue(0x2001, out uint x1); values.TryGetValue(0x2002, out uint y1);
+                values.TryGetValue(0x2003, out uint x2); values.TryGetValue(0x2004, out uint y2);
                 shape.Bounds = new PublisherNativeRectangle(unchecked((int)x1), unchecked((int)y1), unchecked((int)x2), unchecked((int)y2));
+            }
         } else if (childAnchor != null) {
             _data.Range(childAnchor.Offset, 16, childAnchor.End);
             var relative = Rectangle(childAnchor.Offset);
             if (space.HasValue && space.Value.TryResolve(relative, out PublisherNativeRectangle resolved)) shape.Bounds = resolved;
             else _context.Add("PUB_GROUP_COORDINATES_UNRESOLVED", "A child anchor has no enclosing group coordinate system.", OfficeConversionLossKind.Omission, ShapeLocation(id));
         }
+        if (id == 0 && anchor != null) {
+            Dictionary<ushort, uint> values = ClientValues(anchor);
+            if (drawingInstance == 2 && values.Count == 0 && shape.Type == 1 && !shape.IsGroup) {
+                OfficeArtProperty[] colors = localProperties.Where(property => property.PropertyId == 0x0181).ToArray();
+                _result.TableCellDefaultColor = !_result.HasTableCellDefault && colors.Length == 1 && !colors[0].IsComplex && !colors[0].IsBlipId
+                    ? colors[0].Value : null;
+                _result.HasTableCellDefault = true;
+            }
+            if (values.TryGetValue(0x6802, out uint tableId)) {
+                if (_result.TableArtwork.Count >= _context.Options.Limits.MaxItems)
+                    throw new InvalidDataException("Publisher table artwork limit exceeded.");
+                shape.NativeBinding = Binding(record, fsp, anchor, null, children, tableId, 0x6802);
+                _result.TableArtwork.Add(new PublisherTableArtwork(tableId, values, shape));
+            }
+        }
         if (coordinates != null) { _data.Range(coordinates.Offset, 16, coordinates.End); shape.GroupCoordinates = Rectangle(coordinates.Offset); }
         if (id != 0) {
             if (!_shapeIds.Add(id)) throw new InvalidDataException("Duplicate Publisher OfficeArt object identifier.");
             if (_result.Shapes.Count >= _context.Options.Limits.MaxItems) throw new InvalidDataException("Publisher drawing object limit exceeded.");
+            shape.NativeBinding = Binding(record, fsp, client!, anchor, children, id);
             _result.Shapes.Add(shape);
         }
         // The root group leader may define a coordinate system without a publication object ID.
         return shape;
+    }
+    private PublisherNativeShapeBinding Binding(PublisherEscherRecord container, PublisherEscherRecord fsp,
+        PublisherEscherRecord client, PublisherEscherRecord? anchor, IReadOnlyList<PublisherEscherRecord> children, uint id,
+        ushort publicationKey = 0x6801) {
+        PublisherNativeValueSlot ClientSlot(PublisherEscherRecord record, ushort key) {
+            for (int position = record.Offset + 4; position < record.End; position += 6)
+                if (_data.U16(position) == key) return new PublisherNativeValueSlot(position + 2, _data.U32(position + 2));
+            throw new InvalidDataException("Publisher native binding has no required client property.");
+        }
+        var coordinates = new List<PublisherNativeValueSlot>();
+        if (anchor != null) {
+            // ClientValues already validated this record while decoding placement.
+            ushort[] keys = { 0x2001, 0x2002, 0x2003, 0x2004 };
+            if (keys.All(key => Enumerable.Range(0, (anchor.Length - 4) / 6).Any(index => _data.U16(anchor.Offset + 4 + index * 6) == key)))
+                foreach (ushort key in keys) coordinates.Add(ClientSlot(anchor, key));
+        }
+        var slots = new List<PublisherNativePropertySlot>();
+        foreach (PublisherEscherRecord table in children.Where(item => item.Kind is 0xF00B or 0xF122))
+            for (int index = 0; index < (table.Initial >> 4); index++) {
+                int position = table.Offset + index * 6;
+                ushort operation = _data.U16(position), property = (ushort)(operation & 0x3FFF);
+                if (property is 0x0181 or 0x0182 or 0x01BF or 0x01C0 or 0x01C1 or 0x01CB)
+                    slots.Add(new PublisherNativePropertySlot(operation, new PublisherNativeValueSlot(position + 2, _data.U32(position + 2))));
+            }
+        return new PublisherNativeShapeBinding(id, _data.U32(fsp.Offset), container.Offset, container.Length, fsp.Offset,
+            ClientSlot(client, publicationKey), coordinates.ToArray(), slots, publicationKey);
     }
     private IReadOnlyList<OfficeArtProperty> ReadProperties(IReadOnlyList<PublisherEscherRecord> children) {
         var result = new List<OfficeArtProperty>();
@@ -108,12 +160,13 @@ internal sealed class PublisherEscherReader {
                 _context.Record();
                 if (value.IsComplex && !value.HasCompleteComplexData)
                     throw new InvalidDataException("Truncated Publisher OfficeArt complex property.");
+                if (value.IsBlipId && !value.IsComplex) _result.ImageReferences.Add(value.Value);
                 result.Add(value);
             }
         }
         return result;
     }
-    private Dictionary<ushort, uint> ClientValues(PublisherEscherRecord record) {
+    internal Dictionary<ushort, uint> ClientValues(PublisherEscherRecord record) {
         _data.Range(record.Offset, 4, record.End);
         if (_data.U32(record.Offset) != record.Length || (record.Length - 4) % 6 != 0)
             throw new InvalidDataException("Invalid Publisher OfficeArt client record length.");
@@ -125,7 +178,7 @@ internal sealed class PublisherEscherReader {
         }
         return result;
     }
-    private void ReadImages(PublisherEscherRecord store) {
+    private void ReadImages(PublisherEscherRecord store, HashSet<uint> references) {
         int index = 0;
         foreach (PublisherEscherRecord record in Records(store.Offset, store.End)) {
             _context.AccountImageStoreEntry();
@@ -142,6 +195,12 @@ internal sealed class PublisherEscherReader {
             if (!read)
                 throw new InvalidDataException("Invalid Publisher image store entry.");
             _context.AccountImageProcessing(image!.BlipPayloadAvailableLength.GetValueOrDefault());
+            if (image!.ReferenceCount == 0 && !references.Contains((uint)index)
+                && (image.IsPayloadTruncated || !ImageUidMatches(image, record))) {
+                _context.Add("PUB_IMAGE_RETIRED_SLOT", "An unreferenced zero-count native image slot retains stale payload metadata. The slot remains reserved and its bytes remain inert; no active image is imported from the stale offset.",
+                    OfficeConversionLossKind.None, "Escher/image/" + index);
+                continue;
+            }
             if (image!.WasImageRejectedBySizeLimit) throw new InvalidDataException("Publisher decoded image byte limit exceeded.");
             if (image.IsPayloadTruncated) throw new InvalidDataException("Truncated Publisher image payload.");
             byte[]? bytes = image.HasImportableImage ? image.ImageBytes : ReadPublisherGif(image, record, Math.Min(_context.Options.MaxImageBytes, remaining));
@@ -151,6 +210,16 @@ internal sealed class PublisherEscherReader {
             } else _context.Add("PUB_IMAGE_PAYLOAD_UNAVAILABLE", "An image store entry has no recoverable embedded payload; external resources were not fetched.",
                 OfficeConversionLossKind.Omission, "Escher/image/" + index);
         }
+    }
+    private bool ImageUidMatches(OfficeArtBlipStoreEntry image, PublisherEscherRecord record) {
+        PublisherBinaryData target; long start;
+        if (image.Storage == OfficeArtBlipStorage.Delayed && _delay != null) { target = _delay; start = image.DelayedStreamOffset; }
+        else if (image.Storage == OfficeArtBlipStorage.Embedded) { target = _data; start = (long)record.Offset + 36 + image.NameByteCount; }
+        else return false;
+        if (start < 0 || start > target.Length - 24) return false;
+        for (int index = 0; index < 16; index++)
+            if (target.U8((int)start + 8 + index) != _data.U8(record.Offset + 2 + index)) return false;
+        return true;
     }
     private byte[]? ReadPublisherGif(OfficeArtBlipStoreEntry image, PublisherEscherRecord record, int maximumBytes) {
         // Publisher stores GIF bytes in the nominal OfficeArt PNG record. This
@@ -170,7 +239,7 @@ internal sealed class PublisherEscherReader {
         Buffer.BlockCopy(data.Bytes, position, bytes, 0, size);
         return bytes;
     }
-    private IReadOnlyList<PublisherEscherRecord> Records(int start, int end) {
+    internal IReadOnlyList<PublisherEscherRecord> Records(int start, int end) {
         _data.Range(start, end - start);
         var result = new List<PublisherEscherRecord>();
         for (int position = start; position < end;) {
@@ -207,8 +276,13 @@ internal sealed class PublisherEscherRecord {
 }
 
 internal sealed class PublisherEscherData {
+    internal bool HasTableCellDefault { get; set; }
+    internal uint? TableCellDefaultColor { get; set; }
+    internal List<PublisherTableArtwork> TableArtwork { get; } = new();
     internal List<PublisherEscherShape> Shapes { get; } = new();
     internal Dictionary<int, PublisherImage> Images { get; } = new();
+    internal List<PublisherEscherRecord> ImageStores { get; } = new();
+    internal HashSet<uint> ImageReferences { get; } = new();
 }
 
 internal sealed class PublisherEscherShape {
@@ -216,7 +290,7 @@ internal sealed class PublisherEscherShape {
 
     internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties,
         bool relativeToParent = false, Action<int>? accountGradientStops = null) {
-        Id = id; Type = type; Flags = flags; Properties = properties;
+        Id = id; Type = type; Flags = flags; Properties = properties; HasParentDrawingSpace = relativeToParent;
         _propertiesById = new Dictionary<ushort, OfficeArtProperty>();
         foreach (OfficeArtProperty property in properties) _propertiesById[property.PropertyId] = property;
         Style = OfficeArtShapeStyle.Decode(properties, accountGradientStops); Transform = OfficeArtShapeTransform.Decode(flags, properties, relativeToParent);
@@ -224,7 +298,10 @@ internal sealed class PublisherEscherShape {
     internal uint Id { get; }
     internal int Type { get; }
     internal uint Flags { get; }
+    internal PublisherNativeShapeBinding? NativeBinding { get; set; }
     internal bool IsGroup => (Flags & 1) != 0;
+    internal bool HasParentDrawingSpace { get; }
+    internal bool HasPublicationGroupParent { get; set; }
     internal IReadOnlyList<OfficeArtProperty> Properties { get; }
     internal OfficeArtShapeStyle Style { get; }
     internal OfficeArtShapeTransform Transform { get; }

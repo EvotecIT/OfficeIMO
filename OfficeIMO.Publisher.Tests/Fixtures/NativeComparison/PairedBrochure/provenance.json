@@ -1,0 +1,318 @@
+{
+  "schema": "officeimo.publisher.native-paired-composition-provenance.v1",
+  "nativeCorpusCase": "PairedBrochure",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "sourceBaseCommit": "c737c1214da3e0cbe6bbe7355cc0af010cf59293",
+  "authoringHelper": "Build/Publisher/Add-NativePairedCompositionControl.ps1",
+  "authoringHelperSha256": "ac33303d2a4ad9044dfb66d63c27834f445700c431b6842b03ff5fcbded5ebfa",
+  "profile": {
+    "physicalPages": 3,
+    "pageSizePoints": [
+      612,
+      792
+    ],
+    "masterTopology": [
+      "Centered",
+      "Left",
+      "Right"
+    ],
+    "physicalMasterDefinitionOrder": [
+      0,
+      1,
+      2
+    ],
+    "masterObjectCounts": [
+      3,
+      3,
+      3
+    ],
+    "masterLogoLeftPoints": [
+      504,
+      72,
+      504
+    ],
+    "semanticObjectCounts": {
+      "textFrames": 12,
+      "rectangles": 4,
+      "pictures": 4,
+      "tables": 1
+    },
+    "linkedPhysicalPageOrder": [
+      1,
+      3,
+      2
+    ],
+    "tableRows": 2,
+    "tableColumns": 2,
+    "imageSourceFiles": 1,
+    "newObjectWrapType": 0,
+    "untouchedBaseTextFrameWrapType": 3
+  },
+  "masterOwnershipObservations": [
+    {
+      "stage": "AfterAuthoring",
+      "observation": {
+        "schema": "officeimo.publisher.native-paired-master-ownership.v1",
+        "status": "Observed",
+        "masterCount": 3,
+        "uniqueNativeShapeCount": 9,
+        "coordinateTolerancePoints": 0.001,
+        "masters": [
+          {
+            "masterIndex": 1,
+            "masterPageId": 33554695,
+            "masterName": "Master Page A",
+            "isTwoPageMaster": false,
+            "shapeCount": 3,
+            "shapes": [
+              {
+                "nativeShapeId": 307,
+                "name": "DefaultMasterMarker",
+                "type": 17,
+                "left": 18.0,
+                "top": 24.0,
+                "width": 252.0,
+                "height": 24.0
+              },
+              {
+                "nativeShapeId": 313,
+                "name": "PairedBrochureMasterRule1",
+                "type": 1,
+                "left": 36.0,
+                "top": 66.0,
+                "width": 540.0,
+                "height": 6.0
+              },
+              {
+                "nativeShapeId": 314,
+                "name": "PairedBrochureMasterLogo1",
+                "type": 13,
+                "left": 504.0,
+                "top": 708.0,
+                "width": 72.0,
+                "height": 48.0
+              }
+            ]
+          },
+          {
+            "masterIndex": 2,
+            "masterPageId": 33554731,
+            "masterName": "Comparison Two-Page Master",
+            "isTwoPageMaster": true,
+            "shapeCount": 3,
+            "shapes": [
+              {
+                "nativeShapeId": 308,
+                "name": "LeftMasterMarker",
+                "type": 17,
+                "left": 18.0,
+                "top": 24.0,
+                "width": 252.0,
+                "height": 24.0
+              },
+              {
+                "nativeShapeId": 316,
+                "name": "PairedBrochureMasterRule2",
+                "type": 1,
+                "left": 36.0,
+                "top": 66.0,
+                "width": 540.0,
+                "height": 6.0
+              },
+              {
+                "nativeShapeId": 317,
+                "name": "PairedBrochureMasterLogo2",
+                "type": 13,
+                "left": 72.0,
+                "top": 708.0,
+                "width": 72.0,
+                "height": 48.0
+              }
+            ]
+          },
+          {
+            "masterIndex": 3,
+            "masterPageId": 33554735,
+            "masterName": "Comparison Two-Page Master",
+            "isTwoPageMaster": true,
+            "shapeCount": 3,
+            "shapes": [
+              {
+                "nativeShapeId": 309,
+                "name": "RightMasterMarker",
+                "type": 17,
+                "left": 342.0,
+                "top": 24.0,
+                "width": 252.0,
+                "height": 24.0
+              },
+              {
+                "nativeShapeId": 319,
+                "name": "PairedBrochureMasterRule3",
+                "type": 1,
+                "left": 36.0,
+                "top": 66.0,
+                "width": 540.0,
+                "height": 6.0
+              },
+              {
+                "nativeShapeId": 320,
+                "name": "PairedBrochureMasterLogo3",
+                "type": 13,
+                "left": 504.0,
+                "top": 708.0,
+                "width": 72.0,
+                "height": 48.0
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "stage": "AfterSave",
+      "observation": {
+        "schema": "officeimo.publisher.native-paired-master-ownership.v1",
+        "status": "Observed",
+        "masterCount": 3,
+        "uniqueNativeShapeCount": 9,
+        "coordinateTolerancePoints": 0.001,
+        "masters": [
+          {
+            "masterIndex": 1,
+            "masterPageId": 33554695,
+            "masterName": "Master Page A",
+            "isTwoPageMaster": false,
+            "shapeCount": 3,
+            "shapes": [
+              {
+                "nativeShapeId": 307,
+                "name": "DefaultMasterMarker",
+                "type": 17,
+                "left": 18.0,
+                "top": 24.0,
+                "width": 252.0,
+                "height": 24.0
+              },
+              {
+                "nativeShapeId": 313,
+                "name": "PairedBrochureMasterRule1",
+                "type": 1,
+                "left": 36.0,
+                "top": 66.0,
+                "width": 540.0,
+                "height": 6.0
+              },
+              {
+                "nativeShapeId": 314,
+                "name": "PairedBrochureMasterLogo1",
+                "type": 13,
+                "left": 504.0,
+                "top": 708.0,
+                "width": 72.0,
+                "height": 48.0
+              }
+            ]
+          },
+          {
+            "masterIndex": 2,
+            "masterPageId": 33554731,
+            "masterName": "Comparison Two-Page Master",
+            "isTwoPageMaster": true,
+            "shapeCount": 3,
+            "shapes": [
+              {
+                "nativeShapeId": 308,
+                "name": "LeftMasterMarker",
+                "type": 17,
+                "left": 18.0,
+                "top": 24.0,
+                "width": 252.0,
+                "height": 24.0
+              },
+              {
+                "nativeShapeId": 316,
+                "name": "PairedBrochureMasterRule2",
+                "type": 1,
+                "left": 36.0,
+                "top": 66.0,
+                "width": 540.0,
+                "height": 6.0
+              },
+              {
+                "nativeShapeId": 317,
+                "name": "PairedBrochureMasterLogo2",
+                "type": 13,
+                "left": 72.0,
+                "top": 708.0,
+                "width": 72.0,
+                "height": 48.0
+              }
+            ]
+          },
+          {
+            "masterIndex": 3,
+            "masterPageId": 33554735,
+            "masterName": "Comparison Two-Page Master",
+            "isTwoPageMaster": true,
+            "shapeCount": 3,
+            "shapes": [
+              {
+                "nativeShapeId": 309,
+                "name": "RightMasterMarker",
+                "type": 17,
+                "left": 342.0,
+                "top": 24.0,
+                "width": 252.0,
+                "height": 24.0
+              },
+              {
+                "nativeShapeId": 319,
+                "name": "PairedBrochureMasterRule3",
+                "type": 1,
+                "left": 36.0,
+                "top": 66.0,
+                "width": 540.0,
+                "height": 6.0
+              },
+              {
+                "nativeShapeId": 320,
+                "name": "PairedBrochureMasterLogo3",
+                "type": 13,
+                "left": 504.0,
+                "top": 708.0,
+                "width": 72.0,
+                "height": 48.0
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "applicationOptionsChanged": false,
+  "nativeTableStoryAutomaticHyphenationSetterApplied": false,
+  "repairStatus": "Unassessed. Native open/export/resave/reopen and matching page renders do not establish repair-free acceptance.",
+  "license": "MIT",
+  "files": [
+    {
+      "name": "native-pairedbrochure.pub",
+      "bytes": 113664,
+      "sha256": "1c7677c628c342b0b793bba02239d32c4a0fa0a8ee9ba668444e40190a6e8228"
+    }
+  ]
+}

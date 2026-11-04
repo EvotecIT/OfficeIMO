@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-master-assignment-fixture.v1",
+  "reproduction": "New-NativeComparisonCorpus -Case MultipleMastersReassigned -OutputDirectory <empty-directory>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-multiplemastersreassigned.json",
+      "sha256": "633fee498683f049bd179cedfee75ce1929d4a877b0420ab534a7f5361757eaa"
+    },
+    {
+      "name": "native-multiplemastersreassigned.pdf",
+      "sha256": "ab5c1d0f549355ce6ba9dc139d28db34af1261013404a47c078271a362cbe878"
+    },
+    {
+      "name": "native-multiplemastersreassigned.pub",
+      "sha256": "437fd43bb99a4989def5ca293f910f1f25a1292b21a0b87f786682d2be618280"
+    }
+  ],
+  "observed": "Independent native direct master references; IgnoreMaster true on physical pages1/3 for Ignored controls, false throughout Reassigned controls. Selected master objects remain available when formatting is ignored.",
+  "limits": "Modern synthetic direct single/paired masters only; broader producer/visibility encodings, inheritance and repair-free opening unqualified."
+}

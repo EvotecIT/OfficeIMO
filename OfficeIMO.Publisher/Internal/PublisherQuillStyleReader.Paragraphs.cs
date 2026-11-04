@@ -8,6 +8,15 @@ internal sealed partial class PublisherQuillStyleReader {
         foreach (PublisherBlock field in _blocks.Chunk(offset, end)) {
             switch (field.Id) {
                 case 0x19: result.DefaultStyleIndex = field.Value; break;
+                case 0x1C:
+                    if (field.Type is 0x0A or 0x02) result.SuppressAutomaticHyphenation = field.Type == 0x0A;
+                    else {
+                        result.HyphenationSuppressionUnassessed = true;
+                        _context.Add("PUB_HYPHENATION_SUPPRESSION_UNASSESSED",
+                            "The native paragraph hyphenation-suppression flag is outside the qualified boolean profile and remains opaque.",
+                            OfficeConversionLossKind.Unassessed, "Quill/FDPP");
+                    }
+                    break;
                 case 0x04:
                     result.Alignment = (field.Value & 255) switch { 2 => OfficeTextAlignment.Center, 1 => OfficeTextAlignment.Right,
                         6 => OfficeTextAlignment.Justify, _ => OfficeTextAlignment.Left }; break;
@@ -51,7 +60,9 @@ internal sealed partial class PublisherQuillStyleReader {
         if (array.HasValue) {
             foreach (PublisherBlock entry in _blocks.Children(array.Value)) {
                 _context.Record();
-                if (entry.Id != 0 || entry.Type != 0x88) throw new InvalidDataException("Invalid Publisher tab-stop entry.");
+                // Native arrays number entries by ordinal. Retain the older
+                // repeated-zero profile while admitting the indexed encoding.
+                if (entry.Id != 0 && entry.Id != result.Count || entry.Type != 0x88) throw new InvalidDataException("Invalid Publisher tab-stop entry.");
                 IReadOnlyList<PublisherBlock> properties = _blocks.Children(entry);
                 PublisherBlock amount = PublisherContentsReader.Field(properties, 0)
                     ?? throw new InvalidDataException("Publisher tab stop has no position.");
@@ -63,7 +74,7 @@ internal sealed partial class PublisherQuillStyleReader {
             }
         }
         if (count.HasValue && count.Value != result.Count) throw new InvalidDataException("Publisher tab-stop count disagrees with its native array.");
-        _context.Add("PUB_TAB_LAYOUT_APPROXIMATED", "Native tab positions use the shared measured left-tab grid. Undeclared stops use the shared 36-point interval.",
+        _context.Add("PUB_TAB_LAYOUT_APPROXIMATED", "Native tab positions use the shared measured left-tab grid and effective default interval.",
             OfficeConversionLossKind.Approximation, "Quill/FDPP");
         return result;
     }

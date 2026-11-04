@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.native-mixed-order-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case MixedObjectPagesEdited",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-mixedobjectpagesedited.pub",
+      "sha256": "d44f2321d11990b93c3263e14f55028f9be69e8d183f32a89ee353d242bf1e44"
+    },
+    {
+      "name": "native-mixedobjectpagesedited.pdf",
+      "sha256": "b34c25f5709b691ef80ef23cfd18e78f4104f8d393c22f7f559bdf8b73d187e9"
+    },
+    {
+      "name": "native-mixedobjectpagesedited.json",
+      "sha256": "19c7e06fa11db5996dc3ffa356fb76b689d1ed34440c83ee9b9dbf658fab2f70"
+    },
+    {
+      "name": "native-mixedobjectpagesedited.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    }
+  ],
+  "observed": "Independent edited state of MixedObjectPages: first story text changed, last band moved/recolored, top picture moved/resized. Eight shapes retain order and no text wrapping.",
+  "limits": "Independent native authoring reference; managed/native text metrics, generic model serialization and repair-free opening remain separate criteria."
+}

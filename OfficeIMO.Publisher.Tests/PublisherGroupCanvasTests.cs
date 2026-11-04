@@ -25,11 +25,11 @@ public sealed class PublisherGroupCanvasTests {
                 GroupTransform = OfficeTransform.Translate(12700, 12700)
             });
         }
-        PublisherDocument document = new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherLoadOptions(), default)).Project();
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages[0].Drawing);
+        PublisherDocument document = PublisherProjectionFixture.Project(source, text, escher,
+            new PublisherParseContext(new PublisherLoadOptions(), default));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.White, raster.GetPixel(300, 300));
-        Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].Drawing), item => item is OfficeDrawingEffectGroup);
+        Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()), item => item is OfficeDrawingEffectGroup);
         Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_OBJECT_NOT_PROJECTED");
     }
 
@@ -37,8 +37,8 @@ public sealed class PublisherGroupCanvasTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Grouped_text_retains_glyph_and_decoration_ink_outside_its_frame(bool condensed) {
-        OfficeRasterImage reference = OfficeDrawingRasterRenderer.Render(TextPaint(false, condensed).Pages[0].Drawing);
-        OfficeRasterImage grouped = OfficeDrawingRasterRenderer.Render(TextPaint(true, condensed).Pages[0].Drawing);
+        OfficeRasterImage reference = OfficeDrawingRasterRenderer.Render(TextPaint(false, condensed).Pages[0].CreateDrawing());
+        OfficeRasterImage grouped = OfficeDrawingRasterRenderer.Render(TextPaint(true, condensed).Pages[0].CreateDrawing());
         int painted = 0, missing = 0;
         for (int y = 60; y < 200; y++)
             for (int x = 60; x < 220; x++) {
@@ -79,9 +79,9 @@ public sealed class PublisherGroupCanvasTests {
             new OfficeArtProperty(0, 0x01C0, 0x000000FF), new OfficeArtProperty(1, 0x01CB, 12700)
         }) { Bounds = new PublisherNativeRectangle(0, 0, 12700, 12700),
             GroupTransform = OfficeTransform.Scale(0, 1), LayoutTransform = OfficeTransform.Scale(0, 1) });
-        PublisherDocument document = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherLoadOptions(), default)).Project();
-        Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].Drawing), item => item is OfficeDrawingShape drawing && drawing.Shape.Kind == OfficeShapeKind.Line);
+        PublisherDocument document = PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherLoadOptions(), default));
+        Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()), item => item is OfficeDrawingShape drawing && drawing.Shape.Kind == OfficeShapeKind.Line);
         Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_DEGENERATE_OBJECT_OMITTED");
     }
 
@@ -117,16 +117,16 @@ public sealed class PublisherGroupCanvasTests {
                 GroupTransform = OfficeTransform.Scale(0, 1), LayoutTransform = OfficeTransform.Scale(0, 1)
             });
         }
-        return new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Project();
+        return PublisherProjectionFixture.Project(source, text, escher,
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void Grouped_shapes_retain_wide_strokes_and_blurred_shadows(bool shadow) {
-        OfficeRasterImage reference = OfficeDrawingRasterRenderer.Render(WidePaint(false, shadow).Pages[0].Drawing);
-        OfficeRasterImage grouped = OfficeDrawingRasterRenderer.Render(WidePaint(true, shadow).Pages[0].Drawing);
+        OfficeRasterImage reference = OfficeDrawingRasterRenderer.Render(WidePaint(false, shadow).Pages[0].CreateDrawing());
+        OfficeRasterImage grouped = OfficeDrawingRasterRenderer.Render(WidePaint(true, shadow).Pages[0].CreateDrawing());
         int painted = 0, missing = 0;
         for (int y = 0; y < 300; y++)
             for (int x = 0; x < 300; x++) {
@@ -161,8 +161,8 @@ public sealed class PublisherGroupCanvasTests {
                 (x + width - 306) * 12700, (y + 100 - 396) * 12700),
             GroupTransform = grouped ? OfficeTransform.Translate(12700, 12700) : OfficeTransform.Identity
         });
-        return new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Project();
+        return PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     }
 
     [Theory]
@@ -170,7 +170,7 @@ public sealed class PublisherGroupCanvasTests {
     [InlineData(100)]
     public void Many_small_grouped_objects_render_with_the_default_pixel_budget(int disabledStrokeWidth) {
         PublisherDocument document = SmallGroupedObjects(disabledStrokeWidth);
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages.Single().Drawing);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages.Single().CreateDrawing());
         for (int index = 0; index < 120; index++) {
             OfficeColor pixel = raster.GetPixel(22 + index % 12 * 40, 22 + index / 12 * 40);
             Assert.Equal(255, pixel.R);
@@ -182,7 +182,7 @@ public sealed class PublisherGroupCanvasTests {
 
     [Fact]
     public void Transparent_grouped_line_markers_remain_within_the_default_pixel_budget() {
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(SmallGroupedObjects(100, transparentMarkers: true).Pages[0].Drawing);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(SmallGroupedObjects(100, transparentMarkers: true).Pages[0].CreateDrawing());
         int painted = 0;
         for (int y = 0; y < raster.Height; y++)
             for (int x = 0; x < raster.Width; x++)
@@ -213,7 +213,7 @@ public sealed class PublisherGroupCanvasTests {
                 GroupTransform = OfficeTransform.Translate(12700, 12700)
             });
         }
-        return new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Project();
+        return PublisherProjectionFixture.Project(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None));
     }
 }

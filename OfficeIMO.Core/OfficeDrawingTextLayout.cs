@@ -78,7 +78,7 @@ internal static partial class OfficeDrawingTextLayout {
         return new OfficeTextPaintBounds(top, bottom);
     }
 
-    private static OfficeTextPaintBounds PaintedBounds(OfficeRichTextBlockLayout layout,
+    internal static OfficeTextPaintBounds PaintedBounds(OfficeRichTextBlockLayout layout,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
         Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null) {
         double lineTop = 0D, top = 0D, bottom = 0D;
@@ -119,18 +119,19 @@ internal static partial class OfficeDrawingTextLayout {
         OfficeDrawingRichText text, double width, double height,
         Func<string?, double, string?, OfficeFontStyle, double> measure, double scale = 1D,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint = null) =>
-        CreateCore(text, width, height, measure, scale, measurePaint, null);
+        CreateCore(text, width, height, new OfficeRichTextMeasurement(measure), scale, measurePaint, null);
 
     internal static OfficeRichTextBlockLayout CreateWithMetrics(OfficeDrawingRichText text, double width, double height,
         OfficeDrawingTextMetrics metrics, double scale = 1D) =>
         CreateWithHorizontalPaintInsets(text, width, height, metrics, scale);
 
     private static OfficeRichTextBlockLayout CreateCore(OfficeDrawingRichText text, double width, double height,
-        Func<string?, double, string?, OfficeFontStyle, double> measure, double scale,
+        OfficeRichTextMeasurement measure, double scale,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
-        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint) {
+        Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont = null) {
         if (text.Paragraphs.Count > 0) return CreateParagraphs(text, width, height, measure, scale, measurePaint,
-            measureSegmentPaint: measureSegmentPaint);
+            measureSegmentPaint: measureSegmentPaint, measurePublisherFont: measurePublisherFont);
         var runs = new List<OfficeRichTextRun>(text.Runs.Count);
         double maxFontSize = 0D;
         foreach (OfficeRichTextRun run in text.Runs) {
@@ -139,12 +140,12 @@ internal static partial class OfficeDrawingTextLayout {
                 run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough,
                 run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline,
                 run.ParagraphIndent?.Scale(scale)) {
-                LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName
+                AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold * scale, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName
             });
         }
         if (maxFontSize <= 0D) maxFontSize = 10D * scale;
         double factor = ResolveLineHeightFactor(text.LineHeight * scale, maxFontSize);
-        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlockWithPaint(runs, width, height,
+        OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlockWithMetrics(runs, width, height,
             factor, measure, text.WrapText, text.ShrinkToFit, Math.Min(6D * scale, maxFontSize),
             paragraphIndent: text.ParagraphIndent.Scale(scale), shrinkToHeight: true, measurePaint: measurePaint,
             measureSegmentPaint: measureSegmentPaint);

@@ -1,0 +1,207 @@
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Publisher.Internal;
+
+/// <summary>Accounts for semantic differences before exact copying or preparing bounded native source edits.</summary>
+internal sealed partial class PublisherNativeWriter {
+    private readonly PublisherPublicationState _current, _baseline;
+    private readonly PublisherImportedResidue _imported;
+    private readonly IReadOnlyDictionary<uint, PublisherEscherShape> _artwork;
+    private readonly CancellationToken _token;
+    private readonly List<OfficeDiagnostic> _diagnostics = new();
+    private readonly List<PublisherQuillStoryStyles> _styleDependencies = new();
+    private readonly Dictionary<int, (uint Original, uint Replacement)> _patches = new();
+    private byte[]? _quillBytes;
+    private readonly OfficeLegacyImportLimits _sourceLimits;
+    private readonly PublisherLoadOptions _sourceOptions;
+    private readonly long _maximumBytes;
+
+    private PublisherNativeWriter(PublisherPublicationState current, PublisherImportedResidue imported,
+        PublisherLoadOptions sourceOptions, long maximumBytes, CancellationToken token) {
+        _current = current; _baseline = imported.Baseline!; _imported = imported; _token = token;
+        _sourceOptions = sourceOptions; _sourceLimits = sourceOptions.Limits; _maximumBytes = maximumBytes;
+        _artwork = imported.Artwork.Shapes.ToDictionary(shape => shape.Id);
+    }
+
+    internal static PublisherNativePreparation Prepare(PublisherPublicationState current, PublisherImportedResidue? imported,
+        PublisherLoadOptions sourceOptions, long maximumBytes, CancellationToken token) {
+        if (maximumBytes < 1 || maximumBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        token.ThrowIfCancellationRequested();
+        if (imported?.NativeSource == null || imported.Baseline == null)
+            return new PublisherNativePreparation(null, new[] { Finding("PUB_NATIVE_SOURCE_REQUIRED",
+                "Native preparation requires an imported source and its semantic baseline. Source-free authoring is not a native writer.", OfficeConversionLossKind.Failure, "Contents") });
+        OfficeLegacyImportLimits sourceLimits = sourceOptions.Limits;
+        current = NormalizeEmptyStories(current, imported.Baseline, sourceLimits.MaxTextCharacters, token, out var normalizations);
+        var writer = new PublisherNativeWriter(current, imported, sourceOptions, maximumBytes, token);
+        writer.Compare();
+        if (writer._diagnostics.Count == 0) writer.PlanTableBorderRecords();
+        if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
+        PublisherNativeSource source = imported.NativeSource;
+        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0 && writer._storyHyphenation.Count == 0 && writer._objectOrders.Count == 0 && writer._frameWraps.Count == 0 && writer._tableTrackEdits.Count == 0 && writer._tableBorderRecords?.IsEmpty != false) {
+            if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");
+            token.ThrowIfCancellationRequested();
+            return new PublisherNativePreparation(source.CopyBytes(), new[] { Finding("PUB_NATIVE_EXACT_COPY",
+                "The native representation is unchanged. Original native bytes are copied exactly; native validity and signatures are not reassessed.", OfficeConversionLossKind.None, "Contents") }.Concat(normalizations));
+        }
+        if (!source.CanRewrite(sourceLimits, token)) {
+            writer.Reject("Contents", "Edited output is unavailable for an invalid directory tree, nonempty active-content carriers, signatures or protected storage.");
+            return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
+        }
+        var streams = new Dictionary<string, byte[]>();
+        byte[] bytes = writer._patches.Count == 0 && writer._shapeProperties.Count == 0 && writer._imageStore == null && writer._tableBorderRecords?.IsEmpty != false ? Array.Empty<byte>() : (byte[])source.EscherBytes.Clone();
+        var data = new PublisherBinaryData(bytes, "Escher/EscherStm");
+        foreach (var patch in writer._patches) {
+            token.ThrowIfCancellationRequested();
+            if (data.U32(patch.Key) != patch.Value.Original) {
+                writer.Reject("Escher/EscherStm", "The retained native source no longer matches its guarded patch slots.");
+                return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
+            }
+            uint value = patch.Value.Replacement;
+            for (int index = 0; index < 4; index++) bytes[patch.Key + index] = (byte)(value >> (index * 8));
+        }
+        if (writer._patches.Count != 0) streams.Add("Escher/EscherStm", bytes);
+        if (!writer.PrepareStructuredStreams(streams, bytes))
+            return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
+        if (writer._imageDelay != null) streams.Add("Escher/EscherDelayStm", writer._imageDelay);
+        if (writer._quillBytes != null) streams.Add("Quill/QuillSub/CONTENTS", writer._quillBytes);
+        bool previewInvalidated;
+        try {
+            previewInvalidated = source.InvalidatePreview(streams, token);
+        } catch (InvalidDataException exception) {
+            writer.Reject("\u0005SummaryInformation", "The cached-preview property set cannot be safely edited: " + exception.Message);
+            return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
+        }
+        byte[] output = source.Rewrite(streams, maximumBytes, token);
+        token.ThrowIfCancellationRequested();
+        var diagnostics = new List<OfficeDiagnostic>(normalizations);
+        if (writer._objectOrders.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED",
+            "Existing page objects were reordered as complete sibling OfficeArt records. Object identifiers, ownership, stories, image assets and unrelated records are retained. Grouped artwork remains outside this profile; native repair-free opening and broader rendering fidelity remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
+        if (writer._frameWraps.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED",
+            "Ordinary frame exclusion lists were rebuilt from qualified rectangular foreground obstacles and current geometry. Object identities, wrap settings and complete stories are retained; broader producer, layout and repair-free opening fidelity remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Contents/frames"));
+        if (writer._storyHyphenation.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_STORY_HYPHENATION_UNQUALIFIED",
+            "Selected native story automatic-hyphenation flags changed without modifying source text or Quill formatting. Repair-free opening and opaque semantic preservation remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Contents/stories"));
+        if (writer._masterAssignments.Count > 0)
+            diagnostics.Add(Finding("PUB_NATIVE_MASTER_ASSIGNMENT_UNQUALIFIED",
+                "Existing physical pages select qualified direct master definitions or suppress their formatting while retaining latent native references. Page roles, definition ownership and unrelated records are retained. Native repair-free opening, rendering and opaque semantic preservation require independent qualification.",
+                OfficeConversionLossKind.Unassessed, "Contents/pages"));
+        if (writer._hasPictureCrop)
+            diagnostics.Add(Finding("PUB_NATIVE_PICTURE_CROP_UNQUALIFIED",
+                "Selected picture source-edge crops changed through native 16.16 properties. Bounds, image assets, other placements and unrelated records are retained. Native rendering, repair-free opening and opaque semantic preservation remain unassessed.",
+                OfficeConversionLossKind.Unassessed, "Escher"));
+        foreach (uint id in writer._quantizedPictureCrops)
+            diagnostics.Add(Finding("PUB_NATIVE_PICTURE_CROP_QUANTIZED",
+                "Source-edge crop fractions were rounded to the nearest native 16.16 value; the in-memory requested crop is unchanged.",
+                OfficeConversionLossKind.Approximation, "Escher/object/" + id));
+        if (writer._hasFrameLayout)
+            diagnostics.Add(Finding("PUB_NATIVE_FRAME_LAYOUT_UNQUALIFIED",
+                "Source frame columns, full intercolumn gap, insets or vertical alignment changed. Native shape tables and chunk-directory offsets are rewritten while unrelated records are retained. Repair-free opening, native layout and opaque semantic preservation remain unassessed.",
+                OfficeConversionLossKind.Unassessed, "Contents/Escher"));
+        if (writer._imageStore != null) {
+            diagnostics.Add(Finding("PUB_NATIVE_IMAGE_REPLACEMENT_UNQUALIFIED",
+                "Selected picture placements bind to newly embedded PNG/JPEG assets with generated native filenames. Original source assets, other placements and opaque records are retained; image-store reference counts and Contents metadata are rewritten. Native opening, editing, repair-free acceptance and rendering remain unassessed.",
+                OfficeConversionLossKind.Unassessed, "Escher/images"));
+            if (writer._imageRenumbering.Count > 0) diagnostics.Add(Finding("PUB_NATIVE_IMAGE_BINDINGS_RENUMBERED",
+                "Edit-owned image identifiers are document-scoped. Native slots use these current-to-saved bindings: " + string.Join(", ", writer._imageRenumbering) + ". Original source image slots are unchanged.",
+                OfficeConversionLossKind.None, "Escher/images"));
+        }
+        if (previewInvalidated) diagnostics.Add(Finding("PUB_NATIVE_PREVIEW_INVALIDATED",
+            "Removed the stale optional SummaryInformation thumbnail after content edits. Other raw metadata values are retained; a replacement preview is not generated.",
+            OfficeConversionLossKind.None, "\u0005SummaryInformation"));
+        if (writer._patches.Count != 0) diagnostics.Add(Finding("PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "Guarded fixed-size OfficeArt slots changed. Streams outside the prepared replacements and directory metadata are retained. Repair-free opening, native edit acceptance and opaque semantic preservation require independent qualification.",
+            OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
+        if (writer._hasTableFillProperties) diagnostics.Add(Finding("PUB_NATIVE_TABLE_FILL_UNQUALIFIED",
+            "Existing cell utility visibility or a local solid-color property changed. Filled use-bits retain unrelated boolean uses; color insertion rewrites enclosing OfficeArt lengths while preserving unrelated records and drawing instances. Native repair-free acceptance and broader producer/style behavior remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Escher/tables"));
+        if ((writer._newTableUtilityTargets.Count != 0 || writer._missingTableCellTargets.Count != 0) && writer._tableBorderRecords?.IsEmpty == false) diagnostics.Add(Finding("PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED",
+            "Missing rectangular table utilities were allocated from the current model in a qualified empty or populated drawing scope. Existing cell utilities retain their identities, with paint changed only when requested. Original ordinary drawing records are retained; allocation metadata and enclosing lengths change, with new drawing instances only when required. Broader producer/layout and repair-free acceptance remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Escher/tables"));
+        else if (writer._tableBorderRecords?.IsEmpty == false) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED",
+            "Existing utility edges were removed or new solid shared ranges appended. Native SPID allocation history is retained while active shape counts and enclosing lengths change. Reloaded border order follows native records; broader producer/layout and repair-free fidelity remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Escher/tables"));
+        if (writer._hasTableBounds) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED",
+            "A direct table frame moved or its fixed tracks were proportionally resized. Cell ownership, complete stories and unrelated native records are retained. Native reflow, editing, resave/reopen and repair-free opening remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Contents/tables"));
+        if (writer._quillBytes != null) diagnostics.Add(Finding("PUB_NATIVE_QUILL_TEXT_UNQUALIFIED",
+            "The bounded ordinary-story or fixed-cell Quill profile was written from retained source definitions with supported character and paragraph formatting, font and opaque color edits. Empty paragraphs retain source CR typing when no runs are supplied, or apply the supplied empty-run style using native inheritance. Table cells retain their grid and ownership, with relative text endpoints remapped. Paragraph-count changes require uniform source definitions within the ordinary story or edited cell; formatting pages, indexes and directory pages may be allocated or retired. Unrelated logical streams are retained; cached thumbnail invalidation is reported separately. Native opening, editing, resave/reopen and opaque record preservation remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Quill"));
+        return new PublisherNativePreparation(output, diagnostics, writer._styleDependencies);
+    }
+
+    private static OfficeDiagnostic Finding(string code, string message, OfficeConversionLossKind kind, string location) =>
+        new(code, kind switch {
+            OfficeConversionLossKind.None => OfficeDiagnosticSeverity.Information,
+            OfficeConversionLossKind.Failure => OfficeDiagnosticSeverity.Error,
+            _ => OfficeDiagnosticSeverity.Warning
+        }, message, location, "OfficeIMO.Publisher", kind);
+    private void Reject(string location, string message) =>
+        _diagnostics.Add(Finding("PUB_NATIVE_EDIT_UNSUPPORTED", message, OfficeConversionLossKind.Failure, location));
+
+    private PublisherNativeShapeBinding? Binding(uint id) {
+        PublisherNativeShapeBinding? binding = _artwork.TryGetValue(id, out PublisherEscherShape? shape) ? shape.NativeBinding : null;
+        if (binding == null || !binding.Matches(new PublisherBinaryData(_imported.NativeSource!.EscherBytes, "Escher/EscherStm"))) {
+            Reject("Contents/object/" + id, "The object has no matching exact native shape binding."); return null;
+        }
+        return binding;
+    }
+
+    private void Patch(PublisherNativeValueSlot slot, uint value) {
+        if (slot.Original == value) return;
+        if (_patches.TryGetValue(slot.Offset, out var prior) && (prior.Original != slot.Original || prior.Replacement != value)) {
+            Reject("Escher/EscherStm", "Current semantic owners disagree about one native slot."); return;
+        }
+        _patches[slot.Offset] = (slot.Original, value);
+    }
+
+    private void Bounds(uint id, uint? owner, double x, double y, double width, double height) {
+        _token.ThrowIfCancellationRequested();
+        PublisherNativeShapeBinding? binding = Binding(id);
+        PublisherPageState? page = owner.HasValue ? _baseline.Pages.SingleOrDefault(item => item.Id == owner.Value) : null;
+        if (binding == null) return;
+        if (page == null || !page.SupportsPlacementEditing || binding.Anchor.Count != 4
+            || !PublisherNativeGeometry.Emu(x, page.RegistrationX, out int left) || !PublisherNativeGeometry.Emu(y, page.RegistrationY, out int top)
+            || !PublisherNativeGeometry.Emu(x + width, page.RegistrationX, out int right) || !PublisherNativeGeometry.Emu(y + height, page.RegistrationY, out int bottom)) {
+            Reject("Contents/object/" + id, "The current bounds have no qualified complete anchor or exact signed-EMU representation."); return;
+        }
+        // Native endpoint direction is independent of the semantic bounding rectangle.
+        if (unchecked((int)binding.Anchor[0].Original) > unchecked((int)binding.Anchor[2].Original)) (left, right) = (right, left);
+        if (unchecked((int)binding.Anchor[1].Original) > unchecked((int)binding.Anchor[3].Original)) (top, bottom) = (bottom, top);
+        uint[] values = { unchecked((uint)left), unchecked((uint)top), unchecked((uint)right), unchecked((uint)bottom) };
+        for (int index = 0; index < values.Length; index++) Patch(binding.Anchor[index], values[index]);
+    }
+
+    private void Paint(uint id, OfficeShape before, OfficeShape after) {
+        PublisherNativeShapeBinding? binding = Binding(id); if (binding == null) return;
+        void Scalar(ushort property, uint value) {
+            PublisherNativePropertySlot[] slots = binding.Properties.Where(item => item.Id == property).ToArray();
+            if (slots.Length != 1 || (slots[0].RawOperationId & 0xC000) != 0) {
+                Reject("Contents/object/" + id, $"Solid property 0x{property:X4} has no unambiguous existing local scalar slot."); return;
+            }
+            Patch(slots[0].Value, value);
+        }
+        void Color(OfficeColor? prior, OfficeColor? value, ushort property) {
+            if (prior == value) return;
+            // Visibility changes require a separately qualified boolean-mask writer.
+            if (!prior.HasValue || !value.HasValue || value.Value.A != 255) {
+                Reject("Contents/object/" + id, "Paint visibility or alpha changes are outside this fixed scalar slice."); return;
+            }
+            Scalar(property, (uint)(value.Value.R | value.Value.G << 8 | value.Value.B << 16));
+        }
+        void Fixed(double prior, double value, ushort property, double scale) {
+            if (prior == value) return;
+            double scaled = Math.Round(value * scale);
+            if (scaled < 0 || scaled > int.MaxValue || value != scaled / scale) {
+                Reject("Contents/object/" + id, "The solid paint value has no exact native scalar representation."); return;
+            }
+            Scalar(property, (uint)scaled);
+        }
+        Color(before.FillColor, after.FillColor, 0x0181);
+        Color(before.StrokeColor, after.StrokeColor, 0x01C0);
+        Fixed(before.FillOpacity ?? 1, after.FillOpacity ?? 1, 0x0182, 65536);
+        Fixed(before.StrokeOpacity ?? 1, after.StrokeOpacity ?? 1, 0x01C1, 65536);
+        Fixed(before.StrokeWidth, after.StrokeWidth, 0x01CB, 12700);
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "officeimo.publisher.generated-mixed-order-fixture.v1",
+  "source": "Public-model mixed-object-pages internal template-free writer specimen.",
+  "file": {
+    "name": "generated-mixedobjectpages.pub",
+    "sha256": "86e117bd19d3f4c4545670ae56988e68962279a2306bc9275d7a7ea270c4573e"
+  },
+  "nativeProducer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "observed": "Eight objects on separated physical pages, two stories, one PNG shared three times. Compact Quill has two style libraries and omits native auxiliary resource libraries; initial native Full completed.",
+  "reproduction": "Build WriterProbe; create mixed-object-pages using NativeComparison/Image/native-image.png; run isolated native Validate/Full.",
+  "limits": "Generated fixture, not an independent native producer or repair-free certificate. Compact resource-library growth remains unqualified."
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "officeimo.publisher.derived-partial-cell-source.v1",
+  "license": "MIT",
+  "derivedFrom": "../TableUtilityPairBorders/native-tableutilitypairborders.pub",
+  "sourceSha256": "1355a3906417895eba2c15bc77e868d967c0d79d32189bd5e7bc4600ad8940b9",
+  "removedDefinitionIndices": [
+    0
+  ],
+  "reproduction": "dotnet <WriterProbe.dll> table-utility-source <TableUtilityPairBorders/native-tableutilitypairborders.pub> <output.pub> 0",
+  "operation": "Remove only the second table first hidden cell utility, retain all six target edges and other cells, reduce active counts by one and retain allocation history.",
+  "files": [
+    {
+      "name": "missing-bordered-first.pub",
+      "bytes": 109056,
+      "sha256": "88ef50485589018932b1e8ea58e43c377b9f3bea8e95fae056306ee64e14c9ba"
+    }
+  ],
+  "scope": "Labelled native-derived partial-cell input; independent pair controls supply expected final states."
+}

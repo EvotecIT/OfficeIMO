@@ -1,0 +1,56 @@
+{
+  "schema": "officeimo.publisher.native-cell-paragraph-retention-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableNonuniformParagraphs",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tablenonuniformparagraphs.json",
+      "sha256": "3a9620a35ac1e030f28a8cb373c42a8087f651b0770a5f16dd1df86e6d8f2a24"
+    },
+    {
+      "name": "native-tablenonuniformparagraphs.pdf",
+      "sha256": "72b3ba66e8d3a69937ab8c37b5e70758963c10519aba3ed214ffe8ac2d2694df"
+    },
+    {
+      "name": "native-tablenonuniformparagraphs.pub",
+      "sha256": "b8809522f70e26508b6c5129bcef1fd26caed92aef697bc5d2e2711b99d6aefe"
+    }
+  ],
+  "license": "MIT",
+  "documentPages": 7,
+  "targetCells": [
+    0,
+    3
+  ],
+  "profiles": [
+    "Baseline",
+    "DropFirst",
+    "DropMiddle",
+    "DropFinal",
+    "Reorder",
+    "Duplicate",
+    "AmbiguousLanguage"
+  ],
+  "tableGeometry": {
+    "leftPoints": 72,
+    "topPoints": 72,
+    "widthPoints": 468,
+    "rows": 2,
+    "heightPoints": 432,
+    "columns": 2
+  },
+  "scope": "Independent synthetic native final states with nonuniform paragraph alignment, spacing, indentation and native language metadata in first/final cells. Neighbor cells and fitting table geometry are unchanged."
+}
