@@ -28,8 +28,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Writes PowerShell objects as a table without requiring an active DSL scope.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordTable", DefaultParameterSetName = ParameterSetContext)]
-[Alias("WordTable")]
 [OutputType(typeof(WordTable))]
+[Alias("WordTable") ]
 public sealed class AddOfficeWordTableCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -44,7 +44,14 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetContext)]
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
     [Alias("Data")]
-    public object? InputObject { get; set; }
+    public object[] InputObject { get; set; } = Array.Empty<object>();
+
+    /// <summary>Selected input properties in display order.</summary>
+    [Parameter]
+    public string[]? Property { get; set; }
+    /// <summary>Invariant .NET display formats keyed by selected property name.</summary>
+    [Parameter]
+    public Hashtable? ColumnFormat { get; set; }
 
     /// <summary>Built-in table style.</summary>
     [Parameter]
@@ -87,10 +94,6 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
     [Parameter]
     [ValidateRange(1, int.MaxValue)]
     public int MaxNestingDepth { get; set; } = PowerShellObjectNormalizerOptions.DefaultMaxNestingDepth;
-
-    /// <summary>Legacy switch that maps to <see cref="OfficeTableView.Transpose"/>.</summary>
-    [Parameter]
-    public SwitchParameter Transpose { get; set; }
 
     /// <summary>DSL content executed inside the table.</summary>
     [Parameter(Position = 1, ParameterSetName = ParameterSetContext)]
@@ -143,8 +146,9 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
             return;
         }
 
-        var effectiveView = Transpose.IsPresent ? OfficeTableView.Transpose : View;
-        var tableRows = TableViewProjection.Project(rows, effectiveView);
+        var selectedRows = Property != null || ColumnFormat != null
+            ? WordObjectExport.ProjectRows(rows, Property, ColumnFormat).Cast<object>().ToArray() : rows;
+        var tableRows = TableViewProjection.Project(selectedRows, View);
         var normalizerOptions = PowerShellObjectNormalizerOptions.ForTable(
             CollectionSeparator,
             DictionaryEntrySeparator,
@@ -208,7 +212,7 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
             var targetRowIndex = headerRowIndex.HasValue && index >= headerRowIndex.Value
                 ? index + 1
                 : index;
-            if (targetRowIndex >= table.RowsCount)
+            if (targetRowIndex >= table.RowCount)
             {
                 break;
             }
@@ -227,12 +231,12 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
                     table.Style = condition.TableStyle.Value;
                 }
 
-                if (condition.BackgroundColor is string backgroundColor &&
-                    !string.IsNullOrWhiteSpace(backgroundColor))
-                {
-                    foreach (var cell in wordRow.Cells)
-                    {
-                        cell.ShadingFillColor = OfficeIMO.OfficeColor.Parse(backgroundColor);
+                var cells = wordRow.Cells.Where((_, index) => !condition.ColumnIndex.HasValue || index == condition.ColumnIndex.Value);
+                foreach (var cell in cells) {
+                    if (condition.BackgroundColor.HasValue) cell.ShadingFillColor = condition.BackgroundColor.Value;
+                    foreach (var paragraph in cell.Paragraphs) {
+                        if (condition.Color.HasValue) paragraph.Color = condition.Color.Value;
+                        if (condition.Bold.HasValue) paragraph.Bold = condition.Bold.Value;
                     }
                 }
             }
@@ -491,10 +495,12 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
     private static void SetCell(WordTable table, int rowIndex, int columnIndex, OfficeTableCellSpec spec)
     {
         var cell = table.Rows[rowIndex].Cells[columnIndex];
-        var paragraph = cell.Paragraphs.Count > 0 ? cell.Paragraphs[0] : cell.AddParagraph();
-        paragraph.Text = string.Empty;
+        var paragraph = cell.AddParagraph(removeExistingParagraphs: true);
 
-        if (spec.HasRuns)
+        if (spec.NativeCell is WordCellContent content) {
+            content.Apply(paragraph);
+        }
+        else if (spec.HasRuns)
         {
             WordTextRunService.ApplyRuns(paragraph, OfficeTableCellTextRunStyle.Apply(spec.Runs!.ToArray(), spec.Style));
         }

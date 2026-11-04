@@ -5,12 +5,12 @@ BeforeAll {
 
 Describe 'Word table cell padding' {
     It 'rejects an invalid margin before changing the cell' -ForEach @(
-        @{ Value = -0.1 }, @{ Value = 58.0 }, @{ Value = [double]::NaN }
+        @{ Value = '-0.1cm' }, @{ Value = '58cm' }, @{ Value = [double]::NaN }
     ) {
         New-OfficeWord -Path (Join-Path $TestDrive ("Invalid-" + [guid]::NewGuid().ToString("N") + ".docx")) {
             $table = WordTable -InputObject @([pscustomobject]@{ Site = 'Warsaw' }) -PassThru
-            $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 0
-            { $cell | Set-OfficeWordTableCell -Text 'Changed' -MarginTopCentimeters $Value } | Should -Throw
+            $cell = $table | Get-OfficeWordTableCell -Row 2 -Column 1
+            { $cell | Set-OfficeWordTableCell -Text 'Changed' -MarginTop $Value } | Should -Throw
             $cell.Paragraphs[0].Text | Should -Be 'Warsaw'
         }
     }
@@ -19,7 +19,7 @@ Describe 'Word table cell padding' {
         $path = Join-Path $TestDrive 'Padded.docx'
         New-OfficeWord -Path $path {
             $table = WordTable -InputObject @([pscustomobject]@{ Site = 'Warsaw'; Status = 'Ready' }) -PassThru
-            $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.14 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.18
+            $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTop 0.12cm -MarginBottom 0.14cm -MarginLeft 0.16cm -MarginRight 0.18cm
         }
         $doc = Open-OfficeWord -Path $path
         try {
@@ -40,9 +40,9 @@ Describe 'Word table cell padding' {
         $path = Join-Path $TestDrive 'Cleared.docx'
         New-OfficeWord -Path $path {
             $table = WordTable -InputObject @([pscustomobject]@{ Site = 'Warsaw' }) -PassThru
-            $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 0
-            $cell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginLeftCentimeters 0.16
-            $cell | Set-OfficeWordTableCell -Text 'Dublin' -MarginTopCentimeters $null
+            $cell = $table | Get-OfficeWordTableCell -Row 2 -Column 1
+            $cell | Set-OfficeWordTableCell -MarginTop 0.12cm -MarginLeft 0.16cm
+            $cell | Set-OfficeWordTableCell -Text 'Dublin' -MarginTop $null
         }
         $doc = Open-OfficeWord -Path $path
         try {

@@ -18,11 +18,11 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     }
 /// }</code></example>
 [Cmdlet(VerbsCommon.Set, "OfficePowerPointPlaceholder", DefaultParameterSetName = "Text")]
-[Alias("PowerPointPlaceholder")]
 [OutputType(typeof(PowerPointTextBox))]
+[Alias("PowerPointPlaceholder") ]
 public sealed class SetOfficePowerPointPlaceholderCommand : OfficeCmdlet {
     /// <summary>Native slide or one-based slide number; omission uses the current slide block.</summary>
-    [Parameter, PowerPointSlideTransformation]
+    [Parameter(ValueFromPipeline = true), PowerPointSlideTransformation]
     public PowerPointSlideSelector? Slide { get; set; }
 
     /// <summary>Placeholder type to update.</summary>

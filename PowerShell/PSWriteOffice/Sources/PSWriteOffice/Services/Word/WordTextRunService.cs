@@ -87,7 +87,7 @@ internal static class WordTextRunService
     {
         if (strike)
         {
-            run.SetStrike();
+            run.SetStrikethrough();
         }
 
         var rgb = OfficeColorUtilities.ToRgbHex(color);
@@ -119,13 +119,13 @@ internal static class WordTextRunService
 
         if (value == VerticalPositionValues.Superscript)
         {
-            run.SetSuperScript();
+            run.SetSuperscript();
             return;
         }
 
         if (value == VerticalPositionValues.Subscript)
         {
-            run.SetSubScript();
+            run.SetSubscript();
         }
     }
 
@@ -153,7 +153,7 @@ internal static class WordTextRunService
         }
     }
 
-    private static void ApplyBackground(WordParagraph run, string? backgroundColor)
+    internal static void ApplyBackground(WordParagraph run, string? backgroundColor)
     {
         if (string.IsNullOrWhiteSpace(backgroundColor))
         {
@@ -170,8 +170,7 @@ internal static class WordTextRunService
         var rgb = OfficeColorUtilities.ToRgbHex(backgroundColor);
         if (!string.IsNullOrWhiteSpace(rgb))
         {
-            run.ShadingFillColor = OfficeIMO.OfficeColor.Parse(rgb!);
-            run.ShadingPattern = WordShadingPattern.Clear;
+            run.BackgroundColor = OfficeIMO.OfficeColor.Parse(rgb!);
         }
     }
 

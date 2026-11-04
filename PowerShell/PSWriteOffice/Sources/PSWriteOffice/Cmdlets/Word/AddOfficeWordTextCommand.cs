@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using System;
 using System.Management.Automation;
 using OfficeIMO;
@@ -14,8 +15,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example><summary>Add a link and a bookmark reference.</summary>
 /// <code>WordParagraph { WordText 'Example' -Link 'https://example.org' -Tooltip 'External reference'; WordText 'Summary' -Anchor Summary }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordText", DefaultParameterSetName = "Text")]
-[Alias("WordText")]
 [OutputType(typeof(WordParagraph), typeof(WordHyperLink))]
+[Alias("WordText") ]
 public sealed class AddOfficeWordTextCommand : PSCmdlet {
     /// <summary>Text segments to append.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text")]
@@ -44,7 +45,7 @@ public sealed class AddOfficeWordTextCommand : PSCmdlet {
     public WordUnderlineStyle? Underline { get; set; }
 
     /// <summary>Text color, including a semantic theme role.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Color { get; set; }
 
     /// <summary>Font family.</summary>
@@ -75,7 +76,15 @@ public sealed class AddOfficeWordTextCommand : PSCmdlet {
     [Parameter(ParameterSetName = "Link"), Parameter(ParameterSetName = "Anchor")]
     public SwitchParameter NoLinkStyle { get; set; }
 
-    /// <summary>Emit the target paragraph, or each created hyperlink for Link and Anchor.</summary>
+    /// <summary>Run highlight or shading color; explicit null clears both.</summary>
+    [Parameter, AllowNull, OfficeColorTransformation(AllowNull = true)]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? BackgroundColor { get; set; }
+    /// <summary>Normal, superscript or subscript baseline.</summary>
+    [Parameter]
+    public OfficeTextBaseline? Baseline { get; set; }
+
+    /// <summary>Emit each newly created run, or each hyperlink for Link and Anchor.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
@@ -92,7 +101,27 @@ public sealed class AddOfficeWordTextCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var paragraph = Paragraph;
+        var applyStyle = CaptureStyle();
+        var recording = Paragraph == null ? OfficeDocumentContext.Find<WordCellContent>() : null;
+        if (recording != null) {
+            if (PassThru) throw new PSArgumentException("Recorded cell content emits native runs only when attached to a table; omit PassThru inside this factory.");
+            var link = Link;
+            var anchor = Anchor;
+            bool useLinkStyle = !NoLinkStyle;
+            bool history = !NoHistory;
+            string tooltip = Tooltip ?? string.Empty;
+            foreach (string value in Text) {
+                string text = value;
+                recording.Text.Add(target => {
+                    WordHyperLink? hyperlink = link != null ? target.AddHyperLink(text, link, useLinkStyle, tooltip, history)
+                        : anchor != null ? target.AddHyperLink(text, anchor, useLinkStyle, tooltip, history) : null;
+                    if (hyperlink != null) { foreach (var run in hyperlink.Runs) applyStyle(run); }
+                    else applyStyle(target.AddFormattedText(text));
+                });
+            }
+            return;
+        }
+        var paragraph = Paragraph ?? OfficeDocumentContext.Find<WordParagraph>();
         if (paragraph == null) {
             var context = WordDslContext.Require(this);
             paragraph = context.CurrentParagraph ?? context.RequireParagraphHost().AddParagraph();
@@ -105,23 +134,47 @@ public sealed class AddOfficeWordTextCommand : PSCmdlet {
                 hyperlink = paragraph.AddHyperLink(entry, Anchor!, !NoLinkStyle, Tooltip ?? string.Empty, !NoHistory);
 
             if (hyperlink != null) {
-                foreach (var run in hyperlink.Runs) ApplyStyle(run);
+                foreach (var run in hyperlink.Runs) applyStyle(run);
                 if (PassThru) WriteObject(hyperlink);
             } else {
-                ApplyStyle(paragraph.AddFormattedText(entry, Bold, Italic));
+                var run = paragraph.AddFormattedText(entry);
+                applyStyle(run);
+                if (PassThru) WriteObject(run);
             }
         }
-        if (PassThru && ParameterSetName == "Text") WriteObject(paragraph);
     }
 
-    private void ApplyStyle(WordParagraph run) {
+    private Action<WordParagraph> CaptureStyle() {
+        var bold = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Bold));
+        var italic = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Italic));
+        var strike = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Strikethrough));
+        var underline = Underline;
+        var color = Color;
+        var font = Font;
+        var size = Size;
+        var background = BackgroundColor;
+        bool backgroundBound = MyInvocation.BoundParameters.ContainsKey(nameof(BackgroundColor));
+        var baseline = Baseline;
+        return run => {
         // Preserve theme hyperlink defaults unless the caller supplies an override.
-        if (Bold) run.SetBold();
-        if (Italic) run.SetItalic();
-        if (Strikethrough) run.SetStrike();
-        if (Underline.HasValue) run.SetUnderline(Underline.Value);
-        if (Size.HasValue) run.FontSize = Size;
-        if (!string.IsNullOrWhiteSpace(Font)) run.SetFontFamily(Font!);
-        if (Color.HasValue) run.Color = Color;
+        if (bold.HasValue) run.Bold = bold.Value;
+        if (italic.HasValue) run.Italic = italic.Value;
+        if (strike.HasValue) run.Strikethrough = strike.Value;
+        if (underline.HasValue) run.SetUnderline(underline.Value);
+        if (size.HasValue) run.FontSize = size;
+        if (!string.IsNullOrWhiteSpace(font)) run.SetFontFamily(font!);
+        if (color.HasValue) run.Color = color;
+        if (backgroundBound) {
+            if (background.HasValue && background.Value.IsThemeRole) {
+                run.BackgroundColor = OfficeColor.ParseHex(WordRunColor.Create(background.Value, run._document).Val!.Value!);
+            } else if (background.HasValue) WordTextRunService.ApplyBackground(run, background.Value.ToString());
+            else { run.Highlight = null; run.BackgroundColor = null; }
+        }
+        if (baseline.HasValue) run.VerticalTextAlignment = baseline.Value switch {
+            OfficeTextBaseline.Superscript => WordVerticalTextPosition.Superscript,
+            OfficeTextBaseline.Subscript => WordVerticalTextPosition.Subscript,
+            _ => WordVerticalTextPosition.Baseline
+        };
+    };
     }
 }

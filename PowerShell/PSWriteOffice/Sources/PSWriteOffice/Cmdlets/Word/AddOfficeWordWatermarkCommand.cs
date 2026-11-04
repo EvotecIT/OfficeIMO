@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
@@ -43,12 +44,12 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
     public string ImagePath { get; set; } = string.Empty;
 
     /// <summary>Horizontal offset for the watermark.</summary>
-    [Parameter]
-    public double? X { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? X { get; set; }
 
     /// <summary>Vertical offset for the watermark.</summary>
-    [Parameter]
-    public double? Y { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Y { get; set; }
 
     /// <summary>Scale factor for the watermark.</summary>
     [Parameter]
@@ -65,10 +66,8 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
         var section = context.RequireSection();
         var header = context.CurrentHeader;
 
-        global::OfficeIMO.OfficeLength? horizontalOffset = X.HasValue
-            ? global::OfficeIMO.OfficeLength.Points(X.Value) : null;
-        global::OfficeIMO.OfficeLength? verticalOffset = Y.HasValue
-            ? global::OfficeIMO.OfficeLength.Points(Y.Value) : null;
+        OfficeLength? horizontalOffset = X;
+        OfficeLength? verticalOffset = Y;
 
         WordWatermark watermark;
         if (ParameterSetName == ParameterSetImage)

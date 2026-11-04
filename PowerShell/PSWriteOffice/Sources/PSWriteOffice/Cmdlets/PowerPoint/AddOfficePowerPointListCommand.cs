@@ -12,8 +12,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>$list = PowerPointList 'Availability', 'Capacity' -PassThru
 /// $list.Paragraphs[1].Text = 'Capacity planning'</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointList", DefaultParameterSetName = "Items")]
-[Alias("PowerPointList")]
 [OutputType(typeof(PowerPointTextBox))]
+[Alias("PowerPointList") ]
 public sealed class AddOfficePowerPointListCommand : PowerPointTextPlacementCmdlet {
     /// <summary>Gets or sets the list items in display order.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Items")]
@@ -31,7 +31,7 @@ public sealed class AddOfficePowerPointListCommand : PowerPointTextPlacementCmdl
     [Parameter, ValidateLength(1, 1)]
     public string? BulletChar { get; set; }
     /// <summary>Gets or sets the nesting level, one or two.</summary>
-    [Parameter, ValidateRange(1, 2)]
+    [Parameter(ParameterSetName = "Items"), ValidateRange(1, 2)]
     public int Level { get; set; } = 1;
     /// <summary>Gets or sets whether to emit the native frame backing the first physical list segment.</summary>
     [Parameter]

@@ -1,6 +1,7 @@
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using System;
 using System.Management.Automation;
-using System.Text.RegularExpressions;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
@@ -20,17 +21,17 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <summary>Apply an image background to an existing document.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$doc = Open-OfficeWord -Path .\Draft.docx
-/// $doc | Set-OfficeWordBackground -ImagePath .\Assets\Background.png -Width 600 -Height 800 -PassThru |
+/// $doc | Set-OfficeWordBackground -ImagePath .\Assets\Background.png -Width 600px -Height 800px -PassThru |
 ///     Save-OfficeWord -Path .\Draft-Branded.docx</code>
 ///   <para>Uses OfficeIMO.Word background image support and saves the updated document through the standard save cmdlet.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeWordBackground", DefaultParameterSetName = ParameterSetColor)]
 [OutputType(typeof(WordDocument))]
+[Alias("WordBackground") ]
 public sealed class SetOfficeWordBackgroundCommand : PSCmdlet
 {
     private const string ParameterSetColor = "Color";
     private const string ParameterSetImage = "Image";
-    private static readonly Regex HexColorPattern = new("^#?[0-9a-fA-F]{6}$", RegexOptions.Compiled);
 
     /// <summary>Document to update when provided explicitly.</summary>
     [Parameter(ValueFromPipeline = true)]
@@ -38,21 +39,23 @@ public sealed class SetOfficeWordBackgroundCommand : PSCmdlet
 
     /// <summary>Background color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetColor, Position = 0)]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string Color { get; set; } = string.Empty;
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor Color { get; set; }
 
     /// <summary>Path to the background image.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetImage, Position = 0)]
     public string ImagePath { get; set; } = string.Empty;
 
-    /// <summary>Optional background image width in pixels.</summary>
+    /// <summary>Optional background image width; numbers mean points.</summary>
     [Parameter(ParameterSetName = ParameterSetImage)]
-    public double? Width { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Width { get; set; }
 
-    /// <summary>Optional background image height in pixels.</summary>
+    /// <summary>Optional background image height; numbers mean points.</summary>
     [Parameter(ParameterSetName = ParameterSetImage)]
-    public double? Height { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Height { get; set; }
 
     /// <summary>Emit the updated document.</summary>
     [Parameter]
@@ -70,16 +73,11 @@ public sealed class SetOfficeWordBackgroundCommand : PSCmdlet
         if (ParameterSetName == ParameterSetImage)
         {
             var resolvedPath = ResolvePath(ImagePath);
-            document.Background.SetImage(resolvedPath, Width.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Width.Value) : null, Height.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Height.Value) : null);
+            document.Background.SetImage(resolvedPath, Width, Height);
         }
         else
         {
-            if (!HexColorPattern.IsMatch(Color))
-            {
-                throw new PSArgumentException("Provide a hex color in #RRGGBB or RRGGBB format.", nameof(Color));
-            }
-
-            document.Background.SetColor(OfficeIMO.OfficeColor.Parse(Color));
+            document.Background.SetColor(OfficeColor.ParseHex(WordRunColor.Create(Color, document).Val!.Value!));
         }
 
         if (PassThru.IsPresent)

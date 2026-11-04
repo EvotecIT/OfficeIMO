@@ -1,3 +1,5 @@
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
@@ -8,25 +10,25 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Add a picture control.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Add-OfficeWordParagraph { Add-OfficeWordPictureControl -Path .\logo.png -Width 96 -Height 32 }</code>
+///   <code>Add-OfficeWordParagraph { Add-OfficeWordPictureControl -Path .\logo.png -Width 96px -Height 32px }</code>
 ///   <para>Embeds an image inside a picture content control.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordPictureControl", DefaultParameterSetName = "Default")]
-[Alias("WordPictureControl")]
 [OutputType(typeof(WordPictureControl))]
+[Alias("WordPictureControl") ]
 public sealed class AddOfficeWordPictureControlCommand : PSCmdlet
 {
     /// <summary>Path to the image file.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>Width in pixels.</summary>
-    [Parameter]
-    public double? Width { get; set; }
+    /// <summary>Width; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Width { get; set; }
 
-    /// <summary>Height in pixels.</summary>
-    [Parameter]
-    public double? Height { get; set; }
+    /// <summary>Height; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Height { get; set; }
 
     /// <summary>Optional alias for the control.</summary>
     [Parameter]
@@ -49,7 +51,7 @@ public sealed class AddOfficeWordPictureControlCommand : PSCmdlet
     {
         var paragraph = ResolveParagraph();
         var resolvedPath = ResolvePath();
-        var control = paragraph.AddPictureControl(resolvedPath, Width.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Width.Value) : null, Height.HasValue ? global::OfficeIMO.OfficeLength.Pixels(Height.Value) : null, Alias, Tag);
+        var control = paragraph.AddPictureControl(resolvedPath, Width, Height, Alias, Tag);
 
         if (PassThru.IsPresent)
         {

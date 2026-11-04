@@ -1,8 +1,9 @@
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
@@ -16,12 +17,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordSection { Set-OfficeWordPageSetup -PageSize A4 -Orientation Landscape -Columns 2 }</code>
 ///   <para>Updates the current section page setup.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeWordPageSetup", DefaultParameterSetName = ParameterSetCurrent)]
-[Alias("WordPageSetup")]
+[Cmdlet(VerbsCommon.Set, "OfficeWordPageSetup", DefaultParameterSetName = ParameterSetContext)]
 [OutputType(typeof(WordSection))]
+[Alias("WordPageSetup") ]
 public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
 {
-    private const string ParameterSetCurrent = "Current";
+    private const string ParameterSetContext = "Context";
     private const string ParameterSetSection = "Section";
     private const string ParameterSetDocument = "Document";
 
@@ -39,7 +40,8 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
 
     /// <summary>Built-in page size.</summary>
     [Parameter]
-    public WordPageSize? PageSize { get; set; }
+    [OfficePageSizeTransformation(typeof(OfficeIMO.Drawing.OfficePageSize))]
+    public OfficeIMO.Drawing.OfficePageSize? PageSize { get; set; }
 
     /// <summary>Page orientation.</summary>
     [Parameter]
@@ -47,42 +49,42 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
 
     /// <summary>Built-in margin preset.</summary>
     [Parameter]
-    public WordMargin? Margin { get; set; }
+    public WordMargin? MarginPreset { get; set; }
 
-    /// <summary>Left margin in twips.</summary>
+    /// <summary>MarginLeft margin in twips.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int? Left { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? MarginLeft { get; set; }
 
-    /// <summary>Right margin in twips.</summary>
+    /// <summary>MarginRight margin in twips.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int? Right { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? MarginRight { get; set; }
 
-    /// <summary>Top margin in twips.</summary>
+    /// <summary>MarginTop margin in twips.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int? Top { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? MarginTop { get; set; }
 
-    /// <summary>Bottom margin in twips.</summary>
+    /// <summary>MarginBottom margin in twips.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int? Bottom { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? MarginBottom { get; set; }
 
-    /// <summary>Header distance in twips.</summary>
+    /// <summary>HeaderDistance distance in twips.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int? Header { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? HeaderDistance { get; set; }
 
-    /// <summary>Footer distance in twips.</summary>
+    /// <summary>FooterDistance distance in twips.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int? Footer { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? FooterDistance { get; set; }
 
     /// <summary>Gutter size in twips.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int? Gutter { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Gutter { get; set; }
 
     /// <summary>Number of section columns.</summary>
     [Parameter]
@@ -91,16 +93,20 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
 
     /// <summary>Space between columns in twips.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
-    public int? ColumnSpacing { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? ColumnSpacing { get; set; }
 
     /// <summary>Whether to show a separator between columns.</summary>
     [Parameter]
-    public bool? ColumnSeparator { get; set; }
+    public SwitchParameter ColumnSeparator { get; set; }
 
     /// <summary>Emit updated sections.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
+
+    /// <summary>Uniform physical margin; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Margin { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
@@ -157,11 +163,11 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
         var results = new List<WordSection>(indexes.Length);
         foreach (var index in indexes)
         {
-            if (index < 0 || index >= document.Sections.Count)
+            if (index < 1 || index > document.Sections.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(Index), $"Section index {index} is out of range.");
             }
-            results.Add(document.Sections[index]);
+            results.Add(document.Sections[index - 1]);
         }
         return results;
     }
@@ -170,40 +176,42 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
     {
         if (PageSize.HasValue)
         {
-            section.PageSetup.Size.PageSize = PageSize.Value;
+            section.PageSetup.Size.Width = PageSize.Value.Width;
+            section.PageSetup.Size.Height = PageSize.Value.Height;
         }
         if (Orientation.HasValue) section.PageSetup.Orientation = Orientation.Value;
-        if (Margin.HasValue)
+        if (MarginPreset.HasValue)
         {
-            section.PageSetup.Margins.Type = Margin.Value;
+            section.PageSetup.Margins.Type = MarginPreset.Value;
         }
-        if (Left.HasValue)
+        if (Margin.HasValue) { section.PageSetup.Margins.Left = Margin.Value; section.PageSetup.Margins.Right = Margin.Value; section.PageSetup.Margins.Top = Margin.Value; section.PageSetup.Margins.Bottom = Margin.Value; }
+        if (MarginLeft.HasValue)
         {
-            section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(((uint)Left.Value) / 20D);
+            section.PageSetup.Margins.Left = MarginLeft.Value;
         }
-        if (Right.HasValue)
+        if (MarginRight.HasValue)
         {
-            section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(((uint)Right.Value) / 20D);
+            section.PageSetup.Margins.Right = MarginRight.Value;
         }
-        if (Top.HasValue)
+        if (MarginTop.HasValue)
         {
-            section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((Top.Value) / 20D);
+            section.PageSetup.Margins.Top = MarginTop.Value;
         }
-        if (Bottom.HasValue)
+        if (MarginBottom.HasValue)
         {
-            section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((Bottom.Value) / 20D);
+            section.PageSetup.Margins.Bottom = MarginBottom.Value;
         }
-        if (Header.HasValue)
+        if (HeaderDistance.HasValue)
         {
-            section.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(((uint)Header.Value) / 20D);
+            section.PageSetup.Margins.HeaderDistance = HeaderDistance.Value;
         }
-        if (Footer.HasValue)
+        if (FooterDistance.HasValue)
         {
-            section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(((uint)Footer.Value) / 20D);
+            section.PageSetup.Margins.FooterDistance = FooterDistance.Value;
         }
         if (Gutter.HasValue)
         {
-            section.PageSetup.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(((uint)Gutter.Value) / 20D);
+            section.PageSetup.Margins.Gutter = Gutter.Value;
         }
         if (Columns.HasValue)
         {
@@ -211,11 +219,11 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
         }
         if (ColumnSpacing.HasValue)
         {
-            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(ColumnSpacing.Value / 20D);
+            section.ColumnsSpace = ColumnSpacing.Value;
         }
-        if (ColumnSeparator.HasValue)
+        if (OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ColumnSeparator)).HasValue)
         {
-            section.HasColumnSeparator = ColumnSeparator.Value;
+            section.HasColumnSeparator = ColumnSeparator.IsPresent;
         }
     }
 

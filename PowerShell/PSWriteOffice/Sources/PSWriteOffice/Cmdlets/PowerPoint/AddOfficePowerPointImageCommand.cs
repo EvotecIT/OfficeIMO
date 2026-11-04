@@ -18,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example><summary>Reuse a converted visual without converting it again.</summary>
 /// <code>$visual | PowerPointImage -Slide $slide -X 36 -Y 54 -PassThru</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointImage", DefaultParameterSetName = "Path")]
-[Alias("PowerPointImage")]
 [OutputType(typeof(PowerPointImage))]
+[Alias("PowerPointImage") ]
 public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
     /// <summary>Accessible description for the visual or placed image.</summary>
     [Parameter]
@@ -29,7 +29,8 @@ public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
     protected override string? VisualAlternativeText => AlternativeText;
 
     /// <summary>Native slide or a one-based position in the current document; omitted inside PowerPointSlide.</summary>
-    [Parameter, PowerPointSlideTransformation]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "Visual"), PowerPointSlideTransformation]
     public PowerPointSlideSelector? Slide { get; set; }
 
     /// <summary>Literal local image path.</summary>
@@ -37,7 +38,7 @@ public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
     public string? Path { get; set; }
 
     /// <summary>Visual artifact, OfficeVisualSource, prepared conversion or SVG path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Visual"), ValidateNotNull]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Visual"), ValidateNotNull]
     public object? InputObject { get; set; }
 
     /// <summary>Left position; numbers mean points.</summary>

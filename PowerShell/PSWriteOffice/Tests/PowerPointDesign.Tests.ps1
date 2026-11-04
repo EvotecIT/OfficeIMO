@@ -146,7 +146,7 @@ Describe 'PowerPointDesign workflows' {
             $updatedSlide = Set-OfficePowerPointSlide -Slide $colorSlide -Background '#F4F7FB' -PassThru
             $updatedSlide | Should -Be $colorSlide
             $updatedSlide.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointSlide'
-            $colorSlide.BackgroundColor | Should -Be 'f4f7fb'
+            $colorSlide.BackgroundColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('F4F7FB'))
 
             $contentBox = Get-OfficePowerPointLayoutBox -Document $presentation -Margin '1.5cm'
             [math]::Round($contentBox.Left.ToCentimeters(), 2) | Should -Be 1.5
@@ -192,7 +192,7 @@ Describe 'PowerPointDesign workflows' {
         $reloaded = Open-OfficePowerPoint -Path $path
         try {
             $reloadedColorSlide = Get-OfficePowerPointSlide -Document $reloaded -Slide 1
-            $reloadedColorSlide.BackgroundColor | Should -Be 'f4f7fb'
+            $reloadedColorSlide.BackgroundColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('F4F7FB'))
 
             $reloadedImageSlide = Get-OfficePowerPointSlide -Document $reloaded -Slide 2
             $reloadedImageSlide.BackgroundColor | Should -BeNullOrEmpty
@@ -209,7 +209,7 @@ Describe 'PowerPointDesign workflows' {
             -Purpose 'technical service brief' -Style TechnicalMap -LayoutStrategy ContentFirst
         try {
             $renderedSlides = @(
-                PowerPointSlide -Document $presentation -Title 'Reliability Showcase' -Subtitle 'From script to polished deck' -Layout Title -PassThru
+                PowerPointSlide -Document $presentation -Title 'Reliability Showcase' -Subtitle 'From script to polished deck' -TemplateLayout ([OfficeIMO.PowerPoint.PowerPointSlideLayoutType]::Title) -PassThru
                 PowerPointSlide -Document $presentation -Title 'Delivery Flow' -PassThru {
                     PowerPointStep 'Author' 'Describe the story once.'
                     PowerPointStep 'Render' 'Compose the layout.'

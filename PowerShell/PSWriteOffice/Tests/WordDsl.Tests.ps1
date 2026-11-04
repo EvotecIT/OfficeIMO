@@ -654,6 +654,15 @@ Describe 'Word DSL surface' {
             WordParagraph {
                 WordText -Text 'DirectHalf' -Size 10.5
                 WordText -Text 'DirectUnit' -Size 14px -Font Arial -Strikethrough
+                $created = @(WordText -Text 'StyledOn','StyledOff' -Italic -Strikethrough -Underline Double -Font Arial -Size 10.5pt -PassThru)
+                $created.Count | Should -Be 2
+                $created[0].Text | Should -Be StyledOn
+                $created[1].Text | Should -Be StyledOff
+                $created[1] | Set-OfficeWordText -Italic:$false -Strikethrough:$false -Underline None
+                $created[0].Italic | Should -BeTrue
+                $created[0].Strikethrough | Should -BeTrue
+                $created[1].Italic | Should -BeFalse
+                $created[1].Strikethrough | Should -BeFalse
             }
             WordParagraph {
                 WordText 'RichHalf' -Size 10.5
@@ -672,6 +681,9 @@ Describe 'Word DSL surface' {
         }
         $documentXml.SelectSingleNode('//w:r[w:t="DirectUnit"]/w:rPr/w:strike', $namespaceManager) | Should -Not -BeNullOrEmpty
         $documentXml.SelectSingleNode('//w:r[w:t="DirectUnit"]/w:rPr/w:rFonts[@w:ascii="Arial"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $documentXml.SelectSingleNode('//w:r[w:t="StyledOn"]/w:rPr/w:i', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $documentXml.SelectSingleNode('//w:r[w:t="StyledOn"]/w:rPr/w:u[@w:val="double"]', $namespaceManager) | Should -Not -BeNullOrEmpty
+        $documentXml.SelectSingleNode('//w:r[w:t="StyledOff"]/w:rPr/w:u[@w:val="none"]', $namespaceManager) | Should -Not -BeNullOrEmpty
     }
 
 
@@ -750,7 +762,7 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $table.RowsCount | Should -Be 2
+            $table.RowCount | Should -Be 2
             $table.Rows[0].CellsCount | Should -Be 6
             $table.Rows[0].Cells[1].Paragraphs[0].Text | Should -Be 'Rows'
             $table.Rows[0].Cells[2].Paragraphs[0].Text | Should -Be 'Columns'
@@ -786,7 +798,7 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $table.RowsCount | Should -Be 3
+            $table.RowCount | Should -Be 3
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Text'
             $table.Rows[0].Cells[1].Paragraphs[0].Text | Should -Be 'FontSize'
             $table.Rows[0].Cells[2].Paragraphs[0].Text | Should -Be 'ColumnSpan'
@@ -819,7 +831,7 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $table.RowsCount | Should -Be 3
+            $table.RowCount | Should -Be 3
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Name'
             $table.Rows[0].Cells[1].Paragraphs[0].Text | Should -Be 'Status'
             $table.Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'Directory'
@@ -850,7 +862,7 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $table.RowsCount | Should -Be 3
+            $table.RowCount | Should -Be 3
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Name'
             $table.Rows[0].Cells[0].ShadingFillColor | Should -Not -Be ([OfficeIMO.OfficeColor]::Parse('ffeeee'))
             $table.Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'Section'
@@ -878,7 +890,7 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $table.RowsCount | Should -Be 3
+            $table.RowCount | Should -Be 3
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Name'
             $table.Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'Group'
             $table.Rows[1].Cells[0].RowSpan | Should -Be 2
@@ -1038,7 +1050,7 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $table.RowsCount | Should -Be 3
+            $table.RowCount | Should -Be 3
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Property'
             $table.Rows[0].Cells[1].Paragraphs[0].Text | Should -Be 'Row1'
             $table.Rows[0].Cells[2].Paragraphs[0].Text | Should -Be 'Row2'
@@ -1053,7 +1065,7 @@ Describe 'Word DSL surface' {
         }
     }
 
-    It 'preserves the legacy Word table transpose switch' {
+    It 'preserves transposed Word tables through the mapped View selector' {
         $path = Join-Path $TestDrive 'DslTableLegacyTranspose.docx'
         $rows = @(
             [PSCustomObject]@{ Name = 'One'; Value = 1 }
@@ -1061,13 +1073,13 @@ Describe 'Word DSL surface' {
         )
 
         New-OfficeWord -Path $path {
-            Add-OfficeWordTable -Data $rows -SkipHeader -View -Style TableGrid
+            Add-OfficeWordTable -InputObject $rows -NoHeader -View Transpose -Style TableGrid
         } | Out-Null
 
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $table.RowsCount | Should -Be 2
+            $table.RowCount | Should -Be 2
             $table.Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Name'
             $table.Rows[0].Cells[1].Paragraphs[0].Text | Should -Be 'One'
             $table.Rows[0].Cells[2].Paragraphs[0].Text | Should -Be 'Two'
@@ -1086,7 +1098,7 @@ Describe 'Word DSL surface' {
 
         $document = New-OfficeWord -Path $path
         try {
-            $chart = Add-OfficeWordChart -Document $document -Type Line -InputObject $rows -Category Month -Value Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -Title 'Monthly Trend' -PassThru
+            $chart = $rows | Add-OfficeWordChart -Document $document -Type Line -Category Month -Value Sales, Profit -Legend -XAxisTitle 'Month' -YAxisTitle 'Value' -Title 'Monthly Trend' -PassThru
             $chart.Title | Should -Be 'Monthly Trend'
             Save-OfficeWord -Document $document | Out-Null
         } finally {
@@ -1109,9 +1121,9 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             Add-OfficeWordCoverPage -Template Element -Abstract 'Executive summary' -CompanyEmail 'reports@example.test'
             Add-OfficeWordSection {
-                Set-OfficeWordPageSetup -PageSize A4 -Orientation Landscape -MarginPreset Narrow -Columns 2 -ColumnSpacing 720 -ColumnSeparator $true
+                Set-OfficeWordPageSetup -PageSize A4 -Orientation Landscape -MarginPreset Narrow -Columns 2 -ColumnSpacing 36pt -ColumnSeparator
                 Add-OfficeWordParagraph {
-                    Add-OfficeWordTabStop -Position 4320 -Alignment Decimal -Leader Dot
+                    Add-OfficeWordTabStop -Position 216pt -Alignment Decimal -Leader Dot
                     Add-OfficeWordText -Text "Score`t98.5"
                 }
                 Add-OfficeWordEquation -Omml $omml
@@ -1211,7 +1223,7 @@ Describe 'Word DSL surface' {
         try {
             $document.Tables.Count | Should -Be 1
             $table = $document.Tables[0]
-            $table.RowsCount | Should -Be 3
+            $table.RowCount | Should -Be 3
             $table.Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'One'
             $table.Rows[2].Cells[0].Paragraphs[0].Text | Should -Be 'Two'
         } finally {
@@ -1612,16 +1624,24 @@ Describe 'Word DSL surface' {
             WordParagraph {
                 $image = WordImage -Path $imagePath -Width 32 -Height 32 -PassThru
                 $image |
-                    Set-OfficeWordImage -Width 48 -Height 24 -Title 'Status Logo' -Description 'Logo alt text' -HorizontalFlip $true -Rotation 5 -PassThru |
+                    Set-OfficeWordImage -Width 48 -Height 24 -Title 'Status Logo' -Description 'Logo alt text' -HorizontalFlip -Rotation 5 -PassThru |
                     Should -Not -BeNullOrEmpty
             }
 
             WordParagraph {
                 $shape = WordShape -Type RoundedRectangle -Width 144 -Height 36 -FillColor '#DDEEFF' -StrokeColor '#1F4E79' -StrokeWidth 1 -Title 'Callout' -Description 'Callout shape' -PassThru
                 $shape |
-                    Set-OfficeWordShape -X 24 -Y 12 -Rotation 2 -ZIndex 3 -PassThru |
+                    Set-OfficeWordShape -X 32px -Y 12pt -Width 2in -Height 0.5in -FillColor LightBlue -StrokeColor '#1F4E79' -StrokeWidth 1pt -Stroked:$false -Rotation 2 -ZIndex 3 -PassThru |
                     Should -Not -BeNullOrEmpty
-                $shape.FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('ddeeff'))
+                $shape.FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('ADD8E6'))
+                $shape.Width.ToPoints() | Should -Be 144
+                $shape.Height.ToPoints() | Should -Be 36
+                $shape.Left.ToPoints() | Should -Be 24
+                $shape.Stroked | Should -BeFalse
+                $shape | Set-OfficeWordShape -X $null -Y $null -StrokeWidth $null
+                $shape.Left | Should -BeNullOrEmpty
+                $shape.Top | Should -BeNullOrEmpty
+                $shape.StrokeWeight | Should -BeNullOrEmpty
                 $shape.StrokeColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('1f4e79'))
             }
         } | Out-Null
@@ -1635,7 +1655,9 @@ Describe 'Word DSL surface' {
         $images[0].HorizontalFlip | Should -BeTrue
 
         $shapes.Count | Should -Be 1
-        $shapes[0].FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('ddeeff'))
+        $shapes[0].FillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('ADD8E6'))
+        $shapes[0].Width.ToPoints() | Should -Be 144
+        $shapes[0].Height.ToPoints() | Should -Be 36
         $shapes[0].StrokeColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('1f4e79'))
     }
 
@@ -1649,8 +1671,8 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             $table = WordTable -InputObject $rows -Style TableGrid -PassThru
             $cell = $table |
-                Get-OfficeWordTableCell -Row 1 -Column 1 |
-                Set-OfficeWordTableCell -BackgroundColor '#DDEEFF' -Width 2400 -WidthPercent Dxa -WrapText $false -FitText $true -PassThru
+                Get-OfficeWordTableCell -Row 2 -Column 2 |
+                Set-OfficeWordTableCell -BackgroundColor '#DDEEFF' -Width 120pt -NoWrap -FitText -PassThru
 
             $cell.ShadingFillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('DDEEFF'))
             $cell.Width.LengthValue.ToTwips() | Should -Be 2400
@@ -1660,7 +1682,7 @@ Describe 'Word DSL surface' {
         $document = Open-OfficeWord -Path $path -ReadOnly
         try {
             $table = $document.Tables[0]
-            $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 1
+            $cell = $table | Get-OfficeWordTableCell -Row 2 -Column 2
 
             $cell.ShadingFillColor | Should -Be ([OfficeIMO.OfficeColor]::Parse('DDEEFF'))
             $cell.Width.LengthValue.ToTwips() | Should -Be 2400
@@ -1691,7 +1713,7 @@ Describe 'Word DSL surface' {
             $row.Cells[1].Paragraphs[0].Text | Should -Be 'Ready'
 
             $table |
-                Get-OfficeWordTableCell -Row 1 -Column 1 |
+                Get-OfficeWordTableCell -Row 2 -Column 2 |
                 Set-OfficeWordTableCell -Text 'Investigating'
 
             Close-OfficeWord -Document $document -Save
@@ -1706,7 +1728,7 @@ Describe 'Word DSL surface' {
         try {
             $savedTable = Get-OfficeWordTable -Document $saved -Pattern 'Mitigation plan' -SimpleMatch | Select-Object -First 1
             $savedTable | Should -Not -BeNullOrEmpty
-            $savedTable.RowsCount | Should -Be 3
+            $savedTable.RowCount | Should -Be 3
             $savedTable.Rows[1].Cells[1].Paragraphs[0].Text | Should -Be 'Investigating'
         } finally {
             $saved.Dispose()
@@ -1722,7 +1744,7 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             $table = WordTable -InputObject $rows -Style TableGrid -PassThru
             $table |
-                Get-OfficeWordTableCell -Row 0 -Column 0 |
+                Get-OfficeWordTableCell -Row 1 -Column 1 |
                 Set-OfficeWordTableCell -Text 'Merged risk header' -MergeRight 1
         } | Out-Null
 
@@ -1833,7 +1855,7 @@ Describe 'Word DSL surface' {
             $styledText.FontFamily | Should -Be 'Aptos'
             $styledText.Highlight.ToString() | Should -Be 'Yellow'
             $styledText.CapsStyle.ToString() | Should -Be 'SmallCaps'
-            $styledText.Strike | Should -BeTrue
+            $styledText.Strikethrough | Should -BeTrue
             $styledText.CharacterStyle.ToString() | Should -Be 'Heading2Char'
         } finally {
             $document.Dispose()
@@ -1845,7 +1867,7 @@ Describe 'Word DSL surface' {
 
         New-OfficeWord -Path $path {
             WordParagraph -Text 'Report callouts'
-            $textBox = WordTextBox -Text 'Service posture is stable' -Width 7 -Height 2 -X 1 -Y 1 -HorizontalAlignment Center -AutoFitToTextSize -PassThru
+            $textBox = WordTextBox -Text 'Service posture is stable' -Width 7cm -Height 2cm -X 1cm -Y 1cm -HorizontalAlignment Center -AutoFitToTextSize -PassThru
             $textBox.Width.ToCentimeters() | Should -BeGreaterThan 6.9
             $textBox.Height.ToCentimeters() | Should -BeGreaterThan 1.9
             $textBox.AutoFitToTextSize | Should -BeTrue
