@@ -2,8 +2,9 @@ namespace OfficeIMO.Markup;
 
 public sealed partial class OfficeMarkupCSharpEmitter {
     private static void EmitWorkbook(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
+        sb.AppendLine("using OfficeIMO;");
+        sb.AppendLine("using OfficeIMO.Drawing;");
         sb.AppendLine("using OfficeIMO.Excel;");
-        sb.AppendLine("using OfficeIMO.Excel.Enums;");
         sb.AppendLine();
         sb.AppendLine($"using ExcelDocument workbook = ExcelDocument.Create({options.FilePathVariable});");
         sb.AppendLine("ExcelSheet? sheet = null;");
@@ -32,7 +33,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
                     break;
                 case OfficeMarkupNamedTableBlock table:
                     var (tableSheetExpression, tableRange) = ResolveWorkbookTarget(GetAttribute(table.Attributes, "sheet"), table.Range);
-                    sb.AppendLine($"{tableSheetExpression}.AddTable({CsString(tableRange)}, hasHeader: {BoolLiteral(table.HasHeader)}, name: {CsString(table.Name)}, style: TableStyle.TableStyleMedium2);");
+                    sb.AppendLine($"{tableSheetExpression}.AddTable({CsString(tableRange)}, hasHeader: {BoolLiteral(table.HasHeader)}, name: {CsString(table.Name)}, style: ExcelTableStyle.TableStyleMedium2);");
                     break;
                 case OfficeMarkupChartBlock chart:
                     EmitExcelChart(chart, sb, ++chartIndex);

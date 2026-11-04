@@ -428,7 +428,16 @@ public sealed class OfficeMarkupPowerShellEmitter {
 
                     if (!string.IsNullOrWhiteSpace(chart.Source)) {
                         if (IsLocalA1Range(chart.Source!)) {
-                            sb.AppendLine($"$null = {chartWorksheetExpression}.AddChartFromRange({PsString(chart.Source!)}, {chartRow}, {chartColumn}, 640, 360, {PsString(chart.ChartType)}, $true, {PsString(chart.Title ?? string.Empty)}, $true)");
+                            var chartOptions = $"$chartOptions{++chartIndex}";
+                            var width = OfficeMarkupCSharpEmitter.TryParseInt(chart.Placement?.Width, out var parsedWidth) ? parsedWidth : 640;
+                            var height = OfficeMarkupCSharpEmitter.TryParseInt(chart.Placement?.Height, out var parsedHeight) ? parsedHeight : 360;
+                            sb.AppendLine($"{chartOptions} = [OfficeIMO.Excel.ExcelChartOptions]::new()");
+                            sb.AppendLine($"{chartOptions}.Row = {chartRow}");
+                            sb.AppendLine($"{chartOptions}.Column = {chartColumn}");
+                            sb.AppendLine($"{chartOptions}.Width = [OfficeIMO.OfficeLength]::Pixels({width})");
+                            sb.AppendLine($"{chartOptions}.Height = [OfficeIMO.OfficeLength]::Pixels({height})");
+                            sb.AppendLine($"{chartOptions}.Title = {PsString(chart.Title ?? string.Empty)}");
+                            sb.AppendLine($"$null = {chartWorksheetExpression}.AddChart([OfficeIMO.OfficeChartType]::{OfficeMarkupChartKindResolver.Resolve(chart.ChartType)}, {PsString(chart.Source!)}, {chartOptions})");
                         } else {
                             sb.AppendLine($"# TODO: bind chart source {PsString(chart.Source!)} to an Excel range or table before adding the chart at {PsString(chartCell ?? "A1")}.");
                         }

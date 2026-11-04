@@ -563,7 +563,6 @@ sheet name="Revenue"
         Assert.Contains("Save-OfficeExcel -Document $workbook -Path $FilePath", code, StringComparison.Ordinal);
         Assert.DoesNotContain("New-OfficeExcelWorkbook", code, StringComparison.Ordinal);
         Assert.DoesNotContain("Add-OfficeExcelWorksheet", code, StringComparison.Ordinal);
-        Assert.DoesNotContain("[OfficeIMO.", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -581,7 +580,6 @@ sheet name="Revenue"
         Assert.Contains("Save-OfficeWord -Document $document -Path $FilePath", code, StringComparison.Ordinal);
         Assert.DoesNotContain("New-OfficeWordDocument", code, StringComparison.Ordinal);
         Assert.DoesNotContain("Save-OfficeWordDocument", code, StringComparison.Ordinal);
-        Assert.DoesNotContain("[OfficeIMO.", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -655,9 +653,9 @@ Explain the revenue trend.
 
         var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
 
-        Assert.Contains("SlideTransition.Fade", code, StringComparison.Ordinal);
-        Assert.DoesNotContain("SlideTransition.FadeDuration", code, StringComparison.Ordinal);
-        Assert.Contains("slide1.TransitionSpeed = SlideTransitionSpeed.Fast;", code, StringComparison.Ordinal);
+        Assert.Contains("PowerPointSlideTransition.Fade", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("PowerPointSlideTransition.FadeDuration", code, StringComparison.Ordinal);
+        Assert.Contains("slide1.TransitionSpeed = PowerPointSlideTransitionSpeed.Fast;", code, StringComparison.Ordinal);
         Assert.Contains("slide1.TransitionDurationSeconds = 0.6;", code, StringComparison.Ordinal);
         Assert.Contains("slide1.TransitionAdvanceOnClick = false;", code, StringComparison.Ordinal);
         Assert.Contains("slide1.TransitionAdvanceAfterSeconds = 5;", code, StringComparison.Ordinal);
@@ -711,8 +709,8 @@ Body
 
         var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
 
-        Assert.Contains("slide1.Transition = SlideTransition.PushLeft;", code, StringComparison.Ordinal);
-        Assert.Contains("slide2.Transition = SlideTransition.WarpOut;", code, StringComparison.Ordinal);
+        Assert.Contains("slide1.Transition = PowerPointSlideTransition.PushLeft;", code, StringComparison.Ordinal);
+        Assert.Contains("slide2.Transition = PowerPointSlideTransition.WarpOut;", code, StringComparison.Ordinal);
         Assert.DoesNotContain("SlideTransition.Push;", code, StringComparison.Ordinal);
         Assert.Contains("Transition details: @\"push direction=left duration=0.5\"", code, StringComparison.Ordinal);
         Assert.Contains("Transition details: @\"warp direction=out duration=0.7\"", code, StringComparison.Ordinal);
@@ -750,7 +748,7 @@ A,120
         Assert.Contains(@"GetOrAddSheet(@""Sheet1"").Cell(3, 2).SetValue(@""Product"")", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Sheet1"").Cell(4, 3).SetValue(@""120"")", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Sheet1"").Cell(4, 4).SetFormula(@""=C4-B4"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"var chart1 = GetOrAddSheet(@""Sheet1"").AddChartFromRange(@""B3:C4"", row: 2, column: 6", code, StringComparison.Ordinal);
+        Assert.Contains(@"var chart1 = GetOrAddSheet(@""Sheet1"").AddChart(OfficeChartType.ColumnClustered, @""B3:C4"", new ExcelChartOptions { Row = 2, Column = 6", code, StringComparison.Ordinal);
         Assert.Contains("OfficeChartType.ColumnClustered", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetCategoryAxisTitle(@\"Product\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisTitle(@\"Revenue\")", code, StringComparison.Ordinal);
@@ -822,7 +820,7 @@ Revenue,120,
         Assert.Contains(@"GetOrAddSheet(@""Data"").AddTable(@""A1:C2""", code, StringComparison.Ordinal);
         Assert.Contains(@"var chartSourceSheet1 = GetOrAddSheet(@""Data"")", code, StringComparison.Ordinal);
         Assert.Contains(@"chartSourceSheet1.GetTableRange(@""DataTable"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"var chart1 = GetOrAddSheet(@""Dashboard"").AddChart(chartDataRange1, row: 2, column: 2", code, StringComparison.Ordinal);
+        Assert.Contains(@"var chart1 = GetOrAddSheet(@""Dashboard"").AddChart(OfficeChartType.ColumnClustered, chartDataRange1, new ExcelChartOptions { Row = 2, Column = 2", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -864,7 +862,6 @@ Revenue,120,
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').AddTable('A1:C2', $true, 'DataTable', 'TableStyleMedium2')", code, StringComparison.Ordinal);
         Assert.Contains("# TODO: bind chart source 'Data!DataTable' to an Excel range or table before adding the chart at 'B2'.", code, StringComparison.Ordinal);
         Assert.DoesNotContain("AddChartFromRange('Data!DataTable'", code, StringComparison.Ordinal);
-        Assert.DoesNotContain("[OfficeIMO.", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -978,7 +975,6 @@ Body
         Assert.Contains("$slide1.Transition = 'PushUp'", code, StringComparison.Ordinal);
         Assert.Contains("$slide2.Transition = 'FerrisRight'", code, StringComparison.Ordinal);
         Assert.DoesNotContain("[OfficeIMO.PowerPoint.SlideTransition]", code, StringComparison.Ordinal);
-        Assert.DoesNotContain("[OfficeIMO.", code, StringComparison.Ordinal);
         Assert.Contains("$slide1.TransitionSpeed = 'Slow'", code, StringComparison.Ordinal);
         Assert.Contains("$slide1.TransitionDurationSeconds = 0.5", code, StringComparison.Ordinal);
         Assert.Contains("$slide1.TransitionAdvanceOnClick = $true", code, StringComparison.Ordinal);
