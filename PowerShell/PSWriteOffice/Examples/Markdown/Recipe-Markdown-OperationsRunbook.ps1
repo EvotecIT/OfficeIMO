@@ -6,7 +6,7 @@ $checks = @(
 )
 
 New-OfficeMarkdown -Path $path {
-    MarkdownFrontMatter -Data @{ title = 'Service restart runbook'; owner = 'Operations'; reviewed = '2026-08-18' }
+    MarkdownFrontMatter -InputObject @{ title = 'Service restart runbook'; owner = 'Operations'; reviewed = '2026-08-18' }
     MarkdownTableOfContents -Title 'On this page' -Placement Top -MinLevel 2 -MaxLevel 3
     MarkdownHeading -Level 1 -Text 'Service Restart Runbook'
     MarkdownCallout -Kind warning -Title 'Production change' -Text 'Confirm the approved change window before running any restart command.'

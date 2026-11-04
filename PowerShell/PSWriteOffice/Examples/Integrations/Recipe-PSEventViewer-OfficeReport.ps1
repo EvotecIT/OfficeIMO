@@ -109,18 +109,18 @@ New-OfficeWord -Path $docx {
         WordText 'Only the top eight providers appear here. The workbook retains every record in this bounded snapshot. Review event messages before sharing them.' -Size 10 -Color '475569'
     }
 }
-Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
+Convert-OfficeDocument -Path $docx -To Pdf -OutputPath $pdf
 New-OfficeExcel -Path $xlsx {
     ExcelSheet 'Events' {
         ExcelSheetView -NoGridlines
         ExcelCell -Address A1 -Value 'Event register'
-        ExcelRow -Row 1 -Height 30 -Bold $true -FontName 'Carlito'
+        ExcelRow -Row 1 -Height 30 -Bold -Font 'Carlito'
         ExcelCell -Address A2 -Value $scope
         if ($records.Count) {
-            ExcelTable -InputObject $records -StartRow 4 -Name EventRegister -TableStyle TableStyleMedium2
+            ExcelTable -InputObject $records -Address A4 -Name EventRegister -TableStyle TableStyleMedium2
             for ($row = 5; $row -lt 5 + $records.Count; $row++) {
                 ExcelCell -Row $row -Column 1 -Value $records[$row - 5].TimeCreated -NumberFormat 'yyyy-mm-dd hh:mm:ss.000'
-                ExcelRow -Row $row -Height 30 -WrapText $true
+                ExcelRow -Row $row -Height 30 -WrapText
             }
         } else { ExcelCell -Address A4 -Value 'No matching events returned.' }
         ExcelColumn -Column 1 -Width 32

@@ -8,7 +8,7 @@ $data = @(
 )
 
 New-OfficeMarkdown -Path $path {
-    MarkdownFrontMatter -Data @{
+    MarkdownFrontMatter -InputObject @{
         title = 'Operations Report'
         tags  = @('ops', 'weekly')
     }

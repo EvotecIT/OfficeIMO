@@ -17,7 +17,7 @@ New-OfficeWord -Path $Path {
         WordText ' is ready.'
     }
 
-    Invoke-OfficeWordMailMerge -Data @{
+    Invoke-OfficeWordMailMerge -InputObject @{
         FirstName = 'Ada'
         OrderId   = 4242
     }

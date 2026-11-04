@@ -12,7 +12,7 @@ New-OfficeWord -Path $docPath {
     WordSection {
         WordParagraph 'Quality Matrix' -Style Heading1
         WordParagraph 'Rows are highlighted based on score thresholds.'
-        WordTable -Data $data -Style TableGrid -Layout Autofit {
+        WordTable -InputObject $data -Style TableGrid -Layout Autofit {
             WordTableCondition -FilterScript { $_.Score -ge 90 } -BackgroundColor '#e6fffb'
             WordTableCondition -FilterScript { $_.Score -lt 70 } -BackgroundColor '#ffe6e6'
         }

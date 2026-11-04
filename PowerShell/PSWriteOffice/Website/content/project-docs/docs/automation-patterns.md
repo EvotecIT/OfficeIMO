@@ -38,25 +38,25 @@ For Reader and conversion batches, limit concurrency based on document size and 
 
 ## Convert one file or a selected batch
 
-`ConvertTo-OfficeDocument` uses the shared OfficeIMO runner. A destination extension selects the single-file target; a batch uses `-TargetExtension`. Existing output is preserved by default. Choose `Rename` or `Replace` explicitly when a job needs a different conflict policy. General conversion jobs require PowerShell 7.4 or newer.
+`Convert-OfficeDocument` uses the shared OfficeIMO runner. A destination extension can select the single-file target; a batch uses `-To`. General conversion jobs require PowerShell 7.4 or newer.
 
 ```powershell
 Import-Module PSWriteOffice
-ConvertTo-OfficeDocument -InputPath ./report.pdf -OutputPath ./report.docx
+$report = Convert-OfficeDocument -Path ./report.pdf -To Word -OutputPath ./report.docx
+$report.Diagnostics
 Get-ChildItem ./reports -Filter *.pdf |
-    ConvertTo-OfficeDocument -OutputDirectory ./word -TargetExtension docx -ItemResults
+    Convert-OfficeDocument -OutputDirectory ./word -To Word -NoClobber
 ```
 
-Use `-CheckpointDirectory` for resumable directory jobs and retain the per-file results. `Get-OfficeConversionRoute -Executable` lists routes registered by the current host; their loss policies still apply.
+Use `-NoClobber` to preserve an existing destination or `-AutoRename` for another filename. `-CheckpointPath` and `-Resume` support resumable directory jobs. Retain per-file reports. `Get-OfficeDocumentCapability -Conversion -Executable` lists the current host's routes; their loss policies still apply.
 
 ## Work with native document families
 
-Project tasks, Access rows, EPUB chapters and invoice lines accept ordinary PowerShell parameters and object pipelines. The [native document example](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates and reads these artifacts without constructing .NET option objects.
+Project tasks, Access rows and EPUB chapters accept ordinary PowerShell parameters and object pipelines. The [native document example](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates and reads these artifacts without constructing .NET option objects.
 
 - Use `New-OfficeProject`, task/resource/assignment commands and `Invoke-OfficeProjectSchedule` to prepare a schedule. XML preserves the supported scheduling model; native MPP saves assess generation-specific loss. Inspect `-ReportVariable` and opt into `-AllowLoss` only after reviewing the reported reductions.
 - Use `New-OfficeAccess` and table/column/row commands for a native MDB or ACCDB table database. The file operations remain inert: they do not start ACE, run SQL, or execute database code.
 - Use `New-OfficeEpub`, `Add-OfficeEpubChapter` and `Add-OfficeEpubResource` to compose a publication. Plain chapter text is escaped; XHTML and Markdown are explicit alternatives.
-- Use `New-OfficeInvoiceParty`, `New-OfficeInvoice` and `Add-OfficeInvoiceLine` for XML and hybrid PDF output. Editing an imported invoice retains source evidence. `Set-OfficeInvoice -RecalculateTotals` explicitly clears captured amounts so the owner can recompute them; currency conversion is never inferred. File-based authority validation needs caller-supplied pinned rule archives and any required external validator.
 
 ## Find exact parameters
 

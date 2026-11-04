@@ -76,7 +76,7 @@ New-OfficeWord -Path $docxPath {
         WordListItem -Text 'Singapore: confirm the maintenance slot with the regional owner.'
     }
 }
-Export-OfficeDocumentPdf -InputPath $docxPath -Path $pdfPath
+Convert-OfficeDocument -Path $docxPath -To Pdf -OutputPath $pdfPath
 #endregion
 
 Get-Item -LiteralPath $docxPath, $pdfPath | Select-Object Name, Length

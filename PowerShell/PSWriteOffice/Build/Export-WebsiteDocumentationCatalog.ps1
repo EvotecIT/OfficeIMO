@@ -45,21 +45,21 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficeEpub' }
     }
     [ordered]@{
-        id = 'conversion'; title = 'Conversion and capabilities'; description = 'Discover executable routes and protected-content support, and run bounded single-file, selected-file, and resumable directory jobs.'
+        id = 'conversion'; title = 'Document operations and capabilities'; description = 'Inspect, compare, validate, repair, protect, combine, split, and convert documents through the shared native operations.'
         docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
         samples = @('Get-OfficeDocumentCapability', 'New-OfficeWordPdfOptions', 'Convert-OfficeDocument')
-        match = { param($name) $name -match 'OfficeConversion' -or $name -in 'Convert-OfficeDocument', 'Get-OfficeDocumentCapability' }
+        match = { param($name) $name -match 'OfficeConversion' -or $name -in 'Convert-OfficeDocument', 'Compare-OfficeDocument', 'Get-OfficeDocumentCapability', 'Get-OfficeDocumentInfo', 'Merge-OfficeDocument', 'Split-OfficeDocument', 'Test-OfficeDocument', 'Repair-OfficeDocument', 'Protect-OfficeDocument', 'Unprotect-OfficeDocument' }
     }
     [ordered]@{
         id = 'word'; title = 'Word'; description = 'Create, inspect, update, review, merge, protect, and convert DOC and DOCX documents.'
         docs = 'word'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Word'
-        samples = @('New-OfficeWord', 'Add-OfficeWordTable', 'Get-OfficeWordReview', 'Invoke-OfficeWordMailMerge', 'ConvertTo-OfficeWordDocument')
+        samples = @('New-OfficeWord', 'Add-OfficeWordTable', 'Get-OfficeWordReview', 'Invoke-OfficeWordMailMerge', 'Convert-OfficeDocument')
         match = { param($name) $name -match 'OfficeWord' }
     }
     [ordered]@{
         id = 'excel'; title = 'Excel'; description = 'Build, read, convert, validate, repair, compare, and publish XLS and XLSX workbook workflows.'
         docs = 'excel'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Excel'
-        samples = @('New-OfficeExcel', 'Add-OfficeExcelTable', 'Add-OfficeExcelPivotTable', 'Test-OfficeExcelWorkbook', 'ConvertTo-OfficeExcelWorkbook')
+        samples = @('New-OfficeExcel', 'Add-OfficeExcelTable', 'Add-OfficeExcelPivotTable', 'Test-OfficeDocument', 'Convert-OfficeDocument')
         match = { param($name) $name -match 'OfficeExcel' }
     }
     [ordered]@{
@@ -71,7 +71,7 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'pdf'; title = 'PDF'; description = 'Author, inspect, transform, sign, annotate, extract, preflight, and combine PDF files.'
         docs = 'pdf'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Pdf'
-        samples = @('New-OfficePdf', 'Join-OfficePdf', 'Get-OfficePdfPreflight', 'Set-OfficePdfSignature')
+        samples = @('New-OfficePdf', 'Merge-OfficeDocument', 'Test-OfficeDocument', 'Set-OfficePdfSignature')
         match = { param($name) $name -match 'OfficePdf|OfficeDocumentPdf|OfficeTextPdf|OfficePrinter' }
     }
     [ordered]@{
@@ -83,8 +83,14 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'archive-migration'; title = 'Archive migration and evidence'; description = 'Inspect package safety and provenance, convert iWork and offline OneNote content, and retain fidelity evidence.'
         docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Get-OfficePackageSecurity', 'Get-OfficeDocumentProvenance', 'Get-OfficeIWork', 'ConvertFrom-OfficeOneNote')
+        samples = @('Get-OfficeDocumentInfo', 'Get-OfficeDocumentProvenance', 'Open-OfficeIWork', 'Open-OfficeOneNote')
         match = { param($name) $name -match 'OfficeIWork|OfficeOneNote|OfficePackageSecurity|OfficeProvenance' }
+    }
+    [ordered]@{
+        id = 'google-workspace'; title = 'Google Workspace'; description = 'Create an authenticated session for native Google Docs, Sheets, and Slides operations.'
+        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
+        samples = @('New-OfficeGoogleWorkspaceSession')
+        match = { param($name) $name -match 'OfficeGoogleWorkspace' }
     }
     [ordered]@{
         id = 'confluence'; title = 'Confluence Cloud'; description = 'Plan and publish pages, preserve managed sections, and transfer attachments through OfficeIMO.Confluence.'
@@ -95,25 +101,25 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'visio'; title = 'Visio'; description = 'Create, inspect, arrange, and export VSDX diagrams with built-in and imported stencils.'
         docs = 'visio'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Visio'
-        samples = @('New-OfficeVisio', 'Add-OfficeVisioStencilShape', 'Get-OfficeVisioInfo', 'Export-OfficeDocumentImage')
+        samples = @('New-OfficeVisio', 'Add-OfficeVisioStencilShape', 'Get-OfficeDocumentInfo', 'Export-OfficeDocumentImage')
         match = { param($name) $name -match 'OfficeVisio' }
     }
     [ordered]@{
         id = 'markdown'; title = 'Markdown'; description = 'Compose typed Markdown, parse documents, and convert between Markdown and HTML or Word.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Markdown'
-        samples = @('New-OfficeMarkdown', 'Add-OfficeMarkdownTable', 'ConvertTo-OfficeMarkdownHtml', 'ConvertFrom-OfficeWordMarkdown')
+        samples = @('New-OfficeMarkdown', 'Add-OfficeMarkdownTable', 'Convert-OfficeDocument', 'Read-OfficeDocument')
         match = { param($name) $name -match 'Markdown' -and $name -notmatch 'OfficeAsciiDoc|OfficeLatex' }
     }
     [ordered]@{
         id = 'rtf'; title = 'RTF'; description = 'Create, open, edit, inspect, and bridge Rich Text Format documents.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Rtf'
-        samples = @('New-OfficeRtf', 'Get-OfficeRtf', 'Update-OfficeRtfText', 'ConvertTo-OfficeRtf')
+        samples = @('New-OfficeRtf', 'Open-OfficeRtf', 'Update-OfficeRtfText', 'Convert-OfficeDocument')
         match = { param($name) $name -match 'OfficeRtf' }
     }
     [ordered]@{
         id = 'csv'; title = 'CSV'; description = 'Create, import, inspect, and export delimited data with typed options.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Csv'
-        samples = @('ConvertTo-OfficeCsv', 'Import-OfficeCsv', 'Export-OfficeCsv', 'Get-OfficeCsv')
+        samples = @('ConvertTo-OfficeCsv', 'Import-OfficeCsv', 'Export-OfficeCsv')
         match = { param($name) $name -match 'OfficeCsv' }
     }
     [ordered]@{
@@ -125,19 +131,19 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'email'; title = 'Email'; description = 'Read and write messages and mailbox artifacts through the managed OfficeIMO.Email engine.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Get-OfficeEmail', 'Get-OfficeEmailMailbox', 'Save-OfficeEmail', 'Save-OfficeEmailMailbox')
+        samples = @('Open-OfficeEmail', 'Open-OfficeEmailMailbox', 'Save-OfficeEmail', 'Save-OfficeEmailMailbox')
         match = { param($name) $name -match 'OfficeEmail' }
     }
     [ordered]@{
         id = 'asciidoc'; title = 'AsciiDoc'; description = 'Read, create, update, and save bounded AsciiDoc workflows.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Get-OfficeAsciiDoc', 'ConvertFrom-OfficeAsciiDocMarkdown', 'ConvertTo-OfficeAsciiDocMarkdown', 'Save-OfficeAsciiDoc')
+        samples = @('Open-OfficeAsciiDoc', 'New-OfficeAsciiDocReadOptions', 'Convert-OfficeDocument', 'Save-OfficeAsciiDoc')
         match = { param($name) $name -match 'OfficeAsciiDoc' }
     }
     [ordered]@{
         id = 'latex'; title = 'LaTeX'; description = 'Read, create, update, and save bounded LaTeX interoperability workflows.'
         docs = 'open-text-formats'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('Get-OfficeLatex', 'ConvertFrom-OfficeLatexMarkdown', 'ConvertTo-OfficeLatexMarkdown', 'Save-OfficeLatex')
+        samples = @('Open-OfficeLatex', 'New-OfficeLatexReadOptions', 'Convert-OfficeDocument', 'Save-OfficeLatex')
         match = { param($name) $name -match 'OfficeLatex' }
     }
     [ordered]@{
@@ -152,18 +158,12 @@ $familyDefinitions = @(
         samples = @('ConvertTo-OfficeVisual')
         match = { param($name) $name -eq 'ConvertTo-OfficeVisual' }
     }
-    [ordered]@{
-        id = 'shared'; title = 'Shared authoring primitives'; description = 'Create reusable text runs shared by document DSLs.'
-        docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples'
-        samples = @('New-OfficeTextRun')
-        match = { param($name) $name -eq 'New-OfficeTextRun' }
-    }
 )
 
 $assigned = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 $families = foreach ($definition in $familyDefinitions) {
     # Cross-format commands can mention more than one family (for example,
-    # ConvertFrom-OfficeWordMarkdown). The ordered family list establishes one
+    # New-OfficeMarkdownWordOptions). The ordered family list establishes one
     # documentation owner so totals remain trustworthy and every command has a
     # single place in the navigation.
     $familyCommands = @($commands | Where-Object {

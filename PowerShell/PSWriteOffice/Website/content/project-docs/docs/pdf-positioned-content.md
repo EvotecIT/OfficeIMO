@@ -10,20 +10,20 @@ A `PdfText` run belongs to normal document flow. It can change emphasis, color, 
 
 - Use `PdfParagraph`, `PdfText`, and rich runs when content should reflow naturally.
 - Use `Add-OfficePdfStamp -X -Y` for one positioned text or image stamp on an existing PDF.
-- Use `Add-OfficePdfCanvas` for arbitrary text, rich text, images, shapes, drawings, or tables at page-aware coordinates.
-- Use `Add-OfficePdfPageOverlay` to place an imported PDF page in a target rectangle, optionally as an underlay.
+- Use `Add-OfficePdfStamp -Content` for arbitrary text, rich text, images, shapes, drawings, or tables at page-aware coordinates.
+- Use `Add-OfficePdfStamp -OverlayPath` to place an imported PDF page in a target rectangle, optionally as an underlay.
 
 ## Draw rich text at a coordinate
 
-Canvas coordinates use PDF points from the visual top-left of the page. The callback runs once per selected page. `PdfCanvasText` accepts the same visual `TextRun`, hashtable, and object shapes as the flowing rich-text commands. Link targets are excluded because canvas text is painted at a fixed position; use flowing `PdfText` when the text must be clickable.
+Canvas coordinates use PDF points from the visual top-left of the page. The callback runs once per selected page. `PdfCanvasText -Content` uses `PdfText` commands to compose rich text at a fixed position. Link targets are excluded because canvas text is painted at a fixed position; use flowing `PdfText` when the text must be clickable.
 
 ```powershell
-Add-OfficePdfCanvas -Path '.\Report.pdf' -OutputPath '.\Positioned.pdf' -Content {
-    PdfCanvasText -Run @(
-        TextRun 'Owner: ' -Bold
-        TextRun 'Platform' -Color '#0F766E'
-        TextRun '  |  REVIEW COPY' -Italic
-    ) -X 36 -Y 24 -FontSize 10
+Add-OfficePdfStamp -Path '.\Report.pdf' -OutputPath '.\Positioned.pdf' -Content {
+    PdfCanvasText -Content {
+        PdfText 'Owner: ' -Bold
+        PdfText 'Platform' -Color '#0F766E'
+        PdfText '  |  REVIEW COPY' -Italic
+    } -X 36 -Y 24 -Size 10
 }
 ```
 

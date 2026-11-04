@@ -34,7 +34,7 @@ New-OfficePdf -Path $path -Theme Modern {
         PdfText ', layout rows, links, and attachments from PSWriteOffice.'
     }
     PdfPanel 'The PDF cmdlets are thin adapters over OfficeIMO.Pdf, so reusable document behavior stays in the engine.'
-    PdfHr -Color '#0F766E' -Thickness 1.5 -SpacingBefore 10 -SpacingAfter 12
+    PdfHorizontalRule -Color '#0F766E' -Thickness 1.5 -SpacingBefore 10 -SpacingAfter 12
 
     PdfRow -Gap 18 -ColumnSeparatorColor '#CBD5E1' {
         PdfColumn -Weight 38 {

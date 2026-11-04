@@ -24,7 +24,7 @@ $data = @(
 New-OfficeExcel -Path $outputPath {
     Add-OfficeExcelSheet -Name 'Summary' -Content {
         Set-OfficeExcelRow -Row 1 -Values 'Region', 'Revenue', 'YoY'
-        Add-OfficeExcelTable -Data $data -TableName 'Sales' -TableStyle 'TableStyleMedium9'
+        Add-OfficeExcelTable -InputObject $data -Name 'Sales' -TableStyle 'TableStyleMedium9'
         Set-OfficeExcelColumn -Column 1 -AutoFit
     }
 }

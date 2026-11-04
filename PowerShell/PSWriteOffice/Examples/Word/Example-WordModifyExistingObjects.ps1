@@ -11,7 +11,7 @@ $initialRisks = @(
 New-OfficeWord -Path $path {
     WordParagraph -Text 'Operational handover'
     WordParagraph -Text 'Existing risk table follows'
-    WordTable -Data $initialRisks -Style TableGrid
+    WordTable -InputObject $initialRisks -Style TableGrid
 
     WordParagraph -Text 'Existing approval checklist follows'
     WordList {

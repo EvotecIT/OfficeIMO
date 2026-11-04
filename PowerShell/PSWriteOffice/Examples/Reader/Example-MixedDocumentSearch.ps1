@@ -13,11 +13,11 @@ $readErrors = @()
 $matches = @(Search-OfficeDocument `
         -Path $Path `
         -Recurse `
-        -Query $Query `
-        -MaxDocuments 5000 `
-        -MaxStoreItems 25000 `
+        -Pattern $Query `
+        -MaximumFiles 5000 `
+        -MaximumStoreItems 25000 `
         -MaximumResults 100 `
-        -MaxDegreeOfParallelism 4 `
+        -ThrottleLimit 4 `
         -IncludePageLocations `
         -ErrorVariable +readErrors `
         -ErrorAction SilentlyContinue)
@@ -45,4 +45,4 @@ if ($readErrors.Count -gt 0) {
 }
 
 # For an intentionally unbounded run, replace the three numeric limits above with:
-# -NoDocumentLimit -AllStoreItems -AllResults
+# -MaximumFiles 0 -MaximumStoreItems 0 -MaximumResults 0

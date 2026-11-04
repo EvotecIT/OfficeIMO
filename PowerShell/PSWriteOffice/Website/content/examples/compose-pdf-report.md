@@ -39,8 +39,8 @@ New-OfficePdf -Path $statusPath {
     PdfMetadata -Title 'Documentation Status' -Author 'PSWriteOffice'
 }
 
-Join-OfficePdf -Path $coverPath, $statusPath -OutputPath $finalPath
-Get-OfficePdfText -Path $finalPath
+Merge-OfficeDocument -Path $coverPath, $statusPath -OutputPath $finalPath
+Read-OfficeDocument -Path $finalPath -As Text
 ```
 
 ## What this demonstrates

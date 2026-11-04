@@ -8,11 +8,11 @@ New-OfficePdf -Path $source {
 }
 
 Add-OfficePdfStamp -Path $source -OutputPath $positioned -Content {
-    PdfCanvasText -Run @(
-        @{ Text = 'Owner: '; Bold = $true }
-        @{ Text = 'Platform'; Color = '#0F766E' }
-        @{ Text = '  |  REVIEW COPY'; Italic = $true }
-    ) -X 36 -Y 24 -Size 10
+    PdfCanvasText -Content {
+        PdfText 'Owner: ' -Bold
+        PdfText 'Platform' -Color '#0F766E'
+        PdfText '  |  REVIEW COPY' -Italic
+    } -X 36 -Y 24 -Size 10
 
     PdfCanvasText 'Fixed at 36 × 780 points' -X 36 -Y 780 -Size 9
 }

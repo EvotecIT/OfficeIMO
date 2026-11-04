@@ -8,11 +8,11 @@ Reader extraction turns supported files into stable intermediate structures. Tha
 
 ## Chunk content
 
-`Get-OfficeDocumentChunk` emits bounded text chunks with location and provenance. Format-specific options control Word notes, PowerPoint notes, Excel headers and row groups, Markdown heading chunks, hashes, and maximum content sizes.
+`Read-OfficeDocument -As Chunks` emits bounded text chunks with location and provenance. Format-specific options control Word notes, PowerPoint notes, Excel headers and row groups, Markdown heading chunks, hashes, and maximum content sizes. Set `-MaximumChunkCharacters` and `-MaximumTableRows` to the downstream limits.
 
 ## Materialize tables
 
-`Get-OfficeDocumentTable` returns structured tables. `-AsExport` produces CSV, Markdown, and JSON representations in memory; `-OutputDirectory` writes deterministic sidecars. `Get-OfficeDocumentAsset` similarly exposes or materializes embedded images and other supported assets.
+`Read-OfficeDocument -As Tables` returns structured tables. Add `-Bundle` for CSV, Markdown, and JSON representations in memory. `Export-OfficeDocumentAsset -Type Table -OutputDirectory .\Tables` writes deterministic sidecars. Use `Read-OfficeDocument -As Assets` to inspect embedded assets and `Export-OfficeDocumentAsset -OutputDirectory .\Assets` to materialize them.
 
 The [extract-tables recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-ExtractTables.ps1) creates a Markdown table, reads it as structured data, writes its sidecars, and returns semantic chunks.
 

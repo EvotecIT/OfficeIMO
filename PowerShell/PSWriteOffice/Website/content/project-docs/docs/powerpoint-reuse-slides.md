@@ -16,34 +16,20 @@ Slide reuse is the practical PowerPoint equivalent of document merge. It support
 $sourcePath = '.\Reusable-Slides.pptx'
 $targetPath = '.\Customer-Briefing.pptx'
 
-PptNew -Path $sourcePath {
-    PptSlide {
-        PptTitle -Title 'Reusable Architecture'
-        PptTextBox -Text 'Shared platform diagram' `
-            -X 80 -Y 150 -Width 500 -Height 80
+New-OfficePowerPoint -Path $sourcePath {
+    PowerPointSlide -Title 'Reusable Architecture' {
+        PowerPointTextBox -Text 'Shared platform diagram' -X 80pt -Y 150pt -Width 500pt -Height 80pt
     }
 }
 
-PptNew -Path $targetPath {
-    PptSlide {
-        PptTitle -Title 'Customer Briefing'
-        PptTextBox -Text 'Prepared for review' `
-            -X 80 -Y 150 -Width 500 -Height 80
+New-OfficePowerPoint -Path $targetPath {
+    PowerPointSlide -Title 'Customer Briefing' {
+        PowerPointTextBox -Text 'Prepared for review' -X 80pt -Y 150pt -Width 500pt -Height 80pt
     }
+    Import-OfficePowerPointSlide -Path $sourcePath -SourceSlide 1 -Position 2
+    Copy-OfficePowerPointSlide -Slide 1 -Position 3
+    Add-OfficePowerPointSection -Name 'Shared material' -Slide 2
 }
-
-$presentation = Get-OfficePowerPoint -Path $targetPath
-
-Import-OfficePowerPointSlide -Presentation $presentation `
-    -SourcePath $sourcePath -SourceIndex 0 -InsertAt 1
-
-Copy-OfficePowerPointSlide -Presentation $presentation `
-    -Index 0 -InsertAt 2
-
-Add-OfficePowerPointSection -Presentation $presentation `
-    -Name 'Shared material' -StartSlideIndex 1
-
-Close-OfficePowerPoint -Presentation $presentation -Save
 ```
 
 Inspect imported theme and layout behavior when the source and target use different design systems. Reopen the saved deck and review slide summaries, placeholders, and notes.

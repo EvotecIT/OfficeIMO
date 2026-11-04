@@ -21,7 +21,7 @@ foreach ($recipient in $recipients) {
                 WordField -Type MergeField -Parameters '"DeliveryDate"'
                 WordText '.'
             }
-            Invoke-OfficeWordMailMerge -Values $recipient
+            Invoke-OfficeWordMailMerge -InputObject $recipient
         }
     }
 }

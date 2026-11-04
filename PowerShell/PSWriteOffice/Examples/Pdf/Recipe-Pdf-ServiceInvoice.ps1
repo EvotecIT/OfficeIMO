@@ -37,7 +37,7 @@ New-OfficePdf -Path $path -Theme Modern {
         PdfText 'Bill to: ' -Bold
         PdfText 'Contoso Ltd., 1 Example Street, London'
     }
-    PdfHr -Color '#0F766E' -SpacingBefore 12 -SpacingAfter 14
+    PdfHorizontalRule -Color '#0F766E' -SpacingBefore 12 -SpacingAfter 14
 
     PdfTable -InputObject $lines -Property Description, Quantity, UnitPrice, Amount `
         -Header 'Description', 'Qty', 'Unit price', 'Amount' `
