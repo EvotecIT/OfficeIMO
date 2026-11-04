@@ -229,7 +229,18 @@
     "WordDocument.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : WordChart and the nameof() overload",
     "WordDocument.AddCallout(...) and WordDocument.AddCodeBlock(...) (from the fluent layer)",
     "WordDocument.ApplyTheme(OfficeTheme theme)",
-    "WordCreateOptions.Theme"
+    "WordCreateOptions.Theme",
+    "WordSection.Find(string text, OfficeTextSearchOptions? options = null)",
+    "WordSection.Find(Regex pattern)",
+    "WordDocument.TextContentControls : IReadOnlyList<WordStructuredDocumentTag>",
+    "WordDocumentComparer.CreateRedlineDocument(WordDocument source, WordDocument target, string outputPath, WordComparisonRedlineOptions? options)",
+    "WordDocumentComparer.CreateRedlineDocument(string sourcePath, string targetPath, string outputPath)",
+    "WordCheckBox.Text : string?",
+    "WordDatePicker.Text : string?",
+    "WordDropDownList.Text : string?",
+    "WordComboBox.Text : string?",
+    "WordPictureControl.Text : string?",
+    "WordRepeatingSection.Text : string?"
   ],
   "internalizeCandidates": [
     {
@@ -4849,7 +4860,7 @@
       "kind": "method",
       "action": "rename",
       "new": "WordDocument.ToPdf(WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -4872,7 +4883,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdf(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter.",
@@ -4896,7 +4907,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdf(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter.",
@@ -4932,7 +4943,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdfAsync(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -4954,7 +4965,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -7500,7 +7511,7 @@
       "kind": "property",
       "action": "merge",
       "new": "OfficeIMO.Word.WordImage.HorizontalPositionOffset / VerticalPositionOffset",
-      "replacement": "For floating images, use the nullable OfficeLength horizontal and vertical offsets with their existing relative-position properties. Guard inline images before reading floating offsets; aligned anchors may have no offset.",
+      "replacement": "Use HorizontalPositionOffset and VerticalPositionOffset (OfficeLength?). Inline images and floating images without an explicit offset return null. Coalesce to OfficeLength.Zero only when the caller intentionally needs the old zero fallback; use ToEmus() for raw native EMUs.",
       "reason": "Remove the raw-EMU tuple in favor of the existing typed offsets without flattening anchor reference frames.",
       "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
       "category": "authoring",
@@ -9169,6 +9180,48 @@
         "OfficeIMO.LegacyImport.Tests/LegacyWordImportTests.cs"
       ],
       "note": "The existing two-class legacy fixture run has one pre-migration assertion failure and122passes; after the fixture update all123pass on net10.0. No importer behavior changes."
+    },
+    {
+      "phase": "B",
+      "action": "add",
+      "new": "WordSection.Find(string text, OfficeTextSearchOptions? options = null) / Find(Regex pattern)",
+      "reason": "Use the native search engine and body/table/header/footer grouping for a selected section.",
+      "file": "OfficeIMO.Word/WordSection.Search.cs",
+      "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "action": "add",
+      "new": "WordDocument.TextContentControls; specialized content-control Text getters",
+      "reason": "Return generic text controls without six specialized SDT identities, and preserve the existing native text-filter projection across all seven native output families.",
+      "files": [
+        "OfficeIMO.Word/WordDocument.PublicMethods.ContentControls.cs",
+        "OfficeIMO.Word/WordStructuredDocumentTag.cs",
+        "OfficeIMO.Word/WordCheckBox.cs",
+        "OfficeIMO.Word/WordDatePicker.cs",
+        "OfficeIMO.Word/WordDropDownList.cs",
+        "OfficeIMO.Word/WordComboBox.cs",
+        "OfficeIMO.Word/WordPictureControl.cs",
+        "OfficeIMO.Word/WordRepeatingSection.cs"
+      ],
+      "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "action": "add",
+      "new": "WordDocumentComparer.CreateRedlineDocument(WordDocument source, WordDocument target, string outputPath, WordComparisonRedlineOptions? options)",
+      "reason": "Generate both native redline modes from live/authenticated models without plaintext input staging or changes to caller-owned inputs/options.",
+      "file": "OfficeIMO.Word/WordDocumentComparer/WordDocumentComparer.Redline.cs",
+      "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "WordDocumentComparer.CreateRedlineDocument(string sourcePath, string targetPath, string outputPath, WordComparisonRedlineOptions? options = null)",
+      "new": "WordDocumentComparer.CreateRedlineDocument(string sourcePath, string targetPath, string outputPath) / CreateRedlineDocument(string sourcePath, string targetPath, string outputPath, WordComparisonRedlineOptions? options)",
+      "reason": "Keep three-argument default path calls and explicit native settings while admitting the four-argument model overload without optional-overload ambiguity or analyzer suppression.",
+      "file": "OfficeIMO.Word/WordDocumentComparer/WordDocumentComparer.Redline.cs",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

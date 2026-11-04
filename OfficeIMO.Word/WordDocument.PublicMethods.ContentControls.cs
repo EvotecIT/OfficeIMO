@@ -4,6 +4,15 @@ using System.Net.Http;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
+        /// <summary>Gets generic text content controls without the SDT wrappers belonging to native check boxes, dates, choices, pictures or repeating sections.</summary>
+        /// <remarks>The six specialized collections retain their native output types. Values are live control wrappers in a detached collection.</remarks>
+        public IReadOnlyList<WordStructuredDocumentTag> TextContentControls {
+            get {
+                var specialized = GetSpecializedStructuredDocumentTagElements();
+                return StructuredDocumentTags.Where(control => !IsSpecializedStructuredDocumentTag(control, specialized)).ToArray();
+            }
+        }
+
         /// <summary>
         /// Adds a new paragraph with a content control (structured document tag).
         /// </summary>

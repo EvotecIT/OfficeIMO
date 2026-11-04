@@ -64,14 +64,16 @@ namespace OfficeIMO.Word {
         /// also continue into the next paragraph of the same part; its result entry is the paragraph where it starts.
         /// With <see cref="OfficeTextSearchOptions.WholeWords"/>, each match lies within one paragraph.
         /// </remarks>
-        public WordSearchResult Find(string text, OfficeTextSearchOptions? options = null) {
+        public WordSearchResult Find(string text, OfficeTextSearchOptions? options = null) => FindInScope(text, options, null);
+
+        internal WordSearchResult FindInScope(string text, OfficeTextSearchOptions? options, WordSection? section) {
             OfficeTextSearch.ValidateSearchText(text, nameof(text));
             var result = new WordSearchResult();
             StringComparison comparison = OfficeTextSearch.GetComparison(options);
             bool wholeWords = options?.WholeWords == true;
             int count = 0;
             ForEachSearchScope((paragraphs, destination) =>
-                destination!.AddRange(ReplaceText(paragraphs, text, string.Empty, ref count, false, comparison, wholeWords)), result);
+                destination!.AddRange(ReplaceText(paragraphs, text, string.Empty, ref count, false, comparison, wholeWords)), result, section);
             result.MatchCount = count;
             return result;
         }
@@ -82,11 +84,13 @@ namespace OfficeIMO.Word {
         /// <param name="pattern">Regular expression applied to each paragraph's text. Its own options control case and boundaries.</param>
         /// <returns>The paragraphs containing matches, grouped by document part, and the total match count.</returns>
         /// <remarks>Each match lies within one paragraph.</remarks>
-        public WordSearchResult Find(Regex pattern) {
+        public WordSearchResult Find(Regex pattern) => FindInScope(pattern, null);
+
+        internal WordSearchResult FindInScope(Regex pattern, WordSection? section) {
             ArgumentNullException.ThrowIfNull(pattern);
 
             var result = new WordSearchResult();
-            ForEachSearchScope((paragraphs, destination) => result.FindRegex(paragraphs, pattern, destination!), result);
+            ForEachSearchScope((paragraphs, destination) => result.FindRegex(paragraphs, pattern, destination!), result, section);
             return result;
         }
 
@@ -434,14 +438,14 @@ namespace OfficeIMO.Word {
 
         private delegate void SearchScopeVisitor(List<WordParagraph> paragraphs, List<WordParagraph>? destination);
 
-        private void ForEachSearchScope(SearchScopeVisitor visit, WordSearchResult? result) {
-            visit(this.Paragraphs, result?.MutableBodyParagraphs);
-            foreach (var table in this.Tables) {
+        private void ForEachSearchScope(SearchScopeVisitor visit, WordSearchResult? result, WordSection? section = null) {
+            visit(section?.Paragraphs ?? this.Paragraphs, result?.MutableBodyParagraphs);
+            foreach (var table in section?.Tables ?? this.Tables) {
                 visit(table.Paragraphs, result?.MutableTableParagraphs);
             }
 
-            var headers = this.Sections[0].Headers;
-            var footers = this.Sections[0].Footers;
+            var headers = (section ?? this.Sections[0]).Headers;
+            var footers = (section ?? this.Sections[0]).Footers;
             VisitHeaderFooter(headers.Default, result?.MutableDefaultHeaderParagraphs);
             VisitHeaderFooter(headers.Even, result?.MutableEvenPageHeaderParagraphs);
             VisitHeaderFooter(headers.First, result?.MutableFirstPageHeaderParagraphs);

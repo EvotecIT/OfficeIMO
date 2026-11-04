@@ -406,3 +406,16 @@ static OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string! styleId, string
 *REMOVED*static OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string! styleId, string! fontName, string? styleName = null) -> OfficeIMO.Word.WordParagraphStyleDefinition!
 static OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string! styleId, string! fontFamily, string? styleName = null) -> void
 *REMOVED*static OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string! styleId, string! fontName, string? styleName = null) -> void
+OfficeIMO.Word.WordCheckBox.Text.get -> string?
+OfficeIMO.Word.WordComboBox.Text.get -> string?
+OfficeIMO.Word.WordDatePicker.Text.get -> string?
+OfficeIMO.Word.WordDocument.TextContentControls.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordStructuredDocumentTag!>!
+OfficeIMO.Word.WordDropDownList.Text.get -> string?
+OfficeIMO.Word.WordPictureControl.Text.get -> string?
+OfficeIMO.Word.WordRepeatingSection.Text.get -> string?
+OfficeIMO.Word.WordSection.Find(System.Text.RegularExpressions.Regex! pattern) -> OfficeIMO.Word.WordSearchResult!
+OfficeIMO.Word.WordSection.Find(string! text, OfficeIMO.OfficeTextSearchOptions? options = null) -> OfficeIMO.Word.WordSearchResult!
+static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(OfficeIMO.Word.WordDocument! source, OfficeIMO.Word.WordDocument! target, string! outputPath, OfficeIMO.Word.WordComparisonRedlineOptions? options) -> OfficeIMO.Word.WordComparisonResult!
+static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(string! sourcePath, string! targetPath, string! outputPath) -> OfficeIMO.Word.WordComparisonResult!
+static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(string! sourcePath, string! targetPath, string! outputPath, OfficeIMO.Word.WordComparisonRedlineOptions? options) -> OfficeIMO.Word.WordComparisonResult!
+*REMOVED*static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(string! sourcePath, string! targetPath, string! outputPath, OfficeIMO.Word.WordComparisonRedlineOptions? options = null) -> OfficeIMO.Word.WordComparisonResult!

@@ -4,22 +4,46 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        /// <summary>
-        /// Compares two documents and writes a DOCX redline document using the configured redline mode.
-        /// </summary>
+        /// <summary>Writes a DOCX redline for two paths using the default comparison and redline settings.</summary>
+        public static WordComparisonResult CreateRedlineDocument(string sourcePath, string targetPath, string outputPath) =>
+            CreateRedlineDocument(sourcePath, targetPath, outputPath, null);
+
+        /// <summary>Compares two documents and writes a DOCX redline document using the configured redline mode.</summary>
         /// <param name="sourcePath">Path to the original document.</param>
         /// <param name="targetPath">Path to the modified document.</param>
         /// <param name="outputPath">Path where the redline DOCX should be written.</param>
         /// <param name="options">Optional redline and comparison settings.</param>
         /// <returns>The structured comparison result used to generate the redline document.</returns>
-        public static WordComparisonResult CreateRedlineDocument(string sourcePath, string targetPath, string outputPath, WordComparisonRedlineOptions? options = null) {
+        public static WordComparisonResult CreateRedlineDocument(string sourcePath, string targetPath, string outputPath, WordComparisonRedlineOptions? options) {
             if (string.IsNullOrEmpty(sourcePath)) throw new ArgumentNullException(nameof(sourcePath));
             if (string.IsNullOrEmpty(targetPath)) throw new ArgumentNullException(nameof(targetPath));
             if (string.IsNullOrEmpty(outputPath)) throw new ArgumentNullException(nameof(outputPath));
 
-            options ??= new WordComparisonRedlineOptions();
             ValidateRedlineOutputPath(sourcePath, targetPath, outputPath);
-            WordComparisonResult result = CompareStructure(sourcePath, targetPath, options.ComparisonOptions);
+            using WordDocument source = WordDocument.Load(sourcePath, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            using WordDocument target = WordDocument.Load(targetPath, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            return CreateRedlineDocumentCore(source, target, outputPath, options, sourcePath, targetPath);
+        }
+
+        /// <summary>Writes a redline from the current loaded models, including unsaved edits, without saving, reopening or disposing either input.</summary>
+        /// <param name="source">Caller-owned original document, already authenticated if encrypted.</param>
+        /// <param name="target">Caller-owned modified document, already authenticated if encrypted.</param>
+        /// <param name="outputPath">Destination distinct from either model's associated file.</param>
+        /// <param name="options">Native comparison and redline settings. Null selects defaults; supplied settings are not modified.</param>
+        /// <returns>The structured comparison used to generate the redline.</returns>
+        /// <remarks>InPlaceTarget clones the live target package in memory. Only the requested output is written; authenticated inputs are not staged as plaintext files.</remarks>
+        public static WordComparisonResult CreateRedlineDocument(WordDocument source, WordDocument target, string outputPath, WordComparisonRedlineOptions? options) {
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(target);
+            if (string.IsNullOrEmpty(outputPath)) throw new ArgumentNullException(nameof(outputPath));
+            ValidateRedlineOutputPath(source.FilePath, target.FilePath, outputPath);
+            return CreateRedlineDocumentCore(source, target, outputPath, options, source.FilePath ?? "source", target.FilePath ?? "target");
+        }
+
+        private static WordComparisonResult CreateRedlineDocumentCore(WordDocument source, WordDocument target, string outputPath,
+            WordComparisonRedlineOptions? options, string sourceLabel, string targetLabel) {
+            options ??= new WordComparisonRedlineOptions();
+            WordComparisonResult result = CompareStructure(source, target, options.ComparisonOptions, sourceLabel, targetLabel);
             if (options.Mode == WordComparisonRedlineMode.InPlaceTarget &&
                 result.Findings.Any(finding => finding.Scope == WordComparisonScope.Shape)) {
                 result.AddLimitation(new WordComparisonLimitation(
@@ -32,7 +56,7 @@ namespace OfficeIMO.Word {
             EnsureOutputDirectory(outputPath);
 
             if (options.Mode == WordComparisonRedlineMode.InPlaceTarget) {
-                CreateInPlaceTargetRedlineDocument(sourcePath, targetPath, outputPath, result, options);
+                CreateInPlaceTargetRedlineDocument(source, target, outputPath, result, options);
                 return result;
             }
 
@@ -56,16 +80,14 @@ namespace OfficeIMO.Word {
             return result;
         }
 
-        private static void ValidateRedlineOutputPath(string sourcePath, string targetPath, string outputPath) {
-            string sourceFullPath = Path.GetFullPath(sourcePath);
-            string targetFullPath = Path.GetFullPath(targetPath);
+        private static void ValidateRedlineOutputPath(string? sourcePath, string? targetPath, string outputPath) {
             string outputFullPath = Path.GetFullPath(outputPath);
 
-            if (string.Equals(outputFullPath, sourceFullPath, StringComparison.OrdinalIgnoreCase)) {
+            if (!string.IsNullOrEmpty(sourcePath) && OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(outputFullPath, sourcePath!)) {
                 throw new InvalidOperationException("Redline output must be written to a different path than the source document.");
             }
 
-            if (string.Equals(outputFullPath, targetFullPath, StringComparison.OrdinalIgnoreCase)) {
+            if (!string.IsNullOrEmpty(targetPath) && OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(outputFullPath, targetPath!)) {
                 throw new InvalidOperationException("Redline output must be written to a different path than the target document.");
             }
         }
@@ -77,16 +99,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void CreateInPlaceTargetRedlineDocument(string sourcePath, string targetPath, string outputPath, WordComparisonResult result, WordComparisonRedlineOptions options) {
-            if (string.Equals(Path.GetFullPath(targetPath), Path.GetFullPath(outputPath), StringComparison.OrdinalIgnoreCase)) {
-                throw new InvalidOperationException("In-place target redline output must be written to a different path than the target document.");
-            }
-
-            File.Copy(targetPath, outputPath, overwrite: true);
-            using WordDocument sourceDocument = WordDocument.Load(sourcePath, new WordLoadOptions {
-                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
-            });
-            using WordDocument document = WordDocument.Load(outputPath);
+        private static void CreateInPlaceTargetRedlineDocument(WordDocument sourceDocument, WordDocument targetDocument, string outputPath, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            using var snapshot = new MemoryStream();
+            using (targetDocument._wordprocessingDocument.Clone(snapshot, true)) { }
+            snapshot.Position = 0;
+            using WordDocument document = WordDocument.Load(snapshot, new WordLoadOptions { PersistenceMode = DocumentPersistenceMode.Explicit });
             HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(
                 sourceDocument._wordprocessingDocument,
                 document._wordprocessingDocument,
@@ -103,7 +120,7 @@ namespace OfficeIMO.Word {
             ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             AppendInPlaceFeatureAndReviewFindings(document, result, options);
 
-            document.Save(document.FilePath!,
+            document.Save(outputPath,
                 new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
         }
 
