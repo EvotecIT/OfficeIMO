@@ -5,7 +5,7 @@ namespace OfficeIMO;
 internal static partial class OfficeBatchExecutor {
     /// <summary>Collects the distinct routes in a bounded selection for host option binding, without rendering or writes.</summary>
     internal static IReadOnlyList<OfficeConversionCapability> SelectCapabilities(OfficeBatchOptions request, CancellationToken token) {
-        var routes = OfficeConverter.ExecutionRoutes.Where(route => route.CanExecute).ToArray();
+        var routes = OfficeConverter.ExecutionRoutes.Where(route => route.CanExecute && (request?.RouteFilter?.Invoke(route.Id) ?? true)).ToArray();
         var settings = Snapshot(request, routes);
         var selected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long count = 0;
@@ -36,7 +36,7 @@ internal static partial class OfficeBatchExecutor {
         var notes = new List<string>();
         try {
             token.ThrowIfCancellationRequested();
-            OfficeConversionExecutionRoute[] routes = runner.ConversionRoutes.Where(route => route.CanExecute).ToArray();
+            OfficeConversionExecutionRoute[] routes = runner.ConversionRoutes.Where(route => route.CanExecute && (request?.RouteFilter?.Invoke(route.Id) ?? true)).ToArray();
             OfficeBatchOptions settings = Snapshot(request, routes);
             var destinations = new HashSet<string>(StringComparer.Ordinal);
             if (settings.CheckpointDirectory != null) notes.Add("Checkpoint receipts and output hashes are verified during execution; this plan does not reserve or resume artifacts.");

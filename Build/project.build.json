@@ -32,6 +32,7 @@
     "OfficeIMO.DocBook": "3.5.X",
     "OfficeIMO.Drawing.CodeGlyphX": "3.5.X",
     "OfficeIMO.Drawing.HarfBuzz": "3.5.X",
+    "OfficeIMO.Drawing.ImageIO": "3.5.X",
     "OfficeIMO.Email": "3.5.X",
     "OfficeIMO.Email.Html": "3.5.X",
     "OfficeIMO.Email.Image": "3.5.X",

@@ -7787,6 +7787,20 @@
       "limitation":""
     },
     {
+      "id":"image:heic:xlsx:insert",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"HEIC",
+      "targetFormatId":"XLSX",
+      "capabilityId":"heic-insert",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ExcelSheet.AddImage",
+      "evidence":"OfficeImageReader.NormalizeForEmbedding",
+      "sourceCatalog":"OfficeIMO.Operations",
+      "extensions":[".heic",".heif",".hif"],
+      "limitation":"Inserted as PNG through an explicitly registered .NET raster codec. Use OfficeIMO.Drawing.ImageIO on macOS/iOS or supply your own codec elsewhere. No codec is registered automatically and no HEVC decoder is bundled. HDR gain maps and depth are not retained."
+    },
+    {
       "id":"protection:xls-password:excel:create",
       "packageId":"OfficeIMO.Excel",
       "formatId":"XLS",
@@ -9677,6 +9691,20 @@
       "limitation":"Unchanged input retains its source; edited output serializes the bounded OPML 1.0/2.0 model and retained extension attributes."
     },
     {
+      "id":"conversion:heic-pdf",
+      "packageId":"OfficeIMO.Pdf",
+      "formatId":"HEIC",
+      "targetFormatId":"PDF",
+      "capabilityId":"heic-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"PdfImageConverterExtensions.ToPdf(sources, options, out report)",
+      "evidence":"CC0 HEIC fixtures exercise native composition and PDF output; consumer tests verify extension routing, PNG insertion and structured codec-unavailable diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".heic",".heif",".hif"],
+      "limitation":"Opt-in .NET library route requiring a registered codec: OfficeIMO.Drawing.ImageIO on macOS/iOS, or a caller-supplied IOfficeRasterImageCodec elsewhere. PowerShell, Tool and Studio do not supply a codec. The repository stays COM-free and bundles no HEVC decoder. The SDR primary image is retained; HDR gain maps and depth are not projected."
+    },
+    {
       "id":"protection:pdf-password:pdf:create",
       "packageId":"OfficeIMO.Pdf",
       "formatId":"PDF",
@@ -10249,6 +10277,20 @@
       "sourceCatalog":"OfficeIMO.ProtectedContent",
       "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
+    },
+    {
+      "id":"image:heic:pptx:insert",
+      "packageId":"OfficeIMO.PowerPoint",
+      "formatId":"HEIC",
+      "targetFormatId":"PPTX",
+      "capabilityId":"heic-insert",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"PowerPointSlide.AddPicture",
+      "evidence":"OfficeImageReader.NormalizeForEmbedding",
+      "sourceCatalog":"OfficeIMO.Operations",
+      "extensions":[".heic",".heif",".hif"],
+      "limitation":"Inserted as PNG through an explicitly registered .NET raster codec. Use OfficeIMO.Drawing.ImageIO on macOS/iOS or supply your own codec elsewhere. No codec is registered automatically and no HEVC decoder is bundled. HDR gain maps and depth are not retained."
     },
     {
       "id":"protection:ppt-password:powerpoint:create",
@@ -16689,6 +16731,20 @@
       "sourceCatalog":"OfficeIMO.ProtectedContent",
       "extensions":[".docm",".docx",".dotm",".dotx"],
       "limitation":"Changed signed packages require explicit invalidation handling."
+    },
+    {
+      "id":"image:heic:docx:insert",
+      "packageId":"OfficeIMO.Word",
+      "formatId":"HEIC",
+      "targetFormatId":"DOCX",
+      "capabilityId":"heic-insert",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"WordParagraph.AddImage",
+      "evidence":"OfficeImageReader.NormalizeForEmbedding",
+      "sourceCatalog":"OfficeIMO.Operations",
+      "extensions":[".heic",".heif",".hif"],
+      "limitation":"Inserted as PNG through an explicitly registered .NET raster codec. Use OfficeIMO.Drawing.ImageIO on macOS/iOS or supply your own codec elsewhere. No codec is registered automatically and no HEVC decoder is bundled. HDR gain maps and depth are not retained."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Controls.InlineContentControls:modern-to-legacy",

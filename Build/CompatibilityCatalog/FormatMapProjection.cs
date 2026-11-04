@@ -65,6 +65,7 @@ internal static class FormatMapProjection {
         new(routes.Select(static route => route.Id), StringComparer.Ordinal);
 
     private static string[] Surfaces(OfficeConversionCapability route, HashSet<string> studio, HashSet<string> cli, bool powershell) {
+        if (route.RequiresImageCodec) return new[] { "dotnet" };
         var surfaces = new List<string> { "dotnet" };
         if (route.BrowserAvailable) surfaces.Add("browser");
         if (cli.Contains(route.Id)) surfaces.Add("cli");
@@ -129,7 +130,7 @@ internal static class FormatMapProjection {
         "XLSX" or "ODS" or "CSV" or "DBF/xBase" or "Numbers" or "Google Sheets" => "spreadsheets",
         "PPTX" or "ODP" or "Keynote" or "Google Slides" => "presentations",
         "PDF" or "XPS/OpenXPS" or "MHTML" or "Visio" or "ODG/FODG" => "fixed",
-        "PNG" or "SVG" or "JPEG" or "TIFF" or "WebP" => "images",
+        "PNG" or "SVG" or "JPEG" or "TIFF" or "WebP" or "HEIC" => "images",
         "OneNote" or "EPUB" or "Book project" => "books",
         "Email" or "EML" or "MSG" or "OFT" or "TNEF" => "email",
         "BibTeX" or "BibLaTeX" or "CSL JSON" or "RIS" or "NBIB/MEDLINE" or "EndNote XML" => "bibliography",

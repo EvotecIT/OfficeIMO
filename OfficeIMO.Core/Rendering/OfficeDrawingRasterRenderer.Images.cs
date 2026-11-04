@@ -81,7 +81,7 @@ public static partial class OfficeDrawingRasterRenderer {
             (identified.Format == OfficeImageFormat.Png || identified.Format == OfficeImageFormat.Jpeg ||
              identified.Format == OfficeImageFormat.Bmp || identified.Format == OfficeImageFormat.Webp ||
              identified.Format == OfficeImageFormat.Gif || identified.Format == OfficeImageFormat.Tiff ||
-             identified.Format == OfficeImageFormat.Avif);
+             identified.Format == OfficeImageFormat.Avif || identified.Format == OfficeImageFormat.Heic);
         if (identifiedManagedRaster) {
             if (!OfficeRasterImageDecoder.IsWithinPixelLimit(identified.Width, identified.Height, maximumRasterPixels)) {
                 image = null;
@@ -138,6 +138,12 @@ public static partial class OfficeDrawingRasterRenderer {
         }
         // Only a decode attempt reaches this point, and it always reports its outcome.
         OfficeRasterDecodeInfo failure = decodeInfo!;
+        if (failure.CodecUnavailableReason != OfficeRasterCodecUnavailableReason.None) {
+            diagnosticSink?.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Error,
+                global::OfficeIMO.OfficeDiagnosticCodes.ImageCodecUnavailable,
+                failure.CodecUnavailableReason + ": " + failure.Diagnostic, diagnosticSource));
+            if (imageCodec is RequiredImageCodec) throw new OfficeRasterDecodeException(failure);
+        }
         // A placeholder is a representation of decode failure, not decoded source
         // pixels. Generate it only after validating the managed source container.
         if (identifiedManagedRaster && failure.Container != null && imageCodec is OfficeRasterImageFallbackCodec fallback) {
@@ -157,7 +163,9 @@ public static partial class OfficeDrawingRasterRenderer {
             !OfficeImageReader.HasCompleteJpegPayload(bytes, cancellationToken,
                 requireManagedFrame: true, validateMetadata: true);
         if (identifiedManagedRaster && !callerDecodedJpeg ||
-            OfficeImageReader.HasWebpSignature(bytes) || OfficeImageReader.HasAvifSignature(bytes, cancellationToken) || !callerCodecInputWithinLimit) {
+            OfficeImageReader.HasWebpSignature(bytes) || OfficeImageReader.HasAvifSignature(bytes, cancellationToken) ||
+            OfficeImageReader.MayContainHeic(bytes, cancellationToken) || OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Heic ||
+            !callerCodecInputWithinLimit) {
             AddImageDecodeOmission(diagnosticSink, diagnosticSource,
                 failure.Diagnostic ?? "The embedded image could not be decoded within the configured limits.");
             if (imageCodec is RequiredImageCodec) throw new NotSupportedException(

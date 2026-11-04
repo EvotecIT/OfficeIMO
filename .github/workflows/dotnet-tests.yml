@@ -74,6 +74,28 @@ jobs:
           name: ci-selection
           path: ci-selection.json
 
+  platform-image-codecs:
+    needs: changes
+    name: 'Apple ImageIO / ${{ matrix.framework }}'
+    if: fromJSON(needs.changes.outputs.suites)['platform-image-codecs']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+        framework: ${{ fromJSON(needs.changes.outputs.full == 'true' && '["net8.0","net10.0"]' || '["net10.0"]') }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: ./.github/actions/nuget-cache
+      - name: Test ImageIO boundary
+        run: dotnet test OfficeIMO.Drawing.ImageIO.Tests/OfficeIMO.Drawing.ImageIO.Tests.csproj -c Release -f ${{ matrix.framework }} --logger trx
+
   archives-contracts:
     needs: changes
     name: 'Managed archive contracts / ${{ matrix.os }} / ${{ matrix.framework }}'

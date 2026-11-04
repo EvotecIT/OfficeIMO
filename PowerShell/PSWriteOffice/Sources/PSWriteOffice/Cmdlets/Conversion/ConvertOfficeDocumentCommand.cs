@@ -248,6 +248,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
         if (OfficeFormatSelection.Parse(To) is { } target && !target.Matches(System.IO.Path.GetExtension(output)))
             throw new PSArgumentException("To and the OutputPath extension must name the same target format.");
         var options = CaptureOptions(_inputs, System.IO.Path.GetExtension(output));
+        OfficeWorkflowCommandUtilities.EnsureSupportedInput(_inputs[0], output, options);
         if (!ShouldProcess(output, "Convert document")) return;
         if (OfficeBatchOutputSelection.ObserveSkip(_inputs[0], output, NoClobber.IsPresent, SkipUpToDate.IsPresent) is { } skipped) {
             SetSummary(skipped);

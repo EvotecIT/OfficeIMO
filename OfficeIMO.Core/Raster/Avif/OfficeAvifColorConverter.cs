@@ -4,7 +4,7 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Composes bounded Main-8/Main10 YUV420 or monochrome planes into owned straight-alpha RGBA.</summary>
 /// <remarks>Converts channel values using CICP range/matrix metadata. ICC, transfer and gamut transforms are not applied.</remarks>
-internal static class OfficeAvifColorConverter {
+internal static partial class OfficeAvifColorConverter {
     internal static OfficeRasterImage Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color,
         OfficeAv1ReconstructedFrame? alpha, OfficeRasterDecodeOptions options, int chromaSamplePosition = 0) {
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();

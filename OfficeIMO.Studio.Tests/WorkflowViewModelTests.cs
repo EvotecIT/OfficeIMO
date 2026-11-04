@@ -238,6 +238,30 @@ public sealed class WorkflowViewModelTests {
         Assert.Single(viewModel.Jobs);
     }
 
+    [Fact]
+    public async Task CodecDependentRoutesAreUnavailableForPickingDroppingAndTargeting() {
+        using var scope = new TestDirectory();
+        OfficeWorkflowRoute route = Assert.Single(OfficeWorkflowCatalog.Routes, item => item.RequiresImageCodec);
+        string[] paths = route.SourceExtensions.Select(extension => Path.Combine(scope.Path, "image" + extension)).ToArray();
+        using var viewModel = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>(paths),
+            _ => Task.FromResult<string?>(scope.Path));
+
+        Assert.DoesNotContain(viewModel.Routes, choice => choice.Route.RequiresImageCodec);
+        await viewModel.AddFilesCommand.ExecuteAsync(null);
+        Assert.Empty(viewModel.Jobs);
+        Assert.True(viewModel.HasUnmatchedInputs);
+        Assert.Empty(viewModel.MatchingInputRoutes);
+        viewModel.DismissUnmatchedInputsCommand.Execute(null);
+
+        Assert.True(viewModel.AddDroppedPaths(paths));
+        Assert.Empty(viewModel.Jobs);
+        Assert.True(viewModel.HasUnmatchedInputs);
+        Assert.Empty(viewModel.MatchingInputRoutes);
+        Assert.All(paths, path => Assert.False(viewModel.QueueForTarget(path, route.TargetExtension)));
+        Assert.Empty(viewModel.Jobs);
+    }
+
     [Theory]
     [InlineData("docx-pdf", "txt-pdf")]
     [InlineData("html-pdf", "html-pdf")]

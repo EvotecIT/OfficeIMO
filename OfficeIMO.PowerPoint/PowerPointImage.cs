@@ -65,6 +65,12 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(newImage));
             }
 
+            using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(newImage, type);
+            if (normalized != null) {
+                UpdateImage(normalized, OfficeIMO.Drawing.OfficeImageFormat.Png);
+                return;
+            }
+
             PartTypeInfo partTypeInfo = type.ToPartTypeInfo();
             SlidePart slidePart = SlidePart;
 

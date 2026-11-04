@@ -167,7 +167,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 5 | 1 | 0 | 0 | 0 | 0 |
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
-| Convert | 31 | 26 | 0 | 8 | 0 | 1 |
+| Convert | 31 | 27 | 0 | 8 | 0 | 1 |
 
 The complete rows for `OfficeIMO.Word` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

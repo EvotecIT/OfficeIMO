@@ -14,7 +14,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
         IReadOnlyList<OfficeConversionCapability>? selectedRoutes = null) {
         var inputFormat = CaptureInputFormat();
         bool hasDirectory = inputs.Any(Directory.Exists);
-        var routes = selectedRoutes ?? OfficeConverter.Routes.Where(route =>
+        var routes = selectedRoutes ?? OfficeWorkflowCommandUtilities.SupportedConversionRoutes.Where(route =>
             (Route == null || string.Equals(route.Id, Route, StringComparison.OrdinalIgnoreCase)) &&
             string.Equals(route.TargetExtension, target, StringComparison.OrdinalIgnoreCase) &&
             (hasDirectory ? Extension == null || route.SourceExtensions.Intersect(Extension.Select(NormalizeExtension), StringComparer.OrdinalIgnoreCase).Any()

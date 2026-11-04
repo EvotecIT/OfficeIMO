@@ -31,6 +31,10 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
 
+            using FileStream source = new(imagePath, FileMode.Open, FileAccess.Read);
+            using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(source, OfficeIMO.Drawing.OfficeImageReader.FromExtension(imagePath));
+            if (normalized != null) return AddImage(normalized, OfficeIMO.Drawing.OfficeImageFormat.Png, left, top, width, height);
+
             OfficeIMO.Drawing.OfficeImageFormat imageType = GetImagePartType(imagePath);
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
@@ -45,8 +49,7 @@ namespace OfficeIMO.PowerPoint {
                 _slidePart,
                 partTypeInfo.ContentType,
                 imagePartUri);
-            using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
-            imagePart.FeedData(stream);
+            imagePart.FeedData(source);
             string relationshipId = _slidePart.GetIdOfPart(imagePart);
 
             string name = GenerateUniqueName("Picture");
@@ -104,6 +107,9 @@ namespace OfficeIMO.PowerPoint {
             if (nativeHeight <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
+
+            using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(image, imageType);
+            if (normalized != null) return AddImage(normalized, OfficeIMO.Drawing.OfficeImageFormat.Png, left, top, width, height);
 
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType);

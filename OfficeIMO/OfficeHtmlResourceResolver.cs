@@ -9,7 +9,7 @@ internal static class OfficeHtmlResourceResolver {
     internal const int MaximumReferencedResourceCount = 256;
     internal const int MaximumStylesheetImportDepth = 16;
     private static readonly HashSet<string> SupportedDependencyExtensions = new(StringComparer.OrdinalIgnoreCase) {
-        ".css", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tif", ".tiff",
+        ".css", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tif", ".tiff", ".heic", ".heif", ".hif",
         ".woff", ".woff2", ".ttf", ".otf"
     };
 
@@ -141,6 +141,8 @@ internal static class OfficeHtmlResourceResolver {
             ".jpg" or ".jpeg" => "image/jpeg",
             ".gif" => "image/gif",
             ".webp" => "image/webp",
+            ".heic" => "image/heic",
+            ".heif" or ".hif" => "image/heif",
             ".svg" => "image/svg+xml",
             ".bmp" => "image/bmp",
             ".tif" or ".tiff" => "image/tiff",

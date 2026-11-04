@@ -16,18 +16,20 @@ internal static partial class OfficeSvgImageRenderer {
         if (OfficeRasterImageDecoder.TryDecode(bytes, options, out raster, out OfficeRasterDecodeInfo info) && raster != null) {
             if (info.AnimationDiscarded || info.FramesOrPagesDiscarded) fallback?.AddStaticFrameDiagnostic(info);
             if (info.UsedCallerCodec) fallback?.AddCallerCodecDiagnostic(contentType);
-            useDecodedPayload = info.UsedCallerCodec || info.AnimationDiscarded || info.FramesOrPagesDiscarded;
+            useDecodedPayload = info.Format == OfficeImageFormat.Heic || info.UsedCallerCodec || info.AnimationDiscarded || info.FramesOrPagesDiscarded;
             return true;
         }
         cancellationToken.ThrowIfCancellationRequested();
         // Placeholders represent loss, not decoded source pixels. Their dimensions
         // must never participate in the shared container's source validation.
         if (fallback != null && info.Container != null) {
+            fallback.AddCodecUnavailableDiagnostic(info);
             raster = fallback.CreateFallbackImage(contentType, Math.Min(32, info.Container.CanvasWidth),
                 Math.Min(32, info.Container.CanvasHeight), info.Diagnostic);
             return true;
         }
-        if (!OfficeRasterImageDecoder.CanUseUninspectedCallerCodec(bytes, options, info) || imageCodec == null)
+        if (OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Heic ||
+            !OfficeRasterImageDecoder.CanUseUninspectedCallerCodec(bytes, options, info) || imageCodec == null)
             return false;
         bool decoded = imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out raster) && raster != null;
         cancellationToken.ThrowIfCancellationRequested();

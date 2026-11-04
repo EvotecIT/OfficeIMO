@@ -54,7 +54,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _jobHistory = jobHistory;
         _storage = storage;
         _openOutput = openOutput;
-        Routes = _runner.ConversionRoutes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
+        Routes = _runner.ConversionRoutes.Where(route => !route.RequiresImageCodec)
+            .Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
             new(OfficeConversionProfile.Faithful, T("Profile.Faithful.Label", "Faithful"), T("Profile.Faithful.Description", "Preserve authored content and visual features where the format owner supports them.")),
             new(OfficeConversionProfile.Lightweight, T("Profile.Lightweight.Label", "Lightweight"), T("Profile.Lightweight.Description", "Prefer smaller, simpler output while retaining useful structure.")),

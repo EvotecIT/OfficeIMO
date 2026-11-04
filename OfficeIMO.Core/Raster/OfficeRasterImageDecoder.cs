@@ -7,9 +7,10 @@ namespace OfficeIMO.Drawing;
 /// Shared dependency-free decoder for raster image bytes that can be painted by <see cref="OfficeRasterCanvas"/>.
 /// </summary>
 /// <remarks>
-/// Decoding produces channel values, not a color-managed sRGB conversion. Embedded ICC profiles
+/// HEIC composition converts supported ICC/SDR nclx source colors through the licensed system-codec path.
+/// Other decoding produces channel values, not a color-managed sRGB conversion. Embedded ICC profiles
 /// and PNG gamma/chromaticity metadata are validated as container metadata but are not applied
-/// to pixels. Normalize color-managed source images before decoding when matching a managed
+/// to pixels. Normalize other color-managed source images before decoding when matching a managed
 /// display or print pipeline is required.
 /// </remarks>
 public static partial class OfficeRasterImageDecoder {
@@ -168,6 +169,19 @@ public static partial class OfficeRasterImageDecoder {
                 decoded
                     ? "The caller codec decoded the first WebP frame; animation playback was not retained."
                     : "Animated WebP pixel decoding remains an explicit caller-codec boundary.", container) { UsedCallerCodec = decoded };
+            return decoded;
+        }
+
+        if (format == OfficeImageFormat.Heic) {
+            bool decoded = OfficeHeifImageComposer.TryDecode(bytes, effective, out image, out var availability, out string? diagnostic,
+                out OfficeImageOrientation sourceOrientation, out bool orientationNormalized);
+            info = new OfficeRasterDecodeInfo(format, 1, 0, decoded, diagnostic, container) {
+                CodecUnavailableReason = availability.Reason,
+                SourceOrientation = sourceOrientation,
+                OrientationNormalized = orientationNormalized,
+                UsedCallerCodec = decoded,
+                Failure = decoded ? OfficeRasterDecodeFailure.None : availability.IsAvailable ? OfficeRasterDecodeFailure.InvalidOrUnsupported : OfficeRasterDecodeFailure.CodecUnavailable
+            };
             return decoded;
         }
 

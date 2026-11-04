@@ -60,6 +60,7 @@ public sealed class InvokeOfficeConversionJobCommand : AsyncPSCmdlet {
         OfficeBatchOptions job = OfficeBatchOptions.Load(jobPath);
         if (RetryFailed.IsPresent) job.RetryFailed = true;
         OfficeWorkflowCommandUtilities.RegisterConversions();
+        OfficeWorkflowCommandUtilities.ConfigureBatch(job);
         if (Plan.IsPresent) {
             if (!string.IsNullOrWhiteSpace(ReportPath))
                 throw new ArgumentException("Plan does not write a run report. Use ReportPath when executing the job.");

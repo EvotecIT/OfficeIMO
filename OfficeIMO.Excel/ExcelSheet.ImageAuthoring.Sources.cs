@@ -18,13 +18,19 @@ namespace OfficeIMO.Excel {
 
         private static ImageSource CreateByteImageSource(byte[] bytes, ExcelImageOptions options) {
             if (bytes == null || bytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(bytes));
-            _ = ToImagePartType(options.ContentType);
-            // Explicit native payloads remain lossless, including vector bytes and diagnostic fixtures.
-            return new ImageSource(bytes, options.ContentType,
-                options.ScalePercent.HasValue ? RequireImageContent(bytes, null, nameof(bytes)) : null);
+            string contentType = options.ContentType;
+            OfficeImageInfo? normalized = NormalizeHeicImageForEmbedding(ref bytes, ref contentType);
+            _ = ToImagePartType(contentType);
+            // Other explicit native payloads remain lossless, including vector bytes and diagnostic fixtures.
+            return new ImageSource(bytes, contentType,
+                normalized ?? (options.ScalePercent.HasValue ? RequireImageContent(bytes, null, nameof(bytes)) : null));
         }
 
-        private static ImageSource ValidatedImageSource(byte[] bytes, string? name, string parameterName, string? contentType = null) {
+        private static ImageSource ValidatedImageSource(byte[] bytes, string? name, string parameterName,
+            string? contentType = null, CancellationToken cancellationToken = default) {
+            string normalizedContentType = contentType ?? string.Empty;
+            OfficeImageInfo? normalized = NormalizeHeicImageForEmbedding(ref bytes, ref normalizedContentType, cancellationToken);
+            if (normalized != null) return new ImageSource(bytes, normalizedContentType, normalized);
             OfficeImageInfo info = RequireImageContent(bytes, name, parameterName);
             return new ImageSource(bytes, ResolveImageContentType(contentType, info), info);
         }
@@ -55,7 +61,7 @@ namespace OfficeIMO.Excel {
                 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
-            return ValidatedImageSource(bytes, path, nameof(path));
+            return ValidatedImageSource(bytes, path, nameof(path), cancellationToken: cancellationToken);
         }
 
         private static async Task<ImageSource> LoadImageSourceAsync(Stream stream, bool leaveOpen, CancellationToken cancellationToken) {
@@ -63,7 +69,7 @@ namespace OfficeIMO.Excel {
             try {
                 byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
-                return ValidatedImageSource(bytes, null, nameof(stream));
+                return ValidatedImageSource(bytes, null, nameof(stream), cancellationToken: cancellationToken);
             } finally {
                 if (!leaveOpen) stream.Dispose();
             }
@@ -75,7 +81,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Use an absolute HTTP or HTTPS image URI; local files use the path overload.", nameof(uri));
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(uri.AbsoluteUri, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
-            return ValidatedImageSource(remote.ToBytes(), remote.FileName, nameof(uri), remote.ContentType);
+            return ValidatedImageSource(remote.ToBytes(), remote.FileName, nameof(uri), remote.ContentType, cancellationToken);
         }
 
         private ExcelImage AddImageSource(int row, int column, ImageSource source, ExcelImageOptions options) {

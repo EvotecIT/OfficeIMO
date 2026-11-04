@@ -7,6 +7,13 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeHeifMetadataReader {
+    internal static bool TryReadCompositionInfo(byte[] data, OfficeRasterDecodeOptions options, out OfficeHeifImageInfo? info) {
+        OfficeHeifImageInfo? value = null;
+        bool success = TryRun(data, options.CancellationToken, parser => parser.TryReadInfo(data, out value), options.RetainedManagedBytes);
+        info = success ? value : null;
+        return success;
+    }
+
     private sealed partial class Parser {
         internal bool TryReadInfo(byte[] data, out OfficeHeifImageInfo? info) {
             info = null;
@@ -89,7 +96,7 @@ public static partial class OfficeHeifMetadataReader {
                     item.AuxiliaryType,
                     item.AuxiliarySubtypes))
                 .ToList();
-            info = new OfficeHeifImageInfo(majorBrand, minorVersion, compatibleBrands!, primaryItemId, items, references, exifItem?.ItemId, xmpItem?.ItemId);
+            info = new OfficeHeifImageInfo(majorBrand, minorVersion, compatibleBrands!, primaryItemId, items, references, exifItem?.ItemId, xmpItem?.ItemId) { ParserAllocatedBytes = _allocatedBytes };
             return true;
         }
 

@@ -158,8 +158,9 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
         if (ParameterSetName == "File") {
             if (_inputs.Count != 1) throw new PSArgumentException("Select exactly one source file.");
             string output = OfficeFileCommandUtilities.ResolvePath(this, OutputPath);
-            if (!ShouldProcess(output, "Convert document")) return;
             options.RouteId = ConversionRouteId;
+            OfficeWorkflowCommandUtilities.EnsureSupportedInput(_inputs[0], output, options);
+            if (!ShouldProcess(output, "Convert document")) return;
             options.FileConflictPolicy = conflict; options.OutputProfile = profile;
             options.MaximumInputBytes = MaximumInputBytes; options.MaximumOutputBytes = MaximumOutputBytes;
             try {
@@ -172,8 +173,7 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
             return;
         }
         string directory = OfficeFileCommandUtilities.ResolvePath(this, OutputDirectory);
-        if (!ShouldProcess(directory, "Convert document batch")) return;
-        var report = await OfficeConverter.ConvertAsync(new OfficeBatchOptions {
+        var request = new OfficeBatchOptions {
             InputDirectory = ParameterSetName == "Directory" ? OfficeFileCommandUtilities.ResolvePath(this, InputDirectory) : null,
             InputPaths = ParameterSetName == "Files" ? _inputs.ToArray() : null,
             OutputDirectory = directory, TargetExtension = TargetExtension, ConversionRouteId = ConversionRouteId,
@@ -182,7 +182,10 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
             Recursive = !NoRecurse.IsPresent, Extensions = SourceExtension,
             MaximumFiles = MaximumFiles, MaxParallelism = MaximumConcurrency,
             MaximumInputBytes = MaximumInputBytes, MaximumOutputBytes = MaximumOutputBytes, RetryFailed = RetryFailed.IsPresent
-        }, new BatchProgress(this), CancelToken);
+        };
+        OfficeWorkflowCommandUtilities.ConfigureBatch(request);
+        if (!ShouldProcess(directory, "Convert document batch")) return;
+        var report = await OfficeConverter.ConvertAsync(request, new BatchProgress(this), CancelToken);
         var batch = report.Summary;
         SetSummary(batch);
         WriteProgress(new ProgressRecord(1, "Convert documents", "Finished") { RecordType = ProgressRecordType.Completed });

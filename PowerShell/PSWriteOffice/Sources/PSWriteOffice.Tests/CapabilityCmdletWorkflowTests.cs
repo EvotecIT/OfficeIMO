@@ -17,6 +17,9 @@ public sealed class CapabilityCmdletWorkflowTests {
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
             shell.AddScript("""
+                if (Get-OfficeDocumentCapability -Conversion -Id heic-pdf -Executable) { throw 'A .NET-only codec route was advertised as executable' }
+                $heic = Get-OfficeDocumentCapability -Conversion -Id heic-pdf
+                if ($heic.ConversionSupported -or $heic.ConversionCommand) { throw 'The unsupported route advertised a conversion command' }
                 $route = Get-OfficeDocumentCapability -Conversion -From DOCX -To .PDF -Id DOCX-PDF -Executable
                 if (-not $route.ConversionSupported) { throw 'The selected route was not executable' }
                 if ($route.ConversionCommand -ne 'Convert-OfficeDocument') { throw 'The route advertised the wrong conversion surface' }

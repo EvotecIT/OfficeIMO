@@ -2,6 +2,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     internal static OfficeWorkflowFailureKind ClassifyFailure(Exception exception, WorkflowFailureStage stage) {
+        if (FindCodecUnavailable(exception) != null) return OfficeWorkflowFailureKind.UnsupportedInput;
         if (stage == WorkflowFailureStage.Output ||
             OfficeWorkflowOutputLimitErrors.IsOutputLimitExceeded(exception) ||
             OfficeIMO.Core.Internal.OfficeOutputLimit.Is(exception) ||
