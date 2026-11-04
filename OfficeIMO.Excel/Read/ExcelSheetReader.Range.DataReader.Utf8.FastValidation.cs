@@ -174,41 +174,6 @@ namespace OfficeIMO.Excel {
                 return rootSeen && rootClosed && depth == 0;
             }
 
-#if NET8_0_OR_GREATER
-            private static bool ContainsInvalidCanonicalXmlBytes(ReadOnlySpan<byte> document) {
-                while (!document.IsEmpty) {
-                    int index = document.IndexOfAny(CanonicalXmlSpecialBytes);
-                    if (index < 0) {
-                        return false;
-                    }
-
-                    if (document[index] == (byte)'&') {
-                        if (!TryReadPredefinedXmlEntity(document.Slice(index), out _, out int consumed)) return true;
-                        document = document.Slice(index + consumed);
-                        continue;
-                    }
-                    if (document[index] != 0xef) {
-                        if (document[index] != (byte)']') {
-                            return true;
-                        }
-                        if (index + 2 < document.Length
-                            && document[index + 1] == (byte)']'
-                            && document[index + 2] == (byte)'>') {
-                            return true;
-                        }
-                        document = document.Slice(index + 1);
-                        continue;
-                    }
-                    if (index + 2 < document.Length
-                        && document[index + 1] == 0xbf
-                        && document[index + 2] is 0xbe or 0xbf) {
-                        return true;
-                    }
-                    document = document.Slice(index + 1);
-                }
-                return false;
-            }
-#endif
 
             private bool TrySkipCanonicalXmlDeclaration(int start, out int nextPosition) {
                 nextPosition = start;
