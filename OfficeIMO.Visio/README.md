@@ -22,21 +22,22 @@ dotnet add package OfficeIMO.Visio
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 
-var document = VisioDocument.Create("diagram.vsdx");
-document.AsFluent()
-    .Info(info => info.Title("Demo").Author("OfficeIMO"))
-    .AddPage("Page-1", page => page
-        .AddTitle("Demo Flow")
-        .AddRectangle("start", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start")
-        .Diamond("decision", 4, 1.5, 2, 2, "Decision")
-        .Ellipse("end", 7, 1.5, 2, 1, "End")
-        .Connect("start", "decision", VisioSide.Right, VisioSide.Left,
-            connector => connector.RightAngle().ArrowEnd(EndArrow.Triangle))
-        .Connect("decision", "end", VisioSide.Right, VisioSide.Left,
-            connector => connector.RightAngle().ArrowEnd(EndArrow.Triangle).Label("Yes")))
-    .End();
+using var document = VisioDocument.Create("diagram.vsdx");
+document.Properties.Title = "Demo";
+document.Properties.Author = "OfficeIMO";
+var page = document.AddPage("Page-1");
+page.AddTitle("Demo Flow");
+page.AddRectangle("start", OfficeLength.Inches(1), OfficeLength.Inches(1),
+    OfficeLength.Inches(2), OfficeLength.Inches(1), "Start").SetBold();
+page.AddDiamond("decision", OfficeLength.Inches(4), OfficeLength.Inches(1.5),
+    OfficeLength.Inches(2), OfficeLength.Inches(2), "Decision");
+page.AddEllipse("end", OfficeLength.Inches(7), OfficeLength.Inches(1.5),
+    OfficeLength.Inches(2), OfficeLength.Inches(1), "End");
+page.AddConnector("start", "decision", fromSide: VisioSide.Right, toSide: VisioSide.Left)
+    .SetKind(ConnectorKind.RightAngle).SetArrowEnd(EndArrow.Triangle);
+page.AddConnector("decision", "end", fromSide: VisioSide.Right, toSide: VisioSide.Left)
+    .SetKind(ConnectorKind.RightAngle).SetArrowEnd(EndArrow.Triangle).SetLabel("Yes");
 document.Save();
 ```
 
@@ -292,7 +293,7 @@ SVG and raster export apply `PageScale / DrawingScale` after converting both sca
 
 Native PageSheet distance caches use [Visio's internal inch units](https://learn.microsoft.com/en-us/office/vba/api/visio.cell.resultiu), while `U` supplies a display hint. Page dimensions, margins, grid and routing distances follow this contract in XML and Open XML. Untouched valid length cells retain their native caches, formulas and metadata; changing a modeled value or its display unit replaces the affected cell. See the [upgrade guidance](../MIGRATION.md#visio-native-page-lengths) for older OfficeIMO files with metric values in these caches.
 
-`VisioSvgSaveOptions.PixelsPerInch` and `VisioPngSaveOptions.PixelsPerInch` describe physical page inches. The shared `ExportImage` API uses physical dimensions for target sizes, result metadata and raster pixel budgets. For example, a 1728-by-1152-inch drawing with `PageScale = 0.25 in` and `DrawingScale = 12 in` occupies a 36-by-24-inch page; at 48 pixels per inch its SVG and PNG are 1728 by 1152 pixels.
+`VisioSvgSaveOptions.PixelsPerInch` and `VisioImageExportOptions.TargetDpi` describe physical page inches. The shared `ExportImage` API uses physical dimensions for target sizes, result metadata and raster pixel budgets. For example, a 1728-by-1152-inch drawing with `PageScale = 0.25 in` and `DrawingScale = 12 in` occupies a 36-by-24-inch page; at 48 pixels per inch its SVG and PNG are 1728 by 1152 pixels.
 
 The scale and physical-metric rules follow Microsoft's [drawing-scale contract](https://learn.microsoft.com/en-us/openspecs/sharepoint_protocols/ms-vsdx/1a60ffcb-969c-48f1-aa02-ff2228718043), [text-margin contract](https://learn.microsoft.com/en-us/office/client-developer/visio/leftmargin-cell-text-block-format-section) and [paragraph-indent contract](https://learn.microsoft.com/en-us/office/client-developer/visio/indleft-cell-paragraph-section). Controlled reduced, enlarged, mixed-unit and 1:1 drawings cover SVG/raster projection; the PRONOM template supplies independent scaled input. Exact typography and native Microsoft Visio rendering remain unqualified.
 
@@ -332,14 +333,14 @@ The AngularJS and NxBRE producer fixtures qualify page layer rows, values and me
 
 ### Layer selection in previews
 
-SVG and raster previews use `VisioLayerRenderMode.Visible` by default. Set `LayerMode` on `VisioSvgSaveOptions`, `VisioPngSaveOptions` or `VisioImageExportOptions`:
+SVG and raster previews use `VisioLayerRenderMode.Visible` by default. Set `LayerMode` on `VisioSvgSaveOptions` or `VisioImageExportOptions`:
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 string screenPreview = page.ToSvg();
-byte[] printPreview = page.ToPng(new VisioPngSaveOptions {
+byte[] printPreview = page.ToImage(new VisioImageExportOptions {
     LayerMode = VisioLayerRenderMode.Printable
 });
 var imageOptions1 = new VisioImageExportOptions();
@@ -461,21 +462,17 @@ same `VisioLoadOptions`. New asynchronous calls should use the options-first
 shape; token-first overloads remain available for source and binary compatibility.
 
 ```csharp
-using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using Color = OfficeIMO.OfficeColor;
 
-VisioDocument.Load("operations.vsdx")
-    .AsFluent()
-    .GetPage("Operations", page => page
-        .ShapesWithData("Owner", "Ops", selection => selection
-            .Fill(Color.LightBlue)
-            .ShapeData("Reviewed", "Yes", "Reviewed", VisioShapeDataType.Boolean))
-        .ShapesContainingText("Legacy", selection => selection
-            .Text(shape => shape.Text!.Replace("Legacy", "Production", StringComparison.Ordinal))))
-    .End()
-    .Save("operations.updated.vsdx");
+using var document = VisioDocument.Load("operations.vsdx");
+var page = document.GetPage("Operations");
+page.ShapesWithData("Owner", "Ops", selection => selection
+    .Fill(Color.LightBlue)
+    .ShapeData("Reviewed", "Yes", "Reviewed", VisioShapeDataType.Boolean));
+page.ShapesContainingText("Legacy", selection => selection
+    .Text(shape => shape.Text!.Replace("Legacy", "Production")));
+document.Save("operations.updated.vsdx");
 ```
 
 ### Loaded-diagram compatibility boundary
@@ -646,13 +643,15 @@ var ship = page.AddProcess(OfficeLength.Inches(5.5), OfficeLength.Inches(2), Off
 page.AddConnector(build, ship, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left)
     .EndArrow = EndArrow.Arrow;
 
-document.SaveAsSvg("pipeline.svg", new VisioSvgSaveOptions {
-    PixelsPerInch = 96,
-    BackgroundColor = null
+document.SaveAsImage("pipeline.svg", new VisioImageExportOptions {
+    Format = OfficeImageExportFormat.Svg,
+    TargetDpi = 96,
+    BackgroundColor = OfficeColor.Transparent
 });
 
-document.SaveAsPng("pipeline.png", new VisioPngSaveOptions {
-    PixelsPerInch = 144,
+document.SaveAsImage("pipeline.png", new VisioImageExportOptions {
+    Format = OfficeImageExportFormat.Png,
+    TargetDpi = 144,
     Supersampling = 3
 });
 

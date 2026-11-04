@@ -37,7 +37,7 @@ public sealed class OdtHyperlink {
     }
 
     /// <summary>Appends a styled span inside this hyperlink.</summary>
-    public OdtSpan AddSpan(string? text = null) {
+    public OdtSpan AddRun(string? text = null) {
         var element = new XElement(OdfNamespaces.Text + "span");
         OdfTextCodec.Append(element, text);
         EnsureMaterialized().Add(element);
@@ -79,7 +79,7 @@ public sealed class OdtHyperlink {
     /// <summary>Whether the effective underline uses a non-solid ODF decoration style.</summary>
     public bool UsesNonSolidUnderlineStyle => Resolve(style => style.UsesNonSolidUnderlineStyle) == true;
     /// <summary>Explicit or inherited strike-through state.</summary>
-    public bool? StrikeThrough { get => Resolve(style => style.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
+    public bool? Strikethrough { get => Resolve(style => style.Strikethrough); set => EnsureStyle().Strikethrough = value; }
     /// <summary>Explicit or inherited native line-through style.</summary>
     public OdfTextDecorationStyle? LineThroughStyle { get => Resolve(style => style.LineThroughStyle); set => EnsureStyle().LineThroughStyle = value; }
     /// <summary>Explicit or inherited native line-through line count.</summary>

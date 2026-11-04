@@ -54,7 +54,7 @@ internal static class OneNoteMathNativeCodec {
 
     internal static OfficeMathExpression Decode(
         IList<OneNoteTextRun> runs,
-        int maximumDepth = OneNoteReaderOptions.DefaultMaxPropertySetDepth) {
+        int maximumDepth = OneNoteLoadOptions.DefaultMaxPropertySetDepth) {
         ArgumentNullException.ThrowIfNull(runs);
         ArgumentOutOfRangeException.ThrowIfLessThan(maximumDepth, 1);
         var text = new StringBuilder();

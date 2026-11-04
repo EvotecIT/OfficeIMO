@@ -28,27 +28,27 @@ public sealed partial class XpsPage {
         var copy = Document.ValidatePageMarkup(markup);
         Document.CommitPageContent(this, copy);
     }
-    internal void ApplyMarkup(XElement markup) { _markup.ReplaceAttributes(markup.Attributes()); _markup.ReplaceNodes(markup.Nodes()); _namedTargets = null; }
+    internal void ApplyMarkup(XElement markup) { _markup.ReplaceAttributes(markup.Attributes()); _markup.ReplaceNodes(markup.Nodes()); _namedTargets = null; _visuals.Clear(); }
     /// <summary>Appends native path geometry; paint strings follow the XPS color syntax.</summary>
-    public XpsPage AddPath(string data, string? fill = "#FF000000", string? stroke = null, double strokeThickness = 1) {
+    public XpsVisual AddPath(string data, string? fill = "#FF000000", string? stroke = null, double strokeThickness = 1) {
         if (string.IsNullOrWhiteSpace(data)) throw new ArgumentException("Path geometry is required.", nameof(data));
         if (strokeThickness < 0 || double.IsNaN(strokeThickness) || double.IsInfinity(strokeThickness)) throw new ArgumentOutOfRangeException(nameof(strokeThickness));
         var element = new XElement(_markup.Name.Namespace + "Path", new XAttribute("Data", data));
         if (fill != null) element.Add(new XAttribute("Fill", fill));
         if (stroke != null) element.Add(new XAttribute("Stroke", stroke), new XAttribute("StrokeThickness", XpsPackage.N(strokeThickness)));
-        _markup.Add(element); _namedTargets = null; return this;
+        _markup.Add(element); _namedTargets = null; return TrackVisual(element);
     }
     /// <summary>Appends Unicode glyph text using an embedded font. Origin is the baseline in XPS units.</summary>
-    public XpsPage AddText(string text, string fontUri, double fontSize, double originX, double originY, string fill = "#FF000000") {
+    public XpsVisual AddText(string text, string fontUri, double fontSize, double originX, double originY, string fill = "#FF000000") {
         ArgumentNullException.ThrowIfNull(text);
         ValidateDimension(fontSize); _ = XpsPackage.Number(XpsPackage.N(originX)); _ = XpsPackage.Number(XpsPackage.N(originY));
         _ = Document.GetPartBytes(XpsPackage.Resolve(PartName, fontUri));
-        _markup.Add(new XElement(_markup.Name.Namespace + "Glyphs", new XAttribute("FontUri", fontUri), new XAttribute("FontRenderingEmSize", XpsPackage.N(fontSize)),
-            new XAttribute("OriginX", XpsPackage.N(originX)), new XAttribute("OriginY", XpsPackage.N(originY)), new XAttribute("UnicodeString", text.StartsWith("{", StringComparison.Ordinal) ? "{}" + text : text), new XAttribute("Fill", fill)));
-        _namedTargets = null; return this;
+        var element = new XElement(_markup.Name.Namespace + "Glyphs", new XAttribute("FontUri", fontUri), new XAttribute("FontRenderingEmSize", XpsPackage.N(fontSize)),
+            new XAttribute("OriginX", XpsPackage.N(originX)), new XAttribute("OriginY", XpsPackage.N(originY)), new XAttribute("UnicodeString", text.StartsWith("{", StringComparison.Ordinal) ? "{}" + text : text), new XAttribute("Fill", fill));
+        _markup.Add(element); _namedTargets = null; return TrackVisual(element);
     }
     /// <summary>Places an embedded PNG, JPEG, TIFF or supported JPEG XR using an image brush and a rectangular viewport.</summary>
-    public XpsPage AddImage(string imageUri, double x, double y, double width, double height) {
+    public XpsVisual AddImage(string imageUri, double x, double y, double width, double height) {
         ValidateDimension(width); ValidateDimension(height);
         _ = XpsPackage.Number(XpsPackage.N(x)); _ = XpsPackage.Number(XpsPackage.N(y));
         string name = XpsPackage.Resolve(PartName, imageUri);
@@ -58,11 +58,11 @@ public sealed partial class XpsPage {
             throw new NotSupportedException("Image format is not supported.");
         double iw = info.Width * 96D / (info.DpiX > 0 ? info.DpiX : 96D), ih = info.Height * 96D / (info.DpiY > 0 ? info.DpiY : 96D);
         XNamespace ns = _markup.Name.Namespace;
-        _markup.Add(new XElement(ns + "Path", new XAttribute("Data", "M" + XpsPackage.N(x) + "," + XpsPackage.N(y) + " h" + XpsPackage.N(width) + " v" + XpsPackage.N(height) + " h" + XpsPackage.N(-width) + " Z"),
+        var element = new XElement(ns + "Path", new XAttribute("Data", "M" + XpsPackage.N(x) + "," + XpsPackage.N(y) + " h" + XpsPackage.N(width) + " v" + XpsPackage.N(height) + " h" + XpsPackage.N(-width) + " Z"),
             new XElement(ns + "Path.Fill", new XElement(ns + "ImageBrush", new XAttribute("ImageSource", imageUri),
                 new XAttribute("Viewbox", "0,0," + XpsPackage.N(iw) + "," + XpsPackage.N(ih)), new XAttribute("Viewport", string.Join(",", new[] { x, y, width, height }.Select(XpsPackage.N))),
-                new XAttribute("ViewboxUnits", "Absolute"), new XAttribute("ViewportUnits", "Absolute")))));
-        _namedTargets = null; return this;
+                new XAttribute("ViewboxUnits", "Absolute"), new XAttribute("ViewportUnits", "Absolute"))));
+        _markup.Add(element); _namedTargets = null; return TrackVisual(element);
     }
     /// <summary>Returns page-element UnicodeString values in markup order, excluding resources and brush visuals. Paragraphs and reading order are not inferred.</summary>
     public string ExtractText() => string.Join("\n", XpsStoryFragmentsReader.PageElements(_markup).Where(e => e.Name.LocalName == "Glyphs").Select(g => Unescape((string?)g.Attribute("UnicodeString") ?? "")));

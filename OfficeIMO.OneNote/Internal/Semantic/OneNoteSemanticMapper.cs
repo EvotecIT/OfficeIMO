@@ -87,7 +87,7 @@ internal static partial class OneNoteSemanticMapper {
     private const uint TextExtendedAscii = 0x1C003498;
     private const uint MathFormatting = 0x08003401;
 
-    public static OneNoteSection MapSection(OneNoteRevisionStore store, OneNoteReaderOptions options) {
+    public static OneNoteSection MapSection(OneNoteRevisionStore store, OneNoteLoadOptions options) {
         var materializer = new OneNoteObjectSpaceMaterializer(store);
         var pageMapping = new PageMappingState(options);
         OneNoteMaterializedObjectSpace sectionSpace = materializer.FindCurrentSpaceByRootJcid(
@@ -131,7 +131,7 @@ internal static partial class OneNoteSemanticMapper {
     private static OneNotePage? MapPage(
         OneNoteObjectSpaceMaterializer materializer,
         OneNoteExtendedGuid objectSpaceId,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         PageMappingState pageMapping) {
         return MapPage(materializer, objectSpaceId, null, false, options, pageMapping);
     }
@@ -141,7 +141,7 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteExtendedGuid objectSpaceId,
         OneNoteExtendedGuid? contextId,
         bool isVersionHistoryPage,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         PageMappingState pageMapping) {
         string pageKey = OneNoteObjectSpaceMaterializer.GetSpaceKey(objectSpaceId, contextId);
         if (!pageMapping.TryEnter(pageKey)) return null;
@@ -230,7 +230,7 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteMaterializedObjectSpace space,
         OneNoteExtendedGuid id,
         OneNoteObjectSpaceMaterializer materializer,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         int depth,
         HashSet<OneNoteExtendedGuid> path) {
         if (depth >= options.MaxPropertySetDepth || !path.Add(id)) return null;
@@ -271,7 +271,7 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteMaterializedObjectSpace space,
         OneNoteRevisionStoreObject item,
         OneNoteObjectSpaceMaterializer materializer,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         int depth,
         HashSet<OneNoteExtendedGuid> path) {
         OneNoteElement? primary = GetReferences(item, ContentChildNodes)
@@ -306,7 +306,7 @@ internal static partial class OneNoteSemanticMapper {
     private static OneNoteParagraph BuildParagraph(
         OneNoteMaterializedObjectSpace space,
         OneNoteRevisionStoreObject item,
-        OneNoteReaderOptions options) {
+        OneNoteLoadOptions options) {
         string text = ReadString(item, RichEditTextUnicode) ?? ReadSingleByteString(item, TextExtendedAscii) ?? string.Empty;
         var paragraph = new OneNoteParagraph { Id = item.Id, ContentObjectId = item.Id, Layout = ReadLayout(item) };
         IReadOnlyList<uint> boundaries = ReadUInt32Array(item, TextRunIndex);
@@ -411,7 +411,7 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteMaterializedObjectSpace space,
         OneNoteRevisionStoreObject item,
         OneNoteObjectSpaceMaterializer materializer,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         int depth,
         HashSet<OneNoteExtendedGuid> path) {
         var table = new OneNoteTable {

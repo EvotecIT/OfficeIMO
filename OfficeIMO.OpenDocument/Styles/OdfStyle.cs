@@ -91,7 +91,7 @@ public sealed class OdfStyle {
     public bool? UsesNonSolidUnderlineStyle => ReadNonSolidDecoration(
         TextProperties, OdfNamespaces.Style + "text-underline-style");
     /// <summary>True when text strike-through is explicitly enabled by this style.</summary>
-    public bool? StrikeThrough {
+    public bool? Strikethrough {
         get => ReadDecorationToggle(TextProperties,
             OdfNamespaces.Style + "text-line-through-style",
             OdfNamespaces.Style + "text-line-through-type");

@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 
-namespace OfficeIMO.Visio.Fluent {
-    public partial class VisioFluentPage {
+namespace OfficeIMO.Visio {
+    public partial class VisioPage {
         /// <summary>
         /// Aligns existing shapes by id using the current selection bounds.
         /// </summary>
         /// <param name="alignment">Horizontal alignment to apply.</param>
         /// <param name="shapeIds">Shape ids to align.</param>
-        public VisioFluentPage AlignShapes(VisioHorizontalAlignment alignment, IEnumerable<string> shapeIds) {
+        public VisioPage AlignShapes(VisioHorizontalAlignment alignment, IEnumerable<string> shapeIds) {
             ResolveShapeSelection(shapeIds).Align(alignment);
             return this;
         }
@@ -18,7 +18,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="alignment">Vertical alignment to apply.</param>
         /// <param name="shapeIds">Shape ids to align.</param>
-        public VisioFluentPage AlignShapes(VisioVerticalAlignment alignment, IEnumerable<string> shapeIds) {
+        public VisioPage AlignShapes(VisioVerticalAlignment alignment, IEnumerable<string> shapeIds) {
             ResolveShapeSelection(shapeIds).Align(alignment);
             return this;
         }
@@ -28,7 +28,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="axis">Distribution axis.</param>
         /// <param name="shapeIds">Shape ids to distribute.</param>
-        public VisioFluentPage DistributeShapes(VisioDistributionAxis axis, IEnumerable<string> shapeIds) {
+        public VisioPage DistributeShapes(VisioDistributionAxis axis, IEnumerable<string> shapeIds) {
             ResolveShapeSelection(shapeIds).Distribute(axis);
             return this;
         }
@@ -38,7 +38,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="shapeIds">Shape ids to relayout.</param>
         /// <param name="options">Optional layout settings.</param>
-        public VisioFluentPage RelayoutShapesAsGrid(IEnumerable<string> shapeIds, VisioSelectionLayoutOptions? options = null) {
+        public VisioPage RelayoutShapesAsGrid(IEnumerable<string> shapeIds, VisioSelectionLayoutOptions? options = null) {
             ResolveShapeSelection(shapeIds).RelayoutAsGrid(options);
             return this;
         }
@@ -48,7 +48,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="shapeIds">Shape ids to relayout.</param>
         /// <param name="configureOptions">Option callback.</param>
-        public VisioFluentPage RelayoutShapesAsGrid(IEnumerable<string> shapeIds, Action<VisioSelectionLayoutOptions> configureOptions) {
+        public VisioPage RelayoutShapesAsGrid(IEnumerable<string> shapeIds, Action<VisioSelectionLayoutOptions> configureOptions) {
             ArgumentNullException.ThrowIfNull(configureOptions);
 
             VisioSelectionLayoutOptions options = new();
@@ -62,7 +62,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="shapeIds">Shape ids to relayout.</param>
         /// <param name="spacing">Horizontal spacing between shapes in inches.</param>
         /// <param name="routeInternalConnectors">Whether connectors whose endpoints are both selected should be rerouted orthogonally.</param>
-        public VisioFluentPage RelayoutShapesAsHorizontalStack(IEnumerable<string> shapeIds, double spacing = 0.5D, bool routeInternalConnectors = true) {
+        public VisioPage RelayoutShapesAsHorizontalStack(IEnumerable<string> shapeIds, double spacing = 0.5D, bool routeInternalConnectors = true) {
             ResolveShapeSelection(shapeIds).RelayoutAsHorizontalStack(spacing, routeInternalConnectors);
             return this;
         }
@@ -73,7 +73,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="shapeIds">Shape ids to relayout.</param>
         /// <param name="spacing">Vertical spacing between shapes in inches.</param>
         /// <param name="routeInternalConnectors">Whether connectors whose endpoints are both selected should be rerouted orthogonally.</param>
-        public VisioFluentPage RelayoutShapesAsVerticalStack(IEnumerable<string> shapeIds, double spacing = 0.5D, bool routeInternalConnectors = true) {
+        public VisioPage RelayoutShapesAsVerticalStack(IEnumerable<string> shapeIds, double spacing = 0.5D, bool routeInternalConnectors = true) {
             ResolveShapeSelection(shapeIds).RelayoutAsVerticalStack(spacing, routeInternalConnectors);
             return this;
         }
@@ -84,8 +84,8 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="shapeId">Starting shape id.</param>
         /// <param name="options">Optional layout settings.</param>
         /// <param name="includeStart">Whether the starting shape should be included in the relayout.</param>
-        public VisioFluentPage RelayoutConnectedComponentAsGrid(string shapeId, VisioSelectionLayoutOptions? options = null, bool includeStart = true) {
-            Page.SelectConnectedComponent(ResolveShape(shapeId), includeStart).RelayoutAsGrid(options);
+        public VisioPage RelayoutConnectedComponentAsGrid(string shapeId, VisioSelectionLayoutOptions? options = null, bool includeStart = true) {
+            this.SelectConnectedComponent(GetShape(shapeId), includeStart).RelayoutAsGrid(options);
             return this;
         }
 
@@ -96,17 +96,17 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="layoutOptions">Optional member layout settings.</param>
         /// <param name="refitContainer">Whether the container should be resized after member relayout.</param>
         /// <param name="refitOptions">Optional container refit settings.</param>
-        public VisioFluentPage RelayoutContainerMembers(
+        public VisioPage RelayoutContainerMembers(
             string containerId,
             VisioSelectionLayoutOptions? layoutOptions = null,
             bool refitContainer = true,
             VisioContainerOptions? refitOptions = null) {
-            VisioShape container = ResolveShape(containerId);
-            VisioShapeSelection members = new(Page.GetContainerMembers(container), Page);
+            VisioShape container = GetShape(containerId);
+            VisioShapeSelection members = new(this.GetContainerMembers(container), this);
             members.RelayoutAsGrid(layoutOptions);
 
             if (refitContainer) {
-                Page.RefitContainer(container, refitOptions);
+                this.RefitContainer(container, refitOptions);
             }
 
             return this;
@@ -119,7 +119,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="configureLayoutOptions">Layout option callback.</param>
         /// <param name="refitContainer">Whether the container should be resized after member relayout.</param>
         /// <param name="refitOptions">Optional container refit settings.</param>
-        public VisioFluentPage RelayoutContainerMembers(
+        public VisioPage RelayoutContainerMembers(
             string containerId,
             Action<VisioSelectionLayoutOptions> configureLayoutOptions,
             bool refitContainer = true,
@@ -132,7 +132,7 @@ namespace OfficeIMO.Visio.Fluent {
         }
 
         private VisioShapeSelection ResolveShapeSelection(IEnumerable<string> shapeIds) {
-            return new VisioShapeSelection(ResolveShapes(shapeIds, nameof(shapeIds)), Page);
+            return new VisioShapeSelection(ResolveShapes(shapeIds, nameof(shapeIds)), this);
         }
     }
 }

@@ -1,7 +1,7 @@
 namespace OfficeIMO.IWork;
 
 /// <summary>Operation-level limits for template-free native Pages creation.</summary>
-public sealed class IWorkPagesWriteOptions {
+public sealed class IWorkPagesSaveOptions {
     /// <summary>Gets or sets the maximum number of authored paragraphs, including headers/footers and image/table attachments.</summary>
     public int MaxParagraphs { get; set; } = 65_536;
     /// <summary>Gets or sets the maximum combined body and header/footer character runs, including attachment markers.</summary>
@@ -25,8 +25,8 @@ public sealed class IWorkPagesWriteOptions {
     /// <summary>Gets or sets the maximum encoded package and intermediate archive size.</summary>
     public int MaxPackageBytes { get; set; } = 64 * 1024 * 1024;
 
-    internal IWorkPagesWriteOptions Snapshot() {
-        var copy = new IWorkPagesWriteOptions {
+    internal IWorkPagesSaveOptions Snapshot() {
+        var copy = new IWorkPagesSaveOptions {
             MaxParagraphs = MaxParagraphs, MaxTextRuns = MaxTextRuns,
             MaxTextCharacters = MaxTextCharacters, MaxTabStops = MaxTabStops,
             MaxNumberedLists = MaxNumberedLists,

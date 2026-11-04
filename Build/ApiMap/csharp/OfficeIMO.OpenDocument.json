@@ -28,6 +28,166 @@
       "category": "contract",
       "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdtParagraph.AddSpan",
+      "new": "OfficeIMO.OpenDocument.OdtParagraph.AddRun",
+      "action": "rename",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Styled text uses the common run vocabulary.",
+      "replacement": "Rename the method only. The returned native OdtSpan, text:span XML, materialization and inherited formatting are preserved.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdtSpan.AddSpan",
+      "new": "OfficeIMO.OpenDocument.OdtSpan.AddRun",
+      "action": "rename",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Styled text uses the common run vocabulary.",
+      "replacement": "Rename the method only. The returned native OdtSpan, text:span XML, materialization and inherited formatting are preserved.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdtHyperlink.AddSpan",
+      "new": "OfficeIMO.OpenDocument.OdtHyperlink.AddRun",
+      "action": "rename",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Styled text uses the common run vocabulary.",
+      "replacement": "Rename the method only. The returned native OdtSpan, text:span XML, materialization and inherited formatting are preserved.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdfDocument.ToStream",
+      "new": "OfficeIMO.OpenDocument.OdfDocument.ToBytes",
+      "action": "remove",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "The route only allocated a MemoryStream over bytes.",
+      "replacement": "Use new MemoryStream(document.ToBytes(options)) when a new writable seekable stream is required; use Save(destination,options) for a caller-owned output stream.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdsCell.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdsCell.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdsCellRun.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdsCellRun.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdfStyle.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdfStyle.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdtHyperlink.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdtHyperlink.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdfTextContent.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdfTextContent.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdtSpan.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdtSpan.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdtParagraph.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdtParagraph.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdpParagraph.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdpParagraph.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdpRun.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdpRun.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdpHyperlink.StrikeThrough",
+      "new": "OfficeIMO.OpenDocument.OdpHyperlink.Strikethrough",
+      "action": "rename",
+      "kind": "property",
+      "category": "naming",
+      "reason": "The single-strike formatting concept has one spelling.",
+      "replacement": "Rename the property and keep nullable inherited state, native line-through style/type and double-strike distinctions unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdfTextContent.AddText(string text) : void",
+      "new": "OfficeIMO.OpenDocument.OdfTextContent.AddText(string text) : OdfTextContent",
+      "action": "change",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Text append and text-case mutations return the same native receiver.",
+      "replacement": "The operation does not create a new run. Derived text receivers retain their type through typed chaining methods.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OpenDocument.OdfTextContent.TransformTextCase(OfficeTextCase textCase, CultureInfo culture = null) : void",
+      "new": "OfficeIMO.OpenDocument.OdfTextContent.TransformTextCase(OfficeTextCase textCase, CultureInfo culture = null) : OdfTextContent",
+      "action": "change",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Text append and text-case mutations return the same native receiver.",
+      "replacement": "The operation does not create a new run. Derived text receivers retain their type through typed chaining methods.",
+      "applied": true
     }
   ]
 }

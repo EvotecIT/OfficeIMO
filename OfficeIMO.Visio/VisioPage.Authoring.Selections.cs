@@ -1,14 +1,14 @@
 using System;
 using System.Linq;
 
-namespace OfficeIMO.Visio.Fluent {
-    public partial class VisioFluentPage {
+namespace OfficeIMO.Visio {
+    public partial class VisioPage {
         /// <summary>
         /// Configures all shapes on the page, including grouped children.
         /// </summary>
         /// <param name="configure">Configuration to apply to the selected shapes.</param>
-        public VisioFluentPage Shapes(Action<VisioShapeSelection> configure) {
-            return Shapes(_ => true, configure);
+        public VisioPage ConfigureShapes(Action<VisioShapeSelection> configure) {
+            return ConfigureShapes(_ => true, configure);
         }
 
         /// <summary>
@@ -16,50 +16,50 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="predicate">Predicate used to select shapes.</param>
         /// <param name="configure">Configuration to apply to the selected shapes.</param>
-        public VisioFluentPage Shapes(Func<VisioShape, bool> predicate, Action<VisioShapeSelection> configure) {
+        public VisioPage ConfigureShapes(Func<VisioShape, bool> predicate, Action<VisioShapeSelection> configure) {
             ArgumentNullException.ThrowIfNull(predicate);
 
-            ConfigureShapes(Page.SelectShapes(predicate), configure);
+            ConfigureShapes(this.SelectShapes(predicate), configure);
             return this;
         }
 
         /// <summary>
         /// Selects shapes whose text contains the provided value and configures them.
         /// </summary>
-        public VisioFluentPage ShapesContainingText(string text, Action<VisioShapeSelection> configure, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            ConfigureShapes(Page.SelectContainingText(text, comparison), configure);
+        public VisioPage ShapesContainingText(string text, Action<VisioShapeSelection> configure, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
+            ConfigureShapes(this.SelectContainingText(text, comparison), configure);
             return this;
         }
 
         /// <summary>
         /// Selects shapes with a matching Shape Data value and configures them.
         /// </summary>
-        public VisioFluentPage ShapesWithData(string key, string value, Action<VisioShapeSelection> configure, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            ConfigureShapes(Page.SelectWithData(key, value, comparison), configure);
+        public VisioPage ShapesWithData(string key, string value, Action<VisioShapeSelection> configure, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
+            ConfigureShapes(this.SelectWithData(key, value, comparison), configure);
             return this;
         }
 
         /// <summary>
         /// Selects shapes whose Shape Data value matches a predicate and configures them.
         /// </summary>
-        public VisioFluentPage ShapesWithData(string key, Func<string?, bool> predicate, Action<VisioShapeSelection> configure) {
-            ConfigureShapes(Page.SelectWithData(key, predicate), configure);
+        public VisioPage ShapesWithData(string key, Func<string?, bool> predicate, Action<VisioShapeSelection> configure) {
+            ConfigureShapes(this.SelectWithData(key, predicate), configure);
             return this;
         }
 
         /// <summary>
         /// Selects shapes with a matching typed Shape Data value and configures them.
         /// </summary>
-        public VisioFluentPage ShapesWithShapeData(string name, string value, Action<VisioShapeSelection> configure, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            ConfigureShapes(Page.SelectWithShapeData(name, value, comparison), configure);
+        public VisioPage ShapesWithShapeData(string name, string value, Action<VisioShapeSelection> configure, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
+            ConfigureShapes(this.SelectWithShapeData(name, value, comparison), configure);
             return this;
         }
 
         /// <summary>
         /// Selects shapes in a page layer and configures them.
         /// </summary>
-        public VisioFluentPage ShapesInLayer(string layerName, Action<VisioShapeSelection> configure, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
-            ConfigureShapes(Page.SelectLayer(layerName, comparison), configure);
+        public VisioPage ShapesInLayer(string layerName, Action<VisioShapeSelection> configure, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
+            ConfigureShapes(this.SelectLayer(layerName, comparison), configure);
             return this;
         }
 
@@ -67,8 +67,8 @@ namespace OfficeIMO.Visio.Fluent {
         /// Configures all connectors on the page.
         /// </summary>
         /// <param name="configure">Configuration to apply to the selected connectors.</param>
-        public VisioFluentPage Connectors(Action<VisioConnectorSelection> configure) {
-            return Connectors(_ => true, configure);
+        public VisioPage ConfigureConnectors(Action<VisioConnectorSelection> configure) {
+            return ConfigureConnectors(_ => true, configure);
         }
 
         /// <summary>
@@ -76,10 +76,10 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="predicate">Predicate used to select connectors.</param>
         /// <param name="configure">Configuration to apply to the selected connectors.</param>
-        public VisioFluentPage Connectors(Func<VisioConnector, bool> predicate, Action<VisioConnectorSelection> configure) {
+        public VisioPage ConfigureConnectors(Func<VisioConnector, bool> predicate, Action<VisioConnectorSelection> configure) {
             ArgumentNullException.ThrowIfNull(predicate);
 
-            ConfigureConnectors(new VisioConnectorSelection(Page.Connectors.Where(predicate)), configure);
+            ConfigureConnectors(new VisioConnectorSelection(this.Connectors.Where(predicate)), configure);
             return this;
         }
 
@@ -87,7 +87,7 @@ namespace OfficeIMO.Visio.Fluent {
             ArgumentNullException.ThrowIfNull(configure);
 
             configure(selection);
-            RebuildShapeIndex();
+            ValidateShapeIdentifiers();
         }
 
         private static void ConfigureConnectors(VisioConnectorSelection selection, Action<VisioConnectorSelection> configure) {

@@ -1,11 +1,11 @@
 namespace OfficeIMO.OneNote;
 
 /// <summary>Creates native desktop or FSSHTTP package-store <c>.one</c> section files.</summary>
-public static class OneNoteSectionWriter {
+internal static class OneNoteSectionWriter {
     /// <summary>Serializes a section to a new byte array.</summary>
-    public static byte[] Write(OneNoteSection section, OneNoteWriterOptions? options = null) {
+    public static byte[] Write(OneNoteSection section, OneNoteSaveOptions? options = null) {
         ArgumentNullException.ThrowIfNull(section);
-        OneNoteWriterOptions effective = options ?? new OneNoteWriterOptions();
+        OneNoteSaveOptions effective = options ?? new OneNoteSaveOptions();
         OneNoteWriterValidation.ValidateSectionOptions(effective);
         OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(
             effective.MaxOutputBytes,
@@ -26,7 +26,7 @@ public static class OneNoteSectionWriter {
     }
 
     /// <summary>Serializes a section to a caller-owned writable stream.</summary>
-    public static void Write(OneNoteSection section, Stream destination, OneNoteWriterOptions? options = null) {
+    public static void Write(OneNoteSection section, Stream destination, OneNoteSaveOptions? options = null) {
         ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
         byte[] data = Write(section, options);
@@ -34,7 +34,7 @@ public static class OneNoteSectionWriter {
     }
 
     /// <summary>Serializes a section to a file, replacing an existing file.</summary>
-    public static void Write(OneNoteSection section, string path, OneNoteWriterOptions? options = null) {
+    public static void Write(OneNoteSection section, string path, OneNoteSaveOptions? options = null) {
         ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
         byte[] data = Write(section, options);

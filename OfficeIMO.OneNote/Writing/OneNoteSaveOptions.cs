@@ -1,12 +1,12 @@
 namespace OfficeIMO.OneNote;
 
 /// <summary>Controls native offline OneNote serialization.</summary>
-public sealed class OneNoteWriterOptions {
+public sealed class OneNoteSaveOptions {
     /// <summary>Hard maximum accepted for recursive writer traversal limits.</summary>
     public const int MaximumTraversalDepth = 256;
 
     /// <summary>Default maximum nesting depth for serializable content elements.</summary>
-    public const int DefaultMaxContentDepth = OneNoteReaderOptions.DefaultMaxPropertySetDepth;
+    public const int DefaultMaxContentDepth = OneNoteLoadOptions.DefaultMaxPropertySetDepth;
 
     /// <summary>Default maximum nesting depth for notebook section groups.</summary>
     public const int DefaultMaxSectionGroupDepth = OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth;
@@ -19,10 +19,10 @@ public sealed class OneNoteWriterOptions {
     public OneNoteStorageFormat StorageFormat { get; set; } = OneNoteStorageFormat.Unknown;
 
     /// <summary>Maximum serialized output size. The default is 512 MiB.</summary>
-    public long MaxOutputBytes { get; set; } = OneNoteReaderOptions.DefaultMaxInputBytes;
+    public long MaxOutputBytes { get; set; } = OneNoteLoadOptions.DefaultMaxInputBytes;
 
     /// <summary>Maximum coordinate and pressure values written for one native ink path.</summary>
-    public int MaxInkPathValues { get; set; } = OneNoteReaderOptions.DefaultMaxInkPathValues;
+    public int MaxInkPathValues { get; set; } = OneNoteLoadOptions.DefaultMaxInkPathValues;
 
     /// <summary>
     /// Reads the generated artifact back and verifies page identity, order, relationships, structural content,
@@ -43,7 +43,7 @@ public sealed class OneNoteWriterOptions {
     /// Maximum nesting depth across conflict and version-history page relationships.
     /// Values must be from 1 through <see cref="MaximumTraversalDepth"/>.
     /// </summary>
-    public int MaxPageRelationshipDepth { get; set; } = OneNoteReaderOptions.DefaultMaxPageRelationshipDepth;
+    public int MaxPageRelationshipDepth { get; set; } = OneNoteLoadOptions.DefaultMaxPageRelationshipDepth;
 
     /// <summary>
     /// Maximum recursive nesting depth for outlines, paragraphs, and table-cell content.

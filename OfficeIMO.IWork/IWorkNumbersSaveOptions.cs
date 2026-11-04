@@ -1,7 +1,7 @@
 namespace OfficeIMO.IWork;
 
 /// <summary>Operation-level limits for template-free native Numbers creation.</summary>
-public sealed class IWorkNumbersWriteOptions {
+public sealed class IWorkNumbersSaveOptions {
     /// <summary>Gets or sets the maximum sheet count.</summary>
     public int MaxSheets { get; set; } = 1_024;
     /// <summary>Gets or sets the maximum combined table count.</summary>
@@ -13,8 +13,8 @@ public sealed class IWorkNumbersWriteOptions {
     /// <summary>Gets or sets the maximum encoded package and intermediate archive size.</summary>
     public int MaxPackageBytes { get; set; } = 64 * 1024 * 1024;
 
-    internal IWorkNumbersWriteOptions Snapshot() {
-        var copy = new IWorkNumbersWriteOptions { MaxSheets = MaxSheets, MaxTables = MaxTables,
+    internal IWorkNumbersSaveOptions Snapshot() {
+        var copy = new IWorkNumbersSaveOptions { MaxSheets = MaxSheets, MaxTables = MaxTables,
             MaxTableCells = MaxTableCells, MaxTextCharacters = MaxTextCharacters,
             MaxPackageBytes = MaxPackageBytes };
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxSheets, nameof(MaxSheets));

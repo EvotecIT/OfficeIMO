@@ -12,7 +12,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Represents a CSV document with a fluent, document-centric API. Thread-safe for independent read enumeration; not thread-safe for concurrent mutations on the same instance.
 /// </summary>
-public sealed partial class CsvDocument
+public sealed partial class CsvDocument : IDisposable
 {
     private const int FileBufferSize = 256 * 1024;
     private readonly List<string> _header = new();
@@ -32,7 +32,7 @@ public sealed partial class CsvDocument
     /// <summary>
     /// Initializes a new in-memory CSV document with default settings.
     /// </summary>
-    public CsvDocument()
+    private CsvDocument()
     {
         _mode = CsvLoadMode.InMemory;
         _delimiter = ',';

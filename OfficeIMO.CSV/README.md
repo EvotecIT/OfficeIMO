@@ -13,11 +13,13 @@ dotnet add package OfficeIMO.CSV
 
 ## Quick start
 
+`Create(path)` associates a destination without writing it. `Load(path)` and `LoadAsync(path)` associate the source path, and successful path saves update it. `Save()` and `SaveAsync()` use that associated path. Stream saves keep the caller stream open and do not change the association. `CsvDocument` implements `IDisposable`; streaming enumerations own their individual readers.
+
 ```csharp
 using OfficeIMO.CSV;
 using System.Globalization;
 
-new CsvDocument()
+CsvDocument.Create()
     .WithDelimiter(';')
     .WithCulture(CultureInfo.InvariantCulture)
     .WithHeader("Name", "Age", "City")
@@ -38,7 +40,7 @@ new CsvDocument()
 
 | Need | Start with |
 |---|---|
-| Edit, transform, or save rows | `CsvDocument.Load(...)` or `new CsvDocument()` |
+| Edit, transform, or save rows | `CsvDocument.Load(...)` or `CsvDocument.Create()` |
 | Read rows once with a forward-only cursor | `CsvDocument.OpenReader(...)` |
 | Read from the source incrementally with async I/O on .NET 8+ | `CsvDocument.OpenReaderAsync(...)` |
 

@@ -4,7 +4,7 @@ namespace OfficeIMO.OneNote;
 internal static class OneNoteGraphSerializer {
     internal static byte[] Write(
         OneNoteWriteGraph graph,
-        OneNoteWriterOptions options,
+        OneNoteSaveOptions options,
         OneNoteStorageFormat sourceStorageFormat = OneNoteStorageFormat.Unknown,
         long? maxOutputBytes = null) {
         ArgumentNullException.ThrowIfNull(graph);

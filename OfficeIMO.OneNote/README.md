@@ -20,10 +20,12 @@ Encrypted current revisions are detected but not decrypted. Reading fails with `
 
 ## Read, edit, and save a section
 
+Use `Create`, `Load`, `Save` and `ToBytes` on `OneNoteSection`. Path loads and successful path saves associate `FilePath` for `Save()`; stream operations leave caller streams open. `SourcePath` retains source or package-entry provenance independently of the associated filesystem path.
+
 ```csharp
 using OfficeIMO.OneNote;
 
-OneNoteSection section = OneNoteSectionReader.Read("Projects.one");
+using OneNoteSection section = OneNoteSection.Load("Projects.one");
 OneNotePage page = section.Pages[0];
 
 var paragraph = new OneNoteParagraph();
@@ -36,7 +38,8 @@ section.Save("Projects-updated.one");
 New documents use the same model:
 
 ```csharp
-var section = new OneNoteSection { Name = "Planning" };
+using var section = OneNoteSection.Create("Planning.one");
+section.Name = "Planning";
 var page = new OneNotePage { Title = "Release checklist" };
 var item = new OneNoteParagraph {
     List = new OneNoteListInfo { Ordered = false, Level = 0 }
@@ -45,20 +48,20 @@ item.Runs.Add(new OneNoteTextRun { Text = "Validate the packaged artifact" });
 page.DirectContent.Add(item);
 section.Pages.Add(page);
 
-OneNoteSectionWriter.Write(section, "Planning.one");
+section.Save();
 ```
 
 Writers validate their output by reading it back by default. A loaded `.one` or `.onetoc2` keeps its desktop or FSSHTTP physical encoding when saved; a new artifact defaults to the desktop revision store. Applications can select FSSHTTP output explicitly:
 
 ```csharp
-var options = new OneNoteWriterOptions {
+var options = new OneNoteSaveOptions {
     StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage
 };
 
-OneNoteSectionWriter.Write(section, "Planning.one", options);
+section.Save(options);
 ```
 
-`OneNoteWriterOptions.StorageFormat` applies to native `.one` and `.onetoc2` payloads. Use `OneNotePackageWriter` for the Cabinet-based `.onepkg` container. The same options also provide tighter output, package-entry, section-group-depth, related-page-depth, and content-depth limits when needed.
+`OneNoteSaveOptions.StorageFormat` applies to native `.one` and `.onetoc2` payloads. Use `OneNotePackageWriter` for the Cabinet-based `.onepkg` container. The same options also provide tighter output, package-entry, section-group-depth, related-page-depth, and content-depth limits when needed.
 
 ## Notebooks and packages
 
@@ -145,13 +148,13 @@ These fail-closed boundaries distinguish preservation from authoring support.
 
 ## Safety and streaming
 
-`OneNoteReaderOptions` bounds input bytes, file-node and transaction counts, objects, properties, property nesting, distinct page-graph nodes, related-page depth, assets, and FSSHTTP stream objects. Notebook/package options additionally bound section-group depth, entry count, per-entry bytes, and total expanded bytes. Lazy binary payloads are materialized only when requested and still require a caller-provided byte limit.
+`OneNoteLoadOptions` bounds input bytes, file-node and transaction counts, objects, properties, property nesting, distinct page-graph nodes, related-page depth, assets, and FSSHTTP stream objects. Notebook/package options additionally bound section-group depth, entry count, per-entry bytes, and total expanded bytes. Lazy binary payloads are materialized only when requested and still require a caller-provided byte limit.
 
 Conflict and version-history object spaces are traversed once per section. Repeated or cyclic references in malformed page graphs are pruned to a bounded spanning tree so the loaded model remains safe to convert and rewrite.
 
 Before writing or projecting, caller-created section-group, conflict/version, and nested-content relationships are checked for cycles, shared instances, and excessive depth. `MaxSectionGroupDepth` defaults to 32; `MaxPageRelationshipDepth` and `MaxContentDepth` default to 128. Writer and Markdown options accept values up to the hard safety ceiling of 256, and configured writer bounds are propagated into read-back validation. Direct Markdown, HTML, and PDF conversion validates conflict/version branches only when requested; Reader validates them unconditionally because it reports their counts in metadata. The required `Open Notebook.onetoc2` filename is reserved when section-group directories are allocated. Native list levels are limited to 0 through `OneNoteListInfo.MaxLevel` (254); the shared Markdown projection clamps out-of-range caller values to that representable range so Markdown, HTML, PDF, and Reader conversion cannot allocate arbitrary indentation.
 
-`OneNoteWriterOptions.ValidateRoundTrip` is enabled by default. Section writes, including sections emitted inside `.onepkg`, are read back before bytes are returned. Validation covers page identity, order, conflict/version relationships, titles and core page metadata; outline and table hierarchy; rich-text run boundaries, text, links, and supported formatting; supported layout, image, attachment, media, and math metadata; and binary payload resolution plus known length. This is a semantic guard against silent model loss, not a byte-for-byte payload hash or opaque-property equivalence check.
+`OneNoteSaveOptions.ValidateRoundTrip` is enabled by default. Section writes, including sections emitted inside `.onepkg`, are read back before bytes are returned. Validation covers page identity, order, conflict/version relationships, titles and core page metadata; outline and table hierarchy; rich-text run boundaries, text, links, and supported formatting; supported layout, image, attachment, media, and math metadata; and binary payload resolution plus known length. This is a semantic guard against silent model loss, not a byte-for-byte payload hash or opaque-property equivalence check.
 
 Caller-owned streams stay open. Seekable read streams are restored to their original position. Async probe and Reader entry points support cancellation.
 

@@ -20,6 +20,7 @@ public sealed partial class CsvDocument
         options = ResolveSaveOptions(options);
 
         WritePath(path, options, writer => CsvWriter.Write(writer, this, options));
+        FilePath = Path.GetFullPath(path);
     }
 
     private static void WritePath(string path, CsvSaveOptions options, Action<TextWriter> write)
@@ -101,6 +102,7 @@ public sealed partial class CsvDocument
             stream.Position = stream.Length;
             await SaveToStreamAsync(stream, CopySaveOptions(options, CsvCompressionType.None), cancellationToken,
                 needsSeparator ? options.NewLine : null).ConfigureAwait(false);
+            FilePath = fullPath;
             return;
         }
 
@@ -108,6 +110,7 @@ public sealed partial class CsvDocument
             (stream, token) => SaveToStreamAsync(stream, CopySaveOptions(options, compressionType), token),
             options.NoClobber ? OfficeFileCommit.ConflictPolicy.FailIfExists : OfficeFileCommit.ConflictPolicy.Replace,
             cancellationToken).ConfigureAwait(false);
+        FilePath = fullPath;
     }
 
     /// <summary>Asynchronously saves the document to a caller-owned writable stream.</summary>
@@ -152,9 +155,6 @@ public sealed partial class CsvDocument
         using var stream = SerializeToMemoryStream(options);
         return stream.ToArray();
     }
-
-    /// <summary>Encodes the document in a new writable memory stream positioned at the beginning.</summary>
-    public MemoryStream ToStream(CsvSaveOptions? options = null) => new MemoryStream(ToBytes(options));
 
     // Stage the complete artifact so serialization failures cannot overwrite a caller's existing document.
     private MemoryStream SerializeToMemoryStream(CsvSaveOptions? options)

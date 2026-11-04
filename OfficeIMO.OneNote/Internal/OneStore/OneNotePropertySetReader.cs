@@ -4,14 +4,14 @@ internal static class OneNotePropertySetReader {
     public static OneNotePropertySet Read(
         byte[] data,
         Dictionary<uint, Guid> globalIds,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         ulong absoluteOffset) => Read(new Cursor(data, globalIds, null, options, absoluteOffset));
 
     // Package CompactIDs are opaque mapping keys; the mapped value can exceed one byte.
     internal static OneNotePropertySet Read(
         byte[] data,
         Dictionary<uint, OneNoteExtendedGuid> compactIds,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         ulong absoluteOffset) => Read(new Cursor(data, null, compactIds, options, absoluteOffset));
 
     private static OneNotePropertySet Read(Cursor cursor) {
@@ -30,12 +30,12 @@ internal static class OneNotePropertySetReader {
         private readonly byte[] _data;
         private readonly Dictionary<uint, Guid>? _globalIds;
         private readonly Dictionary<uint, OneNoteExtendedGuid>? _compactIds;
-        private readonly OneNoteReaderOptions _options;
+        private readonly OneNoteLoadOptions _options;
         private readonly ulong _absoluteOffset;
         private int _position;
         private int _totalProperties;
 
-        public Cursor(byte[] data, Dictionary<uint, Guid>? globalIds, Dictionary<uint, OneNoteExtendedGuid>? compactIds, OneNoteReaderOptions options, ulong absoluteOffset) {
+        public Cursor(byte[] data, Dictionary<uint, Guid>? globalIds, Dictionary<uint, OneNoteExtendedGuid>? compactIds, OneNoteLoadOptions options, ulong absoluteOffset) {
             _data = data;
             _globalIds = globalIds;
             _compactIds = compactIds;

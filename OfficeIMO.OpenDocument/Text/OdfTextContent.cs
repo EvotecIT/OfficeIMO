@@ -38,7 +38,7 @@ public abstract class OdfTextContent {
     /// <summary>Effective native underline line count.</summary>
     public OdfTextDecorationType? UnderlineType { get => Resolve(s => s.UnderlineType); set => EnsureStyle().UnderlineType = value; }
     /// <summary>Effective strike-through state.</summary>
-    public bool? StrikeThrough { get => Resolve(s => s.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
+    public bool? Strikethrough { get => Resolve(s => s.Strikethrough); set => EnsureStyle().Strikethrough = value; }
     /// <summary>Effective font size.</summary>
     public OdfLength? FontSize { get => Resolve(s => s.FontSize); set => EnsureStyle().FontSize = value; }
     /// <summary>Effective font family.</summary>
@@ -66,7 +66,7 @@ public abstract class OdfTextContent {
     public bool? SmallCaps { get => Resolve(s => s.SmallCaps); set => EnsureStyle().SmallCaps = value; }
 
     /// <summary>Appends text using ODF space, tab, and line-break encoding.</summary>
-    public void AddText(string text) { OdfTextCodec.Append(Element, text); Dirty(); }
+    public OdfTextContent AddText(string text) { OdfTextCodec.Append(Element, text); Dirty(); return this; }
     /// <summary>Appends a styled run, retaining existing nodes.</summary>
     public OdfTextRun AddRun(string? text = null) {
         var span = new XElement(OdfNamespaces.Text + "span"); OdfTextCodec.Append(span, text);
@@ -84,8 +84,8 @@ public abstract class OdfTextContent {
         XElement field = OdfTextField.Create(kind, displayText); Element.Add(field); Dirty(); return new OdfTextField(Document, field);
     }
     /// <summary>Transforms stored text while retaining inline XML and excluding annotations and embedded objects.</summary>
-    public void TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
-        OdfTextCodec.TransformTextCase(Element, textCase, culture); Dirty();
+    public OdfTextContent TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
+        OdfTextCodec.TransformTextCase(Element, textCase, culture); Dirty(); return this;
     }
     /// <summary>Returns a detached copy of this native element.</summary>
     public XElement ToXml() => new XElement(Element);
@@ -99,5 +99,10 @@ public abstract class OdfTextContent {
 
 /// <summary>A native styled inline span.</summary>
 public sealed class OdfTextRun : OdfTextContent {
+    /// <summary>Appends native text and returns this inline.</summary>
+    public new OdfTextRun AddText(string text) { base.AddText(text); return this; }
+    /// <summary>Transforms stored text and returns the same native receiver.</summary>
+    public new OdfTextRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) { base.TransformTextCase(textCase, culture); return this; }
+
     internal OdfTextRun(OdfDocument document, XElement element, XElement graphic) : base(document, element, graphic, OdfStyleFamily.Text) { }
 }

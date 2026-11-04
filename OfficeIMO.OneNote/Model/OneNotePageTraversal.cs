@@ -40,7 +40,7 @@ public static class OneNotePageTraversal {
         int maxSectionGroupDepth = OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth) {
         ArgumentNullException.ThrowIfNull(notebook);
         ArgumentOutOfRangeException.ThrowIfNegative(maxSectionGroupDepth);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(maxSectionGroupDepth, OneNoteWriterOptions.MaximumTraversalDepth);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(maxSectionGroupDepth, OneNoteSaveOptions.MaximumTraversalDepth);
 
         var results = new List<OneNotePageReference>();
         var seenGroups = new HashSet<OneNoteSectionGroup>(ReferenceComparer<OneNoteSectionGroup>.Instance);

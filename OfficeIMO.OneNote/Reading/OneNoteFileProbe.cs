@@ -5,7 +5,7 @@ namespace OfficeIMO.OneNote;
 /// </summary>
 public static class OneNoteFileProbe {
     /// <summary>Reads a OneNote header from a file path.</summary>
-    public static OneNoteFileHeader ReadHeader(string path, OneNoteReaderOptions? options = null) {
+    public static OneNoteFileHeader ReadHeader(string path, OneNoteLoadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
         var effectiveOptions = PrepareOptions(options);
@@ -20,7 +20,7 @@ public static class OneNoteFileProbe {
     /// <summary>Asynchronously reads a OneNote header from a file path.</summary>
     public static async Task<OneNoteFileHeader> ReadHeaderAsync(
         string path,
-        OneNoteReaderOptions? options = null,
+        OneNoteLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
@@ -38,7 +38,7 @@ public static class OneNoteFileProbe {
     /// beginning and restored to their original position. Non-seekable streams are consumed
     /// only through the physical header prefix.
     /// </summary>
-    public static OneNoteFileHeader ReadHeader(Stream stream, OneNoteReaderOptions? options = null) {
+    public static OneNoteFileHeader ReadHeader(Stream stream, OneNoteLoadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         var effectiveOptions = PrepareOptions(options);
@@ -53,7 +53,7 @@ public static class OneNoteFileProbe {
     /// </summary>
     public static Task<OneNoteFileHeader> ReadHeaderAsync(
         Stream stream,
-        OneNoteReaderOptions? options = null,
+        OneNoteLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
@@ -63,7 +63,7 @@ public static class OneNoteFileProbe {
         return ReadHeaderCoreAsync(stream, length, effectiveOptions, cancellationToken);
     }
 
-    private static OneNoteFileHeader ReadHeaderCore(Stream stream, long? length, OneNoteReaderOptions options) {
+    private static OneNoteFileHeader ReadHeaderCore(Stream stream, long? length, OneNoteLoadOptions options) {
         bool restore = stream.CanSeek;
         long originalPosition = 0;
         if (restore) {
@@ -82,7 +82,7 @@ public static class OneNoteFileProbe {
     private static async Task<OneNoteFileHeader> ReadHeaderCoreAsync(
         Stream stream,
         long? length,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         CancellationToken cancellationToken) {
         bool restore = stream.CanSeek;
         long originalPosition = 0;
@@ -127,13 +127,13 @@ public static class OneNoteFileProbe {
         return exact;
     }
 
-    private static OneNoteReaderOptions PrepareOptions(OneNoteReaderOptions? options) {
-        var effective = options ?? new OneNoteReaderOptions();
+    private static OneNoteLoadOptions PrepareOptions(OneNoteLoadOptions? options) {
+        var effective = options ?? new OneNoteLoadOptions();
         effective.Validate();
         return effective;
     }
 
-    private static void EnforceInputLength(long length, OneNoteReaderOptions options) {
+    private static void EnforceInputLength(long length, OneNoteLoadOptions options) {
         if (options.MaxInputBytes.HasValue && length > options.MaxInputBytes.Value) {
             throw new IOException("OneNote input exceeds MaxInputBytes (" + length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " > " + options.MaxInputBytes.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + ").");
         }

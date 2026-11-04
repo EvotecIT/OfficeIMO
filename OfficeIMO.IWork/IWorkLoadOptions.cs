@@ -1,7 +1,7 @@
 namespace OfficeIMO.IWork;
 
 /// <summary>Bounds and preservation preferences applied while reading an iWork source.</summary>
-public sealed class IWorkReadOptions {
+public sealed class IWorkLoadOptions {
     /// <summary>Gets or sets whether raw source records are included in the conversion report for inspection.</summary>
     public bool PreserveSourceRecords { get; set; } = true;
 
@@ -116,9 +116,9 @@ public sealed class IWorkReadOptions {
     public int MaxTextStyleInheritanceDepth { get; set; } = 64;
 
     /// <summary>Returns a validated copy suitable for an isolated reader registration.</summary>
-    public IWorkReadOptions Clone() => Snapshot();
+    public IWorkLoadOptions Clone() => Snapshot();
 
-    internal IWorkReadOptions Snapshot() {
+    internal IWorkLoadOptions Snapshot() {
         ValidatePositive(MaxPackageBytes, nameof(MaxPackageBytes));
         ValidatePositive(MaxEntryCount, nameof(MaxEntryCount));
         ValidatePositive(MaxEntryBytes, nameof(MaxEntryBytes));
@@ -163,7 +163,7 @@ public sealed class IWorkReadOptions {
             throw new ArgumentException($"{nameof(MaxSnappyChunkBytes)} cannot exceed {nameof(MaxDecompressedIwaBytes)}.");
         }
 
-        return (IWorkReadOptions)MemberwiseClone();
+        return (IWorkLoadOptions)MemberwiseClone();
     }
 
     private static void ValidatePositive(long value, string name) {

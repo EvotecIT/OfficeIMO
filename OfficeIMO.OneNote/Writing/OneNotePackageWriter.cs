@@ -3,8 +3,8 @@ namespace OfficeIMO.OneNote;
 /// <summary>Creates portable Cabinet-based <c>.onepkg</c> notebook archives.</summary>
 public static class OneNotePackageWriter {
     /// <summary>Serializes a complete notebook to a new <c>.onepkg</c> byte array.</summary>
-    public static byte[] Write(OneNoteNotebook notebook, OneNoteWriterOptions? options = null) {
-        OneNoteWriterOptions effective = options ?? new OneNoteWriterOptions();
+    public static byte[] Write(OneNoteNotebook notebook, OneNoteSaveOptions? options = null) {
+        OneNoteSaveOptions effective = options ?? new OneNoteSaveOptions();
         OneNoteNotebookSerializationPlan plan = OneNoteNotebookSerializationPlan.Create(notebook, effective);
         byte[] data = OneNoteCabinetArchiveWriter.Write(plan.Entries, effective.MaxOutputBytes);
         if (effective.ValidateRoundTrip) {
@@ -26,7 +26,7 @@ public static class OneNotePackageWriter {
     }
 
     /// <summary>Serializes a complete notebook to a caller-owned stream.</summary>
-    public static void Write(OneNoteNotebook notebook, Stream destination, OneNoteWriterOptions? options = null) {
+    public static void Write(OneNoteNotebook notebook, Stream destination, OneNoteSaveOptions? options = null) {
         ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
         byte[] data = Write(notebook, options);
@@ -34,7 +34,7 @@ public static class OneNotePackageWriter {
     }
 
     /// <summary>Serializes a complete notebook to a <c>.onepkg</c> file.</summary>
-    public static void Write(OneNoteNotebook notebook, string path, OneNoteWriterOptions? options = null) {
+    public static void Write(OneNoteNotebook notebook, string path, OneNoteSaveOptions? options = null) {
         ArgumentNullException.ThrowIfNull(path);
         byte[] data = Write(notebook, options);
         string fullPath = Path.GetFullPath(path);

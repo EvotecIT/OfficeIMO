@@ -19,6 +19,76 @@
       "reason": "Lifecycle options are named {Format}CreateOptions; ProjectCreateOptions derives from DocumentCreateOptions like the other formats.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Project.Fluent.ProjectFluentExtensions.AsFluent(ProjectDocument document)",
+      "new": "OfficeIMO.Project.ProjectDocument",
+      "action": "remove",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Project has one native authoring model.",
+      "replacement": "Use Tasks.Add/AddSummary, task.Children, Resources.AddWork/AddMaterial/AddCost and editable metadata/calendar properties. Chain scalar changes through SetDuration/SetWork/SetDates and other Set methods on the native entities.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Project.Fluent.ProjectFluentDocument.End()",
+      "new": "OfficeIMO.Project.ProjectDocument.End()",
+      "action": "change",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Deferred forward-reference validation remains on the document.",
+      "replacement": "Register aliases with task.SetAlias/resource.SetAlias; queue task.After(alias,type,lag)/Assign(alias,units). End validates the entire pending batch before adding links or assignments, keeps the batch on failure and never schedules or saves. Scalars are immediate. Existing tasks/resources can register aliases directly.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Project.Fluent.ProjectFluentDocument",
+      "new": "OfficeIMO.Project.ProjectDocument",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Useful behavior belongs to the existing native model.",
+      "replacement": "Use native collections/properties and the chainable Set methods. StartsOn and StandardWorkingWeek are ProjectDocument methods; typed calendar and resource collections retain every creation mode.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Project.Fluent.ProjectFluentTasks",
+      "new": "OfficeIMO.Project.ProjectTask",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Useful behavior belongs to the existing native model.",
+      "replacement": "Use native collections/properties and the chainable Set methods. StartsOn and StandardWorkingWeek are ProjectDocument methods; typed calendar and resource collections retain every creation mode.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Project.Fluent.ProjectInfoBuilder",
+      "new": "OfficeIMO.Project.ProjectDocument",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Useful behavior belongs to the existing native model.",
+      "replacement": "Use native collections/properties and the chainable Set methods. StartsOn and StandardWorkingWeek are ProjectDocument methods; typed calendar and resource collections retain every creation mode.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Project.Fluent.ProjectTaskBuilder",
+      "new": "OfficeIMO.Project.ProjectTask",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Useful behavior belongs to the existing native model.",
+      "replacement": "Use native collections/properties and the chainable Set methods. StartsOn and StandardWorkingWeek are ProjectDocument methods; typed calendar and resource collections retain every creation mode.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Project.Fluent.ProjectResourceBuilder",
+      "new": "OfficeIMO.Project.ProjectResource",
+      "action": "remove",
+      "kind": "type",
+      "category": "authoring",
+      "reason": "Useful behavior belongs to the existing native model.",
+      "replacement": "Use native collections/properties and the chainable Set methods. StartsOn and StandardWorkingWeek are ProjectDocument methods; typed calendar and resource collections retain every creation mode.",
+      "applied": true
     }
   ]
 }

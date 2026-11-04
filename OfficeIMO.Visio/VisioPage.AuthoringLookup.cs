@@ -6,8 +6,10 @@ public partial class VisioPage {
 
     /// <summary>Connects existing shapes selected by their identifiers.</summary>
     public VisioConnector AddConnector(string fromId, string toId, ConnectorKind kind = ConnectorKind.Dynamic,
-        VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) =>
-        AddConnector(GetShape(fromId), GetShape(toId), kind, fromSide, toSide);
+        VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto, Action<VisioConnector>? configure = null) {
+        var connector = AddConnector(GetShape(fromId), GetShape(toId), kind, fromSide, toSide);
+        configure?.Invoke(connector); return connector;
+    }
 
     /// <summary>Adds a container around existing shapes selected by identifier.</summary>
     public VisioShape AddContainer(string id, string text, IEnumerable<string> memberIds, VisioContainerOptions? options = null) {
@@ -21,5 +23,9 @@ public partial class VisioPage {
         var options = new VisioContainerOptions();
         configure(options);
         return AddContainer(id, text, memberIds, options);
+    }
+    /// <summary>Configures an existing shape selected by its current identifier.</summary>
+    public VisioShape GetShape(string id, Action<VisioShape> configure) {
+        ArgumentNullException.ThrowIfNull(configure); var shape = GetShape(id); configure(shape); ValidateShapeIdentifiers(); return shape;
     }
 }

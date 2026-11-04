@@ -199,7 +199,7 @@ public static class OneNoteNotebookReader {
             try {
                 section = OneNoteSectionReader.Read(path, state.Options.OneNoteOptions);
             } catch (Exception exception) when (state.Options.ContinueOnSectionError && IsRecoverableSectionError(exception)) {
-                section = new OneNoteSection();
+                section = OneNoteSection.Create();
                 notebook.Diagnostics.Add(new OneNoteDiagnostic {
                     Code = exception is OneNoteFormatException format ? format.Code : "ONENOTE_SECTION_READ",
                     Message = "A notebook section could not be read: " + exception.Message,

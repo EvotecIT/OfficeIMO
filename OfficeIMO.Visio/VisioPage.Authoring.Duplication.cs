@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
 
-namespace OfficeIMO.Visio.Fluent {
-    public partial class VisioFluentPage {
-        private const string DefaultFluentDuplicateIdSuffix = "-copy";
+namespace OfficeIMO.Visio {
+    public partial class VisioPage {
+        private const string DefaultDuplicateIdSuffix = "-copy";
 
         /// <summary>
         /// Duplicates one shape by id, copies its grouped children, and keeps copied ids easy to reference.
         /// </summary>
         /// <param name="shapeId">Identifier of the shape to duplicate.</param>
         /// <param name="configure">Optional configuration for the duplicated selection.</param>
-        public VisioFluentPage DuplicateShape(string shapeId, Action<VisioShapeSelection>? configure = null) {
-            return DuplicateShape(shapeId, CreateDefaultFluentDuplicationOptions(), configure);
+        public VisioPage DuplicateShape(string shapeId, Action<VisioShapeSelection>? configure = null) {
+            return DuplicateShape(shapeId, CreateDefaultDuplicationOptions(), configure);
         }
 
         /// <summary>
@@ -20,7 +20,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="shapeId">Identifier of the shape to duplicate.</param>
         /// <param name="options">Duplication options.</param>
         /// <param name="configure">Optional configuration for the duplicated selection.</param>
-        public VisioFluentPage DuplicateShape(string shapeId, VisioShapeDuplicationOptions? options, Action<VisioShapeSelection>? configure = null) {
+        public VisioPage DuplicateShape(string shapeId, VisioShapeDuplicationOptions? options, Action<VisioShapeSelection>? configure = null) {
             return DuplicateShapes(new[] { shapeId }, options, configure);
         }
 
@@ -29,8 +29,8 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="shapeIds">Shape identifiers to duplicate.</param>
         /// <param name="configure">Optional configuration for the duplicated selection.</param>
-        public VisioFluentPage DuplicateShapes(IEnumerable<string> shapeIds, Action<VisioShapeSelection>? configure = null) {
-            return DuplicateShapes(shapeIds, CreateDefaultFluentDuplicationOptions(), configure);
+        public VisioPage DuplicateShapes(IEnumerable<string> shapeIds, Action<VisioShapeSelection>? configure = null) {
+            return DuplicateShapes(shapeIds, CreateDefaultDuplicationOptions(), configure);
         }
 
         /// <summary>
@@ -39,24 +39,24 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="shapeIds">Shape identifiers to duplicate.</param>
         /// <param name="options">Duplication options.</param>
         /// <param name="configure">Optional configuration for the duplicated selection.</param>
-        public VisioFluentPage DuplicateShapes(IEnumerable<string> shapeIds, VisioShapeDuplicationOptions? options, Action<VisioShapeSelection>? configure = null) {
+        public VisioPage DuplicateShapes(IEnumerable<string> shapeIds, VisioShapeDuplicationOptions? options, Action<VisioShapeSelection>? configure = null) {
             ArgumentNullException.ThrowIfNull(shapeIds);
 
             List<VisioShape> shapes = new();
             foreach (string shapeId in shapeIds) {
-                shapes.Add(ResolveShape(shapeId));
+                shapes.Add(GetShape(shapeId));
             }
 
-            VisioShapeSelection duplicates = Page.DuplicateShapes(shapes, options);
+            VisioShapeSelection duplicates = this.DuplicateShapes(shapes, options);
             configure?.Invoke(duplicates);
-            RebuildShapeIndex();
+            ValidateShapeIdentifiers();
             return this;
         }
 
-        private static VisioShapeDuplicationOptions CreateDefaultFluentDuplicationOptions() {
+        private static VisioShapeDuplicationOptions CreateDefaultDuplicationOptions() {
             return new VisioShapeDuplicationOptions {
-                IdSuffix = DefaultFluentDuplicateIdSuffix,
-                ConnectorIdSuffix = DefaultFluentDuplicateIdSuffix
+                IdSuffix = DefaultDuplicateIdSuffix,
+                ConnectorIdSuffix = DefaultDuplicateIdSuffix
             };
         }
     }

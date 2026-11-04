@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkSnappy {
-    internal static byte[] DecodeIwa(byte[] data, IWorkReadOptions options, long remainingTotalBytes,
+    internal static byte[] DecodeIwa(byte[] data, IWorkLoadOptions options, long remainingTotalBytes,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (data.Length > options.MaxIwaBytes) {

@@ -19,7 +19,7 @@ internal sealed class FssHttpStreamObject {
 }
 
 internal static class FssHttpStreamObjectReader {
-    internal static FssHttpStreamObject ReadPackaging(Stream stream, OneNoteReaderOptions options) {
+    internal static FssHttpStreamObject ReadPackaging(Stream stream, OneNoteLoadOptions options) {
         if (stream.Length < OneNoteFormatConstants.PackageStoreFixedPrefixLength + 4) {
             throw new OneNoteFormatException("ONENOTE_PACKAGE_TRUNCATED", "The package-store file is truncated.", stream.Length);
         }
@@ -90,10 +90,10 @@ internal static class FssHttpStreamObjectReader {
 
     private sealed class ReaderState {
         private readonly Stream _stream;
-        private readonly OneNoteReaderOptions _options;
+        private readonly OneNoteLoadOptions _options;
         private int _objectCount;
 
-        internal ReaderState(Stream stream, OneNoteReaderOptions options) {
+        internal ReaderState(Stream stream, OneNoteLoadOptions options) {
             _stream = stream;
             _options = options;
         }

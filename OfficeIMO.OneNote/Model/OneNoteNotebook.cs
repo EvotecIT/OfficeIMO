@@ -77,7 +77,7 @@ public sealed class OneNoteSectionGroup {
 /// <summary>
 /// A OneNote section and its ordered pages.
 /// </summary>
-public sealed class OneNoteSection {
+public sealed partial class OneNoteSection : IDisposable {
     internal OneNoteSectionPreservationState? PreservationState { get; set; }
 
     /// <summary>
@@ -114,10 +114,13 @@ public sealed class OneNoteSection {
     public IList<OneNoteDiagnostic> Diagnostics { get; } = new List<OneNoteDiagnostic>();
 
     /// <summary>Writes this section to an offline <c>.one</c> file.</summary>
-    public void Save(string path, OneNoteWriterOptions? options = null) => OneNoteSectionWriter.Write(this, path, options);
+    public void Save(string path, OneNoteSaveOptions? options = null) {
+        OneNoteSectionWriter.Write(this, path, options);
+        FilePath = Path.GetFullPath(path);
+    }
 
     /// <summary>Serializes this section as an offline <c>.one</c> payload.</summary>
-    public byte[] ToByteArray(OneNoteWriterOptions? options = null) => OneNoteSectionWriter.Write(this, options);
+    public byte[] ToBytes(OneNoteSaveOptions? options = null) => OneNoteSectionWriter.Write(this, options);
 }
 
 /// <summary>

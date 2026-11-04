@@ -120,6 +120,26 @@
       "new": "OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleRows",
       "replacement": "Keep the sample-row count. CsvDataTableOptions retains its separate TableName and table-schema projection contract.",
       "category": "options"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDocument.CsvDocument()",
+      "new": "OfficeIMO.CSV.CsvDocument.Create()",
+      "action": "change",
+      "kind": "constructor",
+      "category": "lifecycle",
+      "reason": "CSV uses the common document factory and path lifecycle.",
+      "replacement": "Use CsvDocument.Create() or Create(path), and dispose the managed document. Path Load/LoadAsync and successful path saves associate FilePath; Save()/SaveAsync() use it. Stream saves do not rebind it.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDocument.ToStream(CsvSaveOptions options = null)",
+      "new": "OfficeIMO.CSV.CsvDocument.ToBytes(CsvSaveOptions options = null)",
+      "action": "remove",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "The route only allocated a MemoryStream over the encoded bytes.",
+      "replacement": "Use new MemoryStream(document.ToBytes(options)) for a new writable seekable stream, or document.Save(destination, options) for caller-owned output.",
+      "applied": true
     }
   ]
 }

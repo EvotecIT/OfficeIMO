@@ -1,7 +1,7 @@
 namespace OfficeIMO.IWork;
 
 /// <summary>Operation-level limits for native Keynote creation.</summary>
-public sealed class IWorkKeynoteWriteOptions {
+public sealed class IWorkKeynoteSaveOptions {
     /// <summary>Gets or sets the maximum number of slides in one output.</summary>
     public int MaxSlides { get; set; } = 4096;
     /// <summary>Gets or sets the maximum number of text boxes across the presentation.</summary>
@@ -23,8 +23,8 @@ public sealed class IWorkKeynoteWriteOptions {
     /// <summary>Gets or sets the maximum size of both the encoded package and an intermediate object archive.</summary>
     public int MaxPackageBytes { get; set; } = 64 * 1024 * 1024;
 
-    internal IWorkKeynoteWriteOptions Snapshot() {
-        var copy = new IWorkKeynoteWriteOptions {
+    internal IWorkKeynoteSaveOptions Snapshot() {
+        var copy = new IWorkKeynoteSaveOptions {
             MaxSlides = MaxSlides, MaxTextBoxes = MaxTextBoxes,
             MaxTextRuns = MaxTextRuns,
             MaxImages = MaxImages, MaxEncodedImageBytes = MaxEncodedImageBytes,

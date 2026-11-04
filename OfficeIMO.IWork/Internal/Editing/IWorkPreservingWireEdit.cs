@@ -5,7 +5,7 @@ namespace OfficeIMO.IWork.Internal;
 /// <summary>Replaces one existing fixed-width scalar without reserializing unknown protobuf fields.</summary>
 internal static class IWorkPreservingWireEdit {
     internal static void ReplaceFloat(byte[] payload, IReadOnlyList<int> path, float value,
-        IWorkReadOptions limits, CancellationToken token) {
+        IWorkLoadOptions limits, CancellationToken token) {
         var span = FindSpan(payload, path.Select(field => (field, -1)).ToArray(), 5, limits, token);
         byte[] bytes = BitConverter.GetBytes(value); if (!BitConverter.IsLittleEndian) Array.Reverse(bytes);
         Buffer.BlockCopy(bytes, 0, payload, span.Offset, 4);
@@ -13,7 +13,7 @@ internal static class IWorkPreservingWireEdit {
 
     /// <summary>Patches a fixed-width range inside an existing bytes field. Occurrence -1 requires a unique field.</summary>
     internal static void ReplaceBytesRange(byte[] payload, IReadOnlyList<(int Field, int Occurrence)> path,
-        int valueOffset, byte[] value, IWorkReadOptions limits, CancellationToken token) {
+        int valueOffset, byte[] value, IWorkLoadOptions limits, CancellationToken token) {
         var span = FindSpan(payload, path, 2, limits, token);
         if (valueOffset < 0 || valueOffset > span.Length || value.Length > span.Length - valueOffset)
             throw new NotSupportedException("The scalar edit exceeds its existing bytes field.");
@@ -22,7 +22,7 @@ internal static class IWorkPreservingWireEdit {
     }
 
     private static (int Offset, int Length) FindSpan(byte[] payload, IReadOnlyList<(int Field, int Occurrence)> path,
-        int leafWire, IWorkReadOptions limits, CancellationToken token) {
+        int leafWire, IWorkLoadOptions limits, CancellationToken token) {
         if (path.Count == 0 || path.Count > limits.MaxProtobufDepth)
             throw new NotSupportedException("The edit field path exceeds the supported protobuf depth.");
         int start = 0, end = payload.Length;

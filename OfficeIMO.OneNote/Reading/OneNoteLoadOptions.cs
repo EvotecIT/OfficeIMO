@@ -3,7 +3,7 @@ namespace OfficeIMO.OneNote;
 /// <summary>
 /// Safety and compatibility limits applied while reading OneNote artifacts.
 /// </summary>
-public sealed class OneNoteReaderOptions {
+public sealed class OneNoteLoadOptions {
     /// <summary>Default maximum input size: 512 MiB.</summary>
     public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
 

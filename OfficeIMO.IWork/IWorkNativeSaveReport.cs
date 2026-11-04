@@ -31,13 +31,8 @@ public sealed class IWorkNativeSaveReport {
 }
 
 /// <summary>A completed native ZIP encoding with its operation-level preservation report.</summary>
-public sealed class IWorkNativeSaveResult {
+internal sealed class IWorkNativeSaveResult {
     internal IWorkNativeSaveResult(byte[] bytes, IWorkNativeSaveReport report) { Bytes = bytes; Report = report; }
     internal byte[] Bytes { get; }
-    /// <summary>Gets the encoded ZIP length.</summary>
-    public int Length => Bytes.Length;
-    /// <summary>Gets preservation and cache facts for this encoding.</summary>
-    public IWorkNativeSaveReport Report { get; }
-    /// <summary>Returns a defensive copy of the encoded native package.</summary>
-    public byte[] GetPackageBytes() => (byte[])Bytes.Clone();
+    internal IWorkNativeSaveReport Report { get; }
 }

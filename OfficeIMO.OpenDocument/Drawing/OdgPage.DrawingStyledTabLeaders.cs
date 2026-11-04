@@ -28,7 +28,7 @@ public sealed partial class OdgPage {
             size.Points.HasValue ? 1 : size.Factor,
             ToColor(source.Color), source.FontFamily, source.Bold, source.Italic,
             source.Underline.HasValue || source.UnderlineStyle.HasValue || source.UnderlineType.HasValue ? mapped.UnderlineStyle : null,
-            source.StrikeThrough.HasValue ? mapped.StrikethroughStyle : null,
+            source.Strikethrough.HasValue ? mapped.StrikethroughStyle : null,
             source.TextPosition.HasValue ? mapped.Baseline : null,
             hasBackground ? ToColor(source.BackgroundColor) ?? OfficeColor.Transparent : null, inheritOpacity: true, opacity: source.TextOpacity);
         // Display-time casing is compiled through the existing run owner. A mapping
