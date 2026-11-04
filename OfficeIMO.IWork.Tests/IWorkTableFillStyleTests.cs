@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             for (int i = 0; i < positions.Length; i++) {
                 var (row, column) = positions[i]; var cell = Assert.Single(reopened.Slides[0].Tables).GetCell(row - 1, column - 1);
-                Assert.Equal(expected[i], cell.FillColor); Assert.Equal(expected[i] == null, cell.NoFill);
+                Assert.Equal(expected[i] == null ? (OfficeIMO.OfficeColor?)null : OfficeIMO.OfficeColor.Parse(expected[i]!), cell.FillColor); Assert.Equal(expected[i] == null, cell.NoFill);
             }
             Assert.Empty(reopened.ValidateDocument());
         }

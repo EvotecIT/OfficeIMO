@@ -212,7 +212,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("42", table.GetCell(0, 0).Text);
             Assert.Equal(string.Empty, table.GetCell(0, 1).Text);
             Assert.All(new[] { 0, 1 }, column => {
-                Assert.Equal(expected, table.GetCell(0, column).FillColor);
+                Assert.Equal(expected == null ? (OfficeIMO.OfficeColor?)null : OfficeIMO.OfficeColor.Parse(expected), table.GetCell(0, column).FillColor);
                 Assert.Equal(expected == null, table.GetCell(0, column).NoFill);
             });
             Assert.Empty(reopened.ValidateDocument());

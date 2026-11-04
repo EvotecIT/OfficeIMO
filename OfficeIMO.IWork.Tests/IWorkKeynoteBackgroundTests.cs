@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(color, source.BackgroundColor?.RgbHex);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
-        Assert.Equal(color, reopened.Slides[0].BackgroundColor);
+        Assert.Equal(color == null ? (OfficeIMO.OfficeColor?)null : OfficeIMO.OfficeColor.Parse(color), reopened.Slides[0].BackgroundColor);
         Assert.Empty(reopened.ValidateDocument());
         if (color == null) {
             saved.Position = 0;
@@ -140,7 +140,7 @@ public sealed partial class IWorkBoundaryTests {
                 string kind = expected.GetProperty("backgroundKind").GetString()!;
                 Assert.Equal(kind is "solid" or "none", slide.HasBackgroundFill);
                 Assert.Equal(expected.GetProperty("rgb").GetString(), slide.BackgroundColor?.RgbHex);
-                Assert.Equal(slide.BackgroundColor?.RgbHex, reopened.Slides[slide.Index - 1].BackgroundColor);
+                Assert.Equal(slide.BackgroundColor?.RgbHex is { } rgb ? OfficeIMO.OfficeColor.Parse(rgb) : (OfficeIMO.OfficeColor?)null, reopened.Slides[slide.Index - 1].BackgroundColor);
                 if (kind == "unsupported") Assert.Contains(result.Report.NativeDiagnostics,
                     d => d.Code == "IWORK_KEYNOTE_BACKGROUND_UNSUPPORTED" && d.RecordIdentifier == slide.SourceIdentity!.RecordIdentifier);
             }
@@ -157,7 +157,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
-        Assert.Equal(new[] { "56C1FF", "FF968D" }, reopened.Slides.Select(slide => slide.BackgroundColor));
+        Assert.Equal(new OfficeIMO.OfficeColor?[] { OfficeIMO.OfficeColor.Parse("56C1FF"), OfficeIMO.OfficeColor.Parse("FF968D") }, reopened.Slides.Select(slide => slide.BackgroundColor));
         Assert.Empty(reopened.ValidateDocument());
     }
 

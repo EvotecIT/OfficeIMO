@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Empty(reopened.ValidateDocument());
             var target = reopened.Slides[0].Tables.Single();
             Assert.False(target.FirstRow); Assert.False(target.FirstColumn); Assert.False(target.LastRow); Assert.False(target.BandedRows);
-            for (int row = 0; row < target.Rows; row++) for (int column = 0; column < target.Columns; column++)
+            for (int row = 0; row < target.RowCount; row++) for (int column = 0; column < target.ColumnCount; column++)
                 Assert.All(target.GetCell(row, column).Paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.False(run.Bold));
         }
         saved.Position = 0; using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);

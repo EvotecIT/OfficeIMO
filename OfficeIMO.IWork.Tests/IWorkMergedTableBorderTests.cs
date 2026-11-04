@@ -73,8 +73,8 @@ public sealed partial class IWorkBoundaryTests {
             using var result = source.ToPowerPointResult(); result.Report.RequireCompleteEditableReconstruction();
             // Border evidence does not depend on the host's minimum font line box.
             var authoredTable = result.Value.Slides[0].Tables.First();
-            for (int row = 0; row < authoredTable.Rows; row++) authoredTable.SetRowHeight(row, OfficeIMO.OfficeLength.Points(60D));
-            authoredTable.Height = OfficeLength.Points(authoredTable.Rows * 60D);
+            for (int row = 0; row < authoredTable.RowCount; row++) authoredTable.SetRowHeight(row, OfficeIMO.OfficeLength.Points(60D));
+            authoredTable.Height = OfficeLength.Points(authoredTable.RowCount * 60D);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
             var pdf = reopened.ToPdf();

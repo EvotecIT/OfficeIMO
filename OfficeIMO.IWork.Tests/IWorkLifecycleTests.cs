@@ -2,6 +2,44 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed class IWorkLifecycleTests {
     [Fact]
+    public void KeynoteRebindsOnlyAfterSuccessfulFileSaves() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string first = Path.Combine(directory, "first.key");
+            string second = Path.Combine(directory, "second.key");
+            string blocked = Path.Combine(directory, "blocked.key");
+            using var document = IWorkKeynoteDocument.Create();
+            document.AddSlide();
+            Assert.Null(document.FilePath);
+            document.Save(first);
+            Assert.Equal(first, document.FilePath);
+            byte[] original = File.ReadAllBytes(first);
+            using var stream = new MemoryStream();
+            document.Save(stream);
+            Assert.True(stream.CanWrite);
+            Assert.Equal(first, document.FilePath);
+            document.AddSlide("112233");
+            document.Save(second);
+            Assert.Equal(second, document.FilePath);
+            byte[] secondVersion = File.ReadAllBytes(second);
+            File.WriteAllBytes(blocked, original);
+            Assert.Throws<IOException>(() => document.Save(blocked));
+            Assert.Equal(second, document.FilePath);
+            Assert.Equal(original, File.ReadAllBytes(blocked));
+            document.AddSlide("445566");
+            document.Save(overwrite: true);
+            Assert.Equal(second, document.FilePath);
+            Assert.Equal(original, File.ReadAllBytes(first));
+            Assert.False(secondVersion.SequenceEqual(File.ReadAllBytes(second)));
+            using var reopened = IWorkSourceDocument.Load(second, IWorkDocumentKind.Keynote);
+            Assert.NotEmpty(reopened.ComputePackageContentHash());
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void NativePagesLifecyclePreservesOverwriteOptInAndReturnsPreservationEvidence() {
         string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);

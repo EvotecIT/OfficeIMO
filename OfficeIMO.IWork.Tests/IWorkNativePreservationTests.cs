@@ -86,7 +86,7 @@ public sealed class IWorkNativePreservationTests {
             Write(archive, "Index/outer-only.bin", new byte[] { 9, 8, 7 });
         }
         IWorkSourceDocument source = IWorkSourceDocument.Load(outer.ToArray());
-        var session = source.BeginEdit(); IWorkNativeSaveResult saved = (Bytes: session.ToBytes(out var nativeReport3), Report: nativeReport3);
+        var session = source.BeginEdit(); var saved = (Bytes: session.ToBytes(out var nativeReport3), Report: nativeReport3);
         using var package = new ZipArchive(new MemoryStream(saved.Bytes), ZipArchiveMode.Read);
         Assert.NotNull(package.GetEntry("Index.zip")); Assert.NotNull(package.GetEntry("Index/outer-only.bin"));
         Assert.Null(package.GetEntry("Index/Document.iwa"));
