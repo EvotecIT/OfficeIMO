@@ -70,12 +70,12 @@ internal static class XlBenchShapeRunner {
         }
     }
 
-    /// <summary>Arguments: scenario [iterations]. Repeats OfficeIMO alone and prints sampled allocation by type.</summary>
+    /// <summary>Arguments: scenario [iterations] [--cpu-only]. Repeats OfficeIMO with optional allocation sampling.</summary>
     internal static void Profile(string[] arguments) {
         Scenario scenario = Select(arguments.Length > 1 ? arguments[1] : throw new ArgumentException("A scenario is required.")).Single();
         int iterations = arguments.Length > 2 ? int.Parse(arguments[2], CultureInfo.InvariantCulture) : 10;
         scenario.OfficeImo();
-        using var listener = new AllocationListener();
+        using var listener = arguments.Contains("--cpu-only", StringComparer.OrdinalIgnoreCase) ? null : new AllocationListener();
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < iterations; i++) {
             scenario.OfficeImo();
@@ -83,8 +83,10 @@ internal static class XlBenchShapeRunner {
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Thread.Sleep(500);
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{scenario.Name}: {allocated / 1_048_576d / iterations:F2} MB per iteration"));
-        foreach (var (type, share) in listener.TopTypes(30)) {
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{share,6:P1} {type}"));
+        if (listener != null) {
+            foreach (var (type, share) in listener.TopTypes(30)) {
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{share,6:P1} {type}"));
+            }
         }
     }
 
