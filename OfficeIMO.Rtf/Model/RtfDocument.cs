@@ -145,8 +145,11 @@ public sealed partial class RtfDocument {
     public static RtfReadResult LoadResult(string path, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return LoadResult(stream, readOptions, encoding, cancellationToken);
+        string fullPath = Path.GetFullPath(path);
+        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        RtfReadResult result = LoadResult(stream, readOptions, encoding, cancellationToken);
+        result.Document.FilePath = fullPath;
+        return result;
     }
 
     /// <summary>Loads RTF bytes into the semantic document model.</summary>
@@ -419,7 +422,9 @@ public sealed partial class RtfDocument {
     /// <summary>Saves the document to an RTF file.</summary>
     public void Save(string path, RtfSaveOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        OfficeFileCommit.WriteAllBytes(path, ToFileBytes(options, encoding));
+        string fullPath = Path.GetFullPath(path);
+        OfficeFileCommit.WriteAllBytes(fullPath, ToFileBytes(options, encoding));
+        FilePath = fullPath;
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>

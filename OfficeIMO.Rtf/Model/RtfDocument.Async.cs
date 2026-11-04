@@ -12,8 +12,11 @@ public sealed partial class RtfDocument {
     /// <summary>Asynchronously loads RTF from a file with lossless syntax and diagnostics.</summary>
     public static async Task<RtfReadResult> LoadResultAsync(string path, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
-        return await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
+        string fullPath = Path.GetFullPath(path);
+        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
+        RtfReadResult result = await LoadResultAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
+        result.Document.FilePath = fullPath;
+        return result;
     }
 
     /// <summary>Asynchronously loads RTF from a stream into the semantic document model.</summary>
@@ -33,7 +36,9 @@ public sealed partial class RtfDocument {
     public async Task SaveAsync(string path, RtfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         byte[] bytes = ToFileBytes(options, encoding);
-        await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        string fullPath = Path.GetFullPath(path);
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        FilePath = fullPath;
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>
