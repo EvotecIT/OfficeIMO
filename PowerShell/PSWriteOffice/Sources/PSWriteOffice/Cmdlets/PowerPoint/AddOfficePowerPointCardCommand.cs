@@ -9,10 +9,10 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a narrative card or logo tile to the current designed slide.</summary>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointCard", DefaultParameterSetName = "Card")]
-[Alias("PowerPointCard")]
+[Alias("PowerPointCard") ]
 public sealed class AddOfficePowerPointCardCommand : OfficeCmdlet {
     /// <summary>Gets or sets the title.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Card")]
     public string Title { get; set; } = string.Empty;
     /// <summary>Gets or sets the text.</summary>
     [Parameter]
@@ -24,7 +24,7 @@ public sealed class AddOfficePowerPointCardCommand : OfficeCmdlet {
     [Parameter]
     public string? Image { get; set; }
     /// <summary>Gets or sets the color.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Color { get; set; }
 
     /// <inheritdoc />

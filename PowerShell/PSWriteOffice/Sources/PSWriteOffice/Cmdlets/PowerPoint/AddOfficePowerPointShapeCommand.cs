@@ -14,11 +14,11 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     PowerPointShape -Type Ellipse -Name 'Healthy' -FillColor Success -X 2cm -Y 4cm -Width 2cm -Height 2cm
 /// }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointShape", DefaultParameterSetName = "Shape")]
-[Alias("PowerPointShape")]
 [OutputType(typeof(PowerPointAutoShape))]
+[Alias("PowerPointShape") ]
 public sealed class AddOfficePowerPointShapeCommand : OfficeCmdlet {
     /// <summary>Gets or sets a native slide or one-based position; omission uses the current slide block.</summary>
-    [Parameter(ValueFromPipeline = true), PowerPointSlideTransformation]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Shape"), PowerPointSlideTransformation]
     public PowerPointSlideSelector? Slide { get; set; }
     /// <summary>Gets or sets the native preset geometry.</summary>
     [Parameter]
@@ -26,11 +26,11 @@ public sealed class AddOfficePowerPointShapeCommand : OfficeCmdlet {
     /// <summary>Gets or sets the native shape name.</summary>
     [Parameter]
     public string? Name { get; set; }
-    /// <summary>Gets or sets the fill color or theme role.</summary>
-    [Parameter, OfficeColorTransformation]
+    /// <summary>Gets or sets the fill color or theme role; explicit null clears the local override.</summary>
+    [Parameter, AllowNull, OfficeColorTransformation(AllowNull = true), ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? FillColor { get; set; }
-    /// <summary>Gets or sets the outline color or theme role.</summary>
-    [Parameter, OfficeColorTransformation]
+    /// <summary>Gets or sets the outline color or theme role; explicit null clears the local override.</summary>
+    [Parameter, AllowNull, OfficeColorTransformation(AllowNull = true), ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? OutlineColor { get; set; }
     /// <summary>Gets or sets the outline thickness; numbers mean points.</summary>
     [Parameter, OfficeLengthTransformation]
@@ -65,14 +65,11 @@ public sealed class AddOfficePowerPointShapeCommand : OfficeCmdlet {
                 throw new ArgumentException("Shape width and height must be positive.");
             if (OutlineWidth.HasValue) PowerPointShape.ToDrawingLineWidth(OutlineWidth.Value, nameof(OutlineWidth));
             var target = PowerPointManualPlacement.Resolve(Slide);
-            var document = target.Slide.OwnerDocument ?? throw new ArgumentException("The slide has no owning document.");
-            var context = new PowerPointLayoutContext(document, PowerPointLayoutTheme.From(target.Slide.AuthoringTheme));
-            string? fill = FillColor.HasValue ? context.ResolveColor(FillColor) : null;
-            string? outline = OutlineColor.HasValue ? context.ResolveColor(OutlineColor) : null;
+            _ = target.Slide.OwnerDocument ?? throw new ArgumentException("The slide has no owning document.");
             var horizontal = PowerPointManualPlacement.Horizontal(target.Slide, X, Width, Column, Span);
             shape = target.Slide.AddShape(Type, horizontal.X, Y, horizontal.Width, Height, Name);
-            if (fill != null) shape.FillColor = fill;
-            if (outline != null) shape.OutlineColor = outline;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(FillColor))) shape.FillColor = FillColor;
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(OutlineColor))) shape.OutlineColor = OutlineColor;
             if (OutlineWidth.HasValue) shape.OutlineWidth = OutlineWidth;
             target.Scope?.TrackFixedFigure(shape);
             if (PassThru) WriteObject(shape);

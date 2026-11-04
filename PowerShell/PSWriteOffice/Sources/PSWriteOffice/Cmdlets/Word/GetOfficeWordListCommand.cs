@@ -1,99 +1,80 @@
-using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Text.RegularExpressions;
+using OfficeIMO;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Gets lists from a Word document or section.</summary>
-/// <para>
-/// Returns existing <see cref="WordList"/> objects so scripts can inspect list items, report on
-/// checklist content, or pipe a selected list to <c>Add-OfficeWordListItem</c>. Use this command when
-/// the script needs to work with list objects directly instead of using a text search first.
-/// </para>
-/// <example>
-///   <summary>Inspect existing list items.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Open-OfficeWord -Path .\Report.docx
-/// $list = $doc | Get-OfficeWordList | Select-Object -First 1
-/// $list.ListItems | Select-Object -Property Text</code>
-///   <para>Returns OfficeIMO list objects so existing list items can be reviewed or appended to.</para>
-/// </example>
-/// <example>
-///   <summary>Select a checklist by existing item text and append an item.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Open-OfficeWord -Path .\Report.docx
-/// Get-OfficeWordList -Document $doc |
-///     Where-Object { $_.ListItems.Text -contains 'Initial review' } |
-///     Add-OfficeWordListItem -Text 'Final approval'
-/// $doc | Close-OfficeWord -Save</code>
-///   <para>Inspects list objects directly when the caller wants custom selection logic.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordList")]
+/// <summary>Gets lists, optionally only those with an item matching a pattern.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordList", DefaultParameterSetName = "Document")]
 [OutputType(typeof(WordList))]
 public sealed class GetOfficeWordListCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetSection = "Section";
+    /// <summary>Document paths; supports wildcards.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Path to the document to open read-only for list inspection.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Open document to inspect. The caller controls the document lifetime.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
-
-    /// <summary>Section to inspect when the caller only wants lists in a specific section.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetSection)]
-    public WordSection Section { get; set; } = null!;
-
-    /// <summary>Include numbering definitions that do not currently have list items.</summary>
-    [Parameter]
+    /// <summary>Include list definitions with no items.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
     public SwitchParameter IncludeEmpty { get; set; }
+
+    /// <summary>Optional regular expression, or literal text with SimpleMatch.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public string? Pattern { get; set; }
+
+    /// <summary>Treat Pattern as literal text.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public SwitchParameter SimpleMatch { get; set; }
+
+    /// <summary>Use case-sensitive matching.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public SwitchParameter CaseSensitive { get; set; }
+
+    /// <summary>Exact document paths, including literal brackets.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+
+    /// <summary>Caller-owned document; omission uses the enclosing Word content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
+
+    /// <summary>Caller-owned section to inspect.</summary>
+    [Parameter(ParameterSetName = "Section", Mandatory = true, ValueFromPipeline = true)]
+    public WordSection? Section { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordDocument? document = null;
-        var dispose = false;
+        if (ParameterSetName == "Section") InspectSection(Section!);
+        else WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, InspectDocument);
+    }
 
-        try {
-            IEnumerable<WordList> lists;
+    private void InspectDocument(WordDocument document) => Emit(document.Lists);
+    private void InspectSection(WordSection section) => Emit(section.Lists);
 
-            if (ParameterSetName == ParameterSetSection) {
-                lists = Section != null
-                    ? Section.Lists
-                    : Array.Empty<WordList>();
-            } else {
-                if (ParameterSetName == ParameterSetPath) {
-                    var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                    document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                    dispose = true;
-                } else {
-                    document = Document;
-                }
-
-                if (document == null) {
-                    throw new InvalidOperationException("Word document was not provided.");
-                }
-
-                lists = document.Lists;
-            }
-
-            if (!IncludeEmpty.IsPresent) {
-                lists = lists.Where(list => list.ListItems.Count > 0);
-            }
-
-            WriteObject(lists, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
-            }
+    private void Emit(IEnumerable<WordList> items) {
+        if (!IncludeEmpty) items = items.Where(item => item.ListItems.Count > 0);
+        if (Pattern != null) {
+            var matches = SimpleMatch ? WordObjectSearch.CreateTextMatcher(Pattern, CaseSensitive)
+                : WordObjectSearch.CreateRegexMatcher(Pattern, CaseSensitive);
+            items = items.Where(item => WordObjectSearch.MatchesList(item, matches));
         }
+        WriteObject(items, true);
     }
 }

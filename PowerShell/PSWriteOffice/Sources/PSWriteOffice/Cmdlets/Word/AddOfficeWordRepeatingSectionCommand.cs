@@ -12,8 +12,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a repeating section control.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordRepeatingSection", DefaultParameterSetName = "Default")]
-[Alias("WordRepeatingSection")]
 [OutputType(typeof(WordRepeatingSection))]
+[Alias("WordRepeatingSection") ]
 public sealed class AddOfficeWordRepeatingSectionCommand : PSCmdlet
 {
     /// <summary>Optional title for the repeating section.</summary>
@@ -29,7 +29,7 @@ public sealed class AddOfficeWordRepeatingSectionCommand : PSCmdlet
     public string? Tag { get; set; }
 
     /// <summary>Explicit paragraph to receive the control.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordParagraph? Paragraph { get; set; }
 
     /// <summary>Emit the created control.</summary>

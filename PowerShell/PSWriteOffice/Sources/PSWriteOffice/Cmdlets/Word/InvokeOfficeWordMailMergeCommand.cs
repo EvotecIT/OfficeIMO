@@ -21,7 +21,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 public sealed class InvokeOfficeWordMailMergeCommand : PSCmdlet
 {
     /// <summary>Document to update when provided explicitly.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordDocument? Document { get; set; }
 
     /// <summary>Hashtable or object whose properties map to MERGEFIELD names.</summary>

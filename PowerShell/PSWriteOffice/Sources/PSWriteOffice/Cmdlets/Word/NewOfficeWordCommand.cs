@@ -47,7 +47,7 @@ public sealed class NewOfficeWordCommand : OfficeNewLifecycleCmdlet<WordDocument
             Template = Template == null ? null : ResolveOutputPath(Template)
         };
         RunDocument(Path, isNew: true, force: Force.IsPresent,
-            path => path == null ? WordDocument.Create(options) : WordDocument.Create(path, options),
+            path => WordDocumentService.RegisterDocument(path == null ? WordDocument.Create(options) : WordDocument.Create(path, options)),
             (document, path, allowLoss) => {
                 document.Save(path, WordDocumentService.NativeSaveOptions(allowLoss, Password,
                     MyInvocation.BoundParameters.ContainsKey(nameof(Password))));

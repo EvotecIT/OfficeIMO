@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [OutputType(typeof(PowerPointPdfExportOptions))]
 public sealed class NewOfficePowerPointPdfOptionsCommand : OfficeCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Default font family used when the presentation does not specify one.</summary>

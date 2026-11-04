@@ -8,10 +8,10 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a named location to a coverage slide.</summary>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointLocation", DefaultParameterSetName = "Location")]
-[Alias("PowerPointLocation")]
+[Alias("PowerPointLocation") ]
 public sealed class AddOfficePowerPointLocationCommand : OfficeCmdlet {
     /// <summary>Gets or sets the location name.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Location")]
     public string Name { get; set; } = string.Empty;
     /// <summary>Gets or sets the horizontal fraction of the map.</summary>
     [Parameter(Mandatory = true), ValidateRange(0D, 1D)]

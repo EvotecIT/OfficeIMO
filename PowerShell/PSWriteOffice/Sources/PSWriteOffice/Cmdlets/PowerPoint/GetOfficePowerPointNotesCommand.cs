@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [OutputType(typeof(PowerPointNotesInfo))]
 public sealed class GetOfficePowerPointNotesCommand : OfficeCmdlet {
     /// <summary>Gets or sets a live document; omission uses the enclosing document block.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets a native slide object or one-based slide position.</summary>
     [Parameter, PowerPointSlideTransformation]

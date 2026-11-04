@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
@@ -19,8 +20,9 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Find-OfficeWordList -Document $doc -Text 'Initial review' | Add-OfficeWordListItem -Text 'Final approval'</code>
 ///   <para>Finds a list in an existing document and appends a new item.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordListItem")]
-[Alias("WordListItem")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordListItem", DefaultParameterSetName = "Text")]
+[OutputType(typeof(WordParagraph))]
+[Alias("WordListItem") ]
 public sealed class AddOfficeWordListItemCommand : PSCmdlet
 {
     /// <summary>Existing list to append to. When omitted, the current DSL list is used.</summary>
@@ -28,12 +30,16 @@ public sealed class AddOfficeWordListItemCommand : PSCmdlet
     public WordList? List { get; set; }
 
     /// <summary>List item text.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
     public string Text { get; set; } = string.Empty;
 
-    /// <summary>Zero-based list level.</summary>
-    [Parameter]
-    public int Level { get; set; }
+    /// <summary>Rich item content composed with WordText.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Content")]
+    public ScriptBlock? Content { get; set; }
+
+    /// <summary>One-based list level, from 1 to 9.</summary>
+    [Parameter, ValidateRange(1, 9)]
+    public int Level { get; set; } = 1;
 
     /// <summary>Emit the created <see cref="WordParagraph"/>.</summary>
     [Parameter]
@@ -47,11 +53,16 @@ public sealed class AddOfficeWordListItemCommand : PSCmdlet
         var anchor = context?.CurrentList == list
             ? context.ConsumeListAnchor(list)
             : null;
-        var paragraph = list.AddItem(string.IsNullOrEmpty(Text) ? null : Text, Level, anchor);
+        var paragraph = list.AddItem(string.IsNullOrEmpty(Text) ? null : Text, Level - 1, anchor);
 
         if (anchor != null && !ReferenceEquals(paragraph, anchor) && string.IsNullOrWhiteSpace(anchor.Text))
         {
             anchor.Remove();
+        }
+
+        if (Content != null)
+        {
+            using (OfficeDocumentContext.Push(paragraph)) Content.InvokeReturnAsIs();
         }
 
         if (PassThru.IsPresent)

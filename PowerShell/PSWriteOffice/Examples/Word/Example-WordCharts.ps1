@@ -28,9 +28,9 @@ New-OfficeWord -Path $docPath {
 
     Add-OfficeWordParagraph -Text 'Pie chart anchored inside a table cell'
     Add-OfficeWordTable -InputObject $tableRows -Style 'GridTable1LightAccent1' {
-        WordTableCell -Row 1 -Column 1 {
+        WordTableCell -Row 2 -Column 2 {
             WordParagraph {
-                WordChart -Type Pie -Data $rows -Category Region -Value Revenue -Title 'Cell Revenue Mix' -WidthPixels 420 -HeightPixels 280
+                WordChart -Type Pie -Data $rows -Category Region -Value Revenue -Title 'Cell Revenue Mix' -Width 420 -Height 280
             }
         }
     }

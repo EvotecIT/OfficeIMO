@@ -15,12 +15,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a dropdown list control with the supplied items.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordDropDownList", DefaultParameterSetName = "Default")]
-[Alias("WordDropDownList")]
 [OutputType(typeof(WordDropDownList))]
+[Alias("WordDropDownList") ]
 public sealed class AddOfficeWordDropDownListCommand : PSCmdlet
 {
     /// <summary>Items to include in the dropdown list.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
     public string[] Items { get; set; } = Array.Empty<string>();
 
     /// <summary>Optional alias for the control.</summary>

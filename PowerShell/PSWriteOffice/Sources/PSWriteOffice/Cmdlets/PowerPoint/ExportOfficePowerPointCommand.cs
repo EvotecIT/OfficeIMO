@@ -24,7 +24,7 @@ public sealed class ExportOfficePowerPointCommand : OfficeCmdlet {
     private readonly List<object?> _input = new();
 
     /// <summary>Objects supplied as an array or through the pipeline.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Path")]
     public object[] InputObject { get; set; } = Array.Empty<object>();
 
     /// <summary>Destination PPTX file; its parent folder is created only when publishing.</summary>
@@ -80,7 +80,7 @@ public sealed class ExportOfficePowerPointCommand : OfficeCmdlet {
     public OfficeThemeInput? Theme { get; set; }
 
     /// <summary>Brand accent, resolved against the selected theme.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor Accent { get; set; }
 
     /// <summary>Culture for displayed cell values, group counts and numeric chart input; defaults to invariant.</summary>

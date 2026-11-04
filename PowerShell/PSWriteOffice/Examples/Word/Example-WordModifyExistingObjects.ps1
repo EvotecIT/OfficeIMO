@@ -23,23 +23,23 @@ New-OfficeWord -Path $path {
 # Second pass: treat the file as an existing document that came from a user or template.
 $document = Open-OfficeWord -Path $path
 try {
-    $riskTable = Find-OfficeWordTable -Document $document -Text 'Risk marker' | Select-Object -First 1
+    $riskTable = Get-OfficeWordTable -Document $document -Pattern 'Risk marker' -SimpleMatch | Select-Object -First 1
 
     $riskTable |
-        Add-OfficeWordTableRow -Values ([ordered]@{
+        Add-OfficeWordTableRow -InputObject ([ordered]@{
             Item  = 'Mitigation plan'
             Owner = 'Service Desk'
             State = 'Ready'
         }) -PassThru
 
     $riskTable |
-        Add-OfficeWordTableRow -Values 'Release communication', 'Operations', 'Draft'
+        Add-OfficeWordTableRow -InputObject 'Release communication', 'Operations', 'Draft'
 
     $riskTable |
         Get-OfficeWordTableCell -Row 2 -Column 2 |
-        Set-OfficeWordTableCell -Text 'Investigating' -ShadingFillColor '#fff2cc' -ShadingPattern Clear
+        Set-OfficeWordTableCell -Text 'Investigating' -BackgroundColor '#fff2cc' -ShadingPattern Clear
 
-    Find-OfficeWordList -Document $document -Text 'Initial review' |
+    Get-OfficeWordList -Document $document -Pattern 'Initial review' -SimpleMatch |
         Add-OfficeWordListItem -Text 'Business sign-off'
 
     Get-OfficeWordList -Document $document |
@@ -51,6 +51,6 @@ try {
 
 Write-Host "Updated Word document saved to $path"
 Write-Host 'Risk table matches:'
-Find-OfficeWordTable -Path $path -Text 'Mitigation plan' |
+Get-OfficeWordTable -Path $path -Pattern 'Mitigation plan' -SimpleMatch |
     Select-Object -First 1 |
     Format-Table

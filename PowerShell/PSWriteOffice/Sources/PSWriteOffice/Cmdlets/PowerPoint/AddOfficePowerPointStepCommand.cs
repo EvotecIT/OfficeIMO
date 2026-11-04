@@ -9,10 +9,10 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a process step to the current designed slide.</summary>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointStep", DefaultParameterSetName = "Step")]
-[Alias("PowerPointStep")]
+[Alias("PowerPointStep") ]
 public sealed class AddOfficePowerPointStepCommand : OfficeCmdlet {
     /// <summary>Gets or sets the title.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Step")]
     public string Title { get; set; } = string.Empty;
     /// <summary>Gets or sets the text.</summary>
     [Parameter(Position = 1)]

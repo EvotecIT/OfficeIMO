@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 [OutputType(typeof(WordRevisionFilter))]
 public sealed class NewOfficeWordRevisionFilterCommand : PSCmdlet {
     /// <summary>Revision author.</summary>
-    [Parameter] public string? Author { get; set; }
+    [Parameter(ParameterSetName = "Default")] public string? Author { get; set; }
     /// <summary>Revision identifier.</summary>
     [Parameter] public string? RevisionId { get; set; }
     /// <summary>Revision operation type.</summary>

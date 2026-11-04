@@ -4,16 +4,16 @@ $null = New-Item -Path $documents -ItemType Directory -Force
 $path = Join-Path $documents 'PowerPoint-CopySlides.pptx'
 $presentation = New-OfficePowerPoint -Path $path -NoSave
 
-$intro = Add-OfficePowerPointSlide -Presentation $presentation -Layout 1 -PassThru
+$intro = Add-OfficePowerPointSlide -Document $presentation -TemplateLayout 1 -PassThru
 Set-OfficePowerPointSlideTitle -Slide $intro -Title 'Executive Summary'
 Add-OfficePowerPointTextBox -Slide $intro -Text 'Quarterly revenue and margin summary' -X 80 -Y 150 -Width 360 -Height 60
 Set-OfficePowerPointNotes -Slide $intro -Text 'Use this for board prep.'
 
-$closing = Add-OfficePowerPointSlide -Presentation $presentation -Layout 1 -PassThru
+$closing = Add-OfficePowerPointSlide -Document $presentation -TemplateLayout 1 -PassThru
 Set-OfficePowerPointSlideTitle -Slide $closing -Title 'Appendix'
 
-Copy-OfficePowerPointSlide -Presentation $presentation -Index 0 -InsertAt 1
+Copy-OfficePowerPointSlide -Document $presentation -Slide 0 -Position 1
 
-Save-OfficePowerPoint -Presentation $presentation
+Save-OfficePowerPoint -Document $presentation
 
 Write-Host "Presentation saved to $path"

@@ -1,4 +1,5 @@
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
@@ -27,35 +28,37 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a paragraph on a live document and appends two differently formatted runs.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordParagraph", DefaultParameterSetName = ParameterSetText)]
-[Alias("WordParagraph")]
 [OutputType(typeof(WordParagraph))]
+[Alias("WordParagraph") ]
 public sealed class AddOfficeWordParagraphCommand : PSCmdlet
 {
     private const string ParameterSetText = "Text";
     private const string ParameterSetContent = "Content";
 
-    /// <summary>Document or section that will receive the paragraph.</summary>
-    [Parameter(ValueFromPipeline = true)]
-    [Alias("Document", "Section")]
-    public object? Target { get; set; }
+    /// <summary>Live document to receive the paragraph; omitted in a content block.</summary>
+    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetText)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetContent)]
+    public WordDocument? Document { get; set; }
 
-    /// <summary>Optional initial paragraph text.</summary>
+    /// <summary>Section to receive the paragraph.</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "SectionText")]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "SectionContent")]
+    public WordSection? Section { get; set; }
+
+    /// <summary>Initial paragraph text; omission creates an empty paragraph.</summary>
     [Parameter(Position = 0, ParameterSetName = ParameterSetText)]
-    [Parameter(ParameterSetName = ParameterSetContent)]
+    [Parameter(Position = 0, ParameterSetName = "SectionText")]
+    [AllowEmptyString]
     public string? Text { get; set; }
 
-    /// <summary>Rich text runs. Each run can be created with TextRun/WordTextRun or provided as a hashtable/object.</summary>
-    [Parameter(ParameterSetName = ParameterSetText)]
-    [Alias("Runs")]
-    public object[]? Run { get; set; }
-
-    /// <summary>Nested DSL content (runs, lists, images).</summary>
-    [Parameter(Position = 0, ParameterSetName = ParameterSetContent)]
+    /// <summary>Nested WordText and inline content.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetContent)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "SectionContent")]
     public ScriptBlock? Content { get; set; }
 
     /// <summary>Paragraph justification.</summary>
     [Parameter]
-    public WordParagraphAlignment? Alignment { get; set; }
+    public OfficeAlignment? Alignment { get; set; }
 
     /// <summary>Paragraph style.</summary>
     [Parameter]
@@ -72,16 +75,11 @@ public sealed class AddOfficeWordParagraphCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        if (!string.IsNullOrEmpty(Text) && Run is { Length: > 0 })
-        {
-            throw new PSArgumentException("Use either -Text or -Run, not both.");
-        }
-
         WordDslContext? context = null;
         WordParagraph paragraph;
         WordDocument? document = null;
         var activeContext = Content != null ? WordDslContext.Current : null;
-        var target = Target is PSObject psObject ? psObject.BaseObject : Target;
+        object? target = (object?)Document ?? Section;
         if (target is WordDocument targetDocument)
         {
             if (activeContext != null && !ReferenceEquals(activeContext.Document, targetDocument))
@@ -91,19 +89,14 @@ public sealed class AddOfficeWordParagraphCommand : PSCmdlet
 
             document = targetDocument;
             context = activeContext;
-            paragraph = targetDocument.AddParagraph(Run is { Length: > 0 } ? string.Empty : Text ?? string.Empty);
+            paragraph = targetDocument.AddParagraph(Text ?? string.Empty);
         }
         else if (target is WordSection targetSection)
         {
             if (Content != null)
             {
-                if (activeContext == null)
-                {
-                    throw new PSInvalidOperationException("Nested paragraph content targeting a WordSection requires the section's active Word DSL context. Use -PassThru and target the returned paragraph for object-style composition.");
-                }
-
                 var sectionBelongsToActiveDocument = false;
-                foreach (var section in activeContext.Document.Sections)
+                foreach (var section in activeContext?.Document.Sections ?? new System.Collections.Generic.List<WordSection>())
                 {
                     if (ReferenceEquals(section, targetSection))
                     {
@@ -112,7 +105,7 @@ public sealed class AddOfficeWordParagraphCommand : PSCmdlet
                     }
                 }
 
-                if (!sectionBelongsToActiveDocument)
+                if (activeContext != null && !sectionBelongsToActiveDocument)
                 {
                     throw new PSInvalidOperationException("The active Word DSL context belongs to a different document.");
                 }
@@ -120,21 +113,27 @@ public sealed class AddOfficeWordParagraphCommand : PSCmdlet
                 context = activeContext;
             }
 
-            paragraph = targetSection.AddParagraph(Run is { Length: > 0 } ? string.Empty : Text ?? string.Empty);
+            paragraph = targetSection.AddParagraph(Text ?? string.Empty);
         }
-        else if (target != null)
+        else if (PSWriteOffice.Foundation.OfficeDocumentContext.Find<WordTableCell>() is WordTableCell cell)
         {
-            throw new PSArgumentException("-Target accepts a WordDocument or WordSection.", nameof(Target));
+            paragraph = cell.AddParagraph(Text ?? string.Empty);
         }
         else
         {
             context = WordDslContext.Require(this);
-            paragraph = context.RequireParagraphHost().AddParagraph(Run is { Length: > 0 } ? null : Text);
+            paragraph = context.RequireParagraphHost().AddParagraph(Text);
         }
 
         if (Alignment.HasValue)
         {
-            paragraph.ParagraphAlignment = Alignment.Value;
+            paragraph.ParagraphAlignment = Alignment.Value switch {
+                OfficeAlignment.Left or OfficeAlignment.Start => WordParagraphAlignment.Left,
+                OfficeAlignment.Right or OfficeAlignment.End => WordParagraphAlignment.Right,
+                OfficeAlignment.Center => WordParagraphAlignment.Center,
+                OfficeAlignment.Justify => WordParagraphAlignment.Both,
+                _ => throw new PSArgumentException("Unsupported paragraph alignment.", nameof(Alignment))
+            };
         }
 
         if (Style.HasValue)
@@ -145,11 +144,6 @@ public sealed class AddOfficeWordParagraphCommand : PSCmdlet
         if (!string.IsNullOrWhiteSpace(StyleId))
         {
             paragraph.SetStyleId(StyleId!);
-        }
-
-        if (Run is { Length: > 0 })
-        {
-            WordTextRunService.ApplyRuns(paragraph, Run);
         }
 
         if (Content != null)
@@ -176,7 +170,8 @@ public sealed class AddOfficeWordParagraphCommand : PSCmdlet
 
         if (document == null)
         {
-            throw new PSInvalidOperationException("Nested paragraph content requires -Document or an active Word DSL context. Use -PassThru and target the returned paragraph for object-style composition.");
+            using (PSWriteOffice.Foundation.OfficeDocumentContext.Push(paragraph)) Content!.InvokeReturnAsIs();
+            return;
         }
 
         var current = WordDslContext.Current;

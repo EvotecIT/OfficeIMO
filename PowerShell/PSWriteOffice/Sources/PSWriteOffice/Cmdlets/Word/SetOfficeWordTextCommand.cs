@@ -49,6 +49,7 @@ public sealed class SetOfficeWordTextCommand : OfficeCmdlet
     /// <summary>Text color. Named colors and hexadecimal values are accepted; null clears the direct override.</summary>
     [Parameter]
     [OfficeColorTransformation(AllowNull = true)]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Color { get; set; }
 
     /// <summary>Font size; bare numbers mean points. Null clears the direct size override.</summary>
@@ -98,7 +99,7 @@ public sealed class SetOfficeWordTextCommand : OfficeCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var text = Paragraph ?? WordDslContext.Current?.CurrentParagraph;
+        var text = Paragraph ?? OfficeDocumentContext.Find<WordParagraph>() ?? WordDslContext.Current?.CurrentParagraph;
         if (text == null)
         {
             throw new PSInvalidOperationException("Provide a Word text item or run this command inside a Word paragraph DSL scope.");
@@ -114,8 +115,8 @@ public sealed class SetOfficeWordTextCommand : OfficeCmdlet
         if (IsBound(nameof(Size))) text.FontSize = Size;
         if (IsBound(nameof(Font))) text.FontFamily = Font;
         if (Highlight.HasValue) text.Highlight = Highlight.Value;
-        if (BoundSwitch(nameof(Strikethrough)) is bool strikethrough) text.Strike = strikethrough;
-        if (BoundSwitch(nameof(DoubleStrikethrough)) is bool doublestrikethrough) text.DoubleStrike = doublestrikethrough;
+        if (BoundSwitch(nameof(Strikethrough)) is bool strikethrough) text.Strikethrough = strikethrough;
+        if (BoundSwitch(nameof(DoubleStrikethrough)) is bool doublestrikethrough) text.DoubleStrikethrough = doublestrikethrough;
         if (CapsStyle.HasValue) text.CapsStyle = CapsStyle.Value;
         if (IsBound(nameof(Spacing))) text.Spacing = Spacing.HasValue ? OfficeIMO.OfficeLength.Emus((long)Spacing.Value * 635) : (OfficeIMO.OfficeLength?)null;
         if (BoundSwitch(nameof(Outline)) is bool outline) text.Outline = outline;

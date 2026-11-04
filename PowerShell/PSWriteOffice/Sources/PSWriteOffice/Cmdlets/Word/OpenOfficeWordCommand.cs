@@ -19,6 +19,27 @@ namespace PSWriteOffice.Cmdlets.Word;
 [Cmdlet(VerbsCommon.Open, "OfficeWord", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(WordDocument), typeof(FileInfo))]
 public sealed class OpenOfficeWordCommand : OfficeLifecycleCmdlet<WordDocument> {
+    /// <summary>An optional authoring block; omission returns the live document.</summary>
+    [Parameter(ParameterSetName = "Path", Position = 1)]
+    [Parameter(ParameterSetName = "LiteralPath", Position = 1)]
+    [ValidateNotNull]
+    public override ScriptBlock? Content { get => base.Content; set => base.Content = value; }
+
+    /// <summary>Emit the FileInfo after a completed authoring block.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    public override SwitchParameter PassThru { get => base.PassThru; set => base.PassThru = value; }
+
+    /// <summary>Explicitly accept native-save loss for an authoring block.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    public override SwitchParameter AllowLoss { get => base.AllowLoss; set => base.AllowLoss = value; }
+
+    /// <summary>Open the saved document after a completed authoring block.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    public override SwitchParameter Show { get => base.Show; set => base.Show = value; }
+
     /// <summary>Word document path with FileSystem wildcard expansion.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     [SupportsWildcards]

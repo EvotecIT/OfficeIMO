@@ -1,86 +1,41 @@
-using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Gets shapes from a Word document, section, or paragraph.</summary>
-/// <example>
-///   <summary>List shapes and metadata.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$shapes = Get-OfficeWordShape -Path .\Report.docx
-/// $shapes |
-///     Select-Object -Property Title, Description, Width, Height, FillColorHex |
-///     Format-Table -AutoSize</code>
-///   <para>Reads OfficeIMO Word shapes from the document so styling and alternate text can be audited.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordShape")]
-[Alias("WordShapes")]
+/// <summary>Gets shapes from a document, section or paragraph.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordShape", DefaultParameterSetName = "Document")]
 [OutputType(typeof(WordShape))]
 public sealed class GetOfficeWordShapeCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetSection = "Section";
-    private const string ParameterSetParagraph = "Paragraph";
-
-    /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Document to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
-
-    /// <summary>Section to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetSection)]
-    public WordSection Section { get; set; } = null!;
-
-    /// <summary>Paragraph to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetParagraph)]
-    public WordParagraph Paragraph { get; set; } = null!;
+    /// <summary>Path for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>LiteralPath for this inspection.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for this inspection.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
+    /// <summary>Section for this inspection.</summary>
+    [Parameter(ParameterSetName = "Section", Mandatory = true, ValueFromPipeline = true)]
+    public WordSection? Section { get; set; }
+    /// <summary>Paragraph for this inspection.</summary>
+    [Parameter(ParameterSetName = "Paragraph", Mandatory = true, ValueFromPipeline = true)]
+    public WordParagraph? Paragraph { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordDocument? document = null;
-        var dispose = false;
-
-        try {
-            IEnumerable<WordShape> shapes;
-            switch (ParameterSetName) {
-                case ParameterSetSection:
-                    shapes = Section != null
-                        ? Section.Shapes
-                        : Array.Empty<WordShape>();
-                    break;
-                case ParameterSetParagraph:
-                    shapes = Paragraph?.Shape != null
-                        ? new[] { Paragraph.Shape }
-                        : Array.Empty<WordShape>();
-                    break;
-                default:
-                    if (ParameterSetName == ParameterSetPath) {
-                        var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                        document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                        dispose = true;
-                    } else {
-                        document = Document;
-                    }
-
-                    shapes = document != null
-                        ? document.Shapes
-                        : Array.Empty<WordShape>();
-                    break;
-            }
-
-            WriteObject(shapes, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
-            }
-        }
+        if (ParameterSetName == "Section") { Emit(Section!.Shapes); return; }
+        if (ParameterSetName == "Paragraph") { if (Paragraph!.Shape != null) Emit(new[] { Paragraph.Shape }); return; }
+        WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, Inspect);
     }
+
+    private void Inspect(WordDocument document) => Emit(document.Shapes);
+    private void Emit(IEnumerable<WordShape> items) => WriteObject(items, true);
 }

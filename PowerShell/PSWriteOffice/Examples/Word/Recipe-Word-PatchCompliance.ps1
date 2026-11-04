@@ -59,12 +59,12 @@ New-OfficeWord -Path $docxPath {
         WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#fff4d6'
     }
     $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell `
-        -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 `
-        -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
+        -MarginTop 0.12 -MarginBottom 0.12 `
+        -MarginLeft 0.16 -MarginRight 0.16
     WordParagraph {
         Set-OfficeWordParagraph -SpacingBefore 14 -SpacingAfter 12
         WordChart -Type Bar -InputObject $rows -Category Site -Value Patched, Pending `
-            -Title 'Patched and pending by site' -Legend -FitToPageWidth -WidthFraction 1 -HeightPixels 260
+            -Title 'Patched and pending by site' -Legend -FitToPageWidth -WidthFraction 1 -Height 260
     }
 
     WordParagraph {

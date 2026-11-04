@@ -13,4 +13,4 @@ New-OfficeWord -Path $proposed {
     WordParagraph -Text 'Service owners must record evidence.'
 }
 
-Compare-OfficeWordDocument -ReferencePath $approved -DifferencePath $proposed -RedlinePath $redline
+Compare-OfficeDocument -ReferencePath $approved -DifferencePath $proposed -OutputPath $redline

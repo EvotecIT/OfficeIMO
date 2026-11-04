@@ -13,12 +13,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates an endnote reference on the current paragraph.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordEndnote", DefaultParameterSetName = "Default")]
-[Alias("WordEndnote")]
 [OutputType(typeof(WordParagraph))]
+[Alias("WordEndnote") ]
 public sealed class AddOfficeWordEndnoteCommand : PSCmdlet
 {
     /// <summary>Endnote text.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
     public string Text { get; set; } = string.Empty;
 
     /// <summary>Paragraph to receive the endnote reference.</summary>

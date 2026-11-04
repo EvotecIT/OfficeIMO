@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
@@ -14,8 +15,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Targets the data cell at row 1, column 0 and writes text inside it.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordTableCell", DefaultParameterSetName = ParameterSetContext)]
-[Alias("WordTableCell")]
 [OutputType(typeof(WordTableCell))]
+[Alias("WordTableCell") ]
 public sealed class AddOfficeWordTableCellCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -25,14 +26,14 @@ public sealed class AddOfficeWordTableCellCommand : PSCmdlet
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetTable)]
     public WordTable? Table { get; set; }
 
-    /// <summary>Zero-based row index.</summary>
+    /// <summary>One-based row index.</summary>
     [Parameter(Mandatory = true)]
-    [ValidateRange(0, int.MaxValue)]
+    [ValidateRange(1, int.MaxValue)]
     public int Row { get; set; }
 
-    /// <summary>Zero-based column index.</summary>
+    /// <summary>One-based column index.</summary>
     [Parameter(Mandatory = true)]
-    [ValidateRange(0, int.MaxValue)]
+    [ValidateRange(1, int.MaxValue)]
     public int Column { get; set; }
 
     /// <summary>DSL content executed inside the selected cell.</summary>
@@ -44,11 +45,6 @@ public sealed class AddOfficeWordTableCellCommand : PSCmdlet
     [AllowNull]
     public string? Text { get; set; }
 
-    /// <summary>Rich text runs to append to the selected cell before nested content runs.</summary>
-    [Parameter]
-    [Alias("Runs")]
-    public object[]? Run { get; set; }
-
     /// <summary>Emit the selected <see cref="WordTableCell"/>.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
@@ -56,38 +52,29 @@ public sealed class AddOfficeWordTableCellCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Text)) && Run != null)
-        {
-            throw new PSArgumentException("Use either -Text or -Run for WordTableCell, not both.", nameof(Run));
-        }
-
-        var context = WordDslContext.Require(this);
-        var table = Table ?? context.ResolveCurrentTable();
+        var context = WordDslContext.Current;
+        var table = Table ?? context?.ResolveCurrentTable();
         if (table == null)
         {
             throw new InvalidOperationException("WordTableCell must be used inside WordTable or with -Table.");
         }
 
-        if (Row >= table.RowsCount)
+        if (Row > table.RowCount)
         {
-            throw new PSArgumentOutOfRangeException(nameof(Row), Row, $"Table contains {table.RowsCount} rows.");
+            throw new PSArgumentOutOfRangeException(nameof(Row), Row, $"Table contains {table.RowCount} rows.");
         }
 
-        var row = table.Rows[Row];
-        if (Column >= row.CellsCount)
+        var row = table.Rows[Row - 1];
+        if (Column > row.CellsCount)
         {
             throw new PSArgumentOutOfRangeException(nameof(Column), Column, $"Row {Row} contains {row.CellsCount} cells.");
         }
 
-        var cell = row.Cells[Column];
-        using (context.Push(cell))
+        var cell = row.Cells[Column - 1];
+        using (context?.Push(cell))
+        using (OfficeDocumentContext.Push(cell))
         {
-            if (Run != null)
-            {
-                var paragraph = cell.AddParagraph(string.Empty);
-                WordTextRunService.ApplyRuns(paragraph, Run);
-            }
-            else if (MyInvocation.BoundParameters.ContainsKey(nameof(Text)))
+            if (MyInvocation.BoundParameters.ContainsKey(nameof(Text)))
             {
                 cell.AddParagraph(Text ?? string.Empty);
             }

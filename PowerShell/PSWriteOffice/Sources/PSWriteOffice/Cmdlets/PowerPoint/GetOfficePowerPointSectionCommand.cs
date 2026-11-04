@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [OutputType(typeof(PowerPointSectionInfo))]
 public sealed class GetOfficePowerPointSectionCommand : OfficeCmdlet {
     /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>
-    [Parameter(Position = 0, ValueFromPipeline = true)]
+    [Parameter(Position = 0, ValueFromPipeline = true, ParameterSetName = "Document")]
     public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets a section name or PowerShell wildcard pattern.</summary>
     [Parameter, SupportsWildcards]

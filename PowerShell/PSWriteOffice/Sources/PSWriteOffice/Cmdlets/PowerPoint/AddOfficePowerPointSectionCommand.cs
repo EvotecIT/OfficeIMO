@@ -16,11 +16,11 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example><summary>Start an appendix at an existing slide.</summary>
 /// <code>Add-OfficePowerPointSection -Document $deck -Name Appendix -Slide 9</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointSection", DefaultParameterSetName = "Name")]
-[Alias("PowerPointSection")]
 [OutputType(typeof(PowerPointSectionInfo))]
+[Alias("PowerPointSection") ]
 public sealed class AddOfficePowerPointSectionCommand : OfficeCmdlet {
     /// <summary>Gets or sets the document; omission uses the enclosing scope or selected native slide's owner.</summary>
-    [Parameter(ValueFromPipeline = true), ValidateNotNull]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Name"), ValidateNotNull]
     public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets the section name.</summary>
     [Parameter(Mandatory = true, Position = 0), ValidateNotNullOrEmpty]

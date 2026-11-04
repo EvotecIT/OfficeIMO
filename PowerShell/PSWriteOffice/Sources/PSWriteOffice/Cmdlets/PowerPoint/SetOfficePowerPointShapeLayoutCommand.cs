@@ -19,8 +19,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///   <para>Uses OfficeIMO.PowerPoint to align all matching shapes to the top edge of their selection bounds.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficePowerPointShapeLayout", DefaultParameterSetName = ParameterSetAlignment)]
-[Alias("PowerPointShapeLayout")]
 [OutputType(typeof(PowerPointShape))]
+[Alias("PowerPointShapeLayout") ]
 public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
 {
     private const string ParameterSetAlignment = "Alignment";

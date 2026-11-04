@@ -18,7 +18,7 @@ Copy-Item -LiteralPath $fixturePath -Destination $imagePath -Force
 
 New-OfficeWord -Path $path {
     WordTable -Data $rows -Style GridTable1LightAccent1 {
-        WordTableCell -Row 1 -Column 0 {
+        WordTableCell -Row 2 -Column 1 {
             WordParagraph {
                 WordText 'Checklist'
             }
@@ -31,7 +31,7 @@ New-OfficeWord -Path $path {
             }
         }
 
-        WordTableCell -Row 1 -Column 1 {
+        WordTableCell -Row 2 -Column 2 {
             WordTable -Data $nestedRows -Style TableGrid
         }
     }

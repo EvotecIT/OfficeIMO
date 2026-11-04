@@ -17,12 +17,11 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Gets OfficeIMO image objects from an open document, applies thin image metadata and layout updates, and saves the document.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeWordImage", DefaultParameterSetName = "Default")]
-[Alias("WordImageStyle")]
 [OutputType(typeof(WordImage))]
 public sealed class SetOfficeWordImageCommand : PSCmdlet
 {
     /// <summary>Image to update.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0, ParameterSetName = "Default")]
     public WordImage Image { get; set; } = null!;
 
     /// <summary>Image width; numbers mean points and unit suffixes are accepted.</summary>
@@ -53,10 +52,10 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
     [Parameter] public int? Opacity { get; set; }
 
     /// <summary>Horizontally flip the image.</summary>
-    [Parameter] public bool? HorizontalFlip { get; set; }
+    [Parameter] public SwitchParameter HorizontalFlip { get; set; }
 
     /// <summary>Vertically flip the image.</summary>
-    [Parameter] public bool? VerticalFlip { get; set; }
+    [Parameter] public SwitchParameter VerticalFlip { get; set; }
 
     /// <summary>Image title metadata.</summary>
     [Parameter] public string? Title { get; set; }
@@ -65,7 +64,7 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
     [Parameter] public string? Description { get; set; }
 
     /// <summary>Whether the image is hidden.</summary>
-    [Parameter] public bool? Hidden { get; set; }
+    [Parameter] public SwitchParameter Hidden { get; set; }
 
     /// <summary>Emit the updated image.</summary>
     [Parameter] public SwitchParameter PassThru { get; set; }
@@ -90,11 +89,11 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
         if (MyInvocation.BoundParameters.ContainsKey(nameof(CropRight))) Image.CropRightRatio = ((double?)(CropRight)) / 100000D;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Rotation))) Image.Rotation = Rotation;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Opacity))) Image.FixedOpacity = Opacity;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(HorizontalFlip))) Image.HorizontalFlip = HorizontalFlip;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(VerticalFlip))) Image.VerticalFlip = VerticalFlip;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(HorizontalFlip))) Image.HorizontalFlip = HorizontalFlip.IsPresent;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(VerticalFlip))) Image.VerticalFlip = VerticalFlip.IsPresent;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Title))) Image.Title = Title;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Description))) Image.AltText = Description;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Hidden))) Image.Hidden = Hidden;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Hidden))) Image.Hidden = Hidden.IsPresent;
 
         if (PassThru.IsPresent)
         {

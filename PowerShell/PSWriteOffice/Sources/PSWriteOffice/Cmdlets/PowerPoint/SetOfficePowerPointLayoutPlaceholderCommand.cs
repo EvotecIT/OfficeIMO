@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 [OutputType(typeof(PowerPointTextBox))]
 public sealed class SetOfficePowerPointLayoutPlaceholderCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <summary>Gets or sets a layout name, one-based position, native type or returned layout metadata.</summary>
-    [Parameter(Mandatory = true), PowerPointLayoutTransformation]
+    [Parameter(Mandatory = true, ParameterSetName = "Document"), PowerPointLayoutTransformation]
     public PowerPointLayoutSelector TemplateLayout { get; set; } = null!;
     /// <summary>Gets or sets the one-based master position, defaulting to the first or to the layout metadata's master.</summary>
     [Parameter, ValidateRange(1, int.MaxValue)]
@@ -53,10 +53,10 @@ public sealed class SetOfficePowerPointLayoutPlaceholderCommand : OfficeDocument
     [Parameter, ValidateNotNullOrEmpty]
     public string? Font { get; set; }
     /// <summary>Gets or sets text color, resolving theme roles against the selected master.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Color { get; set; }
     /// <summary>Gets or sets the highlight color.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Highlight { get; set; }
     /// <summary>Gets or sets bold formatting; an explicitly false switch clears it.</summary>
     [Parameter]

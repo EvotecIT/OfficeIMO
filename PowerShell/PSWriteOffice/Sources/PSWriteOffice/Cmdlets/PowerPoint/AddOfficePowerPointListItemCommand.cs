@@ -12,8 +12,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example><summary>Write an emphasized list item.</summary>
 /// <code>PowerPointList { PowerPointListItem { PowerPointText 'Capacity' -Bold; PowerPointText ': review weekly' } }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointListItem", DefaultParameterSetName = "Text")]
-[Alias("PowerPointListItem")]
 [OutputType(typeof(PowerPointParagraph))]
+[Alias("PowerPointListItem") ]
 public sealed class AddOfficePowerPointListItemCommand : OfficeCmdlet {
     /// <summary>Gets or sets plain item text.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
@@ -38,9 +38,11 @@ public sealed class AddOfficePowerPointListItemCommand : OfficeCmdlet {
     public PowerPointUnderlineStyle? Underline { get; set; }
     /// <summary>Gets or sets the text color or theme role.</summary>
     [Parameter(ParameterSetName = "Text"), OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Color { get; set; }
     /// <summary>Gets or sets the highlight color.</summary>
     [Parameter(ParameterSetName = "Text"), OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? Highlight { get; set; }
     /// <summary>Gets or sets the font family.</summary>
     [Parameter(ParameterSetName = "Text")]
@@ -63,7 +65,7 @@ public sealed class AddOfficePowerPointListItemCommand : OfficeCmdlet {
                 item.ClearInlineContent();
                 using (OfficeDocumentContext.Push(new PowerPointTextScope(scope, item))) Content.Invoke();
             } else foreach (var run in item.Runs)
-                PowerPointTextFormatting.Apply(run, scope, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size);
+                PowerPointTextFormatting.Apply(run, scope, BoundSwitch(nameof(Bold)), BoundSwitch(nameof(Italic)), BoundSwitch(nameof(Strikethrough)), Underline, Color, Highlight, Font, Size);
             if (PassThru) WriteObject(item);
         } catch {
             PowerPointTextRun.DiscardContent(item.Paragraph, item.OwnerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart);

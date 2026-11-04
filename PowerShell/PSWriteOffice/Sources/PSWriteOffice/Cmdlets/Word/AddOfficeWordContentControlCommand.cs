@@ -12,12 +12,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a content control with the specified text.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordContentControl", DefaultParameterSetName = "Default")]
-[Alias("WordContentControl")]
 [OutputType(typeof(WordStructuredDocumentTag))]
+[Alias("WordContentControl") ]
 public sealed class AddOfficeWordContentControlCommand : PSCmdlet
 {
     /// <summary>Initial text for the control.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ParameterSetName = "Default")]
     public string? Text { get; set; }
 
     /// <summary>Optional alias for the control.</summary>

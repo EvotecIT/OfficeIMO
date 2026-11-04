@@ -17,7 +17,7 @@ public sealed class CopyOfficePowerPointSlideCommand : OfficeCmdlet {
     [Parameter, ValidateNotNull]
     public PowerPointDocument? Document { get; set; }
     /// <summary>Gets or sets a native slide or its one-based position.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true), PowerPointSlideTransformation]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Slide"), PowerPointSlideTransformation]
     public PowerPointSlideSelector Slide { get; set; } = null!;
     /// <summary>Gets or sets the copy's one-based destination position; omission inserts it immediately after the source.</summary>
     [Parameter, ValidateRange(1, int.MaxValue)]

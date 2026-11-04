@@ -21,7 +21,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -59,7 +59,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7766,7 +7766,7 @@
             },
             {
               "name": "RevisionType",
-              "type": "WordRevisionType",
+              "type": "OfficeIMO.Word.WordReviewRevisionType",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7784,7 +7784,7 @@
             },
             {
               "name": "LocationKind",
-              "type": "WordRevisionLocationKind",
+              "type": "OfficeIMO.Word.WordReviewLocationKind",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7863,7 +7863,7 @@
               "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "none",
+              "pipeline": "byValue",
               "wildcards": true
             },
             {
@@ -8085,7 +8085,7 @@
           "parameters": [
             {
               "name": "PdfOptions",
-              "type": "PdfOptions",
+              "type": "OfficeIMO.Pdf.PdfCreateOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8848,13 +8848,13 @@
             },
             {
               "name": "ReaderOptions",
-              "type": "MarkdownReaderOptions",
+              "type": "OfficeIMO.Markdown.MarkdownLoadOptions",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Profile",
-              "type": "MarkdownReaderProfile",
+              "type": "OfficeIMO.Markdown.MarkdownLoadOptions+MarkdownDialectProfile",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8866,7 +8866,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8993,7 +8993,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },

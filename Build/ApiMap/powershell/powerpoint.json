@@ -43,7 +43,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Built-in theme name (Modern default, Classic, Minimal, Boardroom, Dark), theme object or .potx/.pptx path. A template supplies its own masters and layouts."
@@ -179,7 +179,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Built-in theme name (Modern default, Classic, Minimal, Boardroom, Dark), theme object or .potx/.pptx path. A template supplies its own masters and layouts."
@@ -298,7 +298,7 @@
               "type": "string",
               "mandatory": true,
               "position": 0,
-              "pipeline": "none",
+              "pipeline": "byValue",
               "wildcards": true
             },
             {
@@ -399,7 +399,8 @@
           "description": "Without a content block the live presentation is returned, so the script can read it and close it without saving.",
           "code": "$password = Read-Host -Prompt 'Deck password' -AsSecureString\n$deck = Open-OfficePowerPoint -Path .\\Board\\Q3-Board.pptx -Password $password\nGet-OfficePowerPointSlide -Document $deck -Summary | Select-Object SlideIndex, Title, HasNotes\nClose-OfficePowerPoint -Document $deck"
         }
-      ]
+      ],
+      "shouldProcess": true
     },
     {
       "name": "Save-OfficePowerPoint",
@@ -609,7 +610,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -841,7 +842,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "OfficeIMO.PowerPoint.PowerPointUnderlineStyle",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -888,6 +889,13 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "Baseline",
+              "type": "OfficeTextBaseline",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Retains the native capability of the retired rich-run or table-cell factory through this canonical content command."
             }
           ]
         }
@@ -969,7 +977,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "OfficeIMO.PowerPoint.PowerPointUnderlineStyle",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -1384,7 +1392,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "OfficeIMO.PowerPoint.PowerPointUnderlineStyle",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4714,7 +4722,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Restyles masters, layouts and theme part; other parameters then override."
@@ -4813,7 +4821,8 @@
           "description": "Overrides two accent colors and the heading and body fonts, and renames the theme.",
           "code": "Open-OfficePowerPoint -Path .\\Sales\\Managed-Services.pptx {\n    Set-OfficePowerPointTheme -Colors @{ Accent1 = '#0F766E'; Accent2 = '#F59E0B' } -HeadingFont 'Segoe UI Semibold' -BodyFont 'Segoe UI' -Name 'Contoso Services'\n}"
         }
-      ]
+      ],
+      "shouldProcess": true
     },
     {
       "name": "Get-OfficePowerPointLayout",
@@ -5137,10 +5146,10 @@
           "parameters": [
             {
               "name": "Path",
-              "type": "string",
+              "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "none",
+              "pipeline": "byValue",
               "wildcards": true
             },
             {
@@ -5154,6 +5163,12 @@
               "type": "SecureString",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         },
@@ -5163,7 +5178,7 @@
           "parameters": [
             {
               "name": "LiteralPath",
-              "type": "string",
+              "type": "string[]",
               "mandatory": true,
               "pipeline": "property",
               "aliases": [
@@ -5180,6 +5195,12 @@
             {
               "name": "Password",
               "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -5325,7 +5346,7 @@
           "parameters": [
             {
               "name": "PdfOptions",
-              "type": "PdfOptions",
+              "type": "OfficeIMO.Pdf.PdfCreateOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5409,7 +5430,7 @@
             },
             {
               "name": "PictureFit",
-              "type": "PowerPointPdfPictureFit",
+              "type": "OfficeIMO.Drawing.OfficeImageFit",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5615,9 +5636,10 @@
           "parameters": [
             {
               "name": "LossPolicy",
-              "type": "OfficeConversionLossPolicy",
+              "type": "OdfConversionLossPolicy",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "All three native thresholds: ReportOnly, ThrowOnSkippedOrUnsupported, ThrowOnAnyLoss. Omission retains the native default."
             },
             {
               "name": "NoImages",
@@ -5685,7 +5707,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },

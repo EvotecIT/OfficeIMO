@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 public sealed class SetOfficeWordDocumentPropertyCommand : PSCmdlet
 {
     /// <summary>Document to update when provided explicitly.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordDocument? Document { get; set; }
 
     /// <summary>Property name to update.</summary>

@@ -5,19 +5,14 @@ using PSWriteOffice.Cmdlets.Imaging;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.</summary>
-/// <example>
-///   <summary>Render selected slides with their backgrounds and content.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$options = New-OfficePowerPointImageOptions -SlideNumber 1,3 -NoPictures
-/// Export-OfficePowerPointImage -Path .\Deck.pptx -OutputPath .\Slides -Options $options</code>
-/// </example>
+/// <example><summary>Render selected slides without pictures.</summary>
+/// <code>$options = New-OfficePowerPointImageOptions -NoPictures
+/// Export-OfficeDocumentImage -Path ./Deck.pptx -Page 1,3 -OutputDirectory ./Slides -Options $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficePowerPointImageOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PowerPointImageExportOptions))]
 public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsCommandBase<PowerPointImageExportOptions> {
-    /// <summary>One-based slide numbers to export.</summary>
-    [Parameter] public int[]? SlideNumber { get; set; }
     /// <summary>Include hidden slides.</summary>
-    [Parameter] public SwitchParameter IncludeHiddenSlides { get; set; }
+    [Parameter(ParameterSetName = "Default")] public SwitchParameter IncludeHiddenSlides { get; set; }
     /// <summary>Omit slide backgrounds.</summary>
     [Parameter] public SwitchParameter NoSlideBackground { get; set; }
     /// <summary>Omit slide content.</summary>
@@ -39,7 +34,6 @@ public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsC
     protected override void ProcessRecord() {
         var options = new PowerPointImageExportOptions();
         ApplyCommon(options);
-        if (SlideNumber != null) options.SlideNumbers = SlideNumber;
         if (BoundSwitch(nameof(IncludeHiddenSlides)) is bool hiddenSlides) options.IncludeHiddenSlides = hiddenSlides;
         options.IncludeSlideBackground = FeatureEnabled("SlideBackground");
         options.IncludeSlideContent = FeatureEnabled("SlideContent");

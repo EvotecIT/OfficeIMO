@@ -1,7 +1,5 @@
-using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Word;
@@ -9,72 +7,42 @@ using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Gets sections from a Word document.</summary>
-/// <example>
-///   <summary>Inspect the first section before section-level reads.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$section = Get-OfficeWordSection -Path .\Report.docx -Index 0
-/// $section |
-///     Get-OfficeWordParagraph |
-///     Select-Object -First 5 -Property Text</code>
-///   <para>Gets a specific section by zero-based index and pipes it to another thin Word reader.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordSection")]
+/// <summary>Gets sections of a document.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordSection", DefaultParameterSetName = "Document")]
 [OutputType(typeof(WordSection))]
 public sealed class GetOfficeWordSectionCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Document to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
-
-    /// <summary>Optional 0-based section index filter.</summary>
-    [Parameter]
+    /// <summary>Path for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Index for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public int[]? Index { get; set; }
+    /// <summary>LiteralPath for this inspection.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for this inspection.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordDocument? document = null;
-        var dispose = false;
+        WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, Inspect);
+    }
 
-        try {
-            if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                dispose = true;
-            } else {
-                document = Document;
+    private void Inspect(WordDocument document) {
+        IEnumerable<WordSection> sections = document.Sections;
+        if (Index != null && Index.Length > 0) {
+            var selected = new List<WordSection>();
+            foreach (int index in Index) {
+                if (index < 1 || index > document.Sections.Count) throw new PSArgumentOutOfRangeException(nameof(Index), index, "Section indices start at one.");
+                selected.Add(document.Sections[index - 1]);
             }
-
-            if (document == null) {
-                throw new InvalidOperationException("Word document was not provided.");
-            }
-
-            IEnumerable<WordSection> sections = document.Sections;
-
-            if (Index != null && Index.Length > 0) {
-                var list = document.Sections;
-                var results = new List<WordSection>(Index.Length);
-                foreach (var idx in Index) {
-                    if (idx < 0 || idx >= list.Count) {
-                        throw new ArgumentOutOfRangeException(nameof(Index), $"Section index {idx} is out of range.");
-                    }
-                    results.Add(list[idx]);
-                }
-                sections = results;
-            }
-
-            WriteObject(sections, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
-            }
+            sections = selected;
         }
+        WriteObject(sections, true);
     }
 }

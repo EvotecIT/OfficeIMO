@@ -21,10 +21,10 @@ New-OfficeWord -Path $path {
 
         WordParagraph -Text 'Northwind Migration' -Style Heading1
         WordParagraph -Text 'Weekly project status' -Style Heading2
-        WordParagraph -Run @{
-            Text  = 'Overall status: ', 'On track', '. The pilot needs an owner decision on the final rollout window.'
-            Bold  = $true, $true, $false
-            Color = $null, 'SeaGreen', $null
+        WordParagraph {
+            WordText 'Overall status: ' -Bold
+            WordText 'On track' -Bold -Color SeaGreen
+            WordText '. The pilot needs an owner decision on the final rollout window.'
         }
 
         WordParagraph -Text 'Executive summary' -Style Heading1
@@ -43,7 +43,7 @@ New-OfficeWord -Path $path {
         WordParagraph -Text 'Delivery trend' -Style Heading1 {
             Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 6 -KeepWithNext:$true
         }
-        WordChart -Type Line -Data $trend -Category Week -Value Complete -Title 'Completion by week (%)' -FitToPageWidth -HeightPixels 190
+        WordChart -Type Line -Data $trend -Category Week -Value Complete -Title 'Completion by week (%)' -FitToPageWidth -Height 190
 
         WordParagraph -Text 'Decision' -Style Heading1 {
             Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 6 -KeepWithNext:$true

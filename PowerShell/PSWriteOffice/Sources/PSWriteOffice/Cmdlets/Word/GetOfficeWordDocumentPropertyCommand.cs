@@ -1,95 +1,52 @@
-using PSWriteOffice.Services;
+using PSWriteOffice.Models.Word;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Word;
-using PSWriteOffice.Models.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Gets built-in and custom document properties from a Word document.</summary>
-/// <example>
-///   <summary>Read release metadata from a document.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$properties = Get-OfficeWordDocumentProperty -Path .\Report.docx -Name Title, Subject, ReleaseStatus
-/// $properties |
-///     Select-Object -Property Name, Value, IsCustom |
-///     Format-Table -AutoSize</code>
-///   <para>Returns selected built-in and custom properties for a document metadata check.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordDocumentProperty")]
+/// <summary>Gets built-in and custom document properties.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordDocumentProperty", DefaultParameterSetName = "Document")]
 [OutputType(typeof(WordDocumentPropertyInfo))]
 public sealed class GetOfficeWordDocumentPropertyCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Document to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
-
-    /// <summary>Property name filter (wildcards supported).</summary>
-    [Parameter]
+    /// <summary>Path for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Name for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public string[]? Name { get; set; }
-
-    /// <summary>Only return built-in document properties.</summary>
-    [Parameter]
+    /// <summary>BuiltIn for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter BuiltIn { get; set; }
-
-    /// <summary>Only return custom document properties.</summary>
-    [Parameter]
+    /// <summary>Custom for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter Custom { get; set; }
+    /// <summary>LiteralPath for this inspection.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for this inspection.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordDocument? document = null;
-        var dispose = false;
-
-        try {
-            if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                dispose = true;
-            } else {
-                document = Document;
-            }
-
-            if (document == null) {
-                throw new InvalidOperationException("Word document was not provided.");
-            }
-
-            var includeBuiltIn = !Custom.IsPresent || BuiltIn.IsPresent;
-            var includeCustom = !BuiltIn.IsPresent || Custom.IsPresent;
-
-            IEnumerable<WordDocumentPropertyInfo> properties = WordDocumentPropertyService.GetProperties(document, includeBuiltIn, includeCustom);
-            var patterns = BuildPatterns(Name);
-            if (patterns.Count > 0) {
-                properties = properties.Where(property => patterns.Any(pattern => pattern.IsMatch(property.Name)));
-            }
-
-            WriteObject(properties, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
-            }
-        }
+        WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, Inspect);
     }
 
-    private static List<WildcardPattern> BuildPatterns(string[]? patterns) {
-        var compiled = new List<WildcardPattern>();
-        foreach (var pattern in patterns ?? Array.Empty<string>()) {
-            if (!string.IsNullOrWhiteSpace(pattern)) {
-                compiled.Add(new WildcardPattern(pattern, WildcardOptions.IgnoreCase));
-            }
-        }
-
-        return compiled;
+    private void Inspect(WordDocument document) {
+        var names = WordFilterHelpers.BuildPatterns(Name);
+        var items = WordDocumentPropertyService.GetProperties(document, !Custom || BuiltIn, !BuiltIn || Custom);
+        WriteObject(items.Where(item => WordFilterHelpers.Matches(item.Name, names)), true);
     }
 }
