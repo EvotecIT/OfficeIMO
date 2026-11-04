@@ -128,6 +128,50 @@ public sealed class ConvertDocumentRuntimeWorkflowTests : IDisposable {
         Assert.Equal(html, File.ReadAllText(source));
     }
 
+    [Theory]
+    [InlineData("Page", false)]
+    [InlineData("Dpi", false)]
+    [InlineData("Page", true)]
+    [InlineData("Dpi", true)]
+    public void PdfFolderOptionsUseActualSelectedRoutes(string option, bool mixed) {
+        string folder = Directory.CreateDirectory(Path.Combine(_root, "inputs")).FullName;
+        string source = Path.Combine(folder, "source.pdf"), destination = Path.Combine(_root, "output");
+        using (var pdf = PdfDocument.Create(document => document.Content(content =>
+            content.AddParagraph("First page").PageBreak().AddParagraph("Second page")))) pdf.Save(source);
+        byte[] original = File.ReadAllBytes(source);
+        if (mixed) File.WriteAllText(Path.Combine(folder, "note.md"), "# Unsupported page or raster settings");
+        using var runspace = Open();
+        using var shell = PowerShell.Create();
+        shell.Runspace = runspace;
+        void Configure(bool plan) {
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("Path", folder).AddParameter("To", "Word")
+                .AddParameter("OutputDirectory", destination).AddParameter("ErrorAction", "Stop");
+            if (option == "Page") shell.AddParameter("Page", "1");
+            else shell.AddParameter("Dpi", 150D);
+            if (plan) shell.AddParameter("Plan");
+        }
+        Configure(plan: true);
+        if (mixed) {
+            var error = Assert.Throws<CmdletInvocationException>(() => shell.Invoke());
+            Assert.IsType<PSArgumentException>(error.InnerException);
+            Assert.Contains("PDF source route", error.Message);
+        } else {
+            var plan = Assert.IsType<OfficeBatchPlan>(Assert.Single(shell.Invoke()).BaseObject);
+            Assert.Equal(1, plan.Selected);
+            Assert.False(shell.HadErrors, Errors(shell));
+            Assert.False(Directory.Exists(destination));
+            shell.Commands.Clear();
+            Configure(plan: false);
+            var report = Assert.IsType<OfficeConversionReport>(Assert.Single(shell.Invoke()).BaseObject);
+            Assert.False(shell.HadErrors, Errors(shell));
+            Assert.Equal(source, report.Source);
+            using var package = System.IO.Compression.ZipFile.OpenRead(Path.Combine(destination, "source.docx"));
+            Assert.NotNull(package.GetEntry("word/document.xml"));
+        }
+        Assert.Equal(original, File.ReadAllBytes(source));
+        if (mixed) Assert.False(Directory.Exists(destination));
+    }
+
     [Fact]
     public void NativeDocumentPipelineCapturesUnsavedContentWithoutClosingItsSource() {
         string output = Path.Combine(_root, "live.pdf");

@@ -449,3 +449,71 @@ Describe 'Composed generated-PDF headers and footers' {
         $text | Should -Match '/'
     }
 }
+
+Describe 'PDF invocation publication and redaction selection' {
+    It 'uses the preview case policy when removing regex matches through <InputKind> with CaseSensitive=<Sensitive>' -TestCases @(
+        @{ InputKind = 'Path'; Sensitive = $false }
+        @{ InputKind = 'Path'; Sensitive = $true }
+        @{ InputKind = 'LiteralPath'; Sensitive = $false }
+        @{ InputKind = 'LiteralPath'; Sensitive = $true }
+        @{ InputKind = 'Directory'; Sensitive = $false }
+        @{ InputKind = 'Directory'; Sensitive = $true }
+    ) {
+        param($InputKind, $Sensitive)
+        $folder = Join-Path $TestDrive ($InputKind + '-' + $Sensitive)
+        $null = New-Item -ItemType Directory -Path $folder
+        $source = Join-Path $folder 'source.pdf'
+        $output = Join-Path $folder 'redacted.pdf'
+        New-OfficePdf -Path $source {
+            PdfParagraph 'account:123'
+            PdfPageBreak
+            PdfParagraph 'ACCOUNT:456'
+        } | Out-Null
+        $preview = Get-OfficePdfRedactionPlan -LiteralPath $source -Pattern 'account:\d+' -CaseSensitive:$Sensitive
+        @($preview.Areas.PageNumber | Sort-Object -Unique) | Should -Be $(if ($Sensitive) { @(1) } else { @(1, 2) })
+        $arguments = @{ Pattern = 'account:\d+'; CaseSensitive = $Sensitive }
+        if ($InputKind -eq 'Directory') {
+            $arguments.LiteralPath = $source
+            $arguments.OutputDirectory = Join-Path $folder 'output'
+            $output = Join-Path $arguments.OutputDirectory 'source.pdf'
+        } else {
+            $arguments[$InputKind] = $source
+            $arguments.OutputPath = $output
+        }
+        Remove-OfficePdfContent @arguments | Out-Null
+        $text = Read-OfficeDocument -LiteralPath $output -As Text
+        $text.Contains('account:123') | Should -BeFalse
+        $text.Contains('ACCOUNT:456') | Should -Be $Sensitive
+    }
+
+    It 'rejects <Command> pipeline destination collisions before publishing <Destination>' -TestCases @(
+        @{ Command = 'Optimize-OfficePdf'; Destination = 'OutputPath' }
+        @{ Command = 'Remove-OfficePdfContent'; Destination = 'OutputPath' }
+        @{ Command = 'Update-OfficePdf'; Destination = 'OutputPath' }
+        @{ Command = 'Set-OfficePdfFormField'; Destination = 'OutputPath' }
+        @{ Command = 'Optimize-OfficePdf'; Destination = 'OutputDirectory' }
+        @{ Command = 'Remove-OfficePdfContent'; Destination = 'OutputDirectory' }
+        @{ Command = 'Update-OfficePdf'; Destination = 'OutputDirectory' }
+        @{ Command = 'Set-OfficePdfFormField'; Destination = 'OutputDirectory' }
+    ) {
+        param($Command, $Destination)
+        $folder = Join-Path $TestDrive ($Command + '-' + $Destination)
+        $first = Join-Path $folder 'first/report.pdf'
+        $second = Join-Path $folder 'second/report.pdf'
+        foreach ($path in $first, $second) {
+            $null = New-Item -ItemType Directory -Path (Split-Path $path)
+            New-OfficePdf -Path $path { PdfParagraph 'account:123'; PdfFormField -Name Name -Value Before } | Out-Null
+        }
+        $target = Join-Path $folder $(if ($Destination -eq 'OutputPath') { 'result.pdf' } else { 'output' })
+        $arguments = @{ ErrorAction = 'Stop' }
+        $arguments[$Destination] = $target
+        if ($Command -eq 'Remove-OfficePdfContent') { $arguments.Pattern = 'account:\d+' }
+        if ($Command -eq 'Update-OfficePdf') { $arguments.FlattenForm = $true }
+        if ($Command -eq 'Set-OfficePdfFormField') { $arguments.Value = @{ Name = 'After' } }
+        $failure = if ($Destination -eq 'OutputPath') { '*OutputPath requires exactly one input*' } else { '*same output name*' }
+        { Get-Item -LiteralPath $first, $second | & $Command @arguments } | Should -Throw $failure
+        Test-Path -LiteralPath $target | Should -BeFalse
+        (Get-OfficePdfFormField -LiteralPath $first -Name Name).Value | Should -Be Before
+        (Get-OfficePdfFormField -LiteralPath $second -Name Name).Value | Should -Be Before
+    }
+}

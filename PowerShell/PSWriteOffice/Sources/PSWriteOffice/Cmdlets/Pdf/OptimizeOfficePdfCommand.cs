@@ -17,6 +17,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [Cmdlet("Optimize", "OfficePdf", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(object))]
 public sealed class OptimizeOfficePdfCommand : OfficeCmdlet {
+    private readonly List<string> _inputs = new();
     /// <summary>Path for this operation.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
     [Parameter(ParameterSetName = "PathDirectory", Mandatory = true, Position = 0)]
@@ -140,9 +141,14 @@ public sealed class OptimizeOfficePdfCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        foreach (var pair in PdfFileCommandInputs.Resolve(this, Path, LiteralPath, OutputPath, OutputDirectory, NoClobber)) {
+        _inputs.AddRange(OfficePath.ResolveInputs(this, LiteralPath ?? Path ?? Array.Empty<string>(), LiteralPath != null));
+    }
+
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        foreach (var pair in PdfFileCommandInputs.Resolve(this, null, _inputs.ToArray(), OutputPath, OutputDirectory, NoClobber)) {
             if (!ShouldProcess(pair.Output, "Optimize PDF")) continue;
-            var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
+            using var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
             if (Sanitize) {
                 var result = document.Sanitize(SanitizationOptions);
                 PdfCommandUtilities.EnsureDirectory(pair.Output);
@@ -157,7 +163,10 @@ public sealed class OptimizeOfficePdfCommand : OfficeCmdlet {
                     MinimumStreamCompressionBytes = MinimumStreamCompressionSize ?? 128
                 });
                 PdfCommandUtilities.EnsureDirectory(pair.Output);
-                result.ToDocument().Save(pair.Output);
+                using (var output = result.ToDocument()) {
+                    output.Save(pair.Output, new PdfSaveOptions { ConflictPolicy = NoClobber
+                        ? OfficeConversionFileConflictPolicy.FailIfExists : OfficeConversionFileConflictPolicy.Replace });
+                }
                 WriteObject(PassThru ? (object)result : new FileInfo(pair.Output));
             }
         }

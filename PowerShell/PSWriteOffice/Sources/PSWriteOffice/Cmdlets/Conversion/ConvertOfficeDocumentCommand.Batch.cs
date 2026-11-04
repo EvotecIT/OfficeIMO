@@ -139,7 +139,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
             AllowEmpty = AllowEmpty.IsPresent
         };
         OfficeWorkflowCommandUtilities.ConfigureBatch(batch);
-        var routes = Options == null && Theme == null && Route == null && From == null ? null : OfficeBatchExecutor.SelectCapabilities(batch, CancelToken);
+        var routes = Options == null && Theme == null && Route == null && From == null && Page == null && !Dpi.HasValue ? null : OfficeBatchExecutor.SelectCapabilities(batch, CancelToken);
         var conversion = CaptureOptions(_inputs, target, routes);
         batch.ConversionOptions = conversion;
         batch.OutputProfile = conversion.OutputProfile;

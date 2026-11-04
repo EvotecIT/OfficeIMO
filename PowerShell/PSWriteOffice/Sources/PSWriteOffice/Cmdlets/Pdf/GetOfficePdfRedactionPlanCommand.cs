@@ -1,6 +1,5 @@
 using System;
 using System.Management.Automation;
-using System.Text.RegularExpressions;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
@@ -24,10 +23,8 @@ public sealed partial class GetOfficePdfRedactionPlanCommand : PSCmdlet {
             else if (ParameterSetName.StartsWith("Rectangle", StringComparison.Ordinal))
                 WriteObject(document.Redactions.Plan(new[] { new PdfRedactionArea(Page, X.ToPoints(), Y.ToPoints(), Width.ToPoints(), Height.ToPoints(), Label) }));
             else {
-                var search = new PdfRedactionSearchOptions { MatchCase = CaseSensitive.IsPresent,
-                    RegexOptions = RegexOptions.CultureInvariant | (CaseSensitive.IsPresent ? RegexOptions.None : RegexOptions.IgnoreCase) };
-                if (ParameterSetName.StartsWith("Pattern", StringComparison.Ordinal)) search.AddRegex(Pattern);
-                else search.AddLiteral(Text);
+                bool regex = ParameterSetName.StartsWith("Pattern", StringComparison.Ordinal);
+                var search = PdfRedactionCommandOptions.Create(regex ? null : Text, regex ? Pattern : null, CaseSensitive.IsPresent);
                 WriteObject(document.Redactions.Search(search));
             }
         }

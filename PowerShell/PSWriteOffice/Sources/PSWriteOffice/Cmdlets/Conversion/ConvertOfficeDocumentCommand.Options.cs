@@ -12,6 +12,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 public sealed partial class ConvertOfficeDocumentCommand {
     private OfficeConversionOptions CaptureOptions(IReadOnlyList<string> inputs, string target,
         IReadOnlyList<OfficeConversionCapability>? selectedRoutes = null) {
+        target = target.ToLowerInvariant();
         var inputFormat = CaptureInputFormat();
         bool hasDirectory = inputs.Any(Directory.Exists);
         var routes = selectedRoutes ?? OfficeWorkflowCommandUtilities.SupportedConversionRoutes.Where(route =>

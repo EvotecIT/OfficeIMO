@@ -17,6 +17,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [Cmdlet("Remove", "OfficePdfContent", DefaultParameterSetName = "Text", SupportsShouldProcess = true)]
 [OutputType(typeof(object))]
 public sealed class RemoveOfficePdfContentCommand : OfficeCmdlet {
+    private readonly List<string> _inputs = new();
     /// <summary>Path for this operation.</summary>
     [Parameter(ParameterSetName = "Text", Mandatory = true, Position = 0)]
     [Parameter(ParameterSetName = "TextDirectory", Mandatory = true, Position = 0)]
@@ -196,7 +197,7 @@ public sealed class RemoveOfficePdfContentCommand : OfficeCmdlet {
     [Parameter(ParameterSetName = "RectangleLiteralPathDirectory", Mandatory = true, ValueFromPipelineByPropertyName = true)]
     [Alias("PSPath", "FullName")]
     public string[]? LiteralPath { get; set; }
-    /// <summary>Regular expression; needs a regex matcher in the PDF redaction engine if it only matches literal text today.</summary>
+    /// <summary>Bounded regular expressions matched with the same case policy as Get-OfficePdfRedactionPlan.</summary>
     [Parameter(ParameterSetName = "Pattern", Mandatory = true)]
     [Parameter(ParameterSetName = "PatternDirectory", Mandatory = true)]
     [Parameter(ParameterSetName = "PatternLiteralPath", Mandatory = true)]
@@ -251,22 +252,30 @@ public sealed class RemoveOfficePdfContentCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        foreach (var pair in PdfFileCommandInputs.Resolve(this, Path, LiteralPath, OutputPath, OutputDirectory, NoClobber)) {
+        _inputs.AddRange(OfficePath.ResolveInputs(this, LiteralPath ?? Path ?? Array.Empty<string>(), LiteralPath != null));
+    }
+
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        foreach (var pair in PdfFileCommandInputs.Resolve(this, null, _inputs.ToArray(), OutputPath, OutputDirectory, NoClobber)) {
             if (!ShouldProcess(pair.Output, "Remove PDF content permanently")) continue;
-            var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
+            using var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
             var options = new PdfRedactionApplyOptions { FillColor = FillColor ?? OfficeColor.Black, PaintUnmatchedAreas = !OnlyPaintMatches };
             PdfDocument result;
             if (Text != null || Pattern != null) {
-                var search = new PdfRedactionSearchOptions { MatchCase = CaseSensitive };
-                if (Text != null) search.AddLiteral(Text);
-                if (Pattern != null) search.AddRegex(Pattern);
+                var search = PdfRedactionCommandOptions.Create(Text, Pattern, CaseSensitive.IsPresent);
                 var plan = document.Redactions.Search(search);
                 if (!plan.HasMatches) throw new PSInvalidOperationException("No PDF text matched. The output was not written.");
                 result = document.Redactions.Apply(plan, options);
             } else result = document.Redactions.Apply(Area ?? new[] { new PdfRedactionArea(Page!.Value, X!.Value.ToPoints(), Y!.Value.ToPoints(), Width!.Value.ToPoints(), Height!.Value.ToPoints(), Label) }, options);
             PdfCommandUtilities.EnsureDirectory(pair.Output);
-            result.Save(pair.Output);
-            WriteObject(PassThru ? (object)result : new FileInfo(pair.Output));
+            bool transferred = false;
+            try {
+                result.Save(pair.Output, new PdfSaveOptions { ConflictPolicy = NoClobber
+                    ? OfficeConversionFileConflictPolicy.FailIfExists : OfficeConversionFileConflictPolicy.Replace });
+                WriteObject(PassThru ? (object)result : new FileInfo(pair.Output));
+                transferred = PassThru.IsPresent;
+            } finally { if (!transferred) result.Dispose(); }
         }
     }
 }

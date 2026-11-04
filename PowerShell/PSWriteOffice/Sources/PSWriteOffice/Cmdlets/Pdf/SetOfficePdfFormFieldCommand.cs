@@ -18,6 +18,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [Cmdlet("Set", "OfficePdfFormField", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
 [OutputType(typeof(FileInfo), typeof(PdfDocument))]
 public sealed class SetOfficePdfFormFieldCommand : OfficeCmdlet {
+    private readonly List<string> _inputs = new();
     /// <summary>Path for this operation.</summary>
     [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
     [Parameter(ParameterSetName = "PathDirectory", Mandatory = true, Position = 0)]
@@ -121,7 +122,14 @@ public sealed class SetOfficePdfFormFieldCommand : OfficeCmdlet {
             if (PassThru || !adopted) WriteObject(changed);
             return;
         }
-        foreach (var pair in PdfFileCommandInputs.Resolve(this, Path, LiteralPath, OutputPath, OutputDirectory, false)) {
+        _inputs.AddRange(OfficePath.ResolveInputs(this, LiteralPath ?? Path ?? Array.Empty<string>(), LiteralPath != null));
+    }
+
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        if (_inputs.Count == 0) return;
+        var values = PdfCommandUtilities.ConvertFieldValues(Value!);
+        foreach (var pair in PdfFileCommandInputs.Resolve(this, null, _inputs.ToArray(), OutputPath, OutputDirectory, false)) {
             if (!ShouldProcess(pair.Output, "Fill PDF form fields")) continue;
             using var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
             using var changed = Fill(document, values);

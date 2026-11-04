@@ -17,6 +17,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [Cmdlet("Update", "OfficePdf", DefaultParameterSetName = "Flatten", SupportsShouldProcess = true)]
 [OutputType(typeof(object))]
 public sealed class UpdateOfficePdfCommand : AsyncPSCmdlet {
+    private readonly List<string> _inputs = new();
     /// <summary>Path for this operation.</summary>
     [Parameter(ParameterSetName = "Flatten", Mandatory = true, Position = 0)]
     [Parameter(ParameterSetName = "FlattenDirectory", Mandatory = true, Position = 0)]
@@ -140,9 +141,15 @@ public sealed class UpdateOfficePdfCommand : AsyncPSCmdlet {
     public PdfOcrMergeOptions? OcrMergeOptions { get; set; }
 
     /// <inheritdoc />
-    protected override async System.Threading.Tasks.Task ProcessRecordAsync() {
+    protected override System.Threading.Tasks.Task ProcessRecordAsync() {
+        _inputs.AddRange(OfficePath.ResolveInputs(this, LiteralPath ?? Path ?? Array.Empty<string>(), LiteralPath != null));
+        return System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    protected override async System.Threading.Tasks.Task EndProcessingAsync() {
         if (!Searchable && !FlattenForm && !FlattenAnnotation) throw new PSArgumentException("Select FlattenForm, FlattenAnnotation or Searchable.");
-        var inputs = PdfFileCommandInputs.Resolve(this, Path, LiteralPath, OutputPath, OutputDirectory, NoClobber);
+        var inputs = PdfFileCommandInputs.Resolve(this, null, _inputs.ToArray(), OutputPath, OutputDirectory, NoClobber);
         var readOptions = PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions);
         var formOptions = PdfCommandUtilities.CreateFormFillerOptions(this, AppearanceFontPath, AppearanceFont, false);
         foreach (var pair in inputs) {

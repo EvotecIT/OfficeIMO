@@ -70,9 +70,11 @@ public sealed class ConvertDocumentOcrWorkflowTests : IDisposable {
         Assert.Single(Directory.GetFiles(Path.GetDirectoryName(output)!));
     }
 
-    [Fact]
-    public void OcrOptionsImpliesRecognitionAndWhatIfNeverCallsProviderOrPublishes() {
-        string source = Image("scan.jp2"), output = Path.Combine(_root, "published", "review.csv");
+    [Theory]
+    [InlineData(".csv")]
+    [InlineData(".CSV")]
+    public void OcrOptionsImpliesRecognitionAndWhatIfNeverCallsProviderOrPublishes(string extension) {
+        string source = Image("scan.jp2"), output = Path.Combine(_root, "published", "review" + extension);
         int calls = 0;
         var recognition = new OfficeOcrOptions { Provider = new DelegateOcrEngine("canonical-source", (_, _) => { calls++; return Task.FromResult(Table()); }) };
         var csv = new CsvSaveOptions { Delimiter = ';', FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Preserve };
