@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.LegacyXls.Biff;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
@@ -26,7 +27,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ExcelDocument document,
             ExcelDirectTabularSource source,
             CancellationToken cancellationToken,
-            out byte[] workbookBytes) {
+            out byte[] workbookBytes,
+            Stream? destination = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (source == null) throw new ArgumentNullException(nameof(source));
 
@@ -36,7 +38,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
-            if (!TryCreateDirectTabularPlan(source, cancellationToken, out DirectTabularPlan directPlan)) {
+            if (!TryCreateDirectTabularPlan(source, document.DateSystem, cancellationToken, out DirectTabularPlan directPlan)) {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
@@ -44,9 +46,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
 
                 using (DirectTabularWorkbookStream workbookStream =
-                       BuildDirectTabularWorkbookStream(document, sheet, directPlan)) {
+                       BuildDirectTabularWorkbookStream(document, sheet, source.UseCellValueNumberFormats, directPlan)) {
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
-                    workbookBytes = BuildCompoundFile(document, workbookStream);
+                    if (destination == null) {
+                        workbookBytes = BuildCompoundFile(document, workbookStream);
+                    } else {
+                        WriteDirectCompoundFile(document, workbookStream, destination);
+                        workbookBytes = Array.Empty<byte>();
+                    }
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildCompoundFile");
                     return true;
                 }
@@ -621,7 +628,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static LegacyXlsWorksheetLayout ExtractWorksheetLayout(ExcelSheet sheet, LegacyXlsStyleTable styleTable) {
             var columns = new List<LegacyXlsColumnLayout>();
-            foreach (ExcelColumnSnapshot column in sheet.GetColumnDefinitions()) {
+            foreach (ExcelColumnInfo column in sheet.GetColumnDefinitions()) {
                 if (column.StartIndex <= 0 || column.EndIndex < column.StartIndex) {
                     continue;
                 }
@@ -634,7 +641,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 columns.Add(new LegacyXlsColumnLayout(
                     checked((ushort)(column.StartIndex - 1)),
                     checked((ushort)(column.EndIndex - 1)),
-                    column.Width,
+                    column.StoredWidth,
                     column.Hidden,
                     styleIndex,
                     column.OutlineLevel ?? 0,
@@ -642,7 +649,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             var rows = new List<LegacyXlsRowLayout>();
-            foreach (ExcelRowSnapshot row in sheet.GetRowDefinitions()) {
+            foreach (ExcelRowInfo row in sheet.GetRowDefinitions()) {
                 if (row.Index <= 0) {
                     continue;
                 }
@@ -654,7 +661,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ushort styleIndex = styleTable.GetBiffStyleIndex(row.StyleIndex);
                 rows.Add(new LegacyXlsRowLayout(
                     checked((ushort)(row.Index - 1)),
-                    row.Height,
+                    row.StoredHeight,
                     row.Hidden,
                     row.CustomHeight,
                     row.CustomFormat,
@@ -664,7 +671,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             var mergedRanges = new List<LegacyXlsMergedRange>();
-            foreach (ExcelMergedRangeSnapshot mergedRange in sheet.GetMergedRanges()) {
+            foreach (ExcelMergedRangeInfo mergedRange in sheet.GetMergedRanges()) {
                 if (mergedRange.StartRow <= 0 || mergedRange.StartColumn <= 0 || mergedRange.EndRow < mergedRange.StartRow || mergedRange.EndColumn < mergedRange.StartColumn) {
                     continue;
                 }
@@ -680,7 +687,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     checked((ushort)(mergedRange.EndColumn - 1))));
             }
 
-            ExcelWorksheetViewInfo viewInfo = sheet.GetViewInfo();
+            ExcelWorksheetViewInfo viewInfo = sheet.ReadViewInfo();
             IReadOnlyList<SheetView> sheetViews = sheet.WorksheetPart.Worksheet!
                 .GetFirstChild<SheetViews>()?
                 .Elements<SheetView>()
@@ -691,8 +698,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsWorksheetProtection protection = ExtractWorksheetProtection(sheet);
 
             return new LegacyXlsWorksheetLayout(
-                NormalizeDefaultColumnWidth(sheet.DefaultColumnWidth),
-                sheet.DefaultRowHeight,
+                NormalizeDefaultColumnWidth(sheet.DefaultColumnWidth?.ToCharacters(sheet)),
+                sheet.DefaultRowHeight?.ToLength(sheet).ToPoints(),
                 sheet.DefaultRowsHidden,
                 columns,
                 rows,
@@ -729,8 +736,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 frozenColumnCount,
                 sheetView?.ShowFormulas?.Value == true,
                 sheetView?.ShowGridLines?.Value ?? (primary ? viewInfo.ShowGridlines : true),
-                sheetView?.ShowRowColHeaders?.Value ?? (primary ? sheet.RowColumnHeadingsVisible : true),
-                sheetView?.ShowZeros?.Value ?? (primary ? sheet.ZeroValuesVisible : true),
+                sheetView?.ShowRowColHeaders?.Value ?? (primary ? sheet.RowColumnHeadingsVisibleCore : true),
+                sheetView?.ShowZeros?.Value ?? (primary ? sheet.ZeroValuesVisibleCore : true),
                 sheetView?.RightToLeft?.Value ?? (primary && viewInfo.RightToLeft),
                 sheetView?.DefaultGridColor?.Value ?? true,
                 GetWindow2GridLineColorIndex(sheetView?.DefaultGridColor?.Value ?? true, sheetView?.ColorId?.Value),
@@ -751,7 +758,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return new LegacyXlsWindowTopLeftCell(0, 0);
             }
 
-            if (!A1.TryParseCellReferenceFast(topLeftCell, out int row, out int column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(topLeftCell, out int row, out int column)) {
                 throw new NotSupportedException($"Native XLS saving requires a valid worksheet top-left cell reference; this worksheet uses '{topLeftCell}'.");
             }
 
@@ -1038,10 +1045,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int r2;
             int c2;
             if (normalizedReference.IndexOf(':') < 0) {
-                (r1, c1) = A1.ParseCellRef(normalizedReference);
+                (r1, c1) = ExcelA1.ParseCellRef(normalizedReference);
                 r2 = r1;
                 c2 = c1;
-            } else if (!A1.TryParseRange(normalizedReference, out r1, out c1, out r2, out c2)) {
+            } else if (!ExcelA1.TryParseRange(normalizedReference, out r1, out c1, out r2, out c2)) {
                 return false;
             }
 
@@ -1091,10 +1098,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int lastRow;
             int lastColumn;
             if (separator < 0) {
-                (firstRow, firstColumn) = A1.ParseCellRef(normalizedReference);
+                (firstRow, firstColumn) = ExcelA1.ParseCellRef(normalizedReference);
                 lastRow = firstRow;
                 lastColumn = firstColumn;
-            } else if (!A1.TryParseRange(normalizedReference, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
+            } else if (!ExcelA1.TryParseRange(normalizedReference, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
                 throw new NotSupportedException($"Native XLS saving does not support array formula range '{reference}' at {address}. Save as .xlsx or remove this formula before saving as .xls.");
             }
 
@@ -1440,9 +1447,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static LegacyXlsWorksheetPageSetup ExtractPageSetup(ExcelSheet sheet) {
-            ExcelSheetPageSetup pageSetup = sheet.GetPageSetup();
-            ExcelSheetPrintOptions printOptions = sheet.GetPrintOptions();
-            ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = sheet.GetHeaderFooter();
+            ExcelSheetPageSetup pageSetup = sheet.PageSetup;
+            ExcelSheetPrintOptions printOptions = sheet.ReadPrintOptions();
+            ExcelSheet.ExcelHeaderFooterInfo headerFooter = sheet.GetHeaderFooter();
             Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
             PageSetup? storedPageSetup = worksheet.GetFirstChild<PageSetup>();
             SheetProperties? sheetProperties = worksheet.GetFirstChild<SheetProperties>();
@@ -1454,12 +1461,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             return new LegacyXlsWorksheetPageSetup(
                 pageSetup.Orientation,
-                pageSetup.Margins?.Left,
-                pageSetup.Margins?.Right,
-                pageSetup.Margins?.Top,
-                pageSetup.Margins?.Bottom,
-                pageSetup.Margins?.Header,
-                pageSetup.Margins?.Footer,
+                pageSetup.Margins?.Left.ToInches(),
+                pageSetup.Margins?.Right.ToInches(),
+                pageSetup.Margins?.Top.ToInches(),
+                pageSetup.Margins?.Bottom.ToInches(),
+                pageSetup.Margins?.Header.ToInches(),
+                pageSetup.Margins?.Footer.ToInches(),
                 // Rendering uses effective dimensions; serialization also retains
                 // cached dimensions while manual scaling is active.
                 storedPageSetup?.FitToWidth?.Value ?? pageSetup.FitToWidth,
@@ -2016,6 +2023,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteNumberCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, double value, ushort styleIndex) {
+            // A number with an exact RK form uses the shorter RK record, as Excel does.
+            if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
+                WriteFixedCellRecordHeader(buffer, 0x027e, payloadLength: 10, row, column, styleIndex);
+                WriteUInt32(buffer, 10, rk);
+                stream.Write(buffer, 0, 14);
+                return;
+            }
             WriteFixedCellRecordHeader(buffer, 0x0203, payloadLength: 14, row, column, styleIndex);
             ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
             WriteUInt32(buffer, 10, unchecked((uint)bits));

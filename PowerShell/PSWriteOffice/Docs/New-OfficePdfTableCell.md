@@ -11,7 +11,7 @@ Creates a reusable PDF table cell definition for explicit table rows.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficePdfTableCell [[-Text] <string>] [-Run <Object[]>] [-ColumnSpan <int>] [-RowSpan <int>] [-TextColor <string>] [-FillColor <string>] [-FontSize <Double>] [-Bold] [-Italic] [-Underline] [-UnderlineStyle <string>] [-Strike] [-Align <PdfColumnAlign>] [-VerticalAlign <PdfCellVerticalAlign>] [-CheckBox <PdfTableCellCheckBox[]>] [-Image <PdfTableCellImage[]>] [-FormField <PdfTableCellFormField[]>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-NamedDestinationName <string>] [-NoWrap] [<CommonParameters>]
+New-OfficePdfTableCell [[-Text] <string>] [-Run <Object[]>] [-ColumnSpan <int>] [-RowSpan <int>] [-TextColor <string>] [-FillColor <string>] [-FontSize <Double>] [-Bold] [-Italic] [-Underline] [-UnderlineStyle <string>] [-Strike] [-Align <OfficeAlignment>] [-VerticalAlign <PdfCellVerticalAlign>] [-CheckBox <PdfTableCellCheckBox[]>] [-Image <PdfTableCellImage[]>] [-FormField <PdfTableCellFormField[]>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-NamedDestinationName <string>] [-NoWrap] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,10 +32,10 @@ The returned cell can be passed to PdfTable inside explicit row arrays.
 Horizontal cell alignment.
 
 ```yaml
-Type: PdfColumnAlign
+Type: OfficeAlignment
 Parameter Sets: __AllParameterSets
 Aliases: None
-Possible values: Left, Center, Right
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

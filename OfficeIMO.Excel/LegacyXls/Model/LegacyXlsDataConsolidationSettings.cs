@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents worksheet-level BIFF DCon data-consolidation settings.
     /// </summary>
-    public sealed class LegacyXlsDataConsolidationSettings {
+    internal sealed class LegacyXlsDataConsolidationSettings {
         /// <summary>
         /// Creates worksheet data-consolidation settings parsed from a BIFF DCon record.
         /// </summary>

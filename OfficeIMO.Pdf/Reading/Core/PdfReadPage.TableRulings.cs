@@ -14,9 +14,16 @@ public sealed partial class PdfReadPage {
         (double width, double height) = GetVisualPageSize();
         var pageContentBudget = new PageContentBudget(this, context.CancellationToken);
         Matrix2D transform = GetVisualPageTransform();
+        PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        string content = GetContentStreamContent(pageContentBudget);
+        if (content.Length == 0) return Array.Empty<PdfTableRuling>();
+        PdfPageInvokedResourceNames invoked = GetRootInvokedResourceNames(content, resources, () => context.ConsumeWork());
+        // This profile accepts root strokes only. Decline invoked objects before
+        // separate effect/geometry traversals could decode their content twice.
+        if (invoked.HasObjectPaint || !invoked.HasVectorPaint) return Array.Empty<PdfTableRuling>();
         // This bounded profile declines pages with graphics effects. IsDefault alone
         // does not exclude unresolved soft masks or unmodelled graphics-state paint.
-        foreach (PdfPageDrawingEffectTransition transition in GetGraphicsEffectTransitions(transform, height, pageContentBudget)) {
+        foreach (PdfPageDrawingEffectTransition transition in GetGraphicsEffectTransitions(content, transform, height, pageContentBudget)) {
             context.ConsumeWork();
             PdfPageDrawingEffect effect = transition.Effect;
             if (effect.HasUnsupportedGraphicsState || effect.SoftMask != null ||
@@ -25,8 +32,7 @@ public sealed partial class PdfReadPage {
         var rulings = new List<PdfTableRuling>();
         bool uncertain = false;
         (OfficeColor Color, double Width, double Opacity)? strokePaint = null;
-        PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        string content = GetContentStreamContent(pageContentBudget);
+        OfficeColor? rulePaint = null;
         if (content.Length > 0) {
             CollectVisualPrimitivesAndForms(content, resources, transform, width, height, Visit,
                 new HashSet<PdfStream>(), retainPrimitiveData: false,
@@ -44,7 +50,10 @@ public sealed partial class PdfReadPage {
             context.ConsumeWork();
             if (uncertain) return;
             if (primitive.ContentOrderKey?.Depth != 1) { uncertain = true; return; }
-            if (primitive.HasFillPaint) { uncertain = true; return; }
+            if (primitive.HasFillPaint) {
+                if (!TryAddFilledRule(primitive)) uncertain = true;
+                return;
+            }
             if (!primitive.HasStrokePaint) return;
             double opacity = primitive.StrokeOpacity ?? 1D;
             if (IsFinite(opacity) && opacity <= 0D) return;
@@ -66,6 +75,7 @@ public sealed partial class PdfReadPage {
             // paint. Decline mixed stroke paint before clipping/deduplication: even
             // a partial, clipped or full-span white stroke can erase a black rule.
             if (strokePaint.HasValue && !strokePaint.Value.Equals(paint)) { uncertain = true; return; }
+            if (rulePaint.HasValue && !rulePaint.Value.Equals(color)) { uncertain = true; return; }
             strokePaint = paint;
             double pad = primitive.StrokeWidth / 2D;
             if (!Contained(primitive.X - pad, primitive.Y - pad, primitive.X + primitive.Width + pad,
@@ -98,6 +108,36 @@ public sealed partial class PdfReadPage {
                     } else { uncertain = true; return; }
                 }
             }
+        }
+
+        // Word and other producers draw cell borders as thin filled rectangles rather than strokes. A solid,
+        // opaque, non-white rectangle no thicker than 1.5 pt is read as a rule along its long side; the corner
+        // squares where rules meet add nothing. Every rule fill must share one colour, as strokes must.
+        bool TryAddFilledRule(PdfPageVisualPrimitive primitive) {
+            if (primitive.Kind != PdfPageVisualPrimitiveKind.Rectangle || primitive.HasStrokePaint ||
+                !primitive.FillColor.HasValue || primitive.FillGradient != null || primitive.FillRadialGradient != null ||
+                primitive.FillTilingPattern != null || primitive.IsSelfColoredShading) return false;
+            double opacity = primitive.FillOpacity ?? 1D;
+            OfficeColor color = primitive.FillColor.Value;
+            if (!IsFinite(opacity) || opacity < 1D || color.A < byte.MaxValue) return false;
+            if (color.R == byte.MaxValue && color.G == byte.MaxValue && color.B == byte.MaxValue) return false;
+            double w = Math.Abs(primitive.Width), h = Math.Abs(primitive.Height);
+            double thickness = Math.Min(w, h);
+            if (!IsFinite(w) || !IsFinite(h) || thickness <= 0D || thickness > 1.5D) return false;
+            if (rulePaint.HasValue && !rulePaint.Value.Equals(color)) return false;
+            if (strokePaint.HasValue && !strokePaint.Value.Color.Equals(color)) return false;
+            rulePaint = color;
+            if (!Contained(primitive.X, primitive.Y, primitive.X + w, primitive.Y + h, 0D, 0D, width, height)) return true;
+            if (primitive.ClipPath is PdfPageClipPath clip &&
+                (!clip.IsExact || !clip.IsRectangle || clip.ContainsTextClipping ||
+                 !Contained(primitive.X, primitive.Y, primitive.X + w, primitive.Y + h, clip.X, clip.Y, clip.X + clip.Width, clip.Y + clip.Height))) return true;
+            double left = Math.Min(primitive.X, primitive.X + primitive.Width);
+            double top = Math.Min(primitive.Y, primitive.Y + primitive.Height);
+            // Producers leave the joint square out of the segments on either side of it; extending each rule by
+            // its thickness reconnects them.
+            if (w > h * 2D) Add(left - h, top + h / 2D, left + w + h, top + h / 2D);
+            else if (h > w * 2D) Add(left + w / 2D, top - w, left + w / 2D, top + h + w);
+            return true;
         }
 
         void Add(double x1, double y1, double x2, double y2) {

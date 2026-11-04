@@ -22,7 +22,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var node = envelope.Nodes[0];
         node.Ports.Clear(); node.X = 10; node.Y = 200; node.Width = 60; node.Height = 80;
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
         Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100, RequireLossless = true }));
     }
 
@@ -34,24 +34,24 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         envelope.Title = "Services";
         envelope.Groups.Add(new VisualArtifactInterchangeGroup { Id = "empty", Label = "Empty", Kind = "TopologyGroup", Role = VisualArtifactInterchangeGroupRole.TopologyGroup, Topology = new VisualArtifactInterchangeTopologyGroup() });
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100, LayoutMode = mode });
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.GroupNotProjected);
-        Assert.Equal(2, result.Page.Shapes.Single(item => item.Id == "api").PinX, 6);
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.GroupNotProjected);
+        Assert.Equal(2, result.Page.Shapes.Single(item => item.Id == "api").PinX.ToInches(), 6);
     }
 
     [Fact]
     public void PreparedBoundsAndNamedAttachmentsSurviveSaveAndLoad() {
         var envelope = PlacementEnvelope();
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
         void Check(VisioPage page) {
-            Assert.Equal(10, page.Width, 6);
-            Assert.Equal(8, page.Height, 6);
+            Assert.Equal(10, page.Width.ToInches(), 6);
+            Assert.Equal(8, page.Height.ToInches(), 6);
             var node = page.Shapes.Single(item => item.Id == "api");
-            Assert.Equal(2, node.PinX, 6);
-            Assert.Equal(6.5, node.PinY, 6);
-            Assert.Equal(2, node.Width, 6);
-            Assert.Equal(1, node.Height, 6);
+            Assert.Equal(2, node.PinX.ToInches(), 6);
+            Assert.Equal(6.5, node.PinY.ToInches(), 6);
+            Assert.Equal(2, node.Width.ToInches(), 6);
+            Assert.Equal(1, node.Height.ToInches(), 6);
             var connector = Assert.Single(page.Connectors);
             Assert.Equal(VisioConnectorRerouteBehavior.Never, connector.RerouteBehavior);
             Assert.Equal(2, connector.FromConnectionPoint!.X, 6);
@@ -99,11 +99,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
         var title = result.Page.Shapes.Single(shape => shape.Text == "Services");
         var node = result.Page.Shapes.Single(shape => shape.Id == "api");
-        Assert.True(title.PinY - title.Height / 2 > node.PinY + node.Height / 2);
+        Assert.True(title.PinY.ToInches() - title.Height.ToInches() / 2 > node.PinY.ToInches() + node.Height.ToInches() / 2);
         envelope.Nodes[0].Y = 0;
         var crowded = envelope.ToOfficeVisio();
         Assert.DoesNotContain(crowded.Page.Shapes, shape => shape.Text == "Services");
-        Assert.Contains(crowded.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
+        Assert.Contains(crowded.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
         Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(new OfficeVisioVisualOptions { RequireLossless = true }));
     }
 
@@ -111,11 +111,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
     public void ExplicitReflowAndFidelityPolicyAreHonored() {
         var envelope = PlacementEnvelope();
         var reflow = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { LayoutMode = OfficeVisioVisualLayoutMode.Reflow });
-        Assert.Contains(reflow.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+        Assert.Contains(reflow.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
         var options = new OfficeVisioVisualOptions { LayoutMode = OfficeVisioVisualLayoutMode.Reflow };
         options.RejectedDiagnostics.Add(OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
         var error = Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(options));
-        Assert.Contains(error.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+        Assert.Contains(error.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
         envelope.Nodes[0].Width = null;
         Assert.Throws<NotSupportedException>(() => envelope.ToOfficeVisio(new OfficeVisioVisualOptions { LayoutMode = OfficeVisioVisualLayoutMode.Preserve }));
     }
@@ -324,7 +324,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var envelope = PlacementEnvelope();
         envelope.Nodes[0].X = -10;
         var result = envelope.ToOfficeVisio();
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.GeometryOutsidePage && item.EntityId == "api");
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.GeometryOutsidePage && item.EntityId == "api");
         var options = new OfficeVisioVisualOptions();
         options.RejectedDiagnostics.Add(OfficeVisioVisualDiagnosticCode.GeometryOutsidePage);
         Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(options));
@@ -355,11 +355,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var envelope = chart.ToVisualArtifact().ToInterchangeEnvelope();
         var result = envelope.ToOfficeVisio();
         var shape = result.Page.Shapes.Single(item => item.Id == "a");
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(240, 244, 250), shape.FillColor);
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(20, 36, 58), shape.TextStyle!.Color);
+        Assert.Equal(OfficeIMO.OfficeColor.FromRgb(240, 244, 250), shape.FillColor);
+        Assert.Equal(OfficeIMO.OfficeColor.FromRgb(20, 36, 58), shape.TextStyle!.Color);
         Assert.Equal("Arial", shape.TextStyle.FontFamily);
         var custom = VisioStyleTheme.Technical();
-        custom.PageBackgroundColor = OfficeIMO.Drawing.OfficeColor.FromRgb(245, 248, 252);
+        custom.PageBackgroundColor = OfficeIMO.OfficeColor.FromRgb(245, 248, 252);
         var overridden = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { NativeTheme = custom });
         Assert.Equal(custom.Primary.FillColor, overridden.Page.Shapes.Single(item => item.Id == "a").FillColor);
         Assert.Equal(custom.PageBackgroundColor, overridden.Page.Shapes[0].FillColor);

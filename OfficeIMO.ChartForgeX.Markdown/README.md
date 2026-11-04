@@ -15,16 +15,16 @@ using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word.Markdown;
 
 var document = MermaidMarkdownAdapter.Materialize(
-    MarkdownReader.Parse(markdown), diagnostic => Console.WriteLine(diagnostic.Message));
+    MarkdownDocument.Parse(markdown), diagnostic => Console.WriteLine(diagnostic.Message));
 
-using var word = document.ToWordDocument(new MarkdownToWordOptions { FitImagesToContextWidth = true });
+using var word = document.ToWord(new MarkdownWordExportOptions { FitImagesToContextWidth = true });
 word.Save("report.docx");
 document.SaveAsPdf("report.pdf");
 ```
 
 The transform replaces Mermaid fences with embedded PNG images, including fences inside lists, quotes and other Markdown containers. The Word example uses the existing context-width image policy so wide diagrams fit the page, including list and quote indentation. It preserves captions and supplies alternative text from the rendered artifact. Other fence languages remain unchanged. Invalid or unsupported diagrams retain their source fence and report diagnostics through the supplied callback.
 
-For a converter that accepts `MarkdownReaderOptions`, add `MermaidMarkdownAdapter.CreateTransform()` to `DocumentTransforms`. Each application renders its own document, so the same transform can be reused.
+For a converter that accepts `MarkdownLoadOptions`, add `MermaidMarkdownAdapter.CreateTransform()` to `DocumentTransforms`. Each application renders its own document, so the same transform can be reused.
 
 ## Static HTML
 
@@ -49,13 +49,13 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.PowerPoint;
 
-var reader = MarkdownReaderOptions.CreateOfficeIMOProfile();
+var reader = MarkdownLoadOptions.CreateOfficeIMOProfile();
 reader.DocumentTransforms.Add(MermaidMarkdownAdapter.CreateTransform());
 var parsed = OfficeMarkupParser.Parse(markdown, new OfficeMarkupParserOptions {
     Profile = OfficeMarkupProfile.Presentation,
     MarkdownOptions = reader
 });
-using var presentation = parsed.Document.ToPowerPointPresentation();
+using var presentation = parsed.Document.ToPowerPointDocument();
 presentation.Save("report.pptx");
 ```
 
@@ -63,7 +63,7 @@ The parser preserves transformed fences within list items, slide bodies and dire
 
 For Word markup, select `OfficeMarkupProfile.Document` and import `OfficeIMO.Markup.Word`, then call `parsed.Document.ToWordDocument()`. Word markup fits unsized embedded images to the current section and honors explicit image dimensions. Both markup exporters expose `AllowDataUriImages` and `MaximumDataUriImageBytes` in their options.
 
-The PowerPoint exporter embeds the generated PNG bytes in process, preserves their aspect ratio and alternative text, and includes image captions. PNG and JPEG data URI images are enabled by default, with a 16 MiB decoded-image limit. Set `MarkupToPowerPointOptions.AllowDataUriImages` or `MaximumDataUriImageBytes` to apply a stricter policy. Existing file-path access rules continue to apply to file images.
+The PowerPoint exporter embeds the generated PNG bytes in process, preserves their aspect ratio and alternative text, and includes image captions. PNG and JPEG data URI images are enabled by default, with a 16 MiB decoded-image limit. Set `MarkupPowerPointExportOptions.AllowDataUriImages` or `MaximumDataUriImageBytes` to apply a stricter policy. Existing file-path access rules continue to apply to file images.
 
 ## Rendering limits
 

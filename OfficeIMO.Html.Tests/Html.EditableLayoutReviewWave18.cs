@@ -50,17 +50,17 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
             + "<img alt='Nested marker' src='" + image
             + "' style='position:absolute;left:28px;top:18px;width:24px;height:18px'></div>";
 
-        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
-        HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         string rtf = rtfResult.Value.ToRtf();
 
         Assert.Empty(word.TextBoxes);
         Assert.Single(word.Images);
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pict", rtf, StringComparison.Ordinal);
-        Assert.Contains(wordResult.Report.Diagnostics, IsNestedPlacementDiagnostic);
-        Assert.Contains(rtfResult.Report.Diagnostics, IsNestedPlacementDiagnostic);
+        Assert.Contains(wordResult.Report.NativeDiagnostics, IsNestedPlacementDiagnostic);
+        Assert.Contains(rtfResult.Report.NativeDiagnostics, IsNestedPlacementDiagnostic);
     }
 
     [Fact]
@@ -69,11 +69,11 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
             + "background-image:linear-gradient(red,blue)'>Gradient</div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = result.Value;
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = result.Value;
 
         Assert.Single(Assert.Single(presentation.Slides).TextBoxes, box => box.Text == "Gradient");
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened
             && diagnostic.Severity == HtmlDiagnosticSeverity.Warning
             && diagnostic.LossKind == OfficeConversionLossKind.Omission

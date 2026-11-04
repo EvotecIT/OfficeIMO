@@ -1,14 +1,18 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Controls arbitrary visual canvas content stamped onto existing PDF pages.</summary>
-public sealed class PdfCanvasStampOptions {
-    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfCanvasStampOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     internal string? ContentIdentifier { get; set; }
     internal PdfWatermarkOptions? WatermarkSettings { get; set; }
     private double _opacity = 1D;
-    private PdfOptions? _renderingOptions;
+    private PdfCreateOptions? _renderingOptions;
 
     /// <summary>Optional target-page selector. Null applies the canvas callback to every page.</summary>
     public PdfPageSelector? TargetPages { get; set; }
@@ -34,12 +38,12 @@ public sealed class PdfCanvasStampOptions {
     /// Use this to carry registered embedded fonts, text shaping, image handling, and other visual rendering configuration into canvas content.
     /// Tagged structure mode must remain disabled because a visual page import cannot merge the temporary document's structure tree into the target.
     /// </summary>
-    public PdfOptions? RenderingOptions {
+    public PdfCreateOptions? RenderingOptions {
         get => _renderingOptions?.Clone();
         set => _renderingOptions = value?.Clone();
     }
 
-    internal PdfOptions? RenderingOptionsSnapshot => _renderingOptions?.Clone();
+    internal PdfCreateOptions? RenderingOptionsSnapshot => _renderingOptions?.Clone();
 
     /// <summary>Sets target pages from a rich page-selector expression.</summary>
     public PdfCanvasStampOptions UseTargetPages(string selector) {
@@ -48,7 +52,7 @@ public sealed class PdfCanvasStampOptions {
     }
 
     /// <summary>Uses cloned generated-PDF rendering options for visual canvas content.</summary>
-    public PdfCanvasStampOptions UseRenderingOptions(PdfOptions options) {
+    public PdfCanvasStampOptions UseRenderingOptions(PdfCreateOptions options) {
         Guard.NotNull(options, nameof(options));
         RenderingOptions = options;
         return this;

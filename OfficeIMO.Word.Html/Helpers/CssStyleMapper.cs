@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal enum WhiteSpaceMode {

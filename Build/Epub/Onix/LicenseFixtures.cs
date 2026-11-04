@@ -31,7 +31,7 @@ internal static class LicenseFixtures {
         string status, detail;
         try {
             var result = project.ExportOnix(options with { CollateralTexts = [dated] }, schemas,
-                new EpubWriteOptions { ModifiedAt = timestamp });
+                new EpubSaveOptions { ModifiedAt = timestamp });
             if (!BookOnixMessage.Create([result], schemas).Bytes.SequenceEqual(result.Bytes))
                 throw new InvalidDataException("License composition changed the record.");
             File.WriteAllBytes(Path.Combine(outputDirectory, "dated-license-probe.onix"), result.Bytes);

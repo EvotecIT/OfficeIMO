@@ -19,7 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="1.8.3" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'" />
     <ProjectReference Include="../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>

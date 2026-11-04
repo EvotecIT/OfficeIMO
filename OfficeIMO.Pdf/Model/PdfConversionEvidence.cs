@@ -1,0 +1,71 @@
+namespace OfficeIMO.Pdf;
+
+/// <summary>Freezes internal stage evidence at the public conversion boundary.</summary>
+internal static partial class PdfConversionEvidence {
+    internal static PdfDocument CompleteModel(PdfDocumentConversionResult conversion, string source, bool failOnLoss,
+        System.Diagnostics.Stopwatch timer, System.Threading.CancellationToken token, out OfficeConversionReport report) {
+        try {
+            byte[] bytes;
+            int? writtenPages;
+            PdfConversionReport outputDiagnostics;
+            using (var scope = new PdfOutputDiagnosticScope()) {
+                bytes = conversion.ToBytes(token, out writtenPages);
+                outputDiagnostics = scope.Report;
+            }
+            // The writer counts the pages it emits, as the stream save path already reports;
+            // only passthrough bytes without that evidence are read back to count them.
+            int pageCount = writtenPages ?? CountPages(conversion, bytes, token);
+            report = CreateReport(source, conversion.ConversionReports, elapsed: timer.Elapsed, itemsWritten: pageCount);
+            if (failOnLoss) report.ThrowIfLoss();
+            conversion.Value.RetainCompletedOutput(bytes, outputDiagnostics);
+            return conversion.Value;
+        } catch (Exception error) when (error is not OperationCanceledException and not OfficeConversionException and not OutOfMemoryException and not StackOverflowException) {
+            conversion.Value.Dispose();
+            throw OutputFailure(conversion, source, error);
+        } catch {
+            conversion.Value.Dispose();
+            throw;
+        }
+    }
+
+    private static int CountPages(PdfDocumentConversionResult conversion, byte[] bytes, System.Threading.CancellationToken token) {
+        PdfLoadOptions reading = PdfLoadOptions.WithMinimumInputBytes(conversion.Value.ReadOptions, bytes.LongLength);
+        using PdfDocument model = PdfDocument.LoadOwned(bytes, reading, token);
+        return model.Pages.Count;
+    }
+
+    internal static OfficeConversionReport CreateReport(string source, IEnumerable<PdfConversionWarning> warnings,
+        string? outputPath = null, TimeSpan elapsed = default, long itemsWritten = 0, string target = "Pdf") =>
+        new OfficeConversionReport(source, target, outputPath, itemsWritten, elapsed, warnings.Select(warning => new OfficeDiagnostic(
+            warning.Code, warning.Severity switch {
+                PdfConversionWarningSeverity.Information => OfficeDiagnosticSeverity.Information,
+                PdfConversionWarningSeverity.Error => OfficeDiagnosticSeverity.Error,
+                _ => OfficeDiagnosticSeverity.Warning
+            }, warning.Message, warning.Source, warning.Converter, warning.LossKind)));
+
+    internal static OfficeConversionReport CreateReport(string source, IEnumerable<OfficeConversionReport> stages,
+        string? outputPath = null, TimeSpan elapsed = default, long itemsWritten = 0, string target = "Pdf") {
+        var diagnostics = new List<OfficeDiagnostic>();
+        foreach (OfficeConversionReport stage in stages) {
+            if (stage is OfficeConversionReport shared) {
+                diagnostics.AddRange(shared.Diagnostics);
+            } else if (stage is PdfConversionReport pdf) {
+                foreach (PdfConversionWarning warning in pdf.Warnings) {
+                    OfficeDiagnosticSeverity severity = warning.Severity switch {
+                        PdfConversionWarningSeverity.Information => OfficeDiagnosticSeverity.Information,
+                        PdfConversionWarningSeverity.Error => OfficeDiagnosticSeverity.Error,
+                        _ => OfficeDiagnosticSeverity.Warning
+                    };
+                    diagnostics.Add(new OfficeDiagnostic(warning.Code, severity, warning.Message,
+                        warning.Source, warning.Converter, warning.LossKind));
+                }
+            } else {
+                foreach (OfficeDiagnostic diagnostic in stage.Diagnostics) {
+                    diagnostics.Add(new OfficeDiagnostic(diagnostic.Code, OfficeDiagnosticSeverity.Warning,
+                        diagnostic.Message, diagnostic.Location, diagnostic.Format, diagnostic.LossKind));
+                }
+            }
+        }
+        return new OfficeConversionReport(source, target, outputPath, itemsWritten, elapsed, diagnostics);
+    }
+}

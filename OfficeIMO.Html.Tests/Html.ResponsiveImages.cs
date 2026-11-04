@@ -56,7 +56,7 @@ public sealed class HtmlResponsiveImageTests {
 
     [Fact]
     public void ResourcePipelineUsesTheSharedSizesCharacterLimit() {
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxResponsiveImageSizesCharacters = 8;
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest("""
             <img srcset="small.png 400w, large.png 800w" sizes="screen 400px">
@@ -75,7 +75,7 @@ public sealed class HtmlResponsiveImageTests {
     [Fact]
     public async Task RendererPropagatesAnExplicitSizesLimitAboveThePipelineDefault() {
         string sizes = new string(' ', 70_000) + "400px";
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxResponsiveImageSizesCharacters = 128 * 1024;
         HtmlConversionDocument document = HtmlConversionDocument.Parse($"""
             <img srcset="https://example.test/small.svg 400w, https://example.test/large.svg 800w"

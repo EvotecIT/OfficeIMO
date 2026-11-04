@@ -71,13 +71,13 @@ public sealed class XpsBrushTests {
         var brushProperty = path.Element(ns + "Path.Fill")!; brushProperty.Name = ns + "Path.Stroke";
         var brush = brushProperty.Elements().Single(); brush.SetAttributeValue("Viewport", "10,10,40,40");
         page.ReplaceMarkup(xml);
-        var raster = Raster(XpsDocument.Load(doc.Save()).Pages[0]);
+        var raster = Raster(XpsDocument.Load(doc.ToBytes()).Pages[0]);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(20, 15));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 15));
         Assert.Equal(OfficeColor.Green, raster.GetPixel(20, 45));
         Assert.Equal(OfficeColor.White, raster.GetPixel(30, 30));
         Assert.NotEqual(OfficeColor.Red, raster.GetPixel(5, 15));
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         // Brush opacity is applied once at joins, and transforms move both tile
         // and coverage with the path while retaining its unpainted interior.
@@ -97,17 +97,17 @@ public sealed class XpsBrushTests {
         var path = xml.Elements().Single(); path.SetAttributeValue("Data", "M10,10H30V30H10Z"); path.SetAttributeValue("StrokeThickness", "5");
         path.Element(ns + "Path.Fill")!.Name = ns + "Path.Stroke";
         for (int i = 1; i < 30; i++) { var copy = new XElement(path); copy.SetAttributeValue("RenderTransform", "1,0,0,1,0," + i * 30); xml.Add(copy); }
-        page.ReplaceMarkup(xml); Assert.NotNull(page.ToDrawing()); Assert.NotEmpty(doc.ToPdf());
+        page.ReplaceMarkup(xml); Assert.NotNull(page.ToDrawing()); Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
     [Theory]
     [InlineData(XpsFormat.Xps)]
     [InlineData(XpsFormat.OpenXps)]
     public void GradientTransformSurvivesPackageAndPdfConversion(XpsFormat format) {
-        var doc = XpsDocument.Load(XpsBrushFixtures.Create("gradient", format).Save());
+        var doc = XpsDocument.Load(XpsBrushFixtures.Create("gradient", format).ToBytes());
         var raster = Raster(doc.Pages[0]);
         Assert.True(raster.GetPixel(21, 40).R > raster.GetPixel(59, 40).R);
         Assert.True(raster.GetPixel(59, 40).B > raster.GetPixel(21, 40).B);
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
     [Theory]
     [InlineData("mask")]

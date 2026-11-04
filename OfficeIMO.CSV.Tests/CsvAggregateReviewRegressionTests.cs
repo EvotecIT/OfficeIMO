@@ -29,9 +29,9 @@ public sealed class CsvAggregateReviewRegressionTests {
             string marker = markers[primitive];
             int getter = primitive, rows = 0;
             string text = "Value\n" + string.Concat(Enumerable.Repeat(marker + "\n", 8));
-            var load = new CsvLoadOptions { NullValue = marker, MaxFieldLength = route == Route.TextGeneral ? 100 : null };
+            var load = new CsvReaderOptions { NullValue = marker, MaxFieldLength = route == Route.TextGeneral ? 100 : null };
             var schema = route == Route.TextSchema ? new CsvSchemaBuilder().Column("Value").AsString().Done().Build() : null;
-            var reader = schema is null ? null : new CsvDataReaderOptions { Schema = schema };
+            load.Schema = schema;
             var parallel = new ParallelRowMappingOptions {
                 MaxDegreeOfParallelism = route is Route.TextBatch or Route.AsyncSequential ? 1 : 3,
                 BatchSize = 1,
@@ -49,11 +49,11 @@ public sealed class CsvAggregateReviewRegressionTests {
             if (route is Route.AsyncSequential or Route.AsyncParallel) {
                 using var input = new AsyncInput(Encoding.UTF8.GetBytes(text), 1);
                 errors = await CsvDocument.AggregateRowsAsParallelAsync(input, static () => new List<string>(),
-                    builder, MergeErrors, load, reader, parallel);
+                    builder, MergeErrors, load, parallel);
                 Assert.True(input.CanRead);
             }
             else errors = CsvDocument.AggregateTextRowsAsParallel(text, static () => new List<string>(),
-                builder, MergeErrors, load, reader, parallel);
+                builder, MergeErrors, load, parallel);
             Assert.Equal(8, rows);
             failures.AddRange(errors);
         }
@@ -67,8 +67,8 @@ public sealed class CsvAggregateReviewRegressionTests {
     [InlineData(Route.AsyncParallel)]
     public async Task SchemaDefaultsKeepCanonicalTypedSemanticsAndOriginalMarkerText(Route route) {
         const string text = "Value\n-1\n-1\n-1\n-1\n";
-        var load = new CsvLoadOptions { NullValue = "-1" };
-        var reader = new CsvDataReaderOptions {
+        var load = new CsvReaderOptions {
+            NullValue = "-1",
             Schema = new CsvSchemaBuilder().Column("Value").AsInt32().WithDefault(42).Done().Build(),
         };
         CsvRecordAccumulatorBuilder<int> builder = _ => (ref int sum, CsvRecord row) => sum += ReadDefault(row);
@@ -76,14 +76,14 @@ public sealed class CsvAggregateReviewRegressionTests {
         if (route == Route.AsyncParallel) {
             using var input = new AsyncInput(Encoding.UTF8.GetBytes(text), 1);
             result = await CsvDocument.AggregateRowsAsParallelAsync<int>(input, static () => 0,
-                builder, static (left, right) => left + right, load, reader, Options());
+                builder, static (left, right) => left + right, load, Options());
             Assert.True(input.CanRead);
         }
         else if (route is Route.TextBatch or Route.TextPartition)
-            result = CsvDocument.ReadTextRowsAsParallel<int>(text, _ => row => ReadDefault(row), load, reader,
+            result = CsvDocument.ReadTextRowsAsParallel<int>(text, _ => row => ReadDefault(row), load,
                 new ParallelRowMappingOptions { MaxDegreeOfParallelism = route == Route.TextBatch ? 1 : 3, BatchSize = 1 }).Sum();
         else result = CsvDocument.AggregateTextRowsAsParallel<int>(text, static () => 0,
-            builder, static (left, right) => left + right, load, reader, Options());
+            builder, static (left, right) => left + right, load, Options());
         Assert.Equal(168, result);
     }
 
@@ -98,7 +98,7 @@ public sealed class CsvAggregateReviewRegressionTests {
     [InlineData(1)]
     [InlineData(3)]
     public void RecordProjectionKeepsCustomSchemaConversionAndRawText(int degree) {
-        var reader = new CsvDataReaderOptions {
+        var reader = new CsvReaderOptions {
             Schema = new CsvSchemaBuilder().Column("Value").AsInt32()
                 .ConvertUsing(value => Convert.ToInt32(value) + 100).Done().Build(),
         };
@@ -107,7 +107,8 @@ public sealed class CsvAggregateReviewRegressionTests {
                 Assert.Equal(3, row.GetSpan(0).Length);
                 Assert.Equal(row.GetString(0), row.GetSpan(0).ToString());
                 return row.GetInt32(0);
-            }, readerOptions: reader,
+            },
+            options: reader,
             parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = degree, BatchSize = 1 }).ToArray();
         Assert.Equal(new[] { 101, 102, 103, 104 }, values);
     }
@@ -130,17 +131,20 @@ public sealed class CsvAggregateReviewRegressionTests {
             return 0;
         }
         OperationCanceledException actual = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            CsvDocument.AggregateRowsAsParallelAsync<int>(input, Create,
-                _ => (ref int rows, CsvRecord row) => {
+            CsvDocument.AggregateRowsAsParallelAsync<int>(input,
+            Create,
+            _ => (ref int rows, CsvRecord row) => {
                     Interlocked.Increment(ref active);
                     try {
                         Assert.True(input.Blocked.Task.Wait(TimeSpan.FromSeconds(10)));
                         throw expected;
                     }
                     finally { Interlocked.Decrement(ref active); }
-                }, static (left, right) => left + right,
-                loadOptions: new CsvLoadOptions { CancellationToken = load.Token },
-                parallelOptions: Options(), cancellationToken: operation.Token).WaitAsync(TimeSpan.FromSeconds(10)));
+                },
+            static (left, right) => left + right,
+            options: new CsvReaderOptions { CancellationToken = load.Token },
+            parallelOptions: Options(),
+            cancellationToken: operation.Token).WaitAsync(TimeSpan.FromSeconds(10)));
         Assert.Same(expected, actual);
         Assert.Equal(third.Token, actual.CancellationToken);
         Assert.False(operation.IsCancellationRequested);

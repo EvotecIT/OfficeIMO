@@ -1,6 +1,6 @@
 # OfficeIMO.OneNote.Markdown
 
-`OfficeIMO.OneNote.Markdown` is the shared semantic projection from offline `OfficeIMO.OneNote` models to Markdown text and `MarkdownDoc`. Reader, HTML, and PDF adapters consume this projection instead of implementing separate OneNote format logic.
+`OfficeIMO.OneNote.Markdown` is the shared semantic projection from offline `OfficeIMO.OneNote` models to Markdown text and `MarkdownDocument`. Reader, HTML, and PDF adapters consume this projection instead of implementing separate OneNote format logic.
 
 ```csharp
 using OfficeIMO.OneNote;
@@ -13,7 +13,7 @@ string markdown = section.ToMarkdown();
 Current pages are projected by default. Conflict copies and historical page versions are explicit because including them can duplicate or expose superseded content:
 
 ```csharp
-var options = new OneNoteMarkdownOptions {
+var options = new OneNoteMarkdownExportOptions {
     IncludeConflictPages = true,
     IncludeVersionHistory = true
 };

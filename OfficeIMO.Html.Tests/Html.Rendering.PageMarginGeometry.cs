@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.StrokeColor == OfficeColor.Red);
         Assert.Equal(HtmlRenderSemanticGroupRole.Artifact, box.Role);
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(140D, middle.Width, 6);
             Assert.Equal(170D, middle.X + middle.Width / 2D, 6);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -64,7 +64,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(leftWidth, PageMarginTypographyText(page, "top-left").Width, 6);
         Assert.Equal(rightWidth, PageMarginTypographyText(page, "top-right").Width, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(94D, PageMarginTypographyText(page, "top-right").Width, 6);
         Assert.Equal(170D, center.X + center.Width / 2D, 6);
         Assert.Equal("TITLE CENTRE", center.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -91,7 +91,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginGeometry_PercentagesAndPaperUnitsUseTheirOwnReferences(string width, double expected) {
         HtmlRenderDocument rendered = RenderMarginSizing(300D, "@top-center{content:'A';width:" + width + "}");
         Assert.Equal(expected, PageMarginTypographyText(Assert.Single(rendered.Pages), "top-center").Width, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(80D, text.Width, 6);
         Assert.Equal(17D, text.LayoutY, 6);
         Assert.Equal(4, box.Visuals.OfType<HtmlRenderShape>().Count());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(box.X + 15D, text.X, 6);
         Assert.Equal(100D, text.Width, 6);
         Assert.Equal(21.5D, text.LayoutY, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -143,7 +143,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.StrokeColor == OfficeColor.Red);
         Assert.DoesNotContain(page.Scene.OfType<HtmlRenderSemanticGroup>(), group => group.Source == "@page @bottom-center");
         Assert.Empty(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -158,7 +158,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(0D, clip.ClipWidth, 6);
         Assert.True(clip.ClipHorizontal);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @top-center"
             && diagnostic.Detail == "margin-width" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
@@ -171,7 +171,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup box = PageMarginGeometryBox(page, "top-center");
         Assert.Equal(102D, box.Width, 6);
         Assert.Equal(box.X + 15D, PageMarginTypographyText(page, "top-center").X, 6);
-        styled.RequireNoLoss();
+        styled.ThrowIfLoss();
 
         HtmlRenderPage reset = Assert.Single(RenderMarginSizing(300D,
             "@top-center{content:'A';width:80px;width:initial}").Pages);
@@ -193,7 +193,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("2", PageMarginTypographyText(rendered.Pages[1], "top-center").Text);
         Assert.All(rendered.Pages, page => Assert.Equal("2", PageMarginTypographyText(page).Text));
         Assert.Equal("FIRSTSECOND", PageMarginTypographyCompact(rendered.Text));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -202,9 +202,9 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginGeometry_UnsupportedDimensionsAndBorderProfilesRetainTypedLoss(
         string declaration, string code) {
         HtmlRenderDocument rendered = RenderMarginSizing(300D, "@top-center{content:'A';" + declaration + "}");
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @top-center"
             && diagnostic.Code == code && diagnostic.LossKind != OfficeConversionLossKind.None);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -213,9 +213,9 @@ public sealed partial class HtmlRenderingTests {
             "@top-center{content:'';width:400px;border:2px solid red}");
         HtmlRenderSemanticGroup box = PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center");
         Assert.Equal(404D, box.Width, 6);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @top-center"
             && diagnostic.Detail == "margin-page-bounds" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(box.X + 12D, background.X, 6);
         Assert.Equal(80D, background.Width, 6);
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static HtmlRenderSemanticGroup PageMarginGeometryBox(HtmlRenderPage page, string position) =>

@@ -9,13 +9,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_ReportsMeasuredTextOverflowAndSerializesStableJson() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox text = slide.AddTextBoxPoints(
-                "A deliberately long paragraph that cannot fit inside a tiny text frame without losing content.",
-                20, 20, 80, 14);
-            text.FontSize = 20;
+            PowerPointTextBox text = slide.AddTextBox(
+                "A deliberately long paragraph that cannot fit inside a tiny text frame without losing content.",                global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(14));
+            text.FontSize = global::OfficeIMO.OfficeLength.Points(20);
             text.TextAutoFit = PowerPointTextAutoFit.None;
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
@@ -24,29 +23,30 @@ namespace OfficeIMO.Tests {
             });
 
             PowerPointDeckPreflightFinding finding = Assert.Single(report.Findings,
-                item => item.Code == "Text.Clipped");
+                item => item.Code == "text-clipped");
             Assert.Equal(PowerPointDeckPreflightSeverity.Error, finding.Severity);
             Assert.Equal(0, finding.SlideIndex);
             Assert.NotNull(finding.Bounds);
+            Assert.Equal(OfficeLength.Points(20), finding.ResolvedFontSize);
             Assert.False(report.IsSuccessful);
 
             string json = report.ToJson(indented: false);
             Assert.Contains("\"schemaVersion\": 1", json, StringComparison.Ordinal);
-            Assert.Contains("Text.Clipped", json, StringComparison.Ordinal);
+            Assert.Contains("text-clipped", json, StringComparison.Ordinal);
+            Assert.Contains("\"resolvedFontSizePoints\":20", json, StringComparison.Ordinal);
         }
 
         [Fact]
         public void Preflight_InspectsTextNestedInsideGroups() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox text = slide.AddTextBoxPoints(
-                "A deliberately long grouped paragraph that cannot fit inside its tiny text frame.",
-                20, 20, 80, 14);
-            text.FontSize = 20;
+            PowerPointTextBox text = slide.AddTextBox(
+                "A deliberately long grouped paragraph that cannot fit inside its tiny text frame.",                global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(14));
+            text.FontSize = global::OfficeIMO.OfficeLength.Points(20);
             text.TextAutoFit = PowerPointTextAutoFit.None;
-            PowerPointAutoShape anchor = slide.AddRectanglePoints(110, 20, 20, 20, "Group anchor");
+            PowerPointAutoShape anchor = slide.AddRectangle(OfficeIMO.OfficeLength.Points(110), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Group anchor");
             slide.GroupShapes(new PowerPointShape[] { text, anchor }, "Preflight group");
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
@@ -56,38 +56,38 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "Text.Clipped" && finding.ShapeId == text.Id);
+                finding.Code == "text-clipped" && finding.ShapeId == text.Id);
         }
 
         [Fact]
         public void Preflight_ChecksUnreadableReductionWhenOverflowDetectionIsDisabled() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            PowerPointTextBox text = presentation.AddSlide().AddTextBoxPoints(
-                "Auto-fit text must shrink to remain inside this deliberately tiny frame.", 20, 20, 80, 14);
-            text.FontSize = 20;
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            PowerPointTextBox text = presentation.AddSlide().AddTextBox(
+                "Auto-fit text must shrink to remain inside this deliberately tiny frame.",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(14));
+            text.FontSize = global::OfficeIMO.OfficeLength.Points(20);
             text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
                 DetectTextOverflow = false,
                 DetectUnreadableFontReduction = true,
-                MinimumReadableFontSizePoints = 19.5D,
+                MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(19.5D),
                 DetectShapeCollisions = false,
                 DetectMissingVisualAssets = false,
                 IncludeVisualSnapshotDiagnostics = false
             });
 
-            Assert.Contains(report.Findings, finding => finding.Code == "Text.UnreadableFontReduction");
-            Assert.DoesNotContain(report.Findings, finding => finding.Code == "Text.Clipped");
+            Assert.Contains(report.Findings, finding => finding.Code == "text-unreadable-font-reduction");
+            Assert.DoesNotContain(report.Findings, finding => finding.Code == "text-clipped");
         }
 
         [Fact]
         public void Preflight_ChecksCollisionsBetweenGroupedPeers() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 120, 80, "Grouped first");
-            PowerPointAutoShape second = slide.AddRectanglePoints(60, 40, 120, 80, "Grouped second");
+            PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80), "Grouped first");
+            PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80), "Grouped second");
             PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] { first, second }, "Collision group");
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
@@ -99,19 +99,19 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "Layout.ShapeCollision" && finding.ShapeIndex == 0 &&
+                finding.Code == "layout-shape-collision" && finding.ShapeIndex == 0 &&
                 finding.ShapeId != group.Id);
         }
 
         [Fact]
         public void Preflight_ReportsOffSlideShapesAndSignificantPeerCollisions() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddRectanglePoints(20, 30, 120, 80, "First panel");
-            slide.AddRectanglePoints(80, 60, 120, 80, "Second panel");
-            slide.AddRectanglePoints(370, 180, 60, 60, "Off-canvas panel");
+            slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80), "First panel");
+            slide.AddRectangle(OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80), "Second panel");
+            slide.AddRectangle(OfficeIMO.OfficeLength.Points(370), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(60), "Off-canvas panel");
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
                 DetectTextOverflow = false,
@@ -121,19 +121,19 @@ namespace OfficeIMO.Tests {
                 MinimumCollisionOverlapRatio = 0.1D
             });
 
-            Assert.Contains(report.Findings, finding => finding.Code == "Layout.ShapeCollision");
-            Assert.Contains(report.Findings, finding => finding.Code == "Layout.ShapeOffSlide");
+            Assert.Contains(report.Findings, finding => finding.Code == "layout-shape-collision");
+            Assert.Contains(report.Findings, finding => finding.Code == "layout-shape-off-slide");
         }
 
         [Fact]
         public void SaveWithPreflight_RejectsSelectedSeverityBeforeSaving() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
-                    presentation.SlideSize.SetSizePoints(400, 225);
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
+                    presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
                     PowerPointSlide slide = presentation.AddSlide();
                     presentation.Save();
-                    slide.AddRectanglePoints(390, 210, 30, 30, "Outside");
+                    slide.AddRectangle(OfficeIMO.OfficeLength.Points(390), OfficeIMO.OfficeLength.Points(210), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(30), "Outside");
 
                     var options = new PowerPointDeckPreflightOptions {
                         DetectTextOverflow = false,
@@ -147,10 +147,10 @@ namespace OfficeIMO.Tests {
                     PowerPointDeckPreflightException exception = Assert.Throws<PowerPointDeckPreflightException>(
                         () => presentation.SaveWithPreflight(options));
                     Assert.Contains(exception.Report.Findings,
-                        finding => finding.Code == "Layout.ShapeOffSlide");
+                        finding => finding.Code == "layout-shape-off-slide");
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+                using PowerPointDocument reopened = PowerPointDocument.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 Assert.DoesNotContain(reopened.Slides[0].Shapes, shape => shape.Name == "Outside");
             } finally {
                 if (File.Exists(path)) File.Delete(path);
@@ -160,31 +160,31 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Preflight_AllowsReadableContainedComposition() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddRectanglePoints(20, 20, 360, 185, "Panel");
-            PowerPointTextBox text = slide.AddTextBoxPoints("Readable content", 40, 45, 250, 50);
-            text.FontSize = 18;
+            slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(360), OfficeIMO.OfficeLength.Points(185), "Panel");
+            PowerPointTextBox text = slide.AddTextBox("Readable content",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(50));
+            text.FontSize = global::OfficeIMO.OfficeLength.Points(18);
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
                 DetectMissingVisualAssets = false,
                 IncludeVisualSnapshotDiagnostics = false
             });
 
-            Assert.DoesNotContain(report.Findings, finding => finding.Code == "Text.Clipped");
-            Assert.DoesNotContain(report.Findings, finding => finding.Code == "Layout.ShapeCollision");
+            Assert.DoesNotContain(report.Findings, finding => finding.Code == "text-clipped");
+            Assert.DoesNotContain(report.Findings, finding => finding.Code == "layout-shape-collision");
             Assert.True(report.IsSuccessful);
         }
 
         [Fact]
         public void Preflight_AllowsBoundedDecorativeBleedButStillRejectsContentOffSlide() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(400, 225);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddRectanglePoints(-20, 0, 220, 225, "Intentional plane");
-            PowerPointTextBox outside = slide.AddTextBoxPoints("Content outside", 390, 200, 40, 30);
+            slide.AddRectangle(OfficeIMO.OfficeLength.Points(-20), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(220), OfficeIMO.OfficeLength.Points(225), "Intentional plane");
+            PowerPointTextBox outside = slide.AddTextBox("Content outside",global::OfficeIMO.OfficeLength.Points(390),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(30));
             outside.Name = "Outside content";
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
@@ -192,12 +192,12 @@ namespace OfficeIMO.Tests {
                 DetectShapeCollisions = false,
                 DetectMissingVisualAssets = false,
                 IncludeVisualSnapshotDiagnostics = false,
-                MaximumDecorativeBleedPoints = 24
+                MaximumDecorativeBleed = global::OfficeIMO.OfficeLength.Points(24)
             });
 
             Assert.DoesNotContain(report.Findings, finding => finding.ShapeName == "Intentional plane");
             Assert.Contains(report.Findings, finding => finding.ShapeName == "Outside content" &&
-                finding.Code == "Layout.ShapeOffSlide");
+                finding.Code == "layout-shape-off-slide");
         }
     }
 }

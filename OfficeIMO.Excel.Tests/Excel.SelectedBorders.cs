@@ -8,18 +8,18 @@ namespace OfficeIMO.Tests;
 public partial class Excel {
     [Fact]
     public void Selected_borders_preserve_other_edges_and_font_fill_and_format_after_save() {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Borders");
-        sheet.CellAt(1, 1).SetValue(42).SetBold().SetFillColor("ABCDEF");
-        sheet.FormatCell(1, 1, "0.00");
-        sheet.CellBorder(1, 1, ExcelBorderStyle.Thin, "123456");
-        sheet.CellAt(1, 1).SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, "FF0000");
-        sheet.CellBorder(1, 1, ExcelCellBorders.Right, ExcelBorderStyle.None);
-        Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellBorder(4, 4, (ExcelCellBorders)128, ExcelBorderStyle.Thin));
-        Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellBorder(4, 4, ExcelCellBorders.Top, (ExcelBorderStyle)999));
-        Assert.Throws<ArgumentException>(() => sheet.CellBorder(4, 4, ExcelCellBorders.Top, ExcelBorderStyle.Thin, "FF000O"));
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Borders");
+        sheet.Cell(1, 1).SetValue(42).SetBold().SetFillColor("ABCDEF");
+        sheet.Cell(1, 1).SetNumberFormat("0.00");
+        sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Thin, "123456");
+        sheet.Cell(1, 1).SetBorder(ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, "FF0000");
+        sheet.Cell(1, 1).SetBorder(ExcelCellBorders.Right, ExcelBorderStyle.None);
+        Assert.Throws<ArgumentOutOfRangeException>(() => sheet.Cell(4, 4).SetBorder((ExcelCellBorders)128, ExcelBorderStyle.Thin));
+        Assert.Throws<ArgumentOutOfRangeException>(() => sheet.Cell(4, 4).SetBorder(ExcelCellBorders.Top, (ExcelBorderStyle)999));
+        Assert.Throws<ArgumentException>(() => sheet.Cell(4, 4).SetBorder(ExcelCellBorders.Top, ExcelBorderStyle.Thin, "FF000O"));
         Assert.Single(sheet.EnumerateCells());
         using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
-        using var reopened = ExcelDocument.Load(saved); var cell = reopened.Sheets[0].CellAt(1, 1); var style = cell.GetStyle();
+        using var reopened = ExcelDocument.Load(saved); var cell = reopened.Sheets[0].Cell(1, 1); var style = cell.GetStyle();
         Assert.Equal(42d, cell.GetValue<double>()); Assert.True(style.Bold);
         Assert.Equal("FFABCDEF", style.FillColorArgb); Assert.Equal("0.00", style.NumberFormatCode);
         Assert.Equal("thin", style.Border!.Top!.Style); Assert.Equal("FF123456", style.Border.Top.ColorArgb);

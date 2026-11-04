@@ -73,7 +73,7 @@ public partial class Excel {
             }
             byte[] bytes = utf16 ? Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(xml)).ToArray() : Encoding.UTF8.GetBytes(xml);
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", bytes);
-            var options = new ExcelReadOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
+            var options = new ExcelReaderOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
             if (layout.EndsWith("Dom", StringComparison.Ordinal)) options.Culture = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
             object?[,] expected = { { 42m, "Alpha", 7m }, { null, null, null }, { 43m, "Beta", 9m }, { 44m, "Gamma", 11m } };
             using var owner = ExcelDocumentReader.Open(path, options);
@@ -86,7 +86,7 @@ public partial class Excel {
                 case "OpenDataReader":
                 case "BufferedDataReader":
                 case "StreamingDataReader": {
-                    using var reader = api == "OpenDataReader" ? ExcelDocument.OpenDataReader(path, options)
+                    using var reader = api == "OpenDataReader" ? ExcelDocument.OpenReader(path, options)
                         : sheet.ReadRangeAsDataReader(api == "StreamingDataReader" ? (missingCells ? "A4:C4100" : "B4:D4100") : dataRange, headersInFirstRow: false, schemaSampleRows: 0);
                     for (int row = 0; row < 4; row++) {
                         Assert.True(reader.Read());
@@ -164,9 +164,9 @@ public partial class Excel {
     [Fact]
     public void Reader_ImplicitLiveRowProjectionPreservesWorkbookModel() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
-        sheet.CellValue(10, 1, "First");
-        sheet.CellValue(10, 2, "Value");
+        var sheet = document.AddSheet("Data");
+        sheet.Cell(10, 1).SetValue("First");
+        sheet.Cell(10, 2).SetValue("Value");
         var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
         var row = worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>().Single();
         row.RowIndex = null;
@@ -194,11 +194,11 @@ public partial class Excel {
     [InlineData(true, true)]
     public void Reader_ImplicitLiveRowsRetainHeaderMapAndWorkbookModel(bool omitFirstCellReference, bool unsorted) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
-        sheet.CellValue(6, 1, "Id");
-        sheet.CellValue(6, 2, "Name");
-        sheet.CellValue(7, 1, 42);
-        sheet.CellValue(7, 2, "Alpha");
+        var sheet = document.AddSheet("Data");
+        sheet.Cell(6, 1).SetValue("Id");
+        sheet.Cell(6, 2).SetValue("Name");
+        sheet.Cell(7, 1).SetValue(42);
+        sheet.Cell(7, 2).SetValue("Alpha");
         var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
         foreach (var row in worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>()) {
             row.RowIndex = null;

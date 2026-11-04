@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
                 DirectDataSetSheetModel sheet,
                 string? range = null) {
                 int columnCount = sheet.Table.ColumnCount;
+                string reference = ExcelSheet.BuildTableReference(range ?? sheet.Range, sheet.IncludeHeaders);
                 var builder = new StringBuilder(512 + (columnCount * 72));
                 string sheetIndexText = InvariantNumberText.Get(sheet.Index);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -22,13 +23,13 @@ namespace OfficeIMO.Excel {
                 builder.Append("\" displayName=\"");
                 AppendEscaped(builder, sheet.TableName!);
                 builder.Append("\" ref=\"");
-                AppendEscaped(builder, range ?? sheet.Range);
+                AppendEscaped(builder, reference);
                 builder.Append("\" headerRowCount=\"");
                 builder.Append(sheet.IncludeHeaders ? "1" : "0");
                 builder.Append("\" totalsRowShown=\"0\">");
                 if (sheet.IncludeAutoFilter && sheet.IncludeHeaders) {
                     builder.Append("<autoFilter ref=\"");
-                    AppendEscaped(builder, range ?? sheet.Range);
+                    AppendEscaped(builder, reference);
                     builder.Append("\"/>");
                 }
 
@@ -95,6 +96,8 @@ namespace OfficeIMO.Excel {
                 private const string TimeFormatCode = "[h]:mm:ss";
                 private readonly Dictionary<string, string> _styleAttributeByFormat;
 
+                internal DirectWorkbookCellStyles? WorkbookStyles { get; private set; }
+
                 private DirectStylePlan(List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat, ExcelTabularStylePlan? tabularStyles) {
                     CustomNumberFormats = customNumberFormats;
                     _styleAttributeByFormat = styleAttributeByFormat;
@@ -130,7 +133,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    return new DirectStylePlan(customNumberFormats, styleAttributeByFormat, model.TabularStyles);
+                    return new DirectStylePlan(customNumberFormats, styleAttributeByFormat, model.TabularStyles) { WorkbookStyles = model.WorkbookStyles };
                 }
 
                 private static void AddCustomNumberFormat(string? format, List<string> customNumberFormats, Dictionary<string, string> styleAttributeByFormat) {
@@ -276,7 +279,20 @@ namespace OfficeIMO.Excel {
 
                         int rowCount = sheet.Table.RowCount;
                         int stringColumnCount = stringColumnIndexes.Length;
-                        if (sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows)) {
+                        if (sheet.Table.CellValueBuffer is { } cellValueBuffer) {
+                            foreach (string text in cellValueBuffer.EnumerateText()) {
+                                NoteString(text);
+                                if ((totalStringReferences & 1023) == 0) {
+                                    if (canCancel) {
+                                        ct.ThrowIfCancellationRequested();
+                                    }
+
+                                    if (ShouldAbandonSharedStrings()) {
+                                        return null;
+                                    }
+                                }
+                            }
+                        } else if (sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows)) {
                             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                                 if (canCancel) {
                                     ct.ThrowIfCancellationRequested();

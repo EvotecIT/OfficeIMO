@@ -359,7 +359,7 @@ internal static partial class PdfDocumentSemanticEnricher {
             0.99D,
             new[] {
                 new PdfInferenceEvidence(
-                    "table.tagged-structure",
+                    "table-tagged-structure",
                     "A validated reachable Table, row, and cell hierarchy owns every recovered marked-content cell.",
                     0.99D)
             },

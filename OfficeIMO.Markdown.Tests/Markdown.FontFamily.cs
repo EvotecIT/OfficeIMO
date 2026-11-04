@@ -14,11 +14,11 @@ namespace OfficeIMO.Tests {
             paragraph.AddText("code").SetFontFamily(codeFont);
             paragraph.AddText(" normal").SetFontFamily(normalFont);
 
-            var options = new WordToMarkdownOptions {
+            var options = new WordMarkdownExportOptions {
                 FontFamily = codeFont
             };
 
-            string markdown = doc.ToMarkdown(options);
+            string markdown = doc.ToMarkdown(options).ToMarkdown();
 
             Assert.Contains("`code`", markdown);
             Assert.Contains("normal", markdown);

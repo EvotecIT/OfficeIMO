@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // The short alt-text image overload keeps the common meaningful-image call positional.
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -13,21 +14,21 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a shared OfficeIMO.Drawing shape at the current flow position.</summary>
-    internal PdfDocument Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Shape(OfficeShape shape, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         AddBlock(CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
 
     /// <summary>Adds a shared OfficeIMO.Drawing scene at the current flow position.</summary>
-    internal PdfDocument Drawing(OfficeDrawing drawing, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Drawing(OfficeDrawing drawing, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         AddBlock(CreateDrawingBlock(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
 
     /// <summary>Adds a flow line using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    internal PdfDocument Line(double x1, double y1, double x2, double y2, PdfColor? strokeColor = null, double strokeWidth = 1, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Line(double x1, double y1, double x2, double y2, global::OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Line(x1, y1, x2, y2);
-        shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
+        shape.StrokeColor = (strokeColor ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D));
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = strokeDashStyle;
         shape.StrokeLineCap = strokeLineCap;
@@ -36,85 +37,112 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a flow rectangle using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    internal PdfDocument Rectangle(double width, double height, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Rectangle(double width, double height, global::OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, global::OfficeIMO.OfficeColor? fillColor = null, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Rectangle(width, height);
-        shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
+        shape.StrokeColor = (strokeColor ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D));
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = strokeDashStyle;
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
-        shape.FillColor = fillColor?.ToOfficeColor();
+        shape.FillColor = fillColor;
         return Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
     }
 
     /// <summary>Adds a flow rounded rectangle using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    internal PdfDocument RoundedRectangle(double width, double height, double cornerRadius, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument RoundedRectangle(double width, double height, double cornerRadius, global::OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, global::OfficeIMO.OfficeColor? fillColor = null, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.RoundedRectangle(width, height, cornerRadius);
-        shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
+        shape.StrokeColor = (strokeColor ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D));
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = strokeDashStyle;
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
-        shape.FillColor = fillColor?.ToOfficeColor();
+        shape.FillColor = fillColor;
         return Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
     }
 
     /// <summary>Adds a flow ellipse using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    internal PdfDocument Ellipse(double width, double height, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Ellipse(double width, double height, global::OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, global::OfficeIMO.OfficeColor? fillColor = null, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Ellipse(width, height);
-        shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
+        shape.StrokeColor = (strokeColor ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D));
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = strokeDashStyle;
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
-        shape.FillColor = fillColor?.ToOfficeColor();
+        shape.FillColor = fillColor;
         return Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
     }
 
     /// <summary>Adds a flow polygon using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    internal PdfDocument Polygon(System.Collections.Generic.IEnumerable<OfficePoint> points, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Polygon(System.Collections.Generic.IEnumerable<OfficePoint> points, global::OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, global::OfficeIMO.OfficeColor? fillColor = null, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Polygon(points);
-        shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
+        shape.StrokeColor = (strokeColor ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D));
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = strokeDashStyle;
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
-        shape.FillColor = fillColor?.ToOfficeColor();
+        shape.FillColor = fillColor;
         return Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
     }
 
     /// <summary>Adds a flow path using the shared OfficeIMO.Drawing shape descriptor.</summary>
-    internal PdfDocument Path(System.Collections.Generic.IEnumerable<OfficePathCommand> commands, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal PdfDocument Path(System.Collections.Generic.IEnumerable<OfficePathCommand> commands, global::OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, global::OfficeIMO.OfficeColor? fillColor = null, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Path(commands);
-        shape.StrokeColor = (strokeColor ?? PdfColor.Gray).ToOfficeColor();
+        shape.StrokeColor = (strokeColor ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D));
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = strokeDashStyle;
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
-        shape.FillColor = fillColor?.ToOfficeColor();
+        shape.FillColor = fillColor;
         return Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
     }
 
-    /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
-    internal PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
-        Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
+    /// <summary>Appends a meaningful image from supported image bytes with alternative text.</summary>
+    public PdfImage AddImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? altText) =>
+        AddImageCore(imageBytes, width.ToPoints(), height.ToPoints(), null, null, null, null, null, null, null, null, altText);
 
-    /// <summary>Adds a supported meaningful image at the current flow position with alternate text.</summary>
-    internal PdfDocument Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
-        Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
+    /// <summary>Appends a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
+    /// <param name="imageBytes">Supported image bytes.</param>
+    /// <param name="width">Image frame width.</param>
+    /// <param name="height">Image frame height.</param>
+    /// <param name="align">Image alignment inside the content width.</param>
+    /// <param name="clipPath">Optional local clipping path applied before drawing the image.</param>
+    /// <param name="fit">Image fitting mode inside the frame.</param>
+    /// <param name="spacingBefore">Top spacing, inherited from the current default image style when omitted.</param>
+    /// <param name="spacingAfter">Bottom spacing, inherited from the current default image style when omitted.</param>
+    /// <param name="style">Optional reusable image placement style.</param>
+    /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for an image link annotation.</param>
+    /// <param name="linkContents">Optional link annotation contents metadata.</param>
+    /// <param name="altText">Optional alternative text for a meaningful image.</param>
+    public PdfImage AddImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, global::OfficeIMO.OfficeLength? spacingBefore = null, global::OfficeIMO.OfficeLength? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? altText = null) =>
+        AddImageCore(imageBytes, width.ToPoints(), height.ToPoints(), align, clipPath, fit, spacingBefore?.ToPoints(), spacingAfter?.ToPoints(), style, linkUri, linkContents, altText);
 
-    /// <summary>Adds a raster image supported by OfficeIMO.Drawing at the current flow position.</summary>
-    internal PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
-        Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
+    // Chaining forms used by adapters and tests that compose a document in one expression.
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, OfficeAlignment? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
+        AddImageCore(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, altText: null);
+        return this;
+    }
+
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, string? altText) {
+        AddImageCore(jpegBytes, width, height, null, null, null, null, null, null, null, null, altText);
+        return this;
+    }
+
+    internal PdfDocument Image(byte[] jpegBytes, double width, double height, OfficeAlignment? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? altText) {
+        AddImageCore(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, altText);
+        return this;
+    }
+
+    private PdfImage AddImageCore(byte[] imageBytes, double width, double height, OfficeAlignment? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? altText) {
+        Guard.NotNullOrEmpty(imageBytes, nameof(imageBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.OptionalUriAction(linkUri, nameof(linkUri));
-        PdfImageStyle? imageStyle = CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
+        PdfImageStyle? imageStyle = CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, altText);
         if (imageStyle != null) {
             ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }
 
-        PreparedImage prepared = PrepareImageBytes(jpegBytes);
+        PreparedImage prepared = PrepareImageBytes(imageBytes);
         if (imageStyle != null) {
             ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(fit));
         }
@@ -129,10 +157,10 @@ public sealed partial class PdfDocument {
             linkContents,
             useDataSnapshot: true,
             preparedStream: prepared.PreparedStream));
-        return this;
+        return new PdfImage(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), imageStyle?.AltText);
     }
 
-    internal static ShapeBlock CreateShapeBlock(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    internal static ShapeBlock CreateShapeBlock(OfficeShape shape, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         ValidateShapeDescriptor(shape, linkUri);
         PdfDrawingStyle? drawingStyle = CreateDrawingStyle(align, spacingBefore, spacingAfter, style, "Shape");
         if (drawingStyle != null) {
@@ -227,14 +255,14 @@ public sealed partial class PdfDocument {
 
     }
 
-    internal static PdfHorizontalRuleStyle? CreateHorizontalRuleStyle(double? thickness, PdfColor? color, double? spacingBefore, double? spacingAfter, PdfHorizontalRuleStyle? style) {
+    internal static PdfHorizontalRuleStyle? CreateHorizontalRuleStyle(double? thickness, global::OfficeIMO.OfficeColor? color, double? spacingBefore, double? spacingAfter, PdfHorizontalRuleStyle? style) {
         if (!thickness.HasValue && !color.HasValue && !spacingBefore.HasValue && !spacingAfter.HasValue && style == null) {
             return null;
         }
 
         var ruleStyle = style?.Clone() ?? new PdfHorizontalRuleStyle();
         if (thickness.HasValue) {
-            ruleStyle.Thickness = thickness.Value;
+            ruleStyle.Thickness = global::OfficeIMO.OfficeLength.Points(thickness.Value);
         }
 
         if (color.HasValue) {
@@ -242,18 +270,18 @@ public sealed partial class PdfDocument {
         }
 
         if (spacingBefore.HasValue) {
-            ruleStyle.SpacingBefore = spacingBefore.Value;
+            ruleStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore.Value);
         }
 
         if (spacingAfter.HasValue) {
-            ruleStyle.SpacingAfter = spacingAfter.Value;
+            ruleStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter.Value);
         }
 
         return ruleStyle;
     }
 
-    internal static PdfImageStyle? CreateImageStyle(PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? alternativeText = null) {
-        if (!align.HasValue && clipPath == null && !fit.HasValue && !spacingBefore.HasValue && !spacingAfter.HasValue && style == null && alternativeText == null) {
+    internal static PdfImageStyle? CreateImageStyle(OfficeAlignment? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? altText = null) {
+        if (!align.HasValue && clipPath == null && !fit.HasValue && !spacingBefore.HasValue && !spacingAfter.HasValue && style == null && altText == null) {
             return null;
         }
 
@@ -272,21 +300,21 @@ public sealed partial class PdfDocument {
         }
 
         if (spacingBefore.HasValue) {
-            imageStyle.SpacingBefore = spacingBefore.Value;
+            imageStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore.Value);
         }
 
         if (spacingAfter.HasValue) {
-            imageStyle.SpacingAfter = spacingAfter.Value;
+            imageStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter.Value);
         }
 
-        if (alternativeText != null) {
-            imageStyle.AlternativeText = alternativeText;
+        if (altText != null) {
+            imageStyle.AltText = altText;
         }
 
         return imageStyle;
     }
 
-    internal static PdfDrawingStyle? CreateDrawingStyle(PdfAlign? align, double? spacingBefore, double? spacingAfter, PdfDrawingStyle? style, string objectName = "Drawing") {
+    internal static PdfDrawingStyle? CreateDrawingStyle(OfficeAlignment? align, double? spacingBefore, double? spacingAfter, PdfDrawingStyle? style, string objectName = "Drawing") {
         if (!align.HasValue && !spacingBefore.HasValue && !spacingAfter.HasValue && style == null) {
             return null;
         }
@@ -302,7 +330,7 @@ public sealed partial class PdfDocument {
                 throw new System.ArgumentException(objectName + " spacing before must be a non-negative finite value.", nameof(spacingBefore));
             }
 
-            drawingStyle.SpacingBefore = spacingBefore.Value;
+            drawingStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore.Value);
         }
 
         if (spacingAfter.HasValue) {
@@ -310,13 +338,13 @@ public sealed partial class PdfDocument {
                 throw new System.ArgumentException(objectName + " spacing after must be a non-negative finite value.", nameof(spacingAfter));
             }
 
-            drawingStyle.SpacingAfter = spacingAfter.Value;
+            drawingStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter.Value);
         }
 
         return drawingStyle;
     }
 
-    internal static DrawingBlock CreateDrawingBlock(OfficeDrawing drawing, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, bool allowClippedOverflow = false) {
+    internal static DrawingBlock CreateDrawingBlock(OfficeDrawing drawing, OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, bool allowClippedOverflow = false) {
         Guard.NotNull(drawing, nameof(drawing));
         Guard.Positive(drawing.Width, nameof(drawing.Width));
         Guard.Positive(drawing.Height, nameof(drawing.Height));

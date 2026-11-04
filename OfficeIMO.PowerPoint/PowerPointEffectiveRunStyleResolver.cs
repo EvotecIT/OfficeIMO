@@ -208,13 +208,18 @@ namespace OfficeIMO.PowerPoint {
             PowerPointFontScript script) {
             string? typeface = sources.Select(source => ResolveTypeface(source, script))
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            return ResolveThemeFontReference(typeface, run.OwnerPart);
+        }
+
+        /// <summary>Resolves a DrawingML theme reference at its relationship owner; literal family names pass through.</summary>
+        internal static string? ResolveThemeFontReference(string? typeface, OpenXmlPartContainer? ownerPart) {
             if (string.IsNullOrWhiteSpace(typeface)) return null;
             string token = typeface!.Trim().ToLowerInvariant();
             if (token is not ("+mj-lt" or "+mn-lt" or "+mj-ea" or "+mn-ea" or "+mj-cs" or "+mn-cs")) {
                 return typeface;
             }
 
-            foreach (A.FontScheme scheme in EnumerateFontSchemes(run.OwnerPart)) {
+            foreach (A.FontScheme scheme in EnumerateFontSchemes(ownerPart)) {
                 string? resolved = token switch {
                     "+mj-lt" => scheme.MajorFont?.LatinFont?.Typeface?.Value,
                     "+mn-lt" => scheme.MinorFont?.LatinFont?.Typeface?.Value,
@@ -436,22 +441,42 @@ namespace OfficeIMO.PowerPoint {
             if (paragraphDefaults != null) sources.Add(paragraphDefaults);
             int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
             sources.AddRange(FindDefaultRunProperties(listStyle, level));
+            var shape = paragraph.Paragraph.Ancestors<DocumentFormat.OpenXml.Presentation.Shape>().FirstOrDefault();
+            if (shape?.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape != null) {
+                var owner = (paragraph.OwnerPart ?? run.OwnerPart) as SlidePart;
+                foreach (var inherited in EnumeratePlaceholderShapes(shape, owner?.SlideLayoutPart).Skip(1))
+                    AddPlaceholderDefaults(sources, inherited, level);
+            }
             return sources;
+        }
+
+        /// <summary>Finds the nearest authored highlight using the same character inheritance as fonts and emphasis.</summary>
+        internal static A.Highlight? ResolveHighlightElement(PowerPointTextRun? run, PowerPointParagraph? paragraph,
+            A.ListStyle? listStyle, OpenXmlCompositeElement? masterTextStyle) {
+            if (run == null) return null;
+            if (paragraph == null) return run.RunProperties?.GetFirstChild<A.Highlight>();
+            IEnumerable<A.TextCharacterPropertiesType> sources = ResolveDirectSources(run, paragraph, listStyle, includeParagraphMark: false);
+            int level = paragraph.Paragraph.ParagraphProperties?.Level?.Value ?? 0;
+            return sources.Concat(FindDefaultRunProperties(masterTextStyle, level))
+                .Select(properties => properties.GetFirstChild<A.Highlight>()).FirstOrDefault(highlight => highlight != null);
         }
 
         private static IEnumerable<A.DefaultRunProperties> FindDefaultRunProperties(
             OpenXmlCompositeElement? container,
             int level) {
-            A.DefaultRunProperties? levelDefaults = container?
+            foreach (A.TextParagraphPropertiesType properties in FindParagraphProperties(container, level)) {
+                if (properties.GetFirstChild<A.DefaultRunProperties>() is { } defaults) yield return defaults;
+            }
+        }
+
+        private static IEnumerable<A.TextParagraphPropertiesType> FindParagraphProperties(
+            OpenXmlCompositeElement? container, int level) {
+            A.TextParagraphPropertiesType? levelProperties = container?
                 .ChildElements
                 .OfType<A.TextParagraphPropertiesType>()
-                .FirstOrDefault(properties => GetTextLevel(properties) == level)?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (levelDefaults != null) yield return levelDefaults;
-            A.DefaultRunProperties? fallbackDefaults = container?
-                .GetFirstChild<A.DefaultParagraphProperties>()?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (fallbackDefaults != null) yield return fallbackDefaults;
+                .FirstOrDefault(properties => GetTextLevel(properties) == level);
+            if (levelProperties != null) yield return levelProperties;
+            if (container?.GetFirstChild<A.DefaultParagraphProperties>() is { } fallback) yield return fallback;
         }
 
         private static int GetTextLevel(A.TextParagraphPropertiesType properties) => properties switch {

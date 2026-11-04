@@ -35,7 +35,7 @@ public static class EmailIndexText {
             }
         } else {
             CheckSource(!string.IsNullOrWhiteSpace(source.Body.Html) ? source.Body.Html! : source.Body.Rtf ?? string.Empty);
-            var htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+            var htmlOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
             htmlOptions.Limits.MaxInputCharacters = effective.MaxProjectionChars;
             var projection = EmailBodyProjection.Create(source, new EmailBodyProjectionOptions {
                 IncludeResources = false, MaxBodySourceCharacters = effective.MaxSourceChars, HtmlOptions = htmlOptions,

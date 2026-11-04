@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
     public class PowerPointPowerPointVisioRoadmapTests {
         [Fact]
         public void ThreeDimensionalSeriesShapeFlattensOnlyWithThreeDimensionalFamily() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointChart chart = presentation.AddSlide().AddChart();
             ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
@@ -42,16 +42,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData("bar3DChart", OfficeChartKind.BarStacked100)]
-        [InlineData("line3DChart", OfficeChartKind.LineStacked)]
-        [InlineData("area3DChart", OfficeChartKind.AreaStacked100)]
-        [InlineData("pie3DChart", OfficeChartKind.Pie)]
-        [InlineData("ofPieChart", OfficeChartKind.Pie)]
-        [InlineData("stockChart", OfficeChartKind.Line)]
-        [InlineData("surfaceChart", OfficeChartKind.Line)]
-        [InlineData("surface3DChart", OfficeChartKind.Line)]
+        [InlineData("bar3DChart", OfficeChartType.BarStacked100)]
+        [InlineData("line3DChart", OfficeChartType.LineStacked)]
+        [InlineData("area3DChart", OfficeChartType.AreaStacked100)]
+        [InlineData("pie3DChart", OfficeChartType.Pie)]
+        [InlineData("ofPieChart", OfficeChartType.Pie)]
+        [InlineData("stockChart", OfficeChartType.Line)]
+        [InlineData("surfaceChart", OfficeChartType.Line)]
+        [InlineData("surface3DChart", OfficeChartType.Line)]
         public void AdvancedChartProjectionRetainsRepresentableFamilySemantics(
-            string family, OfficeChartKind expected) {
+            string family, OfficeChartType expected) {
             OpenXmlElement group = family switch {
                 "bar3DChart" => new C.Bar3DChart(
                     new C.BarDirection { Val = C.BarDirectionValues.Bar },
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AdvancedImportedChartEditsCachesWithoutReplacingNativeFamily() {
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 PowerPointChart chart = presentation.AddSlide().AddChart();
                 ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
                 C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
@@ -87,11 +87,11 @@ namespace OfficeIMO.Tests {
                 PowerPointImportedChartReport report = chart.InspectImportedContent();
                 Assert.Equal("bar3DChart", report.Family);
                 Assert.Equal(PowerPointImportedChartSupport.EditableWithProjectedRendering, report.Support);
-                Assert.Equal(OfficeChartKind.BarStacked100, report.ExportProjection);
+                Assert.Equal(OfficeChartType.BarStacked100, report.ExportProjection);
 
                 Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot before));
-                OfficeChartSeries[] replacementSeries = before.Data.Series
-                    .Select((series, index) => new OfficeChartSeries(
+                OfficeSeries[] replacementSeries = before.Data.Series
+                    .Select((series, index) => new OfficeSeries(
                         index == 0 ? "Revenue" : series.Name,
                         new[] { 10D + index, 20D + index })).ToArray();
                 chart.UpdateData(new OfficeChartData(new[] { "North", "South" },
@@ -100,14 +100,14 @@ namespace OfficeIMO.Tests {
                 Assert.Null(plot.GetFirstChild<C.BarChart>());
                 Assert.Equal("Revenue", advanced.Descendants<C.StringPoint>().First().NumericValue!.Text);
                 Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-                Assert.Equal(OfficeChartKind.BarStacked100, snapshot.ChartKind);
+                Assert.Equal(OfficeChartType.BarStacked100, snapshot.ChartKind);
                 Assert.Contains("semantic projection", report.Diagnostics.Single(), StringComparison.OrdinalIgnoreCase);
                 OfficeImageExportResult svg = presentation.Slides[0]
                     .ExportImage(OfficeImageExportFormat.Svg);
                 Assert.NotEmpty(svg.Bytes);
                 Assert.Contains("Revenue", System.Text.Encoding.UTF8.GetString(svg.Bytes),
                     StringComparison.Ordinal);
-                byte[] pdf = presentation.ToPdfBytes();
+                byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
                 Assert.True(pdf.Length > 100);
                 Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(pdf, 0, 5));
             }
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SmartArtTopologyCanReorderProcessButRejectsMeaningChangingParent() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
                 PowerPointSmartArtType.BasicProcess, new[] { "Plan", "Build", "Ship" });
             Assert.True(smartArt.TryGetTopology(out PowerPointSmartArtTopology topology, out string diagnostic), diagnostic);
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AdvancedChartWithoutEditableWorkbookIsDiagnosedAndLeftUnchanged() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointChart chart = presentation.AddSlide().AddChart();
             ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!
@@ -151,14 +151,14 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase));
             Assert.Throws<NotSupportedException>(() => chart.UpdateData(
                 new OfficeChartData(new[] { "A" },
-                    new[] { new OfficeChartSeries("S", new[] { 1D }) })));
+                    new[] { new OfficeSeries("S", new[] { 1D }) })));
             Assert.Same(advanced, plot.GetFirstChild<C.Bar3DChart>());
         }
 
         [Fact]
         public void AdvancedChartRejectsRicherReferencedWorkbookWithoutMutation() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointChart chart = presentation.AddSlide().AddChart();
             ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
                 StringComparison.OrdinalIgnoreCase);
             Assert.Throws<NotSupportedException>(() => chart.UpdateData(
                 new OfficeChartData(new[] { "A" }, new[] {
-                    new OfficeChartSeries("S", new[] { 1D })
+                    new OfficeSeries("S", new[] { 1D })
                 })));
             using Stream after = embedded.GetStream(FileMode.Open, FileAccess.Read);
             using var saved = new MemoryStream();
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MixedChartWithAdvancedGroupIsPreservationOnlyInsteadOfPartialProjection() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointChart chart = presentation.AddSlide().AddChart();
             ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!
@@ -232,7 +232,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TimelineEditsMotionRotationAndCommandWithoutRemovingUnknownSibling() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox shape = slide.AddTextBox("Animate me");
             var unknown = new AnimateColor();
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RemovingTypedAnimationPreservesUnknownSiblingInsideItsOwner() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTimelineAction motion = slide.AddMotionAnimation(
                 slide.AddTextBox("Target"), "M 0 0 L 1 0 E");
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SmartArtRejectsCustomLayoutAndPreservesRichTextOnTopologyOnlyEdit() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointSmartArt smartArt = slide.AddSmartArt(
                 PowerPointSmartArtType.BasicProcess, new[] { "Plan", "Build" });
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PlaybackValidationAndLinkedOlePreflightAreNonDestructive() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointMedia video = slide.AddLinkedVideo(
                 new Uri("https://example.test/video.mp4"));
@@ -349,14 +349,14 @@ namespace OfficeIMO.Tests {
                 .AnalyzeLegacyPptWrite();
             Assert.Contains(preflight.Findings, finding =>
                 finding.Feature == LegacyPptFeature.LinkedOle &&
-                finding.Code == "PPT-WRITE-LINKED-OLE");
+                finding.Code == "ppt-write-linked-ole");
         }
 
         [Fact]
         public void LinkedMediaAndOleRoundTripWithTypedPlaybackAndTargets() {
             string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointMedia video = slide.AddLinkedVideo(new Uri("https://example.test/video.mp4"));
                     video.SetPlaybackOptions(new PowerPointMediaPlaybackOptions {
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(PowerPointMediaSourceKind.Linked, video.SourceKind);
                     Assert.True(ole.IsLinked);
                 }
-                using PowerPointPresentation loaded = PowerPointPresentation.Load(path);
+                using PowerPointDocument loaded = PowerPointDocument.Load(path);
                 PowerPointMedia loadedVideo = Assert.Single(loaded.Slides[0].Media);
                 Assert.Equal(new Uri("https://example.test/video.mp4"), loadedVideo.LinkUri);
                 PowerPointMediaPlaybackOptions playback = loadedVideo.GetPlaybackOptions();

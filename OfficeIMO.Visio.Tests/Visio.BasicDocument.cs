@@ -23,17 +23,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LogicalEndAlignmentSavesAsRightAlignedHorzAlign() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Notes");
+            VisioShape textBox = page.AddTextBox("note", OfficeLength.Inches(4), OfficeLength.Inches(7), OfficeLength.Inches(5), OfficeLength.Inches(0.6), "Aligned");
+            textBox.TextStyle = new VisioTextStyle { HorizontalAlignment = OfficeAlignment.End };
+
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal(OfficeAlignment.Right, Assert.Single(loaded.Pages[0].Shapes).TextStyle?.HorizontalAlignment);
+        }
+
+        [Fact]
         public void PageCanAddEditableTextBoxAdornment() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Notes");
-            VisioShape textBox = page.AddTextBox("title", 4, 7, 5, 0.6, "Generated diagram title");
+            VisioShape textBox = page.AddTextBox("title", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Generated diagram title");
             textBox.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 18,
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center
+                HorizontalAlignment = OfficeAlignment.Center
             };
 
             Assert.Equal("Text Box", textBox.NameU);

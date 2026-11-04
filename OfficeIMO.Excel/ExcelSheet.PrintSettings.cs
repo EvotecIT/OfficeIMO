@@ -3,74 +3,27 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Readable worksheet page setup values relevant to print/export pipelines.
-    /// </summary>
-    public sealed class ExcelSheetPageSetup {
-        /// <summary>
-        /// Worksheet page orientation when present.
-        /// </summary>
-        public OfficePageOrientation? Orientation { get; internal set; }
-
-        /// <summary>
-        /// Worksheet print margins in inches when present.
-        /// </summary>
-        public ExcelSheetPageMargins? Margins { get; internal set; }
-
-        /// <summary>
-        /// Number of pages to fit horizontally when fit-to-page mode is enabled.
-        /// An omitted dimension defaults to one; zero leaves this axis unlimited.
-        /// </summary>
-        public uint? FitToWidth { get; internal set; }
-
-        /// <summary>
-        /// Number of pages to fit vertically when fit-to-page mode is enabled.
-        /// An omitted dimension defaults to one; zero leaves this axis unlimited.
-        /// </summary>
-        public uint? FitToHeight { get; internal set; }
-
-        /// <summary>
-        /// Manual worksheet print scale percentage, when configured.
-        /// </summary>
-        public uint? Scale { get; internal set; }
-
-        /// <summary>
-        /// OpenXML worksheet paper-size code, when configured.
-        /// </summary>
-        public uint? PaperSizeCode { get; internal set; }
-
-        /// <summary>
-        /// Known worksheet paper size, when the configured code maps to a supported OfficeIMO value.
-        /// </summary>
-        public ExcelPaperSize? PaperSize { get; internal set; }
-
-        /// <summary>
-        /// Worksheet page order for multi-page print/export output, when configured.
-        /// </summary>
-        public ExcelPageOrder? PageOrder { get; internal set; }
-    }
-
-    /// <summary>
-    /// Worksheet page margins in inches.
+    /// Worksheet page physical margins.
     /// </summary>
     public sealed class ExcelSheetPageMargins {
-        /// <summary>Left margin in inches.</summary>
-        public double Left { get; internal set; }
-        /// <summary>Right margin in inches.</summary>
-        public double Right { get; internal set; }
-        /// <summary>Top margin in inches.</summary>
-        public double Top { get; internal set; }
-        /// <summary>Bottom margin in inches.</summary>
-        public double Bottom { get; internal set; }
-        /// <summary>Header margin in inches.</summary>
-        public double Header { get; internal set; }
-        /// <summary>Footer margin in inches.</summary>
-        public double Footer { get; internal set; }
+        /// <summary>Left physical margin.</summary>
+        public OfficeLength Left { get; internal set; }
+        /// <summary>Right physical margin.</summary>
+        public OfficeLength Right { get; internal set; }
+        /// <summary>Top physical margin.</summary>
+        public OfficeLength Top { get; internal set; }
+        /// <summary>Bottom physical margin.</summary>
+        public OfficeLength Bottom { get; internal set; }
+        /// <summary>Header physical margin.</summary>
+        public OfficeLength Header { get; internal set; }
+        /// <summary>Footer physical margin.</summary>
+        public OfficeLength Footer { get; internal set; }
     }
 
     /// <summary>
     /// Worksheet print options that are stored in the Open XML printOptions element.
     /// </summary>
-    public sealed class ExcelSheetPrintOptions {
+    internal sealed class ExcelSheetPrintOptions {
         /// <summary>Gets whether worksheet gridlines are printed, when configured.</summary>
         public bool? PrintGridLines { get; internal set; }
 
@@ -104,56 +57,9 @@ namespace OfficeIMO.Excel {
 
     public partial class ExcelSheet {
         /// <summary>
-        /// Reads worksheet page setup values used by print/export pipelines.
-        /// </summary>
-        public ExcelSheetPageSetup GetPageSetup() {
-            var result = new ExcelSheetPageSetup();
-            PageSetup? pageSetup = WorksheetRoot.GetFirstChild<PageSetup>();
-            bool fitToPage = WorksheetRoot.GetFirstChild<SheetProperties>()?
-                .GetFirstChild<PageSetupProperties>()?.FitToPage?.Value == true;
-            if (fitToPage) {
-                result.FitToWidth = pageSetup?.FitToWidth?.Value ?? 1U;
-                result.FitToHeight = pageSetup?.FitToHeight?.Value ?? 1U;
-            }
-            if (pageSetup?.Orientation?.Value == OrientationValues.Landscape) {
-                result.Orientation = OfficePageOrientation.Landscape;
-            } else if (pageSetup?.Orientation?.Value == OrientationValues.Portrait) {
-                result.Orientation = OfficePageOrientation.Portrait;
-            }
-
-            if (pageSetup != null) {
-                result.Scale = pageSetup.Scale?.Value;
-                result.PaperSizeCode = pageSetup.PaperSize?.Value;
-                if (pageSetup.PaperSize?.Value is uint paperSizeCode && Enum.IsDefined(typeof(ExcelPaperSize), paperSizeCode)) {
-                    result.PaperSize = (ExcelPaperSize)paperSizeCode;
-                }
-
-                if (pageSetup.PageOrder?.Value == PageOrderValues.OverThenDown) {
-                    result.PageOrder = ExcelPageOrder.OverThenDown;
-                } else if (pageSetup.PageOrder?.Value == PageOrderValues.DownThenOver) {
-                    result.PageOrder = ExcelPageOrder.DownThenOver;
-                }
-            }
-
-            PageMargins? margins = WorksheetRoot.GetFirstChild<PageMargins>();
-            if (margins != null) {
-                result.Margins = new ExcelSheetPageMargins {
-                    Left = margins.Left?.Value ?? 0D,
-                    Right = margins.Right?.Value ?? 0D,
-                    Top = margins.Top?.Value ?? 0D,
-                    Bottom = margins.Bottom?.Value ?? 0D,
-                    Header = margins.Header?.Value ?? 0D,
-                    Footer = margins.Footer?.Value ?? 0D
-                };
-            }
-
-            return result;
-        }
-
-        /// <summary>
         /// Reads worksheet print options.
         /// </summary>
-        public ExcelSheetPrintOptions GetPrintOptions() {
+        internal ExcelSheetPrintOptions ReadPrintOptions() {
             PrintOptions? printOptions = WorksheetRoot.GetFirstChild<PrintOptions>();
             return new ExcelSheetPrintOptions {
                 PrintGridLines = printOptions?.GridLines?.Value,
@@ -166,7 +72,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets worksheet print options. Null values leave the current option unchanged.
         /// </summary>
-        public void SetPrintOptions(
+        internal void SetPrintOptionsCore(
             bool? printGridLines = null,
             bool? printHeadings = null,
             bool? horizontalCentered = null,
@@ -207,16 +113,16 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets the worksheet print area range, or null when no print area is configured.
         /// </summary>
-        public string? GetPrintArea() {
-            return _excelDocument.GetNamedRange("_xlnm.Print_Area", this);
+        internal string? GetPrintAreaText() {
+            return _excelDocument.GetNamedRangeText("_xlnm.Print_Area", this);
         }
 
         /// <summary>
         /// Gets worksheet print title rows and columns.
         /// </summary>
-        public ExcelPrintTitles GetPrintTitles() {
+        internal ExcelPrintTitles ReadPrintTitles() {
             var titles = new ExcelPrintTitles();
-            string? definedName = _excelDocument.GetNamedRange("_xlnm.Print_Titles", this);
+            string? definedName = _excelDocument.GetNamedRangeText("_xlnm.Print_Titles", this);
             if (string.IsNullOrWhiteSpace(definedName)) {
                 return titles;
             }
@@ -239,8 +145,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                int firstColumn = A1.ColumnLettersToIndex(start);
-                int lastColumn = A1.ColumnLettersToIndex(end);
+                int firstColumn = ExcelA1.ColumnLettersToIndex(start);
+                int lastColumn = ExcelA1.ColumnLettersToIndex(end);
                 if (firstColumn > 0 && lastColumn >= firstColumn) {
                     titles.FirstColumn = firstColumn;
                     titles.LastColumn = lastColumn;
@@ -253,35 +159,39 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a manual worksheet row page break after the specified one-based row.
         /// </summary>
-        public void AddManualRowPageBreak(int row, bool save = true) {
-            if (row <= 0 || row > A1.MaxRows) {
+        public ExcelPageBreak AddManualRowPageBreak(int row, bool save = true) {
+            if (row <= 0 || row > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be between 1 and the Excel row limit.");
             }
 
+            ExcelPageBreak? pageBreak = null;
             WriteLock(() => {
                 RowBreaks breaks = GetOrCreateRowBreaks();
-                AddManualPageBreak(breaks, (uint)row, 16383U);
+                pageBreak = new ExcelPageBreak(this, AddManualPageBreak(breaks, (uint)row, 16383U), true);
                 if (save) {
                     WorksheetRoot.Save();
                 }
             });
+            return pageBreak!;
         }
 
         /// <summary>
         /// Adds a manual worksheet column page break after the specified one-based column.
         /// </summary>
-        public void AddManualColumnPageBreak(int column, bool save = true) {
-            if (column <= 0 || column > A1.MaxColumns) {
+        public ExcelPageBreak AddManualColumnPageBreak(int column, bool save = true) {
+            if (column <= 0 || column > ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be between 1 and the Excel column limit.");
             }
 
+            ExcelPageBreak? pageBreak = null;
             WriteLock(() => {
                 ColumnBreaks breaks = GetOrCreateColumnBreaks();
-                AddManualPageBreak(breaks, (uint)column, 1048575U);
+                pageBreak = new ExcelPageBreak(this, AddManualPageBreak(breaks, (uint)column, 1048575U), false);
                 if (save) {
                     WorksheetRoot.Save();
                 }
             });
+            return pageBreak!;
         }
 
         /// <summary>
@@ -302,7 +212,7 @@ namespace OfficeIMO.Excel {
         /// Removes a manual worksheet row page break.
         /// </summary>
         public bool RemoveManualRowPageBreak(int row, bool save = true) {
-            if (row <= 0 || row > A1.MaxRows) {
+            if (row <= 0 || row > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(row), "Row page break must be between 1 and the Excel row limit.");
             }
 
@@ -320,7 +230,7 @@ namespace OfficeIMO.Excel {
         /// Removes a manual worksheet column page break.
         /// </summary>
         public bool RemoveManualColumnPageBreak(int column, bool save = true) {
-            if (column <= 0 || column > A1.MaxColumns) {
+            if (column <= 0 || column > ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException(nameof(column), "Column page break must be between 1 and the Excel column limit.");
             }
 
@@ -541,10 +451,24 @@ namespace OfficeIMO.Excel {
                 .ToList();
         }
 
-        private static void AddManualPageBreak(OpenXmlCompositeElement breaks, uint id, uint max) {
+        internal void EnsurePageBreakAttached(Break element, bool isRowBreak) {
+            bool correctKind = isRowBreak ? element.Parent is RowBreaks : element.Parent is ColumnBreaks;
+            if (SheetElement.Parent == null || !correctKind || !ReferenceEquals(element.Parent?.Parent, WorksheetRoot))
+                throw new InvalidOperationException("The page break has been removed or replaced.");
+        }
+
+        internal void RemovePageBreak(Break element, bool isRowBreak, bool save) {
+            WriteLock(() => {
+                EnsurePageBreakAttached(element, isRowBreak);
+                RemoveManualPageBreak((OpenXmlCompositeElement)element.Parent!, element.Id!.Value);
+                if (save) WorksheetRoot.Save();
+            });
+        }
+
+        private static Break AddManualPageBreak(OpenXmlCompositeElement breaks, uint id, uint max) {
             Break? existing = breaks.Elements<Break>().FirstOrDefault(item => item.Id?.Value == id);
             if (existing == null) {
-                breaks.Append(new Break {
+                existing = breaks.AppendChild(new Break {
                     Id = id,
                     Min = 0U,
                     Max = max,
@@ -557,6 +481,7 @@ namespace OfficeIMO.Excel {
             }
 
             UpdatePageBreakCounts(breaks);
+            return existing;
         }
 
         private static bool RemoveManualPageBreak(OpenXmlCompositeElement? breaks, uint id) {

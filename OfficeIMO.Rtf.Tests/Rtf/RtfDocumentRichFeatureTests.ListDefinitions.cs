@@ -16,8 +16,8 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddListOverride(3, 100);
         document.AddParagraph("First").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\listtable", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\listid100", rtf, StringComparison.Ordinal);
@@ -42,8 +42,8 @@ public partial class RtfDocumentRichFeatureTests {
         RtfTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
         nested.Rows[0].Cells[0].AddParagraph("Nested item").SetList(listId: 7, level: 1, kind: RtfListKind.Bullet);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
 
         Assert.Contains(@"{\*\listtable", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ls7", rtf, StringComparison.Ordinal);
@@ -79,8 +79,8 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddListOverride(3, 100);
         document.AddParagraph("Item").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\levelnfc0\levelnfcn2\leveljc2\leveljcn1\levelfollow1\levelstartat7\levelspace120\levelindent240\levellegal1\levelnorestart1\levelpicture3\levelpicturenosize", rtf, StringComparison.Ordinal);
         RtfListLevel readLevel = Assert.Single(Assert.Single(read.Document.ListDefinitions).Levels);
@@ -118,8 +118,8 @@ public partial class RtfDocumentRichFeatureTests {
         secondOverride.OverrideStartAt = false;
         document.AddParagraph("Item").SetList(listId: 3, level: 0, kind: RtfListKind.Decimal);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfListOverride readOverride = Assert.Single(read.Document.ListOverrides);
         Assert.Equal(9, readOverride.OverrideCount);

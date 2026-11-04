@@ -18,7 +18,7 @@ public sealed class EpubWritingContracts {
         Assert.Throws<InvalidOperationException>(() => book.AddSpineItem("first"));
         book.MoveSpineItem(1, 0);
         EpubWriteResult result = book.Write();
-        EpubDocument reopened = EpubDocument.Load(new MemoryStream(result.Bytes), new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+        EpubDocument reopened = EpubDocument.Load(new MemoryStream(result.Bytes), new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
         Assert.Equal("A publishing example", reopened.Title);
         Assert.Equal("Author", reopened.Creator);
         Assert.Equal(new[] { "second", "first" }, reopened.Chapters.Select(chapter => chapter.ManifestId));
@@ -83,7 +83,7 @@ public sealed class EpubWritingContracts {
         Assert.Equal(0, destination.Position);
         Assert.Equal("A publishing example", EpubDocument.Load(destination).Title);
         byte[] before = destination.ToArray();
-        Assert.Throws<InvalidDataException>(() => book.Save(destination, new EpubWriteOptions { MaxOutputBytes = 80 }));
+        Assert.Throws<InvalidDataException>(() => book.Save(destination, new EpubSaveOptions { MaxOutputBytes = 80 }));
         Assert.Equal(before, destination.ToArray());
     }
 
@@ -96,7 +96,7 @@ public sealed class EpubWritingContracts {
             byte[] original = { 1, 2, 3, 4 };
             File.WriteAllBytes(path, original);
             EpubPublication book = CreateBook();
-            Assert.Throws<InvalidDataException>(() => book.Save(path, new EpubWriteOptions { MaxExpandedBytes = 20 }));
+            Assert.Throws<InvalidDataException>(() => book.Save(path, new EpubSaveOptions { MaxExpandedBytes = 20 }));
             Assert.Equal(original, File.ReadAllBytes(path));
             using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => book.SaveAsync(path, cancellationToken: cancellation.Token));
@@ -115,11 +115,11 @@ public sealed class EpubWritingContracts {
         Assert.Equal(source, book.Write().Bytes);
         book.Title = "Changed";
         Assert.Throws<InvalidOperationException>(() => book.Write());
-        EpubWriteResult result = book.Write(new EpubWriteOptions { RemoveInvalidatedSignatures = true });
+        EpubWriteResult result = book.Write(new EpubSaveOptions { RemoveInvalidatedSignatures = true });
         using var archive = new ZipArchive(new MemoryStream(result.Bytes));
         Assert.Null(archive.GetEntry("META-INF/signatures.xml"));
         Assert.True(result.HasLoss);
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public sealed class EpubWritingContracts {
         Assert.All(book.EntryPaths.Where(path => path != book.PackagePath), path => Assert.Equal(ReadEntry(source, path), ReadEntry(result.Bytes, path)));
         Assert.Equal(4, book.Read().Chapters.Count);
         Assert.False(result.HasLoss);
-        if (name == "pkg-spine-duplicate-item-rendering") Assert.Contains(result.Report.FidelityDiagnostics,
+        if (name == "pkg-spine-duplicate-item-rendering") Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "EPUB_WRITE_RETAINED_DUPLICATE_SPINE");
     }
 
@@ -268,7 +268,7 @@ public sealed class EpubWritingContracts {
         EpubWriteResult result = book.Write();
         Assert.Contains("EPUB/extra.bin", result.Report.RemovedEntries);
         Assert.True(result.HasLoss);
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
         book.AddResource("cover", "EPUB/cover.png", "image/png", new byte[] { 1 });
         book.SetCoverImage("cover");
         Assert.Throws<InvalidOperationException>(() => book.RemoveResource("cover"));
@@ -372,12 +372,12 @@ public sealed class EpubWritingContracts {
         EpubPublication book = EpubPublication.Load(new MemoryStream(signed));
         Assert.Equal(signed, book.Write().Bytes);
         if (!compressionOnly) book.Title = "Edited";
-        Assert.Throws<InvalidOperationException>(() => book.Write(new EpubWriteOptions { CompressEntries = !compressionOnly }));
-        EpubWriteResult result = book.Write(new EpubWriteOptions { RemoveInvalidatedSignatures = true, CompressEntries = !compressionOnly });
+        Assert.Throws<InvalidOperationException>(() => book.Write(new EpubSaveOptions { CompressEntries = !compressionOnly }));
+        EpubWriteResult result = book.Write(new EpubSaveOptions { RemoveInvalidatedSignatures = true, CompressEntries = !compressionOnly });
         Assert.False(OfficeProvenanceZip.HasCentralDirectorySignature(result.Bytes, 100));
         Assert.True(result.HasLoss);
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "EPUB_WRITE_ZIP_SIGNATURE_REMOVED");
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "EPUB_WRITE_ZIP_SIGNATURE_REMOVED");
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]

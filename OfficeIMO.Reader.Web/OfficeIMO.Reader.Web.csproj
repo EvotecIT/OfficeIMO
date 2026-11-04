@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Bounded caller-injected HTTP transport for OfficeIMO.Reader.</Description>
-    <AssemblyName>OfficeIMO.Reader.Web</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Reader.Web</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -31,10 +29,6 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
-
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
@@ -53,5 +47,8 @@
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
     <Using Include="OfficeIMO.Reader" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 </Project>

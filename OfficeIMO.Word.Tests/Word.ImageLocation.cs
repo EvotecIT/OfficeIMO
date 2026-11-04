@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create(filePath);
 
             var paragraph = document.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
 
@@ -28,12 +28,12 @@ namespace OfficeIMO.Tests {
         public void Test_ImageLocation_Header() {
             var filePath = Path.Combine(_directoryWithFiles, "ImageLocationHeader.docx");
             using var document = WordDocument.Create(filePath);
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             var paragraph = defaultHeader.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
             var headerPart = mainPart.HeaderParts.First();
@@ -50,12 +50,12 @@ namespace OfficeIMO.Tests {
         public void Test_ImageLocation_Footer() {
             var filePath = Path.Combine(_directoryWithFiles, "ImageLocationFooter.docx");
             using var document = WordDocument.Create(filePath);
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var paragraph = defaultFooter.AddParagraph();
-            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+            paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart!;
             var footerPart = mainPart.FooterParts.First();

@@ -11,7 +11,7 @@ Reconstructs editable Word content from a PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertTo-OfficePdfWord [-Path] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-Options <PdfToWordOptions>] [-Force] [-Open] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfWord [-Path] <string> [-OutputPath] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-Options <PdfWordExportOptions>] [-Force] [-Open] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -80,7 +80,7 @@ Accept wildcard characters: False
 Advanced OfficeIMO PDF-to-Word reconstruction options.
 
 ```yaml
-Type: PdfToWordOptions
+Type: PdfWordExportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -128,7 +128,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -166,7 +166,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `System.IO.FileInfo`
-- `OfficeIMO.Word.Pdf.PdfWordConversionReport`
+- `OfficeIMO.Pdf.Word.PdfWordConversionReport`
 
 ## RELATED LINKS
 

@@ -5,21 +5,21 @@ namespace OfficeIMO.Reader.Xps;
 internal static partial class XpsReaderAdapter {
     internal static OfficeDocumentReadResult Read(string path, ReaderOptions reader, ReaderXpsOptions options, CancellationToken token) {
         var limits = Limits(reader, options);
-        var input = DocumentReaderEngine.ReadAdapterInput(path, reader, token, limits.MaximumInputBytes);
+        var input = DocumentReaderEngine.ReadAdapterInput(path, reader, token, limits.Limits.MaxInputBytes);
         var result = Project(XpsDocument.Load(input.Bytes, limits, token), input.Source, reader, options, token);
         foreach (var chunk in result.Chunks) DocumentReaderEngine.ApplyAdapterSource(chunk, input, reader.ComputeHashes);
         return result;
     }
     internal static OfficeDocumentReadResult Read(Stream stream, string? sourceName, ReaderOptions reader, ReaderXpsOptions options, CancellationToken token) {
         var limits = Limits(reader, options);
-        var input = DocumentReaderEngine.ReadAdapterInput(stream, sourceName ?? "document.xps", reader, token, limits.MaximumInputBytes);
+        var input = DocumentReaderEngine.ReadAdapterInput(stream, sourceName ?? "document.xps", reader, token, limits.Limits.MaxInputBytes);
         var result = Project(XpsDocument.Load(input.Bytes, limits, token), input.Source, reader, options, token);
         foreach (var chunk in result.Chunks) DocumentReaderEngine.ApplyAdapterSource(chunk, input, reader.ComputeHashes);
         return result;
     }
-    private static XpsReadOptions Limits(ReaderOptions reader, ReaderXpsOptions options) {
+    private static XpsLoadOptions Limits(ReaderOptions reader, ReaderXpsOptions options) {
         var limits = options.ReadOptions.Clone();
-        if (reader.MaxInputBytes is long maximum) limits.MaximumInputBytes = (int)Math.Min(limits.MaximumInputBytes, maximum);
+        if (reader.MaxInputBytes is long maximum) limits.Limits.MaxInputBytes = (int)Math.Min(limits.Limits.MaxInputBytes, maximum);
         return limits;
     }
 

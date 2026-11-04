@@ -239,8 +239,8 @@ public static class LatexSimpleMacroExpander {
         int maximumTokenCount,
         IEnumerable<string> verbatimEnvironmentNames) {
         var options = new LatexParseOptions {
-            MaximumInputLength = maximumInputLength,
-            MaximumTokenCount = maximumTokenCount
+            MaxInputLength = maximumInputLength,
+            MaxTokenCount = maximumTokenCount
         };
         foreach (string environmentName in verbatimEnvironmentNames) {
             options.VerbatimEnvironmentNames.Add(environmentName);

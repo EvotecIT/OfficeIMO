@@ -17,9 +17,9 @@ namespace OfficeIMO.Excel.Tests {
         [InlineData("formula", "cell")]
         public void DataReader_BorrowedSdkIgnoresExtensionOwnedCellReferences(string kind, string placement) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Number");
-            sheet.CellValue(2, 1, 1);
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Number");
+            sheet.Cell(2, 1).SetValue(1);
             document.Save();
             Worksheet worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
             var payload = new OpenXmlUnknownElement("e", "metadata", "urn:officeimo:cell-ownership");
@@ -36,21 +36,21 @@ namespace OfficeIMO.Excel.Tests {
                 else row.Elements<Cell>().First().Append(payload);
             }
 
-            using DbDataReader reader = document.CreateDataReader(new ExcelReadOptions { UseCachedFormulaResult = false });
+            using DbDataReader reader = document.CreateDataReader(new ExcelReaderOptions { UseCachedFormulaResult = false });
             Assert.Equal(1, reader.FieldCount);
             Assert.Equal("Number", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.Equal(1, reader.GetInt32(0));
             Assert.False(reader.Read());
             reader.Close();
-            sheet.CellValue(3, 1, 2);
+            sheet.Cell(3, 1).SetValue(2);
             Assert.NotNull(document.OpenXmlDocument.WorkbookPart);
         }
 
         [Fact]
         public void DataReader_BorrowedSdkEmptySheetIgnoresExtensionOwnedCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Empty");
+            document.AddSheet("Empty");
             document.Save();
             Worksheet worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
             var payload = new OpenXmlUnknownElement("e", "metadata", "urn:officeimo:cell-ownership");
@@ -70,16 +70,16 @@ namespace OfficeIMO.Excel.Tests {
         [InlineData("formula")]
         public void DataReader_BorrowedSdkValidatesOwnedCellReferences(string kind) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Number");
-            sheet.CellValue(2, 1, 1);
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Number");
+            sheet.Cell(2, 1).SetValue(1);
             document.Save();
             Worksheet worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
             worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Last().Append(CreateSdkOwnershipCell(kind));
 
             Action open = () => {
-                using var reader = document.CreateDataReader(new ExcelReadOptions { UseCachedFormulaResult = false });
-            };
+                using var reader = document.CreateDataReader(new ExcelReaderOptions { UseCachedFormulaResult = false });
+ _ = reader.FieldCount;             };
             if (kind == "formula") Assert.Throws<NotSupportedException>(open);
             else Assert.Throws<InvalidDataException>(open);
         }

@@ -6,55 +6,65 @@ schema: 2.0.0
 ---
 # Set-OfficePdfMetadata
 ## SYNOPSIS
-Sets PDF document metadata on generated documents or existing PDF files.
+Updates metadata on a generated PDF, an open editing block, or file copies.
 
 ## SYNTAX
-### Context (Default)
+### Document (Default)
 ```powershell
-Set-OfficePdfMetadata [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfMetadata [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-Document <PdfDocument>] [-AllowLoss] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Set-OfficePdfMetadata -Document <PdfDocument> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfMetadata [-Path] <string[]> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-OutputPath <string>] [-OutputDirectory <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-AllowLoss] [-PassThru] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### File
+### LiteralPath
 ```powershell
-Set-OfficePdfMetadata -Path <string> -OutputPath <string> [-Password <string>] [-IgnorePermissionRestrictions] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-PassThru] [-Incremental] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfMetadata -LiteralPath <string[]> [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-Incremental] [-OutputPath <string>] [-OutputDirectory <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-AllowLoss] [-PassThru] [-ThrottleLimit <int>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-In a New-OfficePdf script block this command updates the generated document metadata.
-With -Path and -OutputPath, it rewrites an existing PDF with updated metadata unless -Incremental is used.
+Omitted values retain existing metadata; an empty string clears a value. Incremental appends a native metadata revision. File outputs are atomic; document edits return the updated native document with PassThru.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePdf -Path .\Report.pdf {
-  PdfMetadata -Title 'Service Review' -Author 'PSWriteOffice' -Subject 'Operations'
-  PdfHeading 'Service Review'
-}
+New-OfficePdf -Path ./Report.pdf { PdfMetadata -Title 'Service review'; PdfHeading 'Service review' }
 ```
 
-Stores metadata on a newly generated PDF.
 
 ### EXAMPLE 2
 ```powershell
-PS> Set-OfficePdfMetadata -Path .\Input.pdf -OutputPath .\Output.pdf -Title 'Reviewed package' -Author 'Operations'
+Open-OfficePdf ./Report.pdf -OutputPath ./Reviewed.pdf { PdfMetadata -Title 'Reviewed report' }
 ```
 
-Writes a new PDF with updated metadata.
 
 ## PARAMETERS
 
+### -AllowLoss
+Explicitly accept fidelity loss when saving file outputs.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Author
-Document author.
+Document author; an empty string clears it.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document, File
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -66,7 +76,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-PDF document to update outside the DSL context.
+Explicit native input; omission uses the enclosing New-/Open- content block.
 
 ```yaml
 Type: PdfDocument
@@ -74,7 +84,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -82,11 +92,11 @@ Accept wildcard characters: False
 ```
 
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed metadata-modification restrictions.
+After authentication, explicitly ignore owner-imposed usage restrictions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: File
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -98,11 +108,11 @@ Accept wildcard characters: False
 ```
 
 ### -Incremental
-Append a metadata-only incremental PDF revision instead of rewriting the existing PDF bytes.
+Append a metadata revision instead of rewriting existing PDF content.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: File
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -114,11 +124,75 @@ Accept wildcard characters: False
 ```
 
 ### -Keywords
-Document keywords.
+Document keywords; an empty string clears them.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document, File
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Gets or sets input paths without wildcard expansion, binding FileInfo.FullName and provider PSPath.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native source parsing, authentication and resource-limit settings.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoClobber
+Refuse replacement of an existing file output.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OutputDirectory
+Destination folder for one or more inputs, retaining their file names.
+
+```yaml
+Type: String
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -130,15 +204,15 @@ Accept wildcard characters: False
 ```
 
 ### -OutputPath
-Output PDF path when rewriting an existing PDF.
+Single-file destination. Cannot be combined with OutputDirectory.
 
 ```yaml
 Type: String
-Parameter Sets: File
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -146,11 +220,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the updated document.
+Emit the updated native document or each saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document, File
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -162,11 +236,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to authenticate an encrypted PDF.
+Source password as secure input or a warned plaintext value.
 
 ```yaml
-Type: String
-Parameter Sets: File
+Type: SecureString
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -178,27 +252,43 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Existing PDF path to rewrite with updated metadata.
+Gets or sets input paths with provider wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: File
-Aliases: FilePath
+Type: String[]
+Parameter Sets: Path
+Aliases: None
 Possible values:
 
 Required: True
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
+```
+
+### -Subject
+Document subject; an empty string clears it.
+
+```yaml
+Type: String
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Subject
-Document subject.
+### -ThrottleLimit
+Gets or sets the maximum number of concurrent background operations.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document, File
+Type: Int32
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -210,11 +300,11 @@ Accept wildcard characters: False
 ```
 
 ### -Title
-Document title.
+Document title; an empty string clears it.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document, File
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -231,6 +321,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Pdf.PdfDocument`
+- `System.String[]`
 
 ## OUTPUTS
 

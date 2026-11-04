@@ -236,7 +236,7 @@ public sealed class ReaderYamlModularTests {
 
         var payload = "service:\n  name: IX\n  enabled: true\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload), writable: false);
-        var chunks = reader.Read(stream, " config.yaml ").ToList();
+        var chunks = reader.Enumerate(stream, " config.yaml ").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Yaml, c.Kind));

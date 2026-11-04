@@ -27,7 +27,7 @@ public partial class Excel {
         Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
         Assert.False(File.Exists(blockedPath));
         OfficeCompatibilityFinding[] recordFindings = blocked.Result.Report.Compatibility.Findings
-            .Where(finding => finding.Code.StartsWith("Excel.Xlsb.UnprojectedRecord.", StringComparison.Ordinal))
+            .Where(finding => finding.Code == OfficeDiagnosticCodes.XlsbUnprojectedRecord)
             .ToArray();
         Assert.Equal(preservedRecordCount, recordFindings.Length);
         Assert.All(recordFindings, finding => {
@@ -45,7 +45,7 @@ public partial class Excel {
         Assert.Equal(OfficeCompatibilityMode.BestEffort, allowed.Report.Compatibility.Mode);
         Assert.True(allowed.Report.Compatibility.HasLoss);
         OfficeCompatibilityFinding[] allowedRecordFindings = allowed.Report.Compatibility.Findings
-            .Where(finding => finding.Code.StartsWith("Excel.Xlsb.UnprojectedRecord.", StringComparison.Ordinal))
+            .Where(finding => finding.Code == OfficeDiagnosticCodes.XlsbUnprojectedRecord)
             .ToArray();
         Assert.Equal(preservedRecordCount, allowedRecordFindings.Length);
         Assert.All(allowedRecordFindings, finding =>

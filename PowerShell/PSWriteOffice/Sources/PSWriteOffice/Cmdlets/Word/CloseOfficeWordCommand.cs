@@ -1,15 +1,17 @@
 using System.Management.Automation;
+using System.Security;
+using PSWriteOffice.Foundation;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
 /// <summary>Closes one or more tracked Word documents, optionally saving them.</summary>
-/// <para>Provides a cmdlet wrapper for <c>WordDocument.Dispose</c>/<c>Save</c> so scripts need not call .NET methods directly.</para>
+/// <para>Provides a cmdlet wrapper for <c>WordDocument.Dispose</c>/<c>Save</c> so scripts need not call .NET methods directly. Documents must use explicit persistence to prevent writes during disposal.</para>
 /// <example>
 ///   <summary>Close without saving.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx; Close-OfficeWord -Document $doc</code>
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx; Close-OfficeWord -Document $doc</code>
 ///   <para>Disposes the loaded document instance without saving changes.</para>
 /// </example>
 /// <example>
@@ -21,11 +23,11 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Save to a new path and open the file.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Close-OfficeWord -Document $doc -Save -Path .\Report-final.docx -Open</code>
+///   <code>Close-OfficeWord -Document $doc -Save -Path .\Report-final.docx -Show</code>
 ///   <para>Saves updates to <c>Report-final.docx</c>, opens it, and disposes the document.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Close, "OfficeWord", DefaultParameterSetName = ParameterSetCurrent, SupportsShouldProcess = true)]
-public sealed class CloseOfficeWordCommand : PSCmdlet {
+public sealed class CloseOfficeWordCommand : OfficeCmdlet {
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetCurrent = "Current";
     private const string ParameterSetAll = "All";
@@ -33,10 +35,6 @@ public sealed class CloseOfficeWordCommand : PSCmdlet {
     /// <summary>Word document to close.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
     public WordDocument? Document { get; set; }
-
-    /// <summary>Close the most recently tracked document.</summary>
-    [Parameter(ParameterSetName = ParameterSetCurrent)]
-    public SwitchParameter Current { get; set; }
 
     /// <summary>Close all tracked documents for the current runspace.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetAll)]
@@ -53,17 +51,21 @@ public sealed class CloseOfficeWordCommand : PSCmdlet {
 
     /// <summary>Open the file after saving. Requires -Save or -Path.</summary>
     [Parameter]
-    [Alias("Show")]
-    public SwitchParameter Open { get; set; }
+    public SwitchParameter Show { get; set; }
+
+    /// <summary>Explicitly accept reported native-save reductions.</summary>
+    [Parameter]
+    public SwitchParameter AllowLoss { get; set; }
 
     /// <summary>Password used to save the document as an encrypted package.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (Open.IsPresent && !Save.IsPresent && string.IsNullOrWhiteSpace(Path)) {
-            throw new PSArgumentException("Use -Save or -Path with -Open so the document is persisted before it is opened.", nameof(Open));
+        if (Show.IsPresent && !Save.IsPresent && string.IsNullOrWhiteSpace(Path)) {
+            throw new PSArgumentException("Use -Save or -Path with -Show so the document is persisted before it is opened.", nameof(Show));
         }
 
         if (All.IsPresent) {
@@ -85,24 +87,27 @@ public sealed class CloseOfficeWordCommand : PSCmdlet {
         }
 
         if (document == null) {
-            throw new PSInvalidOperationException("No tracked Word document was found. Pass -Document or open a document with Get-OfficeWord/New-OfficeWord first.");
+            throw new PSInvalidOperationException("No tracked Word document was found. Pass -Document or open a document with Open-OfficeWord/New-OfficeWord first.");
         }
 
         CloseSingleDocument(document);
     }
 
     private void CloseSingleDocument(WordDocument document) {
+        WordDocumentService.EnsureExplicitPersistence(document);
         var shouldSave = Save.IsPresent || !string.IsNullOrWhiteSpace(Path);
-        var action = shouldSave ? "Save and close" : "Close";
-        if (!ShouldProcess("Word document", action)) {
-            return;
-        }
-
         if (shouldSave) {
-            var resolvedPath = !string.IsNullOrWhiteSpace(Path)
-                ? SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path)
-                : null;
-            WordDocumentService.SaveDocument(document, Open.IsPresent, resolvedPath, Password);
+            string? destination = Path ?? WordDocumentService.GetAssociatedPath(document);
+            if (string.IsNullOrWhiteSpace(destination)) {
+                InvalidArgument(new PSArgumentException("Supply Path when the document has no associated destination."), document);
+                return;
+            }
+            destination = ResolveOutputPath(destination!);
+            if (!ShouldProcess(destination, "Save and close Word document")) return;
+            document.Save(destination, WordDocumentService.NativeSaveOptions(AllowLoss.IsPresent, Password,
+                MyInvocation.BoundParameters.ContainsKey(nameof(Password))));
+            WordDocumentService.CloseDocument(document);
+            if (Show) OfficeShow.Open(destination);
             return;
         }
 

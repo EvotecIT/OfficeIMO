@@ -40,7 +40,8 @@ internal sealed partial class StudioNativeDocument {
                 : crypto.MathematicalSignatureStatus == PdfCryptographicValidationStatus.Valid && crypto.MessageDigestStatus == PdfCryptographicValidationStatus.Valid
                     ? (crypto.CertificateChainStatus == PdfCryptographicValidationStatus.Valid ? "valid" : "intact")
                 : "unknown";
-            return new StudioNativeSignature(result.Signature.SignerName ?? Subject(crypto?.SignerSubject), result.Signature.FieldName,
+            // PDF /Name is authored metadata, not the identity from the CMS certificate.
+            return new StudioNativeSignature(Subject(crypto?.SignerSubject), result.Signature.FieldName,
                 (crypto?.SigningTime)?.ToString("o", CultureInfo.InvariantCulture) ?? result.Signature.SigningTimeRaw,
                 result.Signature.Reason, result.Signature.Location, status, result.ByteRangeCoversEndOfFile,
                 crypto is null ? null : Status(crypto.CertificateChainStatus), crypto is null ? null : Status(crypto.TimestampStatus),
@@ -78,13 +79,15 @@ internal sealed partial class StudioNativeDocument {
 
     /// <summary>What the document's structure says about it, as the desktop's document health inspection reports it.</summary>
     private static StudioNativeHealth HealthOf(byte[] bytes, PdfLoadOptions options, CancellationToken cancellationToken) {
-        PdfDocumentPreflight preflight = PdfDocument.Preflight(bytes, options, cancellationToken);
+        PdfDocumentPreflight preflight = OfficeDocument.Inspect(new MemoryStream(bytes), "source.pdf",
+            new OfficeInspectOptions { IncludeContent = false, PdfPreflight = options,
+                MaximumInputBytes = options.Limits.MaxInputBytes }, cancellationToken).PdfPreflight!;
         PdfDocumentInfo? info = preflight.DocumentInfo;
         var diagnostics = new List<string>(preflight.Diagnostics);
         PdfRepairReport? repairs = null;
         if (preflight.CanRead) {
             try {
-                PdfAnalysisReport analysis = PdfDocument.Load(bytes, options).Analyze(PdfComplianceProfile.None, cancellationToken);
+                PdfAnalysisReport analysis = PdfDocument.Load(new MemoryStream(bytes), options).Analyze(PdfComplianceProfile.None, cancellationToken);
                 info = analysis.Info;
                 repairs = analysis.Repair;
                 diagnostics.AddRange(repairs.Diagnostics.Select(static item => item.Message));
@@ -115,20 +118,19 @@ internal sealed partial class StudioNativeDocument {
                         "web" => PdfOptimizationProfile.Web, "archival" => PdfOptimizationProfile.Archival,
                         _ => throw new ArgumentException($"“{copy.Profile}” isn't an optimization profile.", nameof(copy))
                     });
-                    optimization.CancellationToken = cancellationToken;
-                    PdfOptimizationActionResult result = PdfDocument.Load(input, options).Optimization.Apply(optimization);
+                    PdfOptimizationActionResult result = PdfDocument.Load(new MemoryStream(input), options).Optimization.Apply(optimization, cancellationToken: cancellationToken);
                     if (!result.PreservationReport.IsPreserved) throw new InvalidOperationException("The optimized copy wouldn't keep everything the document contains, so it wasn't written.");
                     return (result.Bytes, result.ReturnedOriginal ? "The document is already as small as lossless optimization makes it."
                         : string.Create(CultureInfo.InvariantCulture, $"Saved {result.SavedBytes} bytes."));
                 }
                 case "repair": {
                     PdfRepairArtifactResult result = PdfRepairArtifact.Create(input,
-                        new PdfRepairArtifactOptions { CancellationToken = cancellationToken }, options);
+                        new PdfRepairArtifactOptions(), options, cancellationToken: cancellationToken);
                     if (!result.IsVerified) throw new InvalidOperationException("The repaired copy couldn't be verified, so it wasn't written.");
                     return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture, $"Repaired {result.SourceRepairReport.RepairCount} structural problem(s)."));
                 }
                 default: {
-                    PdfSanitizationResult result = PdfDocument.Load(input, options).Sanitize(new PdfSanitizationOptions { CancellationToken = cancellationToken });
+                    PdfSanitizationResult result = PdfDocument.Load(new MemoryStream(input), options).Sanitize(new PdfSanitizationOptions(), cancellationToken: cancellationToken);
                     if (!result.IsSanitized || !result.PreservationReport.IsPreserved) throw new InvalidOperationException("The sanitized copy couldn't be verified, so it wasn't written.");
                     return (result.ToBytes(), string.Create(CultureInfo.InvariantCulture,
                         $"Removed {result.RemovedFindings.Count} item(s) such as scripts, actions and attachments; {result.RemainingFindings.Count} remain."));
@@ -186,7 +188,7 @@ internal sealed partial class StudioNativeDocument {
                 // The editor maps a rectangle on the page as displayed into the page's own space, through its box and rotation.
                 var gesture = new PdfEditorGesture(area.Page, Finite(bounds.X), Finite(bounds.Y), Finite(bounds.X + bounds.Width), Finite(bounds.Y + bounds.Height), []);
                 PdfEditorCommand command = PdfEditorCommandFactory.Create(snapshot, PdfEditorTool.Redact, gesture,
-                    new PdfEditorProperties(string.Empty, string.Empty, PdfColor.Black, string.Empty, string.Empty, 12D));
+                    new PdfEditorProperties(string.Empty, string.Empty, global::OfficeIMO.OfficeColor.Black, string.Empty, string.Empty, 12D));
                 planned.Add(new PdfRedactionArea(area.Page, command.Bounds.Left, command.Bounds.Bottom, command.Bounds.Width, command.Bounds.Height,
                     "OfficeIMO Studio redaction"));
             }
@@ -204,11 +206,13 @@ internal sealed partial class StudioNativeDocument {
         } finally { _gate.Release(); }
     }
 
-    // Matches the found text's own glyphs, as Preview's redaction does, rather than the whole block it sits in.
+    // Matches the found text's own glyphs, as Preview's redaction does, unless the user chose whole blocks because the
+    // glyphs can't be removed without touching their neighbours.
     private Task<IReadOnlyList<PdfRedactionCandidate>> FindRedactionsAsync(StudioNativeRedactionFind find, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(find.Text)) throw new ArgumentException("Enter the text to find.", nameof(find));
         IReadOnlyCollection<int>? pages = find.Pages is { Count: > 0 } chosen ? RequirePages(chosen) : null;
-        return _workspace.SearchRedactionMarksAsync(find.Text, find.Regex, find.MatchCase, pages, cancellationToken, PdfRedactionTextSelection.MatchedGlyphs);
+        return _workspace.SearchRedactionMarksAsync(find.Text, find.Regex, find.MatchCase, pages, cancellationToken,
+            find.WholeBlocks ? PdfRedactionTextSelection.LogicalBlocks : PdfRedactionTextSelection.MatchedGlyphs);
     }
 }
 
@@ -232,7 +236,7 @@ internal sealed record StudioNativeCheckResult(int AbiVersion, long Revision, St
 /// <summary>A health copy at <c>path</c>; <c>profile</c> chooses an optimization: balanced (default), smallest, web or archival.</summary>
 internal sealed record StudioNativeHealthCopy(string? Path, string? Profile = null);
 
-internal sealed record StudioNativeRedactionFind(string? Text, bool Regex = false, bool MatchCase = false, IReadOnlyList<int>? Pages = null);
+internal sealed record StudioNativeRedactionFind(string? Text, bool Regex = false, bool MatchCase = false, IReadOnlyList<int>? Pages = null, bool WholeBlocks = false);
 
 /// <summary>An area to redact, in points of the page as displayed; <c>preview</c> is the text a search found there.</summary>
 internal sealed record StudioNativeRedactionMark(int Page, StudioNativeRectangle? Bounds, string? Preview = null);

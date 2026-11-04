@@ -260,6 +260,8 @@ namespace OfficeIMO.Excel {
             return containsLineBreak;
         }
 
+        internal int SharedStringCount => EnsureSharedStringCacheAndCount(SharedStringTablePart.SharedStringTable ??= new SharedStringTable());
+
         private static bool ContainsLineBreak(string text) {
             return text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
         }

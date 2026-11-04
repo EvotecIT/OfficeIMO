@@ -1,0 +1,18 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Invoicing.KSeF.Tests\\OfficeIMO.Invoicing.KSeF.Tests.csproj",
+      "OfficeIMO.Invoicing.KSeF\\OfficeIMO.Invoicing.KSeF.csproj",
+      "OfficeIMO.Invoicing.Pdf.Tests\\OfficeIMO.Invoicing.Pdf.Tests.csproj",
+      "OfficeIMO.Invoicing.Pdf\\OfficeIMO.Invoicing.Pdf.csproj",
+      "OfficeIMO.Invoicing.Tests\\OfficeIMO.Invoicing.Tests.csproj",
+      "OfficeIMO.Invoicing.Validation.Tests\\OfficeIMO.Invoicing.Validation.Tests.csproj",
+      "OfficeIMO.Invoicing.Validation\\OfficeIMO.Invoicing.Validation.csproj",
+      "OfficeIMO.Invoicing\\OfficeIMO.Invoicing.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.Security\\OfficeIMO.Security.csproj"
+    ]
+  }
+}

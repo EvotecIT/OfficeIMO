@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal((1, 1), (issue.Row, issue.Column));
         Assert.Contains("version 4", issue.Message);
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkSourceCellIssue>)report.SourceCellIssues).Clear());
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             issue => issue.Code == "IWORK_SOURCE_CELLS_UNDECODED").LossKind);
     }
 
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);
         Assert.Empty(report.SourceCellIssues);
-        Assert.DoesNotContain(report.FidelityDiagnostics, item => item.Code == "IWORK_SOURCE_CELLS_UNDECODED"
+        Assert.DoesNotContain(report.Diagnostics, item => item.Code == "IWORK_SOURCE_CELLS_UNDECODED"
             || item.Code == "IWORK_TABLE_CELL_DECODE");
         if (formula) Assert.Equal(IWorkFormulaCacheStatus.Approximate, Assert.Single(report.FormulaCells).CacheStatus);
         else Assert.Empty(report.FormulaCells);
@@ -65,7 +65,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] tile = Message(BytesField(5, new byte[] { 0x80 }), BytesField(5, row));
         using MemoryStream package = TableDependencyPackage(kind, Message(), rows: 2, columns: 3,
             tilePayload: tile, additionalRecords: ArchiveRecord(99, 6002, tile));
-        var options = new IWorkReadOptions { MaximumMaterializedCells = 1 };
+        var options = new IWorkReadOptions { MaxMaterializedCells = 1 };
         IWorkConversionReport report = ConvertUnitReport(package, kind, readOptions: options);
         IWorkSourceCellIssue issue = Assert.Single(report.SourceCellIssues);
         Assert.Equal((2, 3), (issue.Row, issue.Column));
@@ -92,25 +92,25 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report;
         string marker;
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options); report = partial.Report;
+            using var partial = source.ToWordResult(options); report = partial.Report;
             partial.Value.Save(saved); saved.Position = 0;
             using WordDocument reopened = WordDocument.Load(saved);
             marker = reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text;
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options); report = partial.Report;
+            using var partial = source.ToExcelResult(options); report = partial.Report;
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            marker = Assert.IsType<string>(reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            marker = Assert.IsType<string>(reopened.Sheets[0].Cell(1, 1).GetValue<string>());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options); report = partial.Report;
+            using var partial = source.ToPowerPointResult(options); report = partial.Report;
             partial.Value.Save(saved); saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             marker = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text;
         }
         Assert.True(report.IsPartialEditableReconstruction);

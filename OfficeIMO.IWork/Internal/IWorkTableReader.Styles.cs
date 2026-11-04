@@ -18,7 +18,7 @@ internal static partial class IWorkTableReader {
         IWorkWireMessage? bandProperties = null;
         if (complete) {
             var chain = IWorkStyleReader.ReadChain(index, style!.Identifier,
-                budget.MaximumTextStyleInheritanceDepth, type => type == 6003,
+                budget.MaxTextStyleInheritanceDepth, type => type == 6003,
                 tolerateStyleDepth: true, references, ref complete);
             for (int i = chain.Count - 1; i >= 0; i--) {
                 var (owner, payload) = chain[i];

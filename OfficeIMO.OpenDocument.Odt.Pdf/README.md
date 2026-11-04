@@ -8,16 +8,13 @@ using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
 
 OdtDocument source = OdtDocument.Load("proposal.odt");
-PdfDocumentConversionResult pdfResult = source.ToPdfDocumentResult();
-pdfResult.RequireNoLoss();
-pdfResult.Save("proposal.pdf");
+OfficeConversionReport pdfReport = source.SaveAsPdf("proposal.pdf", new OdtPdfExportOptions { FailOnLoss = true });
 
 PdfDocument pdf = PdfDocument.Load("proposal.pdf");
-PdfOdtConversionResult odtResult = pdf.ToOdtDocumentResult();
-odtResult.Value.Save("reconstructed.odt");
+OfficeConversionReport odtReport = pdf.SaveAsOdt("reconstructed.odt");
 ```
 
-Forward results expose the typed ODT-to-Word report in `SourceConversionReports` and PDF-layout diagnostics in `Report`; `ConversionReports`, `HasLoss`, and `RequireNoLoss()` cover both stages. PDF to ODT is semantic reconstruction through the PDF-to-Word and Word-to-ODT adapters. Inspect both stage reports when fidelity matters.
+Forward conversion takes `OdtPdfExportOptions` (`ConversionOptions` for the OpenDocument import, `PdfOptions` for the PDF engine, `FailOnLoss`); `ToPdf(options, out report)`, `ToPdfAsync`, `SaveAsPdf` and `SaveAsPdfAsync` return the report of both stages. Reverse conversion takes `PdfOdtExportOptions` (`PdfOptions`, `OpenDocumentOptions`, `FailOnLoss`) on a `PdfDocument` or `PdfDocumentReadResult`: `ToOdt(options, out report)`, `ToOdtAsync`, `SaveAsOdt` and `SaveAsOdtAsync`. The reverse report is a `PdfOdtConversionReport` with the PDF and OpenDocument stage reports. PDF to ODT is semantic reconstruction through the PDF-to-Word and Word-to-ODT adapters. Inspect both stage reports when fidelity matters.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

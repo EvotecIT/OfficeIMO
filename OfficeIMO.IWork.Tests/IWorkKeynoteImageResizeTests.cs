@@ -33,11 +33,11 @@ public sealed class IWorkKeynoteImageResizeTests {
         string name = "keynote-preserved-resized" + (edited ? "-edited" : "") + "-v15.4.key";
         var source = IWorkSourceDocument.Open(Fixture(name)); var projection = source.ReadKeynote();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
-        using var conversion = source.ToPowerPointPresentationResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         conversion.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
-        using var native = PowerPointPresentation.Load(Fixture("keynote-preserved-resized-edited-v15.4.pptx"));
+        using var saved = PowerPointDocument.Load(output);
+        using var native = PowerPointDocument.Load(Fixture("keynote-preserved-resized-edited-v15.4.pptx"));
         Assert.Empty(saved.ValidateDocument()); Assert.Equal(3, saved.Slides.Count);
         for (int index = 0; index < 3; index++) {
             var expected = Assert.Single(original.Slides[index].Images);
@@ -51,13 +51,13 @@ public sealed class IWorkKeynoteImageResizeTests {
             Assert.Equal(index == 1 ? 180 : 168, image.Geometry.HeightPoints);
             Assert.Equal(original.Slides[index].Drawables.Select(drawable => drawable.Kind),
                 projection.Slides[index].Drawables.Select(drawable => drawable.Kind));
-            var picture = Assert.Single(saved.Slides[index].Pictures); var oracle = Assert.Single(native.Slides[index].Pictures);
+            var picture = Assert.Single(saved.Slides[index].Images); var oracle = Assert.Single(native.Slides[index].Images);
             Assert.Equal(image.GetBytes(), picture.GetImageBytes()); Assert.Equal(oracle.GetImageBytes(), picture.GetImageBytes());
             Assert.Equal(image.AccessibilityDescription, picture.AltText); Assert.Equal(oracle.AltText, picture.AltText);
-            Assert.Equal(image.Geometry.LeftPoints * 12700, picture.Left); Assert.Equal(image.Geometry.TopPoints * 12700, picture.Top);
-            Assert.Equal(image.Geometry.WidthPoints * 12700, picture.Width); Assert.Equal(image.Geometry.HeightPoints * 12700, picture.Height);
+            Assert.Equal(OfficeLength.Points(image.Geometry.LeftPoints), picture.Left); Assert.Equal(OfficeLength.Points(image.Geometry.TopPoints), picture.Top);
+            Assert.Equal(OfficeLength.Points(image.Geometry.WidthPoints), picture.Width); Assert.Equal(OfficeLength.Points(image.Geometry.HeightPoints), picture.Height);
             Assert.Equal(oracle.Left, picture.Left); Assert.Equal(oracle.Top, picture.Top); Assert.Equal(oracle.Height, picture.Height);
-            Assert.Equal(oracle.Width - (index == 2 && !edited ? 12700 : 0), picture.Width);
+            Assert.Equal(oracle.Width - OfficeLength.Points(index == 2 && !edited ? 1 : 0), picture.Width);
             Assert.Equal(native.Slides[index].Shapes.Select(shape => shape.GetType()), saved.Slides[index].Shapes.Select(shape => shape.GetType()));
         }
     }

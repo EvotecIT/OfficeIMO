@@ -8,8 +8,8 @@ public sealed class NavigationLimitTests {
         var entries = TopicTable(); entries["/$WWKeywordLinks/BTree"] = KeywordIndex(3, 8);
         byte[] archive = ChmFixture.Archive(entries);
         Assert.Equal("CHM_NAVIGATION_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(archive,
-            new ChmReadOptions { MaxNavigationItems = 3, MaxNavigationReferences = 23 })).Code);
-        ChmDocument book = ChmDocument.Load(archive, new ChmReadOptions { MaxNavigationItems = 3, MaxNavigationReferences = 24 });
+            new ChmLoadOptions { MaxNavigationItems = 3, MaxNavigationReferences = 23 })).Code);
+        ChmDocument book = ChmDocument.Load(archive, new ChmLoadOptions { MaxNavigationItems = 3, MaxNavigationReferences = 24 });
         Assert.Equal(24, book.Index.Sum(item => item.Links.Count));
     }
 
@@ -17,7 +17,7 @@ public sealed class NavigationLimitTests {
     public void ReusedCompiledTopicOffsetsCannotAmplifyNavigationText() {
         var entries = TopicTable(8, new string('T', 64));
         Assert.Equal("CHM_NAVIGATION_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Archive(entries),
-            new ChmReadOptions { MaxNavigationItems = 8, MaxNavigationCharacters = 100 })).Code);
+            new ChmLoadOptions { MaxNavigationItems = 8, MaxNavigationCharacters = 100 })).Code);
     }
 
     [Theory]
@@ -32,7 +32,7 @@ public sealed class NavigationLimitTests {
             ["/index.hhk"] = ChmFixture.Html("<ul><li>" + objectMarkup + "</ul>")
         };
         Assert.Equal("CHM_NAVIGATION_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Archive(entries),
-            new ChmReadOptions { MaxNavigationReferences = 1 })).Code);
+            new ChmLoadOptions { MaxNavigationReferences = 1 })).Code);
     }
 
     [Theory]
@@ -50,7 +50,7 @@ public sealed class NavigationLimitTests {
         } else if (format == "index") entries["/$WWKeywordLinks/BTree"] = KeywordIndex(1, 0, heading);
         else entries["/contents.hhc"] = ChmFixture.Html("<object type='text/sitemap'><param name='Name' value='" + heading + "'></object>");
         Assert.Equal("CHM_NAVIGATION_LIMIT", Assert.Throws<ChmReadException>(() => ChmDocument.Load(ChmFixture.Archive(entries),
-            new ChmReadOptions { MaxNavigationCharacters = 80 })).Code);
+            new ChmLoadOptions { MaxNavigationCharacters = 80 })).Code);
     }
 
     private static Dictionary<string, byte[]> TopicTable(int records = 1, string title = "Topic") => new Dictionary<string, byte[]> {

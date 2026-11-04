@@ -9,7 +9,7 @@ public sealed class BibliographyReviewWave55RegressionTests {
         string source = attribute
             ? "<library metadata=\"" + large + "\"><records/></library>"
             : "<library><metadata>" + large + "</metadata><records/></library>";
-        var options = new BibliographyReadOptions { MaximumInputCharacters = source.Length + 1, MaximumValueLength = source.Length + 1 };
+        var options = new BibliographyReadOptions { MaxInputCharacters = source.Length + 1, MaxValueLength = source.Length + 1 };
 
         BibliographyCancellationTest.AssertObserved(token => BibliographyDocument.Parse(source, options, token));
     }
@@ -43,7 +43,7 @@ public sealed class BibliographyReviewWave55RegressionTests {
         document.NativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, kind, xml, "metadata"));
         document.Items.Add(new BibliographyItem { Key = "1", Type = BibliographyItemType.Book, Title = "Title" });
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyNativeEntry reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.NativeEntries,
             entry => entry.Kind == kind && entry.Name == "metadata");
 

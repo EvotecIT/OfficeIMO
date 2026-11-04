@@ -6,9 +6,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int formulaSheetIndex,
             out byte[] tokens) {
             tokens = Array.Empty<byte>();
-            // A concrete qualified area already owns its entire sheet scope;
-            // splitting its colon would bind an unqualified endpoint to this sheet.
+            // A qualified area owns its entire sheet scope. Recognize simple
+            // terminals here, while unqualified ranges retain their explicit
+            // range operator and surrounding parentheses in the token stream.
             if (TryEncodeSheetQualifiedReference(formulaText, allowArea: true, nameIndex, out tokens)) return true;
+            if (TryParseCellReference(formulaText, out FormulaReference cell)) {
+                tokens = BuildCellReferenceToken(cell);
+                return true;
+            }
+            if (TryEncodeDefinedName(formulaText, nameIndex, formulaSheetIndex, out tokens)) return true;
             if (TryGetParenthesizedInnerText(formulaText, out string? innerText)
                 && TryEncodeReferenceOperator(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens)) {
                 tokens = ShouldPreserveReferenceParentheses(innerTokens)
@@ -41,20 +47,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsFormulaNameIndex nameIndex,
             int formulaSheetIndex,
             out byte[] tokens) {
-            tokens = Array.Empty<byte>();
             text = text.Trim();
-            if (TryGetParenthesizedInnerText(text, out string? innerText)
-                && TryEncodeReferenceOperator(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens)) {
-                tokens = ShouldPreserveReferenceParentheses(innerTokens)
-                    ? AppendToken(innerTokens, 0x15)
-                    : innerTokens;
-                return true;
-            }
-
-            if (TryEncodeReferenceOperator(text, nameIndex, formulaSheetIndex, out tokens)) {
-                return true;
-            }
-
+            if (TryEncodeReferenceOperator(text, nameIndex, formulaSheetIndex, out tokens)) return true;
+            // Whole-row and whole-column areas are terminal operands when a
+            // surrounding union or intersection owns the operator split.
             return TryEncodeReferenceOperand(text, nameIndex, formulaSheetIndex, out tokens);
         }
 

@@ -11,12 +11,12 @@ Converts Markdown to native LaTeX with fidelity diagnostics.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-ConvertFrom-OfficeLatexMarkdown [-Path] <string> [-OutputPath <string>] [-Options <MarkdownToLatexOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeLatexMarkdown [-Path] <string> [-OutputPath <string>] [-Options <MarkdownLatexExportOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-ConvertFrom-OfficeLatexMarkdown -Document <MarkdownDoc> [-OutputPath <string>] [-Options <MarkdownToLatexOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeLatexMarkdown -Document <MarkdownDocument> [-OutputPath <string>] [-Options <MarkdownLatexExportOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,7 +42,7 @@ ConvertFrom-OfficeLatexMarkdown -Document 'Value'
 Markdown document to convert.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -74,7 +74,7 @@ Accept wildcard characters: False
 Optional conversion settings.
 
 ```yaml
-Type: MarkdownToLatexOptions
+Type: MarkdownLatexExportOptions
 Parameter Sets: Path, Document
 Aliases: None
 Possible values:
@@ -123,7 +123,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 

@@ -20,12 +20,12 @@ public sealed class BibliographyReviewWave52RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(permissive.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Equal("Before\uFFFDAfter", reopened.Title);
-        Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "title");
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "title");
+        Assert.Contains(permissive.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "title");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "title");
     }
 
     private static void AssertNativeTypeSanitized(string nativeType) {
@@ -34,12 +34,12 @@ public sealed class BibliographyReviewWave52RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(permissive.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Equal("Custom\uFFFDType", reopened.NativeType);
-        Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "type");
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "type");
+        Assert.Contains(permissive.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "type");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV210" && diagnostic.Field == "type");
     }
 
     [Fact]
@@ -50,11 +50,11 @@ public sealed class BibliographyReviewWave52RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.DoesNotContain("<metadata>", permissive.Content, StringComparison.Ordinal);
-        Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV116" && diagnostic.Field == "metadata");
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV116" && diagnostic.Field == "metadata");
+        Assert.Contains(permissive.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV116" && diagnostic.Field == "metadata");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV116" && diagnostic.Field == "metadata");
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public sealed class BibliographyReviewWave52RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document;
 
         Assert.Contains("<e:records", written.Content, StringComparison.Ordinal);
@@ -75,6 +75,6 @@ public sealed class BibliographyReviewWave52RegressionTests {
         Assert.Contains("m:scope=\"all\"", written.Content, StringComparison.Ordinal);
         Assert.Contains("m:id=\"1\"", written.Content, StringComparison.Ordinal);
         Assert.Equal("After", Assert.Single(reopened.Items).Title);
-        Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Action != BibliographyConversionAction.PreservedExtension);
+        Assert.DoesNotContain(written.Report.NativeDiagnostics, diagnostic => diagnostic.Action != BibliographyConversionAction.PreservedExtension);
     }
 }

@@ -117,7 +117,10 @@ public static class OfficeDocumentAssetMaterializer {
                 continue;
             }
 
-            ReaderFileCommit.WriteAllBytes(outputPath, payload, effectiveOptions.Overwrite);
+            if (!ReaderFileCommit.WriteAllBytes(outputPath, payload, effectiveOptions.Overwrite)) {
+                results.Add(Skipped(asset, fileName, outputPath, "Destination file exists or is being committed."));
+                continue;
+            }
             results.Add(new OfficeDocumentMaterializedAsset {
                 Asset = asset,
                 FileName = fileName,

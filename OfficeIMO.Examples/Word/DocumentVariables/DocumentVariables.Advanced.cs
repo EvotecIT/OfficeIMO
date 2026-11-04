@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Working with document variables");
             string filePath = Path.Combine(folderPath, "AdvancedDocumentWithVariables.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "Variables";
+                document.Properties.Title = "Variables";
                 document.SetDocumentVariable("Project", "OfficeIMO");
                 document.SetDocumentVariable("Version", "1.0");
                 document.SetDocumentVariable("Date", DateTime.Today.ToShortDateString());

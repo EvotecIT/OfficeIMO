@@ -1,3 +1,6 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
+using OfficeIMO.Pdf.PowerPoint;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.IO.Compression;
@@ -79,37 +82,37 @@ public sealed class PdfReverseConversionScorecardTests {
         Assert.All(stressCases, item => Assert.NotEmpty(item.GetProperty("requiredEvidence").EnumerateArray()));
 
         byte[] scanned = PdfCore.PdfDocument.Create()
-            .Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90, alternativeText: "Scanned source")
+            .Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90, altText: "Scanned source")
             .ToBytes();
         var scannedProvider = new ScorecardOcrProvider(request => Result(new[] {
             OcrAt(request, "Scanned", 36, 120, 52, 14),
             OcrAt(request, "invoice", 96, 120, 44, 14)
         }));
-        PdfOcrMergeResult scannedResult = await PdfCore.PdfDocument.Load(scanned).ReadWithOcrAsync(scannedProvider);
+        PdfOcrMergeResult scannedResult = await PdfCore.PdfDocument.Load(new System.IO.MemoryStream(scanned)).ReadWithOcrAsync(scannedProvider);
         Assert.Empty(scannedResult.NativeDocument.TextBlocks);
         Assert.Equal(2, scannedResult.AcceptedWordCount);
         Assert.All(scannedResult.Document.TextBlocks, block => Assert.Equal(PdfCore.PdfLogicalContentSourceKind.Ocr, block.SourceKind));
-        using (OfficeIMO.Word.WordDocument word = scannedResult.Document.ToWordDocument()) {
+        using (OfficeIMO.Word.WordDocument word = (scannedResult.Document.ConvertToWordWithEvidence()).Value) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
             Assert.Contains("Scanned invoice", package.MainDocumentPart!.Document!.InnerText, StringComparison.Ordinal);
         }
 
         byte[] mixed = PdfCore.PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Native retained"))
-            .Image(PdfPngTestImages.CreateRgbPng(120, 140, 160), 100, 40, alternativeText: "Mixed source")
+            .Paragraph(paragraph => paragraph.AddText("Native retained"))
+            .Image(PdfPngTestImages.CreateRgbPng(120, 140, 160), 100, 40, altText: "Mixed source")
             .ToBytes();
         PdfCore.PdfSelectionQuad nativeQuad = PdfCore.PdfPageInteractionMap.Create(mixed, 1).TextRegions[0].Quad;
         var mixedProvider = new ScorecardOcrProvider(request => Result(new[] {
             OcrAt(request, "duplicate", nativeQuad.Left, nativeQuad.Top, nativeQuad.Width, nativeQuad.Height),
             OcrAt(request, "OCR-retained", 36, 260, 74, 14)
         }));
-        PdfOcrMergeResult mixedResult = await PdfCore.PdfDocument.Load(mixed).ReadWithOcrAsync(mixedProvider);
+        PdfOcrMergeResult mixedResult = await PdfCore.PdfDocument.Load(new System.IO.MemoryStream(mixed)).ReadWithOcrAsync(mixedProvider);
         Assert.Equal(1, mixedResult.Pages[0].RejectedNativeOverlapCount);
         Assert.Contains(mixedResult.Document.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Native && block.Text.Contains("Native retained", StringComparison.Ordinal));
         Assert.Contains(mixedResult.Document.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Ocr && block.Text.Contains("OCR-retained", StringComparison.Ordinal));
 
-        byte[] encrypted = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Credentialed conversion"))
+        byte[] encrypted = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.AddText("Credentialed conversion"))
             .ToBytes();
         Assert.Throws<PdfCore.PdfPasswordRequiredException>(() => PdfCore.PdfDocumentReadResult.Load(encrypted));
         Assert.Throws<PdfCore.PdfInvalidPasswordException>(() => PdfCore.PdfDocumentReadResult.Load(encrypted, null, new PdfCore.PdfLoadOptions { Password = "wrong" }));
@@ -131,23 +134,23 @@ public sealed class PdfReverseConversionScorecardTests {
     public async System.Threading.Tasks.Task OcrTextUsesBlockFontSizeAndPageUserUnitWhenRunsHaveNoSourceSpan() {
         byte[] scanned = WithUserUnit(
             PdfCore.PdfDocument.Create()
-                .Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90, alternativeText: "Scaled OCR source")
+                .Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90, altText: "Scaled OCR source")
                 .ToBytes(),
             2D);
         var provider = new ScorecardOcrProvider(request => Result(new[] {
             OcrAt(request, "Scaled OCR", 36, 120, 72, 14)
         }));
 
-        PdfOcrMergeResult result = await PdfCore.PdfDocument.Load(scanned).ReadWithOcrAsync(provider);
+        PdfOcrMergeResult result = await PdfCore.PdfDocument.Load(new System.IO.MemoryStream(scanned)).ReadWithOcrAsync(provider);
         PdfCore.PdfLogicalTextBlock block = Assert.Single(result.Document.TextBlocks);
         Assert.True(block.FontSize > 0D);
         Assert.All(block.Runs, static run => Assert.Null(run.SourceSpan));
 
-        using OfficeIMO.Word.WordDocument word = result.Document.ToWordDocument();
+        using OfficeIMO.Word.WordDocument word = (result.Document.ConvertToWordWithEvidence()).Value;
         OfficeIMO.Word.WordParagraph paragraph = Assert.Single(word.Paragraphs, candidate =>
             candidate.Text.Contains("Scaled OCR", StringComparison.Ordinal));
-        Assert.True(paragraph.FontSizePoints.HasValue);
-        Assert.Equal(block.FontSize * 2D, paragraph.FontSizePoints.Value, 6);
+        Assert.True(paragraph.FontSize.HasValue);
+        Assert.Equal(block.FontSize * 2D, paragraph.FontSize!.Value.ToPoints(), 6);
     }
 
     private static void ExecuteAndReopen(
@@ -159,7 +162,7 @@ public sealed class PdfReverseConversionScorecardTests {
         string route = routeConfiguration.GetProperty("id").GetString()!;
         switch (route) {
             case "pdf-to-docx":
-                using (OfficeIMO.Word.WordDocument document = logical.ToWordDocument()) {
+                using (OfficeIMO.Word.WordDocument document = (logical.ConvertToWordWithEvidence()).Value) {
                     using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToBytes()), false);
                     DocumentFormat.OpenXml.Wordprocessing.Body body = Assert.IsType<DocumentFormat.OpenXml.Wordprocessing.Body>(package.MainDocumentPart?.Document?.Body);
                     // Styled fragments are adjacent within a paragraph. Adding spaces
@@ -171,14 +174,17 @@ public sealed class PdfReverseConversionScorecardTests {
                 }
                 return;
             case "pdf-to-html":
-                string html = logical.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic });
+                string html = logical.ToHtml(new PdfHtmlExportOptions { Profile = PdfHtmlProfile.Semantic });
                 Assert.Contains("<!doctype html", html, StringComparison.OrdinalIgnoreCase);
                 Assert.Equal(logical.Pages.Count, Regex.Matches(html, "class=\"pdf-page\"[^>]*data-page-number=", RegexOptions.CultureInvariant).Count);
                 AssertTokenRecall(sourceTokens, Regex.Replace(html, "<[^>]+>", " "), routeConfiguration.GetProperty("minimumTokenRecall").GetDouble(), route);
                 return;
             case "pdf-to-xlsx":
                 using (var stream = new MemoryStream()) {
-                    PdfExcelTableImportReport report = logical.SaveTablesAsExcel(stream).RequireSuccess().Report!;
+                    var conversion = logical.ConvertToExcelWithEvidence();
+        using var convertedWorkbook = conversion.Value;
+        convertedWorkbook.Save(stream);
+        PdfExcelTableImportReport report = conversion.Report;
                     byte[] workbook = stream.ToArray();
                     if (expectedTables) Assert.NotEmpty(report.Entries);
                     HashSet<string>? tableTokens = null;
@@ -199,8 +205,8 @@ public sealed class PdfReverseConversionScorecardTests {
                 }
                 return;
             case "pdf-to-pptx":
-                PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(source)
-                    .ToPowerPointPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
+                PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(source))
+                    .ConvertToPowerPointWithEvidence(PdfPowerPointExportOptions.CreateEditableContent());
                 using (result.Value) {
                     using var stream = new MemoryStream();
                     result.Value.Save(stream);
@@ -212,7 +218,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 }
                 return;
             case "pdf-to-odt": {
-                PdfOdtConversionResult odtResult = logical.ToOdtDocumentResult();
+                PdfOdtConversionResult odtResult = logical.ConvertToOdtWithEvidence(null, default);
                 byte[] artifact = odtResult.Value.ToBytes();
                 OdtDocument reopened = OdtDocument.Load(new MemoryStream(artifact));
                 Assert.NotEmpty(reopened.Paragraphs);
@@ -220,7 +226,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 return;
             }
             case "pdf-to-ods": {
-                PdfOdsConversionResult odsResult = logical.ToOdsDocumentResult();
+                PdfOdsConversionResult odsResult = logical.ConvertToOdsWithEvidence(null, default);
                 byte[] artifact = odsResult.Value.ToBytes();
                 OdsDocument reopened = OdsDocument.Load(new MemoryStream(artifact));
                 Assert.NotEmpty(reopened.Sheets);
@@ -236,7 +242,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 return;
             }
             case "pdf-to-odp": {
-                PdfOdpConversionResult odpResult = logical.ToOdpPresentationResult(PdfToPowerPointOptions.CreateEditableContent());
+                PdfOdpConversionResult odpResult = logical.ConvertToOdpWithEvidence(new PdfOdpExportOptions { PdfOptions = PdfPowerPointExportOptions.CreateEditableContent() }, default);
                 byte[] artifact = odpResult.Value.ToBytes();
                 OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(artifact));
                 Assert.Equal(logical.Pages.Count, reopened.Slides.Count);
@@ -245,7 +251,7 @@ public sealed class PdfReverseConversionScorecardTests {
             }
             case "pdf-to-png": {
                 var options = new PdfCore.PdfPageRenderOptions {
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     Dpi = routeConfiguration.GetProperty("dpi").GetDouble(),
                     ContinueOnError = false
                 };

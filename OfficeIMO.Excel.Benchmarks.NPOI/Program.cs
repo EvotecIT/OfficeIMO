@@ -196,7 +196,7 @@ static void AddScenario(
 static byte[] WriteOfficeImoXlsx(IReadOnlyList<SalesRecord> records) {
     using var stream = new MemoryStream();
     using (var document = ExcelDocument.Create(stream)) {
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         WriteOfficeImoRows(sheet, records);
         document.Save(stream);
     }
@@ -391,20 +391,20 @@ static byte[] WriteNpoiStylesXls(IReadOnlyList<SalesRecord> records) {
 }
 
 static void WriteOfficeImoRows(ExcelSheet sheet, IReadOnlyList<SalesRecord> records) {
-    sheet.CellValue(1, 1, "Id");
-    sheet.CellValue(1, 2, "Region");
-    sheet.CellValue(1, 3, "Owner");
-    sheet.CellValue(1, 4, "Amount");
-    sheet.CellValue(1, 5, "Active");
+    sheet.Cell(1, 1).SetValue("Id");
+    sheet.Cell(1, 2).SetValue("Region");
+    sheet.Cell(1, 3).SetValue("Owner");
+    sheet.Cell(1, 4).SetValue("Amount");
+    sheet.Cell(1, 5).SetValue("Active");
 
     for (int i = 0; i < records.Count; i++) {
         int row = i + 2;
         SalesRecord record = records[i];
-        sheet.CellValue(row, 1, record.Id);
-        sheet.CellValue(row, 2, record.Region);
-        sheet.CellValue(row, 3, record.Owner);
-        sheet.CellValue(row, 4, record.Amount);
-        sheet.CellValue(row, 5, record.Active);
+        sheet.Cell(row, 1).SetValue(record.Id);
+        sheet.Cell(row, 2).SetValue(record.Region);
+        sheet.Cell(row, 3).SetValue(record.Owner);
+        sheet.Cell(row, 4).SetValue(record.Amount);
+        sheet.Cell(row, 5).SetValue(record.Active);
     }
 }
 
@@ -428,7 +428,7 @@ static void WriteNpoiRows(ISheet sheet, IReadOnlyList<SalesRecord> records) {
 }
 
 static int ReadOfficeImoXlsx(byte[] workbookBytes, int rowCount) {
-    using var reader = ExcelDocument.OpenDataReader(workbookBytes, new ExcelReadOptions {
+    using var reader = ExcelDocument.OpenReader(workbookBytes, new ExcelReaderOptions {
         SheetName = "Data",
         A1Range = $"A1:E{rowCount + 1}",
         HasHeaderRow = false,

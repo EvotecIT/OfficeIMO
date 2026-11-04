@@ -124,7 +124,7 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Diagram\n\n```mermaid\ngraph TD\nA-->B\n```\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderVisual> visuals = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadVisuals(stream, "diagram.md");
+        IReadOnlyList<ReaderVisual> visuals = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream, "diagram.md").ExtractVisuals();
 
         ReaderVisual visual = Assert.Single(visuals);
         Assert.Equal("mermaid", visual.Kind);
@@ -165,7 +165,7 @@ public sealed class ReaderDocumentReadResultTests {
             }
         };
 
-        ReaderVisual visual = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractVisuals(chunks));
+        ReaderVisual visual = Assert.Single(chunks.ExtractVisuals());
 
         Assert.Equal("chart", visual.Kind);
         Assert.Equal("ix-chart", visual.Language);
@@ -185,13 +185,13 @@ public sealed class ReaderDocumentReadResultTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                var sheet = workbook.AddWorksheet("Data");
-                sheet.Cell(1, 1, "Name");
-                sheet.Cell(1, 2, "Value");
-                sheet.Cell(2, 1, "Alpha");
-                sheet.Cell(2, 2, 1);
-                sheet.Cell(3, 1, "Beta");
-                sheet.Cell(3, 2, 2);
+                var sheet = workbook.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(1);
+                sheet.Cell(3, 1).SetValue("Beta");
+                sheet.Cell(3, 2).SetValue(2);
                 workbook.Save();
             }
 
@@ -253,19 +253,19 @@ public sealed class ReaderDocumentReadResultTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                var sheet = workbook.AddWorksheet("Data");
-                sheet.Cell(1, 1, "Name");
-                sheet.Cell(1, 2, "Value");
-                sheet.Cell(2, 1, "Alpha");
-                sheet.Cell(2, 2, 1);
-                sheet.Cell(3, 1, "Beta");
-                sheet.Cell(3, 2, 2);
-                sheet.Cell(4, 1, "Gamma");
-                sheet.Cell(4, 2, 3);
+                var sheet = workbook.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(1);
+                sheet.Cell(3, 1).SetValue("Beta");
+                sheet.Cell(3, 2).SetValue(2);
+                sheet.Cell(4, 1).SetValue("Gamma");
+                sheet.Cell(4, 2).SetValue(3);
                 workbook.Save();
             }
 
-            IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Data", "A1:B4", chunkRows: 1).ReadTableExports(path);
+            IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Data", "A1:B4", chunkRows: 1).ReadDocument(path).ExportTables();
 
             Assert.True(exports.Count > 1);
             int[] indexes = Enumerable.Range(0, exports.Count).ToArray();
@@ -282,12 +282,12 @@ public sealed class ReaderDocumentReadResultTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                var zSheet = workbook.AddWorksheet("Z");
-                zSheet.Cell(1, 1, "Name");
-                zSheet.Cell(2, 1, "Zulu");
-                var aSheet = workbook.AddWorksheet("A");
-                aSheet.Cell(1, 1, "Name");
-                aSheet.Cell(2, 1, "Alpha");
+                var zSheet = workbook.AddSheet("Z");
+                zSheet.Cell(1, 1).SetValue("Name");
+                zSheet.Cell(2, 1).SetValue("Zulu");
+                var aSheet = workbook.AddSheet("A");
+                aSheet.Cell(1, 1).SetValue("Name");
+                aSheet.Cell(2, 1).SetValue("Alpha");
                 workbook.Save();
             }
 
@@ -327,7 +327,7 @@ public sealed class ReaderDocumentReadResultTests {
         using var stream = new NonSeekableReadStream(package.ToArray());
 
         IOException ex = Assert.Throws<IOException>(() => {
-            foreach (ReaderChunk _ in OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
+            foreach (ReaderChunk _ in OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(
                 stream,
                 "large.docx",
                 new ReaderOptions { MaxInputBytes = 16 })) {
@@ -375,10 +375,10 @@ public sealed class ReaderDocumentReadResultTests {
     }
 
     [Fact]
-    public void DocumentReader_ReadDocument_EmitsSlideContainersForPowerPointPresentation() {
+    public void DocumentReader_ReadDocument_EmitsSlideContainersForPowerPointDocument() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
         try {
-            using (var presentation = PowerPointPresentation.Create(path)) {
+            using (var presentation = PowerPointDocument.Create(path)) {
                 presentation.AddSlide().AddTextBox("Intro slide");
                 presentation.AddSlide().AddTextBox("Details slide");
                 presentation.Save();
@@ -477,10 +477,10 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n| Beta | 14 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderTable> tables = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTables(
+        IReadOnlyList<ReaderTable> tables = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
             stream,
             "inventory.md",
-            new ReaderOptions { MaxTableRows = 1 });
+            new ReaderOptions { MaxTableRows = 1 }).ExtractTables();
 
         ReaderTable table = Assert.Single(tables);
         Assert.Equal("inventory.md", table.Location?.Path);
@@ -501,10 +501,9 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTableExports(
+        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
             stream,
-            "inventory.md",
-            indentedJson: true);
+            "inventory.md").ExportTables(indentedJson: true);
 
         ReaderTableExportBundle export = Assert.Single(exports);
         Assert.Equal("inventory-table-0000", export.Id);
@@ -522,7 +521,7 @@ public sealed class ReaderDocumentReadResultTests {
     public void ReaderTableExportMaterializer_WriteTableExportsToDirectory_WritesCsvMarkdownAndJsonSidecars() {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
-        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTableExports(stream, "inventory.md");
+        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream, "inventory.md").ExportTables();
         var directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-tables-" + Guid.NewGuid().ToString("N"));
 
         try {

@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
         const string markup = "<style>@page{size:320px 120px;margin:0}body{margin:0}"
             + "p{font:20px 'OfficeIMO Shaping Test'}</style>"
             + "<p dir='rtl'><span>עברית </span><span style='color:red'>" + logical + "</span></p>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         };
@@ -35,8 +35,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(painted, glyph => Assert.Equal(font.Fingerprint, glyph.Program.Fingerprint));
         Assert.Equal(expectedGlyphs, painted.Where(glyph => arabicGlyphs.Contains(glyph.GlyphId)).Select(glyph => glyph.GlyphId));
         Assert.DoesNotContain(retained.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        retained.Document.RequireNoLoss();
-        byte[] pdf = document.ToPdfBytes(options);
+        retained.Document.ThrowIfLoss();
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         var read = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
         Assert.Contains(logical, read.ExtractText(), StringComparison.Ordinal);
         var expected = OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(read, OfficeImageExportFormat.Png,

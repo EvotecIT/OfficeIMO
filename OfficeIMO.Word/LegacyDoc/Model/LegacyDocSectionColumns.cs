@@ -47,6 +47,7 @@ internal sealed class LegacyDocSectionColumns {
         warning = _warning;
         if (_evenlySpaced || warning != null) return null;
         return Array.AsReadOnly(Enumerable.Range(0, count).Select(index =>
-            new WordSectionColumn(_widths[index], _spaces.TryGetValue(index, out int space) ? space : 0)).ToArray());
+            new WordSectionColumn(OfficeLength.Points(_widths[index] / 20D),
+                OfficeLength.Points((_spaces.TryGetValue(index, out int space) ? space : 0) / 20D))).ToArray());
     }
 }

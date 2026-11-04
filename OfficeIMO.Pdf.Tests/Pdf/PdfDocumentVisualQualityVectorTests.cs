@@ -15,22 +15,20 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void VectorRoundedRectangle_RendersBezierCornersFromSharedShapeDescriptor() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .RoundedRectangle(
                 width: 100,
                 height: 36,
                 cornerRadius: 8,
-                strokeColor: PdfColor.FromRgb(26, 51, 77),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 strokeWidth: 2,
-                fillColor: PdfColor.FromRgb(204, 179, 153),
-                align: PdfAlign.Center,
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 179, 153),
+                align: OfficeAlignment.Center,
                 spacingBefore: 4,
                 spacingAfter: 6)
             .ToBytes();
@@ -48,22 +46,20 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorLine_RendersStrokeOperatorFromSharedShapeDescriptor() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .Line(
                 x1: 0,
                 y1: 0,
                 x2: 100,
                 y2: 40,
-                strokeColor: PdfColor.FromRgb(51, 102, 153),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 2,
-                align: PdfAlign.Center,
+                align: OfficeAlignment.Center,
                 spacingBefore: 4,
                 spacingAfter: 6,
                 strokeDashStyle: OfficeStrokeDashStyle.Dash)
@@ -79,22 +75,20 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorLine_RendersConfiguredStrokeCapAndJoin() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
             .Line(
                 x1: 0,
                 y1: 0,
                 x2: 100,
                 y2: 0,
-                strokeColor: PdfColor.FromRgb(51, 102, 153),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 3,
-                align: PdfAlign.Center,
+                align: OfficeAlignment.Center,
                 spacingBefore: 4,
                 spacingAfter: 6,
                 strokeLineCap: OfficeStrokeLineCap.Square,
@@ -117,15 +111,13 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
-            .Shape(shape, align: PdfAlign.Right)
+            .Shape(shape, align: OfficeAlignment.Right)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -144,13 +136,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 1.5;
         shape.Transform = OfficeTransform.Translate(10, 5);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -173,13 +163,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.FillOpacity = 0.35;
         shape.StrokeOpacity = 0.75;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -199,13 +187,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.FromRgba(70, 130, 180, 153);
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -224,13 +210,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 1.5;
         shape.ClipPath = OfficeClipPath.Rectangle(45, 20);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -249,13 +233,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.Transform = OfficeTransform.Translate(10, 5);
         shape.ClipPath = OfficeClipPath.Empty();
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -275,13 +257,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.ClipPath = OfficeClipPath.RoundedRectangle(40, 20, 6);
         shape.Transform = OfficeTransform.Translate(10, 5);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -302,13 +282,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.Black;
         shape.StrokeWidth = 1.25;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -338,13 +316,11 @@ public partial class PdfDocumentVisualQualityTests {
                 new OfficeGradientStop(1, OfficeColor.Blue)
             });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -373,13 +349,11 @@ public partial class PdfDocumentVisualQualityTests {
                 new OfficeGradientStop(1D, OfficeColor.Blue)
             });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -410,13 +384,11 @@ public partial class PdfDocumentVisualQualityTests {
                 new OfficeGradientStop(1D, OfficeColor.Blue)
             });
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -431,13 +403,11 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(0.5D, projectedGradient.EndRadiusY, 3);
 
         shape.Transform = OfficeTransform.Translate(5D, 3D);
-        string transformedContent = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        string transformedContent = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes());
@@ -450,13 +420,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);
         shape.Transform = OfficeTransform.Translate(10, 5);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -474,13 +442,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.FillRadialGradient = OfficeRadialGradient.Centered(OfficeColor.Red, OfficeColor.Blue);
         shape.Transform = OfficeTransform.Translate(10, 5);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -510,13 +476,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 1;
         shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.22, 3, 4);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -538,13 +502,11 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 0D;
         shape.Shadow = new OfficeShadow(OfficeColor.FromRgba(255, 0, 0, 128), 0.5D, 3D, 4D, 4D);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Shape(shape)
             .ToBytes();
@@ -563,20 +525,18 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorRectangle_RendersConfiguredDashStyle() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 220,
-                PageHeight = 160,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Rectangle(
                 width: 90,
                 height: 24,
-                strokeColor: PdfColor.FromRgb(51, 102, 153),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 2,
-                align: PdfAlign.Left,
+                align: OfficeAlignment.Left,
                 strokeDashStyle: OfficeStrokeDashStyle.DashDot)
             .ToBytes();
 
@@ -597,15 +557,13 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 2;
         shape.StrokeDashStyle = OfficeStrokeDashStyle.Dot;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -630,15 +588,13 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -662,15 +618,13 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 2;
         shape.StrokeLineJoin = OfficeStrokeLineJoin.Round;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -692,15 +646,13 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -724,15 +676,13 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -760,15 +710,13 @@ public partial class PdfDocumentVisualQualityTests {
             .AddShape(background, 0, 0)
             .AddShape(marker, 20, 15);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 240,
-                PageHeight = 180,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+                }
             })
-            .Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Drawing(drawing, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -803,16 +751,14 @@ public partial class PdfDocumentVisualQualityTests {
         var scaled = new OfficeDrawing(100, 40)
             .AddEffectDrawing(source, OfficeTransform.Scale(0.5D, 0.5D));
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 180D,
-                PageHeight = 120D,
-                MarginLeft = 20D,
-                MarginRight = 20D,
-                MarginTop = 20D,
-                MarginBottom = 20D,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(120D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+                },
                 CompressContentStreams = false
             })
-            .Drawing(scaled, align: PdfAlign.Center)
+            .Drawing(scaled, align: OfficeAlignment.Center)
             .ToBytes();
 
         PdfReadDocument readback = PdfReadDocument.Open(bytes);
@@ -932,20 +878,18 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Drawing(drawing, spacingAfter: -1)))))));
+                                    column.Drawing(drawing, spacingAfter: global::OfficeIMO.OfficeLength.Points(-1))))))));
 
         Assert.Contains("Drawing spacing after must be a non-negative finite value.", drawingSpacingAfterException.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void VectorShapeAndDrawing_RejectFlowBlocksTallerThanContentArea() {
-        var options = new PdfOptions {
-            PageWidth = 220,
-            PageHeight = 140,
-            MarginLeft = 20,
-            MarginRight = 20,
-            MarginTop = 20,
-            MarginBottom = 20
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(140)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }
         };
 
         var shapeException = Assert.Throws<ArgumentException>(() =>
@@ -966,13 +910,11 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void VectorShapeAndDrawing_RejectFlowBlocksWiderThanContentArea() {
-        var options = new PdfOptions {
-            PageWidth = 220,
-            PageHeight = 180,
-            MarginLeft = 20,
-            MarginRight = 20,
-            MarginTop = 20,
-            MarginBottom = 20
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(180)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }
         };
 
         var shapeException = Assert.Throws<ArgumentException>(() =>

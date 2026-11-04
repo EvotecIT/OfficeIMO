@@ -9,7 +9,7 @@ internal static partial class DocumentReaderEngine {
 
     internal static IEnumerable<ReaderChunk> EnumerateChunks(string path, ReaderOptions options, CancellationToken token) {
         if (Directory.Exists(path)) {
-            foreach (var chunk in ReadDocument(path, options, token).Chunks) {
+            foreach (var chunk in Read(path, options, token)) {
                 token.ThrowIfCancellationRequested();
                 yield return chunk;
             }
@@ -21,7 +21,7 @@ internal static partial class DocumentReaderEngine {
             throw CreateUnsupportedInputException(path, detection);
         }
         if (!handler.SupportsIncrementalPath) {
-            foreach (var chunk in ReadDocument(path, options, token).Chunks) {
+            foreach (var chunk in Read(path, options, token)) {
                 token.ThrowIfCancellationRequested();
                 yield return chunk;
             }
@@ -45,7 +45,7 @@ internal static partial class DocumentReaderEngine {
         if (options.DetectionMode == ReaderDetectionMode.PreferContent ||
             !GetActiveHandlerRegistry().TryResolve(NormalizeExtension(TryGetExtension(sourceName)), out var handler) ||
             !handler.SupportsIncrementalStream || (!stream.CanSeek && options.ComputeHashes)) {
-            foreach (var chunk in ReadDocument(stream, sourceName, options, token).Chunks) {
+            foreach (var chunk in Read(stream, sourceName, options, token)) {
                 token.ThrowIfCancellationRequested();
                 yield return chunk;
             }

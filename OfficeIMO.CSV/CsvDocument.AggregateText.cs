@@ -1,4 +1,3 @@
-#nullable enable
 #if NET8_0_OR_GREATER
 using System.Threading;
 using OfficeIMO.Data;
@@ -30,8 +29,7 @@ public sealed partial class CsvDocument
     /// <param name="createAccumulator">Creates an independent, neutral state for the result and each partition. May run concurrently.</param>
     /// <param name="accumulatorBuilder">Called once on the calling thread to resolve headers and build the record callback.</param>
     /// <param name="merge">Combines the result with a completed partition state. Called on the calling thread in source-partition order.</param>
-    /// <param name="loadOptions">Optional CSV parsing and input-limit settings.</param>
-    /// <param name="readerOptions">Optional reader schema settings. ParallelProcessing must be omitted.</param>
+    /// <param name="options">Optional CSV parsing and input-limit settings.</param>
     /// <param name="parallelOptions">Optional degree and source partition size.</param>
     /// <param name="cancellationToken">Cancels parsing, record callbacks between records, and merging between partitions.</param>
     /// <returns>The accumulated result. Empty input returns the neutral state.</returns>
@@ -52,8 +50,7 @@ public sealed partial class CsvDocument
         Func<TAccumulator> createAccumulator,
         CsvRecordAccumulatorBuilder<TAccumulator> accumulatorBuilder,
         Func<TAccumulator, TAccumulator, TAccumulator> merge,
-        CsvLoadOptions? loadOptions = null,
-        CsvDataReaderOptions? readerOptions = null,
+        CsvReaderOptions? options = null,
         ParallelRowMappingOptions? parallelOptions = null,
         CancellationToken cancellationToken = default)
     {
@@ -61,16 +58,16 @@ public sealed partial class CsvDocument
         ArgumentNullException.ThrowIfNull(createAccumulator);
         ArgumentNullException.ThrowIfNull(accumulatorBuilder);
         ArgumentNullException.ThrowIfNull(merge);
-        if (readerOptions?.ParallelProcessing is not null)
+        if (options?.ParallelProcessing is not null)
         {
             throw new ArgumentException(
-                "AggregateTextRowsAsParallel uses parallelOptions; CsvDataReaderOptions.ParallelProcessing must be omitted.",
-                nameof(readerOptions));
+                "AggregateTextRowsAsParallel uses parallelOptions; CsvReaderOptions.ParallelProcessing must be omitted.",
+                nameof(options));
         }
         var parallel = parallelOptions ?? new ParallelRowMappingOptions();
         int degree = parallel.GetDegreeOfParallelism();
         int batchSize = parallel.GetBatchSize(CsvParser.GetPreferredTextParallelBatchSize());
-        var parsing = loadOptions?.Clone() ?? new CsvLoadOptions();
+        var parsing = options?.Clone() ?? new CsvReaderOptions();
         CancellationToken loadCancellationToken = parsing.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         loadCancellationToken.ThrowIfCancellationRequested();
@@ -79,13 +76,13 @@ public sealed partial class CsvDocument
         try
         {
             stop.Token.ThrowIfCancellationRequested();
-            using var reader = (CsvDataReader)OpenTextDataReader(text, parsing, readerOptions);
+            using var reader = (CsvDataReader)CreateTextReader(text, parsing);
             CsvRecordAccumulator<TAccumulator> accumulate = accumulatorBuilder(new CsvRecordHeader(reader))
                 ?? throw new InvalidOperationException("The CSV accumulator builder returned null.");
             stop.Token.ThrowIfCancellationRequested();
             TAccumulator result = createAccumulator();
             // The reader owns schema conversion and original record error positions.
-            bool useSourceRecords = readerOptions?.Schema is null && readerOptions?.InferSchema != true
+            bool useSourceRecords = options?.Schema is null && options?.InferSchema != true
                 && parsing.ColumnCountMismatchPolicy != CsvColumnCountMismatchPolicy.Strict;
             if (degree > 1 && useSourceRecords &&
                 reader.TryPrepareTextPartitioning(stop.Token, out var source, out int dataStart) &&

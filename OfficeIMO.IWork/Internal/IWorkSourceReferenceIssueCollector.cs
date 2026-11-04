@@ -47,8 +47,8 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
         int declared = message.FieldCount(field);
         // Charge the entire selected field before parsing/materializing evidence. This conservative
         // bound also limits the inspection work when only some occurrences actually fail.
-        if (declared > source.Options.MaximumSourceReferenceIssues - _inspectedReferenceCount)
-            throw new InvalidDataException($"iWork source reference issues exceed the configured limit of {source.Options.MaximumSourceReferenceIssues}.");
+        if (declared > source.Options.MaxSourceReferenceIssues - _inspectedReferenceCount)
+            throw new InvalidDataException($"iWork source reference issues exceed the configured limit of {source.Options.MaxSourceReferenceIssues}.");
         _inspectedReferenceCount += declared;
         _recordedFields.Add(fieldKey);
         var identity = new IWorkObjectIdentity(owner);

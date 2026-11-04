@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
             double size = text.Font.Size * text.BaselineScale;
             var run = new PdfTextRun(text.Text, text.Font.IsBold, text.Font.IsUnderline,
                     ToPdfColor(text.Color ?? OfficeColor.Black), text.Font.IsItalic, text.Font.IsStrikethrough,
-                    size, ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
+                    global::OfficeIMO.OfficeLength.Points(size), ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
                     underlineStyle: text.UnderlineStyle, strikeStyle: text.StrikethroughStyle,
                     decorationColor: ToPdfColor(text.DecorationColor))
                 .WithFeatureSettings(text.FeatureSettings)
@@ -79,10 +79,13 @@ internal static partial class PdfWriter {
             // Core contours use a downward Y axis; PDF uses an upward Y axis.
             // Shaping providers disagree on vertical baseline conventions. Move ink
             // below the top clip edge only when the supplied origin would crop it.
-            double penY = frameTopY + Math.Min(0D, inkTop);
+            double syntheticWeightPadding = currentOpts.NeedsSyntheticBold(font, namedFont)
+                ? ContentStreamBuilder.SyntheticBoldStrokeWidth(size) / 2D : 0D;
+            double penY = frameTopY + Math.Min(0D, inkTop - syntheticWeightPadding);
             string fontResource = GetFontResourceName(font, namedFont, ChooseNormal(currentOpts.DefaultFont));
             OfficeColor paintColor = text.Color ?? OfficeColor.Black;
-            string? opacityState = EnsureGraphicsState(paintColor.A / 255D, 1D);
+            bool groupWeight = currentOpts.NeedsSyntheticBold(font, namedFont) && paintColor.A < 255;
+            string? opacityState = groupWeight ? null : EnsureGraphicsState(paintColor.A / 255D, 1D);
             void Paint() {
                 var content = new ContentStreamBuilder(sb).SaveState();
                 if (opacityState != null) content.GraphicsState(opacityState);
@@ -90,9 +93,9 @@ internal static partial class PdfWriter {
                     .Rectangle(frameX, frameTopY - text.Height, text.Width, text.Height)
                     .ClipPath()
                     .EndPath()
-                    .FillColor(ToPdfColor(paintColor) ?? PdfColor.Black)
+                    .FillColor(ToPdfColor(paintColor) ?? global::OfficeIMO.OfficeColor.Black)
                     .BeginText()
-                    .Font(fontResource, size, currentOpts.NeedsSyntheticOblique(font, namedFont));
+                    .Font(fontResource, size, currentOpts.NeedsSyntheticOblique(font, namedFont), syntheticBold: currentOpts.NeedsSyntheticBold(font, namedFont));
                 for (int index = 0; index < glyphRun.Glyphs.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     PdfGlyphInfo glyph = glyphRun.Glyphs[index];
@@ -105,12 +108,16 @@ internal static partial class PdfWriter {
                 }
                 content.EndText().RestoreState();
             }
+            void PaintWeight() {
+                if (groupWeight) RenderEffectGroup(OfficeTransform.Identity, paintColor.A / 255D, Paint);
+                else Paint();
+            }
             if (text.HasFrameTransform) {
                 OfficeTransform transform = ToTopLeftPageTransform(
                     text.CreateFrameTransform().CreateDestinationTransform(), originX, originTopY);
-                RenderEffectGroup(transform, 1D, Paint);
+                RenderEffectGroup(transform, 1D, PaintWeight);
             } else {
-                Paint();
+                PaintWeight();
             }
             MarkRichFonts(new[] { run });
             pageDirty = true;

@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 CsvBenchmarkFixture.Check(sum, count, RowCount, _expected);
             }
             using (MemoryStream stream = new MemoryStream(_data, false))
-            using (DbDataReader reader = CsvDocument.OpenDataReader(stream))
+            using (DbDataReader reader = CsvDocument.OpenReader(stream))
                 CsvBenchmarkFixture.Validate(reader, RowCount, headers: true);
             ExcelReaderTyped();
             OfficeIMORowsAs();
@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMORowsAs() {
             using MemoryStream stream = new MemoryStream(_data, false);
-            using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+            using DbDataReader reader = CsvDocument.OpenReader(stream);
             long sum = 0;
             int count = 0;
             foreach (TypedValueRecord record in reader.RowsAs<TypedValueRecord>()) {
@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 foreach (TypedValueRecord record in ExcelParser.FromAttributes<TypedValueRecord>().Parse(workbook.FirstSheet))
                     yield return record;
             } else {
-                using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+                using DbDataReader reader = CsvDocument.OpenReader(stream);
                 foreach (TypedValueRecord record in reader.RowsAs<TypedValueRecord>()) yield return record;
             }
         }

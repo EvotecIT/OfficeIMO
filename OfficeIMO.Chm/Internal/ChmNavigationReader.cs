@@ -11,7 +11,7 @@ internal sealed partial class ChmNavigationReader {
         internal ChmNavigationItem Freeze() => new ChmNavigationItem(Name, Links.AsReadOnly(), SeeAlso.AsReadOnly(), Children.Select(child => child.Freeze()).ToList().AsReadOnly());
     }
     private readonly ChmDocument _book;
-    private readonly ChmReadOptions _options;
+    private readonly ChmLoadOptions _options;
     private readonly Encoding _encoding;
     private readonly CancellationToken _token;
     private readonly List<(string Title, string Target)> _topics = new List<(string, string)>();
@@ -19,7 +19,7 @@ internal sealed partial class ChmNavigationReader {
     private int _referenceCount;
     private long _characters;
     internal Dictionary<string, string> TopicTitles { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    internal ChmNavigationReader(ChmDocument book, ChmReadOptions options, Encoding encoding, CancellationToken token) {
+    internal ChmNavigationReader(ChmDocument book, ChmLoadOptions options, Encoding encoding, CancellationToken token) {
         _book = book; _options = options; _encoding = encoding; _token = token;
         ReadTopicTable();
     }

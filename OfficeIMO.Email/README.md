@@ -196,7 +196,7 @@ var options = new EmailReaderOptions(
     maxAttachmentBytes: 32L * 1024L * 1024L,
     includeAttachmentContent: true);
 
-EmailReadResult result = await new EmailDocumentReader(options).ReadAsync("message.msg");
+EmailReadResult result = await new EmailDocumentReader(options).ReadDocumentAsync("message.msg");
 
 foreach (EmailDiagnostic diagnostic in result.Diagnostics) {
     Console.WriteLine($"{diagnostic.Severity}: {diagnostic.Code}: {diagnostic.Message}");
@@ -213,7 +213,7 @@ Outlook fields keep the same model:
 
 ```csharp
 using EmailReadResult result = await new EmailDocumentReader(options)
-    .ReadStreamingAsync("large-message.msg", cancellationToken);
+    .ReadDocumentAsync("large-message.msg", EmailReadContentStorage.TemporaryFiles, cancellationToken);
 
 foreach (EmailAttachment attachment in result.Document.Attachments) {
     using Stream content = await attachment.OpenContentStreamAsync(cancellationToken);
@@ -248,7 +248,7 @@ foreach (EmailDiagnostic diagnostic in report.Diagnostics) {
 
 if (report.CanWrite) {
     EmailWriteResult result = writer.Write(message, "converted.eml");
-    result.RequireNoLoss();
+    result.ThrowIfLoss();
 }
 ```
 

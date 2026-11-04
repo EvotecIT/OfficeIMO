@@ -6,7 +6,7 @@ namespace OfficeIMO.Reader.Word;
 
 internal static class WordTableProjection {
     internal static ReaderTable Map(
-        WordTableSnapshot table,
+        WordTableInfo table,
         ReaderLocation location,
         int tableIndex,
         int maxRows) {
@@ -19,7 +19,7 @@ internal static class WordTableProjection {
             : BuildFallbackColumns(columnCount);
         int dataStart = hasHeaderRow ? 1 : 0;
         int totalRowCount = Math.Max(0, table.Rows.Count - dataStart);
-        IEnumerable<WordTableRowSnapshot> sourceRows = table.Rows.Skip(dataStart);
+        IEnumerable<WordTableRowInfo> sourceRows = table.Rows.Skip(dataStart);
         bool truncated = maxRows > 0 && totalRowCount > maxRows;
         if (truncated) sourceRows = sourceRows.Take(maxRows);
         IReadOnlyList<IReadOnlyList<string>> rows = sourceRows
@@ -43,12 +43,12 @@ internal static class WordTableProjection {
     }
 
     private static IReadOnlyList<string> BuildRowValues(
-        WordTableRowSnapshot row,
+        WordTableRowInfo row,
         int columnCount,
         bool useFallbacks) {
         var values = new string[columnCount];
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            WordTableCellSnapshot? cell = row.Cells.FirstOrDefault(candidate => candidate.ColumnIndex == columnIndex)
+            WordTableCellInfo? cell = row.Cells.FirstOrDefault(candidate => candidate.ColumnIndex == columnIndex)
                 ?? (columnIndex < row.Cells.Count ? row.Cells[columnIndex] : null);
             string value = cell == null
                 ? string.Empty

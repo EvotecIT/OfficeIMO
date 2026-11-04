@@ -22,7 +22,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal("ALPHA BETA", text.Text);
         }
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal("A", PageMarginTypographyText(page, position).Text);
         }
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.StrokeColor == OfficeColor.Red);
         }
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(PageMarginGeometryBox(page, position).Y, text.LayoutY, 6);
         }
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>());
         Assert.DoesNotContain(page.Scene.OfType<HtmlRenderSemanticGroup>(), group => group.Source == "@page @bottom-center");
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(lines[0].LayoutY + 20D, lines[1].LayoutY, 6);
         Assert.Equal("ALPHABETA", PageMarginTypographyCompact(string.Concat(lines.Select(line => line.Text))));
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.StrokeColor == OfficeColor.Red);
         Assert.Empty(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>());
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -157,12 +157,12 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(20D, clip.ClipHeight, 6);
             Assert.True(clip.ClipVertical);
             Assert.Equal("ALPHA BETA", PageMarginTypographyText(page, position).Text);
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == box.Source
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == box.Source
                 && diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
                 && diagnostic.Detail == "margin-height" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
         Assert.Equal("BODY", rendered.Text.Trim());
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(IntrinsicHeightPaintedText(rendered.Pages[0], PageMarginTypographyText(rendered.Pages[0], "top-center")));
         Assert.Equal(2, IntrinsicHeightPaintedText(rendered.Pages[9], PageMarginTypographyText(rendered.Pages[9], "top-center")).Length);
         Assert.Equal(string.Concat(Enumerable.Repeat("BODY", 10)), PageMarginTypographyCompact(rendered.Text));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
     [Theory]
     [InlineData("'A'", 20D)]
@@ -200,7 +200,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.StrokeColor == OfficeColor.Red);
         }
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -216,7 +216,7 @@ public sealed partial class HtmlRenderingTests {
         AssertPageMarginDimensionFrames(rendered, 60D - height, 240D, height);
         Assert.DoesNotContain(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin");
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     // Each fixture has one generated box per opposite strip and a distinct

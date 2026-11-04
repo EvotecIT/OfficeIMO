@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
                     double x = OfficeTextPlacement.ResolveLineLeft(frameX, text.Width, advance, text.Alignment);
                     var run = new PdfTextRun(value, text.Font.IsBold, text.Font.IsUnderline,
                         ToPdfColor(text.Color ?? OfficeColor.Black), text.Font.IsItalic, text.Font.IsStrikethrough,
-                        size, ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
+                        global::OfficeIMO.OfficeLength.Points(size), ResolveDrawingTextFont(text.Font.FamilyName), fontFamily: text.Font.FamilyName,
                         underlineStyle: text.UnderlineStyle, strikeStyle: text.StrikethroughStyle,
                         decorationColor: ToPdfColor(text.DecorationColor))
                         .WithFeatureSettings(text.FeatureSettings)
@@ -198,7 +198,7 @@ internal static partial class PdfWriter {
                 }
                 if (value.Length == 0) return;
                 var run = new PdfTextRun(value, segment.Bold, segment.Underline, ToPdfColor(segment.Color),
-                    segment.Italic, segment.Strikethrough, size, ResolveDrawingTextFont(segment.FontFamily),
+                    segment.Italic, segment.Strikethrough, global::OfficeIMO.OfficeLength.Points(size), ResolveDrawingTextFont(segment.FontFamily),
                     linkUri: segment.LinkUri, linkDestinationName: segment.LinkDestinationName,
                     backgroundColor: ToPdfColor(segment.BackgroundColor),
                     fontFamily: segment.FontFamily, underlineStyle: segment.UnderlineStyle,
@@ -211,24 +211,28 @@ internal static partial class PdfWriter {
         private void WriteDrawingPositionedRun(PdfTextRun run, double x, double baseline, double advance,
             double clipX, double clipY, double clipWidth, double clipHeight, OfficeColor foregroundColor,
             OfficeColor? decorationColor, bool clipToFrame = true) {
-            double size = run.FontSize ?? currentOpts.DefaultFontSize;
+            double size = (run.FontSize?.ToPoints()) ?? currentOpts.DefaultFontSize.ToPoints();
             var runs = new[] { run };
             var line = CreatePositionedTextLine(runs, size, size * 1.2D, currentOpts);
             double actualWidth = MeasureRichLineWidth(line.Lines[0], currentOpts);
             double scale = actualWidth > 0D && advance > 0D ? advance / actualWidth : 1D;
             // Apply glyph and decoration alpha inside transformed paint, independently
             // of run backgrounds and the containing transparency group.
-            string? foregroundState = EnsureGraphicsState(foregroundColor.A / 255D, 1D);
+            bool syntheticBold = line.Lines[0].Any(segment => currentOpts.NeedsSyntheticBold(segment.Font, segment.NamedFont));
+            bool groupWeight = syntheticBold && foregroundColor.A < 255;
+            string? foregroundState = groupWeight ? null : EnsureGraphicsState(foregroundColor.A / 255D, 1D);
             string? decorationState = run.Underline || run.Strike
                 ? EnsureGraphicsState(1D, (decorationColor ?? foregroundColor).A / 255D)
                 : null;
             void Paint() {
-                WriteClippedRichParagraph(sb, new RichParagraphBlock(runs, PdfAlign.Left, null),
+                WriteClippedRichParagraph(sb, new RichParagraphBlock(runs, OfficeAlignment.Left, null),
                     line.Lines, line.LineHeights, currentOpts, baseline, size, size * 1.2D,
                     currentPage!.Annotations, x + (clipX - x) / scale, clipY, clipWidth / scale,
                     clipHeight, x, Math.Max(0.001D, actualWidth), suppressActualText: _suppressCanvasActualTextChildren,
                     foregroundGraphicsState: foregroundState, decorationGraphicsState: decorationState,
-                    clipToFrame: clipToFrame, fontPage: currentPage);
+                    clipToFrame: clipToFrame, fontPage: currentPage,
+                    foregroundGroup: groupWeight ? paint => RenderEffectGroup(OfficeTransform.Identity,
+                        foregroundColor.A / 255D, paint) : null, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
             }
             if (Math.Abs(scale - 1D) > 0.000001D) {
                 RenderOpaqueEffectGroupInline(new OfficeTransform(scale, 0D, 0D, 1D, x * (1D - scale), 0D), Paint);
@@ -247,11 +251,11 @@ internal static partial class PdfWriter {
             return string.IsNullOrWhiteSpace(familyName) ? ChooseNormal(currentOpts.DefaultFont) : PdfStandardFont.Helvetica;
         }
 
-        private static PdfAlign MapDrawingTextAlignment(OfficeTextAlignment alignment) => alignment switch {
-            OfficeTextAlignment.Center => PdfAlign.Center,
-            OfficeTextAlignment.Right => PdfAlign.Right,
-            OfficeTextAlignment.Justify => PdfAlign.Justify,
-            _ => PdfAlign.Left
+        private static OfficeAlignment MapDrawingTextAlignment(OfficeTextAlignment alignment) => alignment switch {
+            OfficeTextAlignment.Center => OfficeAlignment.Center,
+            OfficeTextAlignment.Right => OfficeAlignment.Right,
+            OfficeTextAlignment.Justify => OfficeAlignment.Justify,
+            _ => OfficeAlignment.Left
         };
 
         private static PdfTextBaseline MapDrawingTextBaseline(OfficeTextBaseline baseline) => baseline switch {

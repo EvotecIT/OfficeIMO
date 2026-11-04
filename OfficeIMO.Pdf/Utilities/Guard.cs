@@ -116,25 +116,35 @@ internal static class Guard {
         }
     }
 
+    // PDF authoring lays lines out left to right, so logical Start and End resolve to Left and Right.
+    private static OfficeAlignment ResolveLogicalAlign(OfficeAlignment value) =>
+        value == OfficeAlignment.Start ? OfficeAlignment.Left : value == OfficeAlignment.End ? OfficeAlignment.Right : value;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void LeftCenterRightAlign(PdfAlign value, string paramName, string context) {
-        if (value != PdfAlign.Left && value != PdfAlign.Center && value != PdfAlign.Right) {
-            throw new System.ArgumentException($"{context} alignment must be Left, Center, or Right.", paramName);
+    public static OfficeAlignment LeftCenterRightAlign(OfficeAlignment value, string paramName, string context) {
+        OfficeAlignment resolved = ResolveLogicalAlign(value);
+        if (resolved != OfficeAlignment.Left && resolved != OfficeAlignment.Center && resolved != OfficeAlignment.Right) {
+            throw new System.ArgumentException($"{context} alignment must be Left, Center, Right, Start, or End.", paramName);
         }
+        return resolved;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ParagraphAlign(PdfAlign value, string paramName, string context) {
-        if (value != PdfAlign.Left && value != PdfAlign.Center && value != PdfAlign.Right && value != PdfAlign.Justify) {
-            throw new System.ArgumentException($"{context} alignment must be Left, Center, Right, or Justify.", paramName);
+    public static OfficeAlignment ParagraphAlign(OfficeAlignment value, string paramName, string context) {
+        OfficeAlignment resolved = ResolveLogicalAlign(value);
+        if (resolved != OfficeAlignment.Left && resolved != OfficeAlignment.Center && resolved != OfficeAlignment.Right && resolved != OfficeAlignment.Justify) {
+            throw new System.ArgumentException($"{context} alignment must be Left, Center, Right, Justify, Start, or End.", paramName);
         }
+        return resolved;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void TableColumnAlign(PdfColumnAlign value, string paramName) {
-        if (value != PdfColumnAlign.Left && value != PdfColumnAlign.Center && value != PdfColumnAlign.Right) {
-            throw new System.ArgumentException("Table column alignments must be Left, Center, or Right.", paramName);
+    public static OfficeAlignment TableColumnAlign(OfficeAlignment value, string paramName) {
+        OfficeAlignment resolved = ResolveLogicalAlign(value);
+        if (resolved != OfficeAlignment.Left && resolved != OfficeAlignment.Center && resolved != OfficeAlignment.Right) {
+            throw new System.ArgumentException("Table column alignments must be Left, Center, Right, Start, or End.", paramName);
         }
+        return resolved;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

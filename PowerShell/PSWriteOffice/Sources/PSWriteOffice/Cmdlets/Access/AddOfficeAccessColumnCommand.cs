@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 ///   <summary>Adds a typed field before rows are appended.</summary>
 ///   <code>$table | Add-OfficeAccessColumn -Name DisplayName -Type ShortText -MaxLength 120</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeAccessColumn")]
+[Cmdlet(VerbsCommon.Add, "OfficeAccessColumn", DefaultParameterSetName = "Table")]
 [OutputType(typeof(AccessColumn))]
 public sealed class AddOfficeAccessColumnCommand : PSCmdlet {
     /// <summary>Table in a newly created database model.</summary>

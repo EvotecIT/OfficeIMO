@@ -28,7 +28,7 @@ public sealed class PdfStandardsProofTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         byte[] font = File.ReadAllBytes(fontPath!);
-        var options = new PdfOptions { IncludeStandardFontToUnicodeMaps = true };
+        var options = new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true };
         if (archival != PdfComplianceProfile.None) options.UsePdfA(archival);
         if (accessible != PdfComplianceProfile.None) options.UsePdfUa(accessible);
         options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "OfficeIMO Source Serif")
@@ -44,7 +44,7 @@ public sealed class PdfStandardsProofTests {
             .Header(header => header.Text("OfficeIMO standards proof"))
             .Footer(footer => footer.Text("Page {page} of {pages}"))
             .H1("Standards proof")
-            .Paragraph(p => p.Text("Embedded Unicode text and declared profile evidence."))
+            .Paragraph(p => p.AddText("Embedded Unicode text and declared profile evidence."))
             .Table(new[] { new[] { "Item", "Amount" }, new[] { "Service", "119.00 EUR" } })
             .ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);

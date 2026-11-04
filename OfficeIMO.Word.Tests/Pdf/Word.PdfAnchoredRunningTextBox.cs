@@ -17,10 +17,10 @@ public partial class Word {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        using var controlPdf = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
+        using var controlPdf = PdfPigDocument.Open(control.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
 
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.Equal(controlPdf.NumberOfPages, pdf.NumberOfPages);
@@ -55,10 +55,10 @@ public partial class Word {
         using WordDocument document = CreateOverlappingPageAnchoredPeerControl();
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        using var controlPdf = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
+        using var controlPdf = PdfPigDocument.Open(control.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.Equal(controlPdf.NumberOfPages, pdf.NumberOfPages);
         Page page = pdf.GetPage(2);
@@ -94,14 +94,14 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_PageAnchoredPeersWithDisallowedOverlapRetainWarnedContentFlow() {
         using WordDocument document = CreateOverlappingPageAnchoredPeerControl();
-        DW.Anchor[] anchors = document.Sections[1].Header!.First!.ChildElements
+        DW.Anchor[] anchors = document.Sections[1].PageSetup.FirstPageHeader.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).ToArray();
         anchors[0].AllowOverlap = true;
         anchors[1].AllowOverlap = false;
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         string visible = string.Concat(pdf.GetPage(2).Letters.Select(letter => letter.Value));
         int prefixIndex = visible.IndexOf("PREFIX", StringComparison.Ordinal);
@@ -124,20 +124,20 @@ public partial class Word {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
         foreach (WordDocument source in new[] { document, control }) {
-            WordHeaderFooter story = source.Sections[1].Header!.First!;
+            WordHeaderFooter story = source.Sections[1].PageSetup.FirstPageHeader;
             WordParagraph paragraph = story.Paragraphs.First();
             paragraph.SetStyleId("Normal");
             paragraph.ContextualSpacing = true;
-            paragraph.LineSpacingAfterPoints = 24D;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(24D);
             WordParagraph next = story.AddParagraph("NEXT");
             next.SetStyleId("Normal");
             next.ContextualSpacing = true;
-            next.LineSpacingBeforePoints = next.LineSpacingAfterPoints = 0D;
+            next.LineSpacingBefore = next.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         string[] before = AnchoredRunningStoryXml(document);
         string[] controlBefore = AnchoredRunningStoryXml(control);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
-        using var controlPdf = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var controlPdf = PdfPigDocument.Open(control.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(controlPdf.NumberOfPages, pdf.NumberOfPages);
         Assert.Equal(AnchoredRunningLetters(controlPdf.GetPage(2), "NEXT")[0].StartBaseLine.Y,
             AnchoredRunningLetters(pdf.GetPage(2), "NEXT")[0].StartBaseLine.Y, 3);
@@ -151,7 +151,7 @@ public partial class Word {
     public void SaveAsPdf_AnchoredRunningTextBoxPreservesAuthoredFillOutlineAndInsets() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
         // Foreground fill and outline must clear the body, including stroke ink.
         anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
@@ -166,8 +166,8 @@ public partial class Word {
         body.RightInset = 152400;
         body.BottomInset = 76200;
         string[] before = AnchoredRunningStoryXml(document);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
-        using var controlPdf = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var controlPdf = PdfPigDocument.Open(control.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Page page = pdf.GetPage(2);
         const double width = 468D * 0.585D;
         const double height = 648D * 0.08D;
@@ -191,7 +191,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_InheritedSectionPagesPreservesUnsupportedPeerAndNestedTextBoxContent(bool nested) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        WordHeaderFooter story = document.Sections[1].Header!.First!;
+        WordHeaderFooter story = document.Sections[1].PageSetup.FirstPageHeader;
         WordParagraph first = story.TextBoxes.Single().Paragraphs.Single();
         first.Text = "FIRSTBOX";
         if (nested) {
@@ -204,9 +204,9 @@ public partial class Word {
             suffix.AddText("ENDTEXT");
         }
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         string visible = string.Concat(pdf.GetPage(2).Letters.Select(letter => letter.Value));
         string[] markers = nested
@@ -226,7 +226,7 @@ public partial class Word {
 
     private static WordDocument CreateOverlappingPageAnchoredPeerControl() {
         WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        W.Paragraph paragraph = document.Sections[1].Header!.First!.ChildElements.OfType<W.Paragraph>().Single();
+        W.Paragraph paragraph = document.Sections[1].PageSetup.FirstPageHeader.ChildElements.OfType<W.Paragraph>().Single();
         DW.Anchor original = paragraph.Descendants<DW.Anchor>().Single();
         original.GetFirstChild<DW.DocProperties>()!.Id = 1U;
         var peer = original.Ancestors<DocumentFormat.OpenXml.AlternateContent>().Single().CloneNode(true);
@@ -240,16 +240,16 @@ public partial class Word {
 
     private static WordDocument CreateAnchoredRunningTextBoxControl(bool includeTextBox) {
         using WordDocument source = WordDocument.Create();
-        source.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
-        source.Sections[0].Margins.Top = source.Sections[0].Margins.Bottom = 1440;
-        source.Sections[0].Margins.Left = source.Sections[0].Margins.Right = 1440;
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = 720;
-        source.HeaderDefaultOrCreate.AddParagraph("COUNT ").AddField(WordFieldType.SectionPages);
+        source.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
+        source.Sections[0].PageSetup.Margins.Top = source.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+        source.Sections[0].PageSetup.Margins.Left = source.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        source.Sections[0].PageSetup.Margins.HeaderDistance = source.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
+        source.PageSetup.Header.AddParagraph("COUNT ").AddField(WordFieldType.SectionPages);
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection();
-        later.AddHeadersAndFooters();
-        later.DifferentFirstPage = true;
-        WordHeaderFooter story = later.Header!.First!;
+        _ = later.PageSetup.Header;
+        later.PageSetup.DifferentFirstPage = true;
+        WordHeaderFooter story = later.PageSetup.FirstPageHeader;
         foreach (var child in story.ChildElements.ToArray()) child.Remove();
         WordParagraph paragraph = story.AddParagraph("PREFIX");
         if (includeTextBox) {

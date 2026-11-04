@@ -47,8 +47,8 @@ namespace OfficeIMO.Tests
         private static void CreateLargeWorkbook(string filePath, int payloadBytes)
         {
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("Large");
-            sheet.CellValue(1, 1, "Payload");
+            var sheet = document.AddSheet("Large");
+            sheet.Cell(1, 1).SetValue("Payload");
             document.Save();
 
             var buffer = new byte[payloadBytes];

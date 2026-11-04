@@ -29,7 +29,7 @@ $serviceRows = @(
     [pscustomobject]@{ Service = 'Remote Access'; Status = 'Needs action'; Owner = 'Security' }
 )
 
-WordNew -Path $wordPath {
+New-OfficeWord -Path $wordPath {
     WordSection {
         WordParagraph -Text 'Rich text runs' -Style Heading1
         WordParagraph -Run $runs
@@ -47,7 +47,7 @@ WordNew -Path $wordPath {
     }
 }
 
-ExcelNew -Path $excelPath {
+New-OfficeExcel -Path $excelPath {
     ExcelSheet -Name 'Summary' -Content {
         ExcelRichText -Address A1 -Run @(
             ExcelTextRun 'Status: '
@@ -58,12 +58,12 @@ ExcelNew -Path $excelPath {
             ExcelTextRun 'Owner: '
             ExcelTextRun 'Platform' -Color Navy -Bold
         )
-        ExcelTable -Data $serviceRows -TableName 'ServiceReadiness' -StartRow 5 -StartColumn 1
+        ExcelTable -Data $serviceRows -Name 'ServiceReadiness' -StartRow 5 -StartColumn 1
         ExcelAutoFit
     }
 }
 
-PdfNew -Path $pdfPath {
+New-OfficePdf -Path $pdfPath {
     PdfHeading 'Rich text runs'
     PdfText -Run @(
         PdfTextRun 'Status: '
@@ -88,11 +88,11 @@ PptNew -Path $pptPath {
     PptSlideSize -Preset Screen16x9
     PptSlide {
         PptTitle -Title 'Rich text runs'
-        PptTextBox -Run @(
-            PptTextRun 'Status: '
-            PptTextRun 'Ready' -Color SeaGreen -Bold
-            PptTextRun ' with named colors' -Color Navy -Italic
-        ) -X 70 -Y 115 -Width 560 -Height 54
+        PowerPointTextBox -Content {
+            PowerPointText 'Status: '
+            PowerPointText 'Ready' -Color SeaGreen -Bold
+            PowerPointText ' with named colors' -Color Navy -Italic
+        } -X 70 -Y 115 -Width 560 -Height 54
         PptTable -InputObject @(
             , @(
                 @{

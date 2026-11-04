@@ -23,12 +23,9 @@ namespace OfficeIMO.PowerPoint {
                 templateParagraph.Remove();
             }
 
-            PowerPointParagraph paragraph = AppendParagraph(textBody, text ?? string.Empty, templateParagraph);
+            PowerPointParagraph paragraph = AppendParagraph(textBody, text ?? string.Empty, templateParagraph, out PowerPointTextRun authoredRun);
             configure?.Invoke(paragraph);
-            if (run != null) {
-                PowerPointTextRun runWrapper = paragraph.Runs.FirstOrDefault() ?? paragraph.AddRun(text ?? string.Empty);
-                run.Invoke(runWrapper);
-            }
+            if (run != null) run(authoredRun.Run.Parent != null ? authoredRun : paragraph.AddText(text ?? string.Empty));
 
             return paragraph;
         }
@@ -87,22 +84,19 @@ namespace OfficeIMO.PowerPoint {
             return Cell.TextBody;
         }
 
-        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph) {
+        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph) =>
+            AppendParagraph(textBody, text, templateParagraph, out _);
+
+        private PowerPointParagraph AppendParagraph(A.TextBody textBody, string text, A.Paragraph? templateParagraph, out PowerPointTextRun authoredRun) {
             A.Paragraph paragraph = new();
             if (templateParagraph?.ParagraphProperties != null) {
                 paragraph.ParagraphProperties = (A.ParagraphProperties)templateParagraph.ParagraphProperties.CloneNode(true);
             }
 
-            A.Run run = PowerPointTableTextDefaults.CreateRun(text);
             A.RunProperties? templateRunProperties = templateParagraph?
                 .Elements<A.Run>()
                 .Select(existingRun => existingRun.RunProperties)
                 .FirstOrDefault(runProperties => runProperties != null);
-            if (templateRunProperties != null) {
-                run.RunProperties = CleanRunProperties((A.RunProperties)templateRunProperties.CloneNode(true));
-            }
-
-            paragraph.Append(run);
 
             A.EndParagraphRunProperties? templateEndProperties = templateParagraph?.GetFirstChild<A.EndParagraphRunProperties>();
             if (templateEndProperties != null) {
@@ -112,7 +106,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             textBody.Append(paragraph);
-            return new PowerPointParagraph(paragraph, _slidePart, _ownerPart);
+            var wrapper = new PowerPointParagraph(paragraph, _slidePart, _ownerPart);
+            authoredRun = wrapper.InsertRun(text, templateRunProperties != null
+                ? CleanRunProperties((A.RunProperties)templateRunProperties.CloneNode(true))
+                : new A.RunProperties { Language = PowerPointTableTextDefaults.Language });
+            return wrapper;
         }
 
         private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {

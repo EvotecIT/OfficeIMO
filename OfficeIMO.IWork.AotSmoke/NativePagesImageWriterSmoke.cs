@@ -23,13 +23,13 @@ internal static class NativePagesImageWriterSmoke {
         VerifySavedWord(bytes, 180);
         using var unchanged = new MemoryStream(); unchanged.WriteByte(9);
         try {
-            document.Save(unchanged, new() { MaximumImages = 2 });
+            document.Save(unchanged, new() { MaxImages = 2 });
             throw new InvalidOperationException("The Pages image budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.CanWrite && unchanged.ToArray().SequenceEqual(new byte[] { 9 }),
             "Pages image-budget rejection changed or closed the caller stream.");
         var only = IWorkPagesDocument.Create(); only.AddImage(Image("created-alpha.png"), 120, 80, "Image only");
-        using var imageOnly = IWorkSourceDocument.Open(only.SaveBytes()).ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var imageOnly = IWorkSourceDocument.Open(only.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         imageOnly.RequireCompleteEditableReconstruction();
         Require(imageOnly.Value.Images.Count == 1 && only.Paragraphs.Count == 0, "Image-only Pages body was not editable.");
         Console.WriteLine($"PASS | native Pages inline PNG/JPEG creation | {AcceptedHash} | deterministic bytes, PNG alpha/JPEG, body/table order, point-sized strict DOCX save/reopen, image-only body and image bounds");
@@ -44,18 +44,18 @@ internal static class NativePagesImageWriterSmoke {
         Require(projection.Images.Count == 3 && projection.Tables.Count == 1 && projection.Diagnostics.Count == 0
             && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0,
             "Pages image projection lost content or native graph declarations.");
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordDocument.Load(output);
         Require(saved.Images.Count == 3 && saved.Tables.Count == 1 && !saved.ValidateDocument().Any(),
             "Pages images or table were lost in saved DOCX.");
-        Require(Math.Abs(saved.Images[0].Width!.Value - firstWidth * 96 / 72) < 1e-6
-            && Math.Abs(saved.Images[0].Height!.Value - 160) < 1e-6,
+        Require(Math.Abs((saved.Images[0].Width?.ToPixels())!.Value - firstWidth * 96 / 72) < 1e-6
+            && Math.Abs((saved.Images[0].Height?.ToPixels())!.Value - 160) < 1e-6,
             "The inline frame lost its point dimensions in Word's pixel API.");
         for (int index = 0; index < 3; index++) {
             Require(saved.Images[index].ToBytes().SequenceEqual(projection.Images[index].GetBytes())
-                && saved.Images[index].Description == projection.Images[index].AccessibilityDescription,
+                && saved.Images[index].AltText == projection.Images[index].AccessibilityDescription,
                 "Saved DOCX lost an image payload or description.");
         }
     }

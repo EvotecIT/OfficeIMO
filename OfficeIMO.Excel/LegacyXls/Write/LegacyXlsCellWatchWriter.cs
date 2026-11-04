@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            if (!A1.TryParseCellReferenceFast(normalized, out int row, out int column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(normalized, out int row, out int column)) {
                 reason = "cell watch references";
                 return false;
             }

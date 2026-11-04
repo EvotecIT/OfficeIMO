@@ -133,16 +133,16 @@ namespace OfficeIMO.Word {
 
         private static WordHeader? FindHeader(WordDocument document, Header header) {
             foreach (var section in document.Sections) {
-                if (section.Header.Default != null && ReferenceEquals(section.Header.Default._header, header)) {
-                    return section.Header.Default;
+                if (section.Headers.Default != null && ReferenceEquals(section.Headers.Default._header, header)) {
+                    return section.Headers.Default;
                 }
 
-                if (section.Header.Even != null && ReferenceEquals(section.Header.Even._header, header)) {
-                    return section.Header.Even;
+                if (section.Headers.Even != null && ReferenceEquals(section.Headers.Even._header, header)) {
+                    return section.Headers.Even;
                 }
 
-                if (section.Header.First != null && ReferenceEquals(section.Header.First._header, header)) {
-                    return section.Header.First;
+                if (section.Headers.First != null && ReferenceEquals(section.Headers.First._header, header)) {
+                    return section.Headers.First;
                 }
             }
 
@@ -151,16 +151,16 @@ namespace OfficeIMO.Word {
 
         private static WordFooter? FindFooter(WordDocument document, Footer footer) {
             foreach (var section in document.Sections) {
-                if (section.Footer.Default != null && ReferenceEquals(section.Footer.Default._footer, footer)) {
-                    return section.Footer.Default;
+                if (section.Footers.Default != null && ReferenceEquals(section.Footers.Default._footer, footer)) {
+                    return section.Footers.Default;
                 }
 
-                if (section.Footer.Even != null && ReferenceEquals(section.Footer.Even._footer, footer)) {
-                    return section.Footer.Even;
+                if (section.Footers.Even != null && ReferenceEquals(section.Footers.Even._footer, footer)) {
+                    return section.Footers.Even;
                 }
 
-                if (section.Footer.First != null && ReferenceEquals(section.Footer.First._footer, footer)) {
-                    return section.Footer.First;
+                if (section.Footers.First != null && ReferenceEquals(section.Footers.First._footer, footer)) {
+                    return section.Footers.First;
                 }
             }
 

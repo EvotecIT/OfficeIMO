@@ -287,6 +287,7 @@ final class PageTiles {
 
     private func previewScale(_ page: Int) -> Double {
         let size = layout.frames[page - 1].size
+        guard size.width.isFinite, size.width > 0, size.height.isFinite, size.height > 0 else { return 0 }
         return min(2, (Self.previewPixels / (size.width * size.height)).squareRoot())
     }
 
@@ -332,12 +333,15 @@ final class PageTiles {
             let local = layout.pageRect(rect.intersection(frame), page: page)
             guard !local.isNull, !local.isEmpty else { continue }
             let size = facts.pageImageSize(page: page, scale: tileScale)
+            guard size.width > 0, size.height > 0 else { continue }
             let columns = (size.width + Self.tileSize - 1) / Self.tileSize
             let rows = (size.height + Self.tileSize - 1) / Self.tileSize
-            let firstColumn = max(0, Int(local.minX * tileScale / side))
-            let lastColumn = min(columns - 1, Int(local.maxX * tileScale / side))
-            let firstRow = max(0, Int(local.minY * tileScale / side))
-            let lastRow = min(rows - 1, Int(local.maxY * tileScale / side))
+            let scaled = [local.minX, local.maxX, local.minY, local.maxY].map { $0 * tileScale / side }
+            guard scaled.allSatisfy(\.isFinite) else { continue }
+            let firstColumn = Int(min(Double(columns), max(0, scaled[0])))
+            let lastColumn = Int(min(Double(columns - 1), max(-1, scaled[1])))
+            let firstRow = Int(min(Double(rows), max(0, scaled[2])))
+            let lastRow = Int(min(Double(rows - 1), max(-1, scaled[3])))
             guard firstColumn <= lastColumn, firstRow <= lastRow else { continue }
             for row in firstRow...lastRow {
                 for column in firstColumn...lastColumn {

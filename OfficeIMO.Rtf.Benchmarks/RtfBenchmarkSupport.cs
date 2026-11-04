@@ -4,13 +4,13 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Benchmarks;
 
 internal static class RtfBenchmarkSupport {
-    public static RtfToPdfOptions CreatePdfOptions() {
-        var pdfOptions = new PdfCore.PdfOptions();
+    public static RtfPdfExportOptions CreatePdfOptions() {
+        var pdfOptions = new PdfCore.PdfCreateOptions();
         if (!pdfOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) {
             throw new InvalidOperationException(
                 "The RTF PDF benchmark requires one installed Unicode font from the OfficeIMO document fallback list.");
         }
 
-        return new RtfToPdfOptions { PdfOptions = pdfOptions };
+        return new RtfPdfExportOptions { PdfOptions = pdfOptions };
     }
 }

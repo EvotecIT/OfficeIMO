@@ -11,7 +11,7 @@ Builds text-selection and interactive hit regions for one PDF page.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePdfInteractionMap [-Path] <string> [-Page <int>] [-Options <PdfPageInteractionOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfInteractionMap [-Path] <string> [-Page <int>] [-Options <PdfPageInteractionOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -79,7 +79,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -49,7 +49,7 @@ public sealed class OlmSessionProjectionTests {
         using var destination = new MemoryStream();
         EmailWriteResult conversion = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).Write(document, destination, EmailFileFormat.Eml);
         Assert.Contains(conversion.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_OLM_METADATA_NOT_REPRESENTED");
-        Assert.Equal("Żółć 日本語", new EmailDocumentReader().Read(new MemoryStream(destination.ToArray())).Document.Subject);
+        Assert.Equal("Żółć 日本語", new EmailDocumentReader().ReadDocument(new MemoryStream(destination.ToArray())).Document.Subject);
     }
 
     [Fact]

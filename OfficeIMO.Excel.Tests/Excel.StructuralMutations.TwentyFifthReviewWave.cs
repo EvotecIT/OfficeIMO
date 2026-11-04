@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_RefreshPreservesHeaderlessLayout() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "HeaderlessQuery",
                 WorksheetName = sheet.Name,
@@ -39,8 +39,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A1:B2", refreshed.Range);
             Assert.Equal(0U, table.HeaderRowCount!.Value);
             Assert.Null(table.GetFirstChild<AutoFilter>());
-            Assert.Equal("East", sheet.CellAt(1, 1).GetValue<string>());
-            Assert.Equal(20d, sheet.CellAt(2, 2).GetValue<double>());
+            Assert.Equal("East", sheet.Cell(1, 1).GetValue<string>());
+            Assert.Equal(20d, sheet.Cell(2, 2).GetValue<double>());
             Assert.DoesNotContain(sheet.WorksheetPart.Worksheet.Descendants<Cell>(), cell =>
                 cell.CellReference?.Value == "A3");
             Assert.Empty(document.ValidateOpenXml());
@@ -49,11 +49,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_SkipsSeparatelyQuotedThreeDimensionalQualifiers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("SUM(A1)");
-            document.AddWorksheet("Last Sheet");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            summary.CellFormula(1, 1, "'SUM(A1)':'Last Sheet'!B1");
-            summary.CellFormula(2, 1, "SUM(B1)");
+            document.AddSheet("SUM(A1)");
+            document.AddSheet("Last Sheet");
+            ExcelSheet summary = document.AddSheet("Summary");
+            summary.Cell(1, 1).SetFormula("'SUM(A1)':'Last Sheet'!B1");
+            summary.Cell(2, 1).SetFormula("SUM(B1)");
 
             ExcelFormulaCellInfo match = Assert.Single(summary.SearchFormulas(
                 new ExcelFormulaSearchOptions { Function = "SUM" }));
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             if (OperatingSystem.IsWindows()) return;
             string path = Path.Combine(_directoryWithFiles, "FileBackedPrivateStaging.xlsx");
             using (var created = ExcelDocument.Create()) {
-                created.AddWorksheet("Data").CellValue(1, 1, "private");
+                created.AddSheet("Data").Cell(1, 1).SetValue("private");
                 created.Save(path);
             }
 

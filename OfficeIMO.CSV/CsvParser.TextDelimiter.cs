@@ -1,25 +1,23 @@
-#nullable enable
-
 using System.Text;
 
 namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
-    private static bool UsesTextDelimiter(CsvLoadOptions options) =>
+    private static bool UsesTextDelimiter(CsvParsingSettings options) =>
         !string.IsNullOrEmpty(options.DelimiterText) && options.DelimiterText!.Length > 1;
 
-    internal static char GetDelimiterChar(CsvLoadOptions options) =>
+    internal static char GetDelimiterChar(CsvParsingSettings options) =>
         string.IsNullOrEmpty(options.DelimiterText)
             ? options.Delimiter
             : options.DelimiterText![0];
 
-    internal static string GetDelimiterText(CsvLoadOptions options) =>
+    internal static string GetDelimiterText(CsvParsingSettings options) =>
         string.IsNullOrEmpty(options.DelimiterText)
             ? options.Delimiter.ToString()
             : options.DelimiterText!;
 
-    private static IEnumerable<string[]> ParseLineOrQuotedTextDelimiter(TextReader reader, CsvLoadOptions options)
+    private static IEnumerable<string[]> ParseLineOrQuotedTextDelimiter(TextReader reader, CsvParsingSettings options)
     {
         foreach (var record in ParseLineOrQuotedTextDelimiterWithMetadata(reader, options))
         {
@@ -34,7 +32,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static void ReadLineOrQuotedTextDelimiter(TextReader reader, CsvLoadOptions options, Action<string[]> recordAction)
+    private static void ReadLineOrQuotedTextDelimiter(TextReader reader, CsvParsingSettings options, Action<string[]> recordAction)
     {
         foreach (var record in ParseLineOrQuotedTextDelimiter(reader, options))
         {
@@ -42,7 +40,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static void ReadLineOrQuotedTextDelimiterReusable(TextReader reader, CsvLoadOptions options, Action<IReadOnlyList<string>> recordAction)
+    private static void ReadLineOrQuotedTextDelimiterReusable(TextReader reader, CsvParsingSettings options, Action<IReadOnlyList<string>> recordAction)
     {
         foreach (var record in ParseLineOrQuotedTextDelimiterWithMetadata(reader, options))
         {
@@ -50,7 +48,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static void ReadLineOrQuotedTextDelimiterReusableWithMetadata(TextReader reader, CsvLoadOptions options, Action<CsvParsedRecord> recordAction)
+    private static void ReadLineOrQuotedTextDelimiterReusableWithMetadata(TextReader reader, CsvParsingSettings options, Action<CsvParsedRecord> recordAction)
     {
         foreach (var record in ParseLineOrQuotedTextDelimiterWithMetadata(reader, options))
         {
@@ -58,7 +56,7 @@ internal static partial class CsvParser
         }
     }
 
-    private static IEnumerable<CsvParsedRecord> ParseLineOrQuotedTextDelimiterWithMetadata(TextReader reader, CsvLoadOptions options)
+    private static IEnumerable<CsvParsedRecord> ParseLineOrQuotedTextDelimiterWithMetadata(TextReader reader, CsvParsingSettings options)
     {
         var delimiter = GetDelimiterText(options);
         var trim = options.TrimWhitespace;
@@ -301,7 +299,7 @@ internal static partial class CsvParser
         bool startsWithCommentCharacter,
         string firstLine,
         string firstLineSeparator,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int emittedRecordCount,
         string delimiter,
         bool trim,
@@ -349,7 +347,7 @@ internal static partial class CsvParser
         line.IndexOf('\t') >= 0;
 
 #if NET8_0_OR_GREATER
-    private static void ReadFieldSpansTextDelimiter<TVisitor>(TextReader reader, CsvLoadOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
+    private static void ReadFieldSpansTextDelimiter<TVisitor>(TextReader reader, CsvParsingSettings options, int recordsToSkip, ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (recordsToSkip < 0)

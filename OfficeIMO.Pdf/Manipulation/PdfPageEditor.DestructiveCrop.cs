@@ -7,8 +7,8 @@ internal static partial class PdfPageEditor {
     /// Destructively crops selected pages by replacing the retained visual rectangle with an opaque raster page.
     /// Original selected-page content streams, resources, and annotations are not retained in the rewritten object graph.
     /// </summary>
-    public static PdfDestructiveCropResult DestructiveCropPages(byte[] pdf, double left, double bottom, double right, double top, PdfDestructiveCropOptions? options = null, params int[] pageNumbers) =>
-        DestructiveCropPages(pdf, left, bottom, right, top, options, null, pageNumbers);
+    public static PdfDestructiveCropResult DestructiveCropPages(byte[] pdf, double left, double bottom, double right, double top, PdfDestructiveCropOptions? options = null, PdfPageSelection? selection = null, System.Threading.CancellationToken cancellationToken = default) =>
+        DestructiveCropPages(pdf, left, bottom, right, top, PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken), null, PdfPageSelection.ToPageNumbers(selection));
 
     internal static PdfDestructiveCropResult DestructiveCropPages(byte[] pdf, double left, double bottom, double right, double top, PdfDestructiveCropOptions? options, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(pageNumbers, nameof(pageNumbers)); ValidatePageBoxCoordinates(left, bottom, right, top);
@@ -26,7 +26,7 @@ internal static partial class PdfPageEditor {
 
         byte[] translated = CropAndTranslatePages(pdf, left, bottom, right, top, readOptions, cancellationToken, selected);
         PdfLoadOptions translatedReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, translated);
-        var renderOptions = new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = effective.Dpi, Background = effective.Background, MaxPages = selected.Length, MaxPixelsPerPage = effective.MaxPixelsPerPage, ContinueOnError = false };
+        var renderOptions = new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = effective.Dpi, Background = effective.Background, MaxPages = selected.Length, MaxPixelsPerPage = effective.MaxPixelsPerPage, ContinueOnError = false };
         IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(translated, PdfPageSelection.From(selected), renderOptions, translatedReadOptions, cancellationToken);
         ValidateDestructiveCropRenders(renders, effective);
         PdfReadDocument translatedDocument = PdfReadDocument.Open(translated, translatedReadOptions, cancellationToken);

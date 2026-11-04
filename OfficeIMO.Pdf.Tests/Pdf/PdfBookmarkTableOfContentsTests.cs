@@ -12,16 +12,19 @@ public sealed class PdfBookmarkTableOfContentsTests {
     public void TableOfContents_UnequalColumnContinuationUsesEachActualRightEdge(bool moveBeforeFirstEntry) {
         var entries = Enumerable.Range(0, 6)
             .Select(index => new PdfTableOfContentsEntry("Item " + (char)('A' + index), "details")).ToArray();
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-            PageWidth = 460, PageHeight = 200, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(460), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            }
         }).Columns(column => {
-            column.Spacer(moveBeforeFirstEntry ? 145 : 60);
+            column.Spacer(global::OfficeIMO.OfficeLength.Points(moveBeforeFirstEntry ? 145 : 60));
             column.TableOfContents(new PdfTableOfContentsOptions { Entries = entries });
         }, new PdfMultiColumnOptions {
             BalanceLastPage = false,
             ColumnDefinitions = new[] {
-                new PdfFlowColumn(PdfColumnWidth.Fixed(100), 20),
-                new PdfFlowColumn(PdfColumnWidth.Fixed(300), 0)
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(100)), global::OfficeIMO.OfficeLength.Points(20)),
+                new PdfFlowColumn(PdfColumnWidth.Fixed(global::OfficeIMO.OfficeLength.Points(300)), global::OfficeIMO.OfficeLength.Points(0))
             }
         }).PageBreak().Bookmark("details").H1("Destination body").ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -39,7 +42,10 @@ public sealed class PdfBookmarkTableOfContentsTests {
     public void TableOfContents_SequentialColumnsKeepFinalPageLinksAndBalancedEntries(bool balance) {
         var entries = Enumerable.Range(0, 16)
             .Select(index => new PdfTableOfContentsEntry("Column entry " + index, "details")).ToArray();
-        byte[] bytes = PdfDocument.Create(new PdfOptions { PageHeight = 400, MarginTop = 30, MarginBottom = 30 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(612), global::OfficeIMO.OfficeLength.Points(400)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+        } })
             .Columns(column => column.TableOfContents(new PdfTableOfContentsOptions {
                 Entries = entries, PageNumberFormatter = page => "page-" + page
             }), new PdfMultiColumnOptions { BalanceLastPage = balance })
@@ -75,7 +81,7 @@ public sealed class PdfBookmarkTableOfContentsTests {
             });
         entries[0] = new PdfTableOfContentsEntry("Changed after composition", "changed");
         document.PageBreak().Bookmark("intro").H1("Introduction body");
-        for (int index = 0; index < 100; index++) document.Paragraph(paragraph => paragraph.Text("Content overflowing the initial page: " + index));
+        for (int index = 0; index < 100; index++) document.Paragraph(paragraph => paragraph.AddText("Content overflowing the initial page: " + index));
         document.PageBreak().Bookmark("details").H1("Details body");
         byte[] bytes = document.ToBytes();
         var pages = PdfDocument.Load(bytes).Reader.TextByPage();

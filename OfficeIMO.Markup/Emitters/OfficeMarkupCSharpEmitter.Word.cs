@@ -30,10 +30,10 @@ public sealed partial class OfficeMarkupCSharpEmitter {
                 sb.AppendLine($"{documentVariable}.AddPageBreak();");
                 break;
             case OfficeMarkupHeaderFooterBlock headerFooter when string.Equals(headerFooter.HeaderFooterKind, "header", StringComparison.OrdinalIgnoreCase):
-                sb.AppendLine($"{documentVariable}.HeaderDefaultOrCreate.AddParagraph({CsString(headerFooter.Text)});");
+                sb.AppendLine($"{documentVariable}.PageSetup.Header.AddParagraph({CsString(headerFooter.Text)});");
                 break;
             case OfficeMarkupHeaderFooterBlock headerFooter:
-                sb.AppendLine($"{documentVariable}.FooterDefaultOrCreate.AddParagraph({CsString(headerFooter.Text)});");
+                sb.AppendLine($"{documentVariable}.PageSetup.Footer.AddParagraph({CsString(headerFooter.Text)});");
                 break;
             case OfficeMarkupTableOfContentsBlock toc:
                 if (!string.IsNullOrWhiteSpace(toc.Title)) {

@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.GoogleWorkspace",
+  "status": "Phase A consumer migration",
+  "changes": [],
+  "extraChanges": [
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Explicit diagnostic codes are preserved verbatim when forwarded. Only derived feature identifiers are normalized; this retains the M1 catalog identifiers emitted by the Google Sheets adapter."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions."
+}

@@ -30,7 +30,6 @@ The `OfficeIMO.Word` package provides a higher-level API for creating, reading, 
 | `WordList` | Manages numbered and bulleted lists with customizable styles. |
 | `WordBookmark` | Represents a named bookmark within the document. |
 | `WordTableOfContent` | Inserts and manages a table of contents. |
-| `WordFluentDocument` | Fluent builder API for composing documents with chained method calls. |
 
 ## Creating a Document
 
@@ -93,9 +92,9 @@ WordDocument
 ```csharp
 using var document = WordDocument.Create("props.docx");
 
-document.BuiltinDocumentProperties.Title = "Quarterly Report";
-document.BuiltinDocumentProperties.Creator = "OfficeIMO";
-document.BuiltinDocumentProperties.Description = "Q4 2025 financial summary";
+document.Properties.Title = "Quarterly Report";
+document.Properties.Creator = "OfficeIMO";
+document.Properties.Description = "Q4 2025 financial summary";
 
 document.ApplicationProperties.Company = "Evotec";
 
@@ -113,9 +112,9 @@ document.AddParagraph("Portrait section content");
 
 // Start a new section in landscape
 var section = document.AddSection();
-section.PageOrientation = Orientation.Landscape;
-section.PageSettings.Width = 15840;
-section.PageSettings.Height = 12240;
+section.PageSetup.Orientation = Orientation.Landscape;
+section.PageSetup.Size.Width = 15840;
+section.PageSetup.Size.Height = 12240;
 
 document.AddParagraph("Landscape section content");
 

@@ -10,13 +10,13 @@ namespace OfficeIMO.Examples.Word {
             string docPath = Path.Combine(folderPath, "PdfWithMetadataOverrides.docx");
             string pdfPath = Path.Combine(folderPath, "PdfWithMetadataOverrides.pdf");
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.BuiltinDocumentProperties.Title = "Original Title";
-                document.BuiltinDocumentProperties.Creator = "Original Author";
-                document.BuiltinDocumentProperties.Subject = "Original Subject";
-                document.BuiltinDocumentProperties.Keywords = "orig1, orig2";
+                document.Properties.Title = "Original Title";
+                document.Properties.Creator = "Original Author";
+                document.Properties.Subject = "Original Subject";
+                document.Properties.Keywords = "orig1, orig2";
                 document.AddParagraph("Test");
                 document.Save();
-                var options = new WordToPdfOptions {
+                var options = new WordPdfExportOptions {
                     Title = "Pdf Title",
                     Author = "Pdf Author",
                     Subject = "Pdf Subject",

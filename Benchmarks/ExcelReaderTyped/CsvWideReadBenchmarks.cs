@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Reader;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
+using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using System.Data.Common;
 using System.Globalization;
@@ -36,7 +37,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 for (int column = 0; column < 32; column++) _expected += CsvBenchmarkFixture.Names[(row + column) % 8].Length;
             CsvBenchmarkFixture.Describe(_data, RowCount, $"32-column wide, materializeStrings={MaterializeStrings}");
             using (MemoryStream stream = new MemoryStream(_data, false))
-            using (DbDataReader reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false })) {
+            using (DbDataReader reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false })) {
                 int row = 0;
                 while (reader.Read()) {
                     if (reader.FieldCount != 32) throw new InvalidDataException("Wide CSV width differs.");
@@ -69,7 +70,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMOWide() {
             using MemoryStream stream = new MemoryStream(_data, false);
-            using DbDataReader reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false });
+            using DbDataReader reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false });
             long sum = 0;
             int count = 0;
             while (reader.Read()) {

@@ -1,5 +1,6 @@
 using System.Threading;
 using OfficeIMO.Epub;
+using System.IO.Compression;
 using System.Xml.Linq;
 using Xunit;
 
@@ -8,6 +9,40 @@ namespace OfficeIMO.Shared.Tests;
 public sealed class EpubIndexAuthoringContracts {
     private static readonly XNamespace Html = "http://www.w3.org/1999/xhtml";
     private static readonly XNamespace Ops = "http://www.idpf.org/2007/ops";
+
+    [Fact]
+    public void LocatorAliasesToOneResourceShareTheirValidatedTarget() {
+        using var output = new MemoryStream();
+        byte[] original = Book().Write().Bytes;
+        output.Write(original, 0, original.Length);
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Update, true)) {
+            ZipArchiveEntry packageEntry = archive.GetEntry("EPUB/package.opf")!;
+            XDocument package;
+            using (var source = packageEntry.Open()) package = XDocument.Load(source);
+            XNamespace opf = package.Root!.Name.Namespace;
+            XElement manifest = package.Root.Element(opf + "manifest")!;
+            XElement spine = package.Root.Element(opf + "spine")!;
+            XElement declared = manifest.Elements(opf + "item").Single(item => (string?)item.Attribute("id") == "source");
+            foreach (int index in Enumerable.Range(0, 12)) {
+                string id = "alias-" + index;
+                XElement alias = new XElement(declared); alias.SetAttributeValue("id", id);
+                manifest.Add(alias);
+                spine.Add(new XElement(opf + "itemref", new XAttribute("idref", id)));
+            }
+            packageEntry.Delete();
+            using var destination = archive.CreateEntry("EPUB/package.opf", CompressionLevel.Optimal).Open();
+            package.Save(destination);
+        }
+        var book = EpubPublication.Load(new MemoryStream(output.ToArray()));
+        EpubIndexLocator[] locators = Enumerable.Range(0, 12).Select(index => new EpubIndexLocator {
+            ManifestId = "alias-" + index, FragmentId = "topic", Label = "Page " + index
+        }).ToArray();
+
+        book.AddIndexEntry("index", "entries", "term", "Reading", locators);
+
+        Assert.Equal(12, book.GetContentXml("index").Descendants(Html + "a").Count());
+        Assert.Equal(book.GetResourceBytes("source"), book.GetResourceBytes("alias-0"));
+    }
 
     [Fact]
     public void NestedIndexPreservesPublisherOrderAndResolvesBodyAndDocumentTargets() {

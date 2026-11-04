@@ -19,7 +19,7 @@ public sealed class MarkdownJsonVisualCodeBlockTransform : IMarkdownDocumentTran
     public MarkdownVisualFenceLanguageMode LanguageMode { get; }
 
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

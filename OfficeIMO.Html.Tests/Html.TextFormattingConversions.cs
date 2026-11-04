@@ -121,11 +121,12 @@ public class HtmlTextFormattingConversionTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             HtmlConversionDocument.Parse(html),
             new HtmlRenderOptions());
-        HtmlRenderText text = Assert.Single(Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>(),
-            item => item.Text == "LONGHAND");
+        HtmlRenderText[] text = Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>()
+            .Where(item => item.Text.Length > 0).ToArray();
 
-        Assert.Equal("LONGHAND", text.Text);
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Equal("LONGHAND", string.Concat(text.Select(item => item.Text)));
+        Assert.True(Assert.Single(text, item => item.Text == "ONGHAND").Font.Size < Assert.Single(text, item => item.Text == "L").Font.Size);
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FontVariantApproximated
             && diagnostic.Detail.Contains("font-variant-caps=small-caps", StringComparison.Ordinal));
     }
@@ -161,7 +162,8 @@ public class HtmlTextFormattingConversionTests {
         HtmlRenderText styled = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Styled");
         HtmlRenderText superscript = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Super");
         HtmlRenderText subscript = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "Sub");
-        HtmlRenderText smallCaps = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), item => item.Text == "SMALLCAPS");
+        // Synthetic small caps: capitals keep their size, lowercase letters become smaller capitals.
+        HtmlRenderText[] visibleTexts = page.Visuals.OfType<HtmlRenderText>().Where(item => item.Text.Trim().Length > 0).ToArray();
 
         Assert.Equal(OfficeTextDecorationStyle.Wavy, styled.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Wavy, styled.StrikethroughStyle);
@@ -169,7 +171,9 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(OfficeTextDecorationStyle.Double, superscript.UnderlineStyle);
         Assert.Equal(OfficeTextBaseline.Subscript, subscript.Baseline);
         Assert.Equal(OfficeTextDecorationStyle.Dotted, subscript.StrikethroughStyle);
-        Assert.Equal("SMALLCAPS", smallCaps.Text);
+        Assert.Contains("SMALLCAPS", string.Concat(visibleTexts.Select(item => item.Text.Trim())));
+        Assert.True(Assert.Single(visibleTexts, item => item.Text.Trim() == "MALL").Font.Size
+            < Assert.Single(visibleTexts, item => item.Text.Trim() == "S").Font.Size);
         Assert.Contains(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FontVariantApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
@@ -179,10 +183,11 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(OfficeTextBaseline.Superscript, drawingSuper.Baseline);
         Assert.Equal(OfficeTextDecorationStyle.Double, drawingSuper.UnderlineStyle);
 
-        OfficeDrawing svgDrawing = HtmlSvgPaintAssertions.Read(document.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        byte[] svgBytes = document.ExportImage(OfficeImageExportFormat.Svg).Bytes;
+        OfficeDrawing svgDrawing = HtmlSvgPaintAssertions.Read(svgBytes);
         HtmlSvgPaintAssertions.WavyStrokes(svgDrawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
         HtmlSvgPaintAssertions.DoubleStroke(svgDrawing, OfficeColor.FromRgb(0x33, 0x66, 0x99));
-        Assert.Contains(DrawingTestTraversal.Elements(svgDrawing).OfType<OfficeDrawingText>(), item => item.Text == "Styled");
+        HtmlSvgPaintAssertions.TextPaint(svgDrawing, svgBytes, "Styled");
 
         foreach (OfficeImageExportFormat format in new[] {
                      OfficeImageExportFormat.Png,
@@ -202,9 +207,9 @@ public class HtmlTextFormattingConversionTests {
         WordParagraph authored = source.AddParagraph("Styled");
         authored.SetBold().SetItalic().SetUnderline(WordUnderlineStyle.WavyDouble)
             .SetDoubleStrike().SetSuperScript().SetSmallCaps()
-            .SetFontFamily("Aptos").SetFontSize(14).SetColorHex("336699");
+            .SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetColor(OfficeColor.Parse("336699"));
 
-        HtmlTextConversionResult export = source.ToHtmlResult(new WordToHtmlOptions { IncludeFontStyles = true });
+        HtmlTextConversionResult export = source.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { IncludeFontStyles = true });
         Assert.Contains("data-officeimo-word-underline=\"WavyDouble\"", export.Value, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-word-double-strike=\"true\"", export.Value, StringComparison.Ordinal);
         Assert.Contains("<sup", export.Value, StringComparison.OrdinalIgnoreCase);
@@ -212,7 +217,7 @@ public class HtmlTextFormattingConversionTests {
 
         using WordDocument imported = HtmlConversionDocument
             .Parse(export.Value, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToWordDocumentResult()
+            .ConvertToWordWithEvidence()
             .RequireValue();
         WordParagraph actual = Assert.Single(imported.Paragraphs);
         Assert.True(actual.Bold);
@@ -222,23 +227,23 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(WordVerticalTextPosition.Superscript, actual.VerticalTextAlignment);
         Assert.Equal(WordCapsStyle.SmallCaps, actual.CapsStyle);
         Assert.Equal("Aptos", actual.FontFamily);
-        Assert.Equal("336699", actual.ColorHex);
+        Assert.Equal(OfficeColor.Parse("336699"), actual.Color);
     }
 
     [Fact]
     public void ExcelSemanticHtmlRoundTripRetainsCellAndRichRunTypography() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Text");
-        sheet.CellAt(1, 1).SetValue("Cell").SetBold().SetItalic()
+        ExcelSheet sheet = source.AddSheet("Text");
+        sheet.Cell(1, 1).SetValue("Cell").SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
-            .SetSuperscript().SetFontName("Aptos").SetFontSize(14).SetFontColor("336699");
-        sheet.CellAt(2, 1).SetRichText(
+            .SetSuperscript().SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
+        sheet.Cell(2, 1).SetRichText(
             new ExcelRichTextRun("Rich") {
                 Bold = true,
                 Underline = true,
                 UnderlineStyle = ExcelUnderlineStyle.SingleAccounting,
                 FontName = "Aptos",
-                FontSize = 13,
+                FontSize = global::OfficeIMO.OfficeLength.Points(13),
                 FontColor = "663399"
             },
             new ExcelRichTextRun("Sub") {
@@ -247,7 +252,7 @@ public class HtmlTextFormattingConversionTests {
                 VerticalTextAlignment = ExcelVerticalTextAlignment.Subscript
             });
 
-        string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        string html = source.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
         Assert.Contains("data-officeimo-excel-underline=\"DoubleAccounting\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-excel-underline=\"SingleAccounting\"", html, StringComparison.Ordinal);
         Assert.Contains("text-decoration-line:underline;text-decoration-style:double", html, StringComparison.Ordinal);
@@ -255,24 +260,24 @@ public class HtmlTextFormattingConversionTests {
 
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult()
+            .ConvertToExcelWithEvidence()
             .RequireValue();
         ExcelSheet actualSheet = Assert.Single(imported.Sheets);
-        ExcelCellStyleSnapshot cellStyle = actualSheet.GetCellStyle(1, 1);
+        ExcelCellStyleInfo cellStyle = actualSheet.Cell(1, 1).GetStyle();
         Assert.True(cellStyle.Bold);
         Assert.True(cellStyle.Italic);
         Assert.Equal(ExcelUnderlineStyle.DoubleAccounting, cellStyle.UnderlineStyle);
         Assert.True(cellStyle.Strikethrough);
         Assert.Equal(ExcelVerticalTextAlignment.Superscript, cellStyle.VerticalTextAlignment);
         Assert.Equal("Aptos", cellStyle.FontName);
-        Assert.Equal(14D, cellStyle.FontSize);
+        Assert.Equal(14D, cellStyle.FontSize?.ToPoints());
         Assert.Equal("336699", cellStyle.FontColorHex);
 
-        ExcelRichTextRun[] runs = actualSheet.GetRichText(2, 1).ToArray();
+        ExcelRichTextRun[] runs = actualSheet.Cell(2, 1).GetRichText().ToArray();
         Assert.Equal(2, runs.Length);
         Assert.Equal(ExcelUnderlineStyle.SingleAccounting, runs[0].UnderlineStyle);
         Assert.Equal("Aptos", runs[0].FontName);
-        Assert.Equal(13D, runs[0].FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(13D), runs[0].FontSize);
         Assert.Equal(ExcelVerticalTextAlignment.Subscript, runs[1].VerticalTextAlignment);
         Assert.True(runs[1].Strikethrough);
     }
@@ -280,21 +285,21 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void ExcelSemanticHtmlRoundTripRetainsTypographyOnEmptyTemplateCells() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Template");
-        sheet.CellAt(1, 1).SetValue("Anchor");
-        sheet.CellAt(1, 2).SetBold().SetItalic()
+        ExcelSheet sheet = source.AddSheet("Template");
+        sheet.Cell(1, 1).SetValue("Anchor");
+        sheet.Cell(1, 2).SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
-            .SetSubscript().SetFontName("Aptos").SetFontSize(14).SetFontColor("336699");
+            .SetSubscript().SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
 
-        string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        string html = source.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
         Assert.Contains("data-officeimo-empty=\"true\"", html, StringComparison.Ordinal);
 
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult()
+            .ConvertToExcelWithEvidence()
             .RequireValue();
         ExcelSheet actualSheet = Assert.Single(imported.Sheets);
-        ExcelCellStyleSnapshot style = actualSheet.GetCellStyle(1, 2);
+        ExcelCellStyleInfo style = actualSheet.Cell(1, 2).GetStyle();
 
         Assert.False(actualSheet.TryGetCellValueSnapshot(1, 2, out _));
         Assert.True(style.Bold);
@@ -303,7 +308,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(style.Strikethrough);
         Assert.Equal(ExcelVerticalTextAlignment.Subscript, style.VerticalTextAlignment);
         Assert.Equal("Aptos", style.FontName);
-        Assert.Equal(14D, style.FontSize);
+        Assert.Equal(14D, style.FontSize?.ToPoints());
         Assert.Equal("336699", style.FontColorHex);
     }
 
@@ -313,25 +318,25 @@ public class HtmlTextFormattingConversionTests {
 
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult()
+            .ConvertToExcelWithEvidence()
             .RequireValue();
         ExcelSheet sheet = Assert.Single(imported.Sheets);
 
-        Assert.Equal("336699", sheet.GetCellStyle(1, 1).FontColorHex);
-        Assert.Equal("FFCC3300", Assert.Single(sheet.GetRichText(1, 1)).FontColor);
+        Assert.Equal("336699", sheet.Cell(1, 1).GetStyle().FontColorHex);
+        Assert.Equal("FFCC3300", Assert.Single(sheet.Cell(1, 1).GetRichText()).FontColor);
 
         using ExcelDocument generic = HtmlConversionDocument
             .Parse("<table><tr><td style=\"color:#11223380\">Generic</td></tr></table>")
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic })
             .RequireValue();
-        Assert.Equal("112233", Assert.Single(generic.Sheets).GetCellStyle(1, 1).FontColorHex);
+        Assert.Equal("112233", Assert.Single(generic.Sheets).Cell(1, 1).GetStyle().FontColorHex);
     }
 
     [Fact]
     public void ExcelHtmlImportWalksPlainAndNestedStyledTextInDomOrder() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Text").CellAt(1, 1).SetValue("Placeholder");
-        ExcelHtmlSaveOptions options = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
+        source.AddSheet("Text").Cell(1, 1).SetValue("Placeholder");
+        ExcelHtmlExportOptions options = ExcelHtmlExportOptions.CreateSemanticTablesProfile();
         options.HeaderMode = ExcelHtmlHeaderMode.None;
         string html = source.ToHtml(options)
             .Replace("data-officeimo-value=\"Placeholder\"", "data-officeimo-value=\"plain bold nested tail\"")
@@ -342,10 +347,10 @@ public class HtmlTextFormattingConversionTests {
 
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult()
+            .ConvertToExcelWithEvidence()
             .RequireValue();
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
-        ExcelRichTextRun[] runs = importedSheet.GetRichText(1, 1).ToArray();
+        ExcelRichTextRun[] runs = importedSheet.Cell(1, 1).GetRichText().ToArray();
 
         Assert.Equal("plain bold nested tail", string.Concat(runs.Select(run => run.Text)));
         Assert.Contains(runs, run => run.Text == "plain " && !run.Bold && !run.Italic);
@@ -360,23 +365,23 @@ public class HtmlTextFormattingConversionTests {
 
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic })
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic })
             .RequireValue();
         ExcelSheet sheet = Assert.Single(imported.Sheets);
-        ExcelRichTextRun[] runs = sheet.GetRichText(1, 1).ToArray();
+        ExcelRichTextRun[] runs = sheet.Cell(1, 1).GetRichText().ToArray();
 
         Assert.Equal("one\ntwo", string.Concat(runs.Select(run => run.Text)));
         Assert.Contains(runs, run => run.Text == "one" && run.Bold);
         Assert.Contains(runs, run => run.Text == "\n");
         Assert.Contains(runs, run => run.Text == "two" && run.Italic);
-        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal("one\ntwo", snapshot!.Text);
     }
 
     [Fact]
     public void ExcelSemanticHtmlRoundTripAppliesCellTypographyToRichRuns() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Text").CellAt(1, 1)
+        ExcelCell cell = source.AddSheet("Text").Cell(1, 1)
             .SetRichText(
                 new ExcelRichTextRun("Inherited"),
                 new ExcelRichTextRun(" Override") { Italic = true, FontColor = "CC0000" })
@@ -385,16 +390,16 @@ public class HtmlTextFormattingConversionTests {
             .SetStrikethrough()
             .SetSuperscript()
             .SetFontName("Aptos")
-            .SetFontSize(15)
+            .SetFontSize(global::OfficeIMO.OfficeLength.Points(15))
             .SetFontColor("336699");
 
-        string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        string html = source.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult()
+            .ConvertToExcelWithEvidence()
             .RequireValue();
 
-        ExcelRichTextRun[] runs = imported.Sheets.Single().GetRichText(1, 1).ToArray();
+        ExcelRichTextRun[] runs = imported.Sheets.Single().Cell(1, 1).GetRichText().ToArray();
         Assert.Equal(2, runs.Length);
         Assert.All(runs, run => {
             Assert.True(run.Bold);
@@ -402,7 +407,7 @@ public class HtmlTextFormattingConversionTests {
             Assert.True(run.Strikethrough);
             Assert.Equal(ExcelVerticalTextAlignment.Superscript, run.VerticalTextAlignment);
             Assert.Equal("Aptos", run.FontName);
-            Assert.Equal(15D, run.FontSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(15D), run.FontSize);
         });
         Assert.Equal("FF336699", runs[0].FontColor);
         Assert.Equal("FFCC0000", runs[1].FontColor);
@@ -412,8 +417,8 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void ExcelSemanticHtmlPreservesDirectStyleResetsAndRendersPlainCellScriptsInline() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Text");
-        sheet.CellAt(1, 1)
+        ExcelSheet sheet = source.AddSheet("Text");
+        sheet.Cell(1, 1)
             .SetRichText(new ExcelRichTextRun("Direct off") {
                 Bold = false,
                 Italic = false,
@@ -422,9 +427,9 @@ public class HtmlTextFormattingConversionTests {
                 VerticalTextAlignment = ExcelVerticalTextAlignment.Baseline
             })
             .SetBold().SetItalic().SetUnderline().SetStrikethrough().SetSuperscript();
-        sheet.CellAt(2, 1).SetValue("Plain script").SetSubscript();
+        sheet.Cell(2, 1).SetValue("Plain script").SetSubscript();
 
-        string html = source.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        string html = source.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
         Assert.Contains("font-weight:normal", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("font-style:normal", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("text-decoration-line:none", html, StringComparison.OrdinalIgnoreCase);
@@ -435,17 +440,17 @@ public class HtmlTextFormattingConversionTests {
 
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult()
+            .ConvertToExcelWithEvidence()
             .RequireValue();
         ExcelSheet actual = Assert.Single(imported.Sheets);
-        ExcelRichTextRun directOff = Assert.Single(actual.GetRichText(1, 1));
+        ExcelRichTextRun directOff = Assert.Single(actual.Cell(1, 1).GetRichText());
         Assert.False(directOff.Bold);
         Assert.False(directOff.Italic);
         Assert.False(directOff.Underline);
         Assert.False(directOff.Strikethrough);
         Assert.Equal(ExcelVerticalTextAlignment.Baseline, directOff.VerticalTextAlignment);
-        Assert.Equal(ExcelVerticalTextAlignment.Superscript, actual.GetCellStyle(1, 1).VerticalTextAlignment);
-        Assert.Equal(ExcelVerticalTextAlignment.Subscript, actual.GetCellStyle(2, 1).VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Superscript, actual.Cell(1, 1).GetStyle().VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Subscript, actual.Cell(2, 1).GetStyle().VerticalTextAlignment);
     }
 
     [Fact]
@@ -464,7 +469,7 @@ public class HtmlTextFormattingConversionTests {
 
         using ExcelDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult()
+            .ConvertToExcelWithEvidence()
             .RequireValue();
         ExcelSheet sheet = Assert.Single(imported.Sheets);
 
@@ -476,19 +481,19 @@ public class HtmlTextFormattingConversionTests {
             ExcelCellValueKind.Error
         };
         for (int column = 1; column <= expectedKinds.Length; column++) {
-            Assert.True(sheet.TryGetCellValueSnapshot(1, column, out ExcelCellValueSnapshot? snapshot));
+            Assert.True(sheet.TryGetCellValueSnapshot(1, column, out ExcelNativeCellValueInfo? snapshot));
             Assert.Equal(expectedKinds[column - 1], snapshot!.Kind);
-            Assert.Empty(sheet.GetRichText(1, column));
+            Assert.Empty(sheet.Cell(1, column).GetRichText());
         }
 
         Assert.Equal("1+2", sheet.GetFormulaText(1, 2));
-        Assert.Equal(ExcelVerticalTextAlignment.Superscript, sheet.GetCellStyle(1, 1).VerticalTextAlignment);
-        Assert.Equal(ExcelVerticalTextAlignment.Subscript, sheet.GetCellStyle(1, 4).VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Superscript, sheet.Cell(1, 1).GetStyle().VerticalTextAlignment);
+        Assert.Equal(ExcelVerticalTextAlignment.Subscript, sheet.Cell(1, 4).GetStyle().VerticalTextAlignment);
     }
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsNativeRunTypography() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun authored = source.AddSlide().AddTextBox("Styled")
             .Paragraphs.Single().Runs.Single();
         authored.Bold = true;
@@ -497,11 +502,11 @@ public class HtmlTextFormattingConversionTests {
         authored.StrikeStyle = PowerPointStrikeStyle.Double;
         authored.Capitalization = PowerPointCapitalization.SmallCaps;
         authored.BaselinePercent = 37.5D;
-        authored.FontName = "Aptos";
-        authored.FontSizePoints = 14.5D;
-        authored.Color = "336699";
+        authored.FontFamily = "Aptos";
+        authored.FontSize = global::OfficeIMO.OfficeLength.Points(14.5D);
+        authored.Color = OfficeColor.Parse("336699");
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-underline=\"WavyDouble\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-strike=\"Double\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-capitalization=\"SmallCaps\"", html, StringComparison.Ordinal);
@@ -514,8 +519,8 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(OfficeTextDecorationStyle.Double, semanticRun.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Double, semanticRun.StrikethroughStyle);
 
-        using PowerPointPresentation imported = prepared
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = prepared
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextRun actual = Assert.Single(imported.Slides).TextBoxes.Single()
             .Paragraphs.Single().Runs.Single();
@@ -525,15 +530,15 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(PowerPointStrikeStyle.Double, actual.StrikeStyle);
         Assert.Equal(PowerPointCapitalization.SmallCaps, actual.Capitalization);
         Assert.Equal(37.5D, actual.BaselinePercent);
-        Assert.Equal("Aptos", actual.FontName);
-        Assert.Equal(14.5D, actual.FontSizePoints);
-        Assert.Equal("336699", actual.Color);
+        Assert.Equal("Aptos", actual.FontFamily);
+        Assert.Equal(14.5D, actual.FontSize?.ToPoints());
+        Assert.Equal(OfficeColor.Parse("336699"), actual.Color);
     }
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsTableCellRunTypography() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
-        PowerPointTableCell cell = source.AddSlide().AddTablePoints(1, 1, 20, 20, 220, 60).GetCell(0, 0);
+        using PowerPointDocument source = PowerPointDocument.Create();
+        PowerPointTableCell cell = source.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
         cell.Text = "First";
         PowerPointParagraph paragraph = Assert.Single(cell.Paragraphs);
         PowerPointTextRun first = Assert.Single(paragraph.Runs);
@@ -541,15 +546,15 @@ public class HtmlTextFormattingConversionTests {
         first.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
         first.Capitalization = PowerPointCapitalization.SmallCaps;
         first.Language = "pl-PL";
-        PowerPointTextRun second = paragraph.AddRun("Second");
+        PowerPointTextRun second = paragraph.AddText("Second");
         second.Italic = true;
         second.StrikeStyle = PowerPointStrikeStyle.Double;
         second.BaselinePercent = -25D;
-        second.FontName = "Aptos";
-        second.Color = "336699";
+        second.FontFamily = "Aptos";
+        second.Color = OfficeColor.Parse("336699");
         second.Hyperlink = new Uri("https://example.com/styled", UriKind.Absolute);
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-layer-kind=\"table\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-underline=\"WavyDouble\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-strike=\"Double\"", html, StringComparison.Ordinal);
@@ -566,8 +571,8 @@ public class HtmlTextFormattingConversionTests {
             block => block.Table != null).Table!.Rows).Cells);
         Assert.Equal(2, semanticCell.Runs.Count);
 
-        using PowerPointPresentation imported = prepared
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument imported = prepared
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextRun[] runs = imported.Slides.Single().Tables.Single().GetCell(0, 0)
             .Paragraphs.Single().Runs.ToArray();
@@ -580,19 +585,19 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(runs[1].Italic);
         Assert.Equal(PowerPointStrikeStyle.Double, runs[1].StrikeStyle);
         Assert.Equal(-25D, runs[1].BaselinePercent);
-        Assert.Equal("Aptos", runs[1].FontName);
-        Assert.Equal("336699", runs[1].Color);
+        Assert.Equal("Aptos", runs[1].FontFamily);
+        Assert.Equal(OfficeColor.Parse("336699"), runs[1].Color);
         Assert.Equal(new Uri("https://example.com/styled", UriKind.Absolute), runs[1].Hyperlink);
     }
 
     [Fact]
     public void PowerPointSemanticHtmlDoesNotActivatePolicyRejectedRunHyperlinks() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointTextRun run = source.AddSlide().AddTextBox("Blocked")
             .Paragraphs.Single().Runs.Single();
         run.Hyperlink = new Uri("javascript:alert(1)", UriKind.Absolute);
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
 
         Assert.Contains("data-officeimo-powerpoint-hyperlink=\"javascript:alert(1)\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("href=\"javascript:", html, StringComparison.OrdinalIgnoreCase);
@@ -605,8 +610,8 @@ public class HtmlTextFormattingConversionTests {
             "<span data-officeimo-powerpoint-run=\"true\" data-officeimo-powerpoint-hyperlink=\"https://example.com/safe\">Allowed</span>" +
             "</p></section>";
 
-        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult().RequireValue();
+        using PowerPointDocument imported = HtmlConversionDocument.Parse(html)
+            .ConvertToPowerPointWithEvidence().RequireValue();
         PowerPointTextRun[] runs = imported.Slides.Single().TextBoxes.Single()
             .Paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray();
 
@@ -624,34 +629,34 @@ public class HtmlTextFormattingConversionTests {
             </section>
             """;
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextRun[] runs = imported.Slides.Single().Tables.Single().GetCell(0, 0)
             .Paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray();
 
         Assert.Contains(runs, run => run.Text.Contains("Bold", StringComparison.Ordinal)
-            && run.Bold && run.Color == "336699");
+            && run.Bold && run.Color == OfficeColor.Parse("336699"));
         Assert.Contains(runs, run => run.Text.Contains("linked", StringComparison.Ordinal)
-            && run.Color == "336699"
+            && run.Color == OfficeColor.Parse("336699")
             && run.Hyperlink == new Uri("https://example.com/linked", UriKind.Absolute));
     }
 
     [Fact]
     public void PowerPointSemanticHtmlRetainsLanguageOnAnOtherwisePlainTableRun() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
-        PowerPointTextRun authored = source.AddSlide().AddTablePoints(1, 1, 20, 20, 220, 60)
+        using PowerPointDocument source = PowerPointDocument.Create();
+        PowerPointTextRun authored = source.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60))
             .GetCell(0, 0).Paragraphs.Single().Runs.Single();
         authored.Text = "Polski";
         authored.Language = "pl-PL";
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-language=\"pl-PL\"", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextRun actual = imported.Slides.Single().Tables.Single().GetCell(0, 0)
             .Paragraphs.Single().Runs.Single();
@@ -660,17 +665,17 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRecreatesDynamicFieldsInAuthoredOrder() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();
         paragraph.AddField("1", "slidenum", "{11111111-1111-1111-1111-111111111111}");
-        paragraph.AddRun(" after");
+        paragraph.AddText(" after");
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         IReadOnlyList<PowerPointParagraphInline> nodes = imported.Slides.Single().TextBoxes.Single()
             .Paragraphs.Single().InlineNodes;
@@ -683,26 +688,26 @@ public class HtmlTextFormattingConversionTests {
 
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsDynamicFieldTypography() {
-        using PowerPointPresentation source = PowerPointPresentation.Create();
+        using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointParagraph paragraph = source.AddSlide().AddTextBox("Before ").Paragraphs.Single();
         paragraph.AddField("1", "slidenum", "{11111111-1111-1111-1111-111111111111}", run => {
             run.Bold = true;
             run.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
             run.BaselinePercent = 30D;
-            run.FontName = "Aptos";
-            run.Color = "336699";
+            run.FontFamily = "Aptos";
+            run.Color = OfficeColor.Parse("336699");
             run.Hyperlink = new Uri("https://example.com/field", UriKind.Absolute);
         });
 
-        string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        string html = source.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains("data-officeimo-powerpoint-field=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-underline=\"WavyDouble\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-powerpoint-baseline-percent=\"30\"", html, StringComparison.Ordinal);
         Assert.Contains("<a href=\"https://example.com/field\">", html, StringComparison.Ordinal);
 
-        using PowerPointPresentation imported = HtmlConversionDocument
+        using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointParagraphInline field = Assert.Single(imported.Slides.Single().TextBoxes.Single()
             .Paragraphs.Single().InlineNodes, node => node.Kind == PowerPointParagraphInlineKind.Field);
@@ -711,8 +716,8 @@ public class HtmlTextFormattingConversionTests {
         Assert.True(formatting.Bold);
         Assert.Equal(PowerPointUnderlineStyle.WavyDouble, formatting.UnderlineStyle);
         Assert.Equal(30D, formatting.BaselinePercent);
-        Assert.Equal("Aptos", formatting.FontName);
-        Assert.Equal("336699", formatting.Color);
+        Assert.Equal("Aptos", formatting.FontFamily);
+        Assert.Equal(OfficeColor.Parse("336699"), formatting.Color);
         Assert.Equal(new Uri("https://example.com/field", UriKind.Absolute), formatting.Hyperlink);
     }
 
@@ -720,26 +725,26 @@ public class HtmlTextFormattingConversionTests {
     public void InvalidNumericNativeStyleMetadataFallsBackWithoutThrowingAcrossOfficeTargets() {
         using WordDocument word = HtmlConversionDocument.Parse(
             "<p><span data-officeimo-word-underline=\"999\">Word</span></p>")
-            .ToWordDocumentResult().RequireValue();
+            .ConvertToWordWithEvidence().RequireValue();
         Assert.Null(Assert.Single(word.Paragraphs).Underline);
 
         using ExcelDocument excelSource = ExcelDocument.Create();
-        excelSource.AddWorksheet("Text").CellAt(1, 1).SetRichText(
+        excelSource.AddSheet("Text").Cell(1, 1).SetRichText(
             new ExcelRichTextRun("Ex") { Bold = true },
             new ExcelRichTextRun("cel") { Italic = true });
-        string excelHtml = excelSource.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile())
+        string excelHtml = excelSource.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile())
             .Replace("<span", "<span data-officeimo-excel-underline=\"999\"");
         using ExcelDocument excel = HtmlConversionDocument.Parse(excelHtml, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToExcelDocumentResult().RequireValue();
-        Assert.All(Assert.Single(excel.Sheets).GetRichText(1, 1), run => Assert.Null(run.UnderlineStyle));
+            .ConvertToExcelWithEvidence().RequireValue();
+        Assert.All(Assert.Single(excel.Sheets).Cell(1, 1).GetRichText(), run => Assert.Null(run.UnderlineStyle));
 
-        using PowerPointPresentation powerPointSource = PowerPointPresentation.Create();
+        using PowerPointDocument powerPointSource = PowerPointDocument.Create();
         powerPointSource.AddSlide().AddTextBox("PowerPoint");
-        string powerPointHtml = powerPointSource.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile())
+        string powerPointHtml = powerPointSource.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile())
             .Replace("<span", "<span data-officeimo-powerpoint-underline=\"999\" data-officeimo-powerpoint-strike=\"999\" data-officeimo-powerpoint-capitalization=\"999\"");
-        using PowerPointPresentation powerPoint = HtmlConversionDocument.Parse(
+        using PowerPointDocument powerPoint = HtmlConversionDocument.Parse(
             powerPointHtml, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointPresentationResult().RequireValue();
+            .ConvertToPowerPointWithEvidence().RequireValue();
         PowerPointTextRun run = powerPoint.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Null(run.UnderlineStyle);
         Assert.Null(run.StrikeStyle);
@@ -755,13 +760,13 @@ public class HtmlTextFormattingConversionTests {
         Assert.EndsWith("'", quoted, StringComparison.Ordinal);
 
         using ExcelDocument excel = ExcelDocument.Create();
-        excel.AddWorksheet("Text").CellAt(1, 1).SetValue("Excel").SetFontName(hostile);
-        string excelHtml = excel.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
+        excel.AddSheet("Text").Cell(1, 1).SetValue("Excel").SetFontName(hostile);
+        string excelHtml = excel.ToHtml(ExcelHtmlExportOptions.CreateSemanticTablesProfile());
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), excelHtml, StringComparison.Ordinal);
 
-        using PowerPointPresentation powerPoint = PowerPointPresentation.Create();
-        powerPoint.AddSlide().AddTextBox("PowerPoint").Paragraphs[0].Runs[0].FontName = hostile;
-        string powerPointHtml = powerPoint.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
+        using PowerPointDocument powerPoint = PowerPointDocument.Create();
+        powerPoint.AddSlide().AddTextBox("PowerPoint").Paragraphs[0].Runs[0].FontFamily = hostile;
+        string powerPointHtml = powerPoint.ToHtml(PowerPointHtmlExportOptions.CreateSemanticSlidesProfile());
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), powerPointHtml, StringComparison.Ordinal);
     }
 
@@ -777,7 +782,7 @@ public class HtmlTextFormattingConversionTests {
     public void HtmlToOneNotePreservesQuotedFontFamilyNamesContainingCommas() {
         const string html = "<p><span style='font-family:\"ACME, Sans\", Arial'>Styled</span></p>";
 
-        OneNoteSection section = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue();
+        OneNoteSection section = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence().RequireValue();
         OneNoteTextRun run = Assert.Single(Assert.Single(Assert.Single(section.Pages).Outlines).Children
             .OfType<OneNoteParagraph>().Single().Runs);
 
@@ -791,7 +796,7 @@ public class HtmlTextFormattingConversionTests {
                 ><strong><em><u><s><sup>Styled</sup></s></u></em></strong></span></p>
             """;
 
-        OneNoteSection section = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue();
+        OneNoteSection section = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence().RequireValue();
         OneNoteTextRun run = Assert.Single(Assert.Single(Assert.Single(section.Pages).Outlines).Children
             .OfType<OneNoteParagraph>().Single().Runs);
 
@@ -814,7 +819,7 @@ public class HtmlTextFormattingConversionTests {
             + "<span style='font-size:small'>Small</span></p>";
 
         OneNoteParagraph paragraph = Assert.Single(Assert.Single(Assert.Single(
-            HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue().Pages).Outlines)
+            HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence().RequireValue().Pages).Outlines)
             .Children.OfType<OneNoteParagraph>());
 
         void AssertFontSize(string text, double expected) {
@@ -833,7 +838,7 @@ public class HtmlTextFormattingConversionTests {
     public void HtmlBlockBackgroundDoesNotBecomeOneNoteRunHighlightButInlineBackgroundDoes() {
         const string html = "<p style=\"background-color:#112233\">Plain <span style=\"background-color:#FFF2CC\">Marked</span></p>";
 
-        OneNoteSection section = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult().RequireValue();
+        OneNoteSection section = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence().RequireValue();
         OneNoteTextRun[] runs = Assert.Single(Assert.Single(Assert.Single(section.Pages).Outlines).Children
             .OfType<OneNoteParagraph>()).Runs.ToArray();
 
@@ -860,7 +865,7 @@ public class HtmlTextFormattingConversionTests {
         page.DirectContent.Add(paragraph);
         source.Pages.Add(page);
 
-        HtmlTextConversionResult exported = source.ToHtmlDocumentResult();
+        HtmlTextConversionResult exported = source.ConvertToHtmlWithEvidence();
         Assert.Contains("font-family:&quot;Aptos&quot;", exported.Value, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("font-size:14pt", exported.Value, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("color:#336699", exported.Value, StringComparison.OrdinalIgnoreCase);
@@ -868,10 +873,10 @@ public class HtmlTextFormattingConversionTests {
         Assert.Contains("<u><s>", exported.Value, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<sub", exported.Value, StringComparison.OrdinalIgnoreCase);
 
-        OneNoteSection imported = HtmlConversionDocument.Parse(exported.Value).ToOneNoteSectionResult().RequireValue();
+        OneNoteSection imported = HtmlConversionDocument.Parse(exported.Value).ConvertToOneNoteSectionWithEvidence().RequireValue();
         OneNoteTextRun actual = Assert.Single(imported.Pages.SelectMany(importedPage => importedPage.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteParagraph>()
-            .SelectMany(item => item.Runs), item => item.Text == "Styled" && item.Style.FontFamily == "Aptos");
+            .SelectMany(item => item.Runs), item => item.Text == "Styled" && item.Style.ColorArgb == 0xFF336699U);
         Assert.Equal("Aptos", actual.Style.FontFamily);
         Assert.Equal(14D, actual.Style.FontSize);
         Assert.Equal(0xFF336699U, actual.Style.ColorArgb);
@@ -891,7 +896,7 @@ public class HtmlTextFormattingConversionTests {
               <sup>Super</sup><sub>Sub</sub>
             </p>
             """;
-        PdfDocumentConversionResult pdf = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        PdfDocumentConversionResult pdf = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence();
         Assert.True(pdf.ToBytes().Length > 100);
 
         foreach (OfficeImageExportFormat format in new[] {
@@ -912,7 +917,7 @@ public class HtmlTextFormattingConversionTests {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Styled").SetBold().SetItalic()
             .SetUnderline(WordUnderlineStyle.WavyDouble).SetDoubleStrike()
-            .SetSuperScript().SetFontFamily("Aptos").SetFontSize(18).SetColorHex("336699");
+            .SetSuperScript().SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(18)).SetColor(OfficeColor.Parse("336699"));
         OfficeImageExportFormat[] formats = {
             OfficeImageExportFormat.Png,
             OfficeImageExportFormat.Svg,
@@ -926,7 +931,7 @@ public class HtmlTextFormattingConversionTests {
             Assert.True(direct.Bytes.Length > 32);
         }
 
-        PdfDocumentConversionResult pdf = document.ToPdfDocumentResult();
+        using PdfDocument pdf = document.ToPdf();
         foreach (OfficeImageExportFormat format in formats) {
             OfficeImageExportResult flattened = Assert.Single(pdf.ExportImages(format));
             Assert.True(flattened.Bytes.Length > 32);

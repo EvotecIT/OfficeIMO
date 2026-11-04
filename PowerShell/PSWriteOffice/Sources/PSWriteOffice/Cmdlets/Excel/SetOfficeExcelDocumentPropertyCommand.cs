@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// }</code>
 ///   <para>Updates built-in or custom workbook properties through the current Excel DSL context.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelDocumentProperty")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelDocumentProperty", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelDocument))]
 public sealed class SetOfficeExcelDocumentPropertyCommand : PSCmdlet
 {

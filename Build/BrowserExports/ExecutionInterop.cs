@@ -33,12 +33,12 @@ internal static class ExecutionInterop {
                 if (name.EndsWith(".pdf", StringComparison.Ordinal)) files.Add(PdfExportVerifier.Verify(path));
                 else if (name.EndsWith(".xlsx", StringComparison.Ordinal)) {
                     WorkbookVerifier.Verify(path);
-                    using var reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions { A1Range = "A2:C3", HasHeaderRow = false });
+                    using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { A1Range = "A2:C3", HasHeaderRow = false });
                     WorkbookVerifier.Require(reader.Read() && Equals(reader.GetValue(0), "Łódź") && Convert.ToDouble(reader.GetValue(1), CultureInfo.InvariantCulture) == 12.5 && Equals(reader.GetValue(2), true), "Worker XLSX typed first row differs.");
                     WorkbookVerifier.Require(reader.Read() && Equals(reader.GetValue(0), "second") && Convert.ToDouble(reader.GetValue(1), CultureInfo.InvariantCulture) == 7 && Equals(reader.GetValue(2), false) && !reader.Read(), "Worker XLSX typed second row differs.");
                     files.Add(new { file = name, bytes = new FileInfo(path).Length, readers = 2, openXml = true });
                 } else {
-                    using var reader = CsvDocument.OpenDataReader(path);
+                    using var reader = CsvDocument.OpenReader(path);
                     WorkbookVerifier.Require(reader.FieldCount == 3 && reader.Read() && reader.GetString(0) == "Łódź" && reader.GetString(1) == "12.5" && reader.GetString(2) == "True", "Worker CSV first row differs.");
                     WorkbookVerifier.Require(reader.Read() && reader.GetString(0) == "second" && reader.GetString(1) == "7" && reader.GetString(2) == "False" && !reader.Read(), "Worker CSV second row differs.");
                     files.Add(new { file = name, bytes = new FileInfo(path).Length, reader = "OfficeIMO.CSV" });

@@ -13,14 +13,13 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_InheritedRunningStoriesRefreshAfterReferenceEdits(bool footer) {
         using WordDocument document = CreateInheritedRunningStoryControl(footer, "default", "next");
-        using (var initial = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions())))
+        using (var initial = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })))
             Assert.Contains("MARK", initial.GetPage(2).Text);
 
         WordSection later = document.Sections[1];
-        later.AddHeadersAndFooters();
-        WordHeaderFooter local = footer ? later.Footer.Default! : later.Header.Default!;
+        WordHeaderFooter local = footer ? later.PageSetup.Footer : later.PageSetup.Header;
         local.AddParagraph("LOCAL");
-        using (var authored = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()))) {
+        using (var authored = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))) {
             Assert.Contains("MARK", authored.GetPage(1).Text);
             Assert.Contains("LOCAL", authored.GetPage(2).Text);
             Assert.DoesNotContain("MARK", authored.GetPage(2).Text);
@@ -28,7 +27,7 @@ public partial class Word {
 
         foreach (var reference in later._sectionProperties.ChildElements.Where(element =>
             footer ? element is W.FooterReference : element is W.HeaderReference).ToArray()) reference.Remove();
-        using (var inherited = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()))) {
+        using (var inherited = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))) {
             Assert.Contains("MARK", inherited.GetPage(2).Text);
             Assert.DoesNotContain("LOCAL", inherited.GetPage(2).Text);
         }
@@ -38,8 +37,8 @@ public partial class Word {
     public async Task RunningStoryResolutionScopeRestoresNestedAndCapturedOperations() {
         using WordDocument first = WordDocument.Create();
         using WordDocument second = WordDocument.Create();
-        WordHeader firstHeader = first.HeaderDefaultOrCreate;
-        WordHeader secondHeader = second.HeaderDefaultOrCreate;
+        WordHeader firstHeader = first.PageSetup.Header;
+        WordHeader secondHeader = second.PageSetup.Header;
         firstHeader.AddParagraph("FIRST"); secondHeader.AddParagraph("SECOND");
         WordHeaderFooterResolutionSnapshot captured;
         using (WordHeaderFooterResolutionSnapshot.Begin(first)) {

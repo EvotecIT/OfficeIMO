@@ -22,7 +22,7 @@ internal static class EndNoteXmlCodec {
         try {
             int sourceOffset = source.Length > 0 && source[0] == '\uFEFF' ? 1 : 0;
             var offsets = new EndNoteSourceOffsetMap(source, sourceOffset, cancellationToken);
-            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = options.MaximumInputCharacters };
+            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = options.MaxInputCharacters };
             using var textReader = new EndNoteCancellableTextReader(source, cancellationToken, sourceOffset);
             using XmlReader innerReader = XmlReader.Create(textReader, settings);
             using var reader = new EndNoteBoundedXmlReader(innerReader, limits, materializationLimits, items, offsets, cancellationToken);

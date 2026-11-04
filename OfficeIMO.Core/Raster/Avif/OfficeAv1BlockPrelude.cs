@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing;
 
 /// <summary>Leaf state preceding AV1 intra prediction syntax. Filter deltas are a snapshot, not shared tile arrays.</summary>

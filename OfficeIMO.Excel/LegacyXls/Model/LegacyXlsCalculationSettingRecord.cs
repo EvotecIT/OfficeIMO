@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Captures one calculation-related BIFF record and where it was found.
     /// </summary>
-    public sealed class LegacyXlsCalculationSettingRecord {
+    internal sealed class LegacyXlsCalculationSettingRecord {
         /// <summary>
         /// Creates a calculation setting record.
         /// </summary>

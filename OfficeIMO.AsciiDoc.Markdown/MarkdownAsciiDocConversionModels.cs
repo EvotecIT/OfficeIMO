@@ -1,7 +1,7 @@
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Options for canonical Markdown-to-AsciiDoc conversion.</summary>
-public sealed class MarkdownToAsciiDocOptions {
+public sealed class MarkdownAsciiDocExportOptions {
     /// <summary>Output line ending. Defaults to LF.</summary>
     public string LineEnding { get; set; } = "\n";
 
@@ -49,7 +49,10 @@ public sealed class MarkdownAsciiDocConversionDiagnostic {
 }
 
 /// <summary>Canonical AsciiDoc source and its lossless parsed document.</summary>
-public sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDocument, MarkdownToAsciiDocReport> {
+public sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDocument> {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new MarkdownToAsciiDocReport Report => (MarkdownToAsciiDocReport)base.Report;
+
     internal MarkdownToAsciiDocResult(
         string source,
         AsciiDocDocument value,
@@ -64,33 +67,33 @@ public sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDo
 }
 
 /// <summary>Markdown-to-AsciiDoc conversion diagnostics captured for one operation.</summary>
-public sealed class MarkdownToAsciiDocReport : IOfficeConversionReport {
+public sealed class MarkdownToAsciiDocReport : OfficeConversionReport {
     internal MarkdownToAsciiDocReport(IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
-        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
-        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
+        NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(NativeDiagnostics.Select(static diagnostic =>
+            new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
+                diagnostic.SourceSpan?.ToString(),
+                "OfficeIMO.AsciiDoc.Markdown",
                 diagnostic.Outcome switch {
                     AsciiDocMarkdownConversionOutcome.Converted => OfficeConversionLossKind.None,
                     AsciiDocMarkdownConversionOutcome.Omitted => OfficeConversionLossKind.Omission,
                     _ => OfficeConversionLossKind.Approximation
-                },
-                "OfficeIMO.AsciiDoc.Markdown",
-                diagnostic.SourceSpan?.ToString())).ToArray());
+                })).ToArray());
     }
 
     /// <summary>Fallback and simplification diagnostics.</summary>
-    public IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> NativeDiagnostics { get; }
 
     /// <summary>Category-preserving conversion diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>True when at least one feature was not converted exactly.</summary>
-    public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != AsciiDocMarkdownConversionOutcome.Converted);
+    public override bool HasLoss => NativeDiagnostics.Any(static diagnostic => diagnostic.Outcome != AsciiDocMarkdownConversionOutcome.Converted);
 
     /// <summary>Throws when the conversion reported a lossy mapping.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException("Markdown-to-AsciiDoc conversion reported one or more lossy mappings.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Markdown-to-AsciiDoc conversion reported one or more lossy mappings.", this);
 }

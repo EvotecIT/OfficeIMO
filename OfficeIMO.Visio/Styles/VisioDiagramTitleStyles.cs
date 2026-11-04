@@ -1,5 +1,5 @@
 using System;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     internal static class VisioDiagramTitleStyles {
@@ -13,7 +13,7 @@ namespace OfficeIMO.Visio {
             if (!style.Color.HasValue || style.Color.Value.A == 0) {
                 style.Color = Color.FromRgb(32, 55, 75);
             }
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
+            style.HorizontalAlignment = OfficeAlignment.Center;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
             return style;
         }

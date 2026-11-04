@@ -1,16 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>PDF-to-HTML semantic and positioned-review conversion for OfficeIMO.</Description>
+    <Description>HTML-to-PDF conversion, PDF-backed HTML image export, and PDF-to-HTML semantic and positioned-review conversion for OfficeIMO.</Description>
     <PackageId>OfficeIMO.Html.Pdf</PackageId>
-    <AssemblyName>OfficeIMO.Html.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Html.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageTags>html;pdf;converter;officeimo-pdf</PackageTags>
+    <PackageTags>html;pdf;converter;image-export;png;jpeg;tiff;svg;webp;officeimo-pdf</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -43,13 +41,25 @@
 
   <ItemGroup>
     <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
     <Using Include="System.IO" />
+    <Using Include="System.Linq" />
     <Using Include="System.Text" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+    <Using Include="OfficeIMO.Drawing" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Chm.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
 </Project>

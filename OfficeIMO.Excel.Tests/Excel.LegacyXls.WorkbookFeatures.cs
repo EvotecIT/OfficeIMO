@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> projectedLinks = document.Sheets[0].GetHyperlinks();
+            IReadOnlyDictionary<string, ExcelHyperlinkInfo> projectedLinks = document.Sheets[0].GetHyperlinks();
             Assert.Equal("Open OfficeIMO XLS docs", projectedLinks["A1"].Tooltip);
 
             using var output = new MemoryStream();
@@ -354,18 +354,18 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            ExcelSheetPageSetup setup = document.Sheets[0].GetPageSetup();
+            ExcelSheetPageSetup setup = document.Sheets[0].PageSetup;
             Assert.Equal(OfficePageOrientation.Landscape, setup.Orientation);
             Assert.Equal((uint)125, setup.Scale);
             Assert.Equal((uint)1, setup.FitToWidth);
             Assert.Equal((uint)2, setup.FitToHeight);
             Assert.NotNull(setup.Margins);
-            Assert.Equal(0.25d, setup.Margins!.Left);
-            Assert.Equal(0.35d, setup.Margins.Right);
-            Assert.Equal(0.5d, setup.Margins.Top);
-            Assert.Equal(0.6d, setup.Margins.Bottom);
-            Assert.Equal(0.4d, setup.Margins.Header);
-            Assert.Equal(0.45d, setup.Margins.Footer);
+            Assert.Equal(0.25d, setup.Margins!.Left.ToInches());
+            Assert.Equal(0.35d, setup.Margins.Right.ToInches());
+            Assert.Equal(0.5d, setup.Margins.Top.ToInches());
+            Assert.Equal(0.6d, setup.Margins.Bottom.ToInches());
+            Assert.Equal(0.4d, setup.Margins.Header.ToInches());
+            Assert.Equal(0.45d, setup.Margins.Footer.ToInches());
         }
 
         [Fact]
@@ -419,7 +419,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("C2:C4", sortSettings.Key3);
             LegacyXlsUnsupportedFeature unsupportedSort = Assert.Single(result.UnsupportedFeatures);
             Assert.Equal(LegacyXlsUnsupportedFeatureKind.WorksheetSort, unsupportedSort.Kind);
-            Assert.Equal("XLS-BIFF-FEATURE-WORKSHEET-SORT-CUSTOM-LIST-UNSUPPORTED", unsupportedSort.Code);
+            Assert.Equal("xls-biff-feature-worksheet-sort-custom-list-unsupported", unsupportedSort.Code);
             Assert.Equal((ushort)0x0090, unsupportedSort.RecordType);
             Assert.Equal("WorksheetSort:CustomListIndex", unsupportedSort.DetailCode);
             Assert.Equal(1, result.ImportReport.UnsupportedProjectionGapsByKind[LegacyXlsUnsupportedFeatureKind.WorksheetSort]);
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            ExcelSheetPrintOptions options = document.Sheets[0].GetPrintOptions();
+            ExcelSheetPageSetup options = document.Sheets[0].PageSetup;
             Assert.True(options.PrintHeadings);
             Assert.True(options.PrintGridLines);
             Assert.True(options.HorizontalCentered);
@@ -757,7 +757,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.Equal(150U, document.Sheets[0].GetZoomScale());
+            Assert.Equal(150U, document.Sheets[0].View.ZoomScale);
 
             using var output = new MemoryStream();
             document.Save(output);
@@ -786,7 +786,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            ExcelSheet.ExcelHeaderFooterSnapshot snapshot = document.Sheets[0].GetHeaderFooter();
+            ExcelSheet.ExcelHeaderFooterInfo snapshot = document.Sheets[0].GetHeaderFooter();
             Assert.Equal("Left &P&E Again", snapshot.HeaderLeft);
             Assert.Equal("Quarterly", snapshot.HeaderCenter);
             Assert.Equal("Confidential", snapshot.HeaderRight);
@@ -823,11 +823,11 @@ namespace OfficeIMO.Tests {
             });
 
             ExcelSheet sheet = document.Sheets[0];
-            Assert.Equal("'Names'!$A$1:$B$2", document.GetNamedRange("DataRange"));
-            Assert.Equal("$C$3", sheet.GetNamedRange("HiddenCell"));
-            Assert.Equal("$A$1:$B$3", sheet.GetNamedRange("_FilterDatabase"));
-            Assert.Equal("$A$1:$B$4", sheet.GetPrintArea());
-            ExcelPrintTitles printTitles = sheet.GetPrintTitles();
+            Assert.Equal("'Names'!$A$1:$B$2", document.GetNamedRangeText("DataRange"));
+            Assert.Equal("$C$3", sheet.GetNamedRangeText("HiddenCell"));
+            Assert.Equal("$A$1:$B$3", sheet.GetNamedRangeText("_FilterDatabase"));
+            Assert.Equal("$A$1:$B$4", sheet.PageSetup.PrintArea);
+            ExcelPrintTitles printTitles = sheet.PageSetup.PrintTitles;
             Assert.Equal(1, printTitles.FirstRow);
             Assert.Equal(2, printTitles.LastRow);
             Assert.Equal(1, printTitles.FirstColumn);
@@ -1171,7 +1171,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Dialog1", unsupportedSheet.Name);
             Assert.Equal(0x00, unsupportedSheet.SheetType);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DialogSheet && feature.SheetName == "Dialog1" && feature.RecordType == 0x0081);
-            Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-DIALOG-SHEET-UNSUPPORTED" && d.SheetName == "Dialog1" && d.RecordType == 0x0081);
+            Assert.Contains(legacy.Diagnostics, d => d.Code == "xls-biff-feature-dialog-sheet-unsupported" && d.SheetName == "Dialog1" && d.RecordType == 0x0081);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedContent = true
@@ -1194,7 +1194,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasImportErrors);
             Assert.Equal((ushort)0, Assert.Single(result.Workbook.Worksheets).PageSetup!.FitToHeight);
-            ExcelSheetPageSetup setup = result.Document.Sheets[0].GetPageSetup();
+            ExcelSheetPageSetup setup = result.Document.Sheets[0].PageSetup;
             Assert.Equal(1U, setup.FitToWidth);
             Assert.Equal(0U, setup.FitToHeight);
         }
@@ -1226,7 +1226,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.Contains(legacy.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-XF-SHORT");
+            Assert.Contains(legacy.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-xf-short");
             Assert.Empty(legacy.CellFormats);
             Assert.Contains(Assert.Single(legacy.Worksheets).Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Imported"));
         }
@@ -1328,14 +1328,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalNamesByFlagShape["Body:ExternalDefinedName|BuiltIn:Present|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Missing|Icon:Missing"]);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01ae && feature.Description.Contains("C:\\Data\\Budget.xls", StringComparison.Ordinal));
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:ExternalWorkbook");
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01ae);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-feature-external-reference-unsupported" && d.RecordType == 0x01ae);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:ExternalWorkbook");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
             Assert.DoesNotContain(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:DConRef");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x0023);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01b7);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x0023);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01b7);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-feature-external-reference-unsupported" && d.RecordType == 0x0023);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-feature-external-reference-unsupported" && d.RecordType == 0x01b7);
         }
 
         [Fact]
@@ -1849,7 +1849,7 @@ namespace OfficeIMO.Tests {
             });
 
             ExcelSheet projectedSheet = Assert.Single(document.Sheets);
-            Assert.Equal("$A$1:$A$3", projectedSheet.GetNamedRange("StatusOptions"));
+            Assert.Equal("$A$1:$A$3", projectedSheet.GetNamedRangeText("StatusOptions"));
             ExcelDataValidationInfo projectedValidation = Assert.Single(projectedSheet.GetDataValidations("H2:H5"));
             Assert.Equal("list", projectedValidation.Type);
             Assert.Equal("=StatusOptions", projectedValidation.Formula1);
@@ -2079,7 +2079,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(Assert.Single(result.Workbook.Worksheets).DataValidations);
             Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DataValidation && feature.DetailCode == "DataValidation:Dv");
             LegacyXlsImportDiagnostic diagnostic = Assert.Single(result.Workbook.Diagnostics, d =>
-                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                d.Code == "xls-biff-formula-tokens-unsupported"
                 && d.RecordType == (ushort)BiffRecordType.Dv);
             Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
             Assert.Equal("DataValidation", diagnostic.FormulaContext);
@@ -2440,7 +2440,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
             Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting && feature.DetailCode == "ConditionalFormatting:Cf");
             LegacyXlsImportDiagnostic diagnostic = Assert.Single(result.Workbook.Diagnostics, d =>
-                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                d.Code == "xls-biff-formula-tokens-unsupported"
                 && d.RecordType == (ushort)BiffRecordType.Cf);
             Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
             Assert.Equal("ConditionalFormatting", diagnostic.FormulaContext);

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImageLookup_SelectsRichValueRecordInsideMetadataBlock() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Later rich-value record");
             Metadata metadata = document.WorkbookPartRoot.CellMetadataPart!.Metadata!;
             MetadataTypes types = metadata.MetadataTypes!;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_ModernChartProperties_WaitForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },
@@ -63,12 +63,12 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_RangeCopies_AllocateUniqueFloatingImageNames(bool transpose) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
-            sheet.CellValue(1, 1, "source");
-            sheet.AddImage(1, 1, TinyPng, name: "Logo");
+            ExcelSheet sheet = document.AddSheet("Images");
+            sheet.Cell(1, 1).SetValue("source");
+            sheet.AddImage(1, 1, TinyPng, new OfficeIMO.Excel.ExcelImageOptions { Name = "Logo" });
 
-            if (transpose) sheet.TransposeRange("A1", "B2");
-            else sheet.CopyRange("A1", "B2");
+            if (transpose) sheet.Range("A1").TransposeTo("B2");
+            else sheet.Range("A1").CopyTo("B2");
 
             ExcelImage[] images = sheet.Images.OrderBy(image => image.RowIndex).ToArray();
             Assert.Equal(2, images.Length);
@@ -79,9 +79,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationRollback_RestoresFormulaLifecycleBaselines() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Calc");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellFormula(1, 2, "A1+1");
+            ExcelSheet sheet = document.AddSheet("Calc");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(1, 2).SetFormula("A1+1");
             Cell formula = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B1");
             formula.CellValue = new CellValue("2");
@@ -93,12 +93,12 @@ namespace OfficeIMO.Tests {
             Assert.False(Assert.Single(sheet.GetFormulaCells()).State.HasFlag(ExcelFormulaState.Dirty));
 
             Assert.Throws<InvalidOperationException>(() => sheet.ApplyTransactionalMutation(_ => {
-                sheet.CellValue(1, 1, 5d);
-                sheet.CellFormula(1, 3, "A1+2");
+                sheet.Cell(1, 1).SetValue(5d);
+                sheet.Cell(1, 3).SetFormula("A1+2");
                 throw new InvalidOperationException("Rollback probe");
             }, new ExcelMutationPlanOptions(), CancellationToken.None));
 
-            Assert.Equal(1d, sheet.CellAt(1, 1).GetValue<double>());
+            Assert.Equal(1d, sheet.Cell(1, 1).GetValue<double>());
             ExcelFormulaCellInfo restored = Assert.Single(sheet.GetFormulaCells());
             Assert.Equal("B1", restored.CellReference);
             Assert.True(restored.State.HasFlag(ExcelFormulaState.Evaluated));
@@ -108,18 +108,18 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_RelocatesTotalsCommentsAndHyperlinks() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellValue(2, 2, 10d);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(10d);
             sheet.AddTable("A1:B4", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.TotalsRowShown = true;
             table.TotalsRowCount = 1U;
             table.AutoFilter!.Reference = "A1:B3";
-            sheet.CellValue(4, 1, "Total");
-            sheet.CellAt(4, 2).SetFormula("SUBTOTAL(109,Sales[Amount])");
+            sheet.Cell(4, 1).SetValue("Total");
+            sheet.Cell(4, 2).SetFormula("SUBTOTAL(109,Sales[Amount])");
             table.Save();
             sheet.SetComment("A4", "Legacy total", "Tester");
             sheet.AddThreadedComment("B4", "Threaded total", "Tester");
@@ -138,13 +138,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_LineAndScatterChartAuthoring_UsesStraightSegments() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Charts");
+            ExcelSheet sheet = document.AddSheet("Charts");
             var data = new ExcelChartData(
                 new[] { "1", "2", "3" },
                 new[] { new ExcelChartSeries("Series", new[] { 1d, 3d, 2d }) });
 
-            sheet.AddChart(data, 1, 5, type: ExcelChartType.Line);
-            sheet.AddChart(data, 18, 5, type: ExcelChartType.Scatter);
+            sheet.AddChart(OfficeChartType.Line, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
+            sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 5 });
 
             C.LineChartSeries line = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts
                 .SelectMany(part => part.ChartSpace.Descendants<C.LineChartSeries>()));

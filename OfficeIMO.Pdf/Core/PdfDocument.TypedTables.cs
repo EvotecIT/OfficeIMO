@@ -1,0 +1,95 @@
+#pragma warning disable RS0026 // Typed rows share AddTable with the text and cell row overloads.
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using OfficeIMO.Core.Internal;
+using OfficeIMO.Data;
+
+namespace OfficeIMO.Pdf;
+
+public sealed partial class PdfDocument {
+    /// <summary>Appends a table from typed properties, tuples, or string-keyed dictionaries using the shared bounded projection engine.</summary>
+    /// <param name="rows">Source rows, enumerated once while this call snapshots the table.</param>
+    /// <param name="options">Common column selection, ordering, header, formatting and alignment options.</param>
+    /// <remarks><see cref="OfficeTableOptions.Caption"/> becomes the visible PDF caption. PDF tables have no native name, so a non-null <see cref="OfficeTableOptions.Name"/> throws <see cref="NotSupportedException"/>. Logical start/end align left/right; PDF table columns cannot be justified, so Justify is rejected.</remarks>
+    public PdfTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
+        IEnumerable<T> rows, OfficeTableOptions? options = null) {
+        Guard.NotNull(rows, nameof(rows));
+        ObjectDataHelpers.ValidateTableAlignments(options);
+        if (options?.Name != null)
+            throw new NotSupportedException("PDF tables have no native name. Use OfficeTableOptions.Caption for visible caption text.");
+        var pdfOptions = options as PdfTableOptions;
+        OfficeAlignment align = pdfOptions?.Align ?? OfficeAlignment.Left;
+        align = Guard.LeftCenterRightAlign(align, nameof(options), "Table");
+        var projectionOptions = pdfOptions?.Projection?.CreateProjectionSnapshot() ?? new ObjectFlattenerOptions();
+        ObjectDataHelpers.ConfigureTableProjection(projectionOptions, options);
+        bool headers = options?.IncludeHeaders ?? true;
+        var projection = new ObjectFlattener().FlattenRows(rows, projectionOptions, "PDF Table", headers ? 1 : 0);
+        var paths = projection.Columns;
+        if (paths.Count == 0) throw new ArgumentException("No columns could be resolved from the supplied data.", nameof(rows));
+        var output = new List<string[]>();
+        if (headers) output.Add(paths.Select(path => GetTypedTableHeader(path, projectionOptions)).ToArray());
+        int dataRows = 0;
+        foreach (var row in projection.Rows) {
+            string? collectionPath = projectionOptions.CollectionMode == CollectionMode.ExpandRows
+                ? paths.FirstOrDefault(path => row.TryGetValue(path, out var value) && value is IEnumerable && value is not string)
+                : null;
+            bool expanded = false;
+            if (collectionPath != null && row[collectionPath] is IEnumerable collection) {
+                int items = 0;
+                foreach (object? item in collection) {
+                    if (items++ >= projectionOptions.MaxCollectionItems)
+                        throw new InvalidDataException("PDF Table nested collection exceeds the configured item limit.");
+                    AddRow(row, collectionPath, item);
+                    expanded = true;
+                }
+            }
+            if (!expanded) AddRow(row, null, null);
+        }
+        if (output.Count == 0) throw new ArgumentException("A headerless table requires at least one row.", nameof(rows));
+        var effectiveStyle = pdfOptions?.Style?.Clone() ?? CompositionOptions.DefaultTableStyle ?? new PdfTableStyle();
+        effectiveStyle.HeaderRowCount = headers ? 1 : 0;
+        effectiveStyle.RepeatHeaderRowCount = headers ? 1 : 0;
+        if (options?.Caption != null) effectiveStyle.Caption = options.Caption;
+        if (options != null && options.Alignments.Count > 0) {
+            var alignments = new List<OfficeAlignment>();
+            for (int column = 0; column < paths.Count; column++) {
+                OfficeAlignment? selected = column < options.Alignments.Count ? options.Alignments[column] : null;
+                alignments.Add(selected.HasValue ? Guard.TableColumnAlign(selected.Value, nameof(options)) : effectiveStyle.Alignments != null && column < effectiveStyle.Alignments.Count
+                    ? effectiveStyle.Alignments[column] : OfficeAlignment.Left);
+            }
+            effectiveStyle.Alignments = alignments;
+        }
+        return AddTable(output, align, effectiveStyle);
+
+        void AddRow(Dictionary<string, object?> row, string? expandedPath, object? expandedValue) {
+            if (dataRows >= projectionOptions.MaxRows || ((long)dataRows + 1 + (headers ? 1 : 0)) * paths.Count > projectionOptions.MaxCells)
+                throw new InvalidDataException("PDF Table expansion exceeds the configured row or cell limit.");
+            var cells = new string[paths.Count];
+            for (int column = 0; column < paths.Count; column++) {
+                string path = paths[column];
+                object? value = path == expandedPath ? expandedValue
+                    : row.TryGetValue(path, out var projectedValue) ? projectedValue
+                    : projectionOptions.DefaultValues.TryGetValue(path, out var defaultValue) ? defaultValue : null;
+                cells[column] = Convert.ToString(value, CultureInfo.CurrentCulture) ?? string.Empty;
+            }
+            output.Add(cells);
+            dataRows++;
+        }
+    }
+
+    private static string GetTypedTableHeader(string path, ObjectFlattenerOptions options) {
+        if (options.TableOptions is { } tableOptions && (tableOptions.HeaderRenames.ContainsKey(path) || tableOptions.HeaderTransform != null))
+            return ObjectDataHelpers.GetTableHeader(path, tableOptions);
+        path = options.GetHeaderPath(path);
+        return options.HeaderCase switch {
+            HeaderCase.Pascal => string.Concat(path.Split('.').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1))),
+            HeaderCase.Title => string.Join(" ", path.Split('.').Select(part => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(part.ToLowerInvariant()))),
+            _ => path
+        };
+    }
+}

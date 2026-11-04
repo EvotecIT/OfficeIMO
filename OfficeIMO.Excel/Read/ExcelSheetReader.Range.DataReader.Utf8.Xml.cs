@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Text;
 using System.Threading;
 
@@ -39,7 +37,7 @@ namespace OfficeIMO.Excel {
 
                     string reference = Encoding.UTF8.GetString(_buffer!, valueStart, valueLength);
                     return ExcelSheetReader.TryNormalizeWorksheetDimensionReference(reference, out string normalized)
-                        && A1.TryParseRange(normalized, out firstRow, out firstColumn, out lastRow, out lastColumn);
+                        && ExcelA1.TryParseRange(normalized, out firstRow, out firstColumn, out lastRow, out lastColumn);
                 }
 
                 return false;

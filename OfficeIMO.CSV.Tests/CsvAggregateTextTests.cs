@@ -67,15 +67,17 @@ public sealed class CsvAggregateTextTests {
     public void SchemaFallbackRetainsRawSpansAndTypedConverterSemantics() {
         CsvSchema schema = new CsvSchemaBuilder().Column("Id").AsInt32()
             .ConvertUsing(value => Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture) + 100).Done().Build();
-        AggregateStats result = CsvDocument.AggregateTextRowsAsParallel(
-            "Id\n 001 \n 002 \n", static () => new AggregateStats(),
+        AggregateStats result = CsvDocument.AggregateTextRowsAsParallel("Id\n 001 \n 002 \n",
+            static () => new AggregateStats(),
             _ => (ref AggregateStats state, CsvRecord row) => {
                 state.Rows++;
                 state.Sum += row.GetInt32(0);
                 state.Characters += row.GetSpan(0).Length;
                 Assert.Equal(row.GetString(0), row.GetSpan(0).ToString());
-            }, MergeStats, loadOptions: new CsvLoadOptions { TrimWhitespace = true },
-            readerOptions: new CsvDataReaderOptions { Schema = schema }, parallelOptions: Options(4));
+            },
+            MergeStats,
+            options: new CsvReaderOptions { TrimWhitespace = true, Schema = schema },
+            parallelOptions: Options(4));
         Assert.Equal(2, result.Rows);
         Assert.Equal(203, result.Sum);
         Assert.Equal(6, result.Characters);
@@ -85,7 +87,7 @@ public sealed class CsvAggregateTextTests {
     [InlineData(false)]
     [InlineData(true)]
     public void StaticColumnFallbackExposesEveryResolvedFieldToAggregateAndProjection(bool projection) {
-        var load = new CsvLoadOptions {
+        var load = new CsvReaderOptions {
             StaticColumns = new Dictionary<string, object?> {
                 ["Batch"] = 7, ["Label"] = "Żółć", ["Empty"] = null,
             },
@@ -96,13 +98,15 @@ public sealed class CsvAggregateTextTests {
                 text, _ => row => ValidateStaticFields(row), load, parallelOptions: Options(4)));
             return;
         }
-        int result = CsvDocument.AggregateTextRowsAsParallel<int>(
-            text, static () => 0,
+        int result = CsvDocument.AggregateTextRowsAsParallel<int>(text,
+            static () => 0,
             header => {
                 Assert.Equal(4, header.Count);
                 return (ref int total, CsvRecord row) => total += ValidateStaticFields(row);
-            }, static (left, right) => left + right,
-            loadOptions: load, parallelOptions: Options(4));
+            },
+            static (left, right) => left + right,
+            options: load,
+            parallelOptions: Options(4));
         Assert.Equal(17, result);
     }
 
@@ -111,17 +115,16 @@ public sealed class CsvAggregateTextTests {
     [InlineData(true)]
     public void InferredGeneralParserFallbackPreservesSourceTextNullAndMissingFields(bool projection) {
         const string text = "Id,Value\n001,NULL\n002\n003,\n";
-        var load = new CsvLoadOptions { NullValue = "NULL", MaxFieldLength = 20 };
-        var reader = new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = 2 };
+        var load = new CsvReaderOptions { NullValue = "NULL", MaxFieldLength = 20, InferSchema = true, SchemaSampleRows = 2 };
         if (projection) {
             Assert.Equal(new[] { 1, 2, 3 }, CsvDocument.ReadTextRowsAsParallel<int>(
-                text, _ => row => ValidateInferredFields(row), load, reader, Options(4)));
+                text, _ => row => ValidateInferredFields(row), load, Options(4)));
             return;
         }
         int sum = CsvDocument.AggregateTextRowsAsParallel<int>(
             text, static () => 0,
             _ => (ref int value, CsvRecord row) => value += ValidateInferredFields(row),
-            static (left, right) => left + right, load, reader, Options(4));
+            static (left, right) => left + right, load, Options(4));
         Assert.Equal(6, sum);
     }
 
@@ -149,17 +152,19 @@ public sealed class CsvAggregateTextTests {
     [Fact]
     public void PartitionAndBatchRecordsKeepNullMissingAndEmptyDistinct() {
         foreach (int degree in new[] { 1, 4 }) {
-            int[] result = CsvDocument.AggregateTextRowsAsParallel(
-                "Id,Value\n1,NULL\n2\n3,\n", static () => new int[3],
-                _ => (ref int[] counts, CsvRecord row) => {
+            int[] result = CsvDocument.AggregateTextRowsAsParallel("Id,Value\n1,NULL\n2\n3,\n",
+            static () => new int[3],
+            _ => (ref int[] counts, CsvRecord row) => {
                     if (row.IsNull(1)) counts[0]++;
                     else if (row.IsMissing(1)) counts[1]++;
                     else if (row.GetSpan(1).IsEmpty) counts[2]++;
-                }, static (left, right) => {
+                },
+            static (left, right) => {
                     for (int index = 0; index < left.Length; index++) left[index] += right[index];
                     return left;
-                }, loadOptions: new CsvLoadOptions { NullValue = "NULL" },
-                parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = degree, BatchSize = 1 });
+                },
+            options: new CsvReaderOptions { NullValue = "NULL" },
+            parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = degree, BatchSize = 1 });
             Assert.Equal(new[] { 1, 1, 1 }, result);
         }
     }
@@ -184,12 +189,12 @@ public sealed class CsvAggregateTextTests {
         cancel.Cancel();
         int callbacks = 0;
         OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() =>
-            CsvDocument.AggregateTextRowsAsParallel<int>(
-                "Id\n1\n", () => { callbacks++; return 0; },
-                _ => { callbacks++; return (ref int sum, CsvRecord row) => sum += row.GetInt32(0); },
-                static (left, right) => left + right,
-                loadOptions: new CsvLoadOptions { CancellationToken = loadToken ? cancel.Token : default },
-                cancellationToken: loadToken ? default : cancel.Token));
+            CsvDocument.AggregateTextRowsAsParallel<int>("Id\n1\n",
+            () => { callbacks++; return 0; },
+            _ => { callbacks++; return (ref int sum, CsvRecord row) => sum += row.GetInt32(0); },
+            static (left, right) => left + right,
+            options: new CsvReaderOptions { CancellationToken = loadToken ? cancel.Token : default },
+            cancellationToken: loadToken ? default : cancel.Token));
         Assert.Equal(cancel.Token, error.CancellationToken);
         Assert.Equal(0, callbacks);
     }
@@ -202,15 +207,17 @@ public sealed class CsvAggregateTextTests {
         int active = 0;
         string text = "Id\n" + string.Join("\n", Enumerable.Range(1, 64)) + "\n";
         OperationCanceledException error = Assert.ThrowsAny<OperationCanceledException>(() =>
-            CsvDocument.AggregateTextRowsAsParallel<int>(
-                text, static () => 0,
-                _ => (ref int sum, CsvRecord row) => {
+            CsvDocument.AggregateTextRowsAsParallel<int>(text,
+            static () => 0,
+            _ => (ref int sum, CsvRecord row) => {
                     Interlocked.Increment(ref active);
                     try { sum += row.GetInt32(0); cancel.Cancel(); }
                     finally { Interlocked.Decrement(ref active); }
-                }, static (left, right) => left + right,
-                loadOptions: new CsvLoadOptions { CancellationToken = loadToken ? cancel.Token : default },
-                parallelOptions: Options(4), cancellationToken: loadToken ? default : cancel.Token));
+                },
+            static (left, right) => left + right,
+            options: new CsvReaderOptions { CancellationToken = loadToken ? cancel.Token : default },
+            parallelOptions: Options(4),
+            cancellationToken: loadToken ? default : cancel.Token));
         Assert.Equal(cancel.Token, error.CancellationToken);
         Assert.Equal(0, Volatile.Read(ref active));
     }
@@ -234,10 +241,10 @@ public sealed class CsvAggregateTextTests {
 
     [Fact]
     public void ReaderLimitsAndStrictWidthErrorsRemainEnforced() {
-        Assert.Throws<InvalidDataException>(() => Count("Value\nlong\n", new CsvLoadOptions { MaxInputBytes = 2 }));
-        Assert.Throws<CsvParseException>(() => Count("V\nlong\n", new CsvLoadOptions { MaxFieldLength = 3 }));
+        Assert.Throws<InvalidDataException>(() => Count("Value\nlong\n", new CsvReaderOptions { MaxInputBytes = 2 }));
+        Assert.Throws<CsvParseException>(() => Count("V\nlong\n", new CsvReaderOptions { MaxFieldLength = 3 }));
         Assert.Throws<CsvException>(() => Count("A,B\n1,2\n3\n",
-            new CsvLoadOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict }));
+            new CsvReaderOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict }));
     }
 
     [Fact]
@@ -289,9 +296,12 @@ public sealed class CsvAggregateTextTests {
         Assert.Equal(1, creates);
     }
 
-    private static int Count(string text, CsvLoadOptions options) => CsvDocument.AggregateTextRowsAsParallel<int>(
-        text, static () => 0, _ => (ref int count, CsvRecord row) => count++,
-        static (left, right) => left + right, loadOptions: options, parallelOptions: Options(4));
+    private static int Count(string text, CsvReaderOptions options) => CsvDocument.AggregateTextRowsAsParallel<int>(text,
+            static () => 0,
+            _ => (ref int count, CsvRecord row) => count++,
+            static (left, right) => left + right,
+            options: options,
+            parallelOptions: Options(4));
 
     private static ParallelRowMappingOptions Options(int degree) => new() { MaxDegreeOfParallelism = degree, BatchSize = 4 };
 

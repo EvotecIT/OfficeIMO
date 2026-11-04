@@ -14,8 +14,8 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[1].Cells[0].AddParagraph("A2");
         table.Rows[1].Cells[1].AddParagraph("B2");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfTable readTable = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
         Assert.Equal(2, readTable.Rows.Count);
@@ -90,8 +90,8 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[0].Cells[2].VerticalAlignment = RtfTableCellVerticalAlignment.Bottom;
         table.Rows[0].Cells[2].AddParagraph("Bottom");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfTable readTable = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
         RtfTableRow readRow = Assert.Single(readTable.Rows);
@@ -214,7 +214,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Row_Shading_Controls() {
         const string rtf = @"{\rtf1\ansi\trowd\trcbpat1\trcfpat2\trpat5\trshdng6250\trbgdkhor\cellx2400\pard\intbl A\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -230,7 +230,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Row_Padding_And_Spacing_Controls() {
         const string rtf = @"{\rtf1\ansi\trowd\trpaddft3\trpaddt120\trpaddl180\trpaddfl3\trpaddfb3\trpaddb240\trpaddr300\trpaddfr3\trspdft3\trspdt20\trspdl30\trspdfl3\trspdfb3\trspdb40\trspdr50\trspdfr3\cellx2400\pard\intbl A\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -249,7 +249,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Row_AutoFit_And_Direction_Controls() {
         const string rtf = @"{\rtf1\ansi\trowd\trautofit0\ltrrow\cellx2400\pard\intbl A\cell\row\trowd\trautofit1\rtlrow\cellx2400\pard\intbl B\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -266,8 +266,8 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[0].SetAutoFit(false).SetDirection(RtfTableRowDirection.LeftToRight);
         table.Rows[0].Cells[0].AddParagraph("Fixed");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\trautofit0\ltrrow", rtf, StringComparison.Ordinal);
         RtfTable readTable = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -279,7 +279,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Positioned_Table_Row_Controls() {
         const string rtf = @"{\rtf1\ansi\trowd\tabsnoovrlp\tphmrg\tpvpara\tposnegx-120\tposnegy-240\tdfrmtxtLeft187\tdfrmtxtRight188\tdfrmtxtTop189\tdfrmtxtBottom190\cellx2400\pard\intbl A\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -307,8 +307,8 @@ public partial class RtfDocumentRichFeatureTests {
         table.Rows[0].SetTextWrapDistances(leftTwips: 10, rightTwips: 20, topTwips: 30, bottomTwips: 40);
         table.Rows[0].Cells[0].AddParagraph("Positioned");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\tabsnoovrlp\tphpg\tpvmrg\tposx720\tposy1440\tdfrmtxtLeft10\tdfrmtxtRight20\tdfrmtxtTop30\tdfrmtxtBottom40", rtf, StringComparison.Ordinal);
         RtfTable readTable = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -324,7 +324,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Cell_Canonical_Dark_Horizontal_Shading_Control() {
         const string rtf = @"{\rtf1\ansi\trowd\clcbpat1\clcfpat2\clshdng3750\clbgdkhor\cellx2400\pard\intbl A\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -339,7 +339,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Cell_Text_Flow_Controls() {
         const string rtf = @"{\rtf1\ansi\trowd\cltxlrtb\cellx1200\cltxtbrl\cellx2400\cltxbtlr\cellx3600\cltxlrtbv\cellx4800\cltxtbrlv\cellx6000\pard\intbl A\cell\pard\intbl B\cell\pard\intbl C\cell\pard\intbl D\cell\pard\intbl E\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -355,7 +355,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Cell_Preferred_Widths_Per_Cell() {
         const string rtf = @"{\rtf1\ansi\trowd\clftsWidth2\clwWidth2500\cellx2400\clftsWidth3\clwWidth1440\clhidemark\cellx4800\pard\intbl A\cell\pard\intbl B\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -371,7 +371,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Cell_NoWrap_And_FitText() {
         const string rtf = @"{\rtf1\ansi\trowd\clNoWrap\clFitText\cellx2400\cellx4800\pard\intbl A\cell\pard\intbl B\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -385,7 +385,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Row_Positioning_Per_Row() {
         const string rtf = @"{\rtf1\ansi\trowd\trleft360\trql\cellx2400\pard\intbl A\cell\row\trowd\trleft720\trqr\cellx2400\pard\intbl B\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -399,7 +399,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Row_Cell_Gap_Per_Row() {
         const string rtf = @"{\rtf1\ansi\trowd\trgaph120\cellx2400\pard\intbl A\cell\row\trowd\trgaph360\cellx2400\pard\intbl B\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -413,7 +413,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Row_Keep_Controls() {
         const string rtf = @"{\rtf1\ansi\trowd\trkeep\trkeepfollow\cellx2400\pard\intbl A\cell\row\trowd\cellx2400\pard\intbl B\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -427,7 +427,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Preferred_Width_Per_Row() {
         const string rtf = @"{\rtf1\ansi\trowd\trftsWidth2\trwWidth4250\cellx2400\pard\intbl A\cell\row\trowd\trftsWidth3\trwWidth7200\cellx2400\pard\intbl B\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -441,7 +441,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Row_Borders() {
         const string rtf = @"{\rtf1\ansi\trowd\trbrdrt\brdrs\brdrw12\brdrcf1\trbrdrl\brdrdb\brdrw8\trbrdrb\brdrdot\trbrdrr\brdrdash\trbrdrh\brdrs\trbrdrv\brdrdb\cellx2400\pard\intbl A\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -461,7 +461,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Cell_Diagonal_Borders() {
         const string rtf = @"{\rtf1\ansi\trowd\cldglu\brdrs\brdrw12\brdrcf1\cldgll\brdrdb\brdrw8\cellx2400\pard\intbl A\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -477,7 +477,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Table_Cell_Padding_When_Units_Are_Twips() {
         const string rtf = @"{\rtf1\ansi\trowd\clpadt120\clpadft3\clpadl180\clpadfl3\clpadb240\clpadfb3\clpadr300\clpadfr3\cellx2400\clpadt20\clpadft2\cellx4800\pard\intbl A\cell\pard\intbl B\cell\row}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(read.Document.Blocks));
@@ -499,8 +499,8 @@ public partial class RtfDocumentRichFeatureTests {
         image.DesiredWidthTwips = 1440;
         image.DesiredHeightTwips = 2880;
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfImage readImage = Assert.IsType<RtfImage>(Assert.Single(read.Document.Blocks));
         Assert.Equal(RtfImageFormat.Png, readImage.Format);
@@ -524,8 +524,8 @@ public partial class RtfDocumentRichFeatureTests {
         image.DesiredHeightTwips = 2880;
         paragraph.AddText(" after");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfParagraph readParagraph = Assert.Single(read.Document.Paragraphs);
         Assert.Equal("Before  after", readParagraph.ToPlainText());
@@ -558,8 +558,8 @@ public partial class RtfDocumentRichFeatureTests {
         rtfObject.Result.AddText("Display").SetBold();
         paragraph.AddText(" after");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf, RtfLoadOptions.CreateCompatibilityProfile());
 
         Assert.Contains(@"{\object\objemb\objw100\objh200\objscalex75\objscaley80{\*\objclass Package}{\*\objname Attachment}{\*\objdata 010203ff}{\result \b Display\b0 }}", rtf, StringComparison.Ordinal);
         RtfParagraph readParagraph = Assert.Single(read.Document.Paragraphs);
@@ -581,7 +581,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Shape_TextBox_Instructions_And_Properties_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\shp{\*\shpinst\shpleft100\shptop200\shpright2100\shpbottom900{\sp{\sn shapeType}{\sv 202}}{\sp{\sn fLine}{\sv 0}}{\shptxt\pard Text box\par}}}\pard Body\par}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         Assert.Collection(read.Document.Blocks,
@@ -611,8 +611,8 @@ public partial class RtfDocumentRichFeatureTests {
         shape.AddProperty("fLine", "0");
         shape.AddTextBoxParagraph("Text box");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\shp{\*\shpinst\shpleft100\shptop200\shpright2100\shpbottom900", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\sp{\sn shapeType}{\sv 202}}{\sp{\sn fLine}{\sv 0}}", rtf, StringComparison.Ordinal);

@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel {
         private static void DrawRasterCellFill(
             OfficeRasterCanvas canvas,
             ExcelVisualCell cell,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             double scale,
             List<OfficeImageExportDiagnostic>? diagnostics) {
@@ -39,7 +39,7 @@ namespace OfficeIMO.Excel {
         private static void AppendSvgCellFill(
             StringBuilder builder,
             ExcelVisualCell cell,
-            ExcelRangeVisualSnapshot snapshot,
+            ExcelRangeVisualInfo snapshot,
             ExcelImageExportOptions options,
             double scale,
             List<OfficeImageExportDiagnostic>? diagnostics) {
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel {
             builder.Append("</g>");
         }
 
-        private static OfficeColor ResolveFillBackground(ExcelCellStyleSnapshot style, ExcelImageExportOptions options) {
+        private static OfficeColor ResolveFillBackground(ExcelCellStyleInfo style, ExcelImageExportOptions options) {
             string pattern = NormalizeFillPattern(style.FillPatternType);
             if (pattern == "solid") {
                 return ResolveArgb(style.FillColorArgb)
@@ -93,16 +93,16 @@ namespace OfficeIMO.Excel {
                 ?? options.BackgroundColor;
         }
 
-        private static OfficeColor ResolveFillForeground(ExcelCellStyleSnapshot style, OfficeColor background) =>
+        private static OfficeColor ResolveFillForeground(ExcelCellStyleInfo style, OfficeColor background) =>
             ResolveArgb(style.FillPatternForegroundColorArgb)
             ?? ResolveArgb(style.FillColorArgb)
             ?? OfficeColor.FromRgba(background.R, background.G, background.B, 180);
 
-        private static OfficeLinearGradient? CreateLinearGradient(ExcelCellStyleSnapshot style) {
+        private static OfficeLinearGradient? CreateLinearGradient(ExcelCellStyleInfo style) {
             if (style.FillGradientStops.Count >= 2) {
                 var stops = new List<OfficeGradientStop>(style.FillGradientStops.Count);
                 for (int i = 0; i < style.FillGradientStops.Count; i++) {
-                    ExcelGradientFillStopSnapshot stop = style.FillGradientStops[i];
+                    ExcelGradientFillStopInspectionInfo stop = style.FillGradientStops[i];
                     OfficeColor? color = ResolveArgb(stop.ColorArgb);
                     if (!color.HasValue) {
                         return null;
@@ -202,7 +202,7 @@ namespace OfficeIMO.Excel {
             pattern == "mediumgray" ||
             pattern == "darkgray";
 
-        private static void AddGradientDiagnosticIfNeeded(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AddGradientDiagnosticIfNeeded(ExcelRangeVisualInfo snapshot, ExcelVisualCell cell, List<OfficeImageExportDiagnostic>? diagnostics) {
             if (!cell.Style.FillGradientUnsupported) {
                 return;
             }
@@ -214,7 +214,7 @@ namespace OfficeIMO.Excel {
                 GetCellDiagnosticSource(snapshot, cell)));
         }
 
-        private static void AddPatternApproximationDiagnostic(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell, string pattern, List<OfficeImageExportDiagnostic>? diagnostics) {
+        private static void AddPatternApproximationDiagnostic(ExcelRangeVisualInfo snapshot, ExcelVisualCell cell, string pattern, List<OfficeImageExportDiagnostic>? diagnostics) {
             diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
                 OfficeImageExportDiagnosticSeverity.Info,
                 ExcelImageExportDiagnosticCodes.FillPatternApproximation,

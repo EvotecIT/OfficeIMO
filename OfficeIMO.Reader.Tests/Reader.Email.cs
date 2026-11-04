@@ -40,7 +40,7 @@ public sealed class ReaderEmailTests {
     public void EmlRead_MapsEnvelopeBodyAssetsAndReusableAttachmentContent() {
         byte[] bytes = BuildEmlWithAttachment();
 
-        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(bytes, "sample.eml").ToArray();
+        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(bytes, "sample.eml").ToArray();
 
         Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Email &&
             chunk.Location.SourceBlockKind == "email-message" && chunk.Text.Contains("Reader subject", StringComparison.Ordinal));
@@ -68,7 +68,7 @@ public sealed class ReaderEmailTests {
         });
         byte[] bytes = new EmailDocumentWriter().ToBytes(parent, EmailFileFormat.Eml);
 
-        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(bytes, "parent.eml").ToArray();
+        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(bytes, "parent.eml").ToArray();
 
         Assert.Contains(chunks, chunk => chunk.Location.Path != null &&
             chunk.Location.Path.EndsWith("!/forwarded.eml", StringComparison.Ordinal) &&
@@ -153,7 +153,7 @@ public sealed class ReaderEmailTests {
 
         byte[] signatureOnly = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
         Assert.Equal(ReaderInputKind.Unknown, OfficeIMO.Reader.Tests.ReaderTestReaders.All.Detect(signatureOnly, "legacy.bin").Kind);
-        Assert.DoesNotContain(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(signatureOnly, "legacy.bin"), chunk => chunk.Kind == ReaderInputKind.Email);
+        Assert.DoesNotContain(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(signatureOnly, "legacy.bin"), chunk => chunk.Kind == ReaderInputKind.Email);
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed class ReaderEmailTests {
             diagnostic.Severity == OfficeDocumentDiagnosticSeverity.Error);
 
         byte[] bytes = BuildEmlWithAttachment();
-        Assert.Throws<IOException>(() => OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(bytes, "bounded.eml", new ReaderOptions {
+        Assert.Throws<IOException>(() => OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(bytes, "bounded.eml", new ReaderOptions {
             MaxInputBytes = 32
         }).ToArray());
     }
@@ -212,7 +212,7 @@ public sealed class ReaderEmailTests {
         using var chunkStream = new LengthOnlySeekableStream(EmailReaderOptions.Default.MaxInputBytes + 1);
         using var documentStream = new LengthOnlySeekableStream(EmailReaderOptions.Default.MaxInputBytes + 1);
 
-        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(chunkStream, "oversized.bin").ToArray();
+        ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(chunkStream, "oversized.bin").ToArray();
         OfficeDocumentReadResult document = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(documentStream, "oversized.bin");
 
         Assert.Single(chunks);
@@ -231,7 +231,7 @@ public sealed class ReaderEmailTests {
                 new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Tnef));
             File.WriteAllText(Path.Combine(folder, "other.dat"), "not an email");
 
-            ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadFolder(folder,
+            ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.EnumerateFolder(folder,
                 new ReaderFolderOptions { Recurse = false, MaxFiles = 10 }, new ReaderOptions()).ToArray();
 
             Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Email &&
@@ -258,7 +258,7 @@ public sealed class ReaderEmailTests {
         document.Body.Rtf = rtf.ToRtf();
         byte[] bytes = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg);
 
-        ReaderChunk[] chunks = reader.Read(bytes, "rtf-body.msg").ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(bytes, "rtf-body.msg").ToArray();
 
         Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Html &&
             chunk.Location.SourceBlockKind == "email-body-html" &&
@@ -291,7 +291,7 @@ public sealed class ReaderEmailTests {
         string pdfPath = Path.Combine(Path.GetTempPath(), string.Concat(Guid.NewGuid().ToString("N"), ".pdf"));
         try {
             PdfDocument pdf = PdfDocument.Create();
-            pdf.Paragraph(paragraph => paragraph.Text("Searchable invoice content"));
+            pdf.Paragraph(paragraph => paragraph.AddText("Searchable invoice content"));
             pdf.Save(pdfPath);
             byte[] payload = File.ReadAllBytes(pdfPath);
             var document = new EmailDocument { Subject = "invoice" };
@@ -302,7 +302,7 @@ public sealed class ReaderEmailTests {
                 Length = payload.Length
             });
 
-            ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
+            ReaderChunk[] chunks = OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(
                 new EmailDocumentWriter().ToBytes(document), "invoice.eml").ToArray();
 
             Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Pdf &&

@@ -98,7 +98,7 @@ public static partial class HtmlComputedStyleEngine {
         internal string? DeferredLayoutShorthand { get; }
 
         internal CascadedProperty WithAlternative(CascadedProperty alternative) {
-            var alternatives = new List<CascadedProperty>(Alternatives) { alternative };
+            IReadOnlyList<CascadedProperty> alternatives = new AlternativeChain(alternative, Alternatives);
             return RevertsLayer
                 ? RevertLayer(IsImportant, Specificity, Order, LayerOrder, alternatives, DeclarationOrder, AuthoredValue, Source, Selector, LayerName)
                 : HasValue
@@ -113,6 +113,45 @@ public static partial class HtmlComputedStyleEngine {
                 IReadOnlyList<CascadedProperty> list => list,
                 _ => alternatives.ToArray()
             };
+
+        // A cascade may contain many declarations for one property. Share the
+        // previous candidate history instead of copying it at every insertion.
+        internal sealed class AlternativeChain : IReadOnlyList<CascadedProperty> {
+            private readonly CascadedProperty _head;
+            private readonly IReadOnlyList<CascadedProperty> _tail;
+
+            internal AlternativeChain(CascadedProperty head, IReadOnlyList<CascadedProperty> tail) {
+                _head = head;
+                _tail = tail;
+                Count = checked(tail.Count + 1);
+            }
+
+            public int Count { get; }
+
+            public CascadedProperty this[int index] {
+                get {
+                    if ((uint)index >= (uint)Count) throw new ArgumentOutOfRangeException(nameof(index));
+                    IReadOnlyList<CascadedProperty> current = this;
+                    while (current is AlternativeChain chain) {
+                        if (index == 0) return chain._head;
+                        index--;
+                        current = chain._tail;
+                    }
+                    return current[index];
+                }
+            }
+
+            public IEnumerator<CascadedProperty> GetEnumerator() {
+                IReadOnlyList<CascadedProperty> current = this;
+                while (current is AlternativeChain chain) {
+                    yield return chain._head;
+                    current = chain._tail;
+                }
+                foreach (CascadedProperty candidate in current) yield return candidate;
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
     }
 
     private readonly struct CssKeywordResolution {

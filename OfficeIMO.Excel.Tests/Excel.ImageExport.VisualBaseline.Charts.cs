@@ -96,44 +96,44 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateChartAxisLabelsBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("ChartAxisLabels");
+            ExcelSheet sheet = document.AddSheet("ChartAxisLabels");
 
-            sheet.CellValue(1, 1, "Chart Axis Label Density");
+            sheet.Cell(1, 1).SetValue("Chart Axis Label Density");
             sheet.Range("A1:H1").Merge();
             sheet.Range("A1:H1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
-            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
+            sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+            sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
-            sheet.CellValue(2, 1, "Month");
-            sheet.CellValue(2, 2, "Actual");
-            sheet.CellValue(3, 1, "Jan");
-            sheet.CellValue(3, 2, 1200);
-            sheet.CellValue(4, 1, "Feb");
-            sheet.CellValue(4, 2, 1800);
-            sheet.CellValue(5, 1, "Mar");
-            sheet.CellValue(5, 2, 1600);
-            sheet.CellValue(6, 1, "Apr");
-            sheet.CellValue(6, 2, 2000);
+            sheet.Cell(2, 1).SetValue("Month");
+            sheet.Cell(2, 2).SetValue("Actual");
+            sheet.Cell(3, 1).SetValue("Jan");
+            sheet.Cell(3, 2).SetValue(1200);
+            sheet.Cell(4, 1).SetValue("Feb");
+            sheet.Cell(4, 2).SetValue(1800);
+            sheet.Cell(5, 1).SetValue("Mar");
+            sheet.Cell(5, 2).SetValue(1600);
+            sheet.Cell(6, 1).SetValue("Apr");
+            sheet.Cell(6, 2).SetValue(2000);
             sheet.Range("A2:B2").SetFillColor("E2E8F0").SetBold();
             sheet.Range("A3:B6").SetFillColor("F8FAFC");
 
-            ExcelChart chart = sheet.AddChartFromRange("A2:B6", row: 2, column: 4, widthPixels: 340, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Axis Label Density");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A2:B6", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Pixels(340), Height = OfficeLength.Pixels(220), Title = "Axis Label Density" });
             chart.SetValueAxisNumberFormat("#,##0");
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {
-                sheet.SetColumnWidth(column, column <= 2 ? 13 : 11);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column <= 2 ? 13 : 11));
             }
 
-            sheet.SetRowHeight(1, 28);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 2; row <= 10; row++) {
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
 
             for (int row = 1; row <= 10; row++) {
                 for (int column = 1; column <= 8; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
-                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 
@@ -143,26 +143,26 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateChartDataLabelBoxesBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("ChartLabelBoxes");
+            ExcelSheet sheet = document.AddSheet("ChartLabelBoxes");
 
-            sheet.CellValue(1, 1, "Data Label Box Fidelity");
+            sheet.Cell(1, 1).SetValue("Data Label Box Fidelity");
             sheet.Range("A1:H1").Merge();
             sheet.Range("A1:H1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
-            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
+            sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+            sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
-            sheet.CellValue(2, 1, "Month");
-            sheet.CellValue(2, 2, "Actual");
-            sheet.CellValue(3, 1, "Jan");
-            sheet.CellValue(3, 2, 120);
-            sheet.CellValue(4, 1, "Feb");
-            sheet.CellValue(4, 2, 180);
-            sheet.CellValue(5, 1, "Mar");
-            sheet.CellValue(5, 2, 160);
+            sheet.Cell(2, 1).SetValue("Month");
+            sheet.Cell(2, 2).SetValue("Actual");
+            sheet.Cell(3, 1).SetValue("Jan");
+            sheet.Cell(3, 2).SetValue(120);
+            sheet.Cell(4, 1).SetValue("Feb");
+            sheet.Cell(4, 2).SetValue(180);
+            sheet.Cell(5, 1).SetValue("Mar");
+            sheet.Cell(5, 2).SetValue(160);
             sheet.Range("A2:B2").SetFillColor("E2E8F0").SetBold();
             sheet.Range("A3:B5").SetFillColor("F8FAFC");
 
-            ExcelChart chart = sheet.AddChartFromRange("A2:B5", row: 2, column: 4, widthPixels: 340, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Data Label Boxes");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A2:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Pixels(340), Height = OfficeLength.Pixels(220), Title = "Data Label Boxes" });
             chart.SetDataLabels(
                 showValue: true,
                 showCategoryName: false,
@@ -171,20 +171,20 @@ namespace OfficeIMO.Tests {
                 showPercent: false,
                 position: OfficeChartDataLabelPosition.OutsideEnd,
                 numberFormat: "0");
-            chart.SetDataLabelShapeStyle(fillColor: "FDE68A", lineColor: "B45309", lineWidthPoints: 1.5D);
-            chart.SetDataLabelTextStyle(color: "7C2D12", bold: true);
+            chart.SetDataLabelShapeStyle(fillColor: OfficeColor.Parse("FDE68A"), lineColor: OfficeColor.Parse("B45309"), lineWidth: OfficeLength.Points(1.5D));
+            chart.SetDataLabelTextStyle(color: OfficeColor.Parse("7C2D12"), bold: true);
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {
-                sheet.SetColumnWidth(column, column <= 2 ? 13 : 11);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column <= 2 ? 13 : 11));
             }
 
-            sheet.SetRowHeight(1, 28);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             for (int row = 2; row <= 10; row++) {
-                sheet.SetRowHeight(row, 24);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 8; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
-                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 

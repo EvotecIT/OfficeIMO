@@ -30,8 +30,8 @@ New-OfficeVisio -Path $visioPath -Title 'Customer onboarding flow' -UseMastersBy
 }
 
 Get-OfficeVisioInfo -Path $visioPath -AsText
-ConvertTo-OfficeVisioSvg -Path $visioPath -OutputPath $svgPath
-ConvertTo-OfficeVisioPng -Path $visioPath -OutputPath $pngPath
+Export-OfficeDocumentImage -Path $visioPath -Page 1 -OutputPath $svgPath | Out-Null
+Export-OfficeDocumentImage -Path $visioPath -Page 1 -OutputPath $pngPath | Out-Null
 ```
 
 ## What this demonstrates

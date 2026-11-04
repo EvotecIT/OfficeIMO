@@ -38,6 +38,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(stepY, pattern.Pattern.VerticalStep, 6);
         Assert.True(pattern.Pattern.RepeatX);
         Assert.Equal(repeatY, pattern.Pattern.RepeatY);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 }

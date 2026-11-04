@@ -16,17 +16,18 @@ namespace OfficeIMO.Tests {
         public void Test_AddAutoFilterPersists() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 20d);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(20d);
                 Dictionary<uint, IEnumerable<string>> criteria = new Dictionary<uint, IEnumerable<string>> {
                     { 0, new[] { "A" } }
                 };
-                sheet.AddAutoFilter("A1:B3", criteria);
+                sheet.Range("A1:B3").AutoFilter();
+                foreach (var criterion in criteria) sheet.Range("A1:B3").AutoFilter().Column(criterion.Key).Equals(criterion.Value);
                 document.Save();
             }
 
@@ -58,16 +59,16 @@ namespace OfficeIMO.Tests {
         public async Task Test_AddAutoFilterConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.Concurrent.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 20d);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(20d);
 
                 var tasks = Enumerable.Range(0, 5)
-                    .Select(_ => Task.Run(() => sheet.AddAutoFilter("A1:B3")))
+                    .Select(_ => Task.Run(() => sheet.Range("A1:B3").AutoFilter()))
                     .ToArray();
                 await Task.WhenAll(tasks);
                 document.Save();
@@ -90,29 +91,26 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFilterByHeadersEquals_BatchesAndReplacesExistingFilters() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.BatchHeaders.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Department");
-                sheet.CellValue(1, 3, "Score");
-                sheet.CellValue(1, 4, "Notes");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, "Finance");
-                sheet.CellValue(2, 3, 20d);
-                sheet.CellValue(2, 4, "keep");
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, "Operations");
-                sheet.CellValue(3, 3, 30d);
-                sheet.CellValue(3, 4, "review");
-                sheet.AutoFilterAdd("A1:D3");
-                sheet.AutoFilterByHeaderEquals("Region", new[] { "Old" });
-                sheet.AutoFilterByHeadersEquals(
-                    ("Region", new[] { "North", "north", "South" }),
-                    ("Missing", new[] { "Ignored" }),
-                    ("Score", new[] { "20", "20", "30" }),
-                    ("Region", new[] { "East" }));
-                sheet.AutoFilterByHeadersEquals(
-                    ("Region", new[] { "East" }),
-                    ("Score", new[] { "20", "30" }));
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Department");
+                sheet.Cell(1, 3).SetValue("Score");
+                sheet.Cell(1, 4).SetValue("Notes");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue("Finance");
+                sheet.Cell(2, 3).SetValue(20d);
+                sheet.Cell(2, 4).SetValue("keep");
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(3, 2).SetValue("Operations");
+                sheet.Cell(3, 3).SetValue(30d);
+                sheet.Cell(3, 4).SetValue("review");
+                sheet.Range("A1:D3").AutoFilter();
+                sheet.Range("A1:D3").AutoFilter().Column("Region").Equals(new[] { "Old" });
+                sheet.Range("A1:D3").AutoFilter()
+                    .Column("Region").Equals(new[] { "North", "north", "South" })
+                    .Column("Score").Equals(new[] { "20", "20", "30" })
+                    .Column("Region").Equals(new[] { "East" });
+                sheet.Range("A1:D3").AutoFilter().Column("Region").Equals(new[] { "East" }).Column("Score").Equals(new[] { "20", "30" });
                 document.Save();
             }
 
@@ -143,33 +141,33 @@ namespace OfficeIMO.Tests {
         public void Test_CustomAutoFilterHelpersPersistExpectedOperators() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.CustomHelpers.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Department");
-                sheet.CellValue(1, 3, "Score");
-                sheet.CellValue(1, 4, "Notes");
-                sheet.CellValue(1, 5, "Delta");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, "Finance");
-                sheet.CellValue(2, 3, 10d);
-                sheet.CellValue(2, 4, "keep");
-                sheet.CellValue(2, 5, 5d);
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, "Operations");
-                sheet.CellValue(3, 3, 20d);
-                sheet.CellValue(3, 4, "review later");
-                sheet.CellValue(3, 5, 10d);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "Support");
-                sheet.CellValue(4, 3, 30d);
-                sheet.CellValue(4, 4, "done");
-                sheet.CellValue(4, 5, 15d);
-                sheet.AutoFilterAdd("A1:E4");
-                sheet.AutoFilterByHeaderStartsWith("Region", "No");
-                sheet.AutoFilterByHeaderEndsWith("Department", "ions");
-                sheet.AutoFilterByHeaderGreaterThanOrEqual("Score", 20d);
-                sheet.AutoFilterByHeaderDoesNotContain("Notes", "view");
-                sheet.AutoFilterByHeaderNotEqual("Delta", 10d);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Department");
+                sheet.Cell(1, 3).SetValue("Score");
+                sheet.Cell(1, 4).SetValue("Notes");
+                sheet.Cell(1, 5).SetValue("Delta");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue("Finance");
+                sheet.Cell(2, 3).SetValue(10d);
+                sheet.Cell(2, 4).SetValue("keep");
+                sheet.Cell(2, 5).SetValue(5d);
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(3, 2).SetValue("Operations");
+                sheet.Cell(3, 3).SetValue(20d);
+                sheet.Cell(3, 4).SetValue("review later");
+                sheet.Cell(3, 5).SetValue(10d);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("Support");
+                sheet.Cell(4, 3).SetValue(30d);
+                sheet.Cell(4, 4).SetValue("done");
+                sheet.Cell(4, 5).SetValue(15d);
+                sheet.Range("A1:E4").AutoFilter();
+                sheet.Range("A1:E4").AutoFilter().Column("Region").BeginsWith("No");
+                sheet.Range("A1:E4").AutoFilter().Column("Department").EndsWith("ions");
+                sheet.Range("A1:E4").AutoFilter().Column("Score").GreaterThanOrEqual(20d);
+                sheet.Range("A1:E4").AutoFilter().Column("Notes").DoesNotContain("view");
+                sheet.Range("A1:E4").AutoFilter().Column("Delta").NotEqual(10d);
                 document.Save();
             }
 
@@ -221,18 +219,18 @@ namespace OfficeIMO.Tests {
         public void Test_CustomAutoFilterRangeHelpersPersistExpectedOperators() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.CustomRangeHelpers.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Budget");
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 1, 10d);
-                sheet.CellValue(2, 2, 5d);
-                sheet.CellValue(3, 1, 20d);
-                sheet.CellValue(3, 2, 15d);
-                sheet.CellValue(4, 1, 30d);
-                sheet.CellValue(4, 2, 25d);
-                sheet.AutoFilterAdd("A1:B4");
-                sheet.AutoFilterByHeaderBetween("Budget", 12d, 28d);
-                sheet.AutoFilterByHeaderNotBetween("Score", 10d, 20d);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Budget");
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 1).SetValue(10d);
+                sheet.Cell(2, 2).SetValue(5d);
+                sheet.Cell(3, 1).SetValue(20d);
+                sheet.Cell(3, 2).SetValue(15d);
+                sheet.Cell(4, 1).SetValue(30d);
+                sheet.Cell(4, 2).SetValue(25d);
+                sheet.Range("A1:B4").AutoFilter();
+                sheet.Range("A1:B4").AutoFilter().Column("Budget").Between(12d, 28d);
+                sheet.Range("A1:B4").AutoFilter().Column("Score").NotBetween(10d, 20d);
                 document.Save();
             }
 

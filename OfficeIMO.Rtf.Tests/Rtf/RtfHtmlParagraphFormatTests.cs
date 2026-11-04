@@ -9,7 +9,7 @@ public class RtfHtmlParagraphFormatTests {
     public void Html_ToRtfDocument_Parses_Paragraph_Borders() {
         const string html = "<p style=\"border:1pt solid #0c2238;border-left:2pt double red\">Boxed</p><p>Plain</p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfParagraph boxed = document.Paragraphs[0];
         Assert.Equal(RtfParagraphBorderStyle.Single, boxed.TopBorder.Style);
@@ -25,7 +25,7 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Contains(@"\brdrt\brdrs\brdrw20\brdrcf1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\brdrl\brdrdb\brdrw40\brdrcf2", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripBoxed = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        RtfParagraph roundTripBoxed = RtfDocument.ParseResult(rtf).Document.Paragraphs[0];
         Assert.Equal(RtfParagraphBorderStyle.Single, roundTripBoxed.TopBorder.Style);
         Assert.Equal(RtfParagraphBorderStyle.Double, roundTripBoxed.LeftBorder.Style);
         Assert.Equal(40, roundTripBoxed.LeftBorder.Width);
@@ -45,7 +45,7 @@ public class RtfHtmlParagraphFormatTests {
 
         Assert.Equal("<p style=\"border-top:1pt solid #0C2238;border-left:2pt double #FF0000;border-bottom:dotted;\">Boxed</p>", html);
 
-        RtfParagraph roundTripBoxed = HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs[0];
+        RtfParagraph roundTripBoxed = HtmlConversionDocument.Parse(html).ToRtf().Paragraphs[0];
         Assert.Equal(RtfParagraphBorderStyle.Single, roundTripBoxed.TopBorder.Style);
         Assert.Equal(20, roundTripBoxed.TopBorder.Width);
         Assert.Equal(1, roundTripBoxed.TopBorder.ColorIndex);
@@ -59,7 +59,7 @@ public class RtfHtmlParagraphFormatTests {
     public void Html_ToRtfDocument_Parses_Document_And_Paragraph_Language_Direction() {
         const string html = "<html dir=\"rtl\" lang=\"ar-SA\"><body><p dir=\"ltr\">LTR <span lang=\"pl-PL\">Polish</span></p><p>RTL default</p></body></html>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         Assert.Equal(1025, document.Settings.DefaultLanguageId);
         Assert.Equal(RtfTextDirection.RightToLeft, document.Settings.Direction);
@@ -75,7 +75,7 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Contains(@"\rtldoc", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pard\ltrpar", rtf, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         Assert.Equal(1025, roundTrip.Settings.DefaultLanguageId);
         Assert.Equal(RtfTextDirection.RightToLeft, roundTrip.Settings.Direction);
         Assert.Equal(RtfTextDirection.LeftToRight, roundTrip.Paragraphs[0].Direction);
@@ -91,14 +91,14 @@ public class RtfHtmlParagraphFormatTests {
             .SetDirection(RtfTextDirection.LeftToRight);
         document.AddParagraph("Default");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false });
 
         Assert.Contains("<html lang=\"ar-SA\" dir=\"rtl\" style=\"--officeimo-rtf-lang:1025;direction:rtl;unicode-bidi:isolate;--officeimo-rtf-direction:rtl;\">", html, StringComparison.Ordinal);
         Assert.Contains("<p dir=\"ltr\" style=\"direction:ltr;unicode-bidi:isolate;--officeimo-rtf-direction:ltr;\">LTR</p>", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         Assert.Equal(1025, roundTrip.Settings.DefaultLanguageId);
         Assert.Equal(RtfTextDirection.RightToLeft, roundTrip.Settings.Direction);
         Assert.Equal(RtfTextDirection.LeftToRight, roundTrip.Paragraphs[0].Direction);
@@ -109,7 +109,7 @@ public class RtfHtmlParagraphFormatTests {
     public void Html_ToRtfDocument_Parses_Inline_Page_And_Column_Breaks() {
         const string html = "<p>Before<br data-officeimo-rtf-break=\"page\">After<br data-officeimo-rtf-break=\"column\">Column<br data-officeimo-rtf-break=\"soft-line\">SoftLine<br data-officeimo-rtf-break=\"soft-page\">SoftPage<br style=\"page-break-before:always\">Styled</p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Collection(paragraph.Inlines,
@@ -131,7 +131,7 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Contains(@"\softline", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\softpage", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = Assert.Single(RtfDocument.Read(rtf).Document.Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(RtfDocument.ParseResult(rtf).Document.Paragraphs);
         Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Page });
         Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Column });
         Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.SoftLine });
@@ -156,7 +156,7 @@ public class RtfHtmlParagraphFormatTests {
 
         Assert.Equal("<p>Before<br data-officeimo-rtf-break=\"page\" style=\"page-break-before:always;break-before:page;\">After<br data-officeimo-rtf-break=\"soft-line\">SoftLine<br data-officeimo-rtf-break=\"soft-page\">SoftPage<br data-officeimo-rtf-break=\"column\" style=\"break-before:column;\">Column</p>", html);
 
-        RtfParagraph roundTripParagraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs);
         Assert.Collection(roundTripParagraph.Inlines,
             inline => Assert.Equal("Before", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),

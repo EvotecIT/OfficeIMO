@@ -518,13 +518,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
 
-        var office = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(htmlOptions);
+        var office = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown);
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -533,13 +534,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(PortableProfileCases))]
     public void MarkdownReader_Matches_Markdig_With_Portable_Profile(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
 
-        var office = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+        var office = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreatePortableProfile()).ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown);
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -548,9 +550,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(AlertBlocksExtensionCases))]
     public void MarkdownReader_AlertBlocks_Match_Markdig_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -558,13 +561,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseAlertBlocks(builder, null);
 
-        var officeOptions = new MarkdownReaderOptions {
+        var officeOptions = new MarkdownLoadOptions {
             CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible
         };
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeAlertHtmlForParity(markdig), NormalizeAlertHtmlForParity(office));
@@ -573,9 +576,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(AlertBlocksExtensionCases))]
     public void MarkdownReader_AlertBlocks_Writer_Reparse_Matches_Markdig_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -583,16 +587,16 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseAlertBlocks(builder, null);
 
-        var officeOptions = new MarkdownReaderOptions {
+        var officeOptions = new MarkdownLoadOptions {
             CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible
         };
 
         var written = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" });
+            .ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" });
         var officeReparsed = MarkdownReader
             .Parse(written, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeAlertHtmlForParity(markdig), NormalizeAlertHtmlForParity(officeReparsed));
@@ -601,9 +605,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(AutoLinksExtensionCases))]
     public void MarkdownReader_GfmAutolinks_Match_Markdig_AutoLinks_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             PercentEncodeTildeInUrlAttributes = true,
             EscapeNonAsciiText = false
@@ -611,7 +616,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseAutoLinks(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var officeOptions = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         officeOptions.AutolinkKeepTrailingSemicolonPunctuation = true;
@@ -628,7 +633,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -637,9 +642,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(AutoLinksPipeTableExtensionCases))]
     public void MarkdownReader_GfmAutolinks_In_PipeTables_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             PercentEncodeTildeInUrlAttributes = true,
             EscapeNonAsciiText = false
@@ -648,7 +654,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UsePipeTables(builder);
         Markdig.MarkdownExtensions.UseAutoLinks(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var officeOptions = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         officeOptions.AutolinkKeepTrailingSemicolonPunctuation = true;
@@ -665,7 +671,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -674,16 +680,17 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(EmphasisExtrasExtensionCases))]
     public void MarkdownReader_EmphasisExtras_Match_Markdig_EmphasisExtras_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseEmphasisExtras(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.Highlight = true;
         officeOptions.Inserted = true;
         officeOptions.Superscript = true;
@@ -691,7 +698,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -700,21 +707,22 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(CjkFriendlyEmphasisExtensionCases))]
     public void MarkdownReader_CjkFriendlyEmphasis_Match_Markdig_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseCjkFriendlyEmphasis(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.CjkFriendlyEmphasis = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -723,21 +731,22 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(AbbreviationExtensionCases))]
     public void MarkdownReader_Abbreviations_Match_Markdig_Abbreviations_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseAbbreviations(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.Abbreviations = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -746,9 +755,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(AbbreviationPipeTableExtensionCases))]
     public void MarkdownReader_Abbreviations_In_PipeTables_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -756,12 +766,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UsePipeTables(builder);
         Markdig.MarkdownExtensions.UseAbbreviations(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.Abbreviations = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -770,9 +780,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesAbbreviationExtensionCases))]
     public void MarkdownReader_GenericAttributes_On_Abbreviations_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -780,13 +791,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseAbbreviations(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.Abbreviations = true;
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
@@ -795,21 +806,22 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesExtensionCases))]
     public void MarkdownReader_GenericAttributes_On_Blocks_Match_Markdig_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
@@ -818,21 +830,22 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesReferenceExtensionCases))]
     public void MarkdownReader_GenericAttributes_On_Reference_Links_And_Images_Match_Markdig_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
@@ -841,9 +854,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesAutoLinksExtensionCases))]
     public void MarkdownReader_GenericAttributes_On_Autolinks_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false,
             PercentEncodeTildeInUrlAttributes = true
@@ -852,7 +866,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseAutoLinks(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var officeOptions = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.GenericAttributes = true;
         officeOptions.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
         officeOptions.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
@@ -870,7 +884,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
@@ -879,9 +893,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesEmphasisExtrasExtensionCases))]
     public void MarkdownReader_GenericAttributes_On_EmphasisExtras_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -889,7 +904,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseEmphasisExtras(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.GenericAttributes = true;
         officeOptions.Highlight = true;
         officeOptions.Inserted = true;
@@ -898,7 +913,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
@@ -907,9 +922,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesPipeTableExtensionCases))]
     public void MarkdownReader_GenericAttributes_In_PipeTables_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -917,13 +933,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UsePipeTables(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.Tables = true;
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
@@ -932,9 +948,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesTaskListExtensionCases))]
     public void MarkdownReader_GenericAttributes_In_TaskLists_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -942,12 +959,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseTaskLists(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var officeOptions = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeTaskListHtmlForParity(markdig), NormalizeTaskListHtmlForParity(office));
@@ -956,9 +973,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesFootnoteExtensionCases))]
     public void MarkdownReader_GenericAttributes_In_Footnotes_Match_Markdig_Extensions(string caseName, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false,
             GitHubFootnoteHtml = true
@@ -967,12 +985,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseFootnotes(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var officeOptions = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         var normalizedOffice = NormalizeGenericAttributesHtmlForParity(office);
@@ -1003,9 +1021,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesFootnoteReferenceExtensionCases))]
     public void MarkdownReader_GenericAttributes_After_FootnoteReferences_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false,
             GitHubFootnoteHtml = true
@@ -1014,12 +1033,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseFootnotes(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var officeOptions = MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile();
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         var normalizedOffice = NormalizeGenericAttributesHtmlForParity(office);
@@ -1032,9 +1051,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(GenericAttributesDefinitionListExtensionCases))]
     public void MarkdownReader_GenericAttributes_In_DefinitionLists_Match_Markdig_Extensions(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -1042,13 +1062,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseDefinitionLists(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.DefinitionLists = true;
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
@@ -1057,21 +1077,22 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(ListExtrasExtensionCases))]
     public void MarkdownReader_ListExtras_Match_Markdig_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseListExtras(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.ListExtras = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -1080,21 +1101,22 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Theory]
     [MemberData(nameof(CustomContainerExtensionCases))]
     public void MarkdownReader_CustomContainers_Match_Markdig_Extension(string _, string markdown) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseCustomContainers(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.CustomContainers = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -1103,17 +1125,20 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Fact]
     public void MarkdownReader_CustomContainers_Track_Nested_Same_Length_Fences() {
         const string markdown = "::: outer\n::: inner\nx\n:::\n:::";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.CustomContainers = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(result.Document.Blocks));
         var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(outer.ChildBlocks));
-        var html = result.Document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var html = result.Document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            EscapeNonAsciiText = false
+            EscapeNonAsciiText = false,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Equal("outer", outer.Name);
@@ -1125,7 +1150,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Fact]
     public void MarkdownReader_CustomContainers_Track_Nested_Longer_Fence_Lengths() {
         const string markdown = "::: outer\n:::: inner\n:::\n::::\n:::";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.CustomContainers = true;
 
         var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
@@ -1142,18 +1167,19 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Fact]
     public void MarkdownReader_CustomContainers_Writer_Reparse_Matches_Markdig_Extension() {
         const string markdown = "::: note\nhello\n:::";
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.CustomContainers = true;
 
-        var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, officeOptions);
-        var written = parsed.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd();
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, officeOptions).ToHtmlFragment(htmlOptions);
+        var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, officeOptions);
+        var written = parsed.ToMarkdown(new MarkdownSaveOptions { OutputLineEnding = "\n" }).TrimEnd();
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(written, officeOptions).ToHtml(htmlOptions);
 
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseCustomContainers(builder);
@@ -1166,9 +1192,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Fact]
     public void MarkdownReader_GenericAttributes_On_CustomContainers_Match_Markdig_Extensions() {
         const string markdown = "{#box .wide}\n::: note\nhello\n:::";
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             EscapeNonAsciiText = false
         };
@@ -1176,13 +1203,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseCustomContainers(builder);
         Markdig.MarkdownExtensions.UseGenericAttributes(builder);
 
-        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        var officeOptions = MarkdownLoadOptions.CreatePortableProfile();
         officeOptions.CustomContainers = true;
         officeOptions.GenericAttributes = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)
-            .ToHtmlFragment(htmlOptions);
+            .ToHtml(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
@@ -1191,7 +1218,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Fact]
     public void MarkdownReader_ListExtras_Are_OptIn() {
         const string markdown = "a. alpha\nb. beta\n";
-        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
+        var document = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, MarkdownLoadOptions.CreatePortableProfile());
 
         Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
     }
@@ -1199,7 +1226,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Fact]
     public void MarkdownReader_ListExtras_Preserve_Marker_Source_And_Writer_Output() {
         const string markdown = "iv. four\nv. five\n";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.ListExtras = true;
         options.PreserveTrivia = true;
 

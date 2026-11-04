@@ -55,6 +55,7 @@ internal static partial class PdfTextEditor {
         EnsureAppendOrderIsSafe(page, detected.Spans);
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected, source.Document.Pages[region.PageNumber - 1]);
         string replacementText = PreserveAuthoredEdgeWhitespace(detected.Spans, text);
+        style = ResolveReplacementFont(style, replacementText);
         style = FitStyleToRegion(style, replacementText, region, snapshot, out string? fitWarning);
         TextRemovalResult removal = detected.Spans.Count == 0
             ? new TextRemovalResult(pdf.ToArray(), Array.Empty<string>(), Array.Empty<PdfStamper.TextStampRequest>())
@@ -189,7 +190,8 @@ internal static partial class PdfTextEditor {
             TextSearchHit hit = hits[hitIndex];
             PdfResolvedTextStyle? fittedStyle = null;
             if (snapshot.RegionWidthPolicy != PdfTextRegionWidthPolicy.PreserveFontSize && replacement.Length > 0) {
-                PdfResolvedTextStyle style = ResolveStyle(snapshot, BuildRegionText(new[] { hit.Segments[0].Span }), styleDocument.Pages[hit.PageNumber - 1]);
+                PdfResolvedTextStyle style = ResolveReplacementFont(
+                    ResolveStyle(snapshot, BuildRegionText(new[] { hit.Segments[0].Span }), styleDocument.Pages[hit.PageNumber - 1]), replacement);
                 fittedStyle = FitStyleToBaselineExtent(style, replacement, GetMatchedBaselineExtent(hit.Segments, hit.Lines[0]),
                     snapshot, out string? fitWarning);
                 if (fitWarning is not null) fitWarnings.Add(fitWarning);

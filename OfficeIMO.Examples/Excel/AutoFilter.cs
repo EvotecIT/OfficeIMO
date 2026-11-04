@@ -12,19 +12,20 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "AutoFilter.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 20d);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(20d);
 
                 Dictionary<uint, IEnumerable<string>> criteria = new Dictionary<uint, IEnumerable<string>> {
                     { 0, new[] { "A" } }
                 };
 
-                sheet.AddAutoFilter("A1:B3", criteria);
+                sheet.Range("A1:B3").AutoFilter();
+                foreach (var criterion in criteria) sheet.Range("A1:B3").AutoFilter().Column(criterion.Key).Equals(criterion.Value);
                 document.Save();
                 if (openExcel) document.OpenInApplication();
             }

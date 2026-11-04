@@ -23,7 +23,7 @@ public class VisioLegacyProducerTests {
         var document = result.Value;
         Assert.Equal(family, document.PackageType); Assert.Equal(masterCount, document.Masters.Count);
         if (original.Root!.Name.NamespaceName == Namespace2002)
-            Assert.Contains(result.Report.FidelityDiagnostics, d => d.Code == "VDX_2002_INPUT");
+            Assert.Contains(result.Report.Diagnostics, d => d.Code == "VDX_2002_INPUT");
         var unedited = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         Assert.Equal(MasterPageSheets(original), MasterPageSheets(unedited));
         Assert.Equal(original.Descendants(original.Root.Name.Namespace + "Masters").Descendants(original.Root.Name.Namespace + "Text").Select(e => e.Value),
@@ -82,12 +82,12 @@ public class VisioLegacyProducerTests {
     public void RegisteredMasterCreationUsesPageUnitWithoutAmbiguousOverloads() {
         var document = VisioDocument.Create(); var page = document.AddPage("Instances");
         page.DefaultUnit = VisioMeasurementUnit.Centimeters;
-        document.RegisterMaster("Box", new VisioShape("1", 0, 0, 1, 1, ""));
-        var plain = page.AddShape("1", "Box", 2.54, 5.08, 7.62, 2.54);
-        var text = page.AddShape("2", "Box", 2.54, 5.08, 7.62, 2.54, "label");
-        var explicitUnit = page.AddShape("3", "Box", 1, 2, 3, 1, unit: VisioMeasurementUnit.Inches);
-        Assert.Equal(1, plain.PinX, 8); Assert.Equal(2, plain.PinY, 8); Assert.Equal(3, plain.Width, 8);
-        Assert.Equal(plain.Width, text.Width); Assert.Equal(plain.Width, explicitUnit.Width);
+        document.RegisterMaster("Box", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), ""));
+        var plain = page.AddShape("1", "Box", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.08, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7.62, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)));
+        var text = page.AddShape("2", "Box", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.08, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7.62, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), "label");
+        var explicitUnit = page.AddShape("3", "Box", OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(1));
+        Assert.Equal(1, plain.PinX.ToInches(), 8); Assert.Equal(2, plain.PinY.ToInches(), 8); Assert.Equal(3, plain.Width.ToInches(), 8);
+        Assert.Equal(plain.Width.ToInches(), text.Width.ToInches()); Assert.Equal(plain.Width.ToInches(), explicitUnit.Width.ToInches());
         Assert.Equal("label", text.Text);
     }
 
@@ -96,11 +96,11 @@ public class VisioLegacyProducerTests {
         string source = "<VisioDocument xmlns='" + Namespace2003 + "'><Fonts><FontEntry ID='0' Name='Arial' CharSet='0'/><FontEntry ID='3' Name='Arial' CharSet='2'/></Fonts><Masters><Master ID='1' NameU='Group'><Shapes><Shape ID='1' Type='Group'><XForm><Width F='GUARD(2)'>2</Width><Height F='GUARD(1)'>1</Height></XForm><Shapes><Shape ID='2'><Text>removed</Text></Shape><Shape ID='3'><XForm><Width>1</Width><Height>1</Height></XForm><Char IX='0'><Font>3</Font></Char><Text>original</Text></Shape></Shapes></Shape></Shapes></Master><Master ID='2' NameU='Unused'><Shapes><Shape ID='1'><Text>retained</Text></Shape></Shapes></Master></Masters></VisioDocument>";
         var document = Load(source, VisioPackageType.Template);
         var root = document.Masters.First().Shape;
-        root.Width = 4;
+        root.Width = OfficeLength.Inches(4);
         root.Children.RemoveAt(0);
         root.Children[0].Text = "edited child";
         root.Children[0].TextStyle!.FontFamily = "Consolas";
-        root.Children.Insert(0, new VisioShape("4", 1, 1, 1, 1, "new child"));
+        root.Children.Insert(0, new VisioShape("4", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "new child"));
         var saved = document.ToLegacyXmlResult();
         XNamespace ns = Namespace2003;
         var xml = XDocument.Load(new MemoryStream(saved.Value));

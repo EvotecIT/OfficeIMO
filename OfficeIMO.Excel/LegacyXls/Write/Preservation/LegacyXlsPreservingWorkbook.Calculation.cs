@@ -40,7 +40,7 @@ internal sealed partial class LegacyXlsPreservingWorkbook {
         foreach (var cell in cells.Keys.ToArray()) {
             token.ThrowIfCancellationRequested(); var records = cells[cell];
             if (records.Count == 0 || records[0].Type != 0x0006) continue;
-            string address = A1.CellReference(cell.Row + 1, cell.Column + 1);
+            string address = ExcelA1.CellReference(cell.Row + 1, cell.Column + 1);
             if (encoding.FormulaCaches.TryGetValue((sheetName, address), out var current))
                 records = cells[cell] = LegacyXlsWriter.EncodePreservedFormulaCache(sheet, current, records, document.DateSystem, structure?.NameIndexes).ToList();
             if (!policy.ClearCachedResults && !policy.RecalculateOnOpen) continue;

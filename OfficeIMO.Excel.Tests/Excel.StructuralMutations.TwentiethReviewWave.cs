@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_ReplacementDetachesPackageSharedImagePart() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Original");
             ExtendedPart relationshipPart = document.WorkbookPartRoot.Parts
                 .Select(pair => pair.OpenXmlPart)
@@ -43,12 +43,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterTopBottom_UsesPercentageSpecificMaximum() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
-            sheet.AutoFilterTopBottom("A1:A10", 0, 100, percent: true);
+            sheet.Range("A1:A10").AutoFilter().Column(0).TopBottom(100, percent: true);
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                sheet.AutoFilterTopBottom("A1:A10", 0, 101, percent: true));
-            sheet.AutoFilterTopBottom("A1:A10", 0, 500, percent: false);
+                sheet.Range("A1:A10").AutoFilter().Column(0).TopBottom(101, percent: true));
+            sheet.Range("A1:A10").AutoFilter().Column(0).TopBottom(500, percent: false);
         }
 
         private sealed class CountingNonSeekableReadStream : Stream {

@@ -8,10 +8,10 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>An editable publication and its retained manuscript review state. Instances are mutable and not thread-safe.</summary>
 public sealed partial class BookProject {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _diagnostics;
+    private readonly IReadOnlyList<OfficeDiagnostic> _diagnostics;
     private EpubPublication _publication;
     private byte[]? _undo, _redo;
-    private BookProject(EpubPublication publication, IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics, bool acknowledged) {
+    private BookProject(EpubPublication publication, IEnumerable<OfficeDiagnostic> diagnostics, bool acknowledged) {
         _publication = publication;
         _diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         ImportLossAcknowledged = acknowledged;
@@ -41,7 +41,7 @@ public sealed partial class BookProject {
         _publication = restored; _redo = null; _undo = current.LongLength <= 128L * 1024 * 1024 ? current : null;
     }
     /// <summary>Retained category-preserving manuscript import diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> ImportDiagnostics => _diagnostics;
+    public IReadOnlyList<OfficeDiagnostic> ImportDiagnostics => _diagnostics;
     /// <summary>Whether the author has reviewed and accepted non-fatal import losses.</summary>
     public bool ImportLossAcknowledged { get; private set; }
     /// <summary>Whether import review permits export. Native writer validation still runs for every export.</summary>
@@ -55,7 +55,7 @@ public sealed partial class BookProject {
     }
     /// <summary>Updates primary package metadata atomically, retaining other values and refinements. A blank creator retains the current value.</summary>
     public void SetMetadata(string title, string language, string creator, CancellationToken cancellationToken = default) =>
-        Mutate(publication => { publication.Title = title; publication.Language = language; if (!string.IsNullOrWhiteSpace(creator)) publication.Creator = creator; }, cancellationToken);
+        Mutate(publication => { publication.Title = title; publication.Language = language; if (!(creator == null || string.IsNullOrWhiteSpace(creator))) publication.Creator = creator; }, cancellationToken);
     /// <summary>Replaces a chapter's XHTML body while retaining its document head and package declarations.</summary>
     public void SetChapterBody(int index, string bodyXml, CancellationToken cancellationToken = default) =>
         Mutate(publication => {
@@ -67,12 +67,12 @@ public sealed partial class BookProject {
         }, cancellationToken);
     /// <summary>Starts a project from the shared manuscript import result.</summary>
     public static BookProject FromImport(EpubManuscriptResult result) {
-        ArgumentNullException.ThrowIfNull(result);
-        return new BookProject(result.Publication, result.Report.FidelityDiagnostics, false);
+        if (result == null) throw new ArgumentNullException(nameof(result));
+        return new BookProject(result.Publication, result.Report.Diagnostics, false);
     }
     /// <summary>Opens an existing EPUB for package-preserving editing without claiming that its content was converted.</summary>
     public static BookProject FromEpub(byte[] bytes, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(bytes);
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         using var source = new MemoryStream(bytes, false);
         return new BookProject(EpubPublication.Load(source, cancellationToken: cancellationToken), [], false);
     }
@@ -83,10 +83,10 @@ public sealed partial class BookProject {
         ImportLossAcknowledged = true;
     }
     /// <summary>Exports a complete EPUB after import review and canonical writer validation.</summary>
-    public EpubWriteResult Export(CancellationToken cancellationToken = default) => Export(new EpubWriteOptions(), cancellationToken);
+    public EpubWriteResult Export(CancellationToken cancellationToken = default) => Export(new EpubSaveOptions(), cancellationToken);
     /// <summary>Exports a reviewed publication with explicit EPUB writer limits and signature policy.</summary>
-    public EpubWriteResult Export(EpubWriteOptions options, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(options);
+    public EpubWriteResult Export(EpubSaveOptions options, CancellationToken cancellationToken = default) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
         if (!CanExport) throw new InvalidOperationException("Review the import report before exporting this book.");
         return _publication.Write(options, cancellationToken);
     }
@@ -108,11 +108,11 @@ public sealed partial class BookProject {
     }
     /// <summary>Renames a chapter's document title, first matching heading and matching primary navigation label atomically.</summary>
     public void RenameChapter(int index, string title, CancellationToken cancellationToken = default) {
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        if ((title == null || string.IsNullOrWhiteSpace(title))) throw new ArgumentException("A non-empty value is required.", nameof(title));
         Mutate(proposed => RenameChapterCore(proposed, index, title, cancellationToken), cancellationToken);
     }
     private static void RenameChapterCore(EpubPublication proposed, int index, string title, CancellationToken cancellationToken) {
-            ArgumentException.ThrowIfNullOrWhiteSpace(title);
+            if ((title == null || string.IsNullOrWhiteSpace(title))) throw new ArgumentException("A non-empty value is required.", nameof(title));
             string id = proposed.Spine[index].ManifestId;
             string path = proposed.Manifest.Single(item => item.Id == id).Reference.ContainerPath!;
             EpubDocument reading = ReadCompleteNavigation(proposed, cancellationToken);
@@ -131,7 +131,7 @@ public sealed partial class BookProject {
     }
     /// <summary>Changes the project typography stylesheet without replacing imported source CSS.</summary>
     public void SetStylesheet(string css, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(css);
+        if (css == null) throw new ArgumentNullException(nameof(css));
         Mutate(proposed => ApplyStylesheet(proposed, css), cancellationToken);
     }
     private static void ApplyStylesheet(EpubPublication proposed, string css) {
@@ -162,14 +162,14 @@ public sealed partial class BookProject {
     }
     /// <summary>Applies a complete editor draft in one transaction; failure retains the previous publication.</summary>
     public void ApplyEdits(BookProjectEdits edits, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(edits);
+        if (edits == null) throw new ArgumentNullException(nameof(edits));
         var bodies = edits.ChapterBodies?.ToArray() ?? [];
         var titles = edits.ChapterTitles?.ToArray() ?? [];
         string? title = edits.Title, language = edits.Language, creator = edits.Creator, css = edits.Stylesheet;
         Mutate(proposed => {
             if (title != null && title != proposed.Title) proposed.Title = title;
             if (language != null && language != proposed.Language) proposed.Language = language;
-            if (!string.IsNullOrWhiteSpace(creator) && creator != proposed.Creator) proposed.Creator = creator;
+            if (!(creator == null || string.IsNullOrWhiteSpace(creator)) && creator != proposed.Creator) proposed.Creator = creator;
             foreach (var replacement in bodies) {
                 XDocument content = proposed.GetContentXml(replacement.Key);
                 XElement body = ParseEditorBody(replacement.Value);
@@ -185,8 +185,8 @@ public sealed partial class BookProject {
     }
     /// <summary>Selects newly supplied image bytes as the package cover, retaining earlier resources and content references.</summary>
     public void SetCoverImage(byte[] bytes, string mediaType, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(bytes);
-        ArgumentException.ThrowIfNullOrWhiteSpace(mediaType);
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        if ((mediaType == null || string.IsNullOrWhiteSpace(mediaType))) throw new ArgumentException("A non-empty value is required.", nameof(mediaType));
         Mutate(proposed => {
             string extension = mediaType.ToLowerInvariant() switch {
                 "image/png" => ".png", "image/jpeg" => ".jpg", "image/gif" => ".gif", "image/svg+xml" => ".svg",
@@ -206,8 +206,8 @@ public sealed partial class BookProject {
     public IReadOnlyList<OfficeImageExportResult> PreviewChapter(int index, double width = 816,
         CancellationToken cancellationToken = default) {
         if (index < 0 || index >= _publication.Spine.Count) throw new ArgumentOutOfRangeException(nameof(index));
-        EpubDocument source = _publication.Read(new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
-        int extractedIndex = Enumerable.Range(0, source.Chapters.Count).FirstOrDefault(position => source.Chapters[position].SpineIndex == index + 1, -1);
+        EpubDocument source = _publication.Read(new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
+        int extractedIndex = Enumerable.Range(0, source.Chapters.Count).Where(position => source.Chapters[position].SpineIndex == index + 1).DefaultIfEmpty(-1).First();
         if (extractedIndex < 0) throw new InvalidDataException("The selected chapter could not be extracted under the preview reading policy.");
         return source.ExportImages(OfficeImageExportFormat.Png, new EpubImageExportOptions {
             ChapterIndex = extractedIndex, ChapterCount = 1, ViewportWidth = width, Mode = HtmlRenderMode.Continuous,
@@ -239,7 +239,7 @@ public sealed partial class BookProject {
     }
     private static EpubNavigationItem? FindPrimaryNavigation(IEnumerable<EpubNavigationItem> items, string path) {
         foreach (EpubNavigationItem item in items) {
-            if (!item.IsRemote && item.Target == path && !string.IsNullOrWhiteSpace(item.Label)) return item;
+            if (!item.IsRemote && item.Target == path && !(item.Label == null || string.IsNullOrWhiteSpace(item.Label))) return item;
             EpubNavigationItem? child = FindPrimaryNavigation(item.Children, path);
             if (child != null) return child;
         }

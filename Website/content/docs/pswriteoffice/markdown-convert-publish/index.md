@@ -16,8 +16,8 @@ ConvertTo-OfficeMarkdownHtml -Path '.\Runbook.md' `
     -Title 'Operations runbook' -IncludeAnchorLinks
 ```
 
-The [publish-HTML recipe](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-PublishHtml.ps1) creates a runbook and publishes a complete HTML document.
+The [publish-HTML recipe](https://github.com/EvotecIT/OfficeIMO/blob/c1f0e5322ee8119ac229d463b8e42e1423a3c7f6/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-PublishHtml.ps1) creates a runbook and publishes a complete HTML document.
 
 ## Bring HTML back
 
-Use `ConvertFrom-OfficeMarkdownHtml` for imported web fragments or articles. Base64 image handling, output directories, and URL policies should be chosen explicitly when the HTML is not fully trusted. Conversion preserves useful document meaning but is not expected to reproduce every browser layout detail.
+Use `Convert-OfficeDocument -From Html -To Markdown` for imported web fragments or articles. `New-OfficeHtmlMarkdownOptions` supplies the image policy, table limits and Markdown writer settings. Start with `-Portable` for portable Markdown, or use `-BaseOptions` to adjust a copy of existing native settings.

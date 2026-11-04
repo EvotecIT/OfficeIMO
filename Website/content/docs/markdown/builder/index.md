@@ -4,14 +4,14 @@ description: "Fluent API for building Markdown documents — headings, paragraph
 order: 41
 ---
 
-The `MarkdownDoc` class provides a fluent API for composing Markdown documents entirely in code. Every method returns the same `MarkdownDoc` instance for chaining. The resulting document renders to GitHub-flavored Markdown via `ToString()`.
+The `MarkdownDocument` class provides a fluent API for composing Markdown documents entirely in code. Every method returns the same `MarkdownDocument` instance for chaining. The resulting document renders to GitHub-flavored Markdown via `ToString()`.
 
 ## Headings
 
 ```csharp
 using OfficeIMO.Markdown;
 
-var doc = MarkdownDoc.Create()
+var doc = MarkdownDocument.Create()
     .H1("Main Title")
     .H2("Section")
     .H3("Subsection")
@@ -144,7 +144,7 @@ var data = new[] {
     new { Product = "Widget B", Price = 14.99, Stock = 75 },
 };
 
-doc.TableFrom(data);
+var table = doc.AddTable(data);
 ```
 
 ### Table with Auto-Alignment
@@ -152,13 +152,13 @@ doc.TableFrom(data);
 Automatically align numeric columns to the right and date columns to the center:
 
 ```csharp
-doc.TableFromAuto(data, alignNumeric: true, alignDates: true);
+doc.AddTable(data, new MarkdownTableOptions { AlignNumeric = true, AlignDates = true });
 ```
 
 ### Table with Column Selectors
 
 ```csharp
-doc.TableFrom(data,
+doc.AddTable(data,
     ("Product", x => x.Product),
     ("Price ($)", x => x.Price.ToString("F2")),
     ("In Stock", x => x.Stock > 100 ? "Yes" : "Low")
@@ -170,7 +170,7 @@ doc.TableFrom(data,
 ```csharp
 doc.Table(t => t
     .Headers("Left", "Center", "Right")
-    .Align(ColumnAlignment.Left, ColumnAlignment.Center, ColumnAlignment.Right)
+    .Align(MarkdownColumnAlignment.Left, MarkdownColumnAlignment.Center, MarkdownColumnAlignment.Right)
     .Row("A", "B", "C")
 );
 ```
@@ -303,9 +303,9 @@ File.WriteAllText("output.md", markdown);
 ## Rendering to HTML
 
 ```csharp
-string html = doc.ToHtml(new HtmlOptions {
-    Style = HtmlStyle.GitHub,
+string html = doc.ToHtml(new MarkdownHtmlExportOptions {
+    Style = MarkdownHtmlStyle.GitHub,
     InjectTocAtTop = true,
-    Prism = new PrismOptions { Enabled = true }
+    Prism = new MarkdownPrismOptions { Enabled = true }
 });
 ```

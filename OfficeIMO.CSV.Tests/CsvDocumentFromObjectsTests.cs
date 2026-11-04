@@ -627,7 +627,7 @@ public class CsvDocumentFromObjectsTests
     {
         using var reader = new StringReader("#a,b,c\n1;2;3\n");
 
-        var records = CsvDocument.ReadRecords(reader, new CsvLoadOptions { DetectDelimiter = true }).ToArray();
+        var records = CsvDocument.ReadRecords(reader, new CsvReaderOptions { DetectDelimiter = true }).ToArray();
 
         Assert.Equal(new[] { "#a", "b", "c" }, records[0]);
         Assert.Equal(new[] { "1;2;3" }, records[1]);
@@ -812,9 +812,9 @@ public class CsvDocumentFromObjectsTests
     [Fact]
     public void LoadOptions_BoundsCompressedInputByDefault()
     {
-        var options = new CsvLoadOptions();
+        var options = new CsvReaderOptions();
 
-        Assert.Equal(CsvLoadOptions.DefaultMaxInputBytes, options.MaxDecompressedBytes);
+        Assert.Equal(CsvReaderOptions.DefaultMaxInputBytes, options.MaxDecompressedBytes);
     }
 
     [Fact]

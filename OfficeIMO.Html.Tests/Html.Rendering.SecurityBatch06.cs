@@ -29,8 +29,8 @@ public sealed partial class HtmlRenderingTests {
         string svg = Convert.ToBase64String(Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' width='20' height='10'><a href='https://example.test'><text x='1' y='8'>   </text></a></svg>"));
 
-        byte[] pdf = HtmlConversionDocument.Parse(
-            "<img src='data:image/svg+xml;base64," + svg + "'><p>AfterWhitespaceVector</p>").ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(
+            "<img src='data:image/svg+xml;base64," + svg + "'><p>AfterWhitespaceVector</p>").ToPdf()).ToBytes();
 
         Assert.Contains("AfterWhitespaceVector", OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
@@ -95,7 +95,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported
             && diagnostic.Source == "div#overflowed");
         Assert.DoesNotContain(rendered.Pages[0].Visuals, visual => visual is HtmlRenderEffectGroup group && group.Source == "div#overflowed");

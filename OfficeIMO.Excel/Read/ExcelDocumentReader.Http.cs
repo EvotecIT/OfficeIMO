@@ -12,8 +12,8 @@ namespace OfficeIMO.Excel {
         /// <param name="httpOptions">Optional HTTP loading options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Workbook reader.</returns>
-        public static async Task<ExcelDocumentReader> OpenAsync(Uri uri, ExcelReadOptions? options = null, ExcelHttpLoadOptions? httpOptions = null, CancellationToken cancellationToken = default) {
-            var effectiveOptions = options ?? new ExcelReadOptions();
+        public static async Task<ExcelDocumentReader> OpenAsync(Uri uri, ExcelReaderOptions? options = null, ExcelLoadOptions? httpOptions = null, CancellationToken cancellationToken = default) {
+            var effectiveOptions = options ?? new ExcelReaderOptions();
             byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(
                 uri,
                 httpOptions,

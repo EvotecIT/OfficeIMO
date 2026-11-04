@@ -1,5 +1,3 @@
-using System;
-
 namespace OfficeIMO.Drawing {
     public sealed partial class OfficeRasterCanvas {
         // A mutable canvas can also be supplied as its own source. Sampling must see

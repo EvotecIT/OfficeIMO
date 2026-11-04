@@ -6,21 +6,21 @@ using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public class VisioShapeDataTests {
         [Fact]
         public void DocumentModelProjection_DefaultsToBoundedShapeDataRows() {
             VisioDocument document = VisioDocument.Create();
-            VisioPage page = document.AddPage("Bounded", 8.5, 6);
-            VisioShape shape = page.AddRectangle(2.5, 4, 2.2, 1, "Server");
+            VisioPage page = document.AddPage("Bounded", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Server");
             for (int index = 0; index < 201; index++) {
                 shape.SetShapeData("Key" + index, index.ToString());
             }
 
             OfficeDocumentModel model = document.ToOfficeDocumentModel();
-            VisioInspectionSnapshot boundedSnapshot = document.CreateInspectionSnapshot(200);
+            VisioInspectionSnapshot boundedSnapshot = document.Inspect(200);
 
             OfficeDocumentModelTable table = Assert.Single(model.Tables);
             Assert.Equal(200, table.Rows.Count);
@@ -35,13 +35,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BoundedInspectionOrdersShapeDataBeforeTruncation() {
             VisioDocument document = VisioDocument.Create();
-            VisioShape shape = document.AddPage("Ordered", 8.5, 6)
-                .AddRectangle(2.5, 4, 2.2, 1, "Server");
+            VisioShape shape = document.AddPage("Ordered", OfficeLength.Inches(8.5), OfficeLength.Inches(6))
+                .AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Server");
             shape.SetShapeData("Zulu", "last");
             shape.SetShapeData("Alpha", "first");
 
             VisioInspectionShapeSnapshot snapshot = Assert.Single(
-                Assert.Single(document.CreateInspectionSnapshot(1).Pages).Shapes);
+                Assert.Single(document.Inspect(1).Pages).Shapes);
 
             VisioInspectionShapeDataSnapshot row = Assert.Single(snapshot.ShapeData);
             Assert.Equal("Alpha", row.Name);
@@ -54,14 +54,14 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Shape Data", 8.5, 6);
-            VisioShape server = page.AddRectangle(2.5, 4, 2.2, 1, "Server");
+            VisioPage page = document.AddPage("Shape Data", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape server = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Server");
             server.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String, "Owning support team");
             VisioShapeDataRow cost = server.SetShapeData("MonthlyCost", "1250", "Monthly cost", VisioShapeDataType.Currency, "Estimated monthly cost", "$#,##0");
             cost.SortKey = "020";
             cost.Verify = true;
 
-            page.AddRectangle(6, 4, 2.2, 1, "Database")
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Database")
                 .SetShapeData("Owner", "Data", "Owner", VisioShapeDataType.String, "Owning support team");
 
             page.SelectWithShapeData("Owner", "Operations")
@@ -99,9 +99,9 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
-            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioPage page = document.AddPage("Connector Data", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
             connector.Label = "route";
             connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
@@ -124,9 +124,9 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
-            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioPage page = document.AddPage("Connector Data", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
             connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
             document.Save();
@@ -147,9 +147,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
-            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioPage page = document.AddPage("Connector Data", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
             VisioShapeDataRow owner = connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
             owner.Value = "Platform";
@@ -171,9 +171,9 @@ namespace OfficeIMO.Tests {
                 .Field("MonthlyCost", "Monthly cost", VisioShapeDataType.Currency, "0", "Estimated monthly run cost", "$#,##0", "030", invisible: false);
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Schema", 8.5, 6);
-            VisioShape server = page.AddRectangle(2, 4, 1.5, 0.75, "Server");
-            VisioShape api = page.AddRectangle(5, 4, 1.5, 0.75, "API");
+            VisioPage page = document.AddPage("Schema", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape server = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Server");
+            VisioShape api = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "API");
             server.SetShapeData("Owner", "Operations");
 
             schema.ApplyTo(server);
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests {
         public void ShapeDataSchemaPreservesLegacyDataValuesByDefault() {
             VisioShapeDataSchema schema = VisioShapeDataSchema.Create()
                 .Field("Owner", "Owner", VisioShapeDataType.String, "Unassigned");
-            VisioShape shape = new("shape", 0, 0, 1, 1, "Shape");
+            VisioShape shape = new("shape", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), "Shape");
             shape.Data["Owner"] = "Ops";
 
             schema.ApplyTo(shape);
@@ -233,9 +233,9 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
-            VisioPage page = document.AddPage("Data Graphics", 8.5, 6);
-            VisioShape api = page.AddRectangle(2, 4, 1.5, 0.75, "API");
-            VisioShape database = page.AddRectangle(5, 4, 1.5, 0.75, "Database");
+            VisioPage page = document.AddPage("Data Graphics", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape api = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "API");
+            VisioShape database = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Database");
             api.SetShapeData("Status", "Healthy", "Status", VisioShapeDataType.FixedList, format: "Healthy;Warning;Critical");
             api.SetShapeData("Slo", "72", "SLO", VisioShapeDataType.Number);
             database.SetShapeData("Status", "Warning", "Status", VisioShapeDataType.FixedList, format: "Healthy;Warning;Critical");
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
                 shape.GetUserCellValue("OfficeIMO.DataGraphicTargetId") == api.Id &&
                 shape.GetUserCellValue("OfficeIMO.DataGraphicField") == "Slo" &&
                 shape.GetUserCellValue("OfficeIMO.DataGraphicRole") == "BarFill");
-            Assert.Equal(0.792D, apiBarFill.Width, 3);
+            Assert.Equal(0.792D, apiBarFill.Width.ToInches(), 3);
             Assert.Equal("0.72", apiBarFill.GetShapeDataValue("Percent"));
 
             document.Save();
@@ -289,8 +289,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DataGraphicsUsePageUnitsForGeneratedAdornmentGeometry() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("Metric Data Graphics", 12, 8, VisioMeasurementUnit.Centimeters);
-            VisioShape service = page.AddRectangle(4, 5, 2, 1, "Service");
+            VisioPage page = document.AddPage("Metric Data Graphics", OfficeLength.Centimeters(12), OfficeLength.Centimeters(8), scaleUnit: VisioMeasurementUnit.Centimeters);
+            VisioShape service = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Service");
             service.SetShapeData("Status", "Watch", "Status", VisioShapeDataType.String);
             service.SetShapeData("Slo", "80", "SLO", VisioShapeDataType.Number);
 
@@ -304,28 +304,28 @@ namespace OfficeIMO.Tests {
             VisioShape badge = generated.Single(shape => shape.GetUserCellValue("OfficeIMO.DataGraphicRole") == "Badge");
             VisioShape bar = generated.Single(shape => shape.GetUserCellValue("OfficeIMO.DataGraphicRole") == "BarBackground");
 
-            Assert.Equal(1.15D / 2.54D, badge.Width, 3);
-            Assert.Equal(0.28D / 2.54D, badge.Height, 3);
-            Assert.Equal(1.1D / 2.54D, bar.Width, 3);
-            Assert.Equal(0.12D / 2.54D, bar.Height, 3);
-            Assert.Equal(0.5D / 2.54D, badge.PinX - service.PinX - (service.Width / 2D) - (badge.Width / 2D), 3);
-            Assert.Equal(0.8D / 2.54D, badge.PinY - bar.PinY, 3);
+            Assert.Equal(1.15D / 2.54D, badge.Width.ToInches(), 3);
+            Assert.Equal(0.28D / 2.54D, badge.Height.ToInches(), 3);
+            Assert.Equal(1.1D / 2.54D, bar.Width.ToInches(), 3);
+            Assert.Equal(0.12D / 2.54D, bar.Height.ToInches(), 3);
+            Assert.Equal(0.5D / 2.54D, badge.PinX.ToInches() - service.PinX.ToInches() - (service.Width.ToInches() / 2D) - (badge.Width.ToInches() / 2D), 3);
+            Assert.Equal(0.8D / 2.54D, badge.PinY.ToInches() - bar.PinY.ToInches(), 3);
         }
 
         [Fact]
         public void DataGraphicsUsePageCoordinatesForGroupedChildren() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("Grouped Data Graphics", 8.5, 6);
+            VisioPage page = document.AddPage("Grouped Data Graphics", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
             VisioShape group = new("group") {
                 Type = "Group",
-                PinX = 5,
-                PinY = 4,
-                Width = 4,
-                Height = 3,
-                LocPinX = 2,
-                LocPinY = 1.5
-            };
-            VisioShape child = new("child", 1.25, 1.25, 1, 0.6, "Child");
+                PinX = OfficeLength.Inches(5),
+                PinY = OfficeLength.Inches(4),
+                Width = OfficeLength.Inches(4),
+                Height = OfficeLength.Inches(3),
+                LocPinX = OfficeLength.Inches(2),
+                LocPinY = OfficeLength.Inches(1.5
+            )};
+            VisioShape child = new("child", OfficeLength.Inches(1.25), OfficeLength.Inches(1.25), OfficeLength.Inches(1), OfficeLength.Inches(0.6), "Child");
             child.SetShapeData("Status", "Healthy", "Status", VisioShapeDataType.String);
             group.Children.Add(child);
             page.Shapes.Add(group);
@@ -334,17 +334,17 @@ namespace OfficeIMO.Tests {
             graphic.Gap = 0.2D;
             VisioShape badge = Assert.Single(page.AddDataGraphics(child, graphic.Badge("Status")));
 
-            double childPageX = group.PinX - group.LocPinX + child.PinX;
-            double childPageY = group.PinY - group.LocPinY + child.PinY;
-            Assert.Equal(childPageX + (child.Width / 2D) + 0.2D + (badge.Width / 2D), badge.PinX, 3);
-            Assert.Equal(childPageY, badge.PinY, 3);
+            double childPageX = group.PinX.ToInches() - group.LocPinX.ToInches() + child.PinX.ToInches();
+            double childPageY = group.PinY.ToInches() - group.LocPinY.ToInches() + child.PinY.ToInches();
+            Assert.Equal(childPageX + (child.Width.ToInches() / 2D) + 0.2D + (badge.Width.ToInches() / 2D), badge.PinX.ToInches(), 3);
+            Assert.Equal(childPageY, badge.PinY.ToInches(), 3);
         }
 
         [Fact]
         public void DataGraphicsRejectInvalidDataBarRangesBeforeGeneratingGeometry() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioPage page = document.AddPage("Invalid Data Graphic", 8.5, 6);
-            VisioShape target = page.AddRectangle(2, 4, 1.5, 0.75, "Service");
+            VisioPage page = document.AddPage("Invalid Data Graphic", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Service");
             target.SetShapeData("Slo", "80", "SLO", VisioShapeDataType.Number);
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -398,9 +398,9 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
-            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
-            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioPage page = document.AddPage("Connector Data", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
             connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
             document.Save();

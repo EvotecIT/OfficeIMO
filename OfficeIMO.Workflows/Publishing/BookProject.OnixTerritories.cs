@@ -28,20 +28,20 @@ public sealed partial class BookProject {
     }
 
     private static OnixTerritory ReadOnixTerritory(BookOnixTerritory territory) {
-        ArgumentNullException.ThrowIfNull(territory);
+        if (territory == null) throw new ArgumentNullException(nameof(territory));
         HashSet<string> countries = ReadOnixCountries(territory.Countries), excluded = ReadOnixCountries(territory.ExcludedCountries);
         HashSet<string> regions = ReadOnixSubregions(territory.Regions), excludedRegions = ReadOnixSubregions(territory.ExcludedRegions);
         if (territory.Worldwide ? countries.Count + regions.Count != 0 : countries.Count + regions.Count == 0 || excluded.Count != 0)
             throw new ArgumentException("Use included countries/subregions, or Worldwide with optional exclusions.", nameof(territory));
-        if (regions.Any(region => countries.Contains(region[..2])))
+        if (regions.Any(region => countries.Contains(region.Substring(0, 2))))
             throw new ArgumentException("An included subregion cannot repeat its included parent country.", nameof(territory));
-        if (excludedRegions.Any(region => territory.Worldwide ? excluded.Contains(region[..2]) : !countries.Contains(region[..2])))
+        if (excludedRegions.Any(region => territory.Worldwide ? excluded.Contains(region.Substring(0, 2)) : !countries.Contains(region.Substring(0, 2))))
             throw new ArgumentException("An excluded subregion must belong to an included country and cannot repeat an excluded country.", nameof(territory));
         return new(territory.Worldwide, countries, excluded, regions, excludedRegions);
     }
 
     private static HashSet<string> ReadOnixCountries(IReadOnlyList<string> countries) {
-        ArgumentNullException.ThrowIfNull(countries);
+        if (countries == null) throw new ArgumentNullException(nameof(countries));
         if (countries.Count > 250) throw new ArgumentException("A territory country list cannot exceed 250 codes.", nameof(countries));
         var result = new HashSet<string>(StringComparer.Ordinal);
         foreach (string code in countries) {
@@ -57,7 +57,7 @@ public sealed partial class BookProject {
         yield return (null, null); // The rest of WORLD outside explicitly mentioned countries.
         string[] regions = territories.SelectMany(t => t.Regions.Concat(t.ExcludedRegions)).Distinct(StringComparer.Ordinal).ToArray();
         IEnumerable<string> countries = territories.SelectMany(t => t.Countries.Concat(t.Excluded))
-            .Concat(regions.Select(region => region[..2])).Distinct(StringComparer.Ordinal);
+            .Concat(regions.Select(region => region.Substring(0, 2))).Distinct(StringComparer.Ordinal);
         foreach (string country in countries) {
             yield return (country, null);
             foreach (string region in regions.Where(region => region.StartsWith(country + "-", StringComparison.Ordinal))) yield return (country, region);

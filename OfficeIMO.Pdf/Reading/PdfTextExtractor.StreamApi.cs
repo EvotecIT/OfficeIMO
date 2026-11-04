@@ -83,7 +83,7 @@ internal static partial class PdfTextExtractor {
     
     /// <summary>Extracts logical Markdown from all pages from the current position of a readable stream.</summary>
     public static string ExtractMarkdown(Stream stream, PdfTextLayoutOptions? options = null, PdfLogicalMarkdownOptions? markdownOptions = null) {
-        return PdfDocumentReadResult.From(ReadCurrentStream(stream), options).ToMarkdown(markdownOptions);
+        return PdfDocumentReadResult.From(ReadCurrentStream(stream), options).ExtractMarkdown(markdownOptions);
     }
     
     /// <summary>Extracts logical Markdown from all pages from the current position of a readable stream and writes UTF-8 Markdown to <paramref name="outputStream"/>.</summary>
@@ -120,7 +120,7 @@ internal static partial class PdfTextExtractor {
     
     /// <summary>Extracts logical Markdown from the supplied inclusive one-based page ranges and concatenates selected pages with Markdown page separators.</summary>
     public static string ExtractMarkdownByPageRangesAsDocument(Stream stream, PdfTextLayoutOptions? options, PdfLogicalMarkdownOptions? markdownOptions, params PdfPageRange[] pageRanges) {
-        return PdfDocumentReadResult.FromPageRanges(ReadCurrentStream(stream), options, pageRanges).ToMarkdown(markdownOptions);
+        return PdfDocumentReadResult.FromPageRanges(ReadCurrentStream(stream), options, pageRanges).ExtractMarkdown(markdownOptions);
     }
     
     /// <summary>Extracts plain text from each page from the current stream position and writes one UTF-8 text file per page.</summary>
@@ -204,77 +204,77 @@ internal static partial class PdfTextExtractor {
     }
     
     /// <summary>Extracts structured content for each page from the current stream position.</summary>
-    public static IReadOnlyList<StructuredPage> ExtractStructuredByPage(Stream stream, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredPage> ExtractStructuredByPage(Stream stream, PdfTextLayoutOptions? options = null) {
         return ReadCurrentStream(stream).ExtractStructuredPages(options);
     }
     
     /// <summary>Extracts structured content from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredPage> ExtractStructuredByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
         return ExtractStructuredByPageRanges(stream, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts structured content from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredPage> ExtractStructuredByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredPage> ExtractStructuredByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         return ExtractStructuredByPageRanges(ReadCurrentStream(stream), options, pageRanges);
     }
     
     /// <summary>Extracts detected paragraphs grouped by page from the current stream position.</summary>
-    public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredParagraphPage> ExtractParagraphsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
         return ReadCurrentStream(stream).ExtractParagraphsByPage(options);
     }
     
     /// <summary>Extracts detected paragraphs from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredParagraphPage> ExtractParagraphsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
         return ExtractParagraphsByPageRanges(stream, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts detected paragraphs from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredParagraphPage> ExtractParagraphsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         return ExtractParagraphsByPageRanges(ReadCurrentStream(stream), options, pageRanges);
     }
     
     /// <summary>Extracts detected headings grouped by page from the current stream position.</summary>
-    public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredHeadingPage> ExtractHeadingsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
         return ReadCurrentStream(stream).ExtractHeadingsByPage(options);
     }
     
     /// <summary>Extracts detected headings from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredHeadingPage> ExtractHeadingsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
         return ExtractHeadingsByPageRanges(stream, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts detected headings from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredHeadingPage> ExtractHeadingsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         return ExtractHeadingsByPageRanges(ReadCurrentStream(stream), options, pageRanges);
     }
     
     /// <summary>Extracts detected list items grouped by page from the current stream position.</summary>
-    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredListItemPage> ExtractListItemsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
         return ReadCurrentStream(stream).ExtractListItemsByPage(options);
     }
     
     /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredListItemPage> ExtractListItemsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
         return ExtractListItemsByPageRanges(stream, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredListItemPage> ExtractListItemsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         return ExtractListItemsByPageRanges(ReadCurrentStream(stream), options, pageRanges);
     }
     
     /// <summary>Extracts detected tables grouped by page from the current stream position.</summary>
-    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(Stream stream, PdfTextLayoutOptions? options = null) {
+    public static IReadOnlyList<PdfStructuredTablePage> ExtractTablesByPage(Stream stream, PdfTextLayoutOptions? options = null) {
         return ReadCurrentStream(stream).ExtractTablesByPage(options);
     }
     
     /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredTablePage> ExtractTablesByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
         return ExtractTablesByPageRanges(stream, (PdfTextLayoutOptions?)null, pageRanges);
     }
     
     /// <summary>Extracts detected tables from the supplied inclusive one-based page ranges from the current stream position.</summary>
-    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<PdfStructuredTablePage> ExtractTablesByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         return ExtractTablesByPageRanges(ReadCurrentStream(stream), options, pageRanges);
     }
     

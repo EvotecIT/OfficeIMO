@@ -27,7 +27,7 @@ using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
         .H1("Quarterly report")
-        .Paragraph(paragraph => paragraph.Text("Generated without Office or a browser runtime."))))
+        .AddParagraph(paragraph => paragraph.AddText("Generated without Office or a browser runtime."))))
     .Meta(title: "Quarterly report", author: "OfficeIMO")
     .Save("report.pdf");
 ```
@@ -67,14 +67,13 @@ For application code, use the focused adapter that owns the target:
 
 ```csharp
 using OfficeIMO.Pdf;
-using OfficeIMO.Word.Pdf;
+using OfficeIMO.Pdf.Word;
 
 PdfDocument pdf = PdfDocument.Load(File.ReadAllBytes("report.pdf"));
-PdfWordConversionResult result = pdf.ToWordDocumentResult();
-result.Value.Save("report.docx");
+OfficeConversionReport result = pdf.SaveAsWord("report.docx");
 
-foreach (PdfConversionWarning warning in result.Report.Warnings) {
-    Console.WriteLine($"{warning.Code}: {warning.Message}");
+foreach (OfficeDiagnostic diagnostic in result.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 }
 ```
 

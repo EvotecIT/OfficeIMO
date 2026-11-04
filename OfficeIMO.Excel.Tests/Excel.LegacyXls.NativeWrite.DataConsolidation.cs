@@ -17,8 +17,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
-                    sheet.CellValue(1, 1, "Value");
+                    ExcelSheet sheet = document.AddSheet("Consolidation");
+                    sheet.Cell(1, 1).SetValue("Value");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate {
                         Function = DataConsolidateFunctionValues.Maximum,
                         LeftLabels = true,
@@ -62,9 +62,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
-                    sheet.CellValue(1, 1, "Region");
-                    sheet.CellValue(2, 1, "North");
+                    ExcelSheet sheet = document.AddSheet("Consolidation");
+                    sheet.Cell(1, 1).SetValue("Region");
+                    sheet.Cell(2, 1).SetValue("North");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate {
                         Function = DataConsolidateFunctionValues.Sum,
                         StartLabels = true
@@ -126,13 +126,13 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet source = document.AddWorksheet("Source");
-                    source.CellValue(1, 1, "Region");
-                    source.CellValue(2, 1, "North");
-                    source.CellValue(2, 2, 12d);
+                    ExcelSheet source = document.AddSheet("Source");
+                    source.Cell(1, 1).SetValue("Region");
+                    source.Cell(2, 1).SetValue("North");
+                    source.Cell(2, 2).SetValue(12d);
 
-                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
-                    sheet.CellValue(1, 1, "Consolidated");
+                    ExcelSheet sheet = document.AddSheet("Consolidation");
+                    sheet.Cell(1, 1).SetValue("Consolidated");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                         new DataReferences(
                             new DataReference {
@@ -177,18 +177,18 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet source = document.AddWorksheet("Source");
-                    source.CellValue(1, 1, "Region");
-                    source.CellValue(2, 1, "North");
-                    source.CellValue(2, 2, 12d);
+                    ExcelSheet source = document.AddSheet("Source");
+                    source.Cell(1, 1).SetValue("Region");
+                    source.Cell(2, 1).SetValue("North");
+                    source.Cell(2, 2).SetValue(12d);
 
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName("'Source'!$A$1:$B$2") {
                         Name = "ConsolidationSource"
                     });
 
-                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
-                    sheet.CellValue(1, 1, "Consolidated");
+                    ExcelSheet sheet = document.AddSheet("Consolidation");
+                    sheet.Cell(1, 1).SetValue("Consolidated");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                         new DataReferences(
                             new DataReference {
@@ -240,10 +240,10 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet source = document.AddWorksheet("Source");
-                    source.CellValue(1, 1, "Region");
-                    source.CellValue(2, 1, "North");
-                    source.CellValue(2, 2, 12d);
+                    ExcelSheet source = document.AddSheet("Source");
+                    source.Cell(1, 1).SetValue("Region");
+                    source.Cell(2, 1).SetValue("North");
+                    source.Cell(2, 2).SetValue(12d);
 
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName("$A$1:$B$2") {
@@ -251,8 +251,8 @@ namespace OfficeIMO.Tests {
                         LocalSheetId = 0
                     });
 
-                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
-                    sheet.CellValue(1, 1, "Consolidated");
+                    ExcelSheet sheet = document.AddSheet("Consolidation");
+                    sheet.Cell(1, 1).SetValue("Consolidated");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                         new DataReferences(
                             new DataReference {
@@ -300,8 +300,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
-                    sheet.CellValue(1, 1, "Consolidated");
+                    ExcelSheet sheet = document.AddSheet("Consolidation");
+                    sheet.Cell(1, 1).SetValue("Consolidated");
                     ExternalRelationship relationship = sheet.WorksheetPart.AddExternalRelationship(
                         ExternalLinkPathRelationshipType,
                         new Uri("../Data/Budget.xls", UriKind.Relative));
@@ -360,8 +360,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
-                    sheet.CellValue(1, 1, "Consolidated");
+                    ExcelSheet sheet = document.AddSheet("Consolidation");
+                    sheet.Cell(1, 1).SetValue("Consolidated");
                     ExternalRelationship relationship = sheet.WorksheetPart.AddExternalRelationship(
                         ExternalLinkPathRelationshipType,
                         new Uri("../Data/Budget.xls", UriKind.Relative));
@@ -415,7 +415,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedDataConsolidationSourceReferencePayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data consolidation source reference payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Consolidated");
+                sheet.Cell(1, 1).SetValue("Consolidated");
                 string oversizedSheetName = new string('\u0100', 33000);
                 sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                     new DataReferences(

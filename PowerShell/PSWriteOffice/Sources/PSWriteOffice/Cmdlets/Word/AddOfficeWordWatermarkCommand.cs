@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
@@ -37,7 +38,7 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetText)]
     public string Text { get; set; } = string.Empty;
 
-    /// <summary>Path to an image watermark.</summary>
+    /// <summary>Path to an image watermark, resolved literally against the current PowerShell location.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetImage)]
     public string ImagePath { get; set; } = string.Empty;
 
@@ -64,18 +65,24 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
         var section = context.RequireSection();
         var header = context.CurrentHeader;
 
+        global::OfficeIMO.OfficeLength? horizontalOffset = HorizontalOffset.HasValue
+            ? global::OfficeIMO.OfficeLength.Points(HorizontalOffset.Value) : null;
+        global::OfficeIMO.OfficeLength? verticalOffset = VerticalOffset.HasValue
+            ? global::OfficeIMO.OfficeLength.Points(VerticalOffset.Value) : null;
+
         WordWatermark watermark;
         if (ParameterSetName == ParameterSetImage)
         {
+            string imagePath = OfficePath.ResolveInput(SessionState, ImagePath, literal: true)[0];
             watermark = header != null
-                ? header.AddWatermark(WordWatermarkStyle.Image, ImagePath, HorizontalOffset, VerticalOffset, Scale)
-                : section.AddWatermark(WordWatermarkStyle.Image, ImagePath, HorizontalOffset, VerticalOffset, Scale);
+                ? header.AddWatermark(WordWatermarkStyle.Image, imagePath, horizontalOffset, verticalOffset, Scale)
+                : section.AddWatermark(WordWatermarkStyle.Image, imagePath, horizontalOffset, verticalOffset, Scale);
         }
         else
         {
             watermark = header != null
-                ? header.AddWatermark(WordWatermarkStyle.Text, Text, HorizontalOffset, VerticalOffset, Scale)
-                : section.AddWatermark(WordWatermarkStyle.Text, Text, HorizontalOffset, VerticalOffset, Scale);
+                ? header.AddWatermark(WordWatermarkStyle.Text, Text, horizontalOffset, verticalOffset, Scale)
+                : section.AddWatermark(WordWatermarkStyle.Text, Text, horizontalOffset, verticalOffset, Scale);
         }
 
         if (PassThru.IsPresent)

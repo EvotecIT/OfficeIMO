@@ -12,21 +12,21 @@ $path = Join-Path $OutputDirectory 'Example-Visio-ArchitectureMap.vsdx'
 $svgPath = Join-Path $OutputDirectory 'Example-Visio-ArchitectureMap.svg'
 $pngPath = Join-Path $OutputDirectory 'Example-Visio-ArchitectureMap.png'
 
-OfficeVisio -Path $path -Title 'Service architecture map' -Author 'PSWriteOffice' -Width 12 -Height 7.5 -UseMastersByDefault -RequestRecalcOnOpen {
+New-OfficeVisio -Path $path -Title 'Service architecture map' -Author 'PSWriteOffice' -Width 12in -Height 7.5in -UseMastersByDefault -RequestRecalcOnOpen {
     VisioStencilImport -BuiltIn Architecture -Name Arch -Default
     VisioStencilImport -BuiltIn Cloud -Name Cloud
     VisioStencilImport -BuiltIn SecurityIdentity -Name Security
     VisioStencilImport -BuiltIn DataPlatform -Name Data
 
-    VisioTextBox 'SaaS control plane' -X 6 -Y 6.85 -Width 4.2 -Height 0.42 -FillColor '#FFFFFF' -LineColor '#FFFFFF'
-    VisioTextBox 'Boundaries, trust points, and platform services are editable Visio shapes.' -X 6 -Y 6.43 -Width 6.8 -Height 0.28 -FillColor '#FFFFFF' -LineColor '#FFFFFF'
+    VisioTextBox 'SaaS control plane' -X 6in -Y 6.85in -Width 4.2in -Height 0.42in -FillColor '#FFFFFF' -LineColor '#FFFFFF'
+    VisioTextBox 'Boundaries, trust points, and platform services are editable Visio shapes.' -X 6in -Y 6.43in -Width 6.8in -Height 0.28in -FillColor '#FFFFFF' -LineColor '#FFFFFF'
 
-    VisioRectangle -Key public -X 2.05 -Y 3.62 -Width 3.45 -Height 4.55 -FillColor '#F8FAFC' -LineColor '#CBD5E1'
-    VisioRectangle -Key private -X 6.25 -Y 3.62 -Width 4.5 -Height 4.55 -FillColor '#EFF6FF' -LineColor '#93C5FD'
-    VisioRectangle -Key datazone -X 10.1 -Y 3.62 -Width 2.4 -Height 4.55 -FillColor '#F0FDFA' -LineColor '#5EEAD4'
-    VisioTextBox 'Edge' -X 2.05 -Y 5.65 -Width 1.8 -Height 0.3 -FillColor '#F8FAFC' -LineColor '#F8FAFC'
-    VisioTextBox 'Application' -X 6.25 -Y 5.65 -Width 2.3 -Height 0.3 -FillColor '#EFF6FF' -LineColor '#EFF6FF'
-    VisioTextBox 'Data' -X 10.1 -Y 5.65 -Width 1.8 -Height 0.3 -FillColor '#F0FDFA' -LineColor '#F0FDFA'
+    VisioRectangle -Key public -X 2.05in -Y 3.62in -Width 3.45in -Height 4.55in -FillColor '#F8FAFC' -LineColor '#CBD5E1'
+    VisioRectangle -Key private -X 6.25in -Y 3.62in -Width 4.5in -Height 4.55in -FillColor '#EFF6FF' -LineColor '#93C5FD'
+    VisioRectangle -Key datazone -X 10.1in -Y 3.62in -Width 2.4in -Height 4.55in -FillColor '#F0FDFA' -LineColor '#5EEAD4'
+    VisioTextBox 'Edge' -X 2.05in -Y 5.65in -Width 1.8in -Height 0.3in -FillColor '#F8FAFC' -LineColor '#F8FAFC'
+    VisioTextBox 'Application' -X 6.25in -Y 5.65in -Width 2.3in -Height 0.3in -FillColor '#EFF6FF' -LineColor '#EFF6FF'
+    VisioTextBox 'Data' -X 10.1in -Y 5.65in -Width 1.8in -Height 0.3in -FillColor '#F0FDFA' -LineColor '#F0FDFA'
 
     VisioStencil -Catalog Arch -Stencil actor -Key user -Text 'Users' -X 0.8 -Y 3.8 -FillColor '#E0F2FE' -LineColor '#0284C7'
     VisioStencil -Catalog Cloud -Stencil gateway -Key gateway -Text 'API gateway' -X 2.4 -Y 4.9 -FillColor '#DBEAFE' -LineColor '#2563EB'
@@ -48,8 +48,8 @@ OfficeVisio -Path $path -Title 'Service architecture map' -Author 'PSWriteOffice
     VisioConnector -From sql -To monitor -Kind Straight -FromSide Right -ToSide Left -EndArrow Triangle -LineColor '#E11D48'
 }
 
-ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath
-ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngPath
+Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath | Out-Null
+Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngPath | Out-Null
 
 if ($Open) {
     Invoke-Item $svgPath

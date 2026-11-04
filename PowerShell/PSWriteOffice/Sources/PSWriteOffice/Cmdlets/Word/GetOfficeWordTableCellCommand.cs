@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///     Select-Object -Property Text</code>
 ///   <para>Gets a zero-based table cell from an OfficeIMO table object and inspects its paragraphs.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordTableCell")]
+[Cmdlet(VerbsCommon.Get, "OfficeWordTableCell", DefaultParameterSetName = "Default")]
 [Alias("WordTableCells")]
 [OutputType(typeof(WordTableCell))]
 public sealed class GetOfficeWordTableCellCommand : PSCmdlet

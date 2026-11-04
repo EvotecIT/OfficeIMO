@@ -9,7 +9,7 @@ schema: 2.0.0
 Appends a row to an existing Word table.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordTableRow [-Table] <WordTable> [[-Values] <Object>] [-PassThru] [<CommonParameters>]
 ```
@@ -24,7 +24,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $doc | Get-OfficeWordTable | Select-Object -First 1 |
     Add-OfficeWordTableRow -Values 'Service', 'Ready', 'Low'
 ```
@@ -33,7 +33,7 @@ Adds one table row and writes the supplied values into its cells.
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
 $table | Add-OfficeWordTableRow -Values ([ordered]@{
     Item  = 'Mitigation plan'
@@ -52,7 +52,7 @@ Emit the created row for additional OfficeIMO-level edits.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -68,7 +68,7 @@ Existing Word table to append to, usually from Get-OfficeWordTable or Find-Offic
 
 ```yaml
 Type: WordTable
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -84,7 +84,7 @@ Values to write into the new row. Arrays, dictionaries, ordered dictionaries, an
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: Data, InputObject
 Possible values:
 

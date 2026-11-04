@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown.Html;
 /// <summary>
 /// Controls how HTML-to-Markdown conversion handles elements that do not map to a built-in Markdown construct.
 /// </summary>
-public enum HtmlUnknownTagHandling {
+public enum MarkdownHtmlUnknownTagHandling {
     /// <summary>Preserve the original HTML for the unsupported element when the matching preserve option is enabled.</summary>
     Preserve,
 

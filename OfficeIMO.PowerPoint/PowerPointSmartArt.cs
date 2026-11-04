@@ -76,7 +76,7 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
                 snapshot = new OfficeDiagramSnapshot(Name, kind, nodes,
-                    WidthPoints, HeightPoints, style);
+                    Width, Height, style);
                 return true;
             } catch {
                 snapshot = null!;
@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
                     out OpenXmlPart? relatedPart)
                 || relatedPart is not DiagramLayoutDefinitionPart layoutPart
                 || layoutPart.LayoutDefinition == null
-                || HeightPoints <= 0D) {
+                || Height.ToPoints() <= 0D) {
                 return false;
             }
             PowerPointSmartArtType type = kind switch {
@@ -107,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
                 OfficeDiagramKind.Relationship => PowerPointSmartArtType.BasicRelationship,
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };
-            double aspectRatio = WidthPoints / HeightPoints;
+            double aspectRatio = Width.ToPoints() / Height.ToPoints();
             if (type == PowerPointSmartArtType.BasicList) {
                 Dgm.Parameter? storedAspectRatio = layoutPart.LayoutDefinition
                     .Descendants<Dgm.Parameter>().FirstOrDefault(parameter =>

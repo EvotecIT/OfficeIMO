@@ -33,16 +33,16 @@ public sealed class HeicConsumerTests {
                 }
                 break;
             case ".pptx":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(output)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
                     using var input = new MemoryStream(heic, writable: false);
                     input.Position = 7;
-                    presentation.AddSlide().AddPicture(input, OfficeImageFormat.Heic);
+                    presentation.AddSlide().AddImage(input, OfficeImageFormat.Heic);
                     presentation.Save();
                 }
                 break;
             case ".xlsx":
                 using (ExcelDocument document = ExcelDocument.Create(output)) {
-                    document.AddWorksheet("Images").AddImage(1, 1, heic, "image/heic");
+                    document.AddSheet("Images").AddImage(1, 1, heic, new ExcelImageOptions { ContentType = "image/heic" });
                     document.Save();
                 }
                 break;
@@ -71,7 +71,7 @@ public sealed class HeicConsumerTests {
     [InlineData(".heic")]
     [InlineData(".heif")]
     [InlineData(".hif")]
-    public async Task WorkflowRoutesAllHeicAliasesToAReopenedPdf(string extension) {
+    public async Task FrontDoorRoutesAllHeicAliasesToAReopenedPdf(string extension) {
         using var scope = new CodecScope(new SolidTileCodec());
         string source = Path.Combine(scope.Directory, "source" + extension);
         File.Copy(Fixture, source);
@@ -87,15 +87,27 @@ public sealed class HeicConsumerTests {
         Assert.True(jsonRoute.GetProperty("requiresImageCodec").GetBoolean());
         Assert.Equal("OfficeIMO.Pdf", capability.PackageId);
         Assert.False(capability.BrowserAvailable);
-        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
-            Operation = OfficeWorkflowOperation.Convert, InputPath = source, OutputPath = output,
-            ConversionRouteId = route.Id,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
-        });
+        OfficeConversionReport result = await OfficeConverter.ConvertAsync(source, output,
+            new OfficeConversionOptions { RouteId = route.Id, FileConflictPolicy = OfficePublicationPolicy.Fail });
 
-        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(1, result.ItemsWritten);
         Assert.Equal(1, PdfDocument.Load(output).Inspect().PageCount);
-        Assert.Contains(result.Diagnostics, item => item.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, item => item.Code == OfficeDiagnosticCodes.ConversionOutputReopened);
+    }
+
+    [Fact]
+    public void FrontDoorRetainsCodecUnavailableDiagnosticAndPublishesNothing() {
+        using var scope = new CodecScope(null);
+        string output = Path.Combine(scope.Directory, "unavailable.pdf");
+        OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() =>
+            OfficeConverter.Convert(Fixture, output));
+        OfficeDiagnostic diagnostic = Assert.Single(failure.Report.Diagnostics,
+            item => item.Code == OfficeDiagnosticCodes.ImageCodecUnavailable);
+        Assert.Equal(OfficeDiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+        Assert.Equal("Heic", diagnostic.Format);
+        Assert.False(File.Exists(output));
+        Assert.Empty(System.IO.Directory.GetFiles(scope.Directory, ".*.tmp"));
     }
 
     [Theory]
@@ -111,11 +123,11 @@ public sealed class HeicConsumerTests {
         OfficeWorkflowResult conversion = await runner.RunAsync(new OfficeWorkflowRequest {
             Operation = OfficeWorkflowOperation.Convert, InputPath = source, OutputPath = converted,
             ConversionRouteId = "heic-pdf",
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            ConflictPolicy = OfficePublicationPolicy.Fail
         });
         string assembled = Path.Combine(scope.Directory, "assembled.pdf");
         PdfAssemblyResult assembly = await runner.AssemblePdfAsync(new PdfAssemblyRequest {
-            Sources = new[] { source }, OutputPath = assembled, ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            Sources = new[] { source }, OutputPath = assembled, ConflictPolicy = OfficePublicationPolicy.Fail
         });
 
         Assert.False(conversion.Succeeded);
@@ -144,12 +156,12 @@ public sealed class HeicConsumerTests {
     public void PreparedPdfImagesDoNotBypassTheCurrentHeicCodecAvailability() {
         using var scope = new CodecScope(new SolidTileCodec());
         byte[] heic = File.ReadAllBytes(Fixture);
-        byte[] pdf = PdfDocument.CreateFromImages(new[] { new PdfImageDocumentSource(heic, "photo.heic") }).ToBytes();
+        byte[] pdf = new[] { new PdfImageDocumentSource(heic, "photo.heic") }.ToPdf().ToBytes();
         Assert.Equal(1, PdfDocument.Load(pdf).Inspect().PageCount);
 
         OfficeRasterImageCodecs.Platform = null;
         OfficeRasterDecodeException failure = Assert.Throws<OfficeRasterDecodeException>(() => {
-            PdfDocument.CreateFromImages(new[] { new PdfImageDocumentSource(heic, "photo.heic") }).ToBytes();
+            new[] { new PdfImageDocumentSource(heic, "photo.heic") }.ToPdf().ToBytes();
         });
         Assert.Equal(OfficeRasterCodecUnavailableReason.NoPlatformCodec, failure.DecodeInfo.CodecUnavailableReason);
     }
@@ -162,11 +174,11 @@ public sealed class HeicConsumerTests {
         string dataUri = "data:image/heic;base64," + Convert.ToBase64String(File.ReadAllBytes(Fixture));
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(
             $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"120\"><image width=\"160\" height=\"120\" href=\"{dataUri}\"/></svg>");
-        byte[] pdf = PdfDocument.CreateFromImages(new[] { new PdfImageDocumentSource(svg, "photo.svg") }).ToBytes();
+        byte[] pdf = new[] { new PdfImageDocumentSource(svg, "photo.svg") }.ToPdf().ToBytes();
         Assert.Equal(1, PdfDocument.Load(pdf).Inspect().PageCount);
         OfficeRasterImageCodecs.Platform = null;
         OfficeRasterDecodeException failure = Assert.Throws<OfficeRasterDecodeException>(() => {
-            PdfDocument.CreateFromImages(new[] { new PdfImageDocumentSource(copySource ? (byte[])svg.Clone() : svg, "photo.svg") }).ToBytes();
+            new[] { new PdfImageDocumentSource(copySource ? (byte[])svg.Clone() : svg, "photo.svg") }.ToPdf().ToBytes();
         });
         Assert.Equal(OfficeRasterCodecUnavailableReason.NoPlatformCodec, failure.DecodeInfo.CodecUnavailableReason);
     }

@@ -60,7 +60,7 @@ internal sealed partial class PublisherContentsReader {
             // Printable pages carry a content-count field; named definitions
             // are masters. Remaining unnamed definitions are utility pages.
             if (string.IsNullOrEmpty(name) && !Field(fields, 1).HasValue) continue;
-            if (result.Pages.Count >= _context.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");
+            if (result.Pages.Count >= _context.Options.MaxPages) throw new InvalidDataException("Publisher page limit exceeded.");
             var page = new PublisherSourcePage(pageId, name, Field(fields, 0x0D)?.Value, Field(fields, 0x0A)?.Value);
             result.Pages.Add(page);
             PublisherBlock? shapes = Field(fields, 2);

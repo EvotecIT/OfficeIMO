@@ -16,8 +16,8 @@ namespace OfficeIMO.Pdf.Benchmarks {
             PdfDocument document = PdfDocument.Create(compose => {
                 for (int page = 1; page <= pages; page++) {
                     int number = page;
-                    compose.Page(layout => layout.Size(600, 800).Content(content => content.Item(item =>
-                        item.Paragraph(text => text.Text($"Before private account {number:000} after page {number:000}")))));
+                    compose.Page(layout => layout.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.Item(item =>
+                        item.AddParagraph(text => text.AddText($"Before private account {number:000} after page {number:000}")))));
                 }
             });
             if (rotation != 0) document = document.Pages.Rotate(rotation, Enumerable.Range(1, pages).ToArray());

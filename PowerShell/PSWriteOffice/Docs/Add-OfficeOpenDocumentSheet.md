@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a worksheet to an OpenDocument spreadsheet and optionally runs nested cell content.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeOpenDocumentSheet [-Name] <string> [[-Content] <scriptblock>] [-Document <OdsDocument>] [-PassThru] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Nested cell commands that use this worksheet as their current target.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -50,7 +50,7 @@ OpenDocument spreadsheet. Omit inside New-OfficeOpenDocument -Content.
 
 ```yaml
 Type: OdsDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -66,7 +66,7 @@ Worksheet name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -82,7 +82,7 @@ Emit the created worksheet.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

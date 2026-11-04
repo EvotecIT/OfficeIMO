@@ -11,8 +11,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     [Fact]
     public void Everyday_Pages_body_tables_and_section_text_match_independent_Apple_export() {
         VerifyManifest("pages-everyday-v15.4.json");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(Corpus("picodocs/sample-v14.4.pages"),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(Corpus("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.True(result.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
@@ -46,10 +45,9 @@ public sealed partial class IWorkEverydayNativeExportTests {
     [Fact]
     public void Cross_table_Numbers_values_and_formula_caches_match_all_Apple_worksheets() {
         VerifyManifest("numbers-cross-table-v14.5.json");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Corpus("numbers-parser/cross-table-formulas.numbers"),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(Corpus("numbers-parser/cross-table-formulas.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.True(result.Report.IsPartialEditableReconstruction);
-        Assert.Contains(result.Report.FidelityDiagnostics, d => d.Code == "IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED"
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED"
             && d.LossKind == OfficeConversionLossKind.Approximation);
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
@@ -93,8 +91,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     [Fact]
     public void Uniform_formula_fonts_alignment_and_caches_match_independent_Numbers_export() {
         VerifyManifest("numbers-formula-formatting-v14.5.json");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Corpus("native-exports/numbers-formula-formatting-v14.5.numbers"),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(Corpus("native-exports/numbers-formula-formatting-v14.5.numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var actual = SpreadsheetDocument.Open(saved, false);

@@ -64,7 +64,8 @@ namespace OfficeIMO.Excel {
                 string workbookRelationshipId = document.GetIdOfPart(workbookPart);
                 var parts = new List<ExtendedPartModel>();
                 var partMap = new Dictionary<OpenXmlPart, ExtendedPartModel>();
-                if (!TryCollectPart(workbookPart, parts, partMap, out skipReason)) {
+                bool keepsBufferedComments = directDataSetModel?.Sheets.Any(static sheet => sheet.Table.CellValueBuffer != null) == true;
+                if (!TryCollectPart(workbookPart, parts, partMap, out skipReason, keepsBufferedComments)) {
                     return false;
                 }
 
@@ -189,7 +190,8 @@ namespace OfficeIMO.Excel {
                 OpenXmlPart part,
                 List<ExtendedPartModel> parts,
                 Dictionary<OpenXmlPart, ExtendedPartModel> partMap,
-                out string? skipReason) {
+                out string? skipReason,
+                bool keepsBufferedComments = false) {
                 skipReason = null;
 
                 if (partMap.ContainsKey(part)) {
@@ -205,6 +207,8 @@ namespace OfficeIMO.Excel {
                 ExtendedPartModel model;
                 if (TryCopyRawSupportedPart(part, path, out var rawModel)) {
                     model = rawModel;
+                } else if (keepsBufferedComments && part is WorksheetCommentsPart { Comments: { } comments }) {
+                    model = new ExtendedPartModel(part, path, part.ContentType, comments, copyRawPart: false);
                 } else {
                     if (!TryGetSupportedRootElement(part, out var rootElement, out skipReason)) {
                         return false;
@@ -217,7 +221,7 @@ namespace OfficeIMO.Excel {
                 partMap[part] = model;
 
                 foreach (var child in part.Parts) {
-                    if (!TryCollectPart(child.OpenXmlPart, parts, partMap, out skipReason)) {
+                    if (!TryCollectPart(child.OpenXmlPart, parts, partMap, out skipReason, keepsBufferedComments)) {
                         return false;
                     }
                 }

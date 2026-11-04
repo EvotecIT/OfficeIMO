@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     // Save core implementation for VisioDocument.
@@ -161,11 +161,11 @@ namespace OfficeIMO.Visio {
                     writer.WriteEndDocument();
                 }
 
-                if (!string.IsNullOrEmpty(Title)) {
-                    package.PackageProperties.Title = Title;
+                if (!string.IsNullOrEmpty(Properties.Title)) {
+                    package.PackageProperties.Title = Properties.Title;
                 }
-                if (!string.IsNullOrEmpty(Author)) {
-                    package.PackageProperties.Creator = Author;
+                if (!string.IsNullOrEmpty(Properties.Author)) {
+                    package.PackageProperties.Creator = Properties.Author;
                 }
 
                 const string ns = VisioNamespace;

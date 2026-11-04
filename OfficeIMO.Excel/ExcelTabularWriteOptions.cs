@@ -2,12 +2,11 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Configures package-native tabular XLSX exports.
     /// </summary>
-    public sealed class ExcelTabularWriteOptions {
+    public sealed class ExcelWriterOptions {
         /// <summary>
         /// Rejects settings that require materializing the source rows before writing.
         /// For data readers, disable shared strings and automatic sizing; tables require headers.
-        /// For row sequences, disable tables and automatic sizing. Defaults to false.
-        /// Shared-string row exports retain unique text while consuming each source row once.
+        /// The workbook writer always enforces bounded streaming, including tables with headers.
         /// </summary>
         public bool RequireStreaming { get; set; }
 
@@ -39,19 +38,18 @@ namespace OfficeIMO.Excel {
         public bool IncludeCellReferences { get; set; } = true;
 
         /// <summary>
-        /// Stores text in the workbook shared-string table. Row writers honor this setting in a
-        /// single source pass and retain unique text in memory. When row-write options are omitted,
-        /// row writers use inline strings; data-reader exports enable shared-string planning by default.
+        /// Requests shared-string storage. The bounded writer rejects this setting; use an editable
+        /// workbook for shared-string planning. Defaults to false (inline text).
         /// </summary>
-        public bool UseSharedStrings { get; set; } = true;
+        public bool UseSharedStrings { get; set; }
 
         /// <summary>Excel date system used for temporal values.</summary>
         public ExcelDateSystem DateSystem { get; set; } = ExcelDateSystem.NineteenHundred;
 
         /// <summary>
         /// Named complete styles, copied and compiled before reading source rows or preparing the
-        /// destination. Styles cannot be registered during a row callback. Memory depends on the
-        /// declared catalog and columns, plus unique text when shared strings are enabled.
+        /// first row. Styles cannot be registered during a row callback. Memory depends on the
+        /// declared catalog and columns.
         /// </summary>
         public IReadOnlyDictionary<string, ExcelStyleDefinition>? Styles { get; set; }
 

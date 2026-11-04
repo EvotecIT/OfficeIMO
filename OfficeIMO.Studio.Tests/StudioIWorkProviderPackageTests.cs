@@ -148,11 +148,11 @@ public sealed class StudioIWorkProviderPackageTests {
         public Task<string?> PickSaveFileAsync(string title, string name, StudioFileType type, CancellationToken token) => throw new NotSupportedException();
     }
 
-    private sealed class MutationGuard(Action action) : IOfficeWorkflowPublicationGuard {
+    private sealed class MutationGuard(Action action) : IOfficePublicationGuard {
         private bool _done;
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             if (!_done) { _done = true; action(); }
-            return ValueTask.FromResult(true);
+            return Task.FromResult(true);
         }
     }
 

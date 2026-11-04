@@ -35,13 +35,13 @@ public sealed class XpsJpegXrCmykTests {
                         "{ColorConvertedBitmap " + imageUri + " " + profileUri + "}");
                     page.ReplaceMarkup(markup);
                 }
-                document = XpsDocument.Load(document.Save());
+                document = XpsDocument.Load(document.ToBytes());
                 var svg = document.Pages[0].ToSvg(); Assert.Empty(svg.Diagnostics);
                 string data = (string)XDocument.Parse(svg.Svg).Descendants().Single(e => e.Name.LocalName == "image").Attribute("href")!;
                 Assert.True(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(data.Substring(data.IndexOf(',') + 1)), out var normalized));
                 Assert.Equal(expected, normalized!.GetPixels());
                 if (!embedded && width == 19 && fields[0].Contains("frequency", StringComparison.Ordinal)) {
-                    var pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
+                    var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
                     var raster = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
                     for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                         int offset = (y * width + x) * 4;

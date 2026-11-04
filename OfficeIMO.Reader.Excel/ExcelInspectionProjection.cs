@@ -5,18 +5,18 @@ using System.Globalization;
 namespace OfficeIMO.Reader.Excel;
 
 internal static class ExcelInspectionProjection {
-    internal static OfficeDocumentReadResult Apply(ExcelDocument document, ExcelWorkbookSnapshot snapshot,
+    internal static OfficeDocumentReadResult Apply(ExcelDocument document, ExcelWorkbookInfo snapshot,
         ReaderOptions options, ReaderExcelOptions formatOptions, OfficeDocumentReadResult result, CancellationToken cancellationToken) {
         if (options.Inspection == null) return result;
         var builder = new ReaderInspectionMetadataBuilder(options, "excel", cancellationToken);
         string? path = result.Source.Path;
-        foreach (ExcelWorksheetSnapshot sheet in snapshot.Worksheets) {
+        foreach (ExcelWorksheetInfo sheet in snapshot.Worksheets) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(formatOptions.SheetName) && !string.Equals(sheet.Name, formatOptions.SheetName!.Trim(), StringComparison.OrdinalIgnoreCase)) continue;
             if (builder.Options.IncludeVisibility) AddVisibility(builder, sheet, path);
-            foreach (ExcelCellSnapshot cell in sheet.Cells) {
+            foreach (ExcelCellInfo cell in sheet.Cells) {
                 cancellationToken.ThrowIfCancellationRequested();
-                string reference = A1.CellReference(cell.Row, cell.Column);
+                string reference = ExcelA1.CellReference(cell.Row, cell.Column);
                 var location = new ReaderLocation { Path = path, Sheet = sheet.Name, A1Range = reference, SourceBlockKind = "cell" };
                 if (!Selected(cell.Row, cell.Column, formatOptions.A1Range)) continue;
                 if (builder.Options.IncludeFormulas && !string.IsNullOrEmpty(cell.Formula)) {
@@ -33,8 +33,8 @@ internal static class ExcelInspectionProjection {
                         sheet.Name + "!" + reference, ReaderInspectionMetadataBuilder.Attributes(("author", cell.Comment.Author), ("technology", "classic")));
             }
             // The owner retains every threaded reply, including comments on otherwise empty cells.
-            if (builder.Options.IncludeComments) foreach (ExcelThreadedCommentSnapshot comment in sheet.ThreadedComments) {
-                var (row, column) = A1.ParseCellRef(comment.CellReference);
+            if (builder.Options.IncludeComments) foreach (ExcelThreadedCommentInfo comment in sheet.ThreadedComments) {
+                var (row, column) = ExcelA1.ParseCellRef(comment.CellReference);
                 if (!Selected(row, column, formatOptions.A1Range)) continue;
                 builder.Add(OfficeDocumentInspectionCategories.Comment, "Threaded comment", comment.Text, "text",
                     new ReaderLocation { Path = path, Sheet = sheet.Name, A1Range = comment.CellReference, SourceBlockKind = "comment" }, comment.Id,
@@ -63,22 +63,22 @@ internal static class ExcelInspectionProjection {
 
     private static bool Selected(int row, int column, string? range) {
         if (string.IsNullOrWhiteSpace(range)) return true;
-        if (!A1.TryParseRange(range!, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn))
+        if (!ExcelA1.TryParseRange(range!, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn))
             throw new ArgumentException("A valid A1 range is required.", nameof(range));
         return row >= firstRow && row <= lastRow && column >= firstColumn && column <= lastColumn;
     }
 
-    private static void AddVisibility(ReaderInspectionMetadataBuilder builder, ExcelWorksheetSnapshot sheet, string? path) {
+    private static void AddVisibility(ReaderInspectionMetadataBuilder builder, ExcelWorksheetInfo sheet, string? path) {
         if (sheet.Hidden) builder.Add(OfficeDocumentInspectionCategories.Visibility, "Worksheet", sheet.VisibilityState, "visibility-state",
             new ReaderLocation { Path = path, Sheet = sheet.Name, SourceBlockKind = "sheet" }, sheet.Name);
-        foreach (ExcelRowSnapshot row in sheet.Rows.Where(row => row.Hidden || row.CustomHeight && row.Height == 0))
+        foreach (ExcelRowInfo row in sheet.Rows.Where(row => row.Hidden || row.CustomHeight && row.StoredHeight == 0))
             builder.Add(OfficeDocumentInspectionCategories.Visibility, "Row", "hidden", "visibility-state",
                 new ReaderLocation { Path = path, Sheet = sheet.Name, SourceBlockKind = "row" },
                 sheet.Name + "!row:" + row.Index.ToString(CultureInfo.InvariantCulture),
-                ReaderInspectionMetadataBuilder.Attributes(("row", row.Index.ToString(CultureInfo.InvariantCulture)), ("hidden", row.Hidden ? "true" : "false"), ("height", row.Height?.ToString(CultureInfo.InvariantCulture))));
-        foreach (ExcelColumnSnapshot column in sheet.Columns.Where(column => column.Hidden || column.CustomWidth && column.Width == 0))
+                ReaderInspectionMetadataBuilder.Attributes(("row", row.Index.ToString(CultureInfo.InvariantCulture)), ("hidden", row.Hidden ? "true" : "false"), ("height", row.StoredHeight?.ToString(CultureInfo.InvariantCulture))));
+        foreach (ExcelColumnInfo column in sheet.Columns.Where(column => column.Hidden || column.CustomWidth && column.StoredWidth == 0))
             builder.Add(OfficeDocumentInspectionCategories.Visibility, "Column range", "hidden", "visibility-state",
                 new ReaderLocation { Path = path, Sheet = sheet.Name, SourceBlockKind = "column" },
-                attributes: ReaderInspectionMetadataBuilder.Attributes(("startColumn", column.StartIndex.ToString(CultureInfo.InvariantCulture)), ("endColumn", column.EndIndex.ToString(CultureInfo.InvariantCulture)), ("hidden", column.Hidden ? "true" : "false"), ("width", column.Width?.ToString(CultureInfo.InvariantCulture))));
+                attributes: ReaderInspectionMetadataBuilder.Attributes(("startColumn", column.StartIndex.ToString(CultureInfo.InvariantCulture)), ("endColumn", column.EndIndex.ToString(CultureInfo.InvariantCulture)), ("hidden", column.Hidden ? "true" : "false"), ("width", column.StoredWidth?.ToString(CultureInfo.InvariantCulture))));
     }
 }

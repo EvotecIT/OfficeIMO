@@ -54,6 +54,8 @@ internal static partial class RtfSemanticReader {
                         AppendWithSkip("\u2011", builder, state);
                     } else if (symbol.Symbol == '-') {
                         AppendWithSkip("\u00AD", builder, state);
+                    } else if (symbol.IsParagraphBreak) {
+                        AppendWithSkip(Environment.NewLine, builder, state);
                     }
                     break;
                 case RtfControlWord control when control.Name == "tab":

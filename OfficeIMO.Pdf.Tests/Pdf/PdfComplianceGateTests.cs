@@ -219,7 +219,7 @@ public class PdfComplianceGateTests {
         Assert.Contains("TH", tagged.StructureTypes);
         Assert.Contains("TD", tagged.StructureTypes);
 
-        PdfComplianceProofReport proof = PdfDocument.Load(bytes)
+        PdfComplianceProofReport proof = PdfDocument.Load(new System.IO.MemoryStream(bytes))
             .AssessComplianceProof(PdfComplianceProfile.PdfUa1);
         Assert.True(proof.IsInternallyReady);
         Assert.True(proof.ReadyForExternalValidation);
@@ -292,7 +292,7 @@ public class PdfComplianceGateTests {
         var exception = Assert.Throws<InvalidOperationException>(() =>
             PdfDocument.Create().Compliance(PdfComplianceProfile.PdfUa2)
                 .Meta(title: "Compliance profile guard")
-                .Paragraph(p => p.Text("Missing accessibility configuration must fail closed."))
+                .Paragraph(p => p.AddText("Missing accessibility configuration must fail closed."))
                 .ToBytes());
         Assert.Contains("generation requirements", exception.Message, StringComparison.Ordinal);
         Assert.Contains("pdfua-identification", exception.Message, StringComparison.Ordinal);
@@ -412,7 +412,7 @@ public class PdfComplianceGateTests {
                 "Source data",
                 modificationDate: EmbeddedFileModificationDate))
             .H1("Archival PDF with Associated Data")
-            .Paragraph(p => p.Text("This exact artifact is validated as PDF/A-3b before OfficeIMO claims conformance."));
+            .Paragraph(p => p.AddText("This exact artifact is validated as PDF/A-3b before OfficeIMO claims conformance."));
     }
 
     private static byte[] CreatePdfA2BFixture() {
@@ -424,14 +424,14 @@ public class PdfComplianceGateTests {
             .Meta(title: "OfficeIMO PDF/A-2b", author: "OfficeIMO")
             .Language("en-US")
             .H1("Archival PDF")
-            .Paragraph(p => p.Text("This exact artifact is validated as PDF/A-2b before OfficeIMO claims conformance."));
+            .Paragraph(p => p.AddText("This exact artifact is validated as PDF/A-2b before OfficeIMO claims conformance."));
     }
 
-    private static PdfOptions CreatePdfA3BOptions() {
+    private static PdfCreateOptions CreatePdfA3BOptions() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         byte[] fontData = File.ReadAllBytes(fontPath!);
-        return new PdfOptions {
+        return new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             }
@@ -441,11 +441,11 @@ public class PdfComplianceGateTests {
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, fontData, "OfficeIMO Source Serif");
     }
 
-    private static PdfOptions CreatePdfA2BOptions() {
+    private static PdfCreateOptions CreatePdfA2BOptions() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         byte[] fontData = File.ReadAllBytes(fontPath!);
-        return new PdfOptions {
+        return new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             }
@@ -462,7 +462,7 @@ public class PdfComplianceGateTests {
         Assert.NotNull(fontPath);
         byte[] fontData = File.ReadAllBytes(fontPath!);
         string outputCondition = profile == PdfComplianceProfile.PdfX1A2003 ? "FOGRA39" : "FOGRA51";
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ConfigurePdfX(
                 profile,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -480,7 +480,7 @@ public class PdfComplianceGateTests {
         return PdfDocument.Create(options)
             .Meta(title: "OfficeIMO " + (profile == PdfComplianceProfile.PdfX1A2003 ? "PDF/X-1a:2003" : "PDF/X-4"), author: "OfficeIMO")
             .H1("Print production proof")
-            .Paragraph(paragraph => paragraph.Text("This exact CMYK artifact is ready for qualified external PDF/X preflight."));
+            .Paragraph(paragraph => paragraph.AddText("This exact CMYK artifact is ready for qualified external PDF/X preflight."));
     }
 
     private static byte[] CreateElectronicInvoiceFixture(PdfComplianceProfile profile) {
@@ -496,14 +496,14 @@ public class PdfComplianceGateTests {
             .Meta(title: "OfficeIMO " + (profile == PdfComplianceProfile.FacturX ? "Factur-X" : "ZUGFeRD") + " Invoice", author: "OfficeIMO")
             .Language("en-US")
             .H1(profile == PdfComplianceProfile.FacturX ? "Factur-X Invoice" : "ZUGFeRD Invoice")
-            .Paragraph(p => p.Text("The attached EN 16931 invoice XML and its PDF/A-3 carrier are validated as one exact artifact."));
+            .Paragraph(p => p.AddText("The attached EN 16931 invoice XML and its PDF/A-3 carrier are validated as one exact artifact."));
     }
 
-    private static PdfOptions CreateEinvoiceOptions(PdfComplianceProfile profile, byte[] invoiceXml) {
+    private static PdfCreateOptions CreateEinvoiceOptions(PdfComplianceProfile profile, byte[] invoiceXml) {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         byte[] fontData = File.ReadAllBytes(fontPath!);
-        return new PdfOptions {
+        return new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             }
@@ -635,12 +635,12 @@ public class PdfComplianceGateTests {
             </body>
             </html>
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             DefaultFontFamily = "OfficeIMO Source Serif",
             FontFamily = new PdfEmbeddedFontFamily("OfficeIMO Source Serif", fontData),
             PdfOptions = CreatePdfUa1Options()
         };
-        return HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        return (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
     }
 
     private static PdfDocument CreatePdfUa1Document() {
@@ -654,11 +654,13 @@ public class PdfComplianceGateTests {
         return PdfDocument.Create(CreatePdfUa1Options())
             .Meta(title: "OfficeIMO PDF/UA-1", author: "OfficeIMO")
             .H1("Accessible PDF")
-            .Paragraph(p => p.Text("This fixture exercises reading order, Unicode text, accessible links, annotations, forms, and figures. ")
-                .Link("Visit the OfficeIMO project", "https://officeimo.net/", contents: "OfficeIMO project website"))
-            .Image(CreateOnePixelPng(), 12, 12, alternativeText: "Decorative sample pixel")
+            .Paragraph(p => {
+                p.AddText("This fixture exercises reading order, Unicode text, accessible links, annotations, forms, and figures. ");
+                p.AddLink("Visit the OfficeIMO project", "https://officeimo.net/", contents: "OfficeIMO project website");
+            })
+            .Image(CreateOnePixelPng(), 12, 12, altText: "Decorative sample pixel")
             .TextAnnotation("Accessibility review note", width: 18, height: 18)
-            .TextField("Contact.Email", value: "reader@example.com", width: 180, height: 24, style: accessibleFieldStyle)
+            .TextField("Contact.Email", value: "reader@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), style: accessibleFieldStyle)
             .CheckBox("Contact.Updates", isChecked: true, size: 16, style: accessibleCheckBoxStyle);
     }
 
@@ -745,11 +747,11 @@ public class PdfComplianceGateTests {
         };
     }
 
-    private static PdfOptions CreatePdfUa1Options() {
+    private static PdfCreateOptions CreatePdfUa1Options() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
         byte[] fontData = File.ReadAllBytes(fontPath!);
-        return new PdfOptions {
+        return new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             }

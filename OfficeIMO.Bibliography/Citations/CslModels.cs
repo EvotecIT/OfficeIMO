@@ -11,9 +11,9 @@ public enum CslOutputFormat {
 /// <summary>Local data and resource limits for loading a CSL style.</summary>
 public sealed class CslStyleLoadOptions {
     /// <summary>Maximum characters in each style XML document.</summary>
-    public int MaximumCharacters { get; set; } = 4 * 1024 * 1024;
+    public int MaxCharacters { get; set; } = 4 * 1024 * 1024;
     /// <summary>Maximum XML and macro nesting depth.</summary>
-    public int MaximumNestingDepth { get; set; } = 64;
+    public int MaxNestingDepth { get; set; } = 64;
     /// <summary>Resolves an independent parent style by its CSL identifier. The library performs no network access.</summary>
     public Func<string, string?>? IndependentStyleResolver { get; set; }
 }
@@ -32,15 +32,15 @@ public sealed class CslRenderOptions {
     /// <summary>Caller-provided abbreviations indexed first by CSL variable and then by the unabbreviated value.</summary>
     public IDictionary<string, IDictionary<string, string>> Abbreviations { get; } = new Dictionary<string, IDictionary<string, string>>(StringComparer.Ordinal);
     /// <summary>Maximum characters in the combined output of an operation.</summary>
-    public int MaximumOutputCharacters { get; set; } = 4 * 1024 * 1024;
+    public int MaxOutputCharacters { get; set; } = 4 * 1024 * 1024;
     /// <summary>Maximum characters in either representation of an intermediate rendering or sort key.</summary>
     /// <remarks>Separate from the final output limit because escaped HTML and style markup can be longer than plain text.</remarks>
-    public int MaximumIntermediateCharacters { get; set; } = 16 * 1024 * 1024;
+    public int MaxIntermediateCharacters { get; set; } = 16 * 1024 * 1024;
     /// <summary>Maximum citation items in a rendering operation.</summary>
-    public int MaximumCitationItems { get; set; } = 100000;
+    public int MaxCitationItems { get; set; } = 100000;
     /// <summary>Maximum rendering work units per operation, including element evaluations and sort comparisons.</summary>
     /// <remarks>This bounds repeated macro expansion and sorting work. Disambiguation evaluations share the same budget.</remarks>
-    public int MaximumRenderingOperations { get; set; } = 10000000;
+    public int MaxRenderingOperations { get; set; } = 10000000;
     /// <summary>Rejects citation-data conversion when the source bibliography contains semantics the CSL data projection cannot preserve.</summary>
     public bool RequireNoDataLoss { get; set; }
 }

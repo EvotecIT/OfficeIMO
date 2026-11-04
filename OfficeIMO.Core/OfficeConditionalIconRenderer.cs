@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free renderer for compact conditional-formatting icon shapes.
 /// </summary>
-public static partial class OfficeConditionalIconRenderer {
+internal static partial class OfficeConditionalIconRenderer {
     private static readonly OfficeColor IconShadowColor = OfficeColor.FromRgba(15, 23, 42, 42);
     private static readonly OfficeColor IconHighlightColor = OfficeColor.FromRgba(255, 255, 255, 72);
 

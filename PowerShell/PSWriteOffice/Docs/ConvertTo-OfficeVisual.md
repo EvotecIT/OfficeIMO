@@ -9,9 +9,9 @@ schema: 2.0.0
 Converts a ChartForgeX visual artifact into a reusable OfficeIMO representation.
 
 ## SYNTAX
-### __AllParameterSets
+### Visual
 ```powershell
-ConvertTo-OfficeVisual [-InputObject] <Object> [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <Double>] [-Height <Double>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixels <Double>] [-Id <string>] [-Title <string>] [-AlternativeText <string>] [<CommonParameters>]
+ConvertTo-OfficeVisual [-InputObject] <Object> [-AlternativeText <string>] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -29,11 +29,11 @@ Creates one fidelity report and placement payload that can be reused in Word, Ex
 ## PARAMETERS
 
 ### -AlternativeText
-Optional accessible description for an SVG file input.
+Accessible description for the visual or placed image.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -45,11 +45,11 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Optional output height in Office points.
+Optional output height; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Optional stable identifier for an SVG file input.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ ChartForgeX VisualArtifact, OfficeVisualSource, prepared conversion, or portable
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Optional OfficeIMO SVG import element limit.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Optional maximum SVG viewport width or height. Increase the safe default only fo
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -124,12 +124,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumSvgViewportPixels
+### -MaximumSvgViewportPixelCount
 Optional maximum SVG viewport area in pixels. Increase the safe default only for trusted input.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: Int64
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Conversion factor from ChartForgeX pixels to Office points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ SVG fidelity policy used by OfficeIMO.ChartForgeX.
 
 ```yaml
 Type: OfficeVisualSvgPolicy
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
 Aliases: None
 Possible values: PreserveVector, RasterizeWhenNeeded, RequireVector
 
@@ -177,7 +177,7 @@ Optional title for an SVG file input.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -189,11 +189,11 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Optional output width in Office points.
+Optional output width; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 

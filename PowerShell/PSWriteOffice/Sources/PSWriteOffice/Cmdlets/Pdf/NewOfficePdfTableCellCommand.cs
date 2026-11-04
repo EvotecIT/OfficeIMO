@@ -79,7 +79,7 @@ public sealed class NewOfficePdfTableCellCommand : PSCmdlet
 
     /// <summary>Horizontal cell alignment.</summary>
     [Parameter]
-    public PdfColumnAlign? Align { get; set; }
+    public OfficeAlignment? Align { get; set; }
 
     /// <summary>Vertical cell alignment.</summary>
     [Parameter]
@@ -183,7 +183,7 @@ public sealed class NewOfficePdfTableCellCommand : PSCmdlet
                 color: PdfCommandUtilities.ParseColor(style.TextColor),
                 italic: style.Italic,
                 strike: style.Strike,
-                fontSize: style.FontSize);
+                fontSize: ((double?)(style.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null));
             cell = new PdfTableCell(
                 new[] { run },
                 ColumnSpan,

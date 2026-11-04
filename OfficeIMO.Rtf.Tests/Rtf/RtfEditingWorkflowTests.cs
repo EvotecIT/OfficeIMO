@@ -20,7 +20,7 @@ public class RtfEditingWorkflowTests {
         Assert.Equal(new[] { middle, first }, document.Blocks.Cast<RtfParagraph>());
         Assert.Equal(new[] { middle, first }, section.Blocks.Cast<RtfParagraph>());
         Assert.Equal(new[] { "Middle", "First" }, document.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
-        Assert.Equal(new[] { "Middle", "First" }, RtfDocument.Read(document.ToRtf()).Document.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
+        Assert.Equal(new[] { "Middle", "First" }, RtfDocument.ParseResult(document.ToRtf()).Document.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public class RtfEditingWorkflowTests {
         Assert.Null(importedRun.StyleId);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfMergeStylesFlattened" || diagnostic.Code == "RtfMergeListsFlattened");
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfMergeHeaderFootersOmitted");
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
         Assert.Equal(1, sourceRun.ForegroundColorIndex);
         Assert.Equal(5, sourceRun.StyleId);
     }
@@ -186,7 +186,7 @@ public class RtfEditingWorkflowTests {
 
         Assert.Equal(new[] { "A", "B" }, destination.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
         Assert.False(result.Report.HasLoss);
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -201,11 +201,11 @@ public class RtfEditingWorkflowTests {
 
         RtfDocumentMergeResult result = destination.AppendDocument(source);
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RtfMergeSectionLayoutOmitted" &&
             diagnostic.Action == RtfConversionAction.Omitted &&
             diagnostic.Count == 1);
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -261,7 +261,7 @@ public class RtfEditingWorkflowTests {
         Assert.True(replaced);
         Assert.Equal("Before New value", first.ToPlainText());
         Assert.Equal(" after", second.ToPlainText());
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\*\bkmkstart Patient}New value\par", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\bkmkend Patient} after", rtf, StringComparison.Ordinal);
     }
@@ -269,7 +269,7 @@ public class RtfEditingWorkflowTests {
     [Fact]
     public void Lossless_Root_Structure_Editing_Preserves_Trailing_Bytes() {
         const string source = "{\\rtf1\\ansi\\pard A\\par\\pard B\\par}\r\n";
-        RtfLosslessEditor editor = RtfDocument.Read(source).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(source).EditLossless();
         int firstParagraphNode = editor.SyntaxTree.Root.Children
             .Select((node, index) => new { node, index })
             .First(item => item.node is RtfControlWord control && control.Name == "pard").index;
@@ -286,7 +286,7 @@ public class RtfEditingWorkflowTests {
     [Fact]
     public void Lossless_Editor_Replaces_Image_And_Header_Content_Without_Touching_Unknown_Syntax() {
         const string source = "{\\rtf1\\ansi{\\header Old header}{\\pict\\pngblip 010203}{\\*\\unknown Keep}\\pard Body\\par}\r\n";
-        RtfLosslessEditor editor = RtfDocument.Read(source).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(source).EditLossless();
         var image = new RtfImage(RtfImageFormat.Jpeg, new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }) {
             SourceWidth = 1,
             SourceHeight = 1

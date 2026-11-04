@@ -32,6 +32,8 @@ internal sealed class HtmlRenderBackgroundLayer {
         Attachment = NormalizeAttachment(attachment);
     }
 
+    internal OfficeColor? MeanGradientColor => LinearGradient?.MeanColor ?? RadialGradient?.MeanColor ?? ConicGradient?.MeanColor;
+
     internal string? Source { get; }
     internal HtmlCssLinearGradientDefinition? LinearGradient { get; }
     internal HtmlCssRadialGradientDefinition? RadialGradient { get; }

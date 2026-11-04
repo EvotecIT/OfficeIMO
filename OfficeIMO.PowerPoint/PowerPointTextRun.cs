@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
 using OfficeIMO.Drawing;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -11,40 +13,73 @@ namespace OfficeIMO.PowerPoint {
     /// Represents a formatted text run within a paragraph.
     /// </summary>
     public partial class PowerPointTextRun {
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
+            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
         private readonly A.Field? _field;
+        private List<OpenXmlElement>? _lineContinuation;
 
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Run = run;
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
+        }
+
+        internal PowerPointTextRun(A.Run run, SlidePart? slidePart, OpenXmlPartContainer? ownerPart, List<OpenXmlElement> lineContinuation)
+            : this(run, slidePart, ownerPart) {
+            if (lineContinuation.Count > 0) _lineContinuation = lineContinuation;
         }
 
         internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             _field = field;
             Run = new A.Run();
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         internal A.Run Run { get; }
+
+        /// <summary>The last run of the text this wrapper wrote, which is <see cref="Run"/> for a single line.</summary>
+        internal A.Run LastLine => _lineContinuation?.OfType<A.Run>().LastOrDefault() ?? Run;
         internal A.RunProperties? RunProperties => _field?.RunProperties ?? Run.RunProperties;
         internal OpenXmlPartContainer? OwnerPart => _ownerPart;
 
         /// <summary>
-        /// Text content of the run.
+        /// Text content of the run. A line break in the assigned text continues the run with
+        /// <c>a:br</c> and a further run per line; this instance keeps formatting all of those lines.
+        /// A dynamic field holds one line, so its breaks become spaces.
         /// </summary>
         public string Text {
-            get => (_field?.Text ?? Run.Text)?.Text ?? string.Empty;
+            get {
+                string text = (_field?.Text ?? Run.Text)?.Text ?? string.Empty;
+                return _lineContinuation == null
+                    ? text
+                    : string.Join(Environment.NewLine, new[] { text }.Concat(
+                        _lineContinuation.OfType<A.Run>().Select(line => line.Text?.Text ?? string.Empty)));
+            }
             set {
                 if (_field != null) {
                     _field.Text ??= new A.Text();
-                    _field.Text.Text = value ?? string.Empty;
+                    _field.Text.Text = PowerPointTextContent.ToSingleLine(value);
                     return;
                 }
+                _lineContinuation?.ForEach(node => node.Remove());
+                _lineContinuation = null;
                 Run.Text ??= new A.Text();
-                Run.Text.Text = value ?? string.Empty;
+                if (Run.Parent == null) {
+                    Run.Text.Text = PowerPointTextContent.ToSingleLine(value);
+                    return;
+                }
+                List<OpenXmlElement> lines = PowerPointTextContent.CreateInlineContent(value, Run.RunProperties);
+                Run.Text.Text = ((A.Run)lines[0]).Text!.Text;
+                if (lines.Count == 1) return;
+                _lineContinuation = lines.Skip(1).ToList();
+                OpenXmlElement previous = Run;
+                foreach (OpenXmlElement line in _lineContinuation) {
+                    previous = previous.InsertAfterSelf(line);
+                }
             }
         }
 
@@ -64,6 +99,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Bold = value;
+                SyncLineContinuation();
             }
         }
 
@@ -75,6 +111,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Italic = value;
+                SyncLineContinuation();
             }
         }
 
@@ -96,6 +133,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 A.RunProperties props = EnsureRunProperties();
                 props.Underline = value?.ToOpenXml();
+                SyncLineContinuation();
             }
         }
 
@@ -130,6 +168,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointStrikeStyle.Double => A.TextStrikeValues.DoubleStrike,
                     _ => throw new ArgumentOutOfRangeException(nameof(value))
                 };
+                SyncLineContinuation();
             }
         }
 
@@ -154,6 +193,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointCapitalization.AllCaps => A.TextCapsValues.All,
                     _ => throw new ArgumentOutOfRangeException(nameof(value))
                 };
+                SyncLineContinuation();
             }
         }
 
@@ -173,6 +213,7 @@ namespace OfficeIMO.PowerPoint {
                 props.Baseline = value.HasValue
                     ? checked((int)Math.Round(value.Value * 1000D, MidpointRounding.AwayFromZero))
                     : null;
+                SyncLineContinuation();
             }
         }
 
@@ -195,59 +236,52 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the font size in points.
+        /// Gets or sets the physical font size, preserving DrawingML hundredth-point precision.
+        /// Null removes the override; sizes must be from 1 through 4000 points.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 int? size = RunProperties?.FontSize?.Value;
-                return size != null ? size / 100 : null;
+                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
-                FontSizePoints = value;
+                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
+                EnsureRunProperties().FontSize = drawingSize;
+                SyncLineContinuation();
             }
         }
 
         /// <summary>
-        /// Gets or sets the font size in points while preserving DrawingML hundredth-point precision.
+        /// Gets or sets the font family (Latin).
         /// </summary>
-        public double? FontSizePoints {
-            get {
-                int? size = RunProperties?.FontSize?.Value;
-                return size.HasValue ? size.Value / 100D : (double?)null;
-            }
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.FontSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the font name (Latin).
-        /// </summary>
-        public string? FontName {
+        public string? FontFamily {
             get => RunProperties?.GetFirstChild<A.LatinFont>()?.Typeface;
-            set => PowerPointTextPropertyFormatting.SetFontName(EnsureRunProperties(), value);
-        }
-
-        /// <summary>
-        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000"). Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
-        /// </summary>
-        public string? Color {
-            get => RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
-            set => PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
-        }
-
-        /// <summary>
-        /// Gets or sets the highlight color in hexadecimal format (e.g. "FFFF00").
-        /// </summary>
-        public string? HighlightColor {
-            get => RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>()?.Val;
             set {
-                A.RunProperties props = EnsureRunProperties();
-                props.RemoveAllChildren<A.Highlight>();
-                if (value != null) {
-                    props.AddChild(new A.Highlight(new A.RgbColorModelHex { Val = value }), true);
-                }
+                PowerPointTextPropertyFormatting.SetFontFamily(EnsureRunProperties(), value);
+                SyncLineContinuation();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the explicit RGB text color. Alpha below 255 is written as native DrawingML opacity.
+        /// Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
+        /// </summary>
+        public global::OfficeIMO.OfficeColor? Color {
+            get => PowerPointTextPropertyFormatting.ReadColor(RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
+            set {
+                PowerPointTextPropertyFormatting.SetColor(EnsureRunProperties(), value);
+                SyncLineContinuation();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the run background (DrawingML highlight) color. Alpha below 255 is written as native opacity.
+        /// </summary>
+        public global::OfficeIMO.OfficeColor? BackgroundColor {
+            get => PowerPointTextPropertyFormatting.ReadColor(RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>());
+            set {
+                PowerPointTextPropertyFormatting.SetBackgroundColor(EnsureRunProperties(), value);
+                SyncLineContinuation();
             }
         }
 
@@ -420,6 +454,7 @@ namespace OfficeIMO.PowerPoint {
                 hyperlink.Remove();
             }
             if (replacement != null) properties.AddChild(replacement, true);
+            SyncLineContinuation();
             OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
             if (ownerPart == null) return;
             foreach (string relationshipId in relationshipIds) {
@@ -430,6 +465,18 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
                     soundRelationshipId);
             }
+        }
+
+        /// <summary>Removes a content subtree and the relationships no surviving content uses.</summary>
+        internal static void DiscardContent(DocumentFormat.OpenXml.OpenXmlElement content, OpenXmlPart? ownerPart) {
+            string[] soundIds = PowerPointEmbeddedSound.GetRelationshipIds(content);
+            string[] linkIds = content.Descendants<A.HyperlinkType>()
+                .Select(link => link.Id?.Value).Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
+            if (content.Parent != null) content.Remove();
+            if (ownerPart == null) return;
+            foreach (string id in linkIds) RemoveHyperlinkRelationshipIfUnused(ownerPart, id, ownerPart as SlidePart);
+            PowerPointEmbeddedSound.RemoveIfUnused(ownerPart, soundIds);
         }
 
         private static void RemoveHyperlinkRelationshipIfUnused(
@@ -480,5 +527,8 @@ namespace OfficeIMO.PowerPoint {
             if (_field != null) return _field.RunProperties ??= new A.RunProperties();
             return Run.RunProperties ??= new A.RunProperties();
         }
+
+        private void SyncLineContinuation() =>
+            _lineContinuation?.ForEach(node => PowerPointTextContent.ApplyProperties(node, Run.RunProperties));
     }
 }

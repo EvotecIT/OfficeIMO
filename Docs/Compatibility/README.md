@@ -37,22 +37,22 @@ Classification and import do not imply that every extension is a writable destin
 
 The older family-specific `LossPolicy = Allow` setting maps to `BestEffort` when no compatibility mode was selected. New callers should prefer `CompatibilityMode` because it distinguishes editability from visual fidelity and preservation.
 
-Use `AnalyzeConversion` before writing when an application needs approval or workflow routing. `Convert` returns the same immutable assessment together with the committed path. `RequireNoLoss()` rejects reports containing loss or blocked features.
+Use `AnalyzeConversion` before writing when an application needs approval or workflow routing. `Convert` returns the same immutable assessment together with the committed path. `ThrowIfLoss()` rejects reports containing loss or blocked features.
 
 ```csharp
-PowerPointPresentationConversionReport assessment =
-    PowerPointPresentation.AnalyzeConversion(
+PowerPointDocumentConversionReport assessment =
+    PowerPointDocument.AnalyzeConversion(
         "source.pptx",
         "destination.ppt",
-        new PowerPointPresentationConversionOptions {
+        new PowerPointDocumentConversionOptions {
             CompatibilityMode = OfficeCompatibilityMode.PreferVisual
         });
 
-PowerPointPresentationConversionResult result =
-    PowerPointPresentation.Convert(
+PowerPointDocumentConversionResult result =
+    PowerPointDocument.Convert(
         "source.pptx",
         "destination.ppt",
-        new PowerPointPresentationConversionOptions {
+        new PowerPointDocumentConversionOptions {
             CompatibilityMode = OfficeCompatibilityMode.PreferVisual
         });
 ```
@@ -76,8 +76,8 @@ Set the family conversion option `EmbedSourceWhenLossy` when byte-level recovery
 After loading the converted file, call the family document's `TryGetCompatibilitySourcePayload` method:
 
 ```csharp
-using PowerPointPresentation presentation =
-    PowerPointPresentation.Load("converted.ppt");
+using PowerPointDocument presentation =
+    PowerPointDocument.Load("converted.ppt");
 
 if (presentation.TryGetCompatibilitySourcePayload(
         out OfficeCompatibilitySourcePayload? source,

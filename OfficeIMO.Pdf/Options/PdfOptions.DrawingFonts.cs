@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private OfficeFontFaceCollection? _drawingProfileFonts;
 
     internal OfficeDrawingText ResolveDrawingFont(OfficeDrawingText text) {

@@ -35,7 +35,7 @@ public sealed class XpsReaderTests {
     public void InterleavedPackageUsesTheSameNativeReader() {
         var document = Create(XpsFormat.OpenXps, new[] { "Piece text" });
         var reader = new OfficeDocumentReaderBuilder().AddXpsHandler().Build();
-        var result = reader.ReadDocument(XpsInterleavingTests.Interleave(document.Save()), "input.oxps");
+        var result = reader.ReadDocument(XpsInterleavingTests.Interleave(document.ToBytes()), "input.oxps");
         Assert.Equal("Piece text", Assert.Single(result.Chunks).Text);
     }
 
@@ -43,7 +43,7 @@ public sealed class XpsReaderTests {
     [InlineData(XpsFormat.Xps)]
     [InlineData(XpsFormat.OpenXps)]
     public async Task ContentDetectionUsesTheFixedRepresentationRelationship(XpsFormat format) {
-        byte[] bytes = Create(format, new[] { "Text" }).Save();
+        byte[] bytes = Create(format, new[] { "Text" }).ToBytes();
         var reader = new OfficeDocumentReaderBuilder().AddXpsHandler().Build();
         Assert.Equal(ReaderInputKind.Xps, reader.Detect(bytes, "mislabeled.zip").Kind);
         using var stream = new MemoryStream(bytes, false);
@@ -97,7 +97,7 @@ public sealed class XpsReaderTests {
         Assert.Equal(OfficeDocumentFormat.Xps, native.Format);
         Assert.Equal(new[] { "Beta", "Alpha", "Extra" }, native.Blocks.Select(b => b.Text));
         var reader = new OfficeDocumentReaderBuilder().AddXpsHandler().Build();
-        var result = reader.ReadDocument(doc.Save(), "ordered.oxps");
+        var result = reader.ReadDocument(doc.ToBytes(), "ordered.oxps");
         Assert.Equal(ReaderInputKind.Xps, result.Kind); Assert.Equal(OfficeDocumentPageProvenance.Native, result.GetPageProvenance());
         Assert.Equal(new int?[] { 2, 1, 1 }, result.Chunks.Select(c => c.Location.Page));
         Assert.Equal(new[] { "Beta", "Alpha", "Extra" }, result.EnumerateBlocks().Select(b => b.Text));
@@ -109,7 +109,7 @@ public sealed class XpsReaderTests {
 
     [Fact]
     public void StreamSnapshotPreservesPositionOwnershipAndCapturedHash() {
-        var doc = Create(XpsFormat.OpenXps, new[] { "Text" }); byte[] bytes = doc.Save();
+        var doc = Create(XpsFormat.OpenXps, new[] { "Text" }); byte[] bytes = doc.ToBytes();
         using var stream = new MemoryStream(bytes, false); stream.Position = 3;
         var reader = new OfficeDocumentReaderBuilder().AddXpsHandler().Build();
         var result = reader.ReadDocument(stream, "input.xps");
@@ -122,7 +122,7 @@ public sealed class XpsReaderTests {
 
     [Fact]
     public void NonSeekableInputIsBoundedAndLeftOpen() {
-        var doc = Create(XpsFormat.Xps, new[] { "Text" }); using var stream = new NonSeekable(doc.Save());
+        var doc = Create(XpsFormat.Xps, new[] { "Text" }); using var stream = new NonSeekable(doc.ToBytes());
         var reader = new OfficeDocumentReaderBuilder().AddXpsHandler().Build();
         Assert.Throws<IOException>(() => reader.ReadDocument(stream, "input.xps", new ReaderOptions { MaxInputBytes = 8 }));
         Assert.True(stream.CanRead); Assert.False(stream.Disposed);
@@ -131,10 +131,10 @@ public sealed class XpsReaderTests {
     [Fact]
     public void RegisteredLimitsAreSnapshottedAndCannotBeRaisedByReaderOptions() {
         var doc = Create(XpsFormat.OpenXps, new[] { "Text" });
-        var options = new ReaderXpsOptions { ReadOptions = new XpsReadOptions { MaximumInputBytes = 8 } };
+        var options = new ReaderXpsOptions { ReadOptions = new XpsLoadOptions { Limits = { MaxInputBytes = 8 } } };
         var reader = new OfficeDocumentReaderBuilder().AddXpsHandler(options).Build();
-        options.ReadOptions.MaximumInputBytes = int.MaxValue;
-        Assert.Throws<IOException>(() => reader.ReadDocument(doc.Save(), "input.oxps", new ReaderOptions { MaxInputBytes = int.MaxValue }));
+        options.ReadOptions.Limits.MaxInputBytes = int.MaxValue;
+        Assert.Throws<IOException>(() => reader.ReadDocument(doc.ToBytes(), "input.oxps", new ReaderOptions { MaxInputBytes = int.MaxValue }));
     }
 
     [Fact]

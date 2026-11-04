@@ -98,11 +98,11 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 _ => _xlsbTyped
             }, writable: false);
             using DbDataReader reader = scenario == ArrowConversionScenario.XlsbTyped
-                ? ExcelDocument.OpenDataReader(source, new ExcelReadOptions { NumericAsDecimal = false })
-                : CsvDocument.OpenDataReader(source,
-                    scenario == ArrowConversionScenario.CsvAllString
-                        ? new CsvLoadOptions { HasHeaderRow = false, Header = WideHeaders }
-                        : new CsvLoadOptions());
+                ? ExcelDocument.OpenReader(source, new OfficeIMO.Excel.ExcelReaderOptions { NumericAsDecimal = false })
+                : CsvDocument.OpenReader(source,
+            options: scenario == ArrowConversionScenario.CsvAllString
+                        ? new CsvReaderOptions { HasHeaderRow = false, Header = WideHeaders }
+                        : new CsvReaderOptions());
             ArrowReadOptions options = new ArrowReadOptions {
                 BatchSize = batchSize,
                 ColumnTypes = scenario == ArrowConversionScenario.CsvAllString ? StringTypes : TypedTypes,
@@ -121,8 +121,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         internal long ConvertOfficeIMOInferred(Action<RecordBatch, int>? validate = null) {
             using MemoryStream source = new MemoryStream(_csvTyped, writable: false);
-            using DbDataReader reader = CsvDocument.OpenDataReader(source, readerOptions:
-                new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = 100 });
+            using DbDataReader reader = CsvDocument.OpenReader(source,
+            options: new CsvReaderOptions { InferSchema = true, SchemaSampleRows = 100 });
             return ConsumeOfficeIMO(reader, new ArrowReadOptions {
                 BatchSize = Rows,
                 ColumnNullability = new bool[4],

@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Empty(report.SourceCellIssues);
             AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 12),
                 "5[1]/6", 1, IWorkSourceDeclarationIssueKind.UnsupportedField);
-            Assert.Contains(report.FidelityDiagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
+            Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
                 && d.LossKind == OfficeConversionLossKind.Unassessed);
         }
         package.Position = 0;
@@ -44,14 +44,14 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(18, 1)]
     public void Default_text_and_boolean_formats_keep_editable_typed_saved_output(int bit, int formatType) {
         using var package = ScalarFormatPackage(IWorkDocumentKind.Numbers, bit, VarintField(1, (ulong)formatType));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.Equal(IWorkCellUnsupportedFeatures.None, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.UnsupportedFeatures);
         Assert.Empty(result.Report.SourceDeclarationIssues);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        if (bit == 17) Assert.Equal("value", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-        else Assert.True(reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
+        if (bit == 17) Assert.Equal("value", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+        else Assert.True(reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 
@@ -64,18 +64,17 @@ public sealed partial class IWorkBoundaryTests {
         byte[] format = Message(VarintField(1, 260), customSettings ? VarintField(99, 0) : Message());
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13), cellPayload: cell,
             additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(format)))));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         var selected = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.Equal(IWorkCellKind.Empty, selected.Kind);
         Assert.Equal(customSettings ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.None,
             selected.UnsupportedFeatures);
         Assert.Equal(customSettings ? (IWorkNumberFormatKind?)null : IWorkNumberFormatKind.Text, selected.NumberFormat?.Kind);
-        Assert.DoesNotContain(result.Report.FidelityDiagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(!customSettings, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode == "@");
-        Assert.Null(reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(!customSettings, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode == "@");
+        Assert.Null(reopened.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out _));
     }
 
@@ -133,16 +132,16 @@ public sealed partial class IWorkBoundaryTests {
             Enumerable.Range(0, 17).Select(_ => VarintField(99, 0))).ToArray());
         using var parserLimited = ScalarFormatPackage(IWorkDocumentKind.Numbers, 18, fields);
         Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(parserLimited,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
         using var catalogLimited = ScalarFormatPackage(IWorkDocumentKind.Numbers, 18, VarintField(1, 1), extraFormat: true);
         Assert.Contains("catalog", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(catalogLimited,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Unused_scalar_format_catalogs_remain_unselected() {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 999));
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadNumbers();
+        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers();
         Assert.True(projection.HasEditableContent);
         Assert.Empty(projection.SourceReferenceIssues);
         Assert.Empty(projection.SourceDeclarationIssues);
@@ -160,32 +159,32 @@ public sealed partial class IWorkBoundaryTests {
             tilePayload: BytesField(5, Message(VarintField(1, 0), BytesField(6, Message(cell, cell)),
                 BytesField(7, new byte[] { 0, 0, (byte)cell.Length, 0 }))));
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(overBudget,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     private static void AssertScalarFormatSavedValue(IWorkSourceDocument source, IWorkDocumentKind kind, IWorkTableCell cell) {
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var partial = source.ToWordResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             Assert.Equal(cell.CachedDisplayText, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var partial = source.ToExcelResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            if (cell.Value is DateTime date) Assert.Equal(date.ToOADate(), reopened.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
-            else if (cell.Value is bool) Assert.Equal(cell.Value, reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
-            else if (cell.Value is string) Assert.Equal(cell.Value, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            if (cell.Value is DateTime date) Assert.Equal(date.ToOADate(), reopened.Sheets[0].Cell(1, 1).GetValue<double>(), 10);
+            else if (cell.Value is bool) Assert.Equal(cell.Value, reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
+            else if (cell.Value is string) Assert.Equal(cell.Value, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
             else Assert.Equal(cell.Kind == IWorkCellKind.Duration ? (double)cell.Value! / 86_400d : cell.Value,
-                reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+                reopened.Sheets[0].Cell(1, 1).GetValue<double>());
             Assert.Empty(reopened.ValidateOpenXml());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options); partial.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var partial = source.ToPowerPointResult(options); partial.Value.Save(saved); saved.Position = 0;
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             Assert.Equal(cell.CachedDisplayText, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
             Assert.Empty(reopened.ValidateDocument());
         }

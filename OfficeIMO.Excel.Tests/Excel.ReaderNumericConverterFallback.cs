@@ -19,10 +19,10 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, $"NumericFallback{system}{format.Replace(':', '-').Replace('/', '-')}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = system;
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 1.5d);
-            sheet.CellFormula(3, 1, "1+0.5");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(1.5d);
+            sheet.Cell(3, 1).SetFormula("1+0.5");
             sheet.ColumnStyleByHeader("Value").NumberFormat(format);
             Assert.Equal(1, document.RecalculateSupportedFormulas());
             document.Save();
@@ -31,7 +31,7 @@ public partial class Excel {
         for (int mode = 0; mode < 8; mode++) {
             for (int api = 0; api < 7; api++) {
                 int cellCalls = 0, typeCalls = 0;
-                var options = new ExcelReadOptions { SheetName = "Data" };
+                var options = new ExcelReaderOptions { SheetName = "Data" };
                 if (mode != 1) {
                     options.CellValueConverter = context => {
                         if (context.RawText != "1.5") return ExcelCellValue.NotHandled;
@@ -54,7 +54,7 @@ public partial class Excel {
                 }
                 NumericFallbackRow[] rows;
                 if (api < 4) {
-                    using var reader = ExcelDocument.OpenDataReader(path, options);
+                    using var reader = ExcelDocument.OpenReader(path, options);
                     Action<RowMapper<NumericFallbackRow>> configure = mapper => mapper.FromColumn<double?>("Value", (row, value) => { row.Value = value; return row; });
                     var parallel = new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 };
                     rows = api switch {
@@ -82,16 +82,16 @@ public partial class Excel {
     public void Reader_NumericConverterFallback_DoesNotReplaceHandledDateOrSuppressConverterFailure() {
         string path = Path.Combine(_directoryWithFiles, "NumericConverterFailure.xlsx");
         using (var document = ExcelDocument.Create(path)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 1.5d);
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(1.5d);
             sheet.ColumnStyleByHeader("Value").NumberFormat("[h]:mm");
             document.Save();
         }
         foreach (bool parallel in new[] { false, true }) {
             foreach (bool handledCell in new[] { false, true }) {
                 int converterCalls = 0;
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     SheetName = "Data",
                     MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact,
                     CellValueConverter = context => handledCell && context.RawText == "1.5"
@@ -102,7 +102,7 @@ public partial class Excel {
                         return (false, null);
                     }
                 };
-                using var reader = ExcelDocument.OpenDataReader(path, options);
+                using var reader = ExcelDocument.OpenReader(path, options);
                 var error = Assert.Throws<DataMappingException>(() => (parallel
                     ? reader.RowsAsParallel<NumericFallbackRow>(new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 })
                     : reader.RowsAs<NumericFallbackRow>()).ToArray());
@@ -121,9 +121,9 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, $"LargeNumericSerial{system}{format.Replace(':', '-')}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = system;
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            for (int row = 2; row <= 4100; row++) sheet.CellValue(row, 1, row % 2 == 0 ? 1.5d : 60.5d);
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
+            for (int row = 2; row <= 4100; row++) sheet.Cell(row, 1).SetValue(row % 2 == 0 ? 1.5d : 60.5d);
             sheet.ColumnStyleByHeader("Value").NumberFormat(format);
             document.Save();
         }

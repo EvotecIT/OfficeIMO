@@ -29,10 +29,10 @@ internal static partial class PdfWriter {
                     var heading = new HeadingBlock(
                             section.Options.Level,
                             section.Title,
-                            PdfAlign.Left,
+                            OfficeAlignment.Left,
                             color: null,
                             style: section.Options.HeadingStyle);
-                    if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureHeadingBlockHeight(heading, currentOpts.MarginLeft, width)));
+                    if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureHeadingBlockHeight(heading, currentOpts.MarginLeft.ToPoints(), width)));
                     RenderHeadingFlowBlock(heading, null, new IPdfBlock[] { heading }, 0, CaptureSectionPlacement);
                 } else CaptureSectionPlacement(y);
 
@@ -51,7 +51,7 @@ internal static partial class PdfWriter {
             PdfTableOfContentsOptions options = tableOfContents.Options;
             var entries = new List<IPdfBlock>();
             if (!string.IsNullOrWhiteSpace(options.Title))
-                entries.Add(new HeadingBlock(1, options.Title!, PdfAlign.Left, color: null));
+                entries.Add(new HeadingBlock(1, options.Title!, OfficeAlignment.Left, color: null));
             IEnumerable<PdfTableOfContentsEntry> source = options.Entries ?? sectionDefinitions
                 .Where(section => section.Options.IncludeInTableOfContents)
                 .Select(section => new PdfTableOfContentsEntry(section.Title, section.DestinationName, section.Options.Level)).ToArray();
@@ -61,13 +61,13 @@ internal static partial class PdfWriter {
                 }
 
                 tableOfContentsDestinations.Add(entry.DestinationName);
-                double leftIndent = (entry.Level - options.MinimumLevel) * options.IndentPerLevel;
+                double leftIndent = (entry.Level - options.MinimumLevel) * options.IndentPerLevel.ToPoints();
                 var style = new PdfParagraphStyle {
-                    LeftIndent = leftIndent,
-                    SpacingAfter = 2D,
+                    LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndent),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(2D),
                     KeepTogether = true
                 };
-                style.AddTabStop(1D, PdfTabAlignment.Right, options.Leader).IsFrameRightRelative = true;
+                style.AddTabStop(global::OfficeIMO.OfficeLength.Points(1D), PdfTabAlignment.Right, options.Leader).IsFrameRightRelative = true;
                 string pageText = sectionPageNumbers.TryGetValue(entry.DestinationName, out int pageNumber)
                     ? FormatSectionPageNumber(options, pageNumber)
                     : "0000";
@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
                         PdfTextRun.Tab(options.Leader, PdfTabAlignment.Right),
                         PdfTextRun.Normal(pageText)
                     },
-                    PdfAlign.Left,
+                    OfficeAlignment.Left,
                     defaultColor: null,
                     style));
             }

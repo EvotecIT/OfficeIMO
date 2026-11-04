@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>$filter = New-OfficeWordRevisionFilter -Author 'Alex' -InTable
 /// Resolve-OfficeWordRevision -Path .\Review.docx -Action Accept -Filter $filter</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeWordRevisionFilter")]
+[Cmdlet(VerbsCommon.New, "OfficeWordRevisionFilter", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordRevisionFilter))]
 public sealed class NewOfficeWordRevisionFilterCommand : PSCmdlet {
     /// <summary>Revision author.</summary>

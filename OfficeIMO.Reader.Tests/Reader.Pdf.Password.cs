@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 public sealed class ReaderPdfPasswordTests {
     [Fact]
     public void PasswordDoesNotBypassExtractionPermissionsOrInputLimits() {
-        byte[] plain = PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.Text("Restricted text.")))).ToBytes();
+        byte[] plain = PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.AddParagraph("Restricted text.")))).ToBytes();
         byte[] encrypted = PdfDocument.Load(plain).Security.Encrypt(new("reader") {
             OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.Accessibility
         }).Pdf;
@@ -31,7 +31,7 @@ public sealed class ReaderPdfPasswordTests {
     [InlineData(true, true)]
     public void AuthorizedEncryptedPdfSupportsChunkAndDocumentPathAndStream(bool document, bool stream) {
         const string password = "local-reader-secret";
-        byte[] plain = PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.Text("Protected source text.")))).ToBytes();
+        byte[] plain = PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.AddParagraph("Protected source text.")))).ToBytes();
         byte[] encrypted = PdfDocument.Load(plain).Security.Encrypt(new(password) {
             OwnerPassword = "owner-secret", AllowedPermissions = PdfStandardPermissions.CopyContents
         }).Pdf;

@@ -38,23 +38,23 @@ namespace OfficeIMO.Excel.Benchmarks {
         private byte[] WriteReport(bool validate = false) {
             using MemoryStream stream = new MemoryStream();
             using (ExcelDocument document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 for (int column = 1; column <= Columns; column++) {
-                    sheet.CellValue(1, column, "Header " + column);
-                    sheet.CellAt(1, column).HeaderStyle();
+                    sheet.Cell(1, column).SetValue("Header " + column);
+                    sheet.Cell(1, column).SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
                 }
                 if (StyleInBatch) sheet.Batch(WriteRows); else WriteRows(sheet);
                 sheet.Range("A1:L" + (RowCount + 1)).CreateTable("Report", hasHeader: true, ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                sheet.Freeze(1, 0);
+                sheet.View.Freeze(1, 0);
                 for (int column = 1; column <= Columns; column++) {
-                    sheet.SetColumnWidth(column, 18 + column);
-                    sheet.WrapCells(1, RowCount + 1, column);
+                    sheet.SetColumnWidth(column, OfficeIMO.Excel.ExcelColumnWidth.Characters(18 + column));
+                    sheet.Range(1, column, RowCount + 1, column).SetWrapText();
                 }
-                for (int row = 2; row <= RowCount + 1; row++) sheet.SetRowHeight(row, 42);
-                sheet.SetGridlinesVisible(false);
-                sheet.SetOrientation(OfficePageOrientation.Landscape);
-                sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
-                sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
+                for (int row = 2; row <= RowCount + 1; row++) sheet.SetRowHeight(row, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
+                sheet.View.ShowGridlines = false;
+                sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
+                sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0;
                 document.Save(stream, validate ? new ExcelSaveOptions { ValidateOpenXml = true } : null);
             }
             return stream.ToArray();
@@ -63,9 +63,9 @@ namespace OfficeIMO.Excel.Benchmarks {
         private void WriteRows(ExcelSheet sheet) {
             for (int row = 2; row <= RowCount + 1; row++) {
                 for (int column = 1; column <= Columns; column++) {
-                    sheet.CellValue(row, column, _values[(row * 31 + column * 7) % _values.Length]);
+                    sheet.Cell(row, column).SetValue(_values[(row * 31 + column * 7) % _values.Length]);
                 }
-                sheet.CellAt(row, 2).SetFillColor(Fills[(row / 50) % Fills.Length]).SetBold(true);
+                sheet.Cell(row, 2).SetFillColor(Fills[(row / 50) % Fills.Length]).SetBold(true);
             }
         }
 

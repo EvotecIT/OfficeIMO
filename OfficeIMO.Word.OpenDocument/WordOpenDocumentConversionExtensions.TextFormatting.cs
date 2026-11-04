@@ -30,7 +30,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
         if (selectedFontFamily != null) target.FontFamily = selectedFontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.ColorHex = color.Value.ToString();
+        if (color.HasValue) target.RunColorValue = color.Value.ToString();
         ApplyOdfTextBackground(source.HasTextBackgroundOverride
             ? source.BackgroundColor : paragraph.TextBackgroundColor, target);
         return unsupported;
@@ -57,7 +57,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         string? fontFamily = SelectOdfFontFamily(source.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
         if (fontFamily != null) target.FontFamily = fontFamily;
-        if (source.Color.HasValue) target.ColorHex = source.Color.Value.ToString();
+        if (source.Color.HasValue) target.RunColorValue = source.Color.Value.ToString();
         ApplyOdfTextBackground(source.TextBackgroundColor, target);
         return unsupported;
     }
@@ -87,7 +87,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
         if (selectedFontFamily != null) target.FontFamily = selectedFontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.ColorHex = color.Value.ToString();
+        if (color.HasValue) target.RunColorValue = color.Value.ToString();
         ApplyOdfTextBackground(source.HasTextBackgroundOverride
             ? source.BackgroundColor : paragraph.TextBackgroundColor, target);
         return unsupported;
@@ -99,7 +99,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         double halfPoints = points * 2D;
         double roundedHalfPoints = Math.Round(halfPoints, MidpointRounding.AwayFromZero);
         if (Math.Abs(halfPoints - roundedHalfPoints) > 0.000000001D) return 1;
-        target.FontSizePoints = roundedHalfPoints / 2D;
+        target.FontSize = global::OfficeIMO.OfficeLength.Points(roundedHalfPoints / 2D);
         return 0;
     }
 
@@ -117,7 +117,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static void ApplyOdfTextBackground(OdfColor? source, WordParagraph target) {
         if (!source.HasValue) return;
         if (TryMapOdfHighlight(source.Value, out WordHighlightColor highlight)) target.Highlight = highlight;
-        else target.RunShadingFillColorHex = source.Value.ToString();
+        else target.RunShadingFillValue = source.Value.ToString();
     }
 
     private static void ApplyOdfRunSemantics(

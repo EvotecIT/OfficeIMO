@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     /// <summary>Expands only padding after a container marker, retaining its original tab stops.</summary>
     /// <remarks>Tabs inside the content remain literal; stripping container padding happens afterwards.</remarks>
     private static string ExpandWhitespaceAfterContainerMarker(string line, int markerEnd) {

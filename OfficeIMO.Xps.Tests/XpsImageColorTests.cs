@@ -26,19 +26,19 @@ public sealed class XpsImageColorTests {
             if (file.Contains("associated")) {
                 string profile = doc.AddResource("Profiles/source.icc", Profile(values[1]), "application/vnd.ms-color.iccprofile");
                 Source(page, "{ColorConvertedBitmap " + source + " " + profile + "}");
-                using var memory = new MemoryStream(doc.Save());
+                using var memory = new MemoryStream(doc.ToBytes());
                 using var zip = new ZipArchive(memory, ZipArchiveMode.Read);
                 using var reader = new StreamReader(zip.Entries.Single(e => e.FullName.EndsWith(".fpage.rels", StringComparison.Ordinal)).Open());
                 string relationships = reader.ReadToEnd();
                 Assert.Contains(profile, relationships); Assert.Contains(source, relationships);
             }
-            page = XpsDocument.Load(doc.Save()).Pages[0];
+            page = XpsDocument.Load(doc.ToBytes()).Pages[0];
             var pixel = Raster(page).GetPixel(8, 8);
             Assert.InRange(Math.Abs(pixel.R - int.Parse(values[2])), 0, 2);
             Assert.InRange(Math.Abs(pixel.G - int.Parse(values[3])), 0, 2);
             Assert.InRange(Math.Abs(pixel.B - int.Parse(values[4])), 0, 2);
             Assert.Equal(int.Parse(values[5]), (int)pixel.A);
-            Assert.NotEmpty(doc.ToPdf());
+            Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         }
     }
 
@@ -58,7 +58,7 @@ public sealed class XpsImageColorTests {
         markup.Add(new XElement(ns + "FixedPage.Resources", new XElement(ns + "ResourceDictionary", new XAttribute("Source", resource))),
             new XElement(ns + "Path", new XAttribute("Data", "M0,0H16V16H0Z"), new XAttribute("Fill", "{StaticResource paint}")));
         page.ReplaceMarkup(markup);
-        var pixel = Raster(XpsDocument.Load(doc.Save()).Pages[0]).GetPixel(8, 8);
+        var pixel = Raster(XpsDocument.Load(doc.ToBytes()).Pages[0]).GetPixel(8, 8);
         Assert.InRange(pixel.R, 127, 129); Assert.InRange(pixel.G, 63, 65); Assert.InRange(pixel.B, 31, 33);
     }
 
@@ -78,10 +78,10 @@ public sealed class XpsImageColorTests {
             ? "littlecms-rgb-matrix.icc" : "littlecms-cmyk-lut.icc") : new byte[128];
         string profile = document.AddResource("Profiles/associated.icc", associated, "application/vnd.ms-color.iccprofile");
         Source(page, "{ColorConvertedBitmap " + source + " " + profile + "}");
-        page = XpsDocument.Load(document.Save()).Pages[0];
+        page = XpsDocument.Load(document.ToBytes()).Pages[0];
         Assert.Empty(page.ToSvg().Diagnostics);
         Assert.Equal(expected, Raster(page).GetPixel(8, 8));
-        Assert.NotEmpty(document.ToPdf());
+        Assert.NotEmpty(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public sealed class XpsImageColorTests {
         var page = document.AddPage(16, 16).AddImage(source, 0, 0, 16, 16);
         Assert.Throws<NotSupportedException>(() => page.ToSvg());
         Assert.Contains("CMYK image requires a usable ICC profile", page.ToSvg(true).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => document.ToPdf());
+        Assert.Throws<NotSupportedException>(() => document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded ShtProps chart properties preserved from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartSheetProperties {
+    internal sealed class LegacyXlsChartSheetProperties {
         internal LegacyXlsChartSheetProperties(ushort flags, byte emptyCellPlottingMode) {
             Flags = flags;
             EmptyCellPlottingMode = emptyCellPlottingMode;

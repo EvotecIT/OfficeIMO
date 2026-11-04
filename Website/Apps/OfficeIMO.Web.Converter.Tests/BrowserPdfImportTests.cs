@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -28,8 +29,8 @@ public sealed class BrowserPdfImportTests {
     public void PdfImportRoutes_ProduceRealArtifactsAndReports(string routeId, string extension) {
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content
             .H1("Quarterly report")
-            .Paragraph(paragraph => paragraph.Text("Local PDF import evidence"))
-            .Table([
+            .AddParagraph(paragraph => paragraph.AddText("Local PDF import evidence"))
+            .AddTable([
                 ["Metric", "Value"],
                 ["Ready", "Yes"],
                 ["Validated", "Yes"]
@@ -63,7 +64,7 @@ public sealed class BrowserPdfImportTests {
                 }
                 break;
             case "pdf-pptx":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(new MemoryStream(result.Bytes))) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(new MemoryStream(result.Bytes))) {
                     Assert.NotEmpty(presentation.Slides);
                 }
                 using (PresentationDocument package = PresentationDocument.Open(new MemoryStream(result.Bytes), false)) {
@@ -107,9 +108,9 @@ public sealed class BrowserPdfImportTests {
     public void PdfToPng_MultiplePages_ReturnsNumberedPngArchive() {
         PdfDocument document = PdfDocument.Create(compose => {
             compose.Page(page => page.Content(content => content.Column(column =>
-                column.Item().Paragraph(paragraph => paragraph.Text("First page")))));
+                column.Item().AddParagraph(paragraph => paragraph.AddText("First page")))));
             compose.Page(page => page.Content(content => content.Column(column =>
-                column.Item().Paragraph(paragraph => paragraph.Text("Second page")))));
+                column.Item().AddParagraph(paragraph => paragraph.AddText("Second page")))));
         });
         byte[] pdf = document.ToBytes();
         var source = new SelectedDocument("pages.pdf", ".pdf", "PDF", pdf.LongLength, pdf);
@@ -143,8 +144,8 @@ public sealed class BrowserPdfImportTests {
     [InlineData("CON.pdf", "document-CON.page-001.png")]
     public void PdfToPng_MultiplePages_UsesPortableSafeArchiveEntries(string uploadName, string expectedEntry) {
         PdfDocument document = PdfDocument.Create(compose => {
-            compose.Page(page => page.Content(content => content.Paragraph(paragraph => paragraph.Text("one"))));
-            compose.Page(page => page.Content(content => content.Paragraph(paragraph => paragraph.Text("two"))));
+            compose.Page(page => page.Content(content => content.AddParagraph(paragraph => paragraph.AddText("one"))));
+            compose.Page(page => page.Content(content => content.AddParagraph(paragraph => paragraph.AddText("two"))));
         });
         byte[] pdf = document.ToBytes();
         var source = new SelectedDocument(uploadName, ".pdf", "PDF", pdf.LongLength, pdf);
@@ -162,19 +163,19 @@ public sealed class BrowserPdfImportTests {
     }
 
     [Theory]
-    [InlineData(PdfPowerPointImportMode.VisualPages, "Visual", "visual-page-slides", true, false)]
-    [InlineData(PdfPowerPointImportMode.HybridVisualAndEditableTables, "Hybrid", "hybrid-visual-table-slides", true, true)]
-    [InlineData(PdfPowerPointImportMode.EditableTables, "Partial", "editable-table-slides", false, true)]
-    [InlineData(PdfPowerPointImportMode.EditableContent, "Degraded", "editable-content-slides", false, true)]
+    [InlineData(PowerPointPdfImportMode.VisualPages, "Visual", "visual-page-slides", true, false)]
+    [InlineData(PowerPointPdfImportMode.HybridVisualAndEditableTables, "Hybrid", "hybrid-visual-table-slides", true, true)]
+    [InlineData(PowerPointPdfImportMode.EditableTables, "Partial", "editable-table-slides", false, true)]
+    [InlineData(PowerPointPdfImportMode.EditableContent, "Degraded", "editable-content-slides", false, true)]
     public void PdfToPowerPoint_ExposesHonestProjectionModes(
-        PdfPowerPointImportMode mode,
+        PowerPointPdfImportMode mode,
         string fidelity,
         string projection,
         bool expectsPagePicture,
         bool expectsTable) {
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content
             .H1("Mode contract")
-            .Table([
+            .AddTable([
                 ["Metric", "Value"],
                 ["Ready", "Yes"],
                 ["Validated", "Yes"]
@@ -197,7 +198,7 @@ public sealed class BrowserPdfImportTests {
         SlidePart slide = Assert.Single(package.PresentationPart!.SlideParts);
         Assert.Equal(expectsPagePicture, slide.Slide!.Descendants<DocumentFormat.OpenXml.Presentation.Picture>().Any());
         Assert.Equal(expectsTable, slide.Slide.Descendants<A.Table>().Any());
-        if (mode == PdfPowerPointImportMode.VisualPages) {
+        if (mode == PowerPointPdfImportMode.VisualPages) {
             Assert.Contains(result.StructuredWarnings, warning => warning.Code == "PdfVisualPageSlidesNotEditable");
             Assert.Contains("not editable", result.Text!, StringComparison.OrdinalIgnoreCase);
         }
@@ -227,7 +228,7 @@ public sealed class BrowserPdfImportTests {
             ConversionRouteCatalog.Find("pdf-pptx"),
             source,
             limitExcelRows: false,
-            pdfPowerPointMode: PdfPowerPointImportMode.VisualPages);
+            pdfPowerPointMode: PowerPointPdfImportMode.VisualPages);
 
         Assert.Equal("Visual", result.FidelityStatus);
         Assert.Contains(result.StructuredWarnings, warning =>
@@ -272,7 +273,7 @@ public sealed class BrowserPdfImportTests {
             ConversionRouteCatalog.Find("pdf-pptx"),
             source,
             limitExcelRows: false,
-            pdfPowerPointMode: PdfPowerPointImportMode.VisualPages);
+            pdfPowerPointMode: PowerPointPdfImportMode.VisualPages);
         using PresentationDocument package = PresentationDocument.Open(new MemoryStream(visualSlides.Bytes), false);
         ImagePart image = Assert.Single(package.PresentationPart!.SlideParts.Single().ImageParts);
         using Stream imageStream = image.GetStream(FileMode.Open, FileAccess.Read);
@@ -297,7 +298,7 @@ public sealed class BrowserPdfImportTests {
             ConversionRouteCatalog.Find("pdf-pptx"),
             source,
             limitExcelRows: false,
-            pdfPowerPointMode: PdfPowerPointImportMode.VisualPages);
+            pdfPowerPointMode: PowerPointPdfImportMode.VisualPages);
 
         using PresentationDocument package = PresentationDocument.Open(new MemoryStream(result.Bytes), false);
         ImagePart image = Assert.Single(package.PresentationPart!.SlideParts.Single().ImageParts);

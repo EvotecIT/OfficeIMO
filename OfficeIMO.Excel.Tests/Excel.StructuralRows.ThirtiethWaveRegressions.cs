@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIgnoresUnchangedValidationAndFormattingRules() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var validation = new DataValidation {
                 SequenceOfReferences = new ListValue<StringValue> {
                     InnerText = "A1:A2"
@@ -42,9 +42,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIgnoresUnchangedMergesSparklinesAndComments() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue(1);
-            sheet.CellAt(1, 2).SetValue(2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 2).SetValue(2);
             sheet.WorksheetPart.Worksheet.Append(
                 new MergeCells(new MergeCell { Reference = "A1:B2" }) {
                     Count = 1U
@@ -69,10 +69,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanIncludesUnchangedSharedFormulaMaterialization() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet other = document.AddWorksheet("Other");
-            other.CellAt(2, 1).SetValue(1);
-            other.CellAt(3, 1).SetValue(2);
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet other = document.AddSheet("Other");
+            other.Cell(2, 1).SetValue(1);
+            other.Cell(3, 1).SetValue(2);
             AppendSharedFormulaGroup(
                 other,
                 sharedIndex: 71U,

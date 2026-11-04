@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Functions", 1, 1, 42d, hasFormula: true,
                 formulaPayload: FunctionPayload(index, arguments))
         });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         IWorkTableCell source = Assert.Single(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
         Assert.False(source.FormulaIsComplete);
         Assert.True(source.CachedValueIsComplete);
@@ -38,15 +38,14 @@ public sealed partial class IWorkBoundaryTests {
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var reopened = ExcelDocument.Load(output);
         Assert.Null(reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
     public void Native_nested_or_and_power_formulas_keep_their_identities_and_saved_typed_caches() {
         using var manifest = ReadFunctionIdentityManifest();
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser", "cross-table-formulas.numbers");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var reopened = ExcelDocument.Load(output);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("nativeCases").EnumerateArray()) {
@@ -65,10 +64,10 @@ public sealed partial class IWorkBoundaryTests {
             JsonElement cache = expected.GetProperty("cachedValue");
             if (cache.ValueKind == JsonValueKind.String) {
                 Assert.Equal(cache.GetString(), cell.Value);
-                Assert.Equal(cache.GetString(), destination.CellAt(row, column).GetValue<string>());
+                Assert.Equal(cache.GetString(), destination.Cell(row, column).GetValue<string>());
             } else {
                 Assert.Equal(cache.GetDouble(), cell.Value);
-                Assert.Equal(cache.GetDouble(), destination.CellAt(row, column).GetValue<double>());
+                Assert.Equal(cache.GetDouble(), destination.Cell(row, column).GetValue<double>());
             }
         }
     }

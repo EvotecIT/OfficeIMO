@@ -20,7 +20,7 @@ public sealed class HtmlNormalizationOptions {
     public HtmlUrlPolicy? ResourceUrlPolicy { get; set; }
 
     /// <summary>Shared source, DOM, stylesheet, and semantic-metadata limits applied before normalization.</summary>
-    public HtmlConversionLimits Limits { get; set; } = HtmlConversionLimits.CreateUntrustedProfile();
+    public HtmlConversionLimits Limits { get; set; } = HtmlConversionLimits.UntrustedDefaults;
 
     /// <summary>Optional additional cap on candidates from one responsive source set; the stricter shared or local cap applies.</summary>
     public int? MaxResponsiveImageCandidates { get; set; }

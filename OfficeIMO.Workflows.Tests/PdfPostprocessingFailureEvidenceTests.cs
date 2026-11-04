@@ -24,7 +24,7 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
                 source.Save(input);
             } else if (extension == ".vdx") {
                 var source = VisioDocument.Create();
-                source.AddPage("Page").AddRectangle(1, 1, 2, 1, "Caption");
+                source.AddPage("Page").AddRectangle(OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Caption");
                 source.SaveLegacyXml(input, allowOmissions: true);
             } else if (extension == ".docx") {
                 using var source = WordDocument.Create(input);
@@ -35,20 +35,16 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
             }
             byte[] originalSource = File.ReadAllBytes(input);
             var runner = new OfficeWorkflowRunner();
-            OfficeWorkflowConversionOptions Options(bool compressed, bool encrypted) {
-                var pdf = new PdfOptions();
+            OfficeConversionOptions Options(bool compressed, bool encrypted) {
+                var pdf = new PdfCreateOptions();
                 if (encrypted) pdf.SetEncryption(new PdfStandardEncryptionOptions("reader") { OwnerPassword = "owner" });
                 return new() {
-                    CompressPdfOutput = compressed,
-                    Draw = extension == ".odg" ? new OdgToPdfOptions { PdfOptions = pdf } : null,
-                    Visio = extension == ".vdx" ? new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, PdfOptions = pdf } : null,
-                    PlainText = extension == ".txt" ? new PdfPlainTextOptions { PdfOptions = pdf } : null,
-                    Word = extension == ".docx" ? new WordToPdfOptions { PdfOptions = pdf, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() } : null
-                };
+                    CompressPdfOutput = compressed,                    PlainText = extension == ".txt" ? new PdfTextImportOptions { PdfOptions = pdf } : null,                    Word = extension == ".docx" ? new WordPdfExportOptions { PdfOptions = pdf, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() } : null
+,RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings { Draw = extension == ".odg" ? new OdgPdfExportOptions { PdfOptions = pdf } : null, Visio = extension == ".vdx" ? new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages, PdfOptions = pdf } : null }                };
             }
             async Task<OfficeWorkflowResult> Run(bool compressed, bool encrypted, long limit) => await runner.RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output, ConversionRouteId = route,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace, Limits = new() { MaximumOutputBytes = limit },
+                ConflictPolicy = OfficePublicationPolicy.Replace, Limits = new() { MaximumOutputBytes = limit },
                 ConversionOptions = Options(compressed, encrypted)
             });
             var plain = await Run(false, false, 1024 * 1024);
@@ -62,7 +58,7 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
             var accepted = await Run(true, true, 1024 * 1024);
             Assert.True(accepted.Succeeded, accepted.Summary);
             byte[] acceptedBytes = File.ReadAllBytes(output);
-            var opened = PdfDocument.Load(acceptedBytes, new PdfLoadOptions { Password = "reader" });
+            var opened = PdfDocument.Load(new System.IO.MemoryStream(acceptedBytes), new PdfLoadOptions { Password = "reader" });
             Assert.True(opened.Inspect().Security.HasEncryption);
             Assert.Contains("Caption", PdfReadDocument.Open(acceptedBytes, new PdfLoadOptions { Password = "reader" }).ExtractText());
             byte[] sentinel = [1, 2, 3]; File.WriteAllBytes(output, sentinel);
@@ -71,17 +67,17 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
 
             Assert.False(failed.Succeeded);
             Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, failed.FailureKind);
-            Assert.Contains(failed.Diagnostics, d => d.Code == "PdfOutputCompression");
+            Assert.Contains(failed.Diagnostics, d => d.Code == "pdf-output-compressed");
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(failed.ConversionEvidence);
-            if (extension == ".docx") Assert.NotEmpty(evidence.FidelityDiagnostics);
+            if (extension == ".docx") Assert.NotEmpty(evidence.Diagnostics);
             if (extension is ".odg" or ".vdx") Assert.Equal("1", evidence.Facts["sourcePages"]);
             Assert.Equal(
-                compressed.ConversionEvidence!.FidelityDiagnostics.Select(d => (d.Source, d.Code, d.Message, d.LossKind, d.Location)),
-                evidence.FidelityDiagnostics.Select(d => (d.Source, d.Code, d.Message, d.LossKind, d.Location)));
-            foreach (var findings in evidence.FidelityDiagnostics.GroupBy(d => (d.Source, d.Code, d.Message, d.LossKind, d.Location))) {
+                compressed.ConversionEvidence!.Diagnostics.Select(d => (d.Format, d.Code, d.Message, d.LossKind, d.Location)),
+                evidence.Diagnostics.Select(d => (d.Format, d.Code, d.Message, d.LossKind, d.Location)));
+            foreach (var findings in evidence.Diagnostics.GroupBy(d => (d.Format, d.Code, d.Message, d.LossKind, d.Location))) {
                 var finding = findings.Key;
                 Assert.Equal(findings.Count(), failed.Diagnostics.Count(d => d.Code == finding.Code && d.Message == finding.Message
-                    && d.Details.TryGetValue("source", out string? source) && source == finding.Source
+                    && d.Details.TryGetValue("source", out string? source) && source == finding.Format
                     && d.Details.TryGetValue("lossKind", out string? loss) && loss == finding.LossKind.ToString()
                     && (d.Details.TryGetValue("location", out string? location) ? location : null) == finding.Location));
             }

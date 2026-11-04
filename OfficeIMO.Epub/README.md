@@ -18,7 +18,7 @@ dotnet add package OfficeIMO.Epub
 ```csharp
 using OfficeIMO.Epub;
 
-EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     PreferSpineOrder = true,
     IncludeRawHtml = false,
     MaxChapters = 100
@@ -44,7 +44,7 @@ certify EPUB conformance, rendering fidelity, or retention of every resource.
 Non-linear positions excluded by policy are not counted as requested.
 
 ```csharp
-EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     MaxChapters = 500,
     MaxTotalTextCharacters = 32L * 1024L * 1024L
 });
@@ -103,7 +103,7 @@ using OfficeIMO.Security;
 IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
 EpubDocument.SignPackage("book.epub", security, signingCertificate);
 OfficeXmlPackageSignatureValidationReport validation =
-    EpubDocument.ValidatePackageSignatures("book.epub", security);
+    EpubDocument.ValidateSignatures("book.epub", security);
 ```
 
 The signed manifest covers every non-carrier ZIP entry. Validation rejects missing, changed, duplicate, and unsigned entries. General producer-specific EPUB signatures and DRM/resource decryption remain outside this API. Recognized IDPF and Adobe font obfuscation is handled separately by the reader.
@@ -111,7 +111,7 @@ The signed manifest covers every non-carrier ZIP entry. Validation rejects missi
 ### Inspect bounded manifest resources
 
 ```csharp
-EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     IncludeResourceData = true,
     MaxResources = 500,
     MaxResourceBytes = 4L * 1024L * 1024L,
@@ -190,7 +190,7 @@ Use the three-argument overload with `chapter.BaseHref` when resolving URLs foun
 ```csharp
 using OfficeIMO.Epub;
 
-EpubDocument book = EpubDocument.Load("handbook.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("handbook.epub", new EpubLoadOptions {
     PreferSpineOrder = true,
     IncludeNonLinearSpineItems = false,
     MaxChapters = 50
@@ -210,7 +210,7 @@ foreach (var chapter in book.Chapters) {
 ```csharp
 using OfficeIMO.Epub;
 
-var book = EpubDocument.Load("book.epub", new EpubReadOptions {
+var book = EpubDocument.Load("book.epub", new EpubLoadOptions {
     IncludeRawHtml = true,
     MaxChapterBytes = 2L * 1024L * 1024L
 });
@@ -232,7 +232,7 @@ foreach (var chapter in book.Chapters) {
 using OfficeIMO.Epub;
 
 await using var stream = File.OpenRead("upload.epub");
-EpubDocument book = EpubDocument.Load(stream, new EpubReadOptions {
+EpubDocument book = EpubDocument.Load(stream, new EpubLoadOptions {
     FallbackToHtmlScan = true,
     DeterministicOrder = true
 });
@@ -260,7 +260,7 @@ publication.SetNavigation(new[] {
 publication.AddMetadataProperty("schema:accessMode", "textual");
 publication.AddMetadataProperty("schema:accessibilityFeature", "structuralNavigation");
 EpubWriteReport report = publication.Save("book.epub");
-report.RequireNoLoss();
+report.ThrowIfLoss();
 ```
 
 `AddChapter` accepts a well-formed XHTML **body fragment**, not a complete document or
@@ -318,7 +318,7 @@ var source = HtmlConversionDocument.Parse(
     "<h1 id='closing'>Closing</h1><p><a href='#opening'>Return</a></p>");
 EpubManuscriptResult imported = EpubManuscript.ImportHtml(source,
     new EpubManuscriptOptions { Language = "en", Creator = "A writer" });
-imported.RequireNoLoss().Save("book.epub");
+imported.ThrowIfLoss().Save("book.epub");
 ```
 
 Set `ChapterHeadingLevel` to 0 for one chapter, or 1–6 for the proposed split threshold.
@@ -337,12 +337,12 @@ The defaults allow 256 resources, 10 MiB per resource and 50 MiB in aggregate.
 Import review retains at most 10,000 findings; reaching that bound adds a failure
 diagnostic instead of silently treating a truncated report as successful.
 
-Inspect `Report.FidelityDiagnostics` before publishing. Executable content and active
+Inspect `Report.Diagnostics` before publishing. Executable content and active
 attributes are omitted and reported. Missing assets, unresolved internal anchors,
 invalid package content and unnamed images produce failure diagnostics. Images may
 provide `alt`, an accessible ARIA name, or an explicit decorative role. The importer
 does not invent image descriptions. `RequireValue` rejects failed imports;
-`RequireNoLoss` also rejects reported approximations and omissions. Imported HTML is
+`ThrowIfLoss` also rejects reported approximations and omissions. Imported HTML is
 not a full EPUB schema or accessibility certification route; independently validate
 the final publication and review its content in representative readers.
 
@@ -865,9 +865,9 @@ retained chapters; later renames follow that identity, and deleting the retained
 chapter reports the corresponding original resources as omitted. Reports describe
 operations relative to the current instance's load baseline; this history is not
 embedded in the EPUB, and reopening establishes a new baseline. A rename or supported
-merge alone does not fail `RequireNoLoss`. This is resource-identity evidence, not a
+merge alone does not fail `ThrowIfLoss`. This is resource-identity evidence, not a
 semantic comparison of arbitrary content edits. Explicit
-resource or signature removal produces omission diagnostics; `RequireNoLoss` rejects
+resource or signature removal produces omission diagnostics; `ThrowIfLoss` rejects
 them. `RemoveResource` blocks structural and cover references, declared rootfiles,
 and payloads referenced by retained alternate packages or their XHTML/SVG/NCX content.
 Removal fails before mutation if an alternate package or its XML content cannot be
@@ -878,14 +878,14 @@ writing still requires the explicit signature-removal policy described below.
 
 Imported duplicate spine references retain their reading positions and produce
 `EPUB_WRITE_RETAINED_DUPLICATE_SPINE`. This preserves the source's semantics but retains
-its nonconformance; `RequireNoLoss` checks omissions, not EPUB validity.
+its nonconformance; `ThrowIfLoss` checks omissions, not EPUB validity.
 
 MIME type comparisons accept equivalent casing while preserving declared spelling.
 EPUBCheck 5.4.0 flags uppercase EPUB 3 navigation and cover media types. For these
 imports, assign lowercase `MediaType` values explicitly when validator compatibility is required.
 
 Editing a package with `signatures.xml` or a ZIP central-directory signature fails unless
-`RemoveInvalidatedSignatures = true` is supplied in `EpubWriteOptions`; removal is reported.
+`RemoveInvalidatedSignatures = true` is supplied in `EpubSaveOptions`; removal is reported.
 IDPF/Adobe-obfuscated font bytes remain unchanged when editing
 other content; replacing them or changing their package identity is rejected.
 Unsupported encrypted-resource edits are rejected. Unedited supported imports retain
@@ -1179,7 +1179,7 @@ because full EPUB schema conformance, comprehensive accessibility assessment, an
 reading-system presentation need independent validation and review. Image alternative
 presence does not establish whether the descriptions are useful. Each native check
 retains at most 10,000 findings and reports an error when that bound is reached.
-The report is a snapshot; rerun it after editing. `RequireNoLoss` remains a separate
+The report is a snapshot; rerun it after editing. `ThrowIfLoss` remains a separate
 conversion/preservation check.
 
 Narration checks accept nested sequences and text-only cues. An omitted `clipEnd`
@@ -1285,7 +1285,7 @@ such as [EPUBCheck](https://github.com/w3c/epubcheck).
 | Authored navigation depth | 64 nested levels |
 
 Use `EpubPublicationLoadOptions` for retained input and creation resource limits;
-use `EpubWriteOptions` for output limits, modification time, and compression.
+use `EpubSaveOptions` for output limits, modification time, and compression.
 Retained entry limits include mandatory package entries and apply when adding resources.
 Unedited writes count every physical ZIP record, including directories, against output
 limits. XHTML/SVG/NCX inspection, editing, and write preflight use the configured

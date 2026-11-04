@@ -5,8 +5,8 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class DeskReference {
         internal static void Create(string folder) {
             var document = RtfDocument.Create();
-            document.Info.Title = "Service desk handover reference";
-            document.Info.Author = "OfficeIMO";
+            document.Properties.Title = "Service desk handover reference";
+            document.Properties.Author = "OfficeIMO";
             int navy = document.AddColor(23, 54, 93), pale = document.AddColor(234, 241, 251);
             Heading("Service desk handover", 24);
             document.AddParagraph("QUICK REFERENCE / SYNTHETIC SERVICE WORKFLOW");

@@ -1,0 +1,43 @@
+{
+  "package": "OfficeIMO.Word.IWork",
+  "changes": [
+    {
+      "old": "WordIWorkConverter.ConvertPagesToWord(path | stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertPagesToWordResult",
+      "kind": "method",
+      "action": "remove",
+      "new": "IWorkSourceDocument.Open(path | stream, IWorkDocumentKind.Pages, readOptions[, ct]).ToWord(...) / ToWordResult(...)",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "Open the source with IWorkSourceDocument.Open and call ToWord, SaveAsWord or ToWordResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour.",
+      "applied": true
+    },
+    {
+      "old": "IWorkSourceDocument.ToWordDocument(IWorkConversionOptions)",
+      "kind": "method",
+      "action": "merge",
+      "new": "IWorkSourceDocument.ToWord(PagesWordExportOptions options[, out OfficeConversionReport report], CancellationToken); ToWordAsync; SaveAsWord(path | stream); SaveAsWordAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "ToWord returns partial reconstructions with their report; use ToWordResult(...).RequireCompleteEditableReconstruction() for the previous strict behaviour.",
+      "applied": true
+    },
+    {
+      "old": "IWorkSourceDocument.ToWordDocumentResult(IWorkConversionOptions) : PagesToWordResult",
+      "kind": "method",
+      "action": "rename",
+      "new": "IWorkSourceDocument.ToWordResult(IWorkConversionOptions options = null, CancellationToken cancellationToken = default) : PagesToWordResult",
+      "reason": "The result keeps the source package and the typed source projection, which the common report does not carry, so it stays as a distinct evidence operation.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "IWorkConversionOptions parameter",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Word.IWork.PagesWordExportOptions { ConversionOptions, FailOnLoss }",
+      "reason": "Converter options are named {Source}{Target}ExportOptions.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

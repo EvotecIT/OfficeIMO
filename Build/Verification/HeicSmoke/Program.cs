@@ -27,7 +27,7 @@ foreach (string name in new[] { "basic-8bit-srgb.heic", "orientation-6.heic", "d
     byte[] source = File.ReadAllBytes(path);
     var image = OfficeRasterImageDecoder.Decode(source);
     File.WriteAllBytes(Path.Combine(args[1], stem + ".composed.png"), OfficePngWriter.Encode(image));
-    var pdf = PdfDocument.CreateFromImages(new[] { new PdfImageDocumentSource(source, name) });
+    using var pdf = new[] { new PdfImageDocumentSource(source, name) }.ToPdf();
     byte[] bytes = pdf.ToBytes();
     if (!bytes.AsSpan(0, 5).SequenceEqual("%PDF-"u8)) throw new InvalidOperationException("Invalid PDF output.");
     File.WriteAllBytes(Path.Combine(args[1], stem + ".pdf"), bytes);

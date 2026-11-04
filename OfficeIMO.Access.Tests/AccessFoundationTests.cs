@@ -71,7 +71,7 @@ namespace OfficeIMO.Access.Tests {
             using AccessDocument other = AccessDocument.Create(); Assert.Throws<InvalidOperationException>(() => report.RequireCurrent(other));
             AddTable(document); Assert.Throws<InvalidOperationException>(() => report.RequireCurrent(document));
             using (document.BeginUpdate()) Assert.Throws<InvalidOperationException>(() => document.AssessSave());
-            document.AssessSave().RequireNoLoss();
+            document.AssessSave().ThrowIfLoss();
         }
 
         [Fact]
@@ -80,7 +80,7 @@ namespace OfficeIMO.Access.Tests {
             document.Queries.Add("Names", "SELECT Name FROM Contacts;");
             string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-Access-" + Guid.NewGuid().ToString("N"));
             string path = Path.Combine(root, "out.mdb");
-            AccessSaveOptions options = new AccessSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow, FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace };
+            AccessSaveOptions options = new AccessSaveOptions { AllowLoss = true, FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace };
             AccessOperationNotSupportedException failure = Assert.Throws<AccessOperationNotSupportedException>(() => document.Save(path, options));
             Assert.Contains(failure.Report.Diagnostics, d => d.Code == "access.conversion.unsupported"); Assert.False(Directory.Exists(root));
             using MemoryStream stream = new MemoryStream(); stream.WriteByte(42); stream.Position = 0;

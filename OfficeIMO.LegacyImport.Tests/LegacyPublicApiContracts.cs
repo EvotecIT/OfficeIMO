@@ -8,8 +8,8 @@ namespace OfficeIMO.LegacyImport.Tests;
 public sealed class LegacyPublicApiContracts {
     [Fact]
     public void LegacyReportsAndResultsUseTheSharedLossContract() {
-        Assert.Contains(typeof(IOfficeConversionReport), typeof(OfficeLegacyImportReport).GetInterfaces());
-        Assert.NotNull(typeof(OfficeLegacyImportReport).GetMethod("RequireNoLoss", Type.EmptyTypes));
+        Assert.True(typeof(OfficeConversionReport).IsAssignableFrom(typeof(OfficeLegacyImportReport)));
+        Assert.NotNull(typeof(OfficeLegacyImportReport).GetMethod("ThrowIfLoss", Type.EmptyTypes));
         Assert.Null(typeof(OfficeLegacyImportReport).GetMethod("RequireStructuredNoLoss", Type.EmptyTypes));
 
         AssertImportResult(typeof(LegacyWordImportResult));
@@ -35,10 +35,10 @@ public sealed class LegacyPublicApiContracts {
             OfficeLegacyImportQuality.Structured,
             new[] { finding });
 
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
         Assert.Equal(expectedLossKind, diagnostic.LossKind);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed class LegacyPublicApiContracts {
         Assert.NotNull(resultType.GetProperty("Report"));
         Assert.NotNull(resultType.GetProperty("HasLoss"));
         Assert.NotNull(resultType.GetMethod("RequireValue", Type.EmptyTypes));
-        Assert.NotNull(resultType.GetMethod("RequireNoLoss", Type.EmptyTypes));
+        Assert.NotNull(resultType.GetMethod("ThrowIfLoss", Type.EmptyTypes));
         Assert.Null(resultType.GetProperty("Document"));
     }
 

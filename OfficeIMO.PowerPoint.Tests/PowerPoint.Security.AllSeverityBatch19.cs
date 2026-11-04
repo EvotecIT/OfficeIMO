@@ -15,7 +15,7 @@ public partial class PowerPoint {
         int duplicateCount = 0;
 
         IReadOnlyDictionary<ushort, LegacyPptRecord> selected =
-            LegacyPptPresentation.CollectUniqueMasterTextStyle9Records(
+            LegacyPptDocument.CollectUniqueMasterTextStyle9Records(
                 records,
                 _ => duplicateCount++);
 

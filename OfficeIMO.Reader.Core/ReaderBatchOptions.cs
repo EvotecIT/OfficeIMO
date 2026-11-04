@@ -9,6 +9,10 @@ namespace OfficeIMO.Reader;
 /// Bounds multi-document asynchronous Reader execution.
 /// </summary>
 public sealed class ReaderBatchOptions {
+    /// <summary>Optional combined source-byte allowance. Reads run in input order when set so each native admission is bounded by the remaining allowance.</summary>
+    /// <remarks>Owner defaults and per-file ceilings still apply. Resilient batches report sources that do not fit as failed outcomes; strict batches throw. Directory packages use their native bounded reader and reported snapshot length.</remarks>
+    public long? MaxTotalBytes { get; set; }
+
     /// <summary>
     /// Maximum number of document reads in flight. Null uses the reader's configured limit.
     /// </summary>

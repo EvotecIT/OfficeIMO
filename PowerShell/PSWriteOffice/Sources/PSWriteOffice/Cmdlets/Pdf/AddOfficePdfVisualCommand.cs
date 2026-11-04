@@ -12,6 +12,13 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [OutputType(typeof(PdfDocument))]
 public sealed class AddOfficePdfVisualCommand : OfficeVisualCommandBase
 {
+    /// <summary>Accessible description for the visual or placed image.</summary>
+    [Parameter]
+    public string? AlternativeText { get; set; }
+
+    /// <inheritdoc />
+    protected override string? VisualAlternativeText => AlternativeText;
+
     private const string ParameterSetContext = "Context";
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPipelineDocument = "PipelineDocument";
@@ -29,7 +36,7 @@ public sealed class AddOfficePdfVisualCommand : OfficeVisualCommandBase
 
     /// <summary>Horizontal alignment in PDF flow.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Spacing before the visual in points.</summary>
     [Parameter]

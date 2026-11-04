@@ -55,14 +55,14 @@ public sealed partial class PdfRuntimeWorkload {
                 _firstWrite = stream;
                 ObserveMemory("BeforeSave");
                 _phaseSaveStart = Stopwatch.GetTimestamp();
-                saved = document.Save(stream, cancellationToken);
+                saved = document.SaveWithEvidence(stream, cancellationToken);
                 ObserveMemory("SaveComplete");
             }
         } else {
             using var memory = new MemoryStream();
             ObserveMemory("BeforeSave");
             _phaseSaveStart = Stopwatch.GetTimestamp();
-            saved = document.Save(memory, cancellationToken);
+            saved = document.SaveWithEvidence(memory, cancellationToken);
             ObserveMemory("SaveComplete");
             byte[] bytes = memory.ToArray();
             cancellationToken.ThrowIfCancellationRequested();

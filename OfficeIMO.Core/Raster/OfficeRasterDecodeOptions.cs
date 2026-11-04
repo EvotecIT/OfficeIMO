@@ -141,7 +141,7 @@ public sealed class OfficeRasterDecodeInfo {
     public OfficeRasterCodecUnavailableReason CodecUnavailableReason { get; internal set; }
 
     /// <summary>Stable diagnostic code for an unavailable system codec, otherwise null.</summary>
-    public string? DiagnosticCode => CodecUnavailableReason == OfficeRasterCodecUnavailableReason.None ? null : OfficeImageExportDiagnosticCodes.ImageCodecUnavailable;
+    public string? DiagnosticCode => CodecUnavailableReason == OfficeRasterCodecUnavailableReason.None ? null : global::OfficeIMO.OfficeDiagnosticCodes.ImageCodecUnavailable;
 
     // These container inventories bound every frame before selecting one. Owned
     // consumers account their frame pixels separately from decode/filter work.

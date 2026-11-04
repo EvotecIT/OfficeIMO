@@ -17,7 +17,7 @@ public sealed class StudioKeyboardTransformSelectionTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "keyboard-transform.pdf");
             string saved = Path.Combine(services.Paths.Root, "keyboard-transform-edited.pdf");
-            var document = PdfDocument.Create(compose => compose.Page(page => page.Size(400, 400)));
+            var document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(400))));
             if (annotation) document = document.Annotations.Add(new PdfAnnotationCreateOptions {
                 PageNumber = 1, Subtype = "Square", Name = "target", Rectangle = [50D, 50D, 90D, 90D], GenerateAppearance = true
             }).ToDocument();

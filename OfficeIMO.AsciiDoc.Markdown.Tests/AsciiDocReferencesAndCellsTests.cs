@@ -49,7 +49,7 @@ public sealed class AsciiDocReferencesAndCellsTests {
         var attributes = document.GetBlockContexts().First(context => context.Block == paragraph).Attributes;
         var converted = paragraph.ToMarkdownDocumentResult(attributes);
         Assert.Contains("inherited", converted.Value.ToMarkdown());
-        converted = paragraph.ToMarkdownDocumentResult(attributes, new AsciiDocToMarkdownOptions { References = AsciiDocReferenceCatalog.Create(document) });
+        converted = paragraph.ToMarkdownDocumentResult(attributes, new AsciiDocMarkdownExportOptions { References = AsciiDocReferenceCatalog.Create(document) });
         Assert.Single(converted.Value.Blocks.OfType<FootnoteDefinitionBlock>());
         Assert.DoesNotContain("Elsewhere", converted.Value.ToMarkdown());
     }
@@ -99,7 +99,7 @@ public sealed class AsciiDocReferencesAndCellsTests {
         Assert.Contains("Version one with **new emphasis**.", markdown);
         Assert.Contains("Anonymous.", markdown);
         Assert.DoesNotContain("Version two", markdown);
-        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Feature == "footnote");
+        Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == "footnote");
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public sealed class AsciiDocReferencesAndCellsTests {
         Assert.Equal("12", catalog.Targets["ref"].Label);
         Assert.Contains(catalog.Diagnostics, diagnostic => diagnostic.Code == "ADOCREF001");
         Assert.Contains(catalog.Diagnostics, diagnostic => diagnostic.Code == "ADOCREF003");
-        MarkdownDoc converted = document.ToMarkdownDocumentResult().Value;
+        MarkdownDocument converted = document.ToMarkdownDocumentResult().Value;
         string markdown = converted.ToMarkdown();
         Assert.Contains("(#ref)", markdown);
         Assert.Contains(converted.Blocks.OfType<ParagraphBlock>().First().Inlines.Nodes.OfType<LinkInline>(), link => link.Text == "[12]");

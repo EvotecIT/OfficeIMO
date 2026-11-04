@@ -16,10 +16,10 @@ public sealed class WordOdtTableContentTests {
         using WordDocument source = WordDocument.Create();
         WordTable outer = source.AddTable(1, 1);
         outer.Rows[0].Cells[0].AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Nested Word text";
-        OdfConversionResult<OdtDocument> converted = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> converted = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(converted.Report.Mappings, mapping => mapping.Feature == "nested-tables" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -38,7 +38,7 @@ public sealed class WordOdtTableContentTests {
         cell.Add(nested.Element, new XElement(OdfNamespaces.Text + "p", "After"));
         source.Package.MarkXmlDirty("content.xml");
 
-        OdfConversionResult<WordDocument> converted = source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+        OdfConversionResult<WordDocument> converted = source.ConvertToWordWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         });
         using WordDocument result = converted.Value;
@@ -71,7 +71,7 @@ public sealed class WordOdtTableContentTests {
             foreach (XElement list in lists) { list.Remove(); cell.Add(list); }
         }
         source.Package.MarkXmlDirty("content.xml");
-        using WordDocument result = source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+        using WordDocument result = source.ConvertToWordWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
         Paragraph[] paragraphs = result.OpenXmlDocument.MainDocumentPart!.Document!.Body!.Descendants<Paragraph>()
             .Where(paragraph => paragraph.InnerText.Length > 0).ToArray();
@@ -111,7 +111,7 @@ public sealed class WordOdtTableContentTests {
             cell.Add(root);
         }
         source.Package.MarkXmlDirty("content.xml");
-        using WordDocument result = source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+        using WordDocument result = source.ConvertToWordWithEvidence(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
         Paragraph[] paragraphs = result.OpenXmlDocument.MainDocumentPart!.Document!.Body!.Descendants<Paragraph>()
             .Where(paragraph => paragraph.InnerText.Length > 0).ToArray();
@@ -137,11 +137,11 @@ public sealed class WordOdtTableContentTests {
         list.SetAttributeValue(OdfNamespaces.Text + "continue-numbering", true);
         list.Elements(OdfNamespaces.Text + "list-item").Single().SetAttributeValue(OdfNamespaces.Text + "start-value", 5);
         source.Package.MarkXmlDirty("content.xml");
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument result = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "list-numbering" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -151,11 +151,11 @@ public sealed class WordOdtTableContentTests {
         OdtParagraph paragraph = source.AddTable(1, 1).Cell(0, 0).Paragraphs.Single();
         paragraph.Text = "Deep heading";
         paragraph.HeadingLevel = 10;
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument result = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "heading-levels" &&
             mapping.Status == OdfConversionMappingStatus.Approximated);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
@@ -169,7 +169,7 @@ public sealed class WordOdtTableContentTests {
             .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 4096);
         table.Cell(0, 0).Element.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 256);
         source.Package.MarkXmlDirty("content.xml");
-        InvalidDataException error = Assert.Throws<InvalidDataException>(() => source.ToWordDocumentResult(
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { IncludeImages = includeImages }));
         Assert.Contains("MaxConvertedTableCells", error.Message);
     }
@@ -179,7 +179,7 @@ public sealed class WordOdtTableContentTests {
         OdtDocument source = OdtDocument.Create();
         source.AddTable(1, 2, "First");
         source.AddTable(1, 2, "Second");
-        Assert.Throws<InvalidDataException>(() => source.ToWordDocumentResult(
+        Assert.Throws<InvalidDataException>(() => source.ConvertToWordWithEvidence(
             new WordOpenDocumentConversionOptions { MaxConvertedTableCells = 3 }));
     }
 
@@ -192,7 +192,7 @@ public sealed class WordOdtTableContentTests {
             .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 200);
         table.Cell(0, 0).Element.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 256);
         source.Package.MarkXmlDirty("content.xml");
-        InvalidDataException error = Assert.Throws<InvalidDataException>(() => source.ToWordDocumentResult());
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => source.ConvertToWordWithEvidence());
         Assert.Contains("MaxConvertedTableTextCharacters", error.Message);
     }
 }

@@ -23,7 +23,7 @@ foreach (var (name, hash) in fixtures) {
     using var input = new MemoryStream(bytes, writable: false);
     using var saved = new MemoryStream();
     if (name.EndsWith(".pages", StringComparison.Ordinal)) {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(input);
+        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Pages).ToWordResult();
         result.RequireCompleteEditableReconstruction();
         Require(!result.IsVisualFallback, "Pages unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
@@ -31,11 +31,11 @@ foreach (var (name, hash) in fixtures) {
         Require(reopened.Paragraphs.Any(p => p.Text == "hello pages"), "Saved DOCX lost Pages body text.");
         Require(result.Report.PreservedRecords.Count > 0, "Pages lost source evidence.");
     } else if (name.EndsWith(".key", StringComparison.Ordinal)) {
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input);
+        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote).ToPowerPointResult();
         result.RequireCompleteEditableReconstruction();
         Require(!result.IsVisualFallback, "Keynote unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Require(reopened.Slides.Count == 2 && reopened.Slides[0].TextBoxes.Any(),
             "Saved PPTX lost editable slides or text.");
         Require(reopened.Slides[0].TextBoxes.Any(t => t.Text.Contains("hello keynote", StringComparison.Ordinal))
@@ -48,8 +48,7 @@ foreach (var (name, hash) in fixtures) {
         Require(!reopened.ValidateDocument().Any(), "Saved PPTX failed validation.");
         Require(result.Report.PreservedRecords.Count > 0, "Keynote lost source evidence.");
     } else {
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Require(result.Report.IsPartialEditableReconstruction
             && result.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"),
             "Numbers inherited padding omission was not reported.");
@@ -58,13 +57,13 @@ foreach (var (name, hash) in fixtures) {
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = reopened.Sheets[0];
         if (name == "simple.numbers") {
-            Require(sheet.CellAt(1, 1).GetValue<string>() == "a" && sheet.CellAt(2, 2).GetValue<double>() == 2
-                && sheet.CellAt(3, 3).GetValue<string>() == "Z", "Saved XLSX lost typed native cells.");
+            Require(sheet.Cell(1, 1).GetValue<string>() == "a" && sheet.Cell(2, 2).GetValue<double>() == 2
+                && sheet.Cell(3, 3).GetValue<string>() == "Z", "Saved XLSX lost typed native cells.");
         } else {
-            Require(sheet.GetFormulaText(2, 2) == "A1+A2" && sheet.CellAt(2, 2).GetValue<double>() == 3,
+            Require(sheet.GetFormulaText(2, 2) == "A1+A2" && sheet.Cell(2, 2).GetValue<double>() == 3,
                 "Saved XLSX lost the native formula or cache.");
-            sheet.CellValue(1, 1, 10d);
-            Require(reopened.Calculate() > 0 && sheet.CellAt(2, 2).GetValue<double>() == 12,
+            sheet.Cell(1, 1).SetValue(10d);
+            Require(reopened.Calculate() > 0 && sheet.Cell(2, 2).GetValue<double>() == 12,
                 "NativeAOT XLSX recalculation did not follow the edited operand.");
         }
         Require(!reopened.ValidateOpenXml().Any(), "Saved XLSX failed validation.");

@@ -7,8 +7,10 @@ internal sealed class SpreadsheetXmlContext {
     internal static readonly XNamespace Ss = "urn:schemas-microsoft-com:office:spreadsheet";
     internal static readonly XNamespace X = "urn:schemas-microsoft-com:office:excel";
     internal readonly ExcelSpreadsheetXmlOptions Options;
-    private readonly Dictionary<string, OfficeConversionFidelityDiagnostic> _diagnostics = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, OfficeDiagnostic> _diagnostics = new(StringComparer.Ordinal);
     private int _cells;
+    private int _names;
+    private readonly Dictionary<string, HashSet<uint?>> _definedNameScopes = new(StringComparer.OrdinalIgnoreCase);
     internal readonly Dictionary<uint, uint> DateStyles = new();
 
     internal SpreadsheetXmlContext(ExcelSpreadsheetXmlOptions options) => Options = options;
@@ -17,16 +19,22 @@ internal sealed class SpreadsheetXmlContext {
         if (_cells >= Options.MaxCells) throw new InvalidDataException("XML Spreadsheet exceeds MaxCells.");
         _cells++;
     }
+    internal void DefinedName(string name, uint? scope) {
+        Options.CancellationToken.ThrowIfCancellationRequested();
+        if (_names >= Options.MaxNames) throw new InvalidDataException("XML Spreadsheet exceeds MaxNames.");
+        if (!_definedNameScopes.TryGetValue(name, out HashSet<uint?>? scopes))
+            _definedNameScopes[name] = scopes = new HashSet<uint?>();
+        if (!scopes.Add(scope)) throw new InvalidDataException("Duplicate XML Spreadsheet defined name.");
+        _names++;
+    }
     internal void Omitted(string feature) {
         if (_diagnostics.ContainsKey(feature)) return;
         if (_diagnostics.Count >= 127) feature = "additional unsupported feature kinds";
-        _diagnostics[feature] = new OfficeConversionFidelityDiagnostic("EXCEL_XML_OMITTED",
-            "The data interchange profile omits " + feature + ".", OfficeConversionLossKind.Omission,
-            "OfficeIMO.Excel.SpreadsheetXml");
+        _diagnostics[feature] = new global::OfficeIMO.OfficeDiagnostic("excel-xml-omitted", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "The data interchange profile omits " + feature + ".", null, "OfficeIMO.Excel.SpreadsheetXml", OfficeConversionLossKind.Omission);
     }
     internal void Approximate(string feature) {
         if (_diagnostics.ContainsKey(feature)) return;
-        _diagnostics[feature] = new OfficeConversionFidelityDiagnostic("EXCEL_XML_APPROXIMATION", feature, OfficeConversionLossKind.Approximation, "OfficeIMO.Excel.SpreadsheetXml");
+        _diagnostics[feature] = new global::OfficeIMO.OfficeDiagnostic("excel-xml-approximation", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, feature, null, "OfficeIMO.Excel.SpreadsheetXml", OfficeConversionLossKind.Approximation);
     }
     internal ExcelSpreadsheetXmlReport Report() => new(_diagnostics.Values);
     internal void Inspect(XElement element, string[] children, string[] attributes) {

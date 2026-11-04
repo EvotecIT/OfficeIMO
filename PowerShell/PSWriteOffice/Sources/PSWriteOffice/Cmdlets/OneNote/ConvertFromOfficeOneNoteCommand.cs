@@ -23,7 +23,7 @@ namespace PSWriteOffice.Cmdlets.OneNote;
 /// $report | Select-Object HasLoss, Diagnostics</code>
 /// </example>
 [Cmdlet(VerbsData.ConvertFrom, "OfficeOneNote", SupportsShouldProcess = true)]
-[OutputType(typeof(FileInfo), typeof(OneNoteMarkdownConversionReport), typeof(HtmlConversionReport), typeof(PdfDocumentConversionResult))]
+[OutputType(typeof(FileInfo), typeof(OneNoteMarkdownConversionReport), typeof(HtmlConversionReport), typeof(OfficeConversionReport))]
 public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
 {
     /// <summary>Path to a .one section, .onetoc2 notebook index, or .onepkg archive.</summary>
@@ -46,15 +46,15 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
 
     /// <summary>OneNote hierarchy, history, and binary-asset projection settings.</summary>
     [Parameter]
-    public OneNoteMarkdownOptions? ProjectionOptions { get; set; }
+    public OneNoteMarkdownExportOptions? ProjectionOptions { get; set; }
 
     /// <summary>HTML rendering settings used for .html output.</summary>
     [Parameter]
-    public HtmlOptions? HtmlOptions { get; set; }
+    public MarkdownHtmlExportOptions? HtmlOptions { get; set; }
 
     /// <summary>Semantic layout and PDF settings used for .pdf output.</summary>
     [Parameter]
-    public OneNoteToPdfOptions? PdfOptions { get; set; }
+    public OneNotePdfExportOptions? PdfOptions { get; set; }
 
     /// <summary>Fail when the selected projection reports an approximation or omission.</summary>
     [Parameter]
@@ -117,44 +117,47 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
 
     private object WriteMarkdown(object source, string output)
     {
-        var result = source switch
+        var options = ProjectionOptions?.Clone() ?? new OneNoteMarkdownExportOptions();
+        options.FailOnLoss = FailOnLoss.IsPresent;
+        OfficeConversionReport report;
+        MarkdownDocument value = source switch
         {
-            OneNoteSection section => section.ToMarkdownDocumentResult(ProjectionOptions),
-            OneNoteNotebook notebook => notebook.ToMarkdownDocumentResult(ProjectionOptions),
+            OneNoteSection section => section.ToMarkdown(options, out report),
+            OneNoteNotebook notebook => notebook.ToMarkdown(options, out report),
             _ => throw new InvalidOperationException("Unsupported OneNote source model.")
         };
-        if (FailOnLoss.IsPresent) result.RequireNoLoss();
-        OfficeFileOutput.Write(output, new UTF8Encoding(false).GetBytes(result.Value.ToMarkdown()), Force.IsPresent);
-        return result.Report;
+        OfficeFileOutput.Write(output, new UTF8Encoding(false).GetBytes(value.ToMarkdown()), Force.IsPresent);
+        return report;
     }
 
     private object WriteHtml(object source, string output)
     {
-        var result = source switch
+        var options = new OneNoteHtmlExportOptions { ProjectionOptions = ProjectionOptions, HtmlOptions = HtmlOptions, FailOnLoss = FailOnLoss.IsPresent };
+        OfficeConversionReport report;
+        string html = source switch
         {
-            OneNoteSection section => section.ToHtmlDocumentResult(ProjectionOptions, HtmlOptions),
-            OneNoteNotebook notebook => notebook.ToHtmlDocumentResult(ProjectionOptions, HtmlOptions),
+            OneNoteSection section => section.ToHtml(options, out report),
+            OneNoteNotebook notebook => notebook.ToHtml(options, out report),
             _ => throw new InvalidOperationException("Unsupported OneNote source model.")
         };
-        if (FailOnLoss.IsPresent) result.RequireNoLoss();
-        OfficeFileOutput.Write(output, new UTF8Encoding(false).GetBytes(result.Value), Force.IsPresent);
-        return result.Report;
+        OfficeFileOutput.Write(output, new UTF8Encoding(false).GetBytes(html), Force.IsPresent);
+        return report;
     }
 
     private object WritePdf(object source, string output)
     {
-        var options = PdfOptions ?? new OneNoteToPdfOptions { ProjectionOptions = ProjectionOptions ?? new OneNoteMarkdownOptions() };
-        var result = source switch
-        {
-            OneNoteSection section => section.ToPdfDocumentResult(options),
-            OneNoteNotebook notebook => notebook.ToPdfDocumentResult(options),
-            _ => throw new InvalidOperationException("Unsupported OneNote source model.")
-        };
+        var options = (PdfOptions ?? new OneNotePdfExportOptions { ProjectionOptions = ProjectionOptions ?? new OneNoteMarkdownExportOptions() }).Clone();
+        if (FailOnLoss.IsPresent) options.FailOnLoss = true;
+        OfficeConversionReport? report = null;
         OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath =>
         {
-            result.Save(temporaryPath).RequireSuccess();
-            if (FailOnLoss.IsPresent) result.RequireNoLoss();
+            report = source switch
+            {
+                OneNoteSection section => section.SaveAsPdf(temporaryPath, options),
+                OneNoteNotebook notebook => notebook.SaveAsPdf(temporaryPath, options),
+                _ => throw new InvalidOperationException("Unsupported OneNote source model.")
+            };
         });
-        return result;
+        return report!;
     }
 }

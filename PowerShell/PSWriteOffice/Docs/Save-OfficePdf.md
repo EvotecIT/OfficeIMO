@@ -6,53 +6,44 @@ schema: 2.0.0
 ---
 # Save-OfficePdf
 ## SYNOPSIS
-Saves an OfficeIMO.Pdf document.
+Saves a live PDF to its associated path or a new destination without closing it.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Save-OfficePdf [-Document] <PdfDocument> [-Path] <string> [-Open] [-PassThru] [-Password <string>] [-OwnerPassword <string>] [-Permission <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficePdf [[-Path] <string>] -Document <PdfDocument> [-Show] [-PassThru] [-AllowLoss] [-Password <securestring>] [-OwnerPassword <securestring>] [-Permission <PdfStandardPermissions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Use this command when a PDF is built in memory and saved later, or when a pipeline should continue with the saved file.
-The document is saved through the normal OfficeIMO.Pdf save path.
+Native serialization rejects content loss unless AllowLoss is supplied. Password and OwnerPassword accept shared secure input. Security options encrypt an unencrypted output; use Protect-OfficeDocument for security changes to an already protected file.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $pdf = New-OfficePdf { PdfHeading 'Queued report'; PdfParagraph 'Generated in memory.' }
-$pdf | Save-OfficePdf -Path .\QueuedReport.pdf
+$pdf = New-OfficePdf -Path ./Review.pdf
+Add-OfficePdfParagraph -Document $pdf -Text 'Reviewed and approved'
+$pdf | Save-OfficePdf -PassThru
+Close-OfficePdf -Document $pdf
 ```
 
-Creates a PDF document object first, then saves it to disk.
+
+### EXAMPLE 2
+```powershell
+$owner = Read-Host -AsSecureString
+Save-OfficePdf -Document $pdf -Path ./Restricted.pdf -OwnerPassword $owner -Permission Print,Accessibility
+```
+
 
 ## PARAMETERS
 
-### -Document
-PDF document to save.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -Open
-Open the PDF after saving.
+### -AllowLoss
+Explicitly accept fidelity loss from native PDF serialization.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: Show
+Parameter Sets: Document
+Aliases: None
 Possible values:
 
 Required: False
@@ -62,12 +53,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OwnerPassword
-Optional owner password for the generated encrypted PDF.
+### -Document
+Live PDF to save.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: PdfDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -OwnerPassword
+Owner password; without Password the PDF opens without a password and enforces permissions.
+
+```yaml
+Type: SecureString
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -79,11 +86,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the document for further processing.
+Return the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -95,12 +102,12 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password required to open the generated PDF.
+Opening password for an unencrypted output; accepts secure input or warned plaintext.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: UserPassword
+Type: SecureString
+Parameter Sets: Document
+Aliases: None
 Possible values:
 
 Required: False
@@ -111,28 +118,44 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Destination PDF path.
+Optional destination; omission uses the native document's associated path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Parameter Sets: Document
+Aliases: None
 Possible values:
 
-Required: True
-Position: 1
+Required: False
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Permission
-Raw PDF Standard security permission bit mask. Defaults to allowing all standard operations.
+Operations allowed to readers, expressed as native PDF permission flags.
 
 ```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: Permissions
+Type: PdfStandardPermissions
+Parameter Sets: Document
+Aliases: None
+Possible values: None, Print, ModifyContents, CopyContents, ModifyAnnotations, FillForms, Accessibility, AssembleDocument, HighQualityPrint, All
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Show
+Open the saved file in its registered default application.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document
+Aliases: None
 Possible values:
 
 Required: False
@@ -151,7 +174,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `System.IO.FileInfo`
 
 ## RELATED LINKS
 

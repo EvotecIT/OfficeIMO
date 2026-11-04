@@ -14,7 +14,7 @@ public sealed partial class StudioMobileApplicationTests {
         string source = Path.Combine(root, "three-pages.pdf");
         PdfDocument.Create(pdf => {
             for (int page = 1; page <= 3; page++)
-                pdf.Page(item => item.Content(content => content.Text($"Page {page}")));
+                pdf.Page(item => item.Content(content => content.AddParagraph($"Page {page}")));
         }).Save(source);
         try {
             using var session = TestAppBuilder.StartSession();
@@ -50,7 +50,7 @@ public sealed partial class StudioMobileApplicationTests {
                     await document.SaveCommand.ExecuteAsync(null);
                     Assert.False(document.IsDirty, document.ErrorMessage);
                     Assert.Equal(new[] { "Page 2", "Page 1", "Page 3" },
-                        PdfReadDocument.Open(document.DocumentPath!).Pages.Select(page => page.ExtractText().Trim()));
+PdfDocument.Load(document.DocumentPath!).Pages.Select(page => page.ExtractText().Trim()));
                     document.ShowViewModeCommand.Execute(null); Layout(window);
                     foreach (var pane in new[] { host.Panes.Left!, host.Panes.Right! }) {
                         await pane.SelectedPage!.EnsureRenderedAsync();

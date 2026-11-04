@@ -13,17 +13,17 @@ public class RtfHtmlSafetyTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddText("Visible link").SetHyperlink(new Uri(target, UriKind.RelativeOrAbsolute));
 
-        var options = new RtfToHtmlOptions();
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        var options = new RtfHtmlExportOptions();
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Equal("<p>Visible link</p>", html);
         HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
         Assert.Equal("RtfHtmlHyperlinkRejected", diagnostic.Code);
         Assert.Equal("run.Hyperlink", diagnostic.Source);
-        RtfConversionDiagnostic shared = Assert.Single(result.RtfReport.Diagnostics);
+        RtfConversionDiagnostic shared = Assert.Single(result.RtfReport.NativeDiagnostics);
         Assert.Equal(RtfConversionAction.Blocked, shared.Action);
-        Assert.Throws<RtfConversionLossException>(() => result.RtfReport.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.RtfReport.ThrowIfLoss());
     }
 
     [Fact]
@@ -32,8 +32,8 @@ public class RtfHtmlSafetyTests {
         RtfField field = document.AddParagraph().AddField("HYPERLINK \"javascript:alert(1)\"");
         field.AddText("Visible field result");
 
-        var options = new RtfToHtmlOptions();
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        var options = new RtfHtmlExportOptions();
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Equal("<p><span>Visible field result</span></p>", html);
@@ -49,8 +49,8 @@ public class RtfHtmlSafetyTests {
         rtfObject.ClassName = "Package";
         rtfObject.Result.AddText("Attachment").SetBold();
 
-        var options = new RtfToHtmlOptions();
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        var options = new RtfHtmlExportOptions();
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Equal("<p><span class=\"rtf-object-result\"><strong>Attachment</strong></span></p>", html);
@@ -63,11 +63,11 @@ public class RtfHtmlSafetyTests {
     public void Default_Profile_Uses_Validated_Image_Source_Callback() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Png, new byte[] { 1, 2, 3 });
-        var options = new RtfToHtmlOptions {
+        var options = new RtfHtmlExportOptions {
             ImageSourceResolver = _ => "https://cdn.example.test/image.png"
         };
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Equal("<img src=\"https://cdn.example.test/image.png\">", html);
@@ -78,11 +78,11 @@ public class RtfHtmlSafetyTests {
     public void Image_Source_Callback_Cannot_Bypass_Url_Policy() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Png, new byte[] { 1, 2, 3 });
-        var options = new RtfToHtmlOptions {
+        var options = new RtfHtmlExportOptions {
             ImageSourceResolver = _ => "file:///C:/private/image.png"
         };
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Empty(html);
@@ -98,7 +98,7 @@ public class RtfHtmlSafetyTests {
         var options = RtfHtmlTestOptions.CreateRoundTripFragment();
         options.MaxEmbeddedImageBytes = 3;
 
-        RtfToHtmlResult result = document.ToHtmlResult(options);
+        RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string html = result.Value;
 
         Assert.Empty(html);
@@ -110,7 +110,7 @@ public class RtfHtmlSafetyTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3, 4 });
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-object-data=\"AQIDBA==\"", html, StringComparison.Ordinal);
     }

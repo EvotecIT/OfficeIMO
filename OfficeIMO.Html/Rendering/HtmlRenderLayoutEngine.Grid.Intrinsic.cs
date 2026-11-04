@@ -129,6 +129,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         blockifyChildren |= parentStyle.Display is "flex" or "inline-flex" or "grid" or "inline-grid";
         double maximum = 0D;
         foreach (IElement child in parent.Children) {
+            CheckCancellation();
+            ChargeLayoutOperation("intrinsic replaced descendant scan");
             EnsureDepth(depth, child);
             if (IsClosedDisclosureChild(child) || ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);

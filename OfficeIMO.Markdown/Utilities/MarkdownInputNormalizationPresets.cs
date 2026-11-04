@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Factory and application helpers for <see cref="MarkdownInputNormalizationPreset"/>.
 /// </summary>
-public static class MarkdownInputNormalizationPresets {
+internal static class MarkdownInputNormalizationPresets {
     /// <summary>
     /// Creates a new options instance with the selected preset applied.
     /// </summary>

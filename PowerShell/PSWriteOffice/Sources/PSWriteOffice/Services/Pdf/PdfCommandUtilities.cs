@@ -6,7 +6,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Text;
 
@@ -161,11 +163,16 @@ internal static class PdfCommandUtilities
         return null;
     }
 
-    internal static void ConfigureOptions(PSCmdlet cmdlet, Action<PdfOptions> action)
+    internal static void ConfigureOptions(PSCmdlet cmdlet, Action<PdfCreateOptions> action, PdfDocument? document = null)
     {
+        if (document != null)
+        {
+            document.Compose(compose => compose.Settings(action));
+            return;
+        }
         RejectDeferredPassThru(cmdlet);
         var context = PdfDslContext.Require(cmdlet);
-        action(context.Options);
+        context.ConfigureOptions(action);
     }
 
     private static void RejectDeferredPassThru(PSCmdlet cmdlet)
@@ -180,36 +187,26 @@ internal static class PdfCommandUtilities
             $"{cmdlet.MyInvocation.InvocationName} cannot emit a PdfDocument before New-OfficePdf finishes composition. Remove -PassThru inside the PDF DSL and use the document returned by New-OfficePdf.");
     }
 
-    internal static PdfLoadOptions? CreateReadOptions(string? password, bool ignorePermissionRestrictions = false)
+    internal static PdfLoadOptions? CreateReadOptions(SecureString? password, bool ignorePermissionRestrictions = false)
     {
         return CreateReadOptions(null, password, ignorePermissionRestrictions);
     }
 
     internal static PdfLoadOptions? CreateReadOptions(
         PdfLoadOptions? readOptions,
-        string? password,
+        SecureString? securePassword,
         bool ignorePermissionRestrictions = false)
     {
+        string? password = securePassword.ToPlainText();
         if (readOptions == null && string.IsNullOrEmpty(password) && !ignorePermissionRestrictions)
         {
             return null;
         }
 
-        var effective = readOptions ?? PdfLoadOptions.Default;
-        return new PdfLoadOptions
-        {
-            ParsingMode = effective.ParsingMode,
-            Limits = effective.Limits,
-            AesCryptographyProvider = effective.AesCryptographyProvider,
-            Password = string.IsNullOrEmpty(password) ? effective.Password : password,
-            PermissionPolicy = ignorePermissionRestrictions
-                ? PdfPermissionPolicy.IgnoreRestrictions
-                : effective.PermissionPolicy,
-            PreferToUnicode = effective.PreferToUnicode,
-            UseWinAnsiFallback = effective.UseWinAnsiFallback,
-            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
-            IncludeArtifactText = effective.IncludeArtifactText
-        };
+        return (readOptions ?? new PdfLoadOptions()).Snapshot(
+            maximumInputBytes: null,
+            passwordOverride: string.IsNullOrEmpty(password) ? null : password,
+            permissionPolicyOverride: ignorePermissionRestrictions ? PdfPermissionPolicy.IgnoreRestrictions : (PdfPermissionPolicy?)null);
     }
 
     /// <summary>Loads a fluent PDF through OfficeIMO's bounded, single-snapshot path API.</summary>
@@ -289,53 +286,34 @@ internal static class PdfCommandUtilities
         return options;
     }
 
-    internal static void ApplyEncryption(PdfOptions options, string? password, string? ownerPassword, int? permissions)
-    {
-        if (string.IsNullOrEmpty(password))
-        {
-            if (!string.IsNullOrEmpty(ownerPassword) || permissions.HasValue)
-            {
-                throw new PSArgumentException("-OwnerPassword and -Permission require -Password.");
-            }
-
-            return;
+    /// <summary>Maps shared secure command input to the native PDF security options.</summary>
+    internal static PdfStandardEncryptionOptions? CreateEncryption(System.Security.SecureString? password,
+        System.Security.SecureString? ownerPassword, PdfStandardPermissions permissions, bool permissionBound) {
+        if ((permissions & ~PdfStandardPermissions.All) != 0)
+            throw new PSArgumentException("Permission contains unsupported PDF flags.");
+        string? user = password.ToPlainText();
+        string? owner = ownerPassword.ToPlainText();
+        if (user == null && owner == null) {
+            if (permissionBound) throw new PSArgumentException("Permission requires Password or OwnerPassword.");
+            return null;
         }
-
-        options.SetEncryption(password!, ownerPassword, permissions ?? PdfStandardEncryptionOptions.AllowAllPermissions);
+        return user == null
+            ? PdfStandardEncryptionOptions.ForPermissions(owner!, permissions)
+            : new PdfStandardEncryptionOptions(user) { OwnerPassword = owner, AllowedPermissions = permissions };
     }
 
-    internal static PdfDocument ApplyEncryption(PdfDocument document, string? password, string? ownerPassword, int? permissions)
-    {
-        if (string.IsNullOrEmpty(password))
-        {
-            if (!string.IsNullOrEmpty(ownerPassword) || permissions.HasValue)
-            {
-                throw new PSArgumentException("-OwnerPassword and -Permission require -Password.");
-            }
-
-            return document;
-        }
-
-        var options = new PdfStandardEncryptionOptions(password!)
-        {
-            OwnerPassword = ownerPassword,
-            Permissions = permissions ?? PdfStandardEncryptionOptions.AllowAllPermissions
-        };
-        return document.Security.Encrypt(options).ToDocument();
-    }
-
-    internal static PdfColor? ParseColor(string? color)
+    internal static global::OfficeIMO.OfficeColor? ParseColor(string? color)
         => OfficeColorUtilities.ToPdfColor(color);
 
-    internal static PageSize ResolvePageSize(string? pageSize, double? width, double? height, bool landscape)
+    internal static PdfPageSize ResolvePageSize(string? pageSize, double? width, double? height, bool landscape)
     {
         var pageSizeName = (pageSize ?? "Letter").Trim();
-        PageSize size = pageSizeName.ToUpperInvariant() switch
+        PdfPageSize size = pageSizeName.ToUpperInvariant() switch
         {
             "CUSTOM" => width.HasValue && height.HasValue
-                ? new PageSize(width.Value, height.Value)
+                ? new PdfPageSize(OfficeIMO.OfficeLength.Points(width.Value),OfficeIMO.OfficeLength.Points(height.Value))
                 : throw new PSArgumentException("Custom page size requires -Width and -Height."),
-            _ => PageSizes.TryGet(pageSizeName, out var resolved)
+            _ => PdfPageSizes.TryGet(pageSizeName, out var resolved)
                 ? resolved
                 : throw new PSArgumentException("PageSize must be a known OfficeIMO page size name or Custom.", nameof(pageSize))
         };
@@ -358,7 +336,7 @@ internal static class PdfCommandUtilities
 
         if (margin.HasValue)
         {
-            options.Margin = margin.Value;
+            options.Margin = OfficeIMO.OfficeLength.Points(margin.Value);
         }
 
         return options;

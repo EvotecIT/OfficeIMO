@@ -7,13 +7,13 @@ public static partial class RtfPdfConverterExtensions {
     /// <summary>Converts an opened PDF into an editable RTF document.</summary>
     public static RtfDocument ToRtfDocument(
         this PdfCore.PdfDocument document,
-        PdfToRtfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
         document.ToRtfDocumentResult(options, cancellationToken).Value;
 
     /// <summary>Converts an opened PDF into an editable RTF document with conversion diagnostics.</summary>
     public static PdfRtfConversionResult ToRtfDocumentResult(
         this PdfCore.PdfDocument document,
-        PdfToRtfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForRtf(document, options, cancellationToken).ToRtfDocumentResult(options, cancellationToken);
@@ -23,7 +23,7 @@ public static partial class RtfPdfConverterExtensions {
     public static OfficeOutputResult<PdfRtfConversionReport> SaveAsRtf(
         this PdfCore.PdfDocument document,
         string path,
-        PdfToRtfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForRtf(document, options, cancellationToken).SaveAsRtf(path, options, cancellationToken);
@@ -33,7 +33,7 @@ public static partial class RtfPdfConverterExtensions {
     public static OfficeOutputResult<PdfRtfConversionReport> SaveAsRtf(
         this PdfCore.PdfDocument document,
         Stream stream,
-        PdfToRtfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         return ReadForRtf(document, options, cancellationToken).SaveAsRtf(stream, options, cancellationToken);
@@ -43,7 +43,7 @@ public static partial class RtfPdfConverterExtensions {
     public static Task<OfficeOutputResult<PdfRtfConversionReport>> SaveAsRtfAsync(
         this PdfCore.PdfDocument document,
         string path,
-        PdfToRtfOptions? options = null,
+        PdfRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -54,7 +54,7 @@ public static partial class RtfPdfConverterExtensions {
     public static Task<OfficeOutputResult<PdfRtfConversionReport>> SaveAsRtfAsync(
         this PdfCore.PdfDocument document,
         Stream stream,
-        PdfToRtfOptions? options = null,
+        PdfRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -63,23 +63,23 @@ public static partial class RtfPdfConverterExtensions {
 
     private static PdfCore.PdfDocumentReadResult ReadForRtf(
         PdfCore.PdfDocument document,
-        PdfToRtfOptions? options,
+        PdfRtfExportOptions? options,
         CancellationToken cancellationToken = default) =>
         document.Read(options?.ReadOptions, cancellationToken);
 
     /// <summary>Converts a logical PDF model into an editable RTF document.</summary>
     public static RtfDocument ToRtfDocument(
         this PdfCore.PdfDocumentReadResult document,
-        PdfToRtfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
+        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
         document.ToRtfDocumentResult(options, cancellationToken).Value;
 
     /// <summary>Converts a logical PDF model into an editable RTF document with conversion diagnostics.</summary>
     public static PdfRtfConversionResult ToRtfDocumentResult(
         this PdfCore.PdfDocumentReadResult document,
-        PdfToRtfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
-        PdfToRtfOptions operation = (options ?? new PdfToRtfOptions()).CloneForConversion();
+        PdfRtfExportOptions operation = (options ?? new PdfRtfExportOptions()).CloneForConversion();
         operation.CancellationToken = cancellationToken;
         RtfDocument value = PdfRtfConverter.Convert(document, operation);
         return new PdfRtfConversionResult(value, operation.Report);
@@ -89,7 +89,7 @@ public static partial class RtfPdfConverterExtensions {
     public static OfficeOutputResult<PdfRtfConversionReport> SaveAsRtf(
         this PdfCore.PdfDocumentReadResult document,
         string path,
-        PdfToRtfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
         PdfRtfConversionResult result = document.ToRtfDocumentResult(options, cancellationToken);
@@ -102,7 +102,7 @@ public static partial class RtfPdfConverterExtensions {
     public static OfficeOutputResult<PdfRtfConversionReport> SaveAsRtf(
         this PdfCore.PdfDocumentReadResult document,
         Stream stream,
-        PdfToRtfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
@@ -116,7 +116,7 @@ public static partial class RtfPdfConverterExtensions {
     public static async Task<OfficeOutputResult<PdfRtfConversionReport>> SaveAsRtfAsync(
         this PdfCore.PdfDocumentReadResult document,
         string path,
-        PdfToRtfOptions? options = null,
+        PdfRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
         cancellationToken.ThrowIfCancellationRequested();
@@ -129,7 +129,7 @@ public static partial class RtfPdfConverterExtensions {
     public static async Task<OfficeOutputResult<PdfRtfConversionReport>> SaveAsRtfAsync(
         this PdfCore.PdfDocumentReadResult document,
         Stream stream,
-        PdfToRtfOptions? options = null,
+        PdfRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));

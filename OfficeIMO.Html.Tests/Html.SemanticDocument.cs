@@ -548,7 +548,7 @@ public partial class Html {
             <ul><li>Parent<div><ol><li>Child</li></ol></div></li></ul>
             """);
 
-        var result = source.ToOneNoteSectionResult();
+        var result = source.ConvertToOneNoteSectionWithEvidence();
         var page = Assert.Single(result.RequireValue().Pages);
         var outline = Assert.Single(page.Outlines);
         var paragraphs = outline.Children.OfType<OfficeIMO.OneNote.OneNoteParagraph>().ToList();
@@ -562,7 +562,7 @@ public partial class Html {
     public void OneNoteGenericImportRetainsNestedAndFollowingItemsAfterAnEmptyParent() {
         OfficeIMO.OneNote.OneNotePage page = Assert.Single(HtmlConversionDocument
             .Parse("<ul><li><ol><li>Nested</li></ol></li><li>Following</li></ul>")
-            .ToOneNoteSectionResult()
+            .ConvertToOneNoteSectionWithEvidence()
             .RequireValue()
             .Pages);
         OfficeIMO.OneNote.OneNoteParagraph[] paragraphs = Assert.Single(page.Outlines).Children
@@ -579,7 +579,7 @@ public partial class Html {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<ol start='3' reversed><li>A</li><li value='10'>B</li><li>C</li></ol>");
 
-        var page = Assert.Single(source.ToOneNoteSectionResult().RequireValue().Pages);
+        var page = Assert.Single(source.ConvertToOneNoteSectionWithEvidence().RequireValue().Pages);
         var paragraphs = Assert.Single(page.Outlines).Children
             .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
             .ToArray();
@@ -594,7 +594,7 @@ public partial class Html {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<ol><li>A</li><li>B</li></ol>");
 
-        OfficeIMO.OneNote.OneNoteSection section = source.ToOneNoteSectionResult().RequireValue();
+        OfficeIMO.OneNote.OneNoteSection section = source.ConvertToOneNoteSectionWithEvidence().RequireValue();
         var paragraphs = Assert.Single(Assert.Single(section.Pages).Outlines).Children
             .OfType<OfficeIMO.OneNote.OneNoteParagraph>()
             .ToArray();
@@ -614,7 +614,7 @@ public partial class Html {
     public void OneNoteGenericImportRestartsSeparateListsAndRendersEffectiveOrdinals() {
         OfficeIMO.OneNote.OneNotePage page = Assert.Single(HtmlConversionDocument
             .Parse("<ol><li>A</li><li>B</li></ol><p>Break</p><ol><li>C</li></ol>")
-            .ToOneNoteSectionResult()
+            .ConvertToOneNoteSectionWithEvidence()
             .RequireValue()
             .Pages);
         OfficeIMO.OneNote.OneNoteParagraph[] listParagraphs = Assert.Single(page.Outlines).Children
@@ -641,7 +641,7 @@ public partial class Html {
     public void OneNoteGenericImportClampsNonpositiveListOrdinalsWithDiagnostic() {
         HtmlToOneNoteSectionResult result = HtmlConversionDocument
             .Parse("<ol start='-2'><li>A</li><li>B</li><li>C</li><li>D</li><li>E</li></ol>")
-            .ToOneNoteSectionResult();
+            .ConvertToOneNoteSectionWithEvidence();
         OfficeIMO.OneNote.OneNoteParagraph[] paragraphs =
             Assert.Single(Assert.Single(result.Value.Pages).Outlines).Children
                 .OfType<OfficeIMO.OneNote.OneNoteParagraph>()

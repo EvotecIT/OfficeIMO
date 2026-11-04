@@ -4,34 +4,34 @@ namespace OfficeIMO.Pdf;
 /// Reusable placement and rhythm style for OfficeIMO.Drawing-backed flow objects.
 /// </summary>
 public sealed class PdfDrawingStyle {
-    private PdfAlign _align = PdfAlign.Left;
-    private double _spacingBefore;
-    private double _spacingAfter;
+    private OfficeAlignment _align = OfficeAlignment.Left;
+    private global::OfficeIMO.OfficeLength _spacingBefore;
+    private global::OfficeIMO.OfficeLength _spacingAfter;
     private string? _alternativeText;
 
     /// <summary>Object alignment within the current content frame.</summary>
-    public PdfAlign Align {
+    public OfficeAlignment Align {
         get => _align;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(Align), "Drawing");
+            value = Guard.LeftCenterRightAlign(value, nameof(Align), "Drawing");
             _align = value;
         }
     }
 
     /// <summary>Vertical space before the drawing object in the surrounding document flow, in points.</summary>
-    public double SpacingBefore {
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "Drawing spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "Drawing spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
 
     /// <summary>Vertical space after the drawing object in the surrounding document flow, in points.</summary>
-    public double SpacingAfter {
+    public global::OfficeIMO.OfficeLength SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingAfter), "Drawing spacing after must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingAfter), "Drawing spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }

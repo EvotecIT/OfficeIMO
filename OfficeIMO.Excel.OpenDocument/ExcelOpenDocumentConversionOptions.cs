@@ -24,4 +24,7 @@ public sealed class ExcelOpenDocumentConversionOptions {
         if (MaximumRows < 1 || MaximumRows > 1_048_576) throw new ArgumentOutOfRangeException(nameof(MaximumRows));
         if (MaximumColumns < 1 || MaximumColumns > 16_384) throw new ArgumentOutOfRangeException(nameof(MaximumColumns));
     }
+
+    /// <summary>Creates a copy of these settings.</summary>
+    public ExcelOpenDocumentConversionOptions Clone() => (ExcelOpenDocumentConversionOptions)MemberwiseClone();
 }

@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordSection { Add-OfficeWordHeader { Add-OfficeWordParagraph -Text 'Confidential' -Style Heading3 } }</code>
 ///   <para>Creates a section header that prints “Confidential”.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordHeader")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordHeader", DefaultParameterSetName = "Default")]
 [Alias("WordHeader")]
 public sealed class AddOfficeWordHeaderCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>The header type to modify.</summary>
@@ -27,7 +27,12 @@ public sealed class AddOfficeWordHeaderCommand : PSWriteOffice.Cmdlets.OfficeMut
     protected override void ProcessRecord() {
         var context = WordDslContext.Require(this);
         var section = context.RequireSection();
-        var header = section.GetOrCreateHeader(Type);
+        var setup = section.PageSetup;
+        var header = Type switch {
+            WordHeaderFooterType.First => setup.FirstPageHeader,
+            WordHeaderFooterType.Even => setup.EvenPageHeader,
+            _ => setup.Header
+        };
 
         using (context.Push(header)) {
             Content?.InvokeReturnAsIs();

@@ -10,7 +10,7 @@ public partial class Word {
     [Fact]
     public void StyledHeaderFooterPageCountsKeepDocumentAndRestartedSectionTotalsSeparate() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         AddCounts(RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph());
         AddCounts(RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph());
         document.AddParagraph("First section first page");
@@ -23,7 +23,7 @@ public partial class Word {
         second.AddParagraph("Restarted section first page");
         document.AddPageBreak();
         second.AddParagraph("Restarted section second page");
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(4, pdf.NumberOfPages);
         Assert.Equal(2, pdf.GetPage(3).Text.Split(new[] { "Count1/2/4" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(2, pdf.GetPage(4).Text.Split(new[] { "Count2/2/4" }, StringSplitOptions.None).Length - 1);

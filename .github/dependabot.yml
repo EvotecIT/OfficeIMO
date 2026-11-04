@@ -3,7 +3,9 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "05:47"
     cooldown:
       default-days: 7
       include:
@@ -23,9 +25,13 @@ updates:
       - "automated"
 
   - package-ecosystem: "npm"
-    directory: "/OfficeIMO.Markup.VSCode"
+    directories:
+      - "/OfficeIMO.Markup.VSCode"
+      - "/OfficeIMO.JavaScript"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "05:47"
     cooldown:
       default-days: 7
       include:
@@ -49,7 +55,9 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "05:47"
     cooldown:
       default-days: 7
       include:

@@ -9,7 +9,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_Parses_Field_Metadata_In_Inline_Order() {
         const string html = "<p>Page <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE \\* MERGEFORMAT\"><strong>1</strong></span> done</p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Collection(paragraph.Inlines,
@@ -38,7 +38,7 @@ public class RtfHtmlFieldTests {
 
         Assert.Equal("<p>Page <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE \\* MERGEFORMAT\"><strong>1</strong></span> done</p>", html);
 
-        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs).Inlines[1]);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs).Inlines[1]);
         Assert.Equal(@"PAGE \* MERGEFORMAT", roundTripField.Instruction);
         Assert.Equal("1", roundTripField.ToPlainText());
         Assert.Contains(roundTripField.Result.Runs, run => run.Text == "1" && run.Bold);
@@ -53,7 +53,7 @@ public class RtfHtmlFieldTests {
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p><a href=\"https://example.test/path\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/path&quot; \\o &quot;tip&quot;\" data-officeimo-rtf-field-hyperlink=\"https://example.test/path\" data-officeimo-rtf-field-hyperlink-screen-tip=\"tip\" title=\"tip\"><strong>Link</strong></a></p>", html);
-        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs).Inlines[0]);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs).Inlines[0]);
         Assert.Equal(@"HYPERLINK ""https://example.test/path"" \o ""tip""", roundTripField.Instruction);
         Assert.Equal(new Uri("https://example.test/path"), roundTripField.Hyperlink);
         Assert.NotNull(roundTripField.HyperlinkField);
@@ -74,13 +74,13 @@ public class RtfHtmlFieldTests {
         RtfField field = paragraph.AddField(@"HYPERLINK \l ""Target"" \o ""Jump tip""");
         field.AddText("Jump");
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("href=\"#Target\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-field-hyperlink-sub-address=\"Target\"", html, StringComparison.Ordinal);
         Assert.Contains("title=\"Jump tip\"", html, StringComparison.Ordinal);
 
-        RtfField roundTripField = Assert.Single(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs).Inlines.OfType<RtfField>());
+        RtfField roundTripField = Assert.Single(Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs).Inlines.OfType<RtfField>());
         Assert.Null(roundTripField.Hyperlink);
         Assert.NotNull(roundTripField.HyperlinkField);
         Assert.Equal("Target", roundTripField.HyperlinkField!.SubAddress);
@@ -91,11 +91,11 @@ public class RtfHtmlFieldTests {
     [Fact]
     public void Html_ToRtfDocument_Rejects_Unsafe_Hyperlink_Field_Instruction_Target() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;file:///C:/secret.txt&quot;\">Secret</span></p>";
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options);
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(options);
         RtfDocument document = result.Value;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
@@ -109,11 +109,11 @@ public class RtfHtmlFieldTests {
     [Fact]
     public void Html_ToRtfDocument_Rejects_Hyperlink_Field_Instruction_With_Extra_Target() {
         const string html = "<p><a href=\"https://example.test/\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;file:///C:/secret.txt&quot; &quot;https://example.test/&quot;\">Link</a></p>";
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options);
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(options);
         RtfDocument document = result.Value;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         string rtf = document.ToRtf();
@@ -129,11 +129,11 @@ public class RtfHtmlFieldTests {
     [Fact]
     public void Html_ToRtfDocument_Rejects_Unsafe_Hyperlink_Field_Metadata_Target() {
         const string html = "<p><a href=\"https://example.test/\" data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"HYPERLINK &quot;https://example.test/&quot;\" data-officeimo-rtf-field-hyperlink=\"javascript:alert(1)\">Link</a></p>";
-        var options = new HtmlToRtfOptions {
+        var options = new HtmlRtfExportOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         };
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options);
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(options);
         RtfDocument document = result.Value;
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
 
@@ -153,7 +153,7 @@ public class RtfHtmlFieldTests {
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"MERGEFIELD Patient&lt;Name&gt;\">Ada</span></p>", html);
-        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs).Inlines[0]);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs).Inlines[0]);
         Assert.Equal("MERGEFIELD Patient<Name>", roundTripField.Instruction);
     }
 
@@ -172,7 +172,7 @@ public class RtfHtmlFieldTests {
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p>Page <span data-officeimo-rtf-generated-text=\"page-number\"></span> Section <span data-officeimo-rtf-generated-text=\"section-number\"></span> Date <span data-officeimo-rtf-generated-text=\"current-date\"></span> Time <span data-officeimo-rtf-generated-text=\"current-time\"></span></p>", html);
-        RtfParagraph roundTrip = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs);
+        RtfParagraph roundTrip = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs);
         Assert.Collection(roundTrip.Inlines,
             inline => Assert.Equal("Page ", Assert.IsType<RtfRun>(inline).Text),
             inline => Assert.Equal(RtfGeneratedTextKind.PageNumber, Assert.IsType<RtfGeneratedText>(inline).Kind),
@@ -189,7 +189,7 @@ public class RtfHtmlFieldTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Page ").AddPageNumber("7 < 8");
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateWebSafeProfile());
 
         Assert.Equal("<p>Page 7 &lt; 8</p>", html);
         Assert.DoesNotContain("data-officeimo-rtf-generated-text", html, StringComparison.Ordinal);
@@ -199,7 +199,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_DoesNot_Preserve_Field_Span_As_Unknown_Text() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"PAGE\">1</span></p>";
 
-        RtfParagraph paragraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument(new HtmlToRtfOptions { PreserveUnknownTagsAsText = true }).Paragraphs);
+        RtfParagraph paragraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtf(new HtmlRtfExportOptions { PreserveUnknownTagsAsText = true }).Paragraphs);
 
         RtfField field = Assert.IsType<RtfField>(Assert.Single(paragraph.Inlines));
         Assert.Equal("PAGE", field.Instruction);
@@ -210,7 +210,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_Parses_Form_Field_Metadata() {
         const string html = "<p>Name: <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMTEXT\" data-officeimo-rtf-form-field=\"true\" data-officeimo-rtf-form-controls=\"fftype=0;ffenabled=1;ffownhelp=1;ffownstat=1;ffprot=0;ffrecalc=1;ffmaxlen=50\" data-officeimo-rtf-form-name=\"Customer\" data-officeimo-rtf-form-default-text=\"Default\" data-officeimo-rtf-form-format=\"Uppercase\" data-officeimo-rtf-form-help-text=\"Help\" data-officeimo-rtf-form-status-text=\"Status\" data-officeimo-rtf-form-entry-macro=\"Enter\" data-officeimo-rtf-form-exit-macro=\"Exit\">Value</span></p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
         RtfField field = Assert.IsType<RtfField>(Assert.Single(document.Paragraphs).Inlines[1]);
 
         Assert.Equal("FORMTEXT", field.Instruction);
@@ -232,7 +232,7 @@ public class RtfHtmlFieldTests {
         Assert.Equal("Enter", data.EntryMacro);
         Assert.Equal("Exit", data.ExitMacro);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\*\ffdata\fftype0\ffenabled1\ffownhelp1\ffownstat1\ffprot0\ffrecalc1\ffmaxlen50{\ffname Customer}{\ffdeftext Default}{\ffformat Uppercase}{\ffhelptext Help}{\ffstattext Status}{\ffentrymcr Enter}{\ffexitmcr Exit}}", rtf, StringComparison.Ordinal);
     }
 
@@ -256,7 +256,7 @@ public class RtfHtmlFieldTests {
 
         Assert.Equal("<p>Choice: <span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMDROPDOWN\" data-officeimo-rtf-form-field=\"true\" data-officeimo-rtf-form-controls=\"fftype=2;ffenabled=1;ffdefres=0;ffres=1\" data-officeimo-rtf-form-name=\"Choice\" data-officeimo-rtf-form-dropdown-items=\"Rmlyc3Q=;U2Vjb25k\">Second</span></p>", html);
 
-        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs).Inlines[1]);
+        RtfField roundTripField = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs).Inlines[1]);
         Assert.NotNull(roundTripField.FormFieldData);
         RtfFormFieldData roundTripData = roundTripField.FormFieldData!;
         Assert.Equal(RtfFormFieldKind.DropDown, roundTripData.Kind);
@@ -272,7 +272,7 @@ public class RtfHtmlFieldTests {
     public void Html_ToRtfDocument_Ignores_Invalid_Form_Field_Control_Names() {
         const string html = "<p><span data-officeimo-rtf-field=\"true\" data-officeimo-rtf-field-instruction=\"FORMTEXT\" data-officeimo-rtf-form-controls=\"fftype=0;bad-name=1;ffmaxlen=20\">Value</span></p>";
 
-        RtfField field = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs).Inlines[0]);
+        RtfField field = Assert.IsType<RtfField>(Assert.Single(HtmlConversionDocument.Parse(html).ToRtf().Paragraphs).Inlines[0]);
 
         Assert.NotNull(field.FormFieldData);
         RtfFormFieldData data = field.FormFieldData!;

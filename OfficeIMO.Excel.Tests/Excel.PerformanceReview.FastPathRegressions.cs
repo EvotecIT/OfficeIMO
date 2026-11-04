@@ -20,16 +20,16 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-                var sheet = document.AddWorksheet("Formula");
-                sheet.CellValue(2, 1, "Id");
-                sheet.CellValue(2, 2, "Active");
-                sheet.CellValue(2, 3, "Expression");
-                sheet.CellFormula(3, 1, "1");
-                sheet.CellFormula(3, 2, "TRUE");
-                sheet.CellFormula(3, 3, "TRUE");
+                var sheet = document.AddSheet("Formula");
+                sheet.Cell(2, 1).SetValue("Id");
+                sheet.Cell(2, 2).SetValue("Active");
+                sheet.Cell(2, 3).SetValue("Expression");
+                sheet.Cell(3, 1).SetFormula("1");
+                sheet.Cell(3, 2).SetFormula("TRUE");
+                sheet.Cell(3, 3).SetFormula("TRUE");
             }
 
-            using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReadOptions {
+            using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReaderOptions {
                 UseCachedFormulaResult = useCachedFormulaResult
             });
             FormulaProjection row = reader.GetSheet("Formula")
@@ -48,16 +48,16 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Id");
-                sheet.CellValue(1, 2, "Created");
-                sheet.CellValue(1, 3, "Active");
-                sheet.CellValue(1, 4, "Note");
-                sheet.CellValue(2, 1, 42);
-                sheet.CellValue(2, 2, expectedDate);
-                sheet.CellValue(2, 3, true);
-                sheet.CellValue(2, 4, "Complete");
-                sheet.CellValue(3, 4, "Missing typed values");
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Id");
+                sheet.Cell(1, 2).SetValue("Created");
+                sheet.Cell(1, 3).SetValue("Active");
+                sheet.Cell(1, 4).SetValue("Note");
+                sheet.Cell(2, 1).SetValue(42);
+                sheet.Cell(2, 2).SetValue(expectedDate);
+                sheet.Cell(2, 3).SetValue(true);
+                sheet.Cell(2, 4).SetValue("Complete");
+                sheet.Cell(3, 4).SetValue("Missing typed values");
             }
 
             byte[] utf16WorksheetPackage = RewriteFirstWorksheetAsUtf16(memory.ToArray());
@@ -87,19 +87,11 @@ namespace OfficeIMO.Tests {
                     new FastPackageProjection("Beta", 20)
                 };
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorksheet("Data");
-                sheet.InsertObjects(
-                    rows,
-                    ("Name", row => row.Name),
-                    ("Score", row => row.Score));
-                sheet.AddChart(
-                    new ExcelChartData(
+                var sheet = document.AddSheet("Data");
+                sheet.WriteData(rows, ("Name", row => row.Name), ("Score", row => row.Score));
+                sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(
                         rows.Select(row => row.Name),
-                        new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) }),
-                    row: 1,
-                    column: 5,
-                    type: ExcelChartType.ColumnClustered,
-                    title: "Scores");
+                        new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Title = "Scores" });
 
                 var packageStreamField = typeof(ExcelDocument).GetField("_packageStream", BindingFlags.Instance | BindingFlags.NonPublic);
                 var packageStream = Assert.IsAssignableFrom<Stream>(packageStreamField!.GetValue(document));

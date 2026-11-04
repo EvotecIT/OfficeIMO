@@ -1,24 +1,17 @@
-using OfficeIMO.Pdf.Filters;
-
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfRedactionApplier {
     private static bool RemoveIntersectingPathObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, PdfRedactionArea[] areas, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities, ref int nextObjectNumber) {
         if (areas.Length == 0 || !page.Items.TryGetValue("Contents", out PdfObject? contentsObject)) return false;
         Dictionary<string, double> graphicsStateLineWidths = GetPathGraphicsStateLineWidths(objects, page);
-        Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects); PdfObject currentContents = contentsObject; bool changed = false;
-        foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject).ToArray()) {
-            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) || indirect.Value is not PdfStream stream || stream.DecodingFailed) continue;
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities))); string scrubbed = ScrubIntersectingPaths(content, areas, graphicsStateLineWidths);
-            if (string.Equals(content, scrubbed, StringComparison.Ordinal)) continue;
-            PdfReference target = reference;
-            if (IsSharedReference(referenceCounts, reference)) { target = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber); ReplacePageContentReference(objects, page, currentContents, reference, target); currentContents = page.Items.TryGetValue("Contents", out PdfObject? updated) ? updated : currentContents; }
-            objects[target.ObjectNumber] = new PdfIndirectObject(target.ObjectNumber, target.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed))); changed = true;
-        }
-        return changed;
+        Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects); PdfObject currentContents = contentsObject;
+        PdfReference[] references = EnumerateContentReferences(objects, contentsObject).ToArray();
+        string?[] segments = ReadPageContentSegments(objects, references, stream => GetMutationDecodeLimit(stream, limits, sourceStreamIdentities));
+        TextObjectRewrite[] rewrites = FindIntersectingPathRewrites(JoinPageContent(segments), areas, graphicsStateLineWidths, ReadPropertyAlternateText(objects, GetInheritedDictionary(objects, page, "Resources")), limits);
+        return ApplyPageContentRewrites(objects, page, ref currentContents, references, segments, rewrites, referenceCounts, ref nextObjectNumber);
     }
 
-    private static string ScrubIntersectingPaths(string content, PdfRedactionArea[] areas, Dictionary<string, double> graphicsStateLineWidths) {
+    private static TextObjectRewrite[] FindIntersectingPathRewrites(string content, PdfRedactionArea[] areas, Dictionary<string, double> graphicsStateLineWidths, PropertyAlternateText propertyText, PdfReadLimits limits) {
         var ranges = new List<RemovalRange>(); var args = new List<ImageContentOperand>(8); var stack = new Stack<(Matrix2D Transform, double LineWidth)>(); Matrix2D ctm = Matrix2D.Identity; double lineWidth = 1D;
         int pathStart = -1; double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue; int index = 0;
         while (index < content.Length) {
@@ -45,7 +38,7 @@ internal static partial class PdfRedactionApplier {
                 double pathWidth = maxX - minX + strokePadding * 2D;
                 double pathHeight = maxY - minY + strokePadding * 2D;
                 if (pathStart >= 0 && maxX >= minX && maxY >= minY) {
-                    PdfRedactionArea[] intersections = areas.Where(area => area.IntersectsRectangle(pathX, pathY, pathWidth, pathHeight)).ToArray();
+                    PdfRedactionArea[] intersections = areas.Where(area => area.IntersectsUnderlay(pathX, pathY, pathWidth, pathHeight)).ToArray();
                     if (intersections.Any(area => area.ExactGeometry is not null && !area.ContainsRectangle(pathX, pathY, pathWidth, pathHeight))) {
                         throw new NotSupportedException("An exact non-rectangular redaction intersects only part of a vector path. The engine refuses to remove content outside the reviewed geometry.");
                     }
@@ -55,7 +48,7 @@ internal static partial class PdfRedactionApplier {
             }
             args.Clear();
         }
-        return RemoveRanges(content, ranges);
+        return BuildRemovalRewrites(content, ranges, propertyText, limits);
     }
 
     private static void StartPath(List<ImageContentOperand> args, ref int pathStart) { if (pathStart < 0 && args.Count > 0) pathStart = args[0].Start; }

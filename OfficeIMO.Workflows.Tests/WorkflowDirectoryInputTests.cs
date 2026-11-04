@@ -25,7 +25,7 @@ public sealed class WorkflowDirectoryInputTests {
     [InlineData(true)]
     public async Task LocalMembersKeepTheirAccessScopesAndRejectPhysicalReplacement(bool replace) {
         using var fixture = new Fixture();
-        byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+        byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
         var file = new ScopedWorkflowFile(Path.GetDirectoryName(fixture.Output)!, "scoped.pdf", bytes);
         fixture.Entries.Add(new("scoped.pdf", file.Path, new("scoped.pdf", file.OpenRead)));
         var request = fixture.Request();
@@ -63,7 +63,7 @@ public sealed class WorkflowDirectoryInputTests {
     [InlineData(true)]
     public async Task PreservesNestedDocumentsAndReopensOutput(bool recursive) {
         using var fixture = new Fixture();
-        fixture.Entries.Add(File("first.pdf", PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes()));
+        fixture.Entries.Add(File("first.pdf", PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes()));
         fixture.Entries.Add(new("nested", "provider://folder/nested", null));
         fixture.Entries.Add(File("nested/second.html", Encoding.UTF8.GetBytes("<html><body>Nested document</body></html>")));
         var request = fixture.Request();
@@ -100,7 +100,7 @@ public sealed class WorkflowDirectoryInputTests {
     [InlineData("new-item")]
     public async Task ChangedFolderCannotPublish(string change) {
         using var fixture = new Fixture();
-        byte[] original = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+        byte[] original = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
         byte[] bytes = original;
         fixture.Entries.Add(new("first.pdf", "provider://folder/first.pdf", new("first.pdf", _ => Task.FromResult<Stream>(new MemoryStream(bytes)))));
         void Mutate() {
@@ -120,7 +120,7 @@ public sealed class WorkflowDirectoryInputTests {
     [Fact]
     public async Task EntryAndByteLimitsApplyBeforePublication() {
         using var fixture = new Fixture();
-        byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+        byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
         fixture.Entries.Add(File("first.pdf", bytes));
         fixture.Entries.Add(File("second.pdf", bytes));
         var count = fixture.Request();
@@ -218,7 +218,7 @@ public sealed class WorkflowDirectoryInputTests {
     private sealed class Progress(Action<OfficeWorkflowProgress> callback) : IProgress<OfficeWorkflowProgress> {
         public void Report(OfficeWorkflowProgress value) => callback(value);
     }
-    private sealed class Guard(Func<bool> callback) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => ValueTask.FromResult(callback());
+    private sealed class Guard(Func<bool> callback) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => Task.FromResult(callback());
     }
 }

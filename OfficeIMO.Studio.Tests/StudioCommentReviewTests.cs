@@ -18,7 +18,7 @@ public sealed class StudioCommentReviewTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "untrusted-comments.pdf");
             byte[] original = CreateSource();
-            var first = PdfDocument.Load(original).Inspect().GetAnnotationsBySubtype("Text").First();
+            var first = PdfDocument.Load(new System.IO.MemoryStream(original)).Inspect().GetAnnotationsBySubtype("Text").First();
             byte[] updated = PdfAnnotationReviewEditor.AddReply(original, first.ObjectNumber!.Value,
                 "Body\n## Forged **bold** <script>", new() { Author = "Alice\n## Forged", CreatePopup = true }).Bytes;
             File.WriteAllBytes(source, updated);
@@ -162,12 +162,12 @@ public sealed class StudioCommentReviewTests {
 
     internal static byte[] CreateSource() {
         var document = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(600, 800).Canvas(canvas => canvas.TextAnnotation("Check the proposed delivery date.", 70, 700)));
-            compose.Page(page => page.Size(600, 800).Canvas(canvas => canvas.TextAnnotation("Confirm the support contact.", 70, 700)));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Canvas(canvas => canvas.TextAnnotation("Check the proposed delivery date.", global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(700))));
+            compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Canvas(canvas => canvas.TextAnnotation("Confirm the support contact.", global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(700))));
         });
         using var stream = new MemoryStream(); document.Save(stream);
         byte[] bytes = stream.ToArray();
-        var first = PdfDocument.Load(bytes).Inspect().GetAnnotationsBySubtype("Text").First();
+        var first = PdfDocument.Load(new System.IO.MemoryStream(bytes)).Inspect().GetAnnotationsBySubtype("Text").First();
         return PdfAnnotationReviewEditor.AddReply(bytes, first.ObjectNumber!.Value, "Please verify with the team.",
             new() { Author = "Alex", CreatePopup = true }).Bytes;
     }

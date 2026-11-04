@@ -5,7 +5,7 @@ using System.Threading;
 internal static partial class EpubReader {
     private static Dictionary<string, ZipArchiveEntry> BuildEntryIndex(
         ZipArchive archive,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         var map = new Dictionary<string, ZipArchiveEntry>(StringComparer.Ordinal);
@@ -60,7 +60,7 @@ internal static partial class EpubReader {
 
     private static EpubPackage? TryReadPackage(
         Dictionary<string, ZipArchiveEntry> entryIndex,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         out IReadOnlyList<EpubRootfile> rootfiles,
         CancellationToken cancellationToken) {
@@ -109,7 +109,7 @@ internal static partial class EpubReader {
     private static EpubPackage? TryParsePackageEntry(
         ZipArchiveEntry opfEntry,
         string opfPath,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         if (opfEntry.Length > options.MaxPackageMetadataBytes) {
@@ -142,7 +142,7 @@ internal static partial class EpubReader {
 
     private static IReadOnlyList<EpubRootfile> ReadRootfiles(
         Dictionary<string, ZipArchiveEntry> entryIndex,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         if (!entryIndex.TryGetValue("META-INF/container.xml", out var containerEntry)) {
@@ -238,7 +238,7 @@ internal static partial class EpubReader {
     private static EpubPackage ParseOpf(
         XDocument opfDocument,
         string opfPath,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         XElement? packageElement = opfDocument.Root;
@@ -432,7 +432,7 @@ internal static partial class EpubReader {
     private static void ReadMetadataEntries(
         XElement metadata,
         EpubPackage package,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         string opfPath,
         CancellationToken cancellationToken) {
@@ -494,9 +494,10 @@ internal static partial class EpubReader {
                 refinement.Value.Length == 0) continue;
             EpubReference reference = EpubReference.Resolve(opfPath, refinement.Refines);
             if (reference.Fragment == null || !identified.TryGetValue(reference.Fragment, out EpubMetadataEntry? target)) continue;
-            string property = EpubVocabulary.Expand(metadata.Document!.Root!, refinement.Property);
-            if (property == "http://idpf.org/epub/vocab/package/#file-as") target.FileAs ??= refinement.Value;
-            else if (property == "http://idpf.org/epub/vocab/package/#role" && target.Kind == EpubMetadataKind.DublinCore &&
+            if (EpubVocabulary.Matches(package.VocabularyPrefixes, refinement.Property,
+                    "http://idpf.org/epub/vocab/package/#", "file-as")) target.FileAs ??= refinement.Value;
+            else if (EpubVocabulary.Matches(package.VocabularyPrefixes, refinement.Property,
+                    "http://idpf.org/epub/vocab/package/#", "role") && target.Kind == EpubMetadataKind.DublinCore &&
                 (target.Name == "creator" || target.Name == "contributor" || target.Name == "publisher")) target.Role ??= refinement.Value;
         }
     }

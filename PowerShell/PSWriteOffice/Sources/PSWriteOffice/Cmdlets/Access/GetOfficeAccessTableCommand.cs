@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 ///   <summary>Lists native table definitions and schema without executing their content.</summary>
 ///   <code>$database | Get-OfficeAccessTable | Select-Object Name, RowCount, Columns</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeAccessTable")]
+[Cmdlet(VerbsCommon.Get, "OfficeAccessTable", DefaultParameterSetName = "Document")]
 [OutputType(typeof(AccessTable))]
 public sealed class GetOfficeAccessTableCommand : PSCmdlet {
     /// <summary>Live database document.</summary>

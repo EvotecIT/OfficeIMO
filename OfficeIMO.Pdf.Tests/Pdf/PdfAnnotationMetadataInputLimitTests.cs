@@ -9,7 +9,7 @@ public class PdfAnnotationMetadataInputLimitTests {
         Action<Stream>[] routes = {
             input => PdfAnnotationFlattener.FlattenVisualAnnotations(input),
             input => PdfMetadataEditor.UpdateMetadata(input, title: "updated"),
-            input => PdfMetadataEditor.ReplaceMetadata(input, new PdfMetadata { Title = "replacement" }),
+            input => PdfMetadataEditor.ReplaceMetadata(input, new PdfDocumentProperties { Title = "replacement" }),
             input => PdfMetadataEditor.SynchronizeMetadata(input, title: "synchronized")
         };
 
@@ -38,7 +38,7 @@ public class PdfAnnotationMetadataInputLimitTests {
             Action[] byteRoutes = {
                 () => PdfAnnotationFlattener.FlattenVisualAnnotationsToBytes(inputPath),
                 () => PdfMetadataEditor.UpdateMetadataToBytes(inputPath, title: "updated"),
-                () => PdfMetadataEditor.ReplaceMetadataToBytes(inputPath, new PdfMetadata { Title = "replacement" }),
+                () => PdfMetadataEditor.ReplaceMetadataToBytes(inputPath, new PdfDocumentProperties { Title = "replacement" }),
                 () => PdfMetadataEditor.SynchronizeMetadataToBytes(inputPath, title: "synchronized")
             };
             foreach (Action route in byteRoutes) {
@@ -51,7 +51,7 @@ public class PdfAnnotationMetadataInputLimitTests {
                 () => PdfAnnotationEditor.UpdateAnnotation(inputPath, Path.Combine(outputDirectory, "updated.pdf"), 1, new PdfAnnotationUpdateOptions()),
                 () => PdfAnnotationFlattener.FlattenVisualAnnotations(inputPath, Path.Combine(outputDirectory, "flattened.pdf")),
                 () => PdfMetadataEditor.UpdateMetadata(inputPath, Path.Combine(outputDirectory, "metadata.pdf"), title: "updated"),
-                () => PdfMetadataEditor.ReplaceMetadata(inputPath, Path.Combine(outputDirectory, "replacement.pdf"), new PdfMetadata()),
+                () => PdfMetadataEditor.ReplaceMetadata(inputPath, Path.Combine(outputDirectory, "replacement.pdf"), new PdfDocumentProperties()),
                 () => PdfMetadataEditor.SynchronizeMetadata(inputPath, Path.Combine(outputDirectory, "synchronized.pdf"), title: "updated")
             };
             foreach (Action route in outputRoutes) {

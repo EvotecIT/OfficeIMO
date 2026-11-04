@@ -26,8 +26,8 @@ internal static class OneNotePageGeometry {
             default:
                 throw new ArgumentOutOfRangeException(nameof(size), "Automatic and custom pages do not have named physical dimensions.");
         }
-        double width = physical.ToPointWidth() / OneNotePageRenderer.PointsPerHalfInch;
-        double height = physical.ToPointHeight() / OneNotePageRenderer.PointsPerHalfInch;
+        double width = physical.Width.ToPoints() / OneNotePageRenderer.PointsPerHalfInch;
+        double height = physical.Height.ToPoints() / OneNotePageRenderer.PointsPerHalfInch;
         if (orientation == OneNotePageOrientation.Landscape && height > width) (width, height) = (height, width);
         return (width, height);
     }

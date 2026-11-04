@@ -11,7 +11,7 @@ internal static class CustomFieldProof {
         else document.AllTasks.First(t => !t.IsSummary && t.Uid != 0).CustomFields.Single(f => f.FieldId == "188743984").Value = "3";
         var result = document.CalculateCustomFields(new ProjectCustomFieldCalculationOptions { CultureName = "pl-PL" });
         document.ApplyCustomFields(result);
-        document.Save(Path.Combine(output, Path.GetFileName(input)), new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        document.Save(Path.Combine(output, Path.GetFileName(input)), new ProjectSaveOptions { AllowLoss = true });
         Console.WriteLine(JsonSerializer.Serialize(result.Values, new JsonSerializerOptions { WriteIndented = true }));
         return 0;
     }

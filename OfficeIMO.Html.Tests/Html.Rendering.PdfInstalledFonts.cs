@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(":left", 1)]
     [InlineData(" Report", 0)]
     public void HtmlPdf_LibraryDefaultMeasuresUnicodePageTextBeforeRetainingWrappedLines(string selector, int pageIndex) {
-        string? installedFamily = PdfCore.PdfOptions.DefaultDocumentFontFamilyFallback.Split(',')
+        string? installedFamily = PdfCore.PdfCreateOptions.DefaultDocumentFontFamilyFallback.Split(',')
             .Select(candidate => candidate.Trim())
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
         // This is a system-font integration contract; portable registered-font
@@ -29,9 +29,9 @@ public sealed partial class HtmlRenderingTests {
             + (selector == " Report" ? "page:Report" : "") + "'>ASCII body</div>"
             + (pageIndex == 1 ? "<div style='break-before:page'>Second page</div>" : "");
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        HtmlPdfRenderResult automatic = HtmlPdfRenderedConverter.Convert(document, new HtmlToPdfOptions());
+        HtmlPdfRenderResult automatic = HtmlPdfRenderedConverter.Convert(document, new HtmlPdfExportOptions());
         HtmlPdfRenderResult explicitFont = HtmlPdfRenderedConverter.Convert(document,
-            new HtmlToPdfOptions { FontFamily = family });
+            new HtmlPdfExportOptions { FontFamily = family });
         HtmlRenderText MarginText(HtmlPdfRenderResult result) => Assert.Single(
             result.RenderResult!.Document.Pages[pageIndex].Visuals.OfType<HtmlRenderText>(),
             text => text.SemanticRole == "page-margin");
@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_ShortLineUsesTheCallerNamedFaceAndKeepsHighAscentVisible(
         bool precedingNormalText, bool largeParagraphFont, bool inlineImage) {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
 
@@ -61,7 +61,7 @@ public sealed partial class HtmlRenderingTests {
                 + "<span style='font-size:" + (largeParagraphFont ? "20px" : "100px;text-shadow:0 0 red") + "'>A</span>"
                 + image + "</div>");
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(source, options);
-        var scopedOptions = new HtmlToPdfOptions(options);
+        var scopedOptions = new HtmlPdfExportOptions(options);
         scopedOptions.Fonts.Add("Arial", font);
         HtmlPdfRenderResult scoped = HtmlPdfRenderedConverter.Convert(source, scopedOptions);
         HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
@@ -91,7 +91,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_ShortNamedFaceImageKeepsFollowingFlowBelowItsBaseline() {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithVerticalMetrics('A', 1069, -200, 1040);
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D) };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D) };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Arial", font));
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Following",
@@ -109,7 +109,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(following.LayoutY >= renderedImage.Y + renderedImage.Height,
             "The selected-face image baseline must also advance the containing line's flow height.");
         Assert.Equal(40D, renderedImage.Height, 3);
-        Assert.Contains("NEXT", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("NEXT", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -125,14 +125,14 @@ public sealed partial class HtmlRenderingTests {
             + "@media print{a::after{content:' (' attr(href) ')'}}"
             + "</style><ul><li><a href='https://www.w3.org/WAI/'>Home</a></li>"
             + "<li><a href='https://www.w3.org/WAI/design-develop/'>Design &amp; Develop</a></li></ul>";
-        var options = new HtmlToPdfOptions {
-            PageSize = new OfficeIMO.Drawing.OfficePageSize(816D / HtmlRenderOptions.CssPixelsPerInch, 900D / HtmlRenderOptions.CssPixelsPerInch),
+        var options = new HtmlPdfExportOptions {
+            PageSize = new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(816D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(900D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Home (https://www.w3.org/WAI/)", extracted, StringComparison.Ordinal);
@@ -149,7 +149,7 @@ public sealed partial class HtmlRenderingTests {
         if (installedFamily == null) return;
         Assert.True(PdfCore.PdfEmbeddedFontFamily.TryFromSystem(installedFamily, out PdfCore.PdfEmbeddedFontFamily? expected));
 
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
             HtmlConversionDocument.Parse("<p style=\"font-family:'" + installedFamily + "'\"><strong>Bold heading</strong> Normal body</p>"),
@@ -157,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfEmbeddedFontFamily embedded = result.Document.Options.NamedFontFamilies[installedFamily];
         Assert.Equal(expected!.Bold, embedded.Bold);
-        Assert.Contains("Bold heading", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Bold heading", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public sealed partial class HtmlRenderingTests {
             || expected?.Bold == null
             || expected.Bold.SequenceEqual(expected.Regular)) return;
 
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
             HtmlConversionDocument.Parse("<p style=\"font-family:'Helvetica Neue'\"><strong>Exploring Planet Uranus Resource Page</strong></p>"),
@@ -178,11 +178,11 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText title = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals
             .OfType<HtmlRenderText>(), text => text.Text.Contains("Exploring Planet Uranus", StringComparison.Ordinal));
         double paintedWidth = Assert.IsType<double>(PdfCore.PdfWriter.MeasurePositionedText(
-            new PdfCore.PdfTextRun(title.Text, bold: true, fontSize: title.Font.Size,
+            new PdfCore.PdfTextRun(title.Text, bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(title.Font.Size),
                 fontFamily: "Helvetica Neue"), result.Document.Options));
         Assert.Equal(paintedWidth, Assert.IsType<double>(title.TextAdvanceWidth), 3);
         Assert.Contains("Exploring Planet Uranus Resource Page",
-            PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed partial class HtmlRenderingTests {
         var bold = PdfCore.PdfFontProgramCache.GetTrueType(family.Bold, null);
         if (!regular.TryGetGlyphId(privateUseGlyph[0], out _) || bold.TryGetGlyphId(privateUseGlyph[0], out _)) return;
 
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
             HtmlConversionDocument.Parse("<div style=\"font-family:'Helvetica Neue'\"><strong>Before "
@@ -209,7 +209,7 @@ public sealed partial class HtmlRenderingTests {
                      ("Before ", true), (privateUseGlyph, false), (" after", true)
                  }) {
             measuredWidth += Assert.IsType<double>(PdfCore.PdfWriter.MeasurePositionedText(
-                new PdfCore.PdfTextRun(part, bold: isBold, fontSize: mixed.Font.Size,
+                new PdfCore.PdfTextRun(part, bold: isBold, fontSize: global::OfficeIMO.OfficeLength.Points(mixed.Font.Size),
                     fontFamily: "Helvetica Neue"), result.Document.Options));
         }
         Assert.Equal(measuredWidth, Assert.IsType<double>(mixed.TextAdvanceWidth), 3);
@@ -230,7 +230,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>" + CreatePortableEmbeddedFontFaceCss("Scoped Web")
             + "strong{font-family:'Scoped Web','Helvetica Neue';font-size:24px}</style>"
             + "<strong>Alpha " + privateUseGlyph + " omega</strong>";
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
 
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(HtmlConversionDocument.Parse(html), options);
@@ -250,7 +250,7 @@ public sealed partial class HtmlRenderingTests {
         var bold = PdfCore.PdfFontProgramCache.GetTrueType(family.Bold, null);
         if (!regular.TryGetGlyphId(privateUseGlyph[0], out _) || bold.TryGetGlyphId(privateUseGlyph[0], out _)) return;
 
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
             HtmlConversionDocument.Parse("<div style=\"font-family:'Helvetica Neue';font-size:50px;line-height:10px\"><strong>A"
@@ -276,12 +276,12 @@ public sealed partial class HtmlRenderingTests {
         string html = "<style>" + CreatePortableEmbeddedFontFaceCss("Scoped Web")
             + "p{font-family:'Scoped Web','" + installedFamily + "';font-size:20px}</style>"
             + "<p>AΩ</p>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("ScopedWeb-Regular"), rawPdf);
@@ -293,7 +293,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_FontMeasurementUsesTheSameCoveringNamedFallbackAsPdfOutput() {
         byte[] latin = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A');
         byte[] greek = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('Ω');
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
             Margins = HtmlRenderMargins.All(0D)
         };
@@ -305,10 +305,10 @@ public sealed partial class HtmlRenderingTests {
             HtmlConversionDocument.Parse("<p style='margin:0;font:40px LatinOnly,GreekFallback'>ΩΩ</p>"), options);
         HtmlRenderText text = Assert.Single(result.RenderResult!.Document.Pages[0].Visuals.OfType<HtmlRenderText>());
         double expected = Assert.IsType<double>(PdfCore.PdfWriter.MeasurePositionedText(
-            new PdfCore.PdfTextRun("ΩΩ", fontSize: 40D, fontFamily: "GreekFallback"),
+            new PdfCore.PdfTextRun("ΩΩ", fontSize: global::OfficeIMO.OfficeLength.Points(40D), fontFamily: "GreekFallback"),
             result.Document.Options));
 
         Assert.Equal(expected, Assert.IsType<double>(text.TextAdvanceWidth), 3);
-        Assert.Contains("ΩΩ", PdfCore.PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("ΩΩ", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Document.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 }

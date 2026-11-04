@@ -7,7 +7,7 @@ using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
 using OfficeIMO.Visio;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.ChartForgeX.Tests;
 
@@ -63,7 +63,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Equal(1, result.Report.EdgeCount);
         Assert.Equal(1, result.Report.GroupCount);
         Assert.Equal(0, result.Report.AnnotationCount);
-        Assert.True(result.Page.Width < 9D);
+        Assert.True(result.Page.Width.ToInches() < 9D);
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "api");
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "data-zone");
         Assert.Contains(result.Page.Connectors, connector => connector.Id == "api-db");
@@ -74,7 +74,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Equal("Secondary", api.GetShapeDataValue("Extension.owner [2]"));
         Assert.Equal("caller-owned", api.GetShapeDataValue("Extension.Metric.latency"));
         Assert.Equal("42 ms", api.GetShapeDataValue("Metric.latency"));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.ExtensionKeyRenamed &&
             diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Information);
         Assert.Equal("443", api.GetShapeDataValue("Detail.1.Port"));
@@ -113,7 +113,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Null(api.GetShapeDataValue("Detail.2.Icon"));
         Assert.Equal("Icon", api.GetShapeDataValue("Detail.2.Label"));
         Assert.Equal("Redis", api.GetShapeDataValue("Detail.2.Value"));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.DetailFieldRenamed &&
             diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Information &&
             diagnostic.Message.Contains("Detail.2.Field.Icon"));
@@ -130,7 +130,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
 
         Assert.False(result.Report.HasSemanticLoss);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.ExtensionKeyRenamed &&
             diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Information);
         Assert.Equal("Platform", result.Page.Shapes.Single(shape => shape.Id == "service").GetShapeDataValue("Extension.Owner"));
@@ -227,7 +227,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Equal("Created response", result.Page.Connectors.Single(connector => connector.Id == "response").GetShapeDataValue("CFX.Tooltip"));
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("Sequence participant 'customer'") && warning.Contains("retained as Shape Data"));
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("Sequence message 'response'") && warning.Contains("retained as Shape Data"));
-        Assert.True(retryNote.PinX - retryNote.Width / 2D > api.PinX + api.Width / 2D);
+        Assert.True(retryNote.PinX.ToInches() - retryNote.Width.ToInches() / 2D > api.PinX.ToInches() + api.Width.ToInches() / 2D);
     }
 
     [Fact]
@@ -240,7 +240,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
 
-        Assert.True(result.Page.Shapes.Single(shape => shape.Id == "z-first").PinX < result.Page.Shapes.Single(shape => shape.Id == "a-second").PinX);
+        Assert.True(result.Page.Shapes.Single(shape => shape.Id == "z-first").PinX.ToInches() < result.Page.Shapes.Single(shape => shape.Id == "a-second").PinX.ToInches());
         Assert.Equal(new[] { "z-first-message", "a-second-message" }, result.Page.Connectors
             .Where(connector => connector.Id == "z-first-message" || connector.Id == "a-second-message")
             .Select(connector => connector.Id)
@@ -377,7 +377,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         Assert.DoesNotContain(result.Page.Shapes, shape => shape.Id == "orphan");
         Assert.Equal(0, result.Report.AnnotationCount);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.AnnotationNotProjected &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.AnnotationNotProjected &&
             diagnostic.EntityId == "orphan" && diagnostic.Feature == "noteTarget");
     }
 
@@ -406,7 +406,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "note");
         Assert.Contains(result.Page.Shapes, shape => shape.Id == "fragment");
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("note") && warning.Contains("Over") && warning.Contains("right-side note placement"));
-        Assert.Single(result.Report.Diagnostics, diagnostic =>
+        Assert.Single(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.NoteNormalized && diagnostic.EntityId == "note");
     }
 
@@ -423,12 +423,12 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         OfficeVisioVisualConversionResult fitted = envelope.ToOfficeVisio();
         OfficeVisioVisualConversionResult natural = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { UseNaturalPageSize = true, PixelsPerInch = 100D });
 
-        Assert.True(fitted.Page.Width < natural.Page.Width);
-        Assert.True(fitted.Page.Width < 9D);
-        Assert.True(natural.Page.Width >= 24D);
+        Assert.True(fitted.Page.Width.ToInches() < natural.Page.Width.ToInches());
+        Assert.True(fitted.Page.Width.ToInches() < 9D);
+        Assert.True(natural.Page.Width.ToInches() >= 24D);
         VisioShapeBounds naturalBounds = natural.Page.GetContentBounds();
-        Assert.True(Math.Abs(naturalBounds.CenterX - natural.Page.Width / 2D) < 0.001D);
-        Assert.True(Math.Abs(naturalBounds.CenterY - natural.Page.Height / 2D) < 0.001D);
+        Assert.True(Math.Abs(naturalBounds.CenterX.ToInches() - natural.Page.Width.ToInches() / 2D) < 0.001D);
+        Assert.True(Math.Abs(naturalBounds.CenterY.ToInches() - natural.Page.Height.ToInches() / 2D) < 0.001D);
     }
 
     [Fact]
@@ -441,11 +441,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             PixelsPerInch = 100D
         });
 
-        Assert.InRange(result.Page.Width, 4D, 4.5D);
-        Assert.InRange(result.Page.Height, 3D, 4D);
+        Assert.InRange(result.Page.Width.ToInches(), 4D, 4.5D);
+        Assert.InRange(result.Page.Height.ToInches(), 3D, 4D);
         VisioShapeBounds bounds = result.Page.GetContentBounds();
-        Assert.True(Math.Abs(bounds.CenterX - result.Page.Width / 2D) < 0.001D);
-        Assert.True(Math.Abs(bounds.CenterY - result.Page.Height / 2D) < 0.001D);
+        Assert.True(Math.Abs(bounds.CenterX.ToInches() - result.Page.Width.ToInches() / 2D) < 0.001D);
+        Assert.True(Math.Abs(bounds.CenterY.ToInches() - result.Page.Height.ToInches() / 2D) < 0.001D);
     }
 
     [Fact]
@@ -500,7 +500,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.NotNull(message.To);
         Assert.Equal(message.Id + "-from", message.From.Id);
         Assert.Equal(message.Id + "-to", message.To.Id);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
             diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Information);
         Assert.Equal("api", api.GetShapeDataValue("CFX.Id"));
@@ -537,7 +537,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         Assert.Contains(result.Page.Shapes, shape => shape.GetShapeDataValue("CFX.Id") == "fragment");
         Assert.Equal(result.Page.Shapes.Count, result.Page.Shapes.Select(shape => shape.Id).Distinct(StringComparer.Ordinal).Count());
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Annotation && diagnostic.EntityId == "fragment");
     }
 
@@ -557,9 +557,9 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         Assert.Equal(result.Page.Shapes.Count, result.Page.Shapes.Select(shape => shape.Id).Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(result.Page.Connectors.Count, result.Page.Connectors.Select(connector => connector.Id).Distinct(StringComparer.Ordinal).Count());
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Annotation && diagnostic.EntityId == "branch");
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.IdRemapped &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Annotation && diagnostic.EntityId == "partition");
     }
 
@@ -680,20 +680,20 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         for (int index = 0; index < 4; index++) matrix.Nodes.Add(TopologyNode("node-" + index, "Node " + index));
 
         OfficeVisioVisualConversionResult matrixResult = matrix.ToOfficeVisio();
-        Assert.True(matrixResult.Page.Shapes.Where(shape => shape.Id.StartsWith("node-", StringComparison.Ordinal)).Select(shape => shape.PinX).Distinct().Count() > 1);
-        Assert.True(matrixResult.Page.Shapes.Where(shape => shape.Id.StartsWith("node-", StringComparison.Ordinal)).Select(shape => shape.PinY).Distinct().Count() > 1);
+        Assert.True(matrixResult.Page.Shapes.Where(shape => shape.Id.StartsWith("node-", StringComparison.Ordinal)).Select(shape => shape.PinX.ToInches()).Distinct().Count() > 1);
+        Assert.True(matrixResult.Page.Shapes.Where(shape => shape.Id.StartsWith("node-", StringComparison.Ordinal)).Select(shape => shape.PinY.ToInches()).Distinct().Count() > 1);
 
         matrix.Topology!.LayoutMode = TopologyLayoutMode.Geographic;
         matrix.Topology.LayoutDirection = TopologyLayoutDirection.RightToLeft;
         OfficeVisioVisualConversionResult geographicResult = matrix.ToOfficeVisio();
-        Assert.Contains(geographicResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.LayoutNormalized);
-        Assert.Contains(geographicResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.DirectionNormalized);
+        Assert.Contains(geographicResult.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.LayoutNormalized);
+        Assert.Contains(geographicResult.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.DirectionNormalized);
 
         VisualArtifactInterchangeEnvelope force = TopologyEnvelope("force", TopologyLayoutMode.ForceDirected);
         force.Nodes.Add(TopologyNode("source", "Source"));
         force.Nodes.Add(TopologyNode("target", "Target"));
         OfficeVisioVisualConversionResult forceResult = force.ToOfficeVisio();
-        Assert.Contains(forceResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.LayoutNormalized &&
+        Assert.Contains(forceResult.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.LayoutNormalized &&
             diagnostic.EntityId == "force" && diagnostic.Feature == "layoutMode");
     }
 
@@ -725,7 +725,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("participant coordinates and dimensions") && warning.Contains("recomputed"));
         Assert.Contains(result.Report.Warnings, warning => warning.Contains("participant ports") && warning.Contains("remain only in the CFX envelope") && warning.Contains("Shape Data projection was disabled"));
         Assert.True(result.Report.HasSemanticLoss);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ShapeDataDisabled);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ShapeDataDisabled);
     }
 
     [Fact]
@@ -742,9 +742,9 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         });
 
         Assert.True(result.Report.HasSemanticLoss);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ShapeDataDisabled &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ShapeDataDisabled &&
             diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Warning);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.HyperlinkNotProjected &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.HyperlinkNotProjected &&
             diagnostic.EntityId == "api" && diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Warning);
     }
 
@@ -765,8 +765,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             PixelsPerInch = 100D
         });
 
-        Assert.True(fitted.Page.Width < natural.Page.Width);
-        Assert.True(natural.Page.Width >= 9D);
+        Assert.True(fitted.Page.Width.ToInches() < natural.Page.Width.ToInches());
+        Assert.True(natural.Page.Width.ToInches() >= 9D);
     }
 
     [Theory]
@@ -783,11 +783,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             PixelsPerInch = 96D
         });
 
-        Assert.InRange(result.Page.Width, 3.2D, 3.5D);
-        Assert.InRange(result.Page.Height, 2.4D, 2.7D);
+        Assert.InRange(result.Page.Width.ToInches(), 3.2D, 3.5D);
+        Assert.InRange(result.Page.Height.ToInches(), 2.4D, 2.7D);
         VisioShapeBounds bounds = result.Page.GetContentBounds();
-        Assert.True(Math.Abs(bounds.CenterX - result.Page.Width / 2D) < 0.001D);
-        Assert.True(Math.Abs(bounds.CenterY - result.Page.Height / 2D) < 0.001D);
+        Assert.True(Math.Abs(bounds.CenterX.ToInches() - result.Page.Width.ToInches() / 2D) < 0.001D);
+        Assert.True(Math.Abs(bounds.CenterY.ToInches() - result.Page.Height.ToInches() / 2D) < 0.001D);
     }
 
     [Fact]
@@ -870,7 +870,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ArtworkNotProjected &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ArtworkNotProjected &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node && diagnostic.EntityId == "service" && diagnostic.Feature == "nodeAdornment");
         Assert.True(result.Report.HasSemanticLoss);
     }
@@ -900,7 +900,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Equal("Secondary", activation.GetShapeDataValue("CFX.ActivationEvent.1.Extension.owner [2]"));
         Assert.Equal("Complete", activation.GetShapeDataValue("CFX.ActivationEvent.2.Extension.Reason"));
         Assert.Equal("False", activation.GetShapeDataValue("CFX.ActivationEvent.2.State"));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.ExtensionKeyRenamed &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Artifact &&
             diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Information);
@@ -919,8 +919,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         VisioShape api = Assert.Single(result.Page.Shapes, shape => shape.Id == "api");
         VisioConnector retry = Assert.Single(result.Page.Connectors, connector => connector.Id == "retry");
-        Assert.Contains(retry.Waypoints, point => point.X > api.PinX + (api.Width / 2D));
-        Assert.Contains(retry.Waypoints, point => point.Y > api.PinY + (api.Height / 2D));
+        Assert.Contains(retry.Waypoints, point => point.X > api.PinX.ToInches() + (api.Width.ToInches() / 2D));
+        Assert.Contains(retry.Waypoints, point => point.Y > api.PinY.ToInches() + (api.Height.ToInches() / 2D));
     }
 
     [Fact]
@@ -942,9 +942,9 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         graph.Edges.Add(retry);
 
         OfficeVisioVisualConversionResult graphResult = graph.ToOfficeVisio();
-        Assert.Contains(graphResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "zone" && diagnostic.Feature == "colorAlpha");
-        Assert.Contains(graphResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "api" && diagnostic.Feature == "colorAlpha");
-        Assert.Contains(graphResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "retry" && diagnostic.Feature == "colorAlpha");
+        Assert.Contains(graphResult.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "zone" && diagnostic.Feature == "colorAlpha");
+        Assert.Contains(graphResult.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "api" && diagnostic.Feature == "colorAlpha");
+        Assert.Contains(graphResult.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "retry" && diagnostic.Feature == "colorAlpha");
 
         VisualArtifactInterchangeEnvelope sequence = SequenceEnvelope("alpha-sequence");
         VisualArtifactInterchangeNode client = Participant("client", "Client", SequenceArtifactParticipantKind.Actor, 0);
@@ -955,8 +955,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         message.Color = "transparent";
         sequence.Edges.Add(message);
         OfficeVisioVisualConversionResult sequenceResult = sequence.ToOfficeVisio();
-        Assert.Contains(sequenceResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "client" && diagnostic.Feature == "colorAlpha");
-        Assert.Contains(sequenceResult.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "call" && diagnostic.Feature == "colorAlpha");
+        Assert.Contains(sequenceResult.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "client" && diagnostic.Feature == "colorAlpha");
+        Assert.Contains(sequenceResult.Report.NativeDiagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.ColorNotProjected && diagnostic.EntityId == "call" && diagnostic.Feature == "colorAlpha");
     }
 
     private static VisualArtifactInterchangeEnvelope CreateTopologyEnvelope() {

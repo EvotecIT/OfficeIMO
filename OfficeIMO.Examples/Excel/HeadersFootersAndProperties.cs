@@ -11,32 +11,30 @@ namespace OfficeIMO.Examples.Excel {
             using var doc = ExcelDocument.Create(filePath);
 
             // Built-in document properties
-            doc.BuiltinDocumentProperties.Title = "Scan Summary";
-            doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
+            doc.Properties.Title = "Scan Summary";
+            doc.Properties.Creator = "OfficeIMO";
             doc.ApplicationProperties.Company = "Evotec";
 
-            var sheet = doc.AddWorksheet("Summary");
+            var sheet = doc.AddSheet("Summary");
 
             // Header/Footer text (tokens: &P page, &N pages, &A sheet name)
-            sheet.SetHeaderFooter(
-                headerLeft: "&A",
-                headerCenter: "Scan Summary",
-                headerRight: "Page &P of &N",
-                footerLeft: "Generated: &D &T",
-                footerCenter: null,
-                footerRight: "© Evotec");
+            sheet.PageSetup.Header.Left.Text = "&A";
+            sheet.PageSetup.Header.Center.Text = "Scan Summary";
+            sheet.PageSetup.Header.Right.Text = "Page &P of &N";
+            sheet.PageSetup.Footer.Left.Text = "Generated: &D &T";
+            sheet.PageSetup.Footer.Right.Text = "© Evotec";
 
             // Add a small logo to the center header
             var logoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
             if (File.Exists(logoPath)) {
                 var bytes = File.ReadAllBytes(logoPath);
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, bytes, contentType: "image/png", widthPoints: 96, heightPoints: 32);
+                sheet.PageSetup.Header.Center.SetImage(bytes, contentType: "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(32));
             } else {
                 Console.WriteLine($"Logo file not found: {logoPath}");
             }
 
-            sheet.Cell(1, 1, "Hello");
-            sheet.Cell(2, 1, "World");
+            sheet.Cell(1, 1).SetValue("Hello");
+            sheet.Cell(2, 1).SetValue("World");
 
             doc.Save();
             if (openExcel) doc.OpenInApplication();

@@ -105,7 +105,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 0,
                 "SharedFormula",
                 _sheet.Name,
-                A1.ColumnIndexToLetters(anchorCell.Column) + anchorCell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ExcelA1.ColumnIndexToLetters(anchorCell.Column) + anchorCell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 recordOffset,
                 (ushort)BiffRecordType.ShrFmla,
                 _formulaTokenRecords);
@@ -158,7 +158,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 && TryCreateArrayFormulaPayload(payload, out byte[] formulaPayload, out formulaTokenByteCount, out formulaExtraByteCount)) {
                 formulaPayloadForDefinition = formulaPayload;
                 PendingSharedFormulaCell formulaCell = lastSharedFormulaCell.Value;
-                string cellReference = A1.ColumnIndexToLetters(formulaCell.Column) + formulaCell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string cellReference = ExcelA1.ColumnIndexToLetters(formulaCell.Column) + formulaCell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 BiffFormulaTokenScanner.ScanLengthPrefixed(
                     formulaPayload,
                     0,
@@ -189,7 +189,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     string failureDescription = failure == null ? "Unsupported array formula tokens" : failure.Description;
                     _diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Info,
-                        "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
+                        "xls-biff-formula-tokens-unsupported",
                         $"{failureDescription} Array formula at {cellReference} was imported from its cached result.",
                         sheetName: _sheet.Name,
                         recordOffset: recordOffset,
@@ -258,8 +258,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 _diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Info,
-                    "XLS-BIFF-FORMULA-SHARED-UNRESOLVED",
-                    $"Shared formula for {A1.ColumnIndexToLetters(cell.Column)}{cell.Row} was not found; the cached result was imported without formula text.",
+                    "xls-biff-formula-shared-unresolved",
+                    $"Shared formula for {ExcelA1.ColumnIndexToLetters(cell.Column)}{cell.Row} was not found; the cached result was imported without formula text.",
                     sheetName: _sheet.Name,
                     recordOffset: cell.RecordOffset,
                     recordType: (ushort)BiffRecordType.Formula,
@@ -317,8 +317,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string failureDescription = failure == null ? "Unsupported shared formula tokens" : failure.Description;
             _diagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Info,
-                "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
-                $"{failureDescription} Shared formula at {A1.ColumnIndexToLetters(cell.Column)}{cell.Row} was imported from its cached result.",
+                "xls-biff-formula-tokens-unsupported",
+                $"{failureDescription} Shared formula at {ExcelA1.ColumnIndexToLetters(cell.Column)}{cell.Row} was imported from its cached result.",
                 sheetName: _sheet.Name,
                 recordOffset: definition.RecordOffset,
                 recordType: (ushort)BiffRecordType.ShrFmla,
@@ -363,8 +363,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string failureDescription = failure == null ? "Unsupported array formula tokens" : failure.Description;
             _diagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Info,
-                "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED",
-                $"{failureDescription} Array formula at {A1.ColumnIndexToLetters(cell.Column)}{cell.Row} was imported from its cached result.",
+                "xls-biff-formula-tokens-unsupported",
+                $"{failureDescription} Array formula at {ExcelA1.ColumnIndexToLetters(cell.Column)}{cell.Row} was imported from its cached result.",
                 sheetName: _sheet.Name,
                 recordOffset: definition.RecordOffset,
                 recordType: (ushort)BiffRecordType.Array,

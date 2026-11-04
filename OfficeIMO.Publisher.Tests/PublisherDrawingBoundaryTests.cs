@@ -15,7 +15,7 @@ public sealed class PublisherDrawingBoundaryTests {
             Assert.True(MoveAnchor(bytes, 0, bytes.Length, objectId, horizontal));
         }, file);
         PublisherDocument document = PublisherDocument.Load(input);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
             && diagnostic.Location == "Contents/object/" + objectId);
         OfficeDrawing page = document.Pages[file == "Simple.pub" ? 0 : 1].Drawing;
         foreach (OfficeDrawing copy in new[] { page, page.Clone() }) {
@@ -27,7 +27,7 @@ public sealed class PublisherDrawingBoundaryTests {
         string svg = document.ToSvg(file == "Simple.pub" ? 0 : 1);
         Assert.Contains("clip-path=", svg);
         Assert.Contains(file == "Simple.pub" ? "0123456789" : "Table on page 2", svg);
-        Assert.Equal(document.Pages.Count, PdfReadDocument.Open(document.ToPdfBytes()).Pages.Count);
+        Assert.Equal(document.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes())).Pages.Count);
     }
 
     // Keep each native frame's dimensions while moving its left/top edge to -12 points.

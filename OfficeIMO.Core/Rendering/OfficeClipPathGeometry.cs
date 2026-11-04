@@ -5,7 +5,11 @@ namespace OfficeIMO.Drawing;
 
 // Shared nominal clip contours for painting and geometry inspection.
 internal static class OfficeClipPathGeometry {
-    internal static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateContours(OfficeClipPath clipPath, Func<IReadOnlyList<OfficePoint>, IReadOnlyList<OfficePoint>> transformContour) {
+    internal static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateContours(OfficeClipPath clipPath, Func<IReadOnlyList<OfficePoint>, IReadOnlyList<OfficePoint>> transformContour) =>
+        CreateContours(clipPath, transformContour, int.MaxValue);
+
+    internal static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateContours(OfficeClipPath clipPath, Func<IReadOnlyList<OfficePoint>, IReadOnlyList<OfficePoint>> transformContour,
+        int maximumPoints) {
         IReadOnlyList<OfficePoint> basis = transformContour(new[] { new OfficePoint(0, 0), new OfficePoint(1, 0), new OfficePoint(0, 1) });
         double dx1 = basis[1].X - basis[0].X, dy1 = basis[1].Y - basis[0].Y;
         double dx2 = basis[2].X - basis[0].X, dy2 = basis[2].Y - basis[0].Y;
@@ -25,7 +29,8 @@ internal static class OfficeClipPathGeometry {
                 contour = OfficeCurveFlattening.RoundedRectangle(0D, 0D, clipPath.Width, clipPath.Height, clipPath.CornerRadius, clipPath.CornerRadius, pixelsPerUnit);
                 return new[] { transformContour(contour) };
             case OfficeClipPathKind.Path:
-                IReadOnlyList<OfficeFlattenedPathContour> flattened = OfficePathFlattener.Flatten(clipPath.Commands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
+                IReadOnlyList<OfficeFlattenedPathContour> flattened = OfficePathFlattener.FlattenWithinPointLimit(clipPath.Commands, 0D, 0D, 1D,
+                    maximumPoints, pixelsPerUnit: pixelsPerUnit);
                 List<IReadOnlyList<OfficePoint>> contours = new List<IReadOnlyList<OfficePoint>>();
                 for (int i = 0; i < flattened.Count; i++) {
                     // Filled clipping subpaths implicitly close their final edge.

@@ -246,7 +246,7 @@ EmailStoreExportReport files = session.ExportToDirectory(
 EmailStoreMboxExportReport mailbox = session.ExportToMbox(
     "exported-mail/archive.mbox",
     new EmailStoreMboxExportOptions(
-        EmailStoreMboxExportFidelityPolicy.RequireNoLoss,
+        EmailStoreMboxExportFidelityPolicy.FailOnLoss,
         maxItems: 50_000));
 
 EmailStoreExportReport maildir = session.ExportToNativeDirectory(
@@ -267,9 +267,9 @@ replaced by default. Per-item failures and fidelity warnings remain visible in t
 creates `tmp`, `new`, and `cur`; when the destination file system cannot represent the `:2,` flag suffix, flags remain
 in the preservation manifest and the report contains a warning. `EmailStoreEmlxWriter` is also public for writing
 one EMLX artifact directly. Store export, mbox, recovery, merge, and split reports implement
-`IOfficeConversionReport`; inspect `FidelityDiagnostics` or call `RequireNoLoss()` to distinguish approximations,
+`OfficeConversionReport`; inspect `Diagnostics` or call `ThrowIfLoss()` to distinguish approximations,
 omissions, and failures. For a single mbox artifact, select
-`EmailStoreMboxExportFidelityPolicy.RequireNoLoss` to evaluate that evidence while the mailbox is still staged and
+`EmailStoreMboxExportFidelityPolicy.FailOnLoss` to evaluate that evidence while the mailbox is still staged and
 reject publication when the selected sequence is truncated or any entry is not preserved.
 
 ## Create a Unicode PST

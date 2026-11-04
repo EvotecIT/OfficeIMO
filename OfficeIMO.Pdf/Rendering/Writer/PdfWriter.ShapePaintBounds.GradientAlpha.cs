@@ -7,10 +7,11 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Clips diagnostic geometry to nonzero alpha intervals of its actual gradient field.</summary>
     private static bool TryCreateGradientAlphaContours(OfficeShape shape, List<List<OfficePoint>> paint,
-        OfficeLinearGradient? linear, OfficeRadialGradient? radial, out List<List<OfficePoint>>? contours) {
+        OfficeLinearGradient? linear, OfficeRadialGradient? radial, out List<List<OfficePoint>>? contours, Action<int>? chargePoints = null) {
         contours = null;
         IReadOnlyList<OfficeGradientStop>? stops = radial?.Stops ?? linear?.Stops;
         if (stops == null) return true;
+        chargePoints?.Invoke(stops.Count);
         stops = PdfVisualResourceDictionaryBuilder.NormalizeGradientStops(stops);
         bool transparent = false, visible = false;
         foreach (var stop in stops) { transparent |= stop.Color.A == 0; visible |= stop.Color.A > 0; }
@@ -41,7 +42,7 @@ internal static partial class PdfWriter {
                 ? double.PositiveInfinity : stops[last + 1].Offset;
             index = last;
             if (radial != null) {
-                if (double.IsPositiveInfinity(upper)) contours.Add(new(rectangle));
+                if (double.IsPositiveInfinity(upper)) { chargePoints?.Invoke(rectangle.Count); contours.Add(new(rectangle)); }
                 else contours.Add(RadialRing(upper));
                 if (!double.IsNegativeInfinity(lower) &&
                     (radial.StartRadiusX + (radial.EndRadiusX - radial.StartRadiusX) * lower) > 0)
@@ -50,7 +51,7 @@ internal static partial class PdfWriter {
                 var polygon = new List<OfficePoint>(rectangle);
                 if (!double.IsNegativeInfinity(lower)) polygon = ClipRatio(polygon, lower, true);
                 if (!double.IsPositiveInfinity(upper)) polygon = ClipRatio(polygon, upper, false);
-                if (polygon.Count >= 3) contours.Add(polygon);
+                if (polygon.Count >= 3) { chargePoints?.Invoke(polygon.Count); contours.Add(polygon); }
             }
         }
         return true;
@@ -84,6 +85,7 @@ internal static partial class PdfWriter {
                 .Then(shape.Transform ?? OfficeTransform.Identity);
             double density = OfficeStrokeGeometry.LocalFlatteningDensity(fieldToPage, 4D);
             var ring = OfficeCurveFlattening.Ellipse(radial.StartX, radial.StartY, rx, ry, density);
+            chargePoints?.Invoke(ring.Count);
             for (int i = 0; i < ring.Count; i++) {
                 OfficePoint normalized = radial.CoordinateTransform.TransformPoint(ring[i]);
                 ring[i] = new(normalized.X * Math.Max(.0001, shape.Width), normalized.Y * Math.Max(.0001, shape.Height));

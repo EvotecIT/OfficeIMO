@@ -9,46 +9,46 @@ public static partial class MarkdownPdfConverterExtensions {
     private static InlineStyle CreateInlineStyle(MarkdownPdfStyle visualTheme, AnchorContext? anchors = null) =>
         InlineStyle.Default.With(linkColor: visualTheme.LinkColorSnapshot, underlineLinks: visualTheme.UnderlineLinksSnapshot, anchors: anchors);
 
-    private static void AppendInlines(PdfCore.PdfParagraphBuilder builder, InlineSequence sequence, InlineStyle style) {
+    private static void AppendInlines(PdfCore.PdfParagraph builder, InlineSequence sequence, InlineStyle style) {
         foreach (IMarkdownInline inline in sequence.Nodes) {
             AppendInline(builder, inline, style);
         }
     }
 
-    private static void AppendInline(PdfCore.PdfParagraphBuilder builder, IMarkdownInline inline, InlineStyle style) {
+    private static void AppendInline(PdfCore.PdfParagraph builder, IMarkdownInline inline, InlineStyle style) {
         switch (inline) {
             case OfficeIMO.Markdown.MarkdownTextRun text:
-                ApplyStyle(builder, style).Text(text.Text);
+                ApplyStyle(builder, style).AddText(text.Text);
                 break;
             case BoldInline bold:
-                ApplyStyle(builder, style.With(bold: true)).Text(bold.Text);
+                ApplyStyle(builder, style.With(bold: true)).AddText(bold.Text);
                 break;
             case ItalicInline italic:
-                ApplyStyle(builder, style.With(italic: true)).Text(italic.Text);
+                ApplyStyle(builder, style.With(italic: true)).AddText(italic.Text);
                 break;
             case BoldItalicInline boldItalic:
-                ApplyStyle(builder, style.With(bold: true, italic: true)).Text(boldItalic.Text);
+                ApplyStyle(builder, style.With(bold: true, italic: true)).AddText(boldItalic.Text);
                 break;
             case UnderlineInline underline:
-                ApplyStyle(builder, style.With(underline: true)).Text(underline.Text);
+                ApplyStyle(builder, style.With(underline: true)).AddText(underline.Text);
                 break;
             case InsertedInline inserted:
-                ApplyStyle(builder, style.With(underline: true)).Text(inserted.Text);
+                ApplyStyle(builder, style.With(underline: true)).AddText(inserted.Text);
                 break;
             case SuperscriptInline superscript:
-                ApplyStyle(builder, style.With(baseline: PdfCore.PdfTextBaseline.Superscript)).Text(superscript.Text);
+                ApplyStyle(builder, style.With(baseline: PdfCore.PdfTextBaseline.Superscript)).AddText(superscript.Text);
                 break;
             case SubscriptInline subscript:
-                ApplyStyle(builder, style.With(baseline: PdfCore.PdfTextBaseline.Subscript)).Text(subscript.Text);
+                ApplyStyle(builder, style.With(baseline: PdfCore.PdfTextBaseline.Subscript)).AddText(subscript.Text);
                 break;
             case StrikethroughInline strike:
-                ApplyStyle(builder, style.With(strike: true)).Text(strike.Text);
+                ApplyStyle(builder, style.With(strike: true)).AddText(strike.Text);
                 break;
             case HighlightInline highlight:
-                ApplyStyle(builder, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199))).Text(highlight.Text);
+                ApplyStyle(builder, style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199))).AddText(highlight.Text);
                 break;
             case CodeSpanInline code:
-                ApplyStyle(builder, style.With(font: PdfCore.PdfStandardFont.Courier, background: PdfCore.PdfColor.FromRgb(241, 245, 249), color: PdfCore.PdfColor.FromRgb(30, 41, 59))).Text(code.Text);
+                ApplyStyle(builder, style.With(font: PdfCore.PdfStandardFont.Courier, background: global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), color: global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59))).AddText(code.Text);
                 break;
             case FootnoteRefInline reference:
                 AppendLinkInline(builder, new LinkInline(reference.Label, "#fn:" + reference.Label, null), style.With(baseline: PdfCore.PdfTextBaseline.Superscript));
@@ -69,7 +69,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 AppendInlines(builder, strikethroughSequence.Inlines, style.With(strike: true));
                 break;
             case HighlightSequenceInline highlightSequence:
-                AppendInlines(builder, highlightSequence.Inlines, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)));
+                AppendInlines(builder, highlightSequence.Inlines, style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199)));
                 break;
             case InsertedSequenceInline insertedSequence:
                 AppendInlines(builder, insertedSequence.Inlines, style.With(underline: true));
@@ -80,17 +80,25 @@ public static partial class MarkdownPdfConverterExtensions {
             case SubscriptSequenceInline subscriptSequence:
                 AppendInlines(builder, subscriptSequence.Inlines, style.With(baseline: PdfCore.PdfTextBaseline.Subscript));
                 break;
+            case ImageInline image when TryAppendInlineImage(builder, image.Src, image.PlainAlt, linkUrl: null, style):
+                break;
+            case ImageLinkInline imageLink when TryAppendInlineImage(builder, imageLink.ImageUrl, imageLink.PlainAlt, imageLink.LinkUrl, style):
+                break;
             case ImageInline image:
-                ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
+                style.Anchors?.ReportInlineImageAsText(image.Src);
+                ApplyStyle(builder, style.With(italic: true)).AddText("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
                 break;
             case ImageLinkInline imageLink:
-                ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (imageLink.PlainAlt.Length == 0 ? imageLink.ImageUrl : imageLink.PlainAlt) + "]");
+                // A linked inline image, such as a status badge, keeps its link and reads as its alternative text.
+                style.Anchors?.ReportInlineImageAsText(imageLink.ImageUrl);
+                AppendLinkInline(builder, new LinkInline(imageLink.PlainAlt.Length == 0 ? imageLink.LinkUrl : imageLink.PlainAlt,
+                    imageLink.LinkUrl, imageLink.LinkTitle), style);
                 break;
             case HardBreakInline:
-                builder.LineBreak();
+                builder.AddLineBreak();
                 break;
             case SoftBreakInline:
-                ApplyStyle(builder, style).Text(" ");
+                ApplyStyle(builder, style).AddText(" ");
                 break;
             case HtmlTagSequenceInline htmlTag:
                 AppendHtmlTagInline(builder, htmlTag, style);
@@ -101,31 +109,48 @@ public static partial class MarkdownPdfConverterExtensions {
             case IPlainTextMarkdownInline plain:
                 var textBuilder = new StringBuilder();
                 plain.AppendPlainText(textBuilder);
-                ApplyStyle(builder, style).Text(textBuilder.ToString());
+                ApplyStyle(builder, style).AddText(textBuilder.ToString());
                 break;
         }
     }
 
-    private static void AppendLinkInline(PdfCore.PdfParagraphBuilder builder, LinkInline link, InlineStyle style) {
+    // An image inside a line of text, such as a status badge, is drawn at the height of the text around it.
+    // Links on such images keep their target through the following link text, so only unlinked images are drawn.
+    private static bool TryAppendInlineImage(PdfCore.PdfParagraph builder, string source, string altText, string? linkUrl, InlineStyle style) {
+        MarkdownPdfExportOptions? options = style.Anchors?.Options;
+        if (options == null || !options.IncludeImages || linkUrl != null) return false;
+        if (!TryReadImageBytes(source, options, out byte[] bytes, out _, out _, out _) ||
+            !PdfCore.PdfDocument.TryPrepareImageBytes(bytes, out byte[] prepared, out OfficeImageInfo? info, out _, out _) ||
+            info == null || info.Width <= 0 || info.Height <= 0) {
+            return false;
+        }
+
+        double height = (style.FontSize ?? 11D) * 1.15D;
+        double width = height * info.Width / info.Height;
+        builder.AddInlineImage(prepared, OfficeLength.Points(width), OfficeLength.Points(height), altText.Length == 0 ? null : altText, baselineOffset: OfficeLength.Points(-(style.FontSize ?? 11D) * 0.2D));
+        return true;
+    }
+
+    private static void AppendLinkInline(PdfCore.PdfParagraph builder, LinkInline link, InlineStyle style) {
         string label = string.IsNullOrEmpty(link.Text) ? link.Url : link.Text;
         bool underline = style.UnderlineLinks ?? true;
-        InlineStyle linkStyle = style.With(underline: underline, color: style.LinkColor ?? PdfCore.PdfColor.FromRgb(37, 99, 235));
+        InlineStyle linkStyle = style.With(underline: underline, color: style.LinkColor ?? global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235));
         if (TryGetBookmarkTarget(link.Url, out string? bookmark)) {
-            if (style.Anchors != null && !style.Anchors.CanLink(bookmark!)) { ApplyStyle(builder, style).Text(label); return; }
-            ApplyStyle(builder, linkStyle).LinkToBookmark(label, bookmark!, color: linkStyle.Color, underline: underline, contents: link.Title ?? label);
+            if (style.Anchors != null && !style.Anchors.CanLink(bookmark!)) { ApplyStyle(builder, style).AddText(label); return; }
+            ApplyStyle(builder, linkStyle).AddBookmarkLink(label, bookmark!, color: linkStyle.Color, underline: underline, contents: link.Title ?? label);
             return;
         }
 
         string? absolute = NormalizeAbsoluteLink(link.Url);
         if (absolute != null) {
-            ApplyStyle(builder, linkStyle).Link(label, absolute, color: linkStyle.Color, underline: underline, contents: link.Title ?? label);
+            ApplyStyle(builder, linkStyle).AddLink(label, absolute, color: linkStyle.Color, underline: underline, contents: link.Title ?? label);
             return;
         }
 
-        ApplyStyle(builder, style).Text(label);
+        ApplyStyle(builder, style).AddText(label);
     }
 
-    private static void AppendHtmlTagInline(PdfCore.PdfParagraphBuilder builder, HtmlTagSequenceInline htmlTag, InlineStyle style) {
+    private static void AppendHtmlTagInline(PdfCore.PdfParagraph builder, HtmlTagSequenceInline htmlTag, InlineStyle style) {
         InlineStyle tagStyle = htmlTag.TagName switch {
             "strong" or "b" => style.With(bold: true),
             "em" or "i" => style.With(italic: true),
@@ -133,7 +158,7 @@ public static partial class MarkdownPdfConverterExtensions {
             "del" or "s" => style.With(strike: true),
             "sup" => style.With(baseline: PdfCore.PdfTextBaseline.Superscript),
             "sub" => style.With(baseline: PdfCore.PdfTextBaseline.Subscript),
-            "mark" => style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)),
+            "mark" => style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199)),
             _ => style
         };
         AppendInlines(builder, htmlTag.Inlines, tagStyle);
@@ -178,10 +203,10 @@ public static partial class MarkdownPdfConverterExtensions {
                 runs.Add(CreateRun(strike.Text, style.With(strike: true)));
                 break;
             case HighlightInline highlight:
-                runs.Add(CreateRun(highlight.Text, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199))));
+                runs.Add(CreateRun(highlight.Text, style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199))));
                 break;
             case CodeSpanInline code:
-                runs.Add(CreateRun(code.Text, style.With(font: PdfCore.PdfStandardFont.Courier, background: PdfCore.PdfColor.FromRgb(241, 245, 249), color: PdfCore.PdfColor.FromRgb(30, 41, 59))));
+                runs.Add(CreateRun(code.Text, style.With(font: PdfCore.PdfStandardFont.Courier, background: global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), color: global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59))));
                 break;
             case FootnoteRefInline reference:
                 AddLinkRun(runs, new LinkInline(reference.Label, "#fn:" + reference.Label, null), style.With(baseline: PdfCore.PdfTextBaseline.Superscript));
@@ -211,7 +236,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 break;
             case HighlightSequenceInline highlightSequence:
                 foreach (IMarkdownInline nested in highlightSequence.Inlines.Nodes) {
-                    AddTextRuns(runs, nested, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)));
+                    AddTextRuns(runs, nested, style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199)));
                 }
                 break;
             case InsertedSequenceInline insertedSequence:
@@ -243,7 +268,7 @@ public static partial class MarkdownPdfConverterExtensions {
                     "del" or "s" => style.With(strike: true),
                     "sup" => style.With(baseline: PdfCore.PdfTextBaseline.Superscript),
                     "sub" => style.With(baseline: PdfCore.PdfTextBaseline.Subscript),
-                    "mark" => style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)),
+                    "mark" => style.With(background: global::OfficeIMO.OfficeColor.FromRgb(254, 243, 199)),
                     _ => style
                 };
                 foreach (IMarkdownInline nested in htmlTag.Inlines.Nodes) {
@@ -265,7 +290,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static void AddLinkRun(List<PdfTextRun> runs, LinkInline link, InlineStyle style) {
         string label = string.IsNullOrEmpty(link.Text) ? link.Url : link.Text;
-        PdfCore.PdfColor linkColor = style.LinkColor ?? PdfCore.PdfColor.FromRgb(37, 99, 235);
+        global::OfficeIMO.OfficeColor linkColor = style.LinkColor ?? global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235);
         bool underline = style.UnderlineLinks ?? true;
         if (TryGetBookmarkTarget(link.Url, out string? bookmark)) {
             if (style.Anchors != null && !style.Anchors.CanLink(bookmark!)) { runs.Add(CreateRun(label, style)); return; }
@@ -282,7 +307,7 @@ public static partial class MarkdownPdfConverterExtensions {
         runs.Add(CreateRun(label, style));
     }
 
-    private static PdfTextRun CreateLinkRun(string text, InlineStyle style, PdfCore.PdfColor color, bool underline, string contents, string? uri, string? bookmark) =>
+    private static PdfTextRun CreateLinkRun(string text, InlineStyle style, global::OfficeIMO.OfficeColor color, bool underline, string contents, string? uri, string? bookmark) =>
         new PdfTextRun(
             text,
             bold: style.Bold,
@@ -290,8 +315,8 @@ public static partial class MarkdownPdfConverterExtensions {
             color: color,
             italic: style.Italic,
             strike: style.Strike,
-            fontSize: style.FontSize,
-            font: style.Font,
+            fontSize: ((double?)(style.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
+            standardFont: style.Font,
             linkUri: uri,
             linkContents: contents,
             baseline: style.Baseline,
@@ -306,54 +331,54 @@ public static partial class MarkdownPdfConverterExtensions {
             color: style.Color,
             italic: style.Italic,
             strike: style.Strike,
-            fontSize: style.FontSize,
-            font: style.Font,
+            fontSize: ((double?)(style.FontSize) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
+            standardFont: style.Font,
             baseline: style.Baseline,
             backgroundColor: style.Background);
     }
 
-    private static PdfCore.PdfParagraphBuilder ApplyStyle(PdfCore.PdfParagraphBuilder builder, InlineStyle style) {
-        builder.Bold(style.Bold)
-            .Italic(style.Italic)
-            .Underline(style.Underline)
-            .Strike(style.Strike)
-            .Baseline(style.Baseline);
+    private static PdfCore.PdfParagraph ApplyStyle(PdfCore.PdfParagraph builder, InlineStyle style) {
+        builder.RunDefaults.Bold = style.Bold;
+        builder.RunDefaults.Italic = style.Italic;
+        builder.RunDefaults.UnderlineStyle = (style.Underline) ? global::OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : global::OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+        builder.RunDefaults.StrikeStyle = (style.Strike) ? global::OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : global::OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+        builder.RunDefaults.Baseline = style.Baseline;
 
         if (style.FontSize.HasValue) {
-            builder.FontSize(style.FontSize.Value);
+            builder.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSize.Value);
         } else {
-            builder.ResetFontSize();
+            builder.RunDefaults.FontSize = null;
         }
 
         if (style.Font.HasValue) {
-            builder.Font(style.Font.Value);
+            builder.RunDefaults.StandardFont = style.Font.Value; builder.RunDefaults.FontFamily = null;
         } else {
-            builder.ResetFont();
+            builder.RunDefaults.StandardFont = null; builder.RunDefaults.FontFamily = null;
         }
 
         if (style.Color.HasValue) {
-            builder.Color(style.Color.Value);
+            builder.RunDefaults.Color = style.Color.Value;
         } else {
-            builder.ResetColor();
+            builder.RunDefaults.Color = null;
         }
 
         if (style.Background.HasValue) {
-            builder.BackgroundColor(style.Background.Value);
+            builder.RunDefaults.BackgroundColor = style.Background.Value;
         } else {
-            builder.ResetBackgroundColor();
+            builder.RunDefaults.BackgroundColor = null;
         }
 
         return builder;
     }
 
-    private static void AppendTextWithLineBreaks(PdfCore.PdfParagraphBuilder builder, string text) {
+    private static void AppendTextWithLineBreaks(PdfCore.PdfParagraph builder, string text) {
         string[] lines = (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         for (int i = 0; i < lines.Length; i++) {
             if (i > 0) {
-                builder.LineBreak();
+                builder.AddLineBreak();
             }
 
-            builder.Text(lines[i]);
+            builder.AddText(lines[i]);
         }
     }
 
@@ -380,11 +405,11 @@ public static partial class MarkdownPdfConverterExtensions {
             bool underline,
             bool strike,
             PdfCore.PdfTextBaseline baseline,
-            PdfCore.PdfColor? color,
-            PdfCore.PdfColor? background,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? background,
             double? fontSize,
             PdfCore.PdfStandardFont? font,
-            PdfCore.PdfColor? linkColor,
+            global::OfficeIMO.OfficeColor? linkColor,
             bool? underlineLinks, AnchorContext? anchors = null) {
             Bold = bold;
             Italic = italic;
@@ -412,15 +437,15 @@ public static partial class MarkdownPdfConverterExtensions {
 
         public PdfCore.PdfTextBaseline Baseline { get; }
 
-        public PdfCore.PdfColor? Color { get; }
+        public global::OfficeIMO.OfficeColor? Color { get; }
 
-        public PdfCore.PdfColor? Background { get; }
+        public global::OfficeIMO.OfficeColor? Background { get; }
 
         public double? FontSize { get; }
 
         public PdfCore.PdfStandardFont? Font { get; }
 
-        public PdfCore.PdfColor? LinkColor { get; }
+        public global::OfficeIMO.OfficeColor? LinkColor { get; }
 
         public bool? UnderlineLinks { get; }
 
@@ -432,11 +457,11 @@ public static partial class MarkdownPdfConverterExtensions {
             bool? underline = null,
             bool? strike = null,
             PdfCore.PdfTextBaseline? baseline = null,
-            PdfCore.PdfColor? color = null,
-            PdfCore.PdfColor? background = null,
+            global::OfficeIMO.OfficeColor? color = null,
+            global::OfficeIMO.OfficeColor? background = null,
             double? fontSize = null,
             PdfCore.PdfStandardFont? font = null,
-            PdfCore.PdfColor? linkColor = null,
+            global::OfficeIMO.OfficeColor? linkColor = null,
             bool? underlineLinks = null, AnchorContext? anchors = null) =>
             new InlineStyle(
                 bold ?? Bold,

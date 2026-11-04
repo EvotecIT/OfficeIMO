@@ -3,7 +3,7 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlReader {
-    internal static RtfDocument Read(IHtmlDocument htmlDocument, HtmlToRtfOptions options, bool sourceLimitsValidated = false) {
+    internal static RtfDocument Read(IHtmlDocument htmlDocument, HtmlRtfExportOptions options, bool sourceLimitsValidated = false) {
         RtfDocument document = RtfDocument.Create();
         ReadDom(htmlDocument, options, document, sourceLimitsValidated);
         return document;
@@ -11,7 +11,7 @@ internal static partial class RtfHtmlReader {
 
     private sealed partial class ReadContext {
         private readonly RtfDocument _document;
-        private readonly HtmlToRtfOptions _options;
+        private readonly HtmlRtfExportOptions _options;
         private readonly Uri? _baseUri;
         private readonly Stack<HtmlListState> _lists = new Stack<HtmlListState>();
         private readonly Stack<HtmlStyleScope> _styles = new Stack<HtmlStyleScope>();
@@ -46,7 +46,7 @@ internal static partial class RtfHtmlReader {
         private RtfSection? _currentSection;
         private int _sectionElementDepth;
 
-        internal ReadContext(RtfDocument document, HtmlToRtfOptions options, Uri? baseUri) {
+        internal ReadContext(RtfDocument document, HtmlRtfExportOptions options, Uri? baseUri) {
             _document = document;
             _options = options;
             _baseUri = baseUri;

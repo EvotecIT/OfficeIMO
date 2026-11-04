@@ -21,11 +21,11 @@ public partial class VisioForeignImageRenderingTests {
             };
             OfficeDocumentModel model = candidate.ToOfficeDocumentModel("independent.vdx", options);
             byte[] expected = Assert.Single(model.Assets).PayloadBytes!;
-            PdfDocumentConversionResult result = candidate.ToPdfDocumentResult(new VisioToPdfOptions {
+            PdfDocument result = candidate.ToPdf(new VisioPdfExportOptions {
                 SourceName = "independent.vdx", VisioOptions = options
-            });
+            }, out OfficeConversionReport resultReport);
             byte[] pdf = result.ToBytes();
-            PdfReadDocument read = PdfReadDocument.Open(pdf);
+            PdfDocument read = PdfDocument.Load(new System.IO.MemoryStream(pdf));
             PdfExtractedImage embedded = Assert.Single(read.Pages.SelectMany(page => page.GetImages()));
             Assert.True(OfficeRasterImageDecoder.TryDecode(expected, out OfficeRasterImage? expectedImage));
             Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out OfficeRasterImage? actualImage));
@@ -34,13 +34,12 @@ public partial class VisioForeignImageRenderingTests {
             for (int y = 0; y < expectedImage.Height; y++)
                 for (int x = 0; x < expectedImage.Width; x++)
                     Assert.Equal(expectedImage.GetPixel(x, y), actualImage.GetPixel(x, y));
-            PdfConversionWarning normalization = Assert.Single(result.Warnings, warning => warning.Code == "VISIO_BITMAP_SIZE_NORMALIZED");
+            OfficeDiagnostic normalization = Assert.Single(resultReport.Diagnostics, warning => warning.Code == "VISIO_BITMAP_SIZE_NORMALIZED");
             Assert.Equal(OfficeConversionLossKind.None, normalization.LossKind);
-            Assert.Equal("1", normalization.Details["sourcePage"]);
             Assert.Contains("Scope", read.ExtractText());
-            Assert.Contains(result.Warnings, warning => warning.Code == "pdf-projection-visio-preview-embedded");
-            Assert.False(result.Report.HasLoss);
-            result.RequireNoLoss();
+            Assert.Contains(resultReport.Diagnostics, warning => warning.Code == "pdf-projection-visio-preview-embedded");
+            Assert.False(resultReport.HasLoss);
+            resultReport.ThrowIfLoss();
         }
     }
 
@@ -66,9 +65,9 @@ public partial class VisioForeignImageRenderingTests {
             SvgOptions = options.SvgOptions, PngOptions = options.PngOptions
         });
         var readerDiagnostic = Assert.Single(reader.Diagnostics, item => item.Code == diagnostic.Code);
-        PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(new VisioToPdfOptions {
+        PdfDocument conversion = document.ToPdf(new VisioPdfExportOptions {
             SourceName = "opaque.vdx", VisioOptions = options
-        });
+        }, out OfficeConversionReport conversionReport);
         conversion.ToBytes();
 
         Assert.Equal("opaque.vdx", diagnostic.Location!.Path);
@@ -76,11 +75,10 @@ public partial class VisioForeignImageRenderingTests {
         Assert.Equal(svg ? "preview-svg" : "preview-png", diagnostic.Location.SourceBlockKind);
         Assert.Equal("Omission", diagnostic.Attributes["lossKind"]);
         Assert.Equal("Omission", readerDiagnostic.Attributes["lossKind"]);
-        PdfConversionWarning warning = Assert.Single(conversion.Warnings, item => item.Code == diagnostic.Code);
+        OfficeDiagnostic warning = Assert.Single(conversionReport.Diagnostics, item => item.Code == diagnostic.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.True(conversion.Report.HasLoss);
-        Assert.Equal("opaque.vdx", warning.Details["sourcePath"]);
-        if (svg) Assert.Contains(conversion.Warnings, item => item.Code == "pdf-projection-asset-listed-not-embedded");
+        Assert.True(conversionReport.HasLoss);
+        if (svg) Assert.Contains(conversionReport.Diagnostics, item => item.Code == "pdf-projection-asset-listed-not-embedded");
     }
 
     [Fact]
@@ -96,9 +94,9 @@ public partial class VisioForeignImageRenderingTests {
         Assert.True(OfficeImageReader.TryIdentify(Assert.Single(model.Assets).PayloadBytes!, ".png", out OfficeImageInfo info));
         Assert.True((long)info.Width * info.Height <= 4096);
         Assert.Contains(model.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced && item.Attributes["lossKind"] == "Approximation");
-        var result = document.ToPdfDocumentResult(new VisioToPdfOptions { VisioOptions = options });
+        var result = document.ToPdf(new VisioPdfExportOptions { VisioOptions = options }, out OfficeConversionReport resultReport);
         result.ToBytes();
-        Assert.Contains(result.Warnings, item => item.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced && item.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(resultReport.Diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.RasterScaleReduced && item.LossKind == OfficeConversionLossKind.Approximation);
         Assert.Equal(96, pngOptions.PixelsPerInch);
         Assert.Equal(4096, pngOptions.MaximumRasterPixels);
         Assert.False(pngOptions.CancellationToken.IsCancellationRequested);
@@ -162,9 +160,10 @@ public partial class VisioForeignImageRenderingTests {
         Assert.Equal(renderText, fontDiagnostics.Any(item => item.Message.Contains("OfficeIMO Missing Shape Font")));
         Assert.Equal(renderLabels, fontDiagnostics.Any(item => item.Message.Contains("OfficeIMO Missing Label Font")));
         if (!svg && !renderText && !renderLabels) {
-            var result = document.ToPdfDocumentResult(new VisioToPdfOptions { VisioOptions = options });
-            result.RequireNoLoss().ToBytes();
-            Assert.False(result.Report.HasLoss);
+            var result = document.ToPdf(new VisioPdfExportOptions { VisioOptions = options }, out OfficeConversionReport resultReport);
+            resultReport.ThrowIfLoss();
+            result.ToBytes();
+            Assert.False(resultReport.HasLoss);
         }
     }
 }

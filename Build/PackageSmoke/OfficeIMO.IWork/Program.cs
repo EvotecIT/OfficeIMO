@@ -29,7 +29,7 @@ try {
         InputPath = createdPath, OutputPath = Path.Combine(outputRoot, "created.pptx"),
         Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = "keynote-pptx"
     });
-    if (!createdResult.Succeeded || !createdResult.Diagnostics.Any(d => d.Code == "OutputReopened"))
+    if (!createdResult.Succeeded || !createdResult.Diagnostics.Any(d => d.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened))
         throw new InvalidOperationException("Packed created Keynote conversion failed: " + createdResult.Summary);
     foreach ((string extension, string route, string target, string text) in new[] {
         ("pages", "pages-docx", "docx", "hello pages"),
@@ -61,17 +61,38 @@ try {
             }
         }
         string output = Path.Combine(outputRoot, "converted." + target);
-        OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
+        var request = new OfficeWorkflowRequest {
             InputPath = path, OutputPath = output, Operation = OfficeWorkflowOperation.Convert,
             ConversionRouteId = route
-        });
+        };
+        if (extension == "numbers") {
+            OfficeWorkflowResult strict = await runner.RunAsync(request);
+            if (strict.Succeeded || File.Exists(output)
+                || strict.Diagnostics.Any(diagnostic => diagnostic.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened))
+                throw new InvalidOperationException("Packed Numbers conversion published a known padding omission without acceptance.");
+            request.RegisteredConversionSettings = new IWorkWorkflowSettings {
+                ConversionOptions = new IWorkConversionOptions {
+                    Mode = IWorkConversionMode.EditableOnly,
+                    NormalizeWorksheetNames = true,
+                    AllowPartialEditableReconstruction = true
+                }
+            };
+        }
+        OfficeWorkflowResult result = await runner.RunAsync(request);
         if (!result.Succeeded || !File.Exists(output)
-            || !result.Diagnostics.Any(diagnostic => diagnostic.Code == "OutputReopened")
+            || !result.Diagnostics.Any(diagnostic => diagnostic.Code == global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened)
             || result.ConversionEvidence?.Facts["projectionKind"] != "EditableReconstruction"
-            || result.ConversionEvidence.Facts["partialEditableReconstruction"] != bool.FalseString
+            || result.ConversionEvidence.Facts["partialEditableReconstruction"] != (extension == "numbers").ToString()
             || result.ConversionEvidence.Facts["omittedSourceUnitCount"] != "0"
             || result.ConversionEvidence.Facts["unassessedSourceUnitCount"] != "0") {
             throw new InvalidOperationException("Packed conversion failed for " + route + ": " + result.Summary);
+        }
+        if (extension == "numbers") {
+            var omissions = result.ConversionEvidence.Diagnostics.Where(diagnostic =>
+                diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission
+                && diagnostic.Code != "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION").ToArray();
+            if (omissions.Length != 1 || omissions[0].Code != "IWORK_NUMBERS_CELL_PADDING_OMITTED")
+                throw new InvalidOperationException("Packed Numbers conversion did not retain its typed padding omission.");
         }
         switch (extension) {
             case "pages":
@@ -82,14 +103,14 @@ try {
                 break;
             case "numbers":
                 using (var workbook = OfficeIMO.Excel.ExcelDocument.Load(output)) {
-                    if (workbook.Sheets.Count != 1 || workbook.Sheets[0].CellAt(1, 1).GetValue<string>() != "a"
-                        || workbook.Sheets[0].CellAt(2, 2).GetValue<double>() != 2d
-                        || workbook.Sheets[0].CellAt(3, 3).GetValue<string>() != "Z")
+                    if (workbook.Sheets.Count != 1 || workbook.Sheets[0].Cell(1, 1).GetValue<string>() != "a"
+                        || workbook.Sheets[0].Cell(2, 2).GetValue<double>() != 2d
+                        || workbook.Sheets[0].Cell(3, 3).GetValue<string>() != "Z")
                         throw new InvalidOperationException("Packed Numbers conversion lost its typed grid values.");
                 }
                 break;
             case "key":
-                using (var presentation = OfficeIMO.PowerPoint.PowerPointPresentation.Load(output)) {
+                using (var presentation = OfficeIMO.PowerPoint.PowerPointDocument.Load(output)) {
                     if (presentation.Slides.Count != 2
                         || !presentation.Slides[0].TextBoxes.Any(box => box.Text.Contains("hello keynote", StringComparison.Ordinal))
                         || !presentation.Slides[1].TextBoxes.Any(box => box.Text.Contains("second slide", StringComparison.Ordinal)))

@@ -16,5 +16,5 @@
 
 | Code | Count |
 | --- | ---: |
-| DOC-PICTURES-PROJECTED | 1 |
-| DOC-QUICK-SAVE-HISTORY-PRESENT | 1 |
+| doc-pictures-projected | 1 |
+| doc-quick-save-history-present | 1 |

@@ -129,7 +129,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
     /// <summary>Maximum row count inspected when -AsDataReader infers the reader schema.</summary>
     [Parameter]
     [ValidateRange(1, int.MaxValue)]
-    public int SchemaSampleSize { get; set; } = 1024;
+    public int SchemaSampleRows { get; set; } = 1024;
 
     /// <summary>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</summary>
     [Parameter]
@@ -160,7 +160,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
             culture: ResolveCulture());
         options.CancellationToken = AsDataReader.IsPresent ? CancellationToken.None : CancelToken;
         options.InferSchema = AsDataReader.IsPresent || AsDataTable.IsPresent;
-        options.SchemaSampleRows = SchemaSampleSize;
+        options.SchemaSampleRows = SchemaSampleRows;
         options.MaxDataReaderChunkRows = ChunkRows;
 
         if (AllSheets.IsPresent)
@@ -221,7 +221,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
         }
     }
 
-    private async Task WriteDataReaderAsync(ExcelReadOptions options)
+    private async Task WriteDataReaderAsync(ExcelReaderOptions options)
     {
         var reader = await CreateDataReaderAsync(options).ConfigureAwait(false);
         try
@@ -235,7 +235,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
         }
     }
 
-    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReadOptions options)
+    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReaderOptions options)
     {
         if (ParameterSetName == ParameterSetDocument)
         {
@@ -254,7 +254,8 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
                 throw new PSArgumentException("Workbook URI was not provided.", nameof(Uri));
             }
 
-            return await ExcelDocument.OpenDataReaderAsync(Uri, options, ExcelHttpLoadService.CreateOptions(AllowHttp), CancelToken)
+            options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp);
+            return await ExcelDocument.OpenReaderAsync(Uri, options, CancelToken)
                 .ConfigureAwait(false);
         }
 
@@ -269,7 +270,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
             throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
         }
 
-        return ExcelDocument.OpenDataReader(resolvedPath, options);
+        return ExcelDocument.OpenReader(resolvedPath, options);
     }
 
     private string? ResolveRange()
@@ -301,7 +302,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
                 throw new PSArgumentException("StartColumn must be less than or equal to EndColumn.");
             }
 
-            return $"{A1.CellReference(StartRow.Value, StartColumn.Value)}:{A1.CellReference(EndRow.Value, EndColumn.Value)}";
+            return $"{ExcelA1.CellReference(StartRow.Value, StartColumn.Value)}:{ExcelA1.CellReference(EndRow.Value, EndColumn.Value)}";
         }
 
         return null;

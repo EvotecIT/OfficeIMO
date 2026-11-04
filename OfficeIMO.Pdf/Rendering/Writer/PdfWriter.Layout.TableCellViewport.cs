@@ -38,8 +38,8 @@ internal static partial class PdfWriter {
         double bottomInset = Thickness(border.Bottom, border.BottomBorderSnapshot);
         if (style.CellTextClipIncludesVerticalPadding) {
             PdfCellPadding? padding = GetTableCellPaddingOverride(style, row, column);
-            topInset = Math.Max(topInset, padding?.Top ?? GetTableCellPaddingTop(style));
-            bottomInset = Math.Max(bottomInset, padding?.Bottom ?? GetTableCellPaddingBottom(style));
+            topInset = Math.Max(topInset, padding?.Top?.ToPoints() ?? GetTableCellPaddingTop(style));
+            bottomInset = Math.Max(bottomInset, padding?.Bottom?.ToPoints() ?? GetTableCellPaddingBottom(style));
         }
         return new TableCellContentFrame(left + leftInset, top - topInset,
             Math.Max(0D, width - leftInset - rightInset), Math.Max(0D, height - topInset - bottomInset));
@@ -51,17 +51,17 @@ internal static partial class PdfWriter {
     }
 
     private static double GetTableCellContentWidth(TableCellLayout cell, double cellWidth) {
-        double width = cell.Viewport is { } viewport ? cellWidth * (viewport.ContentWidth / viewport.Width) : cellWidth;
+        double width = cell.Viewport is { } viewport ? cellWidth * (viewport.ContentWidth.ToPoints() / viewport.Width.ToPoints()) : cellWidth;
         if (double.IsInfinity(width)) throw new ArgumentOutOfRangeException(nameof(cell), "The scaled cell text viewport width must remain finite.");
         return width;
     }
 
     private static TableCellContentFrame GetTableCellContentFrame(TableCellLayout cell, double left, double top, double width, double height) {
         if (cell.Viewport is not { } viewport) return new TableCellContentFrame(left, top, width, height);
-        double fullWidth = width * (viewport.ContentWidth / viewport.Width);
-        double fullHeight = height * (viewport.ContentHeight / viewport.Height);
-        double fullLeft = left - width * (viewport.OffsetX / viewport.Width);
-        double fullTop = top + height * (viewport.OffsetY / viewport.Height);
+        double fullWidth = width * (viewport.ContentWidth.ToPoints() / viewport.Width.ToPoints());
+        double fullHeight = height * (viewport.ContentHeight.ToPoints() / viewport.Height.ToPoints());
+        double fullLeft = left - width * (viewport.OffsetX.ToPoints() / viewport.Width.ToPoints());
+        double fullTop = top + height * (viewport.OffsetY.ToPoints() / viewport.Height.ToPoints());
         if (double.IsInfinity(fullWidth) || double.IsInfinity(fullHeight) || double.IsInfinity(fullLeft) || double.IsInfinity(fullTop))
             throw new ArgumentOutOfRangeException(nameof(cell), "The scaled cell content viewport exceeds supported finite coordinates.");
         return new TableCellContentFrame(fullLeft, fullTop, fullWidth, fullHeight);
@@ -120,9 +120,9 @@ internal static partial class PdfWriter {
     // fragment. Partial intersections retain their original glyphs and PDF clip.
     private static void OmitInvisibleTableCellViewportLines(
         List<List<RichSeg>> lines, IReadOnlyList<double> heights,
-        IReadOnlyList<PdfAlign?>? alignments, IReadOnlyList<double>? offsets, IReadOnlyList<double>? widths,
-        PdfAlign alignment, double baseline, double textX, double textWidth,
-        double clipX, double clipBottom, double clipWidth, double clipHeight, double leading, double fontSize, PdfOptions options, PdfStandardFont? baselineFont = null) {
+        IReadOnlyList<OfficeAlignment?>? alignments, IReadOnlyList<double>? offsets, IReadOnlyList<double>? widths,
+        OfficeAlignment alignment, double baseline, double textX, double textWidth,
+        double clipX, double clipBottom, double clipWidth, double clipHeight, double leading, double fontSize, PdfCreateOptions options, PdfStandardFont? baselineFont = null) {
         double lineY = baseline;
         for (int index = 0; index < lines.Count; index++) {
             List<RichSeg> line = lines[index];
@@ -130,9 +130,9 @@ internal static partial class PdfWriter {
             double lineWidth = MeasureRichLineWidth(line);
             double availableWidth = widths != null && index < widths.Count ? widths[index] : textWidth;
             double lineX = textX + (offsets != null && index < offsets.Count ? offsets[index] : 0D);
-            PdfAlign lineAlignment = alignments != null && index < alignments.Count ? alignments[index] ?? alignment : alignment;
-            if (lineAlignment == PdfAlign.Center) lineX += Math.Max(0D, (availableWidth - lineWidth) / 2D);
-            else if (lineAlignment == PdfAlign.Right) lineX += Math.Max(0D, availableWidth - lineWidth);
+            OfficeAlignment lineAlignment = alignments != null && index < alignments.Count ? alignments[index] ?? alignment : alignment;
+            if (lineAlignment == OfficeAlignment.Center) lineX += Math.Max(0D, (availableWidth - lineWidth) / 2D);
+            else if (lineAlignment == OfficeAlignment.Right) lineX += Math.Max(0D, availableWidth - lineWidth);
             GetRichLineInkMetrics(line, options, out double ascender, out double descender);
             if (clipWidth <= 0D || clipHeight <= 0D || lineX + lineWidth <= clipX || lineX >= clipX + clipWidth ||
                 inkBaseline + ascender <= clipBottom || inkBaseline - descender >= clipBottom + clipHeight) {

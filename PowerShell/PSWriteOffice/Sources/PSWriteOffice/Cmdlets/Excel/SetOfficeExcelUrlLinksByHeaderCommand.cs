@@ -79,28 +79,29 @@ public sealed class SetOfficeExcelUrlLinksByHeaderCommand : PSCmdlet
         var urlForText = new Func<string, string>(text => ExcelTextTransformService.Apply(UrlScript, text));
         var titleForText = TitleScript == null ? null : new Func<string, string>(text => ExcelTextTransformService.Apply(TitleScript, text));
 
+        var options = new ExcelLinkByHeaderOptions { Display = titleForText, Styled = !NoStyle.IsPresent };
+        bool scoped = true;
         switch (ParameterSetName)
         {
             case ParameterSetContextTable:
             case ParameterSetDocumentTable:
                 var tableRange = TryGetContextTableRange(sheet);
-                if (tableRange == null || tableRange.Length == 0)
-                {
-                    sheet.LinkByHeaderToUrlsInTable(TableName, Header, urlForText, titleForText, !NoStyle.IsPresent);
-                }
-                else
-                {
-                    sheet.LinkByHeaderToUrlsInRange(tableRange, Header, urlForText, titleForText, !NoStyle.IsPresent);
-                }
-
+                if (tableRange == null || tableRange.Length == 0) options.Table = TableName;
+                else options.Range = tableRange;
                 break;
             case ParameterSetContextRange:
             case ParameterSetDocumentRange:
-                sheet.LinkByHeaderToUrlsInRange(Range, Header, urlForText, titleForText, !NoStyle.IsPresent);
+                options.Range = Range;
                 break;
             default:
-                sheet.LinkByHeaderToUrls(Header, urlForCellText: urlForText, titleForCellText: titleForText, styled: !NoStyle.IsPresent);
+                scoped = false;
                 break;
+        }
+
+        ExcelLinkByHeaderResult result = sheet.LinkByHeader(Header, ExcelLinkTarget.Url(urlForText), options);
+        if (scoped && !result.Succeeded)
+        {
+            throw new InvalidOperationException(result.Failure);
         }
 
         if (PassThru.IsPresent)

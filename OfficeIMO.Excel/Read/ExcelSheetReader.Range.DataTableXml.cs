@@ -373,7 +373,7 @@ namespace OfficeIMO.Excel {
         /// Reads a rectangular range into a sequence of dictionaries using the first row as headers.
         /// </summary>
         public IEnumerable<Dictionary<string, object?>> ReadObjects(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 
             int rows = r2 - r1 + 1;
@@ -384,7 +384,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellCount > _opt.MaxRangeCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxRangeCells), _opt.MaxRangeCells,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxRangeCells), _opt.MaxRangeCells,
                     $"Range '{a1Range}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
             }
 

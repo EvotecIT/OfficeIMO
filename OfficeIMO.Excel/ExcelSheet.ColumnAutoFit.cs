@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,7 +19,8 @@ namespace OfficeIMO.Excel {
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
         public void AutoFitColumns(ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             ct.ThrowIfCancellationRequested();
-            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, ct)) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, ct)
+                || TryAutoFitPendingCells(null, mode, ct)) {
                 return;
             }
 
@@ -37,6 +39,7 @@ namespace OfficeIMO.Excel {
             ct.ThrowIfCancellationRequested();
             if (measurementPlan.Columns.Count == 0) return;
             AutoFitColumnsInternal(measurementPlan, mode, ct);
+            RefreshTablePrintDefaults();
         }
 
         /// <summary>
@@ -51,7 +54,8 @@ namespace OfficeIMO.Excel {
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
             ct.ThrowIfCancellationRequested();
             if (list.Count == 0) return;
-            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, list, ct)) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, list, ct)
+                || TryAutoFitPendingCells(list, mode, ct)) {
                 return;
             }
 
@@ -241,128 +245,38 @@ namespace OfficeIMO.Excel {
                 return widths;
             }
 
-            var textMeasurer = ExcelTextMeasurer.Create(GetWorkbookDefaultFontInfo());
-            float defaultMdw = textMeasurer.DefaultStyle.MaximumDigitWidth;
-            if (defaultMdw <= 0.0001f) {
-                return widths;
+            var stylesheet = WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet;
+            var defaultFont = GetWorkbookDefaultFontInfo();
+            var measurer = new AutoFitWidthMeasurer(stylesheet, defaultFont);
+
+            static void ApplyMeasurement(AutoFitMeasurement measurement, double[] localWidths, AutoFitWidthMeasurer localMeasurer) {
+                double width = localMeasurer.Measure(measurement.Text, measurement.StyleIndex, measurement.RichTextRuns);
+                if (width > localWidths[measurement.TargetIndex]) localWidths[measurement.TargetIndex] = width;
             }
 
-            var workbookPart = WorkbookPartRoot;
-            var stylesheet = workbookPart?.WorkbookStylesPart?.Stylesheet;
-            var cellFormats = stylesheet?.CellFormats?.Elements<CellFormat>().ToList();
-            var fonts = stylesheet?.Fonts?.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ToList();
-
-            ExcelTextMeasurer.Style ResolveStyleInfo(uint styleIndex, Dictionary<uint, ExcelTextMeasurer.Style> styleCache) {
-                if (styleCache.TryGetValue(styleIndex, out var cached)) {
-                    return cached;
+            // Table and AutoFilter header cells are painted bold by the table style and
+            // carry a filter button, neither of which their cell format records.
+            void ApplyHeaderMeasurements() {
+                var textContext = CreateAutoFitTextContext();
+                foreach (AutoFitHeaderCell header in GetAutoFitHeaderCells(plan.Columns)) {
+                    ct.ThrowIfCancellationRequested();
+                    Cell? cell = TryGetExistingCell(header.Row, header.Column);
+                    if (cell == null) continue;
+                    string text = GetCellAutoFitText(cell, textContext);
+                    if (string.IsNullOrWhiteSpace(text)) continue;
+                    uint styleIndex = cell.StyleIndex?.Value ?? 0U;
+                    double columnWidth = measurer.MeasureHeader(text, styleIndex, header.Bold, header.FilterButton);
+                    if (columnWidth > widths[header.TargetIndex]) widths[header.TargetIndex] = columnWidth;
                 }
-
-                var info = textMeasurer.DefaultStyle;
-                if (cellFormats != null && fonts != null) {
-                    var cellFormat = styleIndex < cellFormats.Count ? cellFormats[(int)styleIndex] : null;
-                    if (cellFormat?.FontId != null) {
-                        uint fontId = cellFormat.FontId.Value;
-                        if (fontId < fonts.Count) {
-                            var fontInfo = CreateFontInfoFromOpenXml(fonts[(int)fontId], textMeasurer.DefaultFontSize);
-                            info = textMeasurer.CreateStyle(fontInfo);
-                        }
-                    }
-                }
-
-                styleCache[styleIndex] = info;
-                return info;
             }
-
-            float MeasureTextWidth(
-                string text,
-                uint styleIndex,
-                ExcelTextMeasurer.Style styleInfo,
-                Dictionary<(uint styleIndex, string text), float> textWidthCache,
-                Dictionary<uint, Dictionary<char, float>> charWidthCache) {
-                if (textWidthCache.TryGetValue((styleIndex, text), out float cached)) {
-                    return cached;
-                }
-
-                float measured;
-                if (text.Contains('\n') || text.Contains('\r')) {
-                    measured = 0;
-                    string[] lines = text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
-                    foreach (string line in lines) {
-                        if (string.IsNullOrEmpty(line)) {
-                            continue;
-                        }
-
-                        float lineWidth = textMeasurer.MeasureWidthOrDefault(line, styleInfo, 0);
-                        if (lineWidth > measured) {
-                            measured = lineWidth;
-                        }
-                    }
-                } else if (TryMeasureSimpleAutoFitTextWidth(text, styleIndex, styleInfo, textMeasurer, charWidthCache, out float fastMeasured)) {
-                    measured = fastMeasured;
-                } else {
-                    measured = textMeasurer.MeasureWidthOrDefault(text, styleInfo, 0);
-                }
-
-                textWidthCache[(styleIndex, text)] = measured;
-                return measured;
-            }
-
-            float MeasureRichTextWidth(IReadOnlyList<AutoFitTextRun> runs, ExcelTextMeasurer.Style baseStyle) {
-                float maxWidth = 0;
-                float currentWidth = 0;
-
-                foreach (var run in runs) {
-                    var fontInfo = run.CreateFontInfo(baseStyle.FontInfo);
-                    var runStyle = textMeasurer.CreateStyle(fontInfo);
-                    string[] parts = run.Text.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
-
-                    for (int i = 0; i < parts.Length; i++) {
-                        if (i > 0) {
-                            if (currentWidth > maxWidth) {
-                                maxWidth = currentWidth;
-                            }
-                            currentWidth = 0;
-                        }
-
-                        if (parts[i].Length > 0) {
-                            currentWidth += textMeasurer.MeasureWidthOrDefault(parts[i], runStyle, 0);
-                        }
-                    }
-                }
-
-                return Math.Max(maxWidth, currentWidth);
-            }
-
-            const double pixelPadding = 2.0;
-
-            void ApplyMeasurement(
-                AutoFitMeasurement measurement,
-                double[] localWidths,
-                Dictionary<uint, ExcelTextMeasurer.Style> styleCache,
-                Dictionary<(uint styleIndex, string text), float> textWidthCache,
-                Dictionary<uint, Dictionary<char, float>> charWidthCache) {
-                    var styleInfo = ResolveStyleInfo(measurement.StyleIndex, styleCache);
-                    float textWidthPx = measurement.RichTextRuns != null && measurement.RichTextRuns.Count > 0
-                        ? MeasureRichTextWidth(measurement.RichTextRuns, styleInfo)
-                        : MeasureTextWidth(measurement.Text, measurement.StyleIndex, styleInfo, textWidthCache, charWidthCache);
-                    double cellWidthPx = (textWidthPx * AutoFitTextWidthSafetyFactor) + (2 * pixelPadding) + 1;
-                    double columnWidth = Math.Truncate(cellWidthPx / defaultMdw * 256.0) / 256.0;
-
-                    if (columnWidth > localWidths[measurement.TargetIndex]) {
-                        localWidths[measurement.TargetIndex] = columnWidth;
-                    }
-                }
 
             if (!parallel || plan.Measurements.Count < 2) {
-                var styleCache = new Dictionary<uint, ExcelTextMeasurer.Style>();
-                var textWidthCache = new Dictionary<(uint styleIndex, string text), float>();
-                var charWidthCache = new Dictionary<uint, Dictionary<char, float>>();
-
                 for (int i = 0; i < plan.Measurements.Count; i++) {
                     ct.ThrowIfCancellationRequested();
-                    ApplyMeasurement(plan.Measurements[i], widths, styleCache, textWidthCache, charWidthCache);
+                    ApplyMeasurement(plan.Measurements[i], widths, measurer);
                 }
 
+                ApplyHeaderMeasurements();
                 return widths;
             }
 
@@ -373,11 +287,11 @@ namespace OfficeIMO.Excel {
             };
 
             Parallel.ForEach(Partitioner.Create(0, plan.Measurements.Count), options,
-                () => new AutoFitParallelState(plan.Columns.Count),
+                () => new AutoFitParallelState(plan.Columns.Count, new AutoFitWidthMeasurer(stylesheet, defaultFont)),
                 (range, _, localState) => {
                     for (int i = range.Item1; i < range.Item2; i++) {
                         ct.ThrowIfCancellationRequested();
-                        ApplyMeasurement(plan.Measurements[i], localState.Widths, localState.StyleCache, localState.TextWidthCache, localState.CharWidthCache);
+                        ApplyMeasurement(plan.Measurements[i], localState.Widths, localState.Measurer);
                     }
 
                     return localState;
@@ -392,9 +306,57 @@ namespace OfficeIMO.Excel {
                     }
                 });
 
+            ApplyHeaderMeasurements();
             return widths;
         }
 
+
+        /// <summary>Width Excel reserves for the AutoFilter drop-down button, in 96 DPI pixels.</summary>
+        private const double AutoFitFilterButtonPixels = 17D;
+
+        private readonly struct AutoFitHeaderCell {
+            internal AutoFitHeaderCell(int row, int column, int targetIndex, bool bold, bool filterButton) {
+                Row = row;
+                Column = column;
+                TargetIndex = targetIndex;
+                Bold = bold;
+                FilterButton = filterButton;
+            }
+
+            internal int Row { get; }
+            internal int Column { get; }
+            internal int TargetIndex { get; }
+            internal bool Bold { get; }
+            internal bool FilterButton { get; }
+        }
+
+        private List<AutoFitHeaderCell> GetAutoFitHeaderCells(IReadOnlyList<int> columns) {
+            var targets = new Dictionary<int, int>(columns.Count);
+            for (int index = 0; index < columns.Count; index++) targets[columns[index]] = index;
+            var headers = new Dictionary<(int Row, int Column), AutoFitHeaderCell>();
+            void Add(string? reference, bool bold, bool filterButton) {
+                if (!ExcelA1.TryParseRange(reference ?? string.Empty, out int firstRow, out int firstColumn, out _, out int lastColumn)) return;
+                for (int column = firstColumn; column <= lastColumn; column++) {
+                    if (!targets.TryGetValue(column, out int target)) continue;
+                    if (headers.TryGetValue((firstRow, column), out AutoFitHeaderCell existing)) {
+                        bold |= existing.Bold;
+                        filterButton |= existing.FilterButton;
+                    }
+
+                    headers[(firstRow, column)] = new AutoFitHeaderCell(firstRow, column, target, bold, filterButton);
+                }
+            }
+
+            foreach (TableDefinitionPart part in _worksheetPart.TableDefinitionParts) {
+                Table? table = part.Table;
+                if (table == null || (table.HeaderRowCount?.Value ?? 1U) == 0U) continue;
+                Add(table.Reference?.Value, bold: true, filterButton: table.GetFirstChild<AutoFilter>() != null);
+            }
+
+            AutoFilter? sheetFilter = WorksheetRoot.GetFirstChild<AutoFilter>();
+            if (sheetFilter != null) Add(sheetFilter.Reference?.Value, bold: false, filterButton: true);
+            return headers.Values.ToList();
+        }
 
         internal void ApplyAutoFitColumnWidthsForDeferredMaterialization(double[] widths) {
             if (widths == null || widths.Length == 0) {
@@ -421,7 +383,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, [columnIndex])) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, [columnIndex])
+                || TryAutoFitPendingCells([columnIndex], null, CancellationToken.None)) {
                 return;
             }
 

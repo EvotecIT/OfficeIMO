@@ -26,7 +26,7 @@ public sealed class ProjectOutlineCodeTests {
         var result = project.CalculateCustomFields(new ProjectCustomFieldCalculationOptions { CultureName = "pl-PL" });
         result.Report.ThrowIfErrors();
         Assert.Equal("Waiting", result.Values.Single(v => v.EntityUid == task.Uid && v.FieldId == formula.FieldId).Value);
-        using var copy = project.Clone(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        using var copy = project.Clone(new ProjectSaveOptions { AllowLoss = true });
         var selected = copy.Tasks.GetByUid(1).CustomFields.Single(v => v.FieldId == definition.FieldId);
         Assert.Equal("Waiting", selected.Value); Assert.NotNull(selected.ValueGuid);
     }

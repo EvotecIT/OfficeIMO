@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             string title,
             GoogleDocsTranslationPlan plan,
             TranslationReport report,
-            WordDocumentSnapshot snapshot) {
+            WordDocumentInfo snapshot) {
             Title = string.IsNullOrWhiteSpace(title) ? "Document" : title;
             Plan = plan ?? throw new ArgumentNullException(nameof(plan));
             Report = report ?? throw new ArgumentNullException(nameof(report));
@@ -28,7 +28,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         /// <summary>Gets translation notices associated with this batch.</summary>
         public TranslationReport Report { get; }
         /// <summary>Gets the Word snapshot used to compile this batch.</summary>
-        public WordDocumentSnapshot Snapshot { get; }
+        public WordDocumentInfo Snapshot { get; }
         /// <summary>Gets provider-neutral body requests in source order.</summary>
         public IReadOnlyList<GoogleDocsRequest> Requests => _requests;
         /// <summary>Gets compiled header and footer segments.</summary>

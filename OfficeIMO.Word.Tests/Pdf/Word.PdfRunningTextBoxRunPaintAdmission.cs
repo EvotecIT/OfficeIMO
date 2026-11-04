@@ -17,7 +17,7 @@ public partial class Word {
     [InlineData("imprint")]
     public void SaveAsPdf_RunningTextBoxLegacyRunEffectRetainsWarnedContent(string effect) {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         WordParagraph paragraph = box.Paragraphs.Single();
         if (effect == "shadow") paragraph.Shadow = true;
         else if (effect == "outline") paragraph.Outline = true;
@@ -48,7 +48,7 @@ public partial class Word {
     public void SaveAsPdf_DirectOffRunningTextBoxRunEffectKeepsPreciseAdmission() {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
         ConfigureRunningTextBoxInheritedShadow(document, "character");
-        W.Run run = document.Sections[1].Header!.First!.TextBoxes.Single().Content!
+        W.Run run = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Content!
             .Elements<W.Paragraph>().Single().Elements<W.Run>().Single();
         // The public false setter removes direct formatting; imported explicit false
         // is the distinct contract that overrides an enabled inherited effect.
@@ -65,7 +65,7 @@ public partial class Word {
             new W.StyleRunProperties(new W.Shadow { Val = false })) {
             Type = W.StyleValues.Character, StyleId = "BoxRunShadowOff"
         });
-        W.Run run = document.Sections[1].Header!.First!.TextBoxes.Single().Content!
+        W.Run run = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Content!
             .Elements<W.Paragraph>().Single().Elements<W.Run>().Single();
         run.RunProperties!.RunStyle!.Val = "BoxRunShadowOff";
         // A false style toggle does not qualify cancellation of the enabled base.
@@ -77,7 +77,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_UnpaintedRunningTextBoxRunEffectKeepsPreciseAdmission(bool hidden) {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        W.Paragraph inner = document.Sections[1].Header!.First!.TextBoxes.Single().Content!.Elements<W.Paragraph>().Single();
+        W.Paragraph inner = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Content!.Elements<W.Paragraph>().Single();
         var properties = new W.RunProperties(new W.Shadow());
         if (hidden) properties.Vanish = new W.Vanish();
         // Keep the visible BOX and its terminal break intact. The other run either
@@ -91,7 +91,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_RunningTextBoxBodyThreeDimensionalPaintRetainsWarnedContent(bool scene) {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        Wps.TextBodyProperties body = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!
+        Wps.TextBodyProperties body = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!
             .Descendants<Wps.TextBodyProperties>().Single();
         if (scene) body.AddChild(new A.Scene3DType(
             new A.Camera { Preset = A.PresetCameraValues.PerspectiveLeft },
@@ -102,7 +102,7 @@ public partial class Word {
 
     private static void ConfigureRunningTextBoxInheritedShadow(WordDocument document, string source) {
         W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-        W.Paragraph inner = document.Sections[1].Header!.First!.TextBoxes.Single().Content!.Elements<W.Paragraph>().Single();
+        W.Paragraph inner = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Content!.Elements<W.Paragraph>().Single();
         W.Run run = inner.Elements<W.Run>().Single();
         if (source is "paragraph" or "combined") {
             styles.Append(new W.Style(new W.StyleRunProperties(new W.Shadow())) {
@@ -128,10 +128,10 @@ public partial class Word {
     private static void AssertRunningTextBoxRunPaintKeepsPreciseAdmission(WordDocument document, string? absentText = null) {
         string[] before = AnchoredRunningStoryXml(document);
         string stylesBefore = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         Assert.Equal(3, pdf.NumberOfPages);
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);

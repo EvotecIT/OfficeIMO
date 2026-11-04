@@ -40,24 +40,26 @@ public sealed class PdfMirroredMarginResourceTests {
     }
 #endif
 
-    private static PdfOptions Options() => new() {
-        PageWidth = 300, PageHeight = 200,
-        MarginLeft = 40, MarginRight = 70, MarginTop = 20, MarginBottom = 20,
-        MirrorMargins = true, DefaultFontSize = 10
+    private static PdfCreateOptions Options() => new() {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(200)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(70), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) },
+            MirrorMargins = true
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
     };
 
-    private static byte[] BuildDocument(PdfOptions options, int pages, bool nested, bool namedFont) {
+    private static byte[] BuildDocument(PdfCreateOptions options, int pages, bool nested, bool namedFont) {
         void AddPages(PdfContentBuilder content) {
             for (int page = 1; page <= pages; page++) {
                 if (page > 1) content.PageBreak();
-                content.Paragraph(paragraph => {
-                    if (namedFont) paragraph.FontFamily("Mirror Font");
-                    paragraph.Text("Marker" + page);
+                content.AddParagraph(paragraph => {
+                    if (namedFont) { paragraph.RunDefaults.FontFamily = "Mirror Font"; paragraph.RunDefaults.StandardFont = null; }
+                    paragraph.AddText("Marker" + page);
                 });
             }
         }
         return PdfDocument.Create(builder => builder.Content(content => {
-            if (nested) content.Element(element => element.Padding(2, 5).Content(AddPages));
+            if (nested) content.Element(element => element.Padding(global::OfficeIMO.OfficeLength.Points(2), global::OfficeIMO.OfficeLength.Points(5)).Content(AddPages));
             else AddPages(content);
         }), options).ToBytes();
     }

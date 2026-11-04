@@ -150,7 +150,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderTestDriver.Render("<!doctype html><style>html,body{margin:0;padding:0;font-size:0;line-height:0}"
             + css + "</style>" + content, new HtmlRenderOptions {
                 Mode = mode, ViewportWidth = 700D, ViewportHeight = 140D,
-                PageSize = new OfficePageSize(700D / 96D, 100D / 96D),
+                PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(700D / 96D), global::OfficeIMO.OfficeLength.Inches(100D / 96D)),
                 Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false,
                 UserAgentStyles = defaults, AllowSystemFontFallback = false
             });

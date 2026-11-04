@@ -100,7 +100,7 @@ internal static partial class PdfComplianceAnalyzer {
         "9959"
     };
 
-    private static PdfComplianceRequirement BuildElectronicInvoiceXmlElectronicAddressRequirement(PdfOptions options) {
+    private static PdfComplianceRequirement BuildElectronicInvoiceXmlElectronicAddressRequirement(PdfCreateOptions options) {
         IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
         var diagnostics = new List<string>();
         for (int i = 0; i < embeddedFiles.Count; i++) {

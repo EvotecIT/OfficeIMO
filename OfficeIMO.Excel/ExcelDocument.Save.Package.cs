@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
         private void PrepareWorkbookForSave(ExcelSaveOptions? options, bool skipDirectFastSaveSheetPreparation = false,
-            bool applyCalculationPolicy = true) {
+            bool applyCalculationPolicy = true, bool fastWritersReadWorksheets = false) {
             ApplySignatureMutationPolicy(options);
             Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             if (skipDirectFastSaveSheetPreparation) {
@@ -52,7 +52,14 @@ namespace OfficeIMO.Excel {
                 ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.UpdateSheetDimension");
                 sheet.EnsureWorksheetElementOrder();
                 ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.EnsureWorksheetElementOrder");
-                sheet.Commit();
+                // The fast writers serialize the loaded worksheet, so saving it here would write it twice.
+                // A sheet stays prepared-pending, and a later package route commits it.
+                if (fastWritersReadWorksheets && !_openXmlDocumentExposed) {
+                    sheet.CommitPendingParts();
+                } else {
+                    sheet.Commit();
+                }
+
                 ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.CommitSheet");
             }
 
@@ -60,7 +67,7 @@ namespace OfficeIMO.Excel {
             if (_requiresSavePreflight || options?.SafePreflight == true) {
                 if (!skipDirectFastSaveSheetPreparation || options?.SafePreflight == true) {
                     MaterializePendingDirectCellValueSheetIfNeeded();
-                    PreflightWorkbook(sheets);
+                    PreflightWorkbook(sheets, saveWorksheets: !fastWritersReadWorksheets || _openXmlDocumentExposed);
                     _requiresSavePreflight = false;
                 } else {
                     ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SkipAutomaticPreflight");
@@ -152,8 +159,7 @@ namespace OfficeIMO.Excel {
                 if (!part.IsRootElementLoaded) continue;
 
                 Worksheet? worksheet = part.Worksheet;
-                if (worksheet?.Descendants<OpenXmlLeafTextElement>()
-                    .Any(text => text.Text?.IndexOf('\r') >= 0) != true) continue;
+                if (worksheet == null || !ExcelWorksheetScan.HasCarriageReturnText(worksheet)) continue;
 
                 carriageReturnParts.Add(part.Uri.OriginalString.TrimStart('/'), worksheet);
             }
@@ -161,8 +167,7 @@ namespace OfficeIMO.Excel {
             SharedStringTablePart? sharedStringsPart = workbookPart.SharedStringTablePart;
             if (sharedStringsPart?.IsRootElementLoaded == true
                 && sharedStringsPart.SharedStringTable is SharedStringTable sharedStrings
-                && sharedStrings.Descendants<OpenXmlLeafTextElement>()
-                    .Any(text => text.Text?.IndexOf('\r') >= 0)) {
+                && ExcelWorksheetScan.HasCarriageReturnText(sharedStrings)) {
                 carriageReturnParts.Add(sharedStringsPart.Uri.OriginalString.TrimStart('/'), sharedStrings);
             }
 
@@ -196,7 +201,8 @@ namespace OfficeIMO.Excel {
             destination.Flush();
         }
 
-        private static void PrepareDestinationStreamForWrite(Stream destination) {
+        /// <summary>Resets a seekable save destination after candidate preparation has succeeded.</summary>
+        internal static void PrepareDestinationStreamForWrite(Stream destination) {
             if (!destination.CanSeek) {
                 return;
             }
@@ -290,6 +296,7 @@ namespace OfficeIMO.Excel {
             _packageDirty = false;
             _packagePropertiesDirty = false;
             _unchangedPackageBytes = packageBytes;
+            _fileBackedPackageVersion = new object();
             _packageContentTypesKnownNormalized = true;
             _simplePackageContentKnown = simplePackageContentKnown;
             _requiresSavePreflight = false;
@@ -487,7 +494,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ReinitializePackageBoundHelpers() {
-            CustomDocumentProperties.SetChangeHandler(MarkCustomDocumentPropertiesChanged);
+            CustomProperties.SetChangeHandler(MarkCustomDocumentPropertiesChanged);
             LoadCustomDocumentProperties();
             ExcelChartAxisIdGenerator.Initialize(_spreadSheetDocument);
         }

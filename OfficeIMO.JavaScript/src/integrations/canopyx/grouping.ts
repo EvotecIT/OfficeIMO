@@ -1,12 +1,12 @@
 import { createGroupedReport } from "../../core/grouped-report.js";
 import type { GroupedReportSource, GroupedReportLevel } from "../../core/grouped-report.js";
-import { ExportCell } from "../../core/presentation.js";
 import type { CellValue, ExportLimits, ExportValue } from "../../core/index.js";
 import { checkAbort } from "../../core/iteration.js";
 import { createTotals } from "../../internal/totals.js";
 import type { TotalOperation } from "../../internal/totals.js";
 import { captureFields } from "../../internal/capture.js";
 import { datetime } from "./dates.js";
+import { canopyIdentityValue } from "./source.js";
 import type { CanopyCapture, CanopyDiagnostic, CanopyExport, CanopyExportGroup, CanopyFormat, CanopySourceOptions } from "./types.js";
 
 interface Range {
@@ -17,7 +17,7 @@ interface Range {
   readonly expected: Readonly<Record<string, number | null>>;
 }
 const identity = (value: CellValue): string => value instanceof Date ? "date:" + value.getTime() : typeof value + ":" + String(value);
-const scalar = (value: ExportValue): CellValue => value instanceof ExportCell ? value.value : value;
+const scalar = canopyIdentityValue;
 
 /** Validate captured ranges, then use the owned grouping factory and its existing writers.
  * Only ranges, labels and at most four active aggregate vectors are retained; no detail body is buffered. */
@@ -149,10 +149,18 @@ export function canopyGrouped(source: CanopyExport, request: CanopyCapture["requ
     }
     verify(grand, grandExpected);
   }
+  // The factory's hidden fields keep raw group identity separate from projected
+  // detail labels. Never override a declared output column's value getter.
+  const groupKeys = new Set([...source.columns.map(column => column.key), ...levels.map(level => level.column)]);
   const groupBy: GroupedReportLevel<readonly ExportValue[]>[] = levels.map((level, depth) => {
-    const visible = source.columns.some(column => column.key === level.column);
-    return { key: level.column,
-      ...(visible ? {} : { value: (_row: readonly ExportValue[], context: { rowIndex: number }) => at(depth, context.rowIndex).value }),
+    const column = source.columns.findIndex(column => column.key === level.column);
+    let key = level.column;
+    if (column >= 0) {
+      do { key += "#raw"; } while (groupKeys.has(key));
+      groupKeys.add(key);
+    }
+    return { key,
+      value: (row: readonly ExportValue[], context: { rowIndex: number }) => column < 0 ? at(depth, context.rowIndex).value : scalar(row[column]),
       label: (value: CellValue) => labels[depth]!.get(identity(value)) ?? String(value ?? "") };
   });
   const sourceLimits = limits === undefined ? undefined : {

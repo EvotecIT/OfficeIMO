@@ -19,6 +19,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(10D, image.Height, 6);
         Assert.Equal(10D, image.X, 6);
         Assert.Equal(5D, image.Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 }

@@ -12,14 +12,14 @@ namespace OfficeIMO.Tests.Rtf;
 public sealed class RtfNoteTerminalParagraphTests {
     [Fact]
     public void ParsedFootnoteRetainsExplicitTerminalParagraphAndItsExactLineState() {
-        RtfDocument document = RtfDocument.Read(NativeSource).Document;
+        RtfDocument document = RtfDocument.ParseResult(NativeSource).Document;
         RtfNote note = Assert.Single(document.Notes);
         Assert.Equal(3, note.Paragraphs.Count);
         Assert.Contains("NOTE-MIN-A", note.Paragraphs[0].ToPlainText());
         Assert.Contains("NOTE-EXACT-A", note.Paragraphs[1].ToPlainText());
         AssertTerminalState(note.Paragraphs[2]);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
         using var stream = new MemoryStream();
         word.Save(stream);
         stream.Position = 0;
@@ -40,19 +40,19 @@ public sealed class RtfNoteTerminalParagraphTests {
     [Fact]
     public void NoteWithoutTerminalParagraphBreakDoesNotGainABlankParagraph() {
         string source = NativeSource.Replace(@"NOTE-EXACT-B\par}", @"NOTE-EXACT-B}");
-        RtfNote note = Assert.Single(RtfDocument.Read(source).Document.Notes);
+        RtfNote note = Assert.Single(RtfDocument.ParseResult(source).Document.Notes);
         Assert.Equal(2, note.Paragraphs.Count);
         Assert.Contains("NOTE-EXACT-B", note.Paragraphs[1].ToPlainText());
     }
 
     [Fact]
     public void NormalizationRetainsTerminalNoteParagraphWithoutGrowingTheStory() {
-        RtfDocument document = RtfDocument.Read(NativeSource).Document;
+        RtfDocument document = RtfDocument.ParseResult(NativeSource).Document;
         for (int pass = 0; pass < 3; pass++) {
             RtfNote note = Assert.Single(document.Notes);
             Assert.Equal(3, note.Paragraphs.Count);
             AssertTerminalState(note.Paragraphs[2]);
-            document = RtfDocument.Read(document.ToRtf()).Document;
+            document = RtfDocument.ParseResult(document.ToRtf()).Document;
         }
     }
 
@@ -70,7 +70,7 @@ public sealed class RtfNoteTerminalParagraphTests {
         last.SpaceAfterTwips = 0;
         document.AddParagraph("Body").AddNoteReference(note);
         for (int pass = 0; pass < 3; pass++) {
-            document = RtfDocument.Read(document.ToRtf()).Document;
+            document = RtfDocument.ParseResult(document.ToRtf()).Document;
             RtfNote reopened = Assert.Single(document.Notes);
             Assert.Equal(2, reopened.Paragraphs.Count);
             AssertTerminalState(reopened.Paragraphs[1]);

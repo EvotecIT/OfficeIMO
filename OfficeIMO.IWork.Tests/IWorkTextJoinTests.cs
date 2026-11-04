@@ -19,8 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         string cache = expected.GetProperty("cachedValue").GetString()!;
         Assert.Equal(expected.GetProperty("computedCurrentRangeValue").GetString(), cache);
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser", "cross-table-formulas.numbers");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         IWorkTableCell cell = result.Projection.Sheets.Single(s => s.Name == sourceSheet).Tables.Single(t => t.Name == sourceTable).GetCell(16, 1)!;
         Assert.True(cell.FormulaIsComplete);
         Assert.Equal("=TEXTJOIN(\",\",FALSE,'" + targetSheet.Replace("'", "''") + "'::'"
@@ -44,15 +43,15 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(output);
         ExcelSheet formulaSheet = reopened.Sheets.Single(s => s.Name == destinationName);
         Assert.Equal(stored, formulaSheet.GetFormulaText(16, 1));
-        Assert.Equal(cache, formulaSheet.CellAt(16, 1).GetValue<string>());
-        reopened.Sheets.Single(s => s.Name == targetName).CellValue(1, 2, "lion");
+        Assert.Equal(cache, formulaSheet.Cell(16, 1).GetValue<string>());
+        reopened.Sheets.Single(s => s.Name == targetName).Cell(1, 2).SetValue("lion");
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal("lion,dog,hamster", formulaSheet.CellAt(16, 1).GetValue<string>());
-        reopened.Sheets.Single(s => s.Name == targetName).CellValue(1, 2, string.Empty);
-        formulaSheet.CellFormula(18, 1, "TEXTJOIN(\",\",TRUE,'" + targetName.Replace("'", "''") + "'!" + address + ")");
+        Assert.Equal("lion,dog,hamster", formulaSheet.Cell(16, 1).GetValue<string>());
+        reopened.Sheets.Single(s => s.Name == targetName).Cell(1, 2).SetValue(string.Empty);
+        formulaSheet.Cell(18, 1).SetFormula("TEXTJOIN(\",\",TRUE,'" + targetName.Replace("'", "''") + "'!" + address + ")");
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal(",dog,hamster", formulaSheet.CellAt(16, 1).GetValue<string>());
-        Assert.Equal("dog,hamster", formulaSheet.CellAt(18, 1).GetValue<string>());
+        Assert.Equal(",dog,hamster", formulaSheet.Cell(16, 1).GetValue<string>());
+        Assert.Equal("dog,hamster", formulaSheet.Cell(18, 1).GetValue<string>());
     }
 
     [Fact]
@@ -71,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 16), VarintField(2, 328), VarintField(3, 3)))));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Functions", 1, 1, 42d,
             hasFormula: true, formulaPayload: formula) }, includePreview: true);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.True(result.IsVisualFallback);
         Assert.Empty(result.WorksheetMappings);

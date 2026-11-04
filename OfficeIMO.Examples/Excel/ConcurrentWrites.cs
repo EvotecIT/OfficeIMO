@@ -12,9 +12,9 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "ConcurrentWrites.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 Parallel.For(1, 101, i => {
-                    sheet.CellValue(i, 1, $"Value {i}");
+                    sheet.Cell(i, 1).SetValue($"Value {i}");
                 });
                 document.Save();
                 if (openExcel) document.OpenInApplication();

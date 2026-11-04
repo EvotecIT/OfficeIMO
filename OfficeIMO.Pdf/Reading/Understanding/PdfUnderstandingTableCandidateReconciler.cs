@@ -119,7 +119,7 @@ internal static class PdfUnderstandingTableCandidateReconciler {
             consumeWork?.Invoke(1);
             if (!string.Equals(
                 candidate.Evidence[evidenceIndex].Code,
-                "table.tagged-structure",
+                "table-tagged-structure",
                 StringComparison.Ordinal)) continue;
             tagged = true;
             break;

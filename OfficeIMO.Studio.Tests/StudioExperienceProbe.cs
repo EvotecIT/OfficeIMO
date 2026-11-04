@@ -21,13 +21,13 @@ internal static class StudioExperienceProbe {
         var services = StudioApplicationServices.Create(paths);
         string source = Path.Combine(root, "quarterly-review.pdf");
         var sample = PdfDocument.Create(document => document.Page(page => page.Content(content => {
-            content.Text("Quarterly review");
-            content.Text("The approved budget is 42,000 EUR. The delivery deadline is 30 September.");
-            content.Text("Action: prepare the project summary. Owner: the delivery team.");
+            content.AddParagraph("Quarterly review");
+            content.AddParagraph("The approved budget is 42,000 EUR. The delivery deadline is 30 September.");
+            content.AddParagraph("Action: prepare the project summary. Owner: the delivery team.");
         })));
         if (scenario is "watermark" or "watermark-image") {
             sample = sample.Stamp.Watermark(new PdfWatermarkOptions {
-                Text = "REVIEW COPY", X = 100, Y = 200, Width = 220, Height = 80, FontSize = 28, RotationDegrees = 0,
+                Text = "REVIEW COPY", X = global::OfficeIMO.OfficeLength.Points(100), Y = global::OfficeIMO.OfficeLength.Points(200), Width = global::OfficeIMO.OfficeLength.Points(220), Height = global::OfficeIMO.OfficeLength.Points(80), FontSize = global::OfficeIMO.OfficeLength.Points(28), RotationDegrees = 0,
                 ImageBytes = scenario == "watermark-image"
                     ? Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=") : null
             });
@@ -42,7 +42,7 @@ internal static class StudioExperienceProbe {
                     if (scenario is not ("home" or "invoices" or "invoices-standards")) await window.TabHost.OpenDocumentAsync(source);
                     if (scenario == "tabs") {
                         string second = Path.Combine(root, "delivery-notes.pdf");
-                        PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("Delivery notes: the review is complete.")))).Save(second);
+                        PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("Delivery notes: the review is complete.")))).Save(second);
                         await window.TabHost.OpenDocumentAsync(second);
                     }
                     if (scenario is "assistant" or "connections") window.ViewModel.ToggleAssistantCommand.Execute(null);

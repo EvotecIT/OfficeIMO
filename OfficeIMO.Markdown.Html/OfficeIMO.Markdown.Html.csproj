@@ -2,11 +2,9 @@
 
     <PropertyGroup>
         <Description>HTML converter for OfficeIMO.Markdown - Convert HTML fragments or documents into OfficeIMO.Markdown documents and Markdown text.</Description>
-        <AssemblyName>OfficeIMO.Markdown.Html</AssemblyName>
-        <AssemblyTitle>OfficeIMO.Markdown.Html</AssemblyTitle>
         <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
-        <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472
         </TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -42,15 +40,12 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Benchmarks" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.MarkdownRenderer" />
   </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
         <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <Reference Include="System.Net.Http" />
     </ItemGroup>
 
     <ItemGroup>
@@ -61,4 +56,10 @@
         <Using Include="System.Collections.Generic" />
     </ItemGroup>
 
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Chm.Markdown" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+        <Reference Include="System.Net.Http" />
+    </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Html.EditableEvidence" /></ItemGroup>
 </Project>

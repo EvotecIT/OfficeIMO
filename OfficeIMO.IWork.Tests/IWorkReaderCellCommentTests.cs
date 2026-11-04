@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         var result = new OfficeDocumentReadResult();
         var projection = new IWorkReadProjection(result, "headers.numbers",
             new ReaderOptions { MaxTableRows = 1 }, new ReaderIWorkOptions {
-                MaximumTableColumns = 1, MaximumProjectedTableCells = 2
+                MaxTableColumns = 1, MaxProjectedTableCells = 2
             }, CancellationToken.None);
         projection.AddNumbers(numbers);
         projection.Complete(source);
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(value!.Length == 1 && char.IsSurrogate(value[0]));
         });
         string markdown = string.Concat(chunks.Select(c => c.Markdown));
-        string html = OfficeIMO.Markdown.MarkdownDoc.Parse(markdown).ToHtmlFragment();
+        string html = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown).ToHtml();
         Assert.Contains("table 1, cell AA1", html);
         Assert.Contains("&lt;author&gt;", html);
         Assert.Contains("&lt;b&gt;&amp;amp;*review*", html);
@@ -80,7 +80,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reader_comment_identity_metadata_counts_against_the_projection_text_budget() {
         using var package = CommentPackage(IWorkDocumentKind.Numbers);
-        var limits = new IWorkReadOptions { MaximumProjectedTextCharacters = 50 };
+        var limits = new IWorkReadOptions { MaxProjectedTextCharacters = 50 };
         Assert.NotNull(IWorkSourceDocument.Open(package, limits).ReadNumbers().Sheets[0].Tables[0].Cells[0].Comment);
         package.Position = 0;
         var reader = new OfficeDocumentReaderBuilder().AddIWorkHandler(new ReaderIWorkOptions { ReadOptions = limits }).Build();

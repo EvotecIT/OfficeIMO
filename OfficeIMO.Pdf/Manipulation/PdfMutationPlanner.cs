@@ -270,6 +270,7 @@ internal static class PdfMutationPlanner {
         bool unsignedSignatureFieldRewrite = operation == PdfMutationOperation.ModifyAcroForm && CanFullRewriteUnsignedSignatureFields(security);
         bool normalizedObjectGraphRewrite = (operation == PdfMutationOperation.MergeDocuments ||
             operation == PdfMutationOperation.Optimize || operation == PdfMutationOperation.ModifyPageTree ||
+            operation == PdfMutationOperation.Redact && preflight.CanNormalizeRedactionObjectGraph ||
             operation == PdfMutationOperation.NormalizePageRotation || operation == PdfMutationOperation.OrganizePages || operation == PdfMutationOperation.ImportPages) &&
             CanNormalizeObjectGraphSource(preflight, operation);
         bool authorizedEncryptedRewrite = security.HasEncryption && CanUseAuthenticatedEncryptedRewrite(preflight, operation);
@@ -314,7 +315,7 @@ internal static class PdfMutationPlanner {
 
         IReadOnlyList<PdfMutationStructure> structures = GetAffectedStructures(operation);
         IReadOnlyList<PdfMutationPermissionCheck> permissions = GetPermissionChecks(operation, mode);
-        IReadOnlyList<PdfMutationProof> proofs = GetRequiredProofs(operation, mode, security);
+        IReadOnlyList<PdfMutationProof> proofs = GetRequiredProofs(operation, mode, security, operation == PdfMutationOperation.Redact && preflight.HasCompressedRedactionStructures);
         IReadOnlyList<string> blockers = mode == PdfMutationExecutionMode.Blocked
             ? GetBlockerCodes(preflight, appendOnly, operation, fullRewriteImplemented, appendOnlyImplemented, security, certificationRequiresFirstSignature)
             : Array.Empty<string>();
@@ -601,7 +602,8 @@ internal static class PdfMutationPlanner {
     private static IReadOnlyList<PdfMutationProof> GetRequiredProofs(
         PdfMutationOperation operation,
         PdfMutationExecutionMode mode,
-        PdfDocumentSecurityInfo security) {
+        PdfDocumentSecurityInfo security,
+        bool hasCompressedRedactionStructures) {
         if (mode == PdfMutationExecutionMode.Blocked) {
             return Array.Empty<PdfMutationProof>();
         }
@@ -695,6 +697,13 @@ internal static class PdfMutationPlanner {
                 Add(proofs, PdfMutationProof.EncryptionRoundTrip);
                 break;
             case PdfMutationOperation.Redact:
+                if (hasCompressedRedactionStructures) {
+                    Add(proofs, PdfMutationProof.PageStructureReadback);
+                    Add(proofs, PdfMutationProof.TaggedStructureReadback);
+                    Add(proofs, PdfMutationProof.FormFieldReadback);
+                    Add(proofs, PdfMutationProof.AnnotationReadback);
+                    Add(proofs, PdfMutationProof.AttachmentReadback);
+                }
                 Add(proofs, PdfMutationProof.RedactionResidue);
                 Add(proofs, PdfMutationProof.VisualRendering);
                 break;
@@ -754,6 +763,11 @@ internal static class PdfMutationPlanner {
                 }
             }
 
+            if (security.HasDocMDPPermissions) Add(blockers, "FullRewrite.DocMdpPreservation");
+            if (security.HasUsageRights) Add(blockers, "FullRewrite.UsageRightsPreservation");
+            if ((operation == PdfMutationOperation.ImportPages || operation == PdfMutationOperation.OrganizePages ||
+                operation == PdfMutationOperation.ExtractPages || operation == PdfMutationOperation.NormalizePageRotation) &&
+                preflight.UncheckedDocumentInfo?.AcroFormXfa is not null) Add(blockers, "FullRewrite.XfaPageOwnership");
             if (security.HasXrefStreams) {
                 Add(blockers, "FullRewrite.XrefStreamPreservation");
             }
@@ -831,7 +845,8 @@ internal static class PdfMutationPlanner {
         if (mode == PdfMutationExecutionMode.FullRewrite && security.HasIncrementalUpdates) {
             Add(warnings, "Input.RevisionHistoryWillBeNormalized");
         }
-        if (mode == PdfMutationExecutionMode.FullRewrite && (security.HasXrefStreams || security.HasObjectStreams)) {
+        if (mode == PdfMutationExecutionMode.FullRewrite && (operation == PdfMutationOperation.Redact
+            ? preflight.HasCompressedRedactionStructures : security.HasXrefStreams || security.HasObjectStreams)) {
             Add(warnings, "Input.CrossReferenceAndObjectStreamsWillBeNormalized");
         }
 
@@ -880,9 +895,14 @@ internal static class PdfMutationPlanner {
                 Add(diagnostics, "Mutation blocker: " + blockers[i] + ".");
             }
 
+            if (blockers.Contains("FullRewrite.XfaPageOwnership"))
+                Add(diagnostics, "Page rewrites cannot preserve XFA page ownership. Flatten or remove XFA before changing pages.");
             if (!fullRewriteCapability) {
                 for (int i = 0; i < preflight.Diagnostics.Count; i++) {
-                    Add(diagnostics, preflight.Diagnostics[i]);
+                    string diagnostic = preflight.Diagnostics[i];
+                    if (preflight.RewriteBlockers.Any(blocker => blocker.Message == diagnostic &&
+                        !IsFullRewriteBlockerForOperation(blocker.Kind, operation))) continue;
+                    Add(diagnostics, diagnostic);
                 }
             }
 
@@ -938,7 +958,7 @@ internal static class PdfMutationPlanner {
         if (operation != PdfMutationOperation.ExtractPages || !CanReadForPageTransfer(preflight)) {
             return false;
         }
-        if (preflight.RewriteBlockers.Any(blocker => blocker.Kind == PdfRewriteBlockerKind.TaggedContent))
+        if (preflight.RewriteBlockers.Any(blocker => blocker.Kind == PdfRewriteBlockerKind.TaggedContent || blocker.Kind == PdfRewriteBlockerKind.Forms))
             return CanFullRewrite(preflight, PdfMutationOperation.OrganizePages) &&
                 PdfPermissionAuthorization.CanMutate(preflight.Probe.Security, preflight.PermissionPolicy, operation);
 
@@ -1032,10 +1052,13 @@ internal static class PdfMutationPlanner {
         if (!preflight.CanRead) return false;
         PdfDocumentSecurityInfo security = preflight.Probe.Security;
         if (security.HasSignatures || security.HasDocMDPPermissions || security.HasUsageRights) return false;
+        if (!preflight.CanNormalizeRedactionObjectGraph) return false;
+        if (!preflight.CanPreserveRedactionNavigation) return false;
         if (security.HasEncryption && !CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.Redact)) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             PdfRewriteBlockerKind kind = preflight.RewriteBlockers[i].Kind;
             if (kind == PdfRewriteBlockerKind.Encryption) continue;
+            if (kind is PdfRewriteBlockerKind.Outlines or PdfRewriteBlockerKind.OpenActions or PdfRewriteBlockerKind.ActiveContent) continue;
             if (kind == PdfRewriteBlockerKind.Forms || kind == PdfRewriteBlockerKind.TaggedContent || kind == PdfRewriteBlockerKind.XmpMetadata || kind == PdfRewriteBlockerKind.OptionalContent || kind == PdfRewriteBlockerKind.EmbeddedFiles) continue;
             return false;
         }
@@ -1060,7 +1083,8 @@ internal static class PdfMutationPlanner {
         return (!security.HasEncryption || PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, operation)) &&
         (!security.HasSignatures || operation == PdfMutationOperation.NormalizePageRotation && HasOnlyUnsignedSignatureFields(security)) &&
         !security.HasDocMDPPermissions &&
-        !security.HasUsageRights;
+        !security.HasUsageRights &&
+        preflight.UncheckedDocumentInfo?.AcroFormXfa is null;
     }
 
     private static bool CanUseAuthenticatedEncryptedRewrite(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
@@ -1146,6 +1170,7 @@ internal static class PdfMutationPlanner {
             return blocker == PdfRewriteBlockerKind.Signatures || blocker == PdfRewriteBlockerKind.Encryption ||
                 blocker == PdfRewriteBlockerKind.InvalidObjectReferences || blocker == PdfRewriteBlockerKind.IncompleteObjectGraph;
         }
+        if (operation == PdfMutationOperation.ExtractPages && blocker == PdfRewriteBlockerKind.Forms) return false;
         if (operation == PdfMutationOperation.SynchronizeMetadata) {
             return blocker != PdfRewriteBlockerKind.XmpMetadata;
         }

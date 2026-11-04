@@ -6,42 +6,43 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class AssetDepreciation {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-            var sheet = document.AddWorksheet("Assets");
-            sheet.SetColumnWidth(1, 29);
-            for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, 22);
-            sheet.MergeRange("A1:F1"); sheet.Cell(1, 1, "Asset depreciation register");
-            sheet.CellFontSize(1, 1, 22); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
-            sheet.MergeRange("A2:F2"); sheet.Cell(2, 1, "Straight-line planning schedule / illustrative EUR values");
+            var sheet = document.AddSheet("Assets");
+            // Widths sized to the content so the register prints on one page at full size.
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
+            for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(14));
+            sheet.SetColumnWidth(6, ExcelColumnWidth.Characters(18));
+            sheet.Range("A1:F1").Merge(); sheet.Cell(1, 1).SetValue("Asset depreciation register");
+            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetFontColor("17365D");
+            sheet.Range("A2:F2").Merge(); sheet.Cell(2, 1).SetValue("Straight-line planning schedule / illustrative EUR values");
             string[] headers = { "Asset", "Cost", "Residual", "Life (years)", "Annual charge", "Book after year 1" };
-            for (int column = 1; column <= 6; column++) sheet.Cell(4, column, headers[column - 1]);
+            for (int column = 1; column <= 6; column++) sheet.Cell(4, column).SetValue(headers[column - 1]);
             string[] assets = { "Workshop laptops", "Meeting-room screens", "Storage equipment", "Lab instruments" };
             double[] costs = { 7200, 3600, 9200, 4800 }, residuals = { 600, 300, 800, 400 };
             int[] years = { 3, 4, 5, 4 };
             for (int index = 0; index < assets.Length; index++) {
                 int row = index + 5;
-                sheet.Cell(row, 1, assets[index]); sheet.Cell(row, 2, costs[index]); sheet.Cell(row, 3, residuals[index]); sheet.Cell(row, 4, years[index]);
-                sheet.CellFormula(row, 5, $"(B{row}-C{row})/D{row}");
-                sheet.CellFormula(row, 6, $"B{row}-E{row}");
-                foreach (int column in new[] { 2, 3, 5, 6 }) sheet.FormatCell(row, column, "#,##0.00");
+                sheet.Cell(row, 1).SetValue(assets[index]); sheet.Cell(row, 2).SetValue(costs[index]); sheet.Cell(row, 3).SetValue(residuals[index]); sheet.Cell(row, 4).SetValue(years[index]);
+                sheet.Cell(row, 5).SetFormula($"(B{row}-C{row})/D{row}");
+                sheet.Cell(row, 6).SetFormula($"B{row}-E{row}");
+                foreach (int column in new[] { 2, 3, 5, 6 }) sheet.Cell(row, column).SetNumberFormat("#,##0.00");
             }
             sheet.AddTable("A4:F8", true, "AssetSchedule", ExcelTableStyle.TableStyleMedium2);
-            sheet.ValidationWholeNumber("D5:D8", ExcelDataValidationOperator.Between, 1, 50);
-            sheet.Cell(10, 1, "Annual charge total"); sheet.CellFormula(10, 5, "SUM(E5:E8)"); sheet.FormatCell(10, 5, "#,##0.00"); sheet.CellBold(10, 5, true);
-            sheet.MergeRange("A12:F12"); sheet.Cell(12, 1, "Assumes a full first year and cost above residual value.");
-            sheet.MergeRange("A13:F13"); sheet.Cell(13, 1, "Illustrative planning only; confirm accounting policy and tax treatment.");
-            sheet.SetGridlinesVisible(false);
+            sheet.Range("D5:D8").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 50);
+            sheet.Cell(10, 1).SetValue("Annual charge total"); sheet.Cell(10, 5).SetFormula("SUM(E5:E8)"); sheet.Cell(10, 5).SetNumberFormat("#,##0.00"); sheet.Cell(10, 5).SetBold(true);
+            sheet.Range("A12:F12").Merge(); sheet.Cell(12, 1).SetValue("Assumes a full first year and cost above residual value.");
+            sheet.Range("A13:F13").Merge(); sheet.Cell(13, 1).SetValue("Illustrative planning only; confirm accounting policy and tax treatment.");
+            sheet.View.ShowGridlines = false;
             for (int row = 1; row <= 16; row++) {
-                sheet.SetRowHeight(row, row == 1 ? 34 : row == 3 ? 12 : 25);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 6; column++) {
-                    sheet.CellFontName(row, column, "Carlito");
-                    if (row > 1) sheet.CellFontSize(row, column, 11);
+                    if (row > 1) sheet.Cell(row, column).SetFontSize(OfficeLength.Points(11));
                 }
             }
-            sheet.SetRowHeight(4, 30);
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 6; column++) {
-                sheet.CellFontColor(4, column, "FFFFFF");
-                sheet.CellBold(4, column, true);
-                sheet.CellBackground(4, column, "17365D");
+                sheet.Cell(4, column).SetFontColor("FFFFFF");
+                sheet.Cell(4, column).SetBold(true);
+                sheet.Cell(4, column).SetFillColor("17365D");
             }
             document.Calculate();
             document.InspectFormulas().EnsureAllSupported().EnsureAllHaveCachedResults().EnsureNoDependencyIssues();

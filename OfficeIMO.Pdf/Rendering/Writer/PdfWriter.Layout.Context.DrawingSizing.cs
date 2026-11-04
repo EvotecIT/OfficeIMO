@@ -24,13 +24,13 @@ internal static partial class PdfWriter {
 
         /// <summary>Recomputes the fit after advancing to a column or page with a different available width.</summary>
         private (double Width, double Height, double SpacingBefore) PlaceDrawingFlowBlock(DrawingBlock block, PdfDrawingStyle style, ref double containerWidth) {
-            double before = ResolveTopLevelSpacingBefore(style.SpacingBefore);
+            double before = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
             while (true) {
                 var box = ResolveDrawingFlowBox(block, style, containerWidth);
                 double closingPadding = GetClosingContainerPadding();
                 EnsureDrawingFitsAFlowFrame(block, style, containerWidth, closingPadding);
                 if (box.Width <= containerWidth + .001D &&
-                    before + box.Height + style.SpacingAfter + closingPadding <= y - currentOpts.MarginBottom + .001D) {
+                    before + box.Height + style.SpacingAfter.ToPoints() + closingPadding <= y - currentOpts.MarginBottom.ToPoints() + .001D) {
                     return (box.Width, box.Height, before);
                 }
                 AdvanceFixedFlowFrame(ref containerWidth);
@@ -42,14 +42,14 @@ internal static partial class PdfWriter {
         private void KeepDrawingBlockWithNext(DrawingBlock block, PdfDrawingStyle style, IList<IPdfBlock> blocks, int blockIndex) {
             while (true) {
                 var box = ResolveDrawingFlowBox(block, style, width);
-                double needed = ResolveTopLevelSpacingBefore(style.SpacingBefore) + box.Height + style.SpacingAfter;
+                double needed = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + box.Height + style.SpacingAfter.ToPoints();
                 EnsureDrawingFitsAFlowFrame(block, style, width);
-                if (box.Width > width + .001D || box.Height + style.SpacingAfter > GetMaximumBlockContinuationHeight() + .001D || ShouldAdvanceForBlockHeight(needed)) {
+                if (box.Width > width + .001D || box.Height + style.SpacingAfter.ToPoints() > GetMaximumBlockContinuationHeight() + .001D || ShouldAdvanceForBlockHeight(needed)) {
                     NewBlockFrame();
                     continue;
                 }
-                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft,
-                    width, currentOpts.DefaultFontSize, needed);
+                double nextHeight = MeasureKeepWithNextChainHeight(blocks, blockIndex + 1, currentOpts.MarginLeft.ToPoints(),
+                    width, currentOpts.DefaultFontSize.ToPoints(), needed);
                 double keepHeight = needed + nextHeight;
                 if (nextHeight <= .001D || keepHeight > GetMaximumBlockContinuationHeight() + .001D || !ShouldAdvanceForBlockHeight(keepHeight)) break;
                 NewBlockFrame();
@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
         private void EnsureDrawingFitsAFlowFrame(DrawingBlock block, PdfDrawingStyle style, double containerWidth, double reservedHeight = 0D) {
             double fitWidth = style.ConstrainToContentWidth ? GetMinimumFixedFlowWidth(containerWidth) : containerWidth;
             var minimumBox = ResolveDrawingFlowBox(block, style, fitWidth);
-            EnsureFixedFlowBlockFits("Drawing", minimumBox.Width, minimumBox.Height + style.SpacingAfter,
+            EnsureFixedFlowBlockFits("Drawing", minimumBox.Width, minimumBox.Height + style.SpacingAfter.ToPoints(),
                 GetMaximumFixedFlowWidth(containerWidth), reservedHeight);
         }
     }

@@ -27,7 +27,7 @@ public sealed class HtmlEpubImageExportTests {
                 ("images/A.png", "not a PNG"), ("images/a.png", "placeholder")
             });
         package = OfficeIMO.Shared.Tests.EpubIntegrityFixtures.ReplaceEntry(package, "EPUB/images/a.png", PixelPng);
-        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubReadOptions {
+        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubLoadOptions {
             IncludeRawHtml = true, IncludeResourceData = true
         });
         var options = new EpubImageExportOptions { Mode = HtmlRenderMode.Continuous };
@@ -95,7 +95,7 @@ public sealed class HtmlEpubImageExportTests {
                 (resourcePath, "placeholder")
             });
         package = OfficeIMO.Shared.Tests.EpubIntegrityFixtures.ReplaceEntry(package, "EPUB/" + resourcePath, PixelPng);
-        return EpubDocument.Load(new MemoryStream(package), new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+        return EpubDocument.Load(new MemoryStream(package), new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
     }
 
     [Fact]
@@ -103,14 +103,16 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions { IncludeRawHtml = true });
+            new EpubLoadOptions { IncludeRawHtml = true });
 
-        OfficeImageExportResult result = Assert.Single(book.ToImages()
-            .Continuous()
-            .WithScale(100D)
-            .FitWithin(360, 360)
-            .AsPng()
-            .Export());
+        var imageOptions1 = new EpubImageExportOptions();
+        imageOptions1.Mode = HtmlRenderMode.Continuous;
+        imageOptions1.Scale = 100D;
+        imageOptions1.TargetDpi = null;
+        imageOptions1.MaximumOutputWidth = 360;
+        imageOptions1.MaximumOutputHeight = 360;
+        imageOptions1.Format = OfficeImageExportFormat.Png;
+        OfficeImageExportResult result = Assert.Single(book.ExportImages(OfficeImageExportFormat.Png, imageOptions1));
 
         Assert.True(result.Width <= 360);
         Assert.True(result.Height <= 360);
@@ -121,7 +123,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub(includeSecondChapter: true));
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions { IncludeRawHtml = true });
+            new EpubLoadOptions { IncludeRawHtml = true });
         int consumed = 0;
 
         OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
@@ -143,16 +145,16 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true
             });
 
+        var imageOptions2 = new EpubImageExportOptions();
+        imageOptions2.Mode = HtmlRenderMode.Continuous;
+        imageOptions2.Format = OfficeImageExportFormat.Png;
         var results = await book
-            .ToImages()
-            .Continuous()
-            .AsPng()
-            .ExportAsync();
+            .ExportImagesAsync(OfficeImageExportFormat.Png, imageOptions2);
 
         OfficeImageExportResult result = Assert.Single(results);
         Assert.Equal("Chapter One", result.Name);
@@ -172,7 +174,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true
             });
@@ -196,7 +198,7 @@ public sealed class HtmlEpubImageExportTests {
     [InlineData(OfficeImageExportFormat.Webp)]
     public void StyledEpubExportsThroughEverySharedImageFormat(OfficeImageExportFormat format) {
         using var package = new MemoryStream(CreateEpub());
-        EpubDocument book = EpubDocument.Load(package, new EpubReadOptions { IncludeRawHtml = true });
+        EpubDocument book = EpubDocument.Load(package, new EpubLoadOptions { IncludeRawHtml = true });
 
         OfficeImageExportResult result = Assert.Single(book.ExportImages(format));
 
@@ -204,8 +206,7 @@ public sealed class HtmlEpubImageExportTests {
         Assert.True(result.Bytes.Length > 32);
         if (format == OfficeImageExportFormat.Svg) {
             OfficeDrawing drawing = HtmlSvgPaintAssertions.Read(result.Bytes);
-            Assert.Contains(DrawingTestTraversal.Elements(drawing).OfType<OfficeDrawingText>(), text =>
-                text.Text == "Styled EPUB" && (text.Font.Style & OfficeFontStyle.Italic) != 0);
+            HtmlSvgPaintAssertions.TextPaint(drawing, result.Bytes, "Styled EPUB", OfficeFontStyle.Italic);
             HtmlSvgPaintAssertions.WavyStrokes(drawing, OfficeColor.FromRgb(0x33, 0x66, 0x99), 2);
         }
     }
@@ -218,7 +219,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true
             });
@@ -250,7 +251,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true
             });
@@ -278,7 +279,7 @@ public sealed class HtmlEpubImageExportTests {
             CreateEpub(includeImage: false));
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true
             });
@@ -325,7 +326,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(package);
         var options = new EpubImageExportOptions {
-            Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+            Policy = new OfficeImageExportPolicy { FailOnLoss = true }
         };
 
         Assert.Throws<OfficeImageExportPolicyException>(() =>
@@ -339,7 +340,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub(includeImage: false));
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true
             });
@@ -363,7 +364,7 @@ public sealed class HtmlEpubImageExportTests {
             CreateEpub(includePackageVersion: false));
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true
             });
@@ -386,7 +387,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(
             package,
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true,
                 MaxTotalRawHtmlBytes = 1

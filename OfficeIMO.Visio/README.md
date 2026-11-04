@@ -7,6 +7,10 @@
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
+Page dimensions, shape pins and sizes, and print margins use `OfficeLength`. Construct values with `OfficeLength.Inches`, `Centimeters`, `Millimeters` or `Points`; use `ToInches()` only at a numeric native-coordinate boundary. `scaleUnit` controls native drawing-scale metadata and does not reinterpret physical lengths.
+
+`OfficeLength` rounds public physical values to whole EMUs. Imported native geometry and formulas retain their numeric precision internally.
+
 ## Install
 
 ```powershell
@@ -16,15 +20,16 @@ dotnet add package OfficeIMO.Visio
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 
 var document = VisioDocument.Create("diagram.vsdx");
 document.AsFluent()
     .Info(info => info.Title("Demo").Author("OfficeIMO"))
-    .Page("Page-1", page => page
-        .Title("Demo Flow")
-        .Rect("start", 1, 1, 2, 1, "Start")
+    .AddPage("Page-1", page => page
+        .AddTitle("Demo Flow")
+        .AddRectangle("start", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start")
         .Diamond("decision", 4, 1.5, 2, 2, "Decision")
         .Ellipse("end", 7, 1.5, 2, 1, "End")
         .Connect("start", "decision", VisioSide.Right, VisioSide.Left,
@@ -42,6 +47,7 @@ var incoming = VisioDocument.Load("upload.vsdx", VisioLoadOptions.UntrustedDefau
 ```
 
 It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with drawings containing those parts; set `PackageSecurity` explicitly for another policy.
+`VisioLoadOptions.Limits.MaxPackageXmlCharacters` limits each VSDX document, page, master and theme XML part before it is materialized (30 million characters by default). Lower it for smaller ingestion budgets; the same option's legacy XML limit applies to VDX/VTX input.
 
 ## Legacy binary Visio
 
@@ -81,10 +87,9 @@ For diagram PDF output, select the adapter's page projection explicitly:
 ```csharp
 using OfficeIMO.Visio.Pdf;
 
-var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions {
+OfficeConversionReport pdfReport = imported.Value.SaveAsPdf("floorplan.pdf", new VisioPdfExportOptions {
     Mode = VisioPdfProjectionMode.DiagramPages
 });
-pdf.Save("floorplan.pdf");
 ```
 
 Cached paint styles and transparency feed the shared model. Geometryless native
@@ -121,7 +126,7 @@ external converter is a runtime dependency.
 using OfficeIMO.Visio;
 
 var imported = VisioDocument.LoadLegacyXml("workflow.vdx");
-foreach (var diagnostic in imported.Report.FidelityDiagnostics)
+foreach (var diagnostic in imported.Report.Diagnostics)
     Console.WriteLine(diagnostic.Message);
 
 VisioDocument document = imported.Value;
@@ -129,7 +134,7 @@ document.Pages[0].Shapes[0].Text = "Reviewed";
 document.Save("workflow.vsdx");
 
 var legacy = document.ToLegacyXmlResult();
-foreach (var diagnostic in legacy.Report.FidelityDiagnostics)
+foreach (var diagnostic in legacy.Report.Diagnostics)
     Console.WriteLine(diagnostic.Message);
 // After accepting these specific omissions, write the inspected payload.
 File.WriteAllBytes("workflow-reviewed.vdx", legacy.Value);
@@ -150,7 +155,7 @@ Embedded foreign bytes and their XML metadata survive XML/Open XML round trips, 
 
 SVG and raster export render supported embedded bitmap images, including master-owned images, crop offsets, group rotation and mirroring. Supported placement formulas evaluate against the current shape dimensions; unsupported formulas use cached values with a diagnostic. Decoding uses the shared Drawing codecs with a 64 MiB encoded limit and a 32-million-pixel decoded limit. Legacy BMP payloads with a zero file-size header receive that value in a decoding copy; saved bytes remain unchanged. `ExportImage` returns the decoding and placement diagnostics, and its policy can reject omissions. Opaque objects and unsupported images produce visible placeholders; opaque objects are never sent to caller image codecs. Metafiles require a caller codec when the shared decoder cannot read them. The default PDF projection remains semantic text and topology. Optional [PNG page previews](../OfficeIMO.Visio.Pdf/README.md#page-previews-and-legacy-xml) embed this supported raster profile, fit the PDF content area proportionally, and retain preview diagnostics and omission categories in the neutral model, Reader and PDF report. SVG previews are listed as metadata by PDF projection. These previews do not establish native diagram-layout fidelity.
 
-Connectors can have zero, one, or two attached shapes. `From` and `To` are nullable; `StartPoint` and `EndPoint` resolve page coordinates in inches. Setting either point detaches that endpoint. Use `ReconnectConnectorStart` or `ReconnectConnectorEnd` to attach it again. Page creation accepts the page's default unit or an explicit unit:
+Connectors can have zero, one, or two attached shapes. `From` and `To` are nullable; `StartPoint` and `EndPoint` resolve page coordinates in inches. Setting either point detaches that endpoint. Use `ReconnectConnectorStart` or `ReconnectConnectorEnd` to attach it again. Free-connector creation accepts the page's native unit or an explicit unit:
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -199,8 +204,7 @@ Page and selection duplication remap local numeric `Sheet.<ID>!` formula referen
 var stencil = VisioDocument.LoadLegacyXml("rules.vsx").Value;
 var page = stencil.AddPage("Rules");
 var master = stencil.GetMaster("Atom");
-var instance = page.AddShape("rule-1", master, 3, 5,
-    master.Shape.Width * 2, master.Shape.Height * 2);
+var instance = page.AddShape("rule-1", master, OfficeLength.Inches(3), OfficeLength.Inches(5), master.Shape.Width * 2, master.Shape.Height * 2);
 instance.Children[0].Text = "Customer is eligible";
 instance.Children[0].SetUserCell("Review", "approved");
 var edited = stencil.ToLegacyXmlResult(); // Inspect edited.Report before saving.
@@ -233,12 +237,11 @@ Page-backed selections prepare all selected trees before changing any shape or r
 ```csharp
 VisioPage page = document.Pages[0];
 VisioShape symbol = page.FindShapeById("review-symbol")!;
-page.ResizeShape(symbol, symbol.Width * 2, symbol.Height * 0.5,
-    VisioMeasurementUnit.Inches);
+page.ResizeShape(symbol, symbol.Width * 2, symbol.Height * 0.5);
 document.Save("resized.vsdx");
 ```
 
-The operation prepares the complete tree and affected native connector paths before applying changes. Uniform resizing supports arbitrary rotations. Unequal width/height scaling supports child and text frames at multiples of 90 degrees; other angles require a shear and throw `NotSupportedException` without changing the tree. Native curves use the creation profile above: required coordinate cells and NURBS parameters must be readable, and incomplete local geometry rows reject resizing. NURBS knots, weights and degree retain their original evaluated values as coordinates scale. Inherited geometry becomes an editable instance override, and embedded images retain their payload and crop fractions. Physical font sizes, margins and line weights stay unchanged. Current and requested dimensions must be finite and positive; omitted units use the page's default unit.
+The operation prepares the complete tree and affected native connector paths before applying changes. Uniform resizing supports arbitrary rotations. Unequal width/height scaling supports child and text frames at multiples of 90 degrees; other angles require a shear and throw `NotSupportedException` without changing the tree. Native curves use the creation profile above: required coordinate cells and NURBS parameters must be readable, and incomplete local geometry rows reject resizing. NURBS knots, weights and degree retain their original evaluated values as coordinates scale. Inherited geometry becomes an editable instance override, and embedded images retain their payload and crop fractions. Physical font sizes, margins and line weights stay unchanged. Current and requested dimensions must be finite and positive. Requested dimensions use `OfficeLength`, independently of the native drawing-scale unit.
 
 The NxBRE grouped-master fixture qualifies label and User edits, attached endpoints and source-master preservation through XML/Open XML reopening. Controlled cases cover orthogonal text frames, inherited arcs, cropped images and atomic rejection. Arbitrary ShapeSheet recalculation, text-frame formula provenance, sheared frames, master replacement and full rich-text layout remain outside this resize profile. Independent reader/render evidence does not establish native Microsoft Visio open/edit/save acceptance.
 
@@ -254,7 +257,7 @@ Controlled asymmetric outlines have independent-reader coordinate evidence. Text
 
 ### Page coordinates and reflected diagrams
 
-`VisioShape.GetAbsolutePoint(x, y)`, `GetBounds()`, `GetShapeBounds()` and `GetPageShapeBounds()` use page coordinates in drawing inches. They apply cached shape/master reflections and every containing group's transform. Bounds describe the transformed shape rectangle, not the exact painted outline. Spatial queries, connector glue and routing obstacles use the same frame. Native `PinX` and `PinY` remain coordinates in the containing group.
+`VisioShape.GetBounds()`, `GetShapeBounds()` and `GetPageShapeBounds()` return physical `OfficeLength` bounds. `GetAbsolutePoint(x, y)` exposes native page coordinates in drawing inches. They apply cached shape/master reflections and every containing group's transform. Bounds describe the transformed shape rectangle, not the exact painted outline. Spatial queries, connector glue and routing obstacles use the same frame. Native `PinX` and `PinY` remain coordinates in the containing group.
 
 Selection alignment, distribution and grid placement use page bounds and convert movement back into each shape's parent coordinates. Overlapping selections position each distinct shape once while retaining the selection entries. Grid cells size themselves from those bounds; shapes share the cell centers. Container refitting uses the inverse containing-group transform. These operations retain native reflection cells and do not evaluate dynamic formulas. Dynamic reflection formulas use their usable cache. A reflection with neither a finite cache nor a constant numeric formula causes coordinate operations to throw `InvalidDataException`.
 
@@ -268,7 +271,7 @@ var neighbors = page.ShapesIntersecting(bounds);
 
 Imported connectors with an explicit cached text frame retain its position, dimensions, local pin and angle relative to the preserved native connector frame. Translating endpoints moves the label with the curve; rotating or uniformly scaling the retained curve transforms the cached text box. Font sizes and margins keep their physical size. Saving materializes the projected frame in native text cells without changing the imported caches, source formatting or text markers. SVG, PNG, label layout and resolved inspection pins use the same projection.
 
-`PlaceLabelAt()` and explicit `LabelPlacement.PinX/PinY` assignments select fixed page placement when both pins are set. Clearing a pin restores path placement. `PlaceLabel()` retains its path position and page-coordinate offsets when a file is reopened. These placement choices survive VDX/VSDX reopening and copying. An explicit change to `TextStyle.TextAngle` retains its page angle while an imported native pin continues to follow the connector. The placement properties retain imported cached values; `CreateInspectionSnapshot()` exposes the currently resolved page pin separately.
+`PlaceLabelAt()` and explicit `LabelPlacement.PinX/PinY` assignments select fixed page placement when both pins are set. Clearing a pin restores path placement. `PlaceLabel()` retains its path position and page-coordinate offsets when a file is reopened. These placement choices survive VDX/VSDX reopening and copying. An explicit change to `TextStyle.TextAngle` retains its page angle while an imported native pin continues to follow the connector. The placement properties retain imported cached values; `Inspect()` exposes the currently resolved page pin separately.
 
 `ResizeLabelToText()` measures the box at the current connector scale, and later native scaling starts from that fitted size. Label overlap cleanup retains the native pin and angle binding when it moves a label; an unsuccessful search leaves the placement untouched. Reopened native previews use stored placement without implicit collision cleanup. A collapsed native frame requires explicit label placement before fitting or layout editing.
 
@@ -329,17 +332,20 @@ The AngularJS and NxBRE producer fixtures qualify page layer rows, values and me
 
 ### Layer selection in previews
 
-SVG and raster previews use `VisioLayerRenderMode.Visible` by default. Set `LayerMode` on `VisioSvgSaveOptions`, `VisioPngSaveOptions` or `VisioImageExportOptions`, or call `.LayerMode(...)` on a fluent image builder:
+SVG and raster previews use `VisioLayerRenderMode.Visible` by default. Set `LayerMode` on `VisioSvgSaveOptions`, `VisioPngSaveOptions` or `VisioImageExportOptions`:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Visio;
 string screenPreview = page.ToSvg();
 byte[] printPreview = page.ToPng(new VisioPngSaveOptions {
     LayerMode = VisioLayerRenderMode.Printable
 });
-OfficeImageExportResult allLayers = page.ToImage()
-    .LayerMode(VisioLayerRenderMode.All)
-    .AsSvg()
-    .Export();
+var imageOptions1 = new VisioImageExportOptions();
+imageOptions1.LayerMode = VisioLayerRenderMode.All;
+imageOptions1.Format = OfficeImageExportFormat.Svg;
+OfficeImageExportResult allLayers = page.ExportImage(OfficeImageExportFormat.Svg, imageOptions1);
 ```
 
 | Mode | Layer flag used |
@@ -396,7 +402,7 @@ for (int index = 0; index < projected.Value.Count; index++) {
     File.WriteAllText($"page-{index + 1}.svg",
         OfficeDrawingSvgExporter.ToSvg(page, 1, OfficeSvgSizeUnit.Point));
 }
-foreach (var diagnostic in projected.Report.FidelityDiagnostics)
+foreach (var diagnostic in projected.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
 ```
 
@@ -432,7 +438,7 @@ Cached outline and shape text-frame reflections follow the placement contract ab
 fitting reduces text to fit its cached frame and reports an omission
 when the selected fonts still cannot retain all content. Native
 font placement and fitting, themes, data graphics and arbitrary ShapeSheet
-recalculation are not qualified. `RequireNoLoss` rejects reported loss before
+recalculation are not qualified. `ThrowIfLoss` rejects reported loss before
 returning scenes. The [PDF diagram-page mode](../OfficeIMO.Visio.Pdf/README.md#diagram-pages)
 uses this same owner and preserves its report in the PDF result.
 
@@ -458,11 +464,11 @@ shape; token-first overloads remain available for source and binary compatibilit
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 VisioDocument.Load("operations.vsdx")
     .AsFluent()
-    .ExistingPage("Operations", page => page
+    .GetPage("Operations", page => page
         .ShapesWithData("Owner", "Ops", selection => selection
             .Fill(Color.LightBlue)
             .ShapeData("Reviewed", "Yes", "Reviewed", VisioShapeDataType.Boolean))
@@ -494,7 +500,7 @@ relayout keeps containers and generated adornments fixed unless the caller opts 
 `InspectSignatures()` detects Open XML signature-origin relationships and XML signature parts. Saving a
 loaded signed diagram is blocked by default because rebuilding the package would invalidate that evidence. Set
 `SignatureMutationPolicy = VisioSignatureMutationPolicy.RemoveInvalidatedSignatures` only when removing the stale
-signature carrier is the intended result. `SignPackageSignature(...)` and `ValidatePackageSignatures(...)` create
+signature carrier is the intended result. `SignPackage(...)` and `ValidateSignatures(...)` create
 and cryptographically validate OPC signatures through an explicitly supplied `IOfficeSecurityProvider`.
 
 ## Examples
@@ -509,7 +515,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("flowchart.vsdx")
     .Flowchart("Property buying flowchart", flow => flow
-        .Title()
+        .AddTitle()
         .Layout(VisioFlowchartLayout.TwoColumnContinuation)
         .RouteBranches(laneSpacing: 0.5)
         .Start("start", "Start with an agent\nyou trust")
@@ -531,7 +537,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("network-topology.vsdx")
     .NetworkTopologyDiagram("Branch topology", topology => topology
-        .Title()
+        .AddTitle()
         .Root("internet", "Internet", VisioNetworkNodeKind.Internet)
         .Firewall("firewall", "Firewall")
         .Switch("core", "Core Switch")
@@ -557,7 +563,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("sequence.vsdx")
     .SequenceDiagram("Checkout sequence", sequence => sequence
-        .Title()
+        .AddTitle()
         .Theme(VisioStyleTheme.Fluent())
         .Actor("customer", "Customer")
         .Participant("web", "Web App")
@@ -579,7 +585,7 @@ using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("roadmap.vsdx")
     .TimelineDiagram("Product roadmap", timeline => timeline
-        .Title()
+        .AddTitle()
         .Theme(VisioStyleTheme.Modern())
         .Range(new DateTime(2026, 1, 1), new DateTime(2026, 6, 30))
         .Span("discovery", new DateTime(2026, 1, 8), new DateTime(2026, 2, 20), "Discovery")
@@ -594,15 +600,14 @@ VisioDocument.Create("roadmap.vsdx")
 ```csharp
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 var document = VisioDocument.Create("architecture.vsdx");
 var page = document.AddPage("Architecture");
 page.AddLayer("Infrastructure");
 page.AddLayer("Annotations").Print = false;
 
-var server = page.AddStencilShape(VisioStencils.Network.Get("server"),
-    "server", 2, 5, "Server");
+var server = page.AddStencilShape(VisioStencils.Network.Get("server"), "server", OfficeLength.Inches(2), OfficeLength.Inches(5), "Server");
 server.SetShapeData("Owner", "Platform", "Owner",
     VisioShapeDataType.String, "Owning support team");
 
@@ -630,12 +635,14 @@ Unsupported masters remain marked as unsupported even when included for inventor
 ### Headless image export
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 
 var document = VisioDocument.Create("pipeline.vsdx");
-var page = document.AddPage("Pipeline").Size(8, 4);
-var build = page.AddProcess(1.5, 2, 1.4, 0.7, "Build");
-var ship = page.AddProcess(5.5, 2, 1.4, 0.7, "Ship");
+var page = document.AddPage("Pipeline").Size(OfficeLength.Inches(8), OfficeLength.Inches(4));
+var build = page.AddProcess(OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Build");
+var ship = page.AddProcess(OfficeLength.Inches(5.5), OfficeLength.Inches(2), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Ship");
 page.AddConnector(build, ship, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left)
     .EndArrow = EndArrow.Arrow;
 
@@ -649,22 +656,24 @@ document.SaveAsPng("pipeline.png", new VisioPngSaveOptions {
     Supersampling = 3
 });
 
-OfficeImageExportResult webp = document
-    .ToImage()
-    .AtDpi(144)
-    .FitWithin(1600, 1200)
-    .ResolveConnectorLabelOverlaps()
-    .AsWebp()
-    .Save("pipeline.webp");
+var imageOptions2 = new VisioImageExportOptions();
+imageOptions2.TargetDpi = 144;
+imageOptions2.MaximumOutputWidth = 1600;
+imageOptions2.MaximumOutputHeight = 1200;
+imageOptions2.ResolveConnectorLabelOverlaps = true;
+imageOptions2.Format = OfficeImageExportFormat.Webp;
+OfficeConversionReport webp = document.SaveAsImage("pipeline.webp", imageOptions2);
 
-IReadOnlyList<OfficeImageExportResult> pages = document
-    .ToImages()
-    .AllPages()
-    .IncludeStencilArtwork()
-    .IncludeConnectorLabels()
-    .AsJpeg()
-    .Save("pipeline-pages");
+var imageOptions3 = new VisioImageExportOptions();
+imageOptions3.PageIndex = 0;
+imageOptions3.PageCount = null;
+imageOptions3.RenderStencilArtwork = true;
+imageOptions3.RenderConnectorLabels = true;
+imageOptions3.Format = OfficeImageExportFormat.Jpeg;
+OfficeConversionReport pages = document.SaveAsImages("pipeline-pages", imageOptions3);
 ```
+
+`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ExportImages` consumer overloads to process each image with its sequence metadata and diagnostics.
 
 ## Content provenance
 

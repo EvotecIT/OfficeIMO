@@ -7,17 +7,17 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void FacturXReadinessRequiresZeroRatedCiiTaxCategoriesToUseZeroRate() {
-        var nonZeroIntracommunityRateOptions = new PdfOptions()
+        var nonZeroIntracommunityRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "K", lineTradeTaxCategoryCodeValue: "K"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var zeroIntracommunityRateOptions = new PdfOptions()
+        var zeroIntracommunityRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "K", lineTradeTaxCategoryCodeValue: "K", headerTradeTaxRateValue: "0.00", lineTradeTaxRateValue: "0"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var standardRateOptions = new PdfOptions()
+        var standardRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -44,7 +44,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessAllowsNotSubjectCiiTaxCategoryWithoutRate() {
-        var notSubjectWithoutRateOptions = new PdfOptions()
+        var notSubjectWithoutRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -57,7 +57,7 @@ public partial class PdfComplianceAnalyzerTests {
                 grandTotalAmount: "100.00",
                 headerTradeTaxCalculatedAmountValue: "0.00",
                 headerTradeTaxExemptionReasonValue: "Not subject to VAT"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var notSubjectWithHeaderRateOptions = new PdfOptions()
+        var notSubjectWithHeaderRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -69,7 +69,7 @@ public partial class PdfComplianceAnalyzerTests {
                 grandTotalAmount: "100.00",
                 headerTradeTaxCalculatedAmountValue: "0.00",
                 headerTradeTaxExemptionReasonValue: "Not subject to VAT"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var notSubjectAllowanceWithRateOptions = new PdfOptions()
+        var notSubjectAllowanceWithRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -95,7 +95,7 @@ public partial class PdfComplianceAnalyzerTests {
                     true),
                 "application/xml",
                 PdfAssociatedFileRelationship.Data);
-        var notSubjectChargeWithRateOptions = new PdfOptions()
+        var notSubjectChargeWithRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -147,42 +147,42 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresZeroRatedCiiTaxCategoriesToUseZeroCalculatedAmount() {
-        var nonZeroIntracommunityAmountOptions = new PdfOptions()
+        var nonZeroIntracommunityAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "K", lineTradeTaxCategoryCodeValue: "K", headerTradeTaxRateValue: "0", lineTradeTaxRateValue: "0", headerTradeTaxCalculatedAmountValue: "23.45"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var zeroIntracommunityAmountOptions = new PdfOptions()
+        var zeroIntracommunityAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "K", lineTradeTaxCategoryCodeValue: "K", headerTradeTaxRateValue: "0", lineTradeTaxRateValue: "0", headerTradeTaxCalculatedAmountValue: "0.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var nonZeroNotSubjectAmountOptions = new PdfOptions()
+        var nonZeroNotSubjectAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "O", lineTradeTaxCategoryCodeValue: "O", headerTradeTaxCalculatedAmountValue: "1.00", headerTradeTaxExemptionReasonValue: "Not subject to VAT"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var zeroNotSubjectAmountOptions = new PdfOptions()
+        var zeroNotSubjectAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "O", lineTradeTaxCategoryCodeValue: "O", headerTradeTaxCalculatedAmountValue: "0.00", headerTradeTaxExemptionReasonValue: "Not subject to VAT"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var standardAmountOptions = new PdfOptions()
+        var standardAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "S", lineTradeTaxCategoryCodeValue: "S", headerTradeTaxRateValue: "23", lineTradeTaxRateValue: "23.00", headerTradeTaxCalculatedAmountValue: "23.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var mismatchedStandardAmountOptions = new PdfOptions()
+        var mismatchedStandardAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "S", lineTradeTaxCategoryCodeValue: "S", headerTradeTaxRateValue: "23", lineTradeTaxRateValue: "23.00", headerTradeTaxBasisAmountValue: "100.00", headerTradeTaxCalculatedAmountValue: "20.00", taxTotalAmount: "20.00", grandTotalAmount: "120.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var tightMismatchedStandardAmountOptions = new PdfOptions()
+        var tightMismatchedStandardAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "S", lineTradeTaxCategoryCodeValue: "S", headerTradeTaxRateValue: "20", lineTradeTaxRateValue: "20.00", headerTradeTaxBasisAmountValue: "100.00", headerTradeTaxCalculatedAmountValue: "20.99", taxTotalAmount: "20.99", grandTotalAmount: "120.99"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var calculatedStandardAmountOptions = new PdfOptions()
+        var calculatedStandardAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -236,7 +236,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresParseableCiiTaxCategoryRates() {
-        var malformedRateOptions = new PdfOptions()
+        var malformedRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -254,7 +254,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresRatesForEveryNonOCategory() {
-        var missingRateOptions = new PdfOptions()
+        var missingRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -280,7 +280,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresParseableCiiTaxCategoryAmounts() {
-        var malformedAmountOptions = new PdfOptions()
+        var malformedAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -298,12 +298,12 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRejectsGroupedCiiDecimalValues() {
-        var groupedRateOptions = new PdfOptions()
+        var groupedRateOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxRateValue: "1,234.56"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var groupedAmountOptions = new PdfOptions()
+        var groupedAmountOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -326,27 +326,27 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresCiiTaxExemptionReasonForRequiredVatCategories() {
-        var missingReasonOptions = new PdfOptions()
+        var missingReasonOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "K", lineTradeTaxCategoryCodeValue: "K", headerTradeTaxRateValue: "0", lineTradeTaxRateValue: "0", headerTradeTaxCalculatedAmountValue: "0.00"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var reasonTextOptions = new PdfOptions()
+        var reasonTextOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "K", lineTradeTaxCategoryCodeValue: "K", headerTradeTaxRateValue: "0", lineTradeTaxRateValue: "0", headerTradeTaxCalculatedAmountValue: "0.00", headerTradeTaxExemptionReasonValue: "Intra-community supply"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var reasonCodeOptions = new PdfOptions()
+        var reasonCodeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "E", lineTradeTaxCategoryCodeValue: "E", headerTradeTaxRateValue: "0", lineTradeTaxRateValue: "0", headerTradeTaxCalculatedAmountValue: "0.00", headerTradeTaxExemptionReasonCodeValue: "VATEX-EU-E"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var invalidNotSubjectReasonCodeOptions = new PdfOptions()
+        var invalidNotSubjectReasonCodeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "O", lineTradeTaxCategoryCodeValue: "O", includeTradeTaxRate: false, includeLineTradeTaxRate: false, taxTotalAmount: "0.00", grandTotalAmount: "100.00", headerTradeTaxCalculatedAmountValue: "0.00", headerTradeTaxExemptionReasonCodeValue: "VATEX-EU-E"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var canonicalNotSubjectReasonCodeOptions = new PdfOptions()
+        var canonicalNotSubjectReasonCodeOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -384,12 +384,12 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRejectsCiiTaxExemptionReasonForForbiddenVatCategories() {
-        var forbiddenReasonOptions = new PdfOptions()
+        var forbiddenReasonOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "Z", lineTradeTaxCategoryCodeValue: "Z", headerTradeTaxRateValue: "0", lineTradeTaxRateValue: "0", headerTradeTaxCalculatedAmountValue: "0.00", headerTradeTaxExemptionReasonValue: "Zero rated"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var allowedMissingReasonOptions = new PdfOptions()
+        var allowedMissingReasonOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -411,12 +411,12 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresSellerVatIdentifierForExportTaxCategory() {
-        var missingSellerVatOptions = new PdfOptions()
+        var missingSellerVatOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "G", lineTradeTaxCategoryCodeValue: "G", headerTradeTaxRateValue: "0", lineTradeTaxRateValue: "0", headerTradeTaxCalculatedAmountValue: "0.00", headerTradeTaxExemptionReasonValue: "Export outside the EU", includeSellerTaxRegistrationSchemeId: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var validSellerVatOptions = new PdfOptions()
+        var validSellerVatOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -438,12 +438,12 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessRequiresBuyerVatIdentifierForIntracommunityTaxCategory() {
-        var missingBuyerVatOptions = new PdfOptions()
+        var missingBuyerVatOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCategoryCodeValue: "K", lineTradeTaxCategoryCodeValue: "K", headerTradeTaxRateValue: "0", lineTradeTaxRateValue: "0", headerTradeTaxCalculatedAmountValue: "0.00", headerTradeTaxExemptionReasonValue: "Intra-community supply", includeBuyerTaxRegistrationSchemeId: false), "application/xml", PdfAssociatedFileRelationship.Data);
-        var standardRateMissingBuyerVatOptions = new PdfOptions()
+        var standardRateMissingBuyerVatOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -465,7 +465,7 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void FacturXReadinessForbidsVatIdentifiersForNotSubjectTaxCategory() {
-        var notSubjectWithVatIdentifierOptions = new PdfOptions()
+        var notSubjectWithVatIdentifierOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -478,7 +478,7 @@ public partial class PdfComplianceAnalyzerTests {
                 grandTotalAmount: "100.00",
                 headerTradeTaxCalculatedAmountValue: "0.00",
                 headerTradeTaxExemptionReasonValue: "Not subject to VAT"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var headerOnlyNotSubjectWithVatIdentifierOptions = new PdfOptions()
+        var headerOnlyNotSubjectWithVatIdentifierOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
@@ -490,7 +490,7 @@ public partial class PdfComplianceAnalyzerTests {
                 grandTotalAmount: "100.00",
                 headerTradeTaxCalculatedAmountValue: "0.00",
                 headerTradeTaxExemptionReasonValue: "Not subject to VAT"), "application/xml", PdfAssociatedFileRelationship.Data);
-        var notSubjectWithoutVatIdentifierOptions = new PdfOptions()
+        var notSubjectWithoutVatIdentifierOptions = new PdfCreateOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))

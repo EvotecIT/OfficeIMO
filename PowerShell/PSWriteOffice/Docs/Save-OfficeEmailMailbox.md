@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves a native mbox mailbox with output diagnostics.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeEmailMailbox [-Path] <string> -Mailbox <EmailMailbox> [-Options <EmailMailboxWriterOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Mailbox to save.
 
 ```yaml
 Type: EmailMailbox
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Optional mailbox variant, envelope, and output limits.
 
 ```yaml
 Type: EmailMailboxWriterOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Destination mbox path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

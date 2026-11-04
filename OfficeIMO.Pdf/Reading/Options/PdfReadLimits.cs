@@ -31,9 +31,6 @@ public sealed partial class PdfReadLimits {
     internal const int DefaultMaxType3GlyphInvocationsPerPage = 1_000_000;
     internal const int DefaultMaxImageReferenceSteps = 100_000;
 
-    /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
-    public static PdfReadLimits Default => new PdfReadLimits();
-
     /// <summary>Maximum input byte count accepted before text/object scanning. Default: 512 MiB.</summary>
     public long MaxInputBytes { get; init; } = 512L * 1024L * 1024L;
 
@@ -142,10 +139,11 @@ public sealed partial class PdfReadLimits {
     /// <summary>Maximum aggregate calculator work for function shading during one page projection. Default: 512,000,000.</summary>
     public int MaxFunctionShadingEvaluationWork { get; init; } = 512_000_000;
 
-    /// <summary>Maximum operand values and dictionary keys parsed from one page or form content stream. Default: 1,000,000.</summary>
+    /// <summary>Maximum operand values and dictionary keys parsed from one page or form content stream,
+    /// and maximum cumulative dash-array entries projected during one page operation, including nested forms. Default: 1,000,000.</summary>
     public int MaxContentOperands { get; init; } = DefaultMaxContentOperands;
 
-    /// <summary>Maximum nested lexical arrays/dictionaries or form XObjects while parsing page content. Default: 128.</summary>
+    /// <summary>Maximum nested lexical arrays/dictionaries, marked-content scopes, or form XObjects while parsing page content. Default: 128.</summary>
     public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
     /// <summary>Maximum Type 3 glyph programs invoked while rendering one page, including nested forms. Default: 1,000,000.</summary>

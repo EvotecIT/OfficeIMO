@@ -18,7 +18,7 @@ public partial class VisioDocument {
         // A change snapshot must retain actual model values. Authoring defaults in the ordinary
         // writer (zero width -> 1, zero local pin -> center) must not conceal a later explicit edit.
         void CaptureTransform(VisioShape model, XElement xml) {
-            foreach (var value in new[] { ("Width", model.Width), ("Height", model.Height), ("LocPinX", model.LocPinX), ("LocPinY", model.LocPinY) }) {
+            foreach (var value in new[] { ("Width", model.WidthInches), ("Height", model.HeightInches), ("LocPinX", model.LocPinXInches), ("LocPinY", model.LocPinYInches) }) {
                 XElement? cell = xml.Elements(XName.Get("Cell", VisioNamespace)).FirstOrDefault(e => (string?)e.Attribute("N") == value.Item1);
                 if (cell != null) cell.SetAttributeValue("V", XmlConvert.ToString(value.Item2));
             }

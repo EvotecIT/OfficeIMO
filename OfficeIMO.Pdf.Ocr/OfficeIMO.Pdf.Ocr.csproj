@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Optional OCR rendering, native-text merge, and searchable output for OfficeIMO.Pdf.</Description>
-    <AssemblyName>OfficeIMO.Pdf.Ocr</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Pdf.Ocr</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -39,6 +37,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.DjVu.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Studio.Core" />
   </ItemGroup>
 
   <ItemGroup>

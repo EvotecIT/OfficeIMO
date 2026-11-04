@@ -8,7 +8,7 @@ Recipients do not always need an editable PPTX. Export selected slides or the fu
 
 ## Review surfaces
 
-`Export-OfficePowerPointImage` creates visual slide output. HTML conversion provides another browser-friendly review surface. `Get-OfficePowerPointNotes` separates speaker guidance from visible slide content, while slide summaries and shape inspection support structural checks.
+`Export-OfficeDocumentImage -Path ./review.pptx -OutputDirectory ./slides` creates visual slide output. Add `-Page 1-3` for a selection, or use `ConvertTo-OfficeDocumentImage` for image results without files. HTML conversion provides another browser-friendly review surface. `Get-OfficePowerPointNotes` separates speaker guidance from visible slide content, while slide summaries and shape inspection support structural checks.
 
 Before delivery, verify:
 
@@ -18,4 +18,4 @@ Before delivery, verify:
 4. imported slide themes and layouts;
 5. representative rendered slides at the intended aspect ratio.
 
-The [quarterly-review recipe](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1) includes charts, a table, and speaker notes suitable for this delivery check.
+The [quarterly-review recipe](https://github.com/EvotecIT/OfficeIMO/blob/c1f0e5322ee8119ac229d463b8e42e1423a3c7f6/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1) includes charts, a table, and speaker notes suitable for this delivery check.

@@ -6,6 +6,8 @@ public sealed record OfficeAiLimits {
     public int MaxInputBytes { get; init; } = 32 * 1024 * 1024;
     /// <summary>Maximum extracted text retained in a snapshot.</summary>
     public int MaxDocumentCharacters { get; init; } = 2_000_000;
+    /// <summary>Maximum aggregate source-location and evidence identity characters retained in a snapshot.</summary>
+    public int MaxEvidenceMetadataCharacters { get; init; } = 2_000_000;
     /// <summary>Maximum evidence records retained in a snapshot.</summary>
     public int MaxDocumentBlocks { get; init; } = 50_000;
     /// <summary>Maximum number of distinct source pages in a snapshot, independent of their original one-based numbers.</summary>
@@ -40,6 +42,7 @@ public sealed record OfficeAiLimits {
 
     internal void Validate() {
         if (MaxInputBytes is < 1 or > 268_435_456 || MaxDocumentCharacters is < 1 or > 20_000_000
+            || MaxEvidenceMetadataCharacters is < 1 or > 20_000_000
             || MaxDocumentBlocks is < 1 or > 200_000 || MaxPages is < 1 or > 10_000 || MaxDocumentImages is < 1 or > 10_000
             || MaxRequestCharacters is < 4096 or > 2_000_000 || MaxResponseCharacters is < 1024 or > 2_000_000
             || MaxSynthesisPasses is < 1 or > 8 || MaxRequests is < 1 or > 256 || ReservedSynthesisRequests is < 0 or > 255 || MaxResultItems is < 1 or > 200

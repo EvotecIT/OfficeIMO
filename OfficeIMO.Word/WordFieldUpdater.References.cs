@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
 
             value = formattedText;
             status = WordFieldUpdateStatus.Updated;
-            message = parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
+            message = parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.MergeFormat && fieldFormat != WordFieldFormat.CharFormat)
                 ? $"Updated from bookmark {bookmarkName} with deterministic text formatting."
                 : $"Updated from bookmark {bookmarkName}.";
             return true;
@@ -73,9 +73,12 @@ namespace OfficeIMO.Word {
         private static bool TryEvaluatePageRef(
             WordDocument document,
             WordFieldInventory.ParsedFieldInstruction parsed,
+            WordLayoutPagination? layout,
             out string? value,
             out WordFieldUpdateStatus status,
-            out string message) {
+            out string message,
+            out bool fromLayout) {
+            fromLayout = false;
             value = null;
             status = WordFieldUpdateStatus.Skipped;
 
@@ -102,7 +105,20 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            int? page = EstimatePageForBodyField(document, bookmarkStart);
+            int? page = null;
+            string? layoutLabel = null;
+            if (layout != null) {
+                if (!layout.TryGetBookmarkPage(bookmarkStart.Name?.Value ?? bookmarkName!, out int laidOutPage, out layoutLabel)) {
+                    // A page-break estimate would contradict the laid out pages, so keep the existing result.
+                    message = $"Bookmark {bookmarkName} could not be placed on a page by OfficeIMO layout; the PAGEREF result was left unchanged.";
+                    return false;
+                }
+
+                page = laidOutPage;
+            }
+
+            fromLayout = page != null;
+            page ??= EstimatePageForBodyField(document, bookmarkStart);
             if (page == null) {
                 message = $"Bookmark {bookmarkName} could not be matched to a body paragraph.";
                 return false;
@@ -114,13 +130,24 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
+            if (fromLayout && string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)
+                && GetLastMeaningfulFormat(parsed.FormatSwitches) == null) {
+                if (layoutLabel == null) {
+                    status = WordFieldUpdateStatus.Unsupported;
+                    message = "The target section page-number format is not supported and the PAGEREF result was left unchanged.";
+                    return false;
+                }
+                pageText = layoutLabel;
+            }
+
             value = pageText;
             status = WordFieldUpdateStatus.Updated;
+            string source = fromLayout ? "OfficeIMO page layout" : "OfficeIMO page-break order";
             message = usedNumericPicture
-                ? $"Updated from OfficeIMO page-break order for bookmark {bookmarkName} with numeric picture formatting."
-                : parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
-                ? $"Updated from OfficeIMO page-break order for bookmark {bookmarkName} with deterministic number formatting."
-                : $"Updated from OfficeIMO page-break order for bookmark {bookmarkName}.";
+                ? $"Updated from {source} for bookmark {bookmarkName} with numeric picture formatting."
+                : parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.MergeFormat && fieldFormat != WordFieldFormat.CharFormat)
+                ? $"Updated from {source} for bookmark {bookmarkName} with deterministic number formatting."
+                : $"Updated from {source} for bookmark {bookmarkName}.";
             return true;
         }
 
@@ -248,11 +275,11 @@ namespace OfficeIMO.Word {
                 case WordFieldFormat.Arabic:
                     value = page.ToString(CultureInfo.InvariantCulture);
                     return true;
-                case WordFieldFormat.Roman:
-                case WordFieldFormat.roman:
+                case WordFieldFormat.UpperRoman:
+                case WordFieldFormat.LowerRoman:
                 case WordFieldFormat.Ordinal:
-                case WordFieldFormat.Alphabetical:
-                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.LowerLetter:
+                case WordFieldFormat.UpperLetter:
                 case WordFieldFormat.Hex:
                 case WordFieldFormat.CardText:
                 case WordFieldFormat.OrdText:
@@ -268,7 +295,7 @@ namespace OfficeIMO.Word {
 
         private static WordFieldFormat? GetLastMeaningfulFormat(IReadOnlyList<WordFieldFormat> formatSwitches) {
             return formatSwitches
-                .Where(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
+                .Where(fieldFormat => fieldFormat != WordFieldFormat.MergeFormat && fieldFormat != WordFieldFormat.CharFormat)
                 .Cast<WordFieldFormat?>()
                 .LastOrDefault();
         }

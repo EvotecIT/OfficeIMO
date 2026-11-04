@@ -11,8 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture(expectedSource.GetProperty("path").GetString()!);
         Assert.Equal(expectedSource.GetProperty("sha256").GetString(), Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -33,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
                 string? rgb = fill.GetProperty("kind").GetString() == "none" ? null : fill.GetProperty("rgbHex").GetString();
                 Assert.IsType<IWorkCellFill>(source.Fill);
                 Assert.Equal(rgb, source.Fill!.Color?.RgbHex);
-                Assert.Equal(rgb == null ? null : "FF" + rgb, destination.GetCellStyle(row, column).FillColorArgb);
+                Assert.Equal(rgb == null ? null : "FF" + rgb, destination.Cell(row, column).GetStyle().FillColorArgb);
             }
         }
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_CELL_FILL_OMITTED");
@@ -42,8 +41,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Independent_selected_Pages_cell_fills_and_layout_survive_saved_DOCX_including_empty_cells() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-cell-fills.json")));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
@@ -63,10 +61,10 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(inset.GetProperty("top").GetDouble(), padding.TopPoints);
                 Assert.Equal(inset.GetProperty("right").GetDouble(), padding.RightPoints);
                 Assert.Equal(inset.GetProperty("bottom").GetDouble(), padding.BottomPoints);
-                Assert.Equal((short)(padding.LeftPoints * 20), target.MarginLeftWidth);
-                Assert.Equal((short)(padding.TopPoints * 20), target.MarginTopWidth);
-                Assert.Equal((short)(padding.RightPoints * 20), target.MarginRightWidth);
-                Assert.Equal((short)(padding.BottomPoints * 20), target.MarginBottomWidth);
+                Assert.Equal((short)(padding.LeftPoints * 20), checked((short?)(target.MarginLeft?.ToTwips())));
+                Assert.Equal((short)(padding.TopPoints * 20), checked((short?)(target.MarginTop?.ToTwips())));
+                Assert.Equal((short)(padding.RightPoints * 20), checked((short?)(target.MarginRight?.ToTwips())));
+                Assert.Equal((short)(padding.BottomPoints * 20), checked((short?)(target.MarginBottom?.ToTwips())));
                 Assert.Equal("middle", cell.GetProperty("verticalAlignment").GetString());
                 Assert.Equal(IWorkCellVerticalAlignment.Middle, source.VerticalAlignment);
                 Assert.Equal(OfficeIMO.Word.WordTableVerticalAlignment.Center, target.VerticalAlignment);
@@ -77,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
                 } else {
                     string hex = expected.GetProperty("rgbHex").GetString()!;
                     Assert.Equal(hex, fill.Color!.RgbHex);
-                    Assert.Equal(hex, target.ShadingFillColorHex);
+                    Assert.Equal(OfficeIMO.OfficeColor.Parse(hex), target.ShadingFillColor);
                 }
             }
         }
@@ -101,7 +99,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[]? declaration = mode == "inherit" ? null : mode == "none" ? Array.Empty<byte>() : FillColor(0, 0, 1);
         using var package = CellFillPackage(new[] { FillStyle(30, declaration, 31), FillStyle(31, FillColor(1, 0, 0)) });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var result = source.ToWordDocumentResult();
+        using var result = source.ToWordResult();
         Assert.False(result.IsVisualFallback);
         IWorkTable table = Assert.Single(result.Projection.Tables);
         Assert.Equal(2, table.Cells.Count);
@@ -111,7 +109,7 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
         Assert.All(reopened.Tables[0].Rows[0].Cells, cell => {
             if (expected == null) Assert.Equal(OfficeIMO.Word.WordShadingPattern.Nil, cell.ShadingPattern);
-            else Assert.Equal(expected, cell.ShadingFillColorHex);
+            else Assert.Equal(OfficeIMO.OfficeColor.Parse(expected!), cell.ShadingFillColor);
         });
     }
 
@@ -149,9 +147,9 @@ public sealed partial class IWorkBoundaryTests {
                 : new[] { style, FillStyle(31, FillColor(0, 0, 1)) },
             ambiguous: defect == "ambiguous-catalog", listType: defect == "wrong-catalog-type" ? 2 : 4);
         var source = IWorkSourceDocument.Open(package, new IWorkReadOptions {
-            MaximumTextStyleInheritanceDepth = defect == "depth" ? 1 : 128
+            MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128
         });
-        using var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         IWorkTable table = Assert.Single(result.Projection.Tables);
         Assert.Equal(42d, table.GetCell(1, 1)!.Value);
@@ -166,11 +164,11 @@ public sealed partial class IWorkBoundaryTests {
         byte[][] styles = { FillStyle(30, FillColor(1, 0, 0)) };
         using var package = CellFillPackage(styles);
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadPages());
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadPages());
         package.Position = 0;
         using var moreEntries = CellFillPackage(styles, additionalEntry: true);
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(moreEntries,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadPages());
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadPages());
     }
 
     [Fact]
@@ -195,21 +193,21 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelResult(policy);
             Assert.False(result.IsVisualFallback);
             Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_FILL_OMITTED");
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             Assert.All(new[] { 1, 2 }, column => Assert.Equal(expected == null ? null : "FF" + expected,
-                reopened.Sheets[0].GetCellStyle(1, column).FillColorArgb));
+                reopened.Sheets[0].Cell(1, column).GetStyle().FillColorArgb));
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
             Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.False(result.IsVisualFallback);
             Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_CELL_FILL_OMITTED");
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var table = Assert.Single(reopened.Slides[0].Tables);
             Assert.Equal("42", table.GetCell(0, 0).Text);
             Assert.Equal(string.Empty, table.GetCell(0, 1).Text);
@@ -245,18 +243,18 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) {
                 Assert.Equal(2, result.Value.Tables[0].Rows[0].Cells[0].ColumnSpan);
                 Assert.Equal("42", result.Value.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             }
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToExcelResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) Assert.Equal("A1:B1", Assert.Single(result.Value.Sheets[0].GetMergedRanges()).A1Range);
         } else {
-            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
+            using var result = source.ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(coveredContent, result.IsVisualFallback);
             if (!coveredContent) Assert.Equal((1, 2), Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).Merge);
         }

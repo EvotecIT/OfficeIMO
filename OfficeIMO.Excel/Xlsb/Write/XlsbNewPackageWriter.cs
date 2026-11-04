@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Creates a new, first-party XLSB package from the supported workbook subset.</summary>
-    internal static class XlsbNewPackageWriter {
+    internal static partial class XlsbNewPackageWriter {
         private static readonly DateTimeOffset ReproducibleEntryTime =
             new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -76,6 +76,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     sharedStrings, cancellationToken);
             }
 
+            // Freeze a flat source as a compressed package before publishing to an
+            // ordinary memory destination. Other streams keep their existing path.
+            if (destination.GetType() == typeof(MemoryStream)
+                && destination.Length == 0 && destination.Position == 0
+                && !cancellationToken.CanBeCanceled && document.Execution.OnTiming == null
+                && ExcelDocument.HasFlatTabularSnapshot(source.Rows)) {
+                return TryWriteStagedDirectTabularPackage(document, dateSystem, sheet, source, destination,
+                    sharedStrings, cancellationToken, pooledSnapshot: true);
+            }
+
             XlsbDirectTabularPlan? plan = null;
             try {
                 if (!XlsbDirectTabularPlan.TryCreate(dateSystem, sheet, source, sharedStrings, cancellationToken, out plan)) return false;
@@ -87,7 +97,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
                 WriteDirectTabularPackage(dateSystem, destination, source.SheetName, stylesPart,
-                    sharedStringsPart, plan, cancellationToken);
+                    sharedStringsPart, document.WorkbookPartRoot.ThemePart, plan, cancellationToken);
                 if (destination.CanSeek) destination.SetLength(destination.Position);
                 return true;
             } finally {
@@ -102,10 +112,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDirectTabularSource source,
             Stream destination,
             XlsbSharedStringTable? sharedStrings,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            bool pooledSnapshot = false) {
             // Staging the compressed package preserves the read-once input contract
             // without retaining a complete uncompressed BIFF12 worksheet.
-            using var package = new MemoryStream(XlsbWorksheetPartWriter.EstimateDirectWorksheetCapacity(source));
+            using Stream package = pooledSnapshot
+                ? new XlsbPackageBuffer()
+                : new MemoryStream(XlsbWorksheetPartWriter.EstimateDirectWorksheetCapacity(source));
             using (var archive = new ZipArchive(package, ZipArchiveMode.Create, leaveOpen: true)) {
                 ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest);
                 entry.LastWriteTime = ReproducibleEntryTime;
@@ -121,14 +134,21 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 WriteDirectTabularWorkbookEntries(archive, dateSystem, source.SheetName,
-                    stylesPart != null, sharedStringsPart.HasValue);
+                    stylesPart != null, sharedStringsPart.HasValue, document.WorkbookPartRoot.ThemePart);
                 if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart, CompressionLevel.Fastest);
                 if (sharedStringsPart.HasValue) WriteEntry(archive, "xl/sharedStrings.bin", sharedStringsPart.Value, CompressionLevel.Fastest);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            if (pooledSnapshot && destination is MemoryStream memory && memory.Capacity < package.Length) {
+                memory.Capacity = checked((int)package.Length);
+            }
             if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
-            destination.Write(package.GetBuffer(), 0, checked((int)package.Length));
+            if (package is XlsbPackageBuffer buffered) {
+                buffered.WriteTo(destination);
+            } else {
+                destination.Write(((MemoryStream)package).GetBuffer(), 0, checked((int)package.Length));
+            }
             if (destination.CanSeek) destination.SetLength(destination.Position);
             return true;
         }
@@ -139,6 +159,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             string sheetName,
             byte[]? stylesPart,
             ArraySegment<byte>? sharedStringsPart,
+            ThemePart? theme,
             XlsbDirectTabularPlan plan,
             CancellationToken cancellationToken) {
             using var positionReportingDestination = destination.CanSeek
@@ -147,7 +168,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             Stream packageDestination = positionReportingDestination ?? destination;
             using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
                 WriteDirectTabularWorkbookEntries(archive, dateSystem, sheetName,
-                    stylesPart != null, sharedStringsPart.HasValue);
+                    stylesPart != null, sharedStringsPart.HasValue, theme);
                 ZipArchiveEntry entry = archive.CreateEntry("xl/worksheets/sheet1.bin", CompressionLevel.Fastest);
                 entry.LastWriteTime = ReproducibleEntryTime;
                 using (Stream output = entry.Open()) {
@@ -163,13 +184,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDateSystem dateSystem,
             string sheetName,
             bool hasStyles,
-            bool hasSharedStrings) {
-            WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings), CompressionLevel.Fastest);
+            bool hasSharedStrings,
+            ThemePart? theme) {
+            WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: theme != null), CompressionLevel.Fastest);
             WriteEntry(archive, "_rels/.rels", RootRelationships, CompressionLevel.Fastest);
             WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.CreateDirectTabular(
                 sheetName,
                 dateSystem == ExcelDateSystem.NineteenFour), CompressionLevel.Fastest);
-            WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings), CompressionLevel.Fastest);
+            WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: hasStyles, hasSharedStrings: hasSharedStrings, hasTheme: theme != null), CompressionLevel.Fastest);
+            WriteTheme(archive, theme, CompressionLevel.Fastest);
         }
 
         private static void WritePackage(
@@ -180,12 +203,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<byte[]> worksheetParts,
             IReadOnlyList<XlsbWorksheetHyperlinkPlan> hyperlinkPlans,
             ArraySegment<byte>? sharedStringsPart) {
+            ThemePart? theme = document.WorkbookPartRoot.ThemePart;
             using var positionReportingDestination = destination.CanSeek
                 ? null
                 : new ExcelPositionReportingWriteStream(destination);
             Stream packageDestination = positionReportingDestination ?? destination;
             using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
-                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Count, stylesPart != null, sharedStringsPart.HasValue));
+                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null));
                 WriteEntry(archive, "_rels/.rels", RootRelationships);
                 WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
                     sheets,
@@ -194,7 +218,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     document.WorkbookRoot.GetFirstChild<WorkbookProtection>(),
                     document.WorkbookRoot.GetFirstChild<DefinedNames>(),
                     document.WorkbookRoot.GetFirstChild<CalculationProperties>()));
-                WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Count, stylesPart != null, sharedStringsPart.HasValue));
+                WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null));
+                WriteTheme(archive, theme, CompressionLevel.Optimal);
                 for (int index = 0; index < worksheetParts.Count; index++) {
                     WriteEntry(
                         archive,
@@ -209,6 +234,26 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
                 if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart);
                 if (sharedStringsPart.HasValue) WriteEntry(archive, "xl/sharedStrings.bin", sharedStringsPart.Value);
+            }
+        }
+
+        // MS-XLSB 2.1.7.52 uses the ordinary DrawingML XML theme part. Preserve
+        // it on every writer path; theme-linked style colors must keep their palette.
+        private static void WriteTheme(ZipArchive archive, ThemePart? theme, CompressionLevel compression) {
+            if (theme == null) return;
+            ZipArchiveEntry entry = archive.CreateEntry("xl/theme/theme1.xml", compression);
+            entry.LastWriteTime = ReproducibleEntryTime;
+            using Stream output = entry.Open();
+            theme.Theme!.Save(output);
+        }
+
+        private static void ValidateTheme(ExcelDocument document) {
+            ThemePart[] themes = document.WorkbookPartRoot.GetPartsOfType<ThemePart>().ToArray();
+            if (themes.Length > 1) throw new NotSupportedException("Native XLSB generation supports at most one workbook theme.");
+            ThemePart? theme = themes.SingleOrDefault();
+            if (theme != null && (theme.Theme == null || theme.Parts.Any()
+                || theme.ExternalRelationships.Any() || theme.HyperlinkRelationships.Any())) {
+                throw new NotSupportedException("Native XLSB generation requires a standalone DrawingML workbook theme without related parts.");
             }
         }
 
@@ -255,11 +300,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException("Native XLSB generation does not yet support external workbook relationships.");
             }
 
+            ValidateTheme(document);
             OpenXmlPart? unsupportedPart = document.WorkbookPartRoot.Parts
                 .Select(pair => pair.OpenXmlPart)
                 .FirstOrDefault(part => part is not WorksheetPart
                     && part is not SharedStringTablePart
-                    && part is not WorkbookStylesPart);
+                    && part is not WorkbookStylesPart
+                    && part is not ThemePart);
             if (unsupportedPart != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support workbook part '{unsupportedPart.ContentType}'.");
             }
@@ -284,11 +331,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException("Native XLSB generation does not yet support external workbook relationships.");
             }
 
+            ValidateTheme(document);
             OpenXmlPart? unsupportedPart = document.WorkbookPartRoot.Parts
                 .Select(pair => pair.OpenXmlPart)
                 .FirstOrDefault(part => part is not WorksheetPart
                     && part is not SharedStringTablePart
-                    && part is not WorkbookStylesPart);
+                    && part is not WorkbookStylesPart
+                    && part is not ThemePart);
             if (unsupportedPart != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support workbook part '{unsupportedPart.ContentType}'.");
             }
@@ -301,7 +350,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static string CreateContentTypes(int worksheetCount, bool hasStyles, bool hasSharedStrings) {
+        private static string CreateContentTypes(int worksheetCount, bool hasStyles, bool hasSharedStrings, bool hasTheme) {
             var builder = new StringBuilder(512 + worksheetCount * 120);
             builder.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
             builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -318,11 +367,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (hasSharedStrings) {
                 builder.Append("<Override PartName=\"/xl/sharedStrings.bin\" ContentType=\"application/vnd.ms-excel.sharedStrings\"/>");
             }
+            if (hasTheme) builder.Append("<Override PartName=\"/xl/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/>");
             builder.Append("</Types>");
             return builder.ToString();
         }
 
-        private static string CreateWorkbookRelationships(int worksheetCount, bool hasStyles, bool hasSharedStrings) {
+        private static string CreateWorkbookRelationships(int worksheetCount, bool hasStyles, bool hasSharedStrings, bool hasTheme) {
             var builder = new StringBuilder(256 + worksheetCount * 180);
             builder.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
             builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
@@ -343,6 +393,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 builder.Append("<Relationship Id=\"rId");
                 builder.Append((worksheetCount + (hasStyles ? 2 : 1)).ToString(System.Globalization.CultureInfo.InvariantCulture));
                 builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\" Target=\"sharedStrings.bin\"/>");
+            }
+            if (hasTheme) {
+                builder.Append("<Relationship Id=\"rId");
+                builder.Append((worksheetCount + (hasStyles ? 1 : 0) + (hasSharedStrings ? 1 : 0) + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"theme/theme1.xml\"/>");
             }
             builder.Append("</Relationships>");
             return builder.ToString();

@@ -80,94 +80,9 @@ $nonNativeValidated = @(
         evidence = 'The compiled PowerShell module is qualified through packaged PowerShell 7 and Windows PowerShell 5.1 contracts. It runs inside the managed PowerShell host and does not claim NativeAOT support.'
     }
     [ordered]@{
-        name = 'OfficeIMO.Archives'
-        classification = 'managed-cross-platform'
-        evidence = 'Cabinet and passive MSI extraction uses managed .NET and is qualified through bounded extraction and malformed-input contracts; no NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Reader.Dbf'
-        classification = 'managed-cross-platform'
-        evidence = 'DBF ingestion is qualified through managed .NET 8 and 10 extraction and CSV/XLSX conversion tests; the DBAClientX.Dbf owner and Reader adapter are not rooted in a NativeAOT qualification host.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Chm'
-        classification = 'managed-cross-platform'
-        evidence = 'Bounded CHM archive reading is qualified through managed .NET 8 and 10 contracts and independent entry extraction; no dedicated NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Chm.Markdown'
-        classification = 'managed-cross-platform'
-        evidence = 'The CHM Markdown adapter is qualified through managed .NET 8 and 10 conversion contracts; no complete-adapter NativeAOT qualification is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Chm.Epub'
-        classification = 'managed-cross-platform'
-        evidence = 'The CHM EPUB adapter is qualified through managed conversion contracts, reopened publications and EPUBCheck; no complete-adapter NativeAOT qualification is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Chm.Pdf'
-        classification = 'managed-cross-platform'
-        evidence = 'The CHM PDF adapter is qualified through managed conversion and reopened artifact tests; the PDF owner NativeAOT host does not qualify the complete adapter.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Reader.Chm'
-        classification = 'managed-cross-platform'
-        evidence = 'The modular CHM Reader adapter is qualified through managed extraction and registration contracts; no dedicated NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.OpenDocument.Odg.Pdf'
-        classification = 'managed-cross-platform'
-        evidence = 'The Draw PDF bridge is qualified through managed conversion tests and packed .NET consumers; no complete-bridge NativeAOT qualification is claimed.'
-    }
-    [ordered]@{
         name = 'OfficeIMO.Access'
         classification = 'managed-cross-platform'
         evidence = 'Native MDB/ACCDB reading, inert application inspection, unchanged preservation and Jet 4/ACE 12 creation are qualified through managed .NET tests and independent Access/DAO evidence; no dedicated NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Publisher'
-        classification = 'managed-cross-platform'
-        evidence = 'Bounded native Publisher decoding, styled text flow and page SVG reconstruction are qualified through managed .NET tests and independent-producer fixtures; no dedicated whole-library NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Publisher.Pdf'
-        classification = 'managed-cross-platform'
-        evidence = 'The Publisher PDF bridge is qualified through managed conversion tests and packed .NET consumers; the PDF owner NativeAOT host does not qualify the complete bridge.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Reader.Publisher'
-        classification = 'managed-cross-platform'
-        evidence = 'The modular Publisher Reader adapter is qualified through managed extraction, registration, transport and packed-consumer tests; no dedicated NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.DjVu'
-        classification = 'managed-cross-platform'
-        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.DjVu.Pdf'
-        classification = 'managed-cross-platform'
-        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Reader.DjVu'
-        classification = 'managed-cross-platform'
-        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Xps'
-        classification = 'managed-cross-platform'
-        evidence = 'XPS/OpenXPS lifecycle and rendering are qualified through managed .NET tests; no dedicated NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Xps.Pdf'
-        classification = 'managed-cross-platform'
-        evidence = 'The optional XPS PDF bridge is qualified through managed conversion and artifact tests; the PDF owner NativeAOT host does not qualify the complete bridge.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Reader.Xps'
-        classification = 'managed-cross-platform'
-        evidence = 'The modular XPS Reader adapter is qualified through managed extraction and registration tests; no dedicated NativeAOT qualification host is claimed.'
     }
     [ordered]@{
         name = 'OfficeIMO.ChartForgeX.Markdown'
@@ -183,26 +98,6 @@ $nonNativeValidated = @(
         name = 'OfficeIMO.Invoicing.KSeF'
         classification = 'managed-cross-platform'
         evidence = 'KSeF transport, cryptography and receipt contracts are qualified through managed .NET 8 and 10 tests; no dedicated NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Project'
-        classification = 'managed-cross-platform'
-        evidence = 'Project has managed cross-platform coverage and bounded Linux NativeAOT lifecycle smoke evidence; the complete library is not rooted in the coordinated NativeAOT qualification hosts.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Invoicing.Pdf'
-        classification = 'managed-cross-platform'
-        evidence = 'The optional typed invoice PDF adapter is qualified through managed .NET artifact tests; no dedicated NativeAOT qualification host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Invoicing.Validation'
-        classification = 'managed-cross-platform'
-        evidence = 'Pinned XML schema and Java/Saxon business-rule validation are qualified through managed .NET tests; no NativeAOT contract is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Invoicing'
-        classification = 'managed-cross-platform'
-        evidence = 'Electronic invoice contracts are validated by managed .NET suites; no dedicated NativeAOT qualification host is claimed.'
     }
     [ordered]@{
         name = 'OfficeIMO.AI'

@@ -30,7 +30,7 @@ public partial class Excel {
                 + "<c t=\"inlineStr\"><is><t>Number</t></is></c></row>" + rows + "</sheetData></worksheet>";
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
 
-            using var reader = ExcelDocument.OpenDataReader(path);
+            using var reader = ExcelDocument.OpenReader(path);
             Assert.Equal(2, reader.FieldCount);
             Assert.Equal("Text", reader.GetName(0));
             Assert.Equal("Number", reader.GetName(1));
@@ -58,7 +58,7 @@ public partial class Excel {
                 + "<row><c t=\"inlineStr\">" + content + "</row></sheetData></worksheet>";
             ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
 
-            Assert.Throws<XmlException>(() => ExcelDocument.OpenDataReader(path));
+            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
         }

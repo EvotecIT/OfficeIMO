@@ -12,9 +12,8 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to modify.</param>
         /// <param name="column">The 1-based column index of the cell to modify.</param>
         /// <param name="bold">Whether the font should be bold (true) or regular (false).</param>
-        public void CellBold(int row, int column, bool bold = true) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellBold(int row, int column, bool bold = true) {
+            WriteCellStyle(row, column, cell => {
                 ApplyFontBold(cell, bold);
             });
         }
@@ -25,9 +24,8 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to modify.</param>
         /// <param name="column">The 1-based column index of the cell to modify.</param>
         /// <param name="italic">Whether the font should be italic (true) or regular (false).</param>
-        public void CellItalic(int row, int column, bool italic = true) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellItalic(int row, int column, bool italic = true) {
+            WriteCellStyle(row, column, cell => {
                 ApplyFontItalic(cell, italic);
             });
         }
@@ -38,17 +36,15 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to modify.</param>
         /// <param name="column">The 1-based column index of the cell to modify.</param>
         /// <param name="underline">Whether the font should be underlined (true) or not (false).</param>
-        public void CellUnderline(int row, int column, bool underline = true) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellUnderline(int row, int column, bool underline = true) {
+            WriteCellStyle(row, column, cell => {
                 ApplyFontUnderline(cell, underline);
             });
         }
 
         /// <summary>Applies a native Excel underline style to a single cell.</summary>
-        public void CellUnderline(int row, int column, ExcelUnderlineStyle underlineStyle) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellUnderline(int row, int column, ExcelUnderlineStyle underlineStyle) {
+            WriteCellStyle(row, column, cell => {
                 ApplyFontUnderline(cell, underlineStyle);
             });
         }
@@ -56,17 +52,15 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Applies strikethrough font styling to a single cell.
         /// </summary>
-        public void CellStrikethrough(int row, int column, bool strikethrough = true) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellStrikethrough(int row, int column, bool strikethrough = true) {
+            WriteCellStyle(row, column, cell => {
                 ApplyFontStrikethrough(cell, strikethrough);
             });
         }
 
         /// <summary>Applies baseline, superscript, or subscript alignment to a single cell.</summary>
-        public void CellVerticalTextAlignment(int row, int column, ExcelVerticalTextAlignment alignment) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellVerticalTextAlignment(int row, int column, ExcelVerticalTextAlignment alignment) {
+            WriteCellStyle(row, column, cell => {
                 ApplyFontVerticalTextAlignment(cell, alignment);
             });
         }
@@ -77,9 +71,8 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to modify.</param>
         /// <param name="column">The 1-based column index of the cell to modify.</param>
         /// <param name="wrapText">Whether text should wrap within the cell.</param>
-        public void CellWrapText(int row, int column, bool wrapText = true) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellWrapText(int row, int column, bool wrapText = true) {
+            WriteCellStyle(row, column, cell => {
                 ApplyWrapText(cell, wrapText);
             });
         }
@@ -90,10 +83,9 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to modify.</param>
         /// <param name="column">The 1-based column index of the cell to modify.</param>
         /// <param name="fontName">The font family name to assign.</param>
-        public void CellFontName(int row, int column, string fontName) {
+        internal void CellFontName(int row, int column, string fontName) {
             if (string.IsNullOrWhiteSpace(fontName)) return;
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+            WriteCellStyle(row, column, cell => {
                 ApplyFontName(cell, fontName);
             });
         }
@@ -103,15 +95,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to modify.</param>
         /// <param name="column">The 1-based column index of the cell to modify.</param>
-        /// <param name="fontSize">The font size in points.</param>
-        public void CellFontSize(int row, int column, double fontSize) {
-            if (fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
-                throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be a positive finite value.");
+        /// <param name="fontSize">The positive physical font size.</param>
+        internal void CellFontSize(int row, int column, OfficeLength fontSize) {
+            if (fontSize <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(fontSize), "Font size must be positive.");
             }
 
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
-                ApplyFontSize(cell, fontSize);
+            WriteCellStyle(row, column, cell => {
+                ApplyFontSize(cell, fontSize.ToPoints());
             });
         }
 
@@ -121,10 +112,9 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to fill.</param>
         /// <param name="column">The 1-based column index of the cell to fill.</param>
         /// <param name="hexColor">The background color expressed as an ARGB or RGB hex string.</param>
-        public void CellBackground(int row, int column, string hexColor) {
+        internal void CellBackground(int row, int column, string hexColor) {
             if (string.IsNullOrWhiteSpace(hexColor)) return;
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+            WriteCellStyle(row, column, cell => {
                 ApplyBackground(cell, hexColor);
             });
         }
@@ -134,30 +124,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to fill.</param>
         /// <param name="column">The 1-based column index of the cell to fill.</param>
-        /// <param name="color">The <see cref="OfficeIMO.Drawing.OfficeColor"/> to convert to a hex value.</param>
-        public void CellBackground(int row, int column, OfficeIMO.Drawing.OfficeColor color) {
-            var argb = OfficeIMO.Excel.ExcelColor.ToArgbHex(color);
-            CellBackground(row, column, argb);
-        }
-
-        /// <summary>
-        /// Sets the value, formula, and number format of a cell in a single operation.
-        /// </summary>
-        /// <param name="row">The 1-based row index.</param>
-        /// <param name="column">The 1-based column index.</param>
-        /// <param name="value">Optional value to assign.</param>
-        /// <param name="formula">Optional formula to apply.</param>
-        /// <param name="numberFormat">Optional number format code.</param>
-        public void Cell(int row, int column, object? value = null, string? formula = null, string? numberFormat = null) {
-            if (value != null) {
-                CellValue(row, column, value);
-            }
-            if (!string.IsNullOrEmpty(formula)) {
-                CellFormula(row, column, formula!);
-            }
-            if (!string.IsNullOrEmpty(numberFormat)) {
-                FormatCell(row, column, numberFormat!);
-            }
+        /// <param name="color">Background color. Native theme roles remain linked to the workbook theme.</param>
+        internal void CellBackground(int row, int column, OfficeIMO.OfficeColor color) {
+            var spreadsheetColor = ExcelColor.ToSpreadsheetColor(color);
+            WriteCellStyle(row, column, cell => {
+                ApplyBackground(cell, spreadsheetColor);
+            });
         }
 
         /// <summary>
@@ -166,12 +138,8 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index.</param>
         /// <param name="column">The 1-based column index.</param>
         /// <param name="numberFormat">The number format code to apply.</param>
-        public void FormatCell(int row, int column, string numberFormat) {
-            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                MaterializeDeferredDataSetImportIfNeeded();
-            }
-
-            WriteLockConditional(() => FormatCellCore(row, column, numberFormat));
+        internal void FormatCell(int row, int column, string numberFormat) {
+            WriteCellStyle(row, column, cell => FormatCellCore(cell, row, column, numberFormat));
         }
 
         /// <summary>
@@ -228,7 +196,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to inspect.</param>
         /// <param name="snapshot">When this method returns, contains the cell value metadata if successful; otherwise, <see langword="null"/>.</param>
         /// <returns><see langword="true"/> when the cell exists and carries a value, inline string, or formula.</returns>
-        public bool TryGetCellValueSnapshot(int row, int column, out ExcelCellValueSnapshot? snapshot) {
+        public bool TryGetCellValueSnapshot(int row, int column, out ExcelNativeCellValueInfo? snapshot) {
             snapshot = null;
             try {
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
@@ -289,7 +257,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                snapshot = new ExcelCellValueSnapshot(kind, text, rawValue, dataType.ToOfficeEnum(), dateTimeValue);
+                snapshot = new ExcelNativeCellValueInfo(kind, text, rawValue, dataType.ToOfficeEnum(), dateTimeValue);
                 return true;
             } catch {
                 return false;
@@ -427,7 +395,7 @@ namespace OfficeIMO.Excel {
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyDerivedCellFormat(stylesheet, cell, wrapText ? "wrap" : "no-wrap", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, wrapText ? "wrap" : "no-wrap", null, () => {
                 ApplyCellFormatOverride(stylesheet, cell, format => {
                     var alignment = format.Alignment ?? new Alignment();
                     alignment.WrapText = wrapText ? true : null;
@@ -435,7 +403,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyAlignment = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         /// <summary>
@@ -445,7 +412,7 @@ namespace OfficeIMO.Excel {
         /// <param name="fromRow">The first 1-based row index in the range.</param>
         /// <param name="toRow">The last 1-based row index in the range.</param>
         /// <param name="column">The 1-based column index whose cells should wrap.</param>
-        public void WrapCells(int fromRow, int toRow, int column) {
+        internal void WrapCells(int fromRow, int toRow, int column) {
             if (fromRow < 1 || toRow < fromRow || column < 1) return;
             WriteLockConditional(() => {
                 using (BeginStyleBatch()) {
@@ -457,16 +424,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Enables WrapText for the specified column and pins the target column width (in Excel character units).
+        /// Enables WrapText for the specified column and pins the target column width.
         /// Useful when mixed with auto-fit operations so wrapped columns keep a predictable width.
         /// </summary>
         /// <param name="fromRow">The first 1-based row index in the range.</param>
         /// <param name="toRow">The last 1-based row index in the range.</param>
         /// <param name="column">The 1-based column index whose cells should wrap.</param>
-        /// <param name="targetColumnWidth">The column width, in Excel character units, to enforce when wrapping.</param>
-        public void WrapCells(int fromRow, int toRow, int column, double targetColumnWidth) {
+        /// <param name="targetColumnWidth">The character or physical width to enforce when wrapping.</param>
+        internal void WrapCells(int fromRow, int toRow, int column, ExcelColumnWidth targetColumnWidth) {
             WrapCells(fromRow, toRow, column);
-            if (targetColumnWidth > 0) {
+            if (targetColumnWidth.ToCharacters(this) > 0) {
                 try { SetColumnWidth(column, targetColumnWidth); } catch { }
             }
         }
@@ -477,9 +444,8 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to align.</param>
         /// <param name="column">The 1-based column index of the cell to align.</param>
         /// <param name="alignment">The horizontal alignment value to apply.</param>
-        public void CellAlign(int row, int column, ExcelHorizontalAlignment alignment) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellAlign(int row, int column, ExcelHorizontalAlignment alignment) {
+            WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -503,8 +469,7 @@ namespace OfficeIMO.Excel {
             Dictionary<(uint BaseStyle, ExcelHorizontalAlignment? Horizontal,
                 ExcelVerticalAlignment? Vertical, bool? Wrap), uint> styleIndexes) {
             if (!horizontal.HasValue && !vertical.HasValue && !wrap.HasValue) return;
-            WriteLockConditional(() => {
-                Cell cell = GetCell(row, column);
+            WriteCellStyle(row, column, cell => {
                 uint baseStyle = cell.StyleIndex?.Value ?? 0U;
                 var key = (baseStyle, horizontal, vertical, wrap);
                 if (!styleIndexes.TryGetValue(key, out uint styleIndex)) {
@@ -536,9 +501,8 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to align.</param>
         /// <param name="column">The 1-based column index of the cell to align.</param>
         /// <param name="shrinkToFit">Whether cell text should shrink horizontally to fit.</param>
-        public void CellShrinkToFit(int row, int column, bool shrinkToFit = true) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellShrinkToFit(int row, int column, bool shrinkToFit = true) {
+            WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -563,13 +527,12 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to align.</param>
         /// <param name="column">The 1-based column index of the cell to align.</param>
         /// <param name="rotation">Open XML text rotation value. Use 0-90 for upward rotation, 91-180 for downward rotation, or 255 for stacked vertical text.</param>
-        public void CellTextRotation(int row, int column, int rotation) {
+        internal void CellTextRotation(int row, int column, int rotation) {
             if ((rotation < 0 || rotation > 180) && rotation != 255) {
                 throw new ArgumentOutOfRangeException(nameof(rotation), "Text rotation must be between 0 and 180, or 255 for stacked vertical text.");
             }
 
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+            WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -594,9 +557,8 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to align.</param>
         /// <param name="column">The 1-based column index of the cell to align.</param>
         /// <param name="alignment">The vertical alignment value to apply.</param>
-        public void CellVerticalAlign(int row, int column, ExcelVerticalAlignment alignment) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellVerticalAlign(int row, int column, ExcelVerticalAlignment alignment) {
+            WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -622,7 +584,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to style.</param>
         /// <param name="style">The border style to apply on all four sides.</param>
         /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
-        public void CellBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null) =>
+        internal void CellBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null) =>
             CellBorder(row, column, ExcelCellBorders.All, style, hexColor);
 
         /// <summary>
@@ -634,9 +596,8 @@ namespace OfficeIMO.Excel {
         /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
         /// <param name="diagonalUp">Whether to draw the bottom-left to top-right diagonal.</param>
         /// <param name="diagonalDown">Whether to draw the top-left to bottom-right diagonal.</param>
-        public void CellDiagonalBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+        internal void CellDiagonalBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
+            WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -659,10 +620,9 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to recolor.</param>
         /// <param name="column">The 1-based column index of the cell to recolor.</param>
         /// <param name="hexColor">The desired font color expressed as an ARGB or RGB hex string.</param>
-        public void CellFontColor(int row, int column, string hexColor) {
+        internal void CellFontColor(int row, int column, string hexColor) {
             if (string.IsNullOrWhiteSpace(hexColor)) return;
-            WriteLockConditional(() => {
-                var cell = GetCell(row, column);
+            WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -670,7 +630,7 @@ namespace OfficeIMO.Excel {
 
                 string argb = NormalizeHexColor(hexColor);
 
-                ApplyDerivedCellFormat(stylesheet, cell, "font-color " + argb, () => {
+                ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "font-color", argb, () => {
                     uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                     var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
                     var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontColor(font, argb));
@@ -679,8 +639,6 @@ namespace OfficeIMO.Excel {
                         format.ApplyFont = true;
                     });
                 });
-
-                SaveStylesheet(stylesPart);
             });
         }
 
@@ -693,7 +651,7 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyDerivedCellFormat(stylesheet, cell, bold ? "bold" : "not-bold", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, bold ? "bold" : "not-bold", null, () => {
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                 var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
                 var boldFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetBold(font, bold));
@@ -702,7 +660,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFont = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontItalic(Cell cell, bool italic) {
@@ -714,7 +671,7 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyDerivedCellFormat(stylesheet, cell, italic ? "italic" : "not-italic", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, italic ? "italic" : "not-italic", null, () => {
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                 var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
                 var italicFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetItalic(font, italic));
@@ -723,7 +680,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFont = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontUnderline(Cell cell, bool underline) {
@@ -735,7 +691,7 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            ApplyDerivedCellFormat(stylesheet, cell, underline ? "underline" : "not-underline", () => {
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, underline ? "underline" : "not-underline", null, () => {
                 uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                 var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
                 var underlineFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetUnderline(font, underline));
@@ -744,7 +700,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFont = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void ApplyFontUnderline(Cell cell, ExcelUnderlineStyle underlineStyle) {
@@ -845,7 +800,11 @@ namespace OfficeIMO.Excel {
             return hex.ToUpperInvariant();
         }
 
-        private void ApplyBackground(Cell cell, string hexColor) {
+        private void ApplyBackground(Cell cell, string hexColor) =>
+            ApplyBackground(cell, new Color { Rgb = NormalizeHexColor(hexColor) });
+
+        /// <summary>Applies a solid fill through the shared style cache without flattening theme colors.</summary>
+        private void ApplyBackground(Cell cell, Color color) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null)
@@ -854,13 +813,12 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            // Create a fill with solid color
-            string argb = NormalizeHexColor(hexColor);
-            ApplyDerivedCellFormat(stylesheet, cell, "fill " + argb, () => {
+            // Create a fill with a literal color or a native theme slot.
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "fill", color.Rgb?.Value ?? color.OuterXml, () => {
                 var fill = new Fill(new PatternFill {
                     PatternType = PatternValues.Solid,
-                    ForegroundColor = new ForegroundColor { Rgb = argb },
-                    BackgroundColor = new BackgroundColor { Rgb = argb }
+                    ForegroundColor = new ForegroundColor { Rgb = color.Rgb, Theme = color.Theme },
+                    BackgroundColor = new BackgroundColor { Rgb = color.Rgb, Theme = color.Theme }
                 });
                 var fillId = GetOrCreateFill(stylesheet, fill);
                 ApplyCellFormatOverride(stylesheet, cell, format => {
@@ -868,7 +826,6 @@ namespace OfficeIMO.Excel {
                     format.ApplyFill = true;
                 });
             });
-            SaveStylesheet(stylesPart);
         }
 
         private void FillRangeCore(int firstRow, int firstColumn, int lastRow, int lastColumn, string hexColor) {
@@ -925,25 +882,20 @@ namespace OfficeIMO.Excel {
             SaveStylesheet(stylesPart);
         }
 
-        private void FormatCellCore(int row, int column, string numberFormat) {
-            Cell cell = GetCell(row, column);
-
+        private void FormatCellCore(Cell cell, int row, int column, string numberFormat) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
-            WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
-            if (stylesPart == null) {
-                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
-            }
+            WorkbookStylesPart stylesPart = GetKnownStylesPart() ?? workbookPart.AddNewPart<WorkbookStylesPart>();
 
             Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            uint numberFormatId = GetOrCreateNumberFormatId(stylesheet, numberFormat);
-
-            ApplyCellFormatOverride(stylesheet, cell, format => {
-                format.NumberFormatId = numberFormatId;
-                format.ApplyNumberFormat = true;
+            ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "number-format", numberFormat, () => {
+                uint numberFormatId = GetOrCreateNumberFormatId(stylesheet, numberFormat);
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.NumberFormatId = numberFormatId;
+                    format.ApplyNumberFormat = true;
+                });
             });
-            SaveStylesheet(stylesPart);
             ClearHeaderCacheForCellMutation(row, column);
         }
 

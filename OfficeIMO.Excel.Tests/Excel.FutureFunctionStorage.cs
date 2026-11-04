@@ -20,7 +20,7 @@ public sealed class ExcelFutureFunctionStorageTests {
         using var reopened = ExcelDocument.Load(original);
         Verify(reopened.Sheets[0], edited: false);
         Assert.Empty(reopened.ValidateOpenXml());
-        reopened.Sheets[0].CellValue(2, 2, 50d);
+        reopened.Sheets[0].Cell(2, 2).SetValue(50d);
         Assert.Equal(count, reopened.Calculate());
         Verify(reopened.Sheets[0], edited: true);
         using var changed = new MemoryStream(); reopened.Save(changed); VerifySavedKinds(changed);
@@ -58,7 +58,7 @@ public sealed class ExcelFutureFunctionStorageTests {
     [InlineData("array")]
     public void Future_function_storage_preserves_calls_literals_references_and_saved_calculation(string route) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("O'Brien, IFNA(MINIFS(");
+        ExcelSheet sheet = document.AddSheet("O'Brien, IFNA(MINIFS(");
         var cases = new[] {
             ("IFNA(NA(),99)", "_xlfn.IFNA(NA(),99)", "99"),
             ("IFNA(1/0,99)", "_xlfn.IFNA(1/0,99)", "#DIV/0!"),
@@ -78,7 +78,7 @@ public sealed class ExcelFutureFunctionStorageTests {
                 if (column == 5 && row >= firstFormulaRow) {
                     string formula = cases[row - firstFormulaRow].Item1;
                     if (route == "array") sheet.SetArrayFormula($"E{row}:E{row}", formula);
-                    else sheet.CellFormula(row, column, formula);
+                    else sheet.Cell(row, column).SetFormula(formula);
                 } else {
                     object value = (row, column) switch {
                         (1, 1) => "quoted",
@@ -89,11 +89,11 @@ public sealed class ExcelFutureFunctionStorageTests {
                         (4, 2) => 20d,
                         _ => 0d
                     };
-                    sheet.CellValue(row, column, value);
+                    sheet.Cell(row, column).SetValue(value);
                 }
             }
         }
-        if (route == "materialized") sheet.CellAt(1, 1).GetValue();
+        if (route == "materialized") sheet.Cell(1, 1).GetValue();
         using var output = new MemoryStream(); document.Save(output); output.Position = 0;
         if (route == "buffered") Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
         using (var archive = new ZipArchive(output, ZipArchiveMode.Read, leaveOpen: true)) {
@@ -174,19 +174,19 @@ public sealed class ExcelFutureFunctionStorageTests {
             ("CONCAT(\"IFS(CONCAT(\",'O''Brien, IFS(CONCAT('!A1)", "_xlfn.CONCAT(\"IFS(CONCAT(\",'O''Brien, IFS(CONCAT('!A1)")
         };
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("O'Brien, IFS(CONCAT(");
+        ExcelSheet sheet = document.AddSheet("O'Brien, IFS(CONCAT(");
         const int firstFormulaRow = 30;
         for (int row = 1; row < firstFormulaRow + cases.Length; row++) {
             for (int column = 1; column <= 6; column++) {
                 if (column == 2 && row >= firstFormulaRow) {
                     string formula = cases[row - firstFormulaRow].Formula;
                     if (route == "array") sheet.SetArrayFormula($"B{row}:B{row}", formula);
-                    else sheet.CellFormula(row, column, formula);
-                } else if (row == 1 && column == 4) sheet.CellFormula(row, column, "1+2");
-                else sheet.CellValue(row, column, column == 5 ? row : column == 6 ? row * 10 : 0);
+                    else sheet.Cell(row, column).SetFormula(formula);
+                } else if (row == 1 && column == 4) sheet.Cell(row, column).SetFormula("1+2");
+                else sheet.Cell(row, column).SetValue(column == 5 ? row : column == 6 ? row * 10 : 0);
             }
         }
-        if (route == "materialized") sheet.CellAt(1, 1).GetValue();
+        if (route == "materialized") sheet.Cell(1, 1).GetValue();
         using var output = new MemoryStream(); document.Save(output);
         if (route == "buffered") Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
         VerifyStoredFormulas(output);
@@ -223,15 +223,15 @@ public sealed class ExcelFutureFunctionStorageTests {
         string prefix = function == "IFNA" ? "IFNA(NA(),\"" : function + "(B1,B1,\"";
         string expression = prefix + new string('x', 8190 - prefix.Length - 2) + "\")";
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
-        sheet.CellValue(1, 1, 17d); sheet.CellFormula(1, 1, "42");
-        sheet.CellValue(2, 1, "keep");
+        ExcelSheet sheet = document.AddSheet("Report");
+        sheet.Cell(1, 1).SetValue(17d); sheet.Cell(1, 1).SetFormula("42");
+        sheet.Cell(2, 1).SetValue("keep");
         if (array) Assert.Throws<ArgumentException>(() => sheet.SetArrayFormula("A1:A2", expression));
-        else Assert.Throws<ArgumentException>(() => sheet.CellFormula(1, 1, expression));
+        else Assert.Throws<ArgumentException>(() => sheet.Cell(1, 1).SetFormula(expression));
         Assert.Equal("42", sheet.GetFormulaText(1, 1));
         Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? value));
         Assert.Equal("17", value);
-        Assert.Equal("keep", sheet.CellAt(2, 1).GetValue<string>());
+        Assert.Equal("keep", sheet.Cell(2, 1).GetValue<string>());
     }
 
     [Theory]
@@ -242,14 +242,14 @@ public sealed class ExcelFutureFunctionStorageTests {
         string atLimit = prefix + new string('x', 8180 - prefix.Length - 2) + "\")";
         string oversized = prefix + new string('x', 8181 - prefix.Length - 2) + "\")";
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
-        sheet.CellValue(1, 1, 17d); sheet.CellFormula(1, 1, "42");
-        sheet.CellValue(2, 1, "keep");
+        ExcelSheet sheet = document.AddSheet("Report");
+        sheet.Cell(1, 1).SetValue(17d); sheet.Cell(1, 1).SetFormula("42");
+        sheet.Cell(2, 1).SetValue("keep");
         Assert.Throws<ArgumentException>(() => Set(oversized));
         Assert.Equal("42", sheet.GetFormulaText(1, 1));
         Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? value));
         Assert.Equal("17", value);
-        Assert.Equal("keep", sheet.CellAt(2, 1).GetValue<string>());
+        Assert.Equal("keep", sheet.Cell(2, 1).GetValue<string>());
         Set(atLimit);
         string stored = sheet.GetFormulaText(1, 1)!;
         Assert.Equal(8192, stored.Length);
@@ -272,7 +272,7 @@ public sealed class ExcelFutureFunctionStorageTests {
         const string stored = "_xlfn.IFNA(_xlfn.SEQUENCE (1),_xlfn._xlws.SORT(_xlfn.UNIQUE(_xlfn._xlws.FILTER(A1:A2,A1:A2>0))))"
             + "&\"SEQUENCE( SORT( IFNA(\"&Report!SEQUENCE(1)&'Report'!IFNA(NA(),99)&Table1[SEQUENCE(]";
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.SetArrayFormula("D1:D1", formula);
         Assert.Equal(stored, sheet.GetFormulaText(1, 4));
         using var output = new MemoryStream(); document.Save(output); output.Position = 0;

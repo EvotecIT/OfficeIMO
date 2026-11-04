@@ -28,8 +28,8 @@ public sealed partial class VisioMasterReplacementTests {
         var document = VisioDocument.Create(); document.WriteMasterDeltasOnly = deltas;
         VisioMaster original = document.RegisterMaster(definitions.GetMaster("Original"));
         VisioMaster replacement = document.RegisterMaster(definitions.GetMaster("Replacement"));
-        VisioPage page = document.AddPage("Page", 12, 8);
-        VisioShape root = page.AddShape("root", original, 5, 4, 4, 2);
+        VisioPage page = document.AddPage("Page", OfficeLength.Inches(12), OfficeLength.Inches(8));
+        VisioShape root = page.AddShape("root", original, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
         VisioShape child = root.Children[0], nested = root.Children[1], grandchild = nested.Children[0];
         root.Children.Remove(nested); root.Children.Insert(0, nested);
         child.Text = "Retained label"; child.SetShapeData("Owner", "Operations");
@@ -39,7 +39,7 @@ public sealed partial class VisioMasterReplacementTests {
         child.TextStyle = new VisioTextStyle { Size = 12, TextWidth = .5, TextPinX = .6 };
         VisioTextStyle style = child.TextStyle;
         var point = new VisioConnectionPoint(.8, .25, 1, 0); child.ConnectionPoints.Add(point);
-        VisioShape target = page.AddRectangle(10, 4, 1, 1);
+        VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         VisioConnector connector = page.AddConnector(child, target, ConnectorKind.Straight);
         connector.FromConnectionPoint = point;
         string originalSvg = page.ToSvg(RenderOptions());
@@ -56,8 +56,8 @@ public sealed partial class VisioMasterReplacementTests {
         Assert.Equal("30", child.MasterShapeId); Assert.Equal("32", grandchild.MasterShapeId);
         Assert.Equal(masterBefore, MasterDefinition(definitions.GetMaster("Original")));
         double factor = resize ? 2 : 1;
-        Assert.Equal(4 * factor, root.Width); Assert.Equal(2 * factor, root.Height);
-        Assert.Equal(1.5 * factor, child.Width); Assert.Equal(.8 * factor, point.X);
+        Assert.Equal(4 * factor, root.Width.ToInches()); Assert.Equal(2 * factor, root.Height.ToInches());
+        Assert.Equal(1.5 * factor, child.Width.ToInches()); Assert.Equal(.8 * factor, point.X);
         Assert.Equal(.5 * factor, style.TextWidth); Assert.Equal(12, style.Size);
         Assert.NotEqual(originalSvg, page.ToSvg(RenderOptions()));
 
@@ -69,7 +69,7 @@ public sealed partial class VisioMasterReplacementTests {
             Assert.Equal("complete", saved.GetUserCellValue("Approval"));
             Assert.Contains("Review", saved.LayerNames); Assert.True(saved.Protection.LockDelete);
             Assert.Equal("https://example.org/item", Assert.Single(saved.Hyperlinks).Address);
-            Assert.Equal(1.5 * factor, saved.Width, 8); Assert.Equal(.5 * factor, saved.TextStyle!.TextWidth);
+            Assert.Equal(1.5 * factor, saved.Width.ToInches(), 8); Assert.Equal(.5 * factor, saved.TextStyle!.TextWidth);
             VisioConnector glue = Assert.Single(candidate.Pages[0].Connectors);
             Assert.Same(saved, glue.From); Assert.Equal(.8 * factor, glue.FromConnectionPoint!.X, 8);
             Assert.Equal(connector.StartPoint.X, glue.StartPoint.X, 8); Assert.Equal(connector.StartPoint.Y, glue.StartPoint.Y, 8);
@@ -86,12 +86,12 @@ public sealed partial class VisioMasterReplacementTests {
     [InlineData("stencil")]
     public void IncompatibleSelectionDoesNotMutateEarlierShapesOrRegisterReplacement(string overload) {
         var document = VisioDocument.Create(); var page = document.AddPage("Page");
-        VisioShape first = page.AddRectangle(1, 1, 1, 1, "first");
-        var group = new VisioShape("group", 4, 4, 2, 2, "group");
-        group.Children.Add(new VisioShape("child", 1, 1, 1, 1, "child")); page.Shapes.Add(group);
+        VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "first");
+        var group = new VisioShape("group", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(2), OfficeLength.Inches(2), "group");
+        group.Children.Add(new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "child")); page.Shapes.Add(group);
         byte[] before = document.ToLegacyXmlResult().Value;
         var masters = document.Masters.ToArray();
-        var replacement = new VisioMaster("new", "Ellipse", new VisioShape("1", .5, .5, 1, 1, "new"));
+        var replacement = new VisioMaster("new", "Ellipse", new VisioShape("1", OfficeLength.Inches(.5), OfficeLength.Inches(.5), OfficeLength.Inches(1), OfficeLength.Inches(1), "new"));
         VisioShapeSelection selected = page.SelectShapes(shape => shape == first || shape == group);
         Assert.Throws<NotSupportedException>(() => {
             if (overload == "name") selected.ReplaceMaster("Ellipse");
@@ -110,8 +110,8 @@ public sealed partial class VisioMasterReplacementTests {
         VisioMaster original = document.RegisterMaster("Original", Blueprint("1", "2", "3", "4", 4, 2, "Rectangle", "Triangle"));
         var replacement = new VisioMaster("replacement", "Replacement", Blueprint("5", "6", "7", "8", 8, 2, "Ellipse", "Diamond"));
         var page = document.AddPage("Page");
-        VisioShape first = page.AddShape("first", original, 3, 3, 4, 2);
-        VisioShape second = page.AddShape("second", original, 3, 6, 4, 2);
+        VisioShape first = page.AddShape("first", original, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
+        VisioShape second = page.AddShape("second", original, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
         second.Children[1].Angle = .3;
         byte[] before = document.ToLegacyXmlResult().Value;
         Assert.Throws<NotSupportedException>(() => page.SelectByMaster("Original").ReplaceMaster(replacement, resizeToMaster: true));
@@ -134,7 +134,7 @@ public sealed partial class VisioMasterReplacementTests {
         foreach (VisioDocument candidate in new[] { document, Reopen(document, format) }) {
             VisioShape retained = candidate.Pages[0].Shapes[0];
             Assert.Equal("Retained text", retained.Text); Assert.Equal(12, retained.TextStyle!.Size!.Value, 8);
-            Assert.Equal(VisioTextHorizontalAlignment.Center, retained.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Center, retained.TextStyle.HorizontalAlignment);
             XElement pageShape = XDocument.Load(new MemoryStream(candidate.ToLegacyXmlResult().Value)).Descendants(Legacy + "Page").Single().Descendants(Legacy + "Shape").Single();
             Assert.Equal("7", Assert.Single(pageShape.Elements(Legacy + "Char")).Attribute("IX")!.Value);
             Assert.Equal("9", Assert.Single(pageShape.Elements(Legacy + "Para")).Attribute("IX")!.Value);
@@ -145,10 +145,10 @@ public sealed partial class VisioMasterReplacementTests {
     }
 
     private static VisioShape Blueprint(string rootId, string childId, string nestedId, string grandchildId, double width, double height, string childKind, string grandchildKind) {
-        var root = new VisioShape(rootId, width / 2, height / 2, width, height, "") { FillPattern = 0, LinePattern = 0 };
-        root.Children.Add(new VisioShape(childId, width / 4, height / 2, width * .375, height / 2, "") { NameU = childKind });
-        var nested = new VisioShape(nestedId, width * .75, height / 2, width / 2, height, "") { FillPattern = 0, LinePattern = 0 };
-        nested.Children.Add(new VisioShape(grandchildId, width / 4, height / 2, width * .375, height / 2, "") { NameU = grandchildKind });
+        var root = new VisioShape(rootId, OfficeLength.Inches(width / 2), OfficeLength.Inches(height / 2), OfficeLength.Inches(width), OfficeLength.Inches(height), "") { FillPattern = 0, LinePattern = 0 };
+        root.Children.Add(new VisioShape(childId, OfficeLength.Inches(width / 4), OfficeLength.Inches(height / 2), OfficeLength.Inches(width * .375), OfficeLength.Inches(height / 2), "") { NameU = childKind });
+        var nested = new VisioShape(nestedId, OfficeLength.Inches(width * .75), OfficeLength.Inches(height / 2), OfficeLength.Inches(width / 2), OfficeLength.Inches(height), "") { FillPattern = 0, LinePattern = 0 };
+        nested.Children.Add(new VisioShape(grandchildId, OfficeLength.Inches(width / 4), OfficeLength.Inches(height / 2), OfficeLength.Inches(width * .375), OfficeLength.Inches(height / 2), "") { NameU = grandchildKind });
         root.Children.Add(nested); return root;
     }
     private static string MasterDefinition(VisioMaster master) {

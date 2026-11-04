@@ -6,41 +6,58 @@ schema: 2.0.0
 ---
 # Get-OfficePowerPointLayout
 ## SYNOPSIS
-Lists slide layouts available in a presentation.
+Lists template layouts from all masters, or one selected master.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Get-OfficePowerPointLayout [-Presentation <PowerPointPresentation>] [-Master <int>] [<CommonParameters>]
+Get-OfficePowerPointLayout [[-Document] <PowerPointDocument>] [-Master <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Lists slide layouts available in a presentation.
+Lists template layouts from all masters, or one selected master.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficePowerPointLayout -Presentation $ppt
+Get-OfficePowerPointLayout -Document $deck
 ```
 
-Returns layout metadata including name, type, and index.
 
 ### EXAMPLE 2
 ```powershell
-PS> New-OfficePowerPoint -Path .\deck.pptx { $layout = @(Get-OfficePowerPointLayout)[0] }
+New-OfficePowerPoint -Path ./Review.pptx {
+    $layout = @(Get-OfficePowerPointLayout -Master 1)[0]
+    PowerPointSlide -Title 'Review' -TemplateLayout $layout
+}
 ```
 
-Uses the current DSL presentation context.
 
 ## PARAMETERS
 
+### -Document
+Gets or sets the live document; omission uses the enclosing content scope.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: 0
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -Master
-Slide master index.
+Gets or sets a one-based master position; omission lists all masters.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -51,28 +68,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Presentation
-Presentation to inspect (optional inside DSL).
-
-```yaml
-Type: PowerPointPresentation
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointPresentation`
+- `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS
 

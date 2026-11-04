@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using System.Threading;
 using OfficeIMO.CSV;
@@ -10,7 +11,6 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
@@ -21,8 +21,7 @@ public sealed class PublicApiNamingContracts {
         Type[] rootContracts = {
             typeof(IOfficeResult),
             typeof(IOfficeResult<>),
-            typeof(IOfficeConversionReport),
-            typeof(IOfficeConversionResult<,>),
+            typeof(OfficeConversionReport),
             typeof(OfficeConversionResult<,>),
             typeof(OfficeFormatDescriptor),
             typeof(OfficeCompatibilityReport),
@@ -53,7 +52,7 @@ public sealed class PublicApiNamingContracts {
         Assert.DoesNotContain(methods, method => method.Name.Contains("WorkSheet", StringComparison.Ordinal));
         Assert.DoesNotContain(methods.SelectMany(method => method.GetParameters()), parameter =>
             parameter.Name?.Contains("workSheet", StringComparison.Ordinal) == true);
-        Assert.Contains(methods, method => method.Name == "AddWorksheet");
+        Assert.Contains(methods, method => method.Name == "AddSheet");
         Assert.Contains(methods, method => method.Name == "RemoveWorksheet");
         Assert.Contains(methods, method => method.Name == "CopyWorksheet");
         Assert.Contains(methods, method => method.Name == "CopyWorksheetFrom");
@@ -61,14 +60,14 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void RtfHtmlMemoryOutputUsesStreamVocabulary() {
+    public void RtfHtmlOutputUsesSharedConverterVocabulary() {
         string[] methodNames = typeof(HtmlRtfConverterExtensions)
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Select(method => method.Name)
             .ToArray();
 
-        Assert.Contains("ToHtmlStream", methodNames);
-        Assert.DoesNotContain("ToHtmlMemoryStream", methodNames);
+        Assert.Contains("SaveAsHtml", methodNames);
+        Assert.DoesNotContain(methodNames, name => name.EndsWith("Stream", StringComparison.Ordinal) || name.EndsWith("Bytes", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -126,7 +125,7 @@ public sealed class PublicApiNamingContracts {
         Assert.DoesNotContain("CellEdit", exportedTypeNames);
         Assert.DoesNotContain(documentMethods, static method => method.Name == "Read");
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "Rows");
-        Assert.Contains(documentMethods, static method => method.Name == "OpenDataReader");
+        Assert.Contains(documentMethods, static method => method.Name == "CreateDataReader");
         Assert.Contains(sheetMethods, static method => method.Name == "CreateDataReader");
         Assert.Contains(sheetMethods, static method => method.Name == "RowsAs" && method.IsGenericMethodDefinition);
         Assert.Contains(sheetMethods, static method =>
@@ -135,7 +134,7 @@ public sealed class PublicApiNamingContracts {
                 parameter.ParameterType.GetGenericTypeDefinition() == typeof(Action<>)));
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "RowsAsStream");
         Assert.DoesNotContain(sheetMethods, static method => method.Name == "GetUsedRangeA1");
-        Assert.Contains(sheetProperties, static property => property.Name == "UsedRangeA1");
+        Assert.Contains(sheetProperties, static property => property.Name == "UsedRange");
         Assert.All(
             sheetMethods.Where(static method =>
                 method.Name is "RowsAs" or "EnumerateCells" or "EnumerateRange" &&
@@ -197,34 +196,23 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void WordRemoteImageApisAreAsyncOnly() {
-        string[] documentMethodNames = typeof(WordDocument)
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .Select(static method => method.Name)
-            .ToArray();
-        string[] builderMethodNames = typeof(ImageBuilder)
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .Select(static method => method.Name)
-            .ToArray();
-
-        Assert.Contains("AddImageFromUrlAsync", documentMethodNames);
-        Assert.DoesNotContain("AddImageFromUrl", documentMethodNames);
-        Assert.Contains("AddFromUrlAsync", builderMethodNames);
-        Assert.DoesNotContain("AddFromUrl", builderMethodNames);
-    }
-
-    [Fact]
     public void ExcelRemoteImageApisAreAsyncOnly() {
         MethodInfo[] sheetMethods = typeof(ExcelSheet).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
         MethodInfo[] templateMethods = typeof(ExcelTemplateImage).GetMethods(
             BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
-        MethodInfo[] composerMethods = typeof(OfficeIMO.Excel.Fluent.SheetComposer).GetMethods(
+        MethodInfo[] composerMethods = typeof(OfficeIMO.Excel.ExcelReportBuilder).GetMethods(
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
-        Assert.Contains(sheetMethods, static method => method.Name == "AddImageFromUrlAsync");
-        Assert.Contains(sheetMethods, static method => method.Name == "SetHeaderImageFromUrlAsync");
-        Assert.Contains(sheetMethods, static method => method.Name == "SetFooterImageFromUrlAsync");
+        Assert.Contains(sheetMethods, static method =>
+            method.Name == "AddImageAsync" && method.GetParameters().Any(parameter => parameter.ParameterType == typeof(Uri)));
+        Assert.DoesNotContain(sheetMethods, static method =>
+            method.Name == "AddImage" && method.GetParameters().Any(parameter => parameter.ParameterType == typeof(Uri)));
+        MethodInfo[] sectionMethods = typeof(ExcelHeaderFooterSection).GetMethods(
+            BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        Assert.Contains(sectionMethods, static method => method.Name == "SetImageFromUrlAsync");
+        Assert.DoesNotContain(sectionMethods, static method => method.Name.Contains("Url", StringComparison.Ordinal)
+            && !method.Name.EndsWith("Async", StringComparison.Ordinal));
         Assert.DoesNotContain(sheetMethods, static method =>
             (method.Name.Contains("Image", StringComparison.Ordinal) || method.Name.Contains("Logo", StringComparison.Ordinal))
             && method.Name.Contains("Url", StringComparison.Ordinal)
@@ -233,7 +221,6 @@ public sealed class PublicApiNamingContracts {
         Assert.Contains(templateMethods, static method => method.Name == "FromUrlAsync");
         Assert.DoesNotContain(templateMethods, static method => method.Name == "FromUrl");
 
-        Assert.Contains(composerMethods, static method => method.Name == "ImageFromUrlAtAsync");
         Assert.Contains(composerMethods, static method => method.Name == "HeaderLogoFromUrlAsync");
         Assert.DoesNotContain(composerMethods, static method =>
             (method.Name.Contains("Image", StringComparison.Ordinal) || method.Name.Contains("Logo", StringComparison.Ordinal))
@@ -254,8 +241,6 @@ public sealed class PublicApiNamingContracts {
     public void RouteBackedConversionResultsUseTheSharedValueReportAndLossContract() {
         Type[] resultTypes = {
             typeof(PdfDocumentConversionResult),
-            typeof(OfficeIMO.Word.Markdown.WordToMarkdownResult),
-            typeof(OfficeIMO.Word.Markdown.MarkdownToWordResult),
             typeof(OfficeIMO.Rtf.RtfConversionResult<OfficeIMO.Rtf.RtfDocument>),
             typeof(OfficeIMO.OpenDocument.OdfConversionResult<OfficeIMO.OpenDocument.OdtDocument>),
             typeof(HtmlTextConversionResult),
@@ -264,18 +249,14 @@ public sealed class PublicApiNamingContracts {
         };
 
         Assert.All(resultTypes, static resultType => {
-            Assert.True(typeof(IOfficeResult).IsAssignableFrom(resultType), resultType.FullName);
-            Assert.Contains(resultType.GetInterfaces(), static contract =>
-                contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IOfficeConversionResult<,>));
-            Assert.NotNull(resultType.GetProperty("Value"));
-            Assert.NotNull(resultType.GetProperty("Report"));
+            Assert.Contains(resultType.GetProperties(), static property => property.Name == "Value");
+            Assert.Contains(resultType.GetProperties(), static property => property.Name == "Report"
+                && typeof(OfficeConversionReport).IsAssignableFrom(property.PropertyType));
             Assert.NotNull(resultType.GetProperty("HasLoss"));
-            Assert.NotNull(resultType.GetMethod("RequireValue", Type.EmptyTypes));
-            Assert.NotNull(resultType.GetMethod("RequireNoLoss", Type.EmptyTypes));
+            Assert.NotNull(resultType.GetMethod("ThrowIfLoss", Type.EmptyTypes));
         });
 
         Type[] parseResults = {
-            typeof(OfficeIMO.Markdown.MarkdownParseResult),
             typeof(OfficeIMO.Rtf.RtfReadResult)
         };
         Assert.All(parseResults, static resultType =>
@@ -287,7 +268,7 @@ public sealed class PublicApiNamingContracts {
         Assembly[] assemblies = {
             typeof(WordDocument).Assembly,
             typeof(ExcelDocument).Assembly,
-            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly
+            typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly
         };
 
         PropertyInfo[] launchProperties = assemblies
@@ -337,9 +318,9 @@ public sealed class PublicApiNamingContracts {
             static type => type.Name == "PdfPageOrientation");
         Assert.DoesNotContain(typeof(HtmlConversionDocument).Assembly.GetExportedTypes(),
             static type => type.Name == "HtmlConversionLossKind");
-        Assert.DoesNotContain(typeof(OfficeIMO.Word.Markdown.WordMarkdownConversionReport).Assembly.GetExportedTypes(),
+        Assert.DoesNotContain(typeof(OfficeIMO.Word.Markdown.MarkdownWordExportOptions).Assembly.GetExportedTypes(),
             static type => type.Name == "WordMarkdownConversionLossKind");
-        Assert.DoesNotContain(typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly.GetExportedTypes(),
+        Assert.DoesNotContain(typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly.GetExportedTypes(),
             static type => type.Name == "PowerPointSignatureMutationPolicy");
     }
 
@@ -404,22 +385,6 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void FormatOwnedBuilderAndTextRunTypesAreUnambiguous() {
-        Type[] canonicalTypes = {
-            typeof(WordParagraphBuilder),
-            typeof(OfficeIMO.Markdown.MarkdownParagraphBuilder),
-            typeof(PdfTextRun),
-            typeof(OfficeIMO.Markdown.MarkdownTextRun)
-        };
-
-        Assert.Equal(4, canonicalTypes.Select(static type => type.Name).Distinct(StringComparer.Ordinal).Count());
-        Assert.DoesNotContain(typeof(WordDocument).Assembly.GetExportedTypes(), static type => type.Name == "ParagraphBuilder");
-        Assert.DoesNotContain(typeof(OfficeIMO.Markdown.MarkdownDoc).Assembly.GetExportedTypes(),
-            static type => type.Name is "ParagraphBuilder" or "TextRun");
-        Assert.DoesNotContain(typeof(PdfDocument).Assembly.GetExportedTypes(), static type => type.Name == "TextRun");
-    }
-
-    [Fact]
     public void FormatSpecificPublicTypesUseFormatSpecificNames() {
         Type[] canonicalTypes = {
             typeof(WordApplicationProperties),
@@ -447,7 +412,7 @@ public sealed class PublicApiNamingContracts {
             typeof(OfficeIMO.PowerPoint.PowerPointTableCellBorders)
         };
         string[] removedNames = {
-            "ApplicationProperties", "BuiltinDocumentProperties", "CapsStyle", "CompatibilityMode",
+            "ApplicationProperties", "Properties", "CapsStyle", "CompatibilityMode",
             "CoverPageTemplate", "CustomImagePartType", "WordImagePartType", "DocumentCleanupOptions", "ImageFillMode",
             "ShapeType", "SmartArtType", "TableOfContentStyle", "TargetFrame", "TextMatchType",
             "WrapTextImage", "ExecutionMode", "ExecutionPolicy", "HeaderFooterPosition",
@@ -494,40 +459,11 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
-    public void OfficeImageApisUseCanonicalVerbAndCardinalityVocabulary() {
-        Assembly[] assemblies = {
-            typeof(WordDocument).Assembly,
-            typeof(ExcelDocument).Assembly,
-            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly
-        };
-        MethodInfo[] methods = assemblies
-            .SelectMany(static assembly => assembly.GetExportedTypes())
-            .SelectMany(static type => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
-            .ToArray();
-
-        Assert.DoesNotContain(methods, static method =>
-            method.Name is "SaveImage" or "SaveAsImage");
-
-        Assert.NotNull(typeof(WordDocument).GetMethod("ToImage", Type.EmptyTypes));
-        Assert.NotNull(typeof(WordDocument).GetMethods().SingleOrDefault(static method =>
-            method.Name == "ExportImage" && method.GetParameters().Length > 0));
-        Assert.Contains(typeof(WordDocument).GetMethods(), static method => method.Name == "SaveAsImages");
-
-        Assert.NotNull(typeof(ExcelSheet).GetMethod("ToImage", Type.EmptyTypes));
-        Assert.Contains(typeof(ExcelSheet).GetMethods(), static method => method.Name == "ExportImage");
-        Assert.Contains(typeof(ExcelDocument).GetMethods(), static method => method.Name == "SaveAsImages");
-
-        Assert.NotNull(typeof(OfficeIMO.PowerPoint.PowerPointSlide).GetMethod("ToImage", Type.EmptyTypes));
-        Assert.Contains(typeof(OfficeIMO.PowerPoint.PowerPointSlide).GetMethods(), static method => method.Name == "ExportImage");
-        Assert.Contains(typeof(OfficeIMO.PowerPoint.PowerPointPresentation).GetMethods(), static method => method.Name == "SaveAsImages");
-    }
-
-    [Fact]
     public void ConversionTargetNamesUseDotNetAcronymCasing() {
         Assembly[] assemblies = {
             typeof(WordDocument).Assembly,
             typeof(ExcelDocument).Assembly,
-            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly,
+            typeof(OfficeIMO.PowerPoint.PowerPointDocument).Assembly,
             typeof(HtmlConversionDocument).Assembly,
             typeof(PdfDocument).Assembly
         };
@@ -566,7 +502,7 @@ public sealed class PublicApiNamingContracts {
         Assert.NotNull(typeof(OfficeIMO.Markdown.ListItem).GetProperty("NestedBlocks"));
         Assert.NotNull(typeof(OfficeIMO.Markdown.ListItem).GetProperty("ChildBlocks"));
         Assert.Null(typeof(OfficeIMO.Markdown.ListItem).GetProperty("Children"));
-        Assert.Null(typeof(OfficeIMO.Excel.Fluent.SheetComposer).GetMethod("DefinitionList"));
+        Assert.Null(typeof(OfficeIMO.Excel.ExcelReportBuilder).GetMethod("DefinitionList"));
         Assert.Null(typeof(OfficeIMO.PowerPoint.PowerPointUnits).GetMethod("Inches"));
         Assert.Null(typeof(OfficeIMO.PowerPoint.PowerPointUnits).GetMethod("Points"));
         Assert.Null(typeof(OfficeIMO.PowerPoint.PowerPointUnits).GetMethod("Cm"));

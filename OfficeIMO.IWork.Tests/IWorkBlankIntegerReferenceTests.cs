@@ -26,12 +26,12 @@ public sealed partial class IWorkBoundaryTests {
             string reference = scalar ? "$A$1" : "$A$1:$A$1";
             Assert.Equal("=" + (function == 58 ? "GCD" : "LCM") + "(" + reference + ",6)", result.Text);
             using var destination = ExcelDocument.Create();
-            var sheet = destination.AddWorksheet("Inputs");
-            sheet.CellFormula(1, 2, result.Text);
+            var sheet = destination.AddSheet("Inputs");
+            sheet.Cell(1, 2).SetFormula(result.Text);
             using var bytes = new MemoryStream(); destination.Save(bytes); bytes.Position = 0;
             using var reopened = ExcelDocument.Load(bytes);
             Assert.Equal(1, reopened.Calculate());
-            Assert.Equal(function == 58 || scalar ? 6d : 0d, reopened.Sheets[0].CellAt(1, 2).GetValue<double>());
+            Assert.Equal(function == 58 || scalar ? 6d : 0d, reopened.Sheets[0].Cell(1, 2).GetValue<double>());
         }
     }
 

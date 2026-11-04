@@ -57,17 +57,21 @@ internal sealed record PdfExtendedFormatConversionScenario(
         using var stream = new MemoryStream(source, writable: false);
         return kind switch {
             PdfExtendedFormatConversionKind.AsciiDoc =>
-                AsciiDocDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdfBytes(),
+                Serialize(AsciiDocDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdf()),
             PdfExtendedFormatConversionKind.Latex =>
-                LatexDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Mhtml => MhtmlDocument.Load(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.OneNote => OneNoteSectionReader.Read(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Odt => OdtDocument.Load(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Ods => OdsDocument.Load(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Odp => OdpPresentation.Load(stream).ToPdfBytes(),
-            PdfExtendedFormatConversionKind.Visio => VisioDocument.Load(stream).ToPdfBytes(),
+                Serialize(LatexDocument.ParseResult(Encoding.UTF8.GetString(source)).Document.ToPdf()),
+            PdfExtendedFormatConversionKind.Mhtml => Serialize(MhtmlDocument.Load(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.OneNote => Serialize(OneNoteSectionReader.Read(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.Odt => Serialize(OdtDocument.Load(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.Ods => Serialize(OdsDocument.Load(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.Odp => Serialize(OdpPresentation.Load(stream).ToPdf()),
+            PdfExtendedFormatConversionKind.Visio => Serialize(VisioDocument.Load(stream).ToPdf()),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
+    }
+
+    private static byte[] Serialize(OfficeIMO.Pdf.PdfDocument pdf) {
+        using (pdf) return pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     private static byte[] CreateAsciiDoc() {
@@ -161,19 +165,19 @@ internal sealed record PdfExtendedFormatConversionScenario(
     private static byte[] CreateVisio() {
         VisioDocument document = VisioDocument.Create();
         for (int pageIndex = 0; pageIndex < 12; pageIndex++) {
-            VisioPage page = document.AddPage($"Records {pageIndex + 1}", 8.5, 11);
+            VisioPage page = document.AddPage($"Records {pageIndex + 1}", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
             if (pageIndex == 0) {
-                page.Shapes.Add(new VisioShape("heading", 4.25, 10.4, 7.5, 0.4, Heading));
+                page.Shapes.Add(new VisioShape("heading", OfficeLength.Inches(4.25), OfficeLength.Inches(10.4), OfficeLength.Inches(7.5), OfficeLength.Inches(0.4), Heading));
             }
             int first = (pageIndex * 10) + 1;
             for (int offset = 0; offset < 10; offset++) {
                 int index = first + offset;
                 page.Shapes.Add(new VisioShape(
                     $"record-{index}",
-                    4.25,
-                    9.6 - (offset * 0.85),
-                    7.5,
-                    0.6,
+                    OfficeLength.Inches(4.25),
+                    OfficeLength.Inches(9.6 - (offset * 0.85)),
+                    OfficeLength.Inches(7.5),
+                    OfficeLength.Inches(0.6),
                     PdfFormatConversionRecordManifest.RecordLine(index)));
             }
         }

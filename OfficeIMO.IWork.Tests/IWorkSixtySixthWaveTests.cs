@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumArchiveReferenceCount = 3 }));
+                new IWorkReadOptions { MaxArchiveReferenceCount = 3 }));
 
         Assert.Contains("remaining aggregate limit", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages,
             new IWorkReadOptions {
-                MaximumProjectedTextCharacters = 2 + target.Length * 2 - 1
+                MaxProjectedTextCharacters = 2 + target.Length * 2 - 1
             });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
                 textValue: "Cached", completeFormula: true, missingStringEntry: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables).Cells);
 
@@ -92,16 +92,16 @@ public sealed partial class IWorkBoundaryTests {
             rows: 2, columns: 2, defaultRowHeight: 5d, defaultColumnWidth: 10d,
             tableDrawable: GeometryDrawable(10f, 20f, 60f, 40f));
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         PowerPointTable table = Assert.Single(Assert.Single(result.Value.Slides).Tables);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(10d, table.LeftPoints, 5);
-        Assert.Equal(20d, table.TopPoints, 5);
-        Assert.Equal(60d, table.WidthPoints, 5);
-        Assert.Equal(40d, table.HeightPoints, 5);
-        Assert.Equal(30d, table.GetColumnWidthPoints(0), 5);
-        Assert.Equal(20d, table.GetRowHeightPoints(0), 5);
+        Assert.Equal(10d, table.Left.ToPoints(), 5);
+        Assert.Equal(20d, table.Top.ToPoints(), 5);
+        Assert.Equal(60d, table.Width.ToPoints(), 5);
+        Assert.Equal(40d, table.Height.ToPoints(), 5);
+        Assert.Equal(30d, (table.GetColumnWidth(0)).ToPoints(), 5);
+        Assert.Equal(20d, (table.GetRowHeight(0)).ToPoints(), 5);
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_pages_roots_use_visual_fallback() {
         using MemoryStream package = CreateMalformedRootPackage(10000);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -134,7 +134,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_numbers_roots_use_visual_fallback() {
         using MemoryStream package = CreateMalformedRootPackage(1);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -145,7 +145,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_keynote_roots_use_visual_fallback() {
         using MemoryStream package = CreateMalformedRootPackage(1);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

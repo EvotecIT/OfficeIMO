@@ -54,21 +54,30 @@ public sealed class ConvertFromOfficeOpenDocumentCommand : PSCmdlet
         switch (source)
         {
             case OdtDocument text:
-                var wordResult = text.ToWordDocumentResult(WordOptions);
-                if (FailOnLoss.IsPresent) wordResult.RequireNoLoss();
-                wordResult.Value.Save(output);
+                OfficeConversionReport wordResult;
+                using (var converted = text.ToWord(WordOptions, out wordResult))
+                {
+                    if (FailOnLoss.IsPresent) wordResult.ThrowIfLoss();
+                    converted.Save(output);
+                }
                 WriteObject(wordResult);
                 break;
             case OdsDocument spreadsheet:
-                var excelResult = spreadsheet.ToExcelDocumentResult(ExcelOptions);
-                if (FailOnLoss.IsPresent) excelResult.RequireNoLoss();
-                excelResult.Value.Save(output);
+                OfficeConversionReport excelResult;
+                using (var converted = spreadsheet.ToExcel(ExcelOptions, out excelResult))
+                {
+                    if (FailOnLoss.IsPresent) excelResult.ThrowIfLoss();
+                    converted.Save(output);
+                }
                 WriteObject(excelResult);
                 break;
             case OdpPresentation presentation:
-                var presentationResult = presentation.ToPowerPointPresentationResult(PowerPointOptions);
-                if (FailOnLoss.IsPresent) presentationResult.RequireNoLoss();
-                presentationResult.Value.Save(output);
+                OfficeConversionReport presentationResult;
+                using (var converted = presentation.ToPowerPoint(PowerPointOptions, out presentationResult))
+                {
+                    if (FailOnLoss.IsPresent) presentationResult.ThrowIfLoss();
+                    converted.Save(output);
+                }
                 WriteObject(presentationResult);
                 break;
             default:

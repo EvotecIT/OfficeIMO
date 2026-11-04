@@ -25,52 +25,50 @@ public partial class PdfDocumentVisualQualityTests {
         double rightX = leftRightX + gutter;
         double rightRightX = rightX + columnWidth;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = pageWidth,
-                PageHeight = 280,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 30,
-                MarginBottom = 30,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(280)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(margin), Right = global::OfficeIMO.OfficeLength.Points(margin), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row =>
-                            row.Gap(gutter)
+                            row.Gap(global::OfficeIMO.OfficeLength.Points(gutter))
                                 .PercentColumn(50, column => column
                                     .H2("LeftFlow")
-                                    .Paragraph(p => p.Text("LeftAlphaOne carries enough ordinary report text to wrap inside its column without touching the neighboring frame."))
-                                    .Bullets(new[] {
+                                    .AddParagraph(p => p.AddText("LeftAlphaOne carries enough ordinary report text to wrap inside its column without touching the neighboring frame."))
+                                    .AddList(new[] {
                                         "LeftBulletOne stays inside the measure.",
                                         "LeftBulletTwo keeps a clear baseline."
                                     })
-                                    .PanelParagraph(
-                                        p => p.Bold("LeftPanel").Text(": spacing remains visible after the list."),
+                                    .AddPanelParagraph(
+                                        p => { p.AddText("LeftPanel").SetBold(); p.AddText(": spacing remains visible after the list."); },
                                         new PdfPanelStyle {
-                                            BorderColor = PdfColor.FromRgb(191, 191, 191),
-                                            BorderWidth = 0.5,
-                                            PaddingX = 6,
-                                            PaddingY = 5,
-                                            Background = PdfColor.FromRgb(248, 250, 252)
+                                            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
+                                            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                                            PaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                                            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                                            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
                                         }))
                                 .PercentColumn(50, column => column
                                     .H2("RightFlow")
-                                    .Paragraph(p => p.Text("RightAlphaOne uses the same generic layout primitives and should start after the explicit gutter."))
-                                    .Numbered(new[] {
+                                    .AddParagraph(p => p.AddText("RightAlphaOne uses the same generic layout primitives and should start after the explicit gutter."))
+                                    .AddNumberedList(new[] {
                                         "RightStepOne composes content.",
                                         "RightStepTwo preserves reading rhythm."
                                     })
-                                    .PanelParagraph(
-                                        p => p.Bold("RightPanel").Text(": the final note avoids cramped text."),
+                                    .AddPanelParagraph(
+                                        p => { p.AddText("RightPanel").SetBold(); p.AddText(": the final note avoids cramped text."); },
                                         new PdfPanelStyle {
-                                            BorderColor = PdfColor.FromRgb(191, 191, 191),
-                                            BorderWidth = 0.5,
-                                            PaddingX = 6,
-                                            PaddingY = 5,
-                                            Background = PdfColor.FromRgb(248, 250, 252)
+                                            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
+                                            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+                                            PaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                                            PaddingY = global::OfficeIMO.OfficeLength.Points(5),
+                                            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
                                         }))))))
             .ToBytes();
 
@@ -107,7 +105,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowColumns_UseBuiltInWordLikeGutterWhenNoGapIsConfigured() {
         const double pageWidth = 360;
         const double margin = 30;
-        const double gutter = PdfRowStyle.DefaultGap;
+        double gutter = PdfRowStyle.DefaultGap.ToPoints();
         double contentWidth = pageWidth - margin - margin;
         double columnWidth = (contentWidth - gutter) / 2;
         double leftX = margin;
@@ -115,22 +113,20 @@ public partial class PdfDocumentVisualQualityTests {
         double rightX = leftRightX + gutter;
         double rightRightX = rightX + columnWidth;
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = pageWidth,
-                PageHeight = 180,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 30,
-                MarginBottom = 30,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(margin), Right = global::OfficeIMO.OfficeLength.Points(margin), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content =>
                         content.Row(row => row
-                            .PercentColumn(50, column => column.Paragraph(p => p.Text("LeftPlainColumn wraps in the first default column frame.")))
-                            .PercentColumn(50, column => column.Paragraph(p => p.Text("RightPlainColumn starts after the built-in row gutter.")))))))
+                            .PercentColumn(50, column => column.AddParagraph(p => p.AddText("LeftPlainColumn wraps in the first default column frame.")))
+                            .PercentColumn(50, column => column.AddParagraph(p => p.AddText("RightPlainColumn starts after the built-in row gutter.")))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -170,85 +166,83 @@ public partial class PdfDocumentVisualQualityTests {
         shape.StrokeWidth = 0.75;
 
         var paragraphStyle = new PdfParagraphStyle {
-            SpacingAfter = 10,
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
             LineHeight = 1.25
         };
         var panelStyle = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(248, 250, 252),
-            BorderColor = PdfColor.FromRgb(191, 191, 191),
-            BorderWidth = 0.5,
-            PaddingX = 8,
-            PaddingY = 6,
-            SpacingBefore = 2,
-            SpacingAfter = 10
+            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+            PaddingX = global::OfficeIMO.OfficeLength.Points(8),
+            PaddingY = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10)
         };
         var listStyle = new PdfListStyle {
-            LeftIndent = 10,
-            MarkerGap = 6,
-            SpacingAfter = 10,
-            ItemSpacing = 2
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(10),
+            MarkerGap = global::OfficeIMO.OfficeLength.Points(6),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10),
+            ItemSpacing = global::OfficeIMO.OfficeLength.Points(2)
         };
-        var tableStyle = TableStyles.Minimal();
+        var tableStyle = PdfTableStyles.Minimal();
         tableStyle.HeaderRowCount = 0;
-        tableStyle.CellPaddingX = 6;
-        tableStyle.CellPaddingY = 4;
-        tableStyle.SpacingBefore = 2;
-        tableStyle.SpacingAfter = 10;
+        tableStyle.CellPaddingX = global::OfficeIMO.OfficeLength.Points(6);
+        tableStyle.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        tableStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(2);
+        tableStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
         var imageStyle = new PdfImageStyle {
-            SpacingBefore = 4,
-            SpacingAfter = 10
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10)
         };
         var drawingStyle = new PdfDrawingStyle {
-            SpacingBefore = 2,
-            SpacingAfter = 10
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(10)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = pageWidth,
-                PageHeight = 620,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 36,
-                MarginBottom = 36,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(620)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(margin), Right = global::OfficeIMO.OfficeLength.Points(margin), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content => {
                         content.Column(column => column.Item()
                             .H1("WordFlowGate", new PdfHeadingStyle {
-                                FontSize = 18,
-                                SpacingAfter = 12
+                                FontSize = global::OfficeIMO.OfficeLength.Points(18),
+                                SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
                             })
-                            .Paragraph(p => p.Text("LeadMarker introduces a generic report section without any invoice-specific shape."), style: paragraphStyle)
-                            .PanelParagraph(p => p.Bold("PanelMarker").Text(": boxed notes keep visible padding and downstream rhythm."), panelStyle)
-                            .Bullets(new[] {
+                            .AddParagraph(p => p.AddText("LeadMarker introduces a generic report section without any invoice-specific shape."), style: paragraphStyle)
+                            .AddPanelParagraph(p => { p.AddText("PanelMarker").SetBold(); p.AddText(": boxed notes keep visible padding and downstream rhythm."); }, panelStyle)
+                            .AddList(new[] {
                                 "BulletMarker keeps list text in the normal document flow.",
                                 "BulletSecond keeps a second readable baseline."
                             }, style: listStyle)
-                            .Table(new[] {
+                            .AddTable(new[] {
                                 new[] { "TableMarker", "Ready" },
                                 new[] { "Rhythm", "Stable" }
                             }, style: tableStyle)
-                            .Image(png, 24, 24, style: imageStyle)
+                            .AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), style: imageStyle)
                             .Shape(shape, style: drawingStyle)
-                            .Paragraph(p => p.Text("AfterVisualMarker follows image and shape blocks with deliberate breathing room."), style: paragraphStyle));
+                            .AddParagraph(p => p.AddText("AfterVisualMarker follows image and shape blocks with deliberate breathing room."), style: paragraphStyle));
 
                         content.Row(row => row
-                            .Gap(gutter)
+                            .Gap(global::OfficeIMO.OfficeLength.Points(gutter))
                             .Style(new PdfRowStyle {
-                                SpacingBefore = 4,
-                                SpacingAfter = 0
+                                SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+                                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                             })
                             .PercentColumn(50, column => column
                                 .H2("LeftMixed")
-                                .Paragraph(p => p.Text("LeftMixedMarker wraps safely inside the left column measure."), style: paragraphStyle)
-                                .Bullets(new[] { "LeftMixedBullet keeps rhythm." }, style: listStyle))
+                                .AddParagraph(p => p.AddText("LeftMixedMarker wraps safely inside the left column measure."), style: paragraphStyle)
+                                .AddList(new[] { "LeftMixedBullet keeps rhythm." }, style: listStyle))
                             .PercentColumn(50, column => column
                                 .H2("RightMixed")
-                                .Paragraph(p => p.Text("RightMixedMarker starts after the explicit row gutter."), style: paragraphStyle)
-                                .Numbered(new[] { "RightMixedStep keeps rhythm." }, style: listStyle)));
+                                .AddParagraph(p => p.AddText("RightMixedMarker starts after the explicit row gutter."), style: paragraphStyle)
+                                .AddNumberedList(new[] { "RightMixedStep keeps rhythm." }, style: listStyle)));
                     })))
             .ToBytes();
 
@@ -290,29 +284,27 @@ public partial class PdfDocumentVisualQualityTests {
     public void WordLikeLineItemTable_KeepsReadableColumnsWithoutTemplateApi() {
         const double pageWidth = 595;
         const double margin = 56;
-        var style = TableStyles.ListTable1Light();
+        var style = PdfTableStyles.ListTable1Light();
         style.RightAlignNumeric = true;
-        style.CellPaddingX = 5;
-        style.CellPaddingY = 5.5;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(5);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(5.5);
         style.ColumnWidthWeights = new List<double> { 0.45, 4.2, 1.15, 0.8, 1.2 };
-        style.ColumnMinWidthPoints = new List<double?> { 22, 185, 62, 34, 68 };
+        style.ColumnMinWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(22), global::OfficeIMO.OfficeLength.Points(185), global::OfficeIMO.OfficeLength.Points(62), global::OfficeIMO.OfficeLength.Points(34), global::OfficeIMO.OfficeLength.Points(68) };
         style.FooterRowCount = 1;
-        style.FooterSeparatorColor = PdfColor.Black;
-        style.FooterSeparatorWidth = 0.9;
-        style.SpacingBefore = 8;
-        style.SpacingAfter = 10;
+        style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.Black;
+        style.FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.9);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(8);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(10);
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = pageWidth,
-                PageHeight = 760,
-                MarginLeft = margin,
-                MarginRight = margin,
-                MarginTop = 56,
-                MarginBottom = 56
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(760)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(margin), Right = global::OfficeIMO.OfficeLength.Points(margin), Top = global::OfficeIMO.OfficeLength.Points(56), Bottom = global::OfficeIMO.OfficeLength.Points(56) }
+                }
             })
             .Theme(PdfTheme.WordLike())
             .H1("LineItemGate")
-            .Paragraph(p => p.Text("A generic Word-like line item table protects table rhythm without adding invoice-specific engine APIs."))
+            .Paragraph(p => p.AddText("A generic Word-like line item table protects table rhythm without adding invoice-specific engine APIs."))
             .Table(new[] {
                 new[] { "#", "Product", "UnitPrice", "Qty", "Total" },
                 new[] { "1", "MonitoringSeats", "31.80", "2", "63.60" },
@@ -323,7 +315,7 @@ public partial class PdfDocumentVisualQualityTests {
                 new[] { "6", "CustodiPuella", "79.05", "8", "632.40" },
                 new[] { "", "TotalDue", "", "", "1499.12" }
             }, style: style)
-            .Paragraph(p => p.Text("LineItemGateEnd"), PdfAlign.Center)
+            .Paragraph(p => p.AddText("LineItemGateEnd"), OfficeAlignment.Center)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -383,7 +375,7 @@ public partial class PdfDocumentVisualQualityTests {
         double tableHeaderY = FindWordStartY(page1, "Product");
         double firstRowY = FindWordStartY(page1, "Experientiam");
         double secondRowY = FindWordStartY(page1, "Radio");
-        double lastPage1RowY = FindWordStartY(page1, "Custodi");
+        double lastPage1RowY = FindWordStartY(page1, "Praestare");
 
         Assert.True(titleY - preparedDateY >= 22,
             $"Expected issue metadata to sit comfortably below the statement title. Gap: {titleY - preparedDateY:0.##}pt.");
@@ -397,12 +389,12 @@ public partial class PdfDocumentVisualQualityTests {
             $"Expected body rows to keep readable baseline rhythm. Gap: {firstRowY - secondRowY:0.##}pt.");
 
         AssertStatementRowColumns(page1, "Experientiam", "31,80", "2", "63,60", "page 1 first row");
-        AssertStatementRowColumns(page1, "Custodi", "79,05", "8", "632,40", "page 1 last visible row");
+        AssertStatementRowColumns(page1, "Praestare", "11,65", "7", "81,55", "page 1 last visible row");
         Assert.True(FindWordStartX(page1, "Product") >= marginLeft + 24,
             "Expected the product header to sit inside the line-item table frame.");
-        Assert.True(FindWordEndX(page1, "632,40") <= contentRight + 1,
+        Assert.True(FindWordEndX(page1, "81,55") <= contentRight + 1,
             "Expected the rightmost page 1 total to stay inside the document margin.");
-        Assert.True(lastPage1RowY > 78,
+        Assert.True(lastPage1RowY > 58,
             $"Expected the final page 1 row to leave room for the footer. Baseline: {lastPage1RowY:0.##}pt.");
 
         AssertNoCrampedBaselines(page1Lines, "two-page statement page 1");
@@ -411,8 +403,8 @@ public partial class PdfDocumentVisualQualityTests {
 
         var page2 = pdf.GetPage(2);
         var page2Lines = GetVisualTextLines(page2, 0, pageWidth);
-        double page2FirstRowY = FindWordStartY(page2, "Praestare");
-        double page2SecondRowY = FindWordStartY(page2, "Umero");
+        double page2FirstRowY = FindWordStartY(page2, "Umero");
+        double page2SecondRowY = FindWordStartY(page2, "Aptent");
         double page2LastItemY = FindWordStartY(page2, "Finis");
         double subtotalY = FindWordStartY(page2, "Subtotal");
         double vatY = FindWordStartY(page2, "VAT");

@@ -104,6 +104,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlCssRunningStringPageContext? _currentRunningStringPage;
     private HtmlCssPageGeometry _activePageGeometry;
     private IElement? _activeSubgridOwner;
+    private readonly Dictionary<IElement, double[]> _measuredRowSubgridRows = new();
     private IReadOnlyList<double>? _activeSubgridColumnSizes;
     private IReadOnlyDictionary<string, int>? _activeSubgridColumnLineNames;
     private double _activeSubgridColumnGap;
@@ -118,7 +119,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _cancellationToken = cancellationToken;
         _cancellationToken.ThrowIfCancellationRequested();
         _document = document;
-        _limits = (limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone();
+        _limits = (limits ?? HtmlConversionLimits.UntrustedDefaults).Clone();
         _initialLogicalTextOrder = Math.Max(0, logicalTextOrderStart);
         _initialSemanticNodeId = Math.Max(0, semanticNodeIdStart);
         _nextLogicalTextOrder = _initialLogicalTextOrder;
@@ -214,7 +215,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : HtmlRenderTextDirection.LeftToRight;
     }
 
-    internal HtmlRenderDocument Render() {
+    internal HtmlRenderDocument Render() =>
+        HtmlExecutionStack.TryRun(RenderOnCurrentStack, HtmlExecutionStack.StackBytesFor(_options.MaxLayoutDepth), out HtmlRenderDocument rendered)
+            ? rendered
+            : RenderOnCurrentStack();
+
+    private HtmlRenderDocument RenderOnCurrentStack() {
         HtmlRenderDocument rendered = RenderCore();
         // A replacement engine has already finalized its authoritative result.
         return _fontLayoutRebuilt ? rendered : ReportEstimatedTextMetrics(rendered);

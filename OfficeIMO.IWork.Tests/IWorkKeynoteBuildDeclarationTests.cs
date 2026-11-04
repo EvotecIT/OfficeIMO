@@ -12,15 +12,14 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(43)]
     public void Keynote_selected_build_declarations_require_explicit_partial_conversion(int field) {
         using MemoryStream package = KeynoteWithBuildDeclarations(BytesField(field, Message()));
-        using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(fallback.IsVisualFallback);
         Assert.False(fallback.Projection.HasEditableContent);
         IWorkSourceDeclarationIssue issue = Assert.Single(fallback.Report.SourceDeclarationIssues);
         Assert.Equal(field.ToString(), issue.FieldPath);
         Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, issue.Kind);
         package.Position = 0;
-        using var partial = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+        using var partial = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         Assert.False(partial.IsVisualFallback);
         Assert.Contains(partial.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_BUILDS_UNSUPPORTED"
@@ -35,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_malformed_build_envelope_retains_physical_field_evidence() {
         using MemoryStream package = KeynoteWithBuildDeclarations(
             Message(VarintField(43, 1), BytesField(43, Message())));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         IWorkSourceDeclarationIssue issue = Assert.Single(result.Report.SourceDeclarationIssues);
         Assert.Equal("43", issue.FieldPath);
@@ -46,7 +45,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_unused_slide_builds_do_not_gate_selected_content() {
         using MemoryStream package = KeynoteWithBuildDeclarations(Message(),
             ArchiveRecord(9, 5, Message(BytesField(2, Message()))));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_BUILDS_UNSUPPORTED");
     }
@@ -56,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = KeynoteWithBuildDeclarations(
             Message(BytesField(2, Message()), BytesField(3, Message())));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
     }
 

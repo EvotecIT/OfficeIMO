@@ -12,10 +12,10 @@ public partial class PdfPageExtractorTests {
     [Fact]
     public void ExtractPages_PreservesImageStreamsForSelectedPages() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Cover page"))
+            .Paragraph(p => p.AddText("Cover page"))
             .PageBreak()
             .Image(CreateMinimalRgbPng(), 24, 24)
-            .Paragraph(p => p.Text("Image page marker"))
+            .Paragraph(p => p.AddText("Image page marker"))
             .ToBytes();
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 2);
@@ -36,9 +36,9 @@ public partial class PdfPageExtractorTests {
     [Fact]
     public void ExtractPages_PreservesLinkAnnotationsForSelectedPages() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Cover page"))
+            .Paragraph(p => p.AddText("Cover page"))
             .PageBreak()
-            .Paragraph(p => p.Link("OfficeIMO link", "https://evotec.xyz"))
+            .Paragraph(p => p.AddLink("OfficeIMO link", "https://evotec.xyz"))
             .ToBytes();
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 2);
@@ -59,9 +59,9 @@ public partial class PdfPageExtractorTests {
     [Fact]
     public void ExtractPages_ClonesAnnotationsForDuplicatePageSelections() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Cover page"))
+            .Paragraph(p => p.AddText("Cover page"))
             .PageBreak()
-            .Paragraph(p => p.Link("OfficeIMO link", "https://evotec.xyz"))
+            .Paragraph(p => p.AddLink("OfficeIMO link", "https://evotec.xyz"))
             .ToBytes();
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 2, 2);
@@ -143,10 +143,10 @@ public partial class PdfPageExtractorTests {
     [Fact]
     public void ExtractPages_DropsBookmarkLinksWhenDestinationPageIsNotCopied() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.LinkToBookmark("Jump to details", "Details"))
+            .Paragraph(p => p.AddBookmarkLink("Jump to details", "Details"))
             .PageBreak()
             .Bookmark("Details")
-            .Paragraph(p => p.Text("Details marker"))
+            .Paragraph(p => p.AddText("Details marker"))
             .ToBytes();
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 1);
@@ -165,10 +165,10 @@ public partial class PdfPageExtractorTests {
     [Fact]
     public void ExtractPages_PreservesBookmarkLinksWhenDestinationPageIsCopied() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.LinkToBookmark("Jump to details", "Details"))
+            .Paragraph(p => p.AddBookmarkLink("Jump to details", "Details"))
             .PageBreak()
             .Bookmark("Details")
-            .Paragraph(p => p.Text("Details marker"))
+            .Paragraph(p => p.AddText("Details marker"))
             .ToBytes();
 
         byte[] extracted = PdfPageExtractor.ExtractPages(source, 1, 2);
@@ -188,10 +188,10 @@ public partial class PdfPageExtractorTests {
     [Fact]
     public void SplitPages_DropsBookmarkLinksWhoseDestinationsMoveToAnotherDocument() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.LinkToBookmark("Jump to details", "Details"))
+            .Paragraph(p => p.AddBookmarkLink("Jump to details", "Details"))
             .PageBreak()
             .Bookmark("Details")
-            .Paragraph(p => p.Text("Details marker"))
+            .Paragraph(p => p.AddText("Details marker"))
             .ToBytes();
 
         IReadOnlyList<byte[]> splitPages = PdfPageExtractor.SplitPages(source);

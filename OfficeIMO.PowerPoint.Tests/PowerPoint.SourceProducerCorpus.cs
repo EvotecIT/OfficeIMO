@@ -44,8 +44,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(File.Exists(sourcePath), "Missing corpus fixture: " + sourcePath);
                 Assert.Equal(artifact.Sha256, ComputeSha256(sourcePath));
 
-                using PowerPointPresentation presentation =
-                    PowerPointPresentation.Load(sourcePath);
+                using PowerPointDocument presentation =
+                    PowerPointDocument.Load(sourcePath);
                 AssertMicrosoftPowerPointProducer(presentation.OpenXmlDocument);
                 string[] sourceValidation = GetValidationSignature(
                     presentation.ValidateDocument());
@@ -57,13 +57,13 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide editedSlide = presentation.Slides.Count == 0
                     ? presentation.AddSlide()
                     : presentation.Slides[0];
-                editedSlide.AddTextBoxPoints("OfficeIMO corpus edit", 18, 18, 180, 24);
+                editedSlide.AddTextBox("OfficeIMO corpus edit",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(24));
                 using var editedBytes = new MemoryStream();
                 presentation.Save(editedBytes);
 
                 editedBytes.Position = 0;
-                using PowerPointPresentation reopened =
-                    PowerPointPresentation.Load(editedBytes);
+                using PowerPointDocument reopened =
+                    PowerPointDocument.Load(editedBytes);
                 Assert.Equal(presentation.Slides.Count, reopened.Slides.Count);
                 Assert.Contains(reopened.Slides[0].TextBoxes,
                     textBox => textBox.Text == "OfficeIMO corpus edit");

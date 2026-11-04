@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     return Array.Empty<CommentInfo>();
                 }
 
-                (int row, int column) = A1.ParseCellRef(reference!);
+                (int row, int column) = ExcelA1.ParseCellRef(reference!);
                 if (row < 1 || column < 1 || row > 65536 || column > 256) {
                     reason = "comments outside BIFF8 worksheet limits";
                     return Array.Empty<CommentInfo>();
@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     return shapes;
                 }
 
-                string reference = A1.CellReference(zeroBasedRow + 1, zeroBasedColumn + 1);
+                string reference = ExcelA1.CellReference(zeroBasedRow + 1, zeroBasedColumn + 1);
                 if (!commentReferences.Contains(reference)) {
                     reason = "legacy VML drawings or shapes";
                     return shapes;

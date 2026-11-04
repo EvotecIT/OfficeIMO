@@ -29,7 +29,7 @@ internal static class CslNumberFormatter {
 
         void Append(string source, int start, int count) {
             if (count > maximumCharacters - output.Length)
-                throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+                throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
             output.Append(source, start, count);
         }
     }

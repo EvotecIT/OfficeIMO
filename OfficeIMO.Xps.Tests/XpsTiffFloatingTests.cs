@@ -40,13 +40,13 @@ public sealed class XpsTiffFloatingTests {
                     expected[offset] = converted.R; expected[offset + 1] = converted.G; expected[offset + 2] = converted.B;
                 }
             }
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var svgDrawing));
             var svgImage = OfficeDrawingRasterRenderer.Render(svgDrawing!, scale: 1, background: OfficeColor.White);
-            var pdfPage = Assert.Single(PdfReadDocument.Open(document.ToPdf()).Pages);
+            var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
             var pdfImage = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
             for (int y = 0; y < 17; y++) for (int x = 0; x < 19; x++) {
                 int offset = (y * 19 + x) * 4;

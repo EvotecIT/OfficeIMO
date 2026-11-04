@@ -83,7 +83,7 @@ namespace OfficeIMO.Excel {
                     }, true);
                 }
                 if (definition.DifferentialFontSize.HasValue) {
-                    font.AddChild(new FontSize { Val = definition.DifferentialFontSize.Value }, true);
+                    font.AddChild(new FontSize { Val = definition.DifferentialFontSize.Value.ToPoints() }, true);
                 }
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontName)) {
                     font.AddChild(new FontName { Val = definition.DifferentialFontName }, true);
@@ -100,7 +100,7 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyProjectedConditionalFormattingBorder(
             Border border,
-            ExcelCellBorderSnapshot snapshot) {
+            ExcelCellBorderInfo snapshot) {
             border.LeftBorder = CreateProjectedConditionalFormattingBorderSide<LeftBorder>(snapshot.Left);
             border.RightBorder = CreateProjectedConditionalFormattingBorderSide<RightBorder>(snapshot.Right);
             border.TopBorder = CreateProjectedConditionalFormattingBorderSide<TopBorder>(snapshot.Top);
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static TBorder? CreateProjectedConditionalFormattingBorderSide<TBorder>(
-            ExcelBorderSideSnapshot? snapshot)
+            ExcelBorderSideInfo? snapshot)
             where TBorder : BorderPropertiesType, new() {
             if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.Style)) return null;
             var side = new TBorder();

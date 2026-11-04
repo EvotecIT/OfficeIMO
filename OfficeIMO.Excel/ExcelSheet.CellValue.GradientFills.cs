@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// <param name="fromHexColor">The gradient start color expressed as an ARGB or RGB hex string.</param>
         /// <param name="toHexColor">The gradient end color expressed as an ARGB or RGB hex string.</param>
         /// <param name="degree">The linear gradient angle in degrees.</param>
-        public void CellGradientBackground(int row, int column, string fromHexColor, string toHexColor, double degree = 0) {
+        internal void CellGradientBackground(int row, int column, string fromHexColor, string toHexColor, double degree = 0) {
             if (string.IsNullOrWhiteSpace(fromHexColor) || string.IsNullOrWhiteSpace(toHexColor)) {
                 return;
             }
@@ -28,12 +28,12 @@ namespace OfficeIMO.Excel {
         /// <param name="fromHexColor">The gradient start color expressed as an ARGB or RGB hex string.</param>
         /// <param name="toHexColor">The gradient end color expressed as an ARGB or RGB hex string.</param>
         /// <param name="degree">The linear gradient angle in degrees.</param>
-        public void FillRangeGradient(string a1Range, string fromHexColor, string toHexColor, double degree = 0) {
+        internal void FillRangeGradient(string a1Range, string fromHexColor, string toHexColor, double degree = 0) {
             if (string.IsNullOrWhiteSpace(fromHexColor) || string.IsNullOrWhiteSpace(toHexColor)) {
                 return;
             }
 
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();

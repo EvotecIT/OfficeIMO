@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Markdown {
             Directory.CreateDirectory(mdFolder);
             string path = Path.Combine(mdFolder, "BuilderReadme.md");
 
-            MarkdownDoc md = MarkdownDoc
+            MarkdownDocument md = MarkdownDocument
                 .Create()
                 .FrontMatter(new { title = "DomainDetective", tags = new[] { "dns", "email", "security" } })
                 .H1("DomainDetective")
@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Markdown {
             Directory.CreateDirectory(mdFolder);
             string path = Path.Combine(mdFolder, "ScaffoldReadme.md");
 
-            MarkdownDoc readme = Scaffold.Readme("OfficeIMO.Markdown", opts => opts
+            MarkdownDocument readme = MarkdownScaffold.Readme("OfficeIMO.Markdown", opts => opts
                 .NuGet("OfficeIMO.Markdown")
                 .Description("Fluent Markdown builder for C# with CommonMark+GFM support.")
                 .Badges(b => b
@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Markdown {
                     .BuildForGitHub("EvotecIT","OfficeIMO", workflow: null) // set workflow for dynamic build badge
                     .CoverageCodecov("EvotecIT","OfficeIMO"))
                 .GettingStarted("dotnet add package OfficeIMO.Markdown",
-                    "var md = MarkdownDoc.Create().H1(\"Hello\").P(\"World\");\nFile.WriteAllText(\"README.md\", md.ToMarkdown());")
+                    "var md = MarkdownDocument.Create().H1(\"Hello\").P(\"World\");\nFile.WriteAllText(\"README.md\", md.ToMarkdown());")
                 .LicenseMIT()
                 .Links(("Docs","https://evotec.xyz/hub/"), ("Issues","https://github.com/EvotecIT/OfficeIMO/issues")));
 

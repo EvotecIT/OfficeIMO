@@ -140,7 +140,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeRasterDecodeInfo failure = decodeInfo!;
         if (failure.CodecUnavailableReason != OfficeRasterCodecUnavailableReason.None) {
             diagnosticSink?.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Error,
-                OfficeImageExportDiagnosticCodes.ImageCodecUnavailable,
+                global::OfficeIMO.OfficeDiagnosticCodes.ImageCodecUnavailable,
                 failure.CodecUnavailableReason + ": " + failure.Diagnostic, diagnosticSource));
             if (imageCodec is RequiredImageCodec) throw new OfficeRasterDecodeException(failure);
         }

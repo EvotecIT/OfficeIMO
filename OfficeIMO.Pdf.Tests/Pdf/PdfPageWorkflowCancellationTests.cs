@@ -15,23 +15,23 @@ public class PdfPageWorkflowCancellationTests {
         PdfPageSelection selection = PdfPageSelection.From(1);
         PdfPageSelector selector = PdfPageSelector.Parse("1");
         Action[] edits = {
-            () => document.Pages.Delete(token, 1),
+            () => document.Pages.Delete(PdfPageSelection.From(1), token),
             () => document.Pages.Delete(selection, token),
             () => document.Pages.Delete(selector, token),
             () => document.Pages.Delete("1", token),
-            () => document.Pages.Reorder(token, 2, 1),
+            () => document.Pages.Reorder(PdfPageSelection.From(2, 1), token),
             () => document.Pages.Duplicate(selection, token),
             () => document.Pages.Move(3, selector, token),
             () => document.Pages.Rotate(90, "1", token),
             () => document.Pages.RotateBy(90, selection, token),
-            () => document.Pages.SetCropBox(20, 20, 400, 700, token, 1),
-            () => document.Pages.Resize(new PdfPageResizeOptions(PageSizes.Letter) { CancellationToken = token }, 1),
-            () => document.Pages.CropAndTranslate(20, 20, 400, 700, token, 1),
-            () => document.Pages.DestructiveCrop(20, 20, 400, 700, new PdfDestructiveCropOptions { CancellationToken = token }, 1),
-            () => document.Pages.ApplyAttributes(token, PdfPageAttributeEdit.RotateBy(90, selection)),
-            () => document.Pages.ReorderWithMapping(token, 2, 1),
-            () => document.Pages.BookmarkPageRanges(token),
-            () => document.Pages.SplitByBookmarks(token),
+            () => document.Pages.SetCropBox(20, 20, 400, 700, selection, token),
+            () => document.Pages.Resize(new PdfPageResizeOptions(PdfPageSizes.Letter), selection, token),
+            () => document.Pages.CropAndTranslate(20, 20, 400, 700, selection, token),
+            () => document.Pages.DestructiveCrop(20, 20, 400, 700, new PdfDestructiveCropOptions(), selection, token),
+            () => document.Pages.ApplyAttributes(new[] { PdfPageAttributeEdit.RotateBy(90, selection) }, token),
+            () => document.Pages.ReorderWithMapping(PdfPageSelection.From(2, 1), token),
+            () => document.Pages.BookmarkPageRanges(Array.Empty<string>(), token),
+            () => document.Pages.SplitByBookmarks(Array.Empty<string>(), token),
             () => document.Bookmarks.Validate(token),
             () => document.Bookmarks.Edit(_ => throw new InvalidOperationException("Canceled edit must not run."), token),
             () => document.Pages.SplitForProductionResult(new PdfProductionSplitOptions { MaximumPagesPerPart = 1, CancellationToken = token })
@@ -113,14 +113,12 @@ public class PdfPageWorkflowCancellationTests {
     }
 
     [Fact]
-    public void ResizeHonorsBothItsOptionTokenAndTheExplicitOwnerToken() {
+    public void ResizeHonorsTheExplicitToken() {
         byte[] source = CreateSource();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var options = new PdfPageResizeOptions(PageSizes.Letter) { CancellationToken = cancellation.Token };
-        Assert.Throws<OperationCanceledException>(() => PdfPageEditor.ResizePages(source, options, null, CancellationToken.None));
-        options.CancellationToken = CancellationToken.None;
-        Assert.Throws<OperationCanceledException>(() => PdfPageEditor.ResizePages(source, options, null, cancellation.Token));
+        var options = new PdfPageResizeOptions(PdfPageSizes.Letter);
+        Assert.Throws<OperationCanceledException>(() => PdfPageEditor.ResizePages(source, options, selection: null, cancellation.Token));
     }
 
     [Fact]
@@ -282,9 +280,9 @@ public class PdfPageWorkflowCancellationTests {
         (input, output, token) => PdfPageEditor.RotatePages(input, output, 90, options, token, 1)
     };
 
-    private static byte[] CreateSource() => PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
-        .H1("First section").Paragraph(p => p.Text("First content"))
-        .PageBreak().H1("Second section").Paragraph(p => p.Text("Second content")).ToBytes();
+    private static byte[] CreateSource() => PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
+        .H1("First section").Paragraph(p => p.AddText("First content"))
+        .PageBreak().H1("Second section").Paragraph(p => p.AddText("Second content")).ToBytes();
 
     private sealed class ControlledInput : Stream {
         private readonly byte[] _bytes;

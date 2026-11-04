@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes properties decoded from a legacy XLS chart SerFmt record.
     /// </summary>
-    public sealed class LegacyXlsChartSeriesFormat {
+    internal sealed class LegacyXlsChartSeriesFormat {
         internal LegacyXlsChartSeriesFormat(ushort flags) {
             Flags = flags;
         }

@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void RenderNotes(RtfDocument document, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+    private static void RenderNotes(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state) {
         if (state.NoteReferences.Count == 0) {
             return;
         }
@@ -23,9 +23,9 @@ internal static partial class RtfPdfConverter {
         pdf.HR(spacingBefore: 8D, spacingAfter: 4D);
         foreach (PdfNoteReference noteReference in state.NoteReferences) {
             if (noteReference.Note.Paragraphs.Count == 0) {
-                pdf.Paragraph(paragraph => paragraph.Runs(new[] {
-                    PdfCore.PdfTextRun.Bolded(GetNoteLabel(noteReference), fontSize: 9D),
-                    PdfCore.PdfTextRun.Normal(string.Empty, fontSize: 9D)
+                pdf.Paragraph(paragraph => paragraph.AddRuns(new[] {
+                    state.CreateDefaultRun(GetNoteLabel(noteReference), bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(9D)),
+                    state.CreateDefaultRun(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(9D))
                 }));
             }
 
@@ -35,7 +35,7 @@ internal static partial class RtfPdfConverter {
                 if (RtfPdfMapping.HasPageBreakBefore(document, source)) pdf.PageBreak();
                 var runs = new List<PdfCore.PdfTextRun>();
                 if (i == 0) {
-                    runs.Add(PdfCore.PdfTextRun.Bolded(GetNoteLabel(noteReference), fontSize: 9D));
+                    runs.Add(state.CreateDefaultRun(GetNoteLabel(noteReference), bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(9D)));
                 }
 
                 int bodyStartIndex = runs.Count;
@@ -43,7 +43,7 @@ internal static partial class RtfPdfConverter {
                 EnsureParagraphLineBoxStrut(document, source, runs, state, bodyStartIndex);
                 RtfParagraph formatting = document.GetParagraphFormatting(source);
                 pdf.Paragraph(
-                    paragraph => paragraph.Runs(runs),
+                    paragraph => paragraph.AddRuns(runs),
                     RtfPdfMapping.ToPdfAlign(formatting.Alignment),
                     style: RtfPdfMapping.ToPdfParagraphStyle(document, source, runs, state.FontOptions));
             }

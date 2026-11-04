@@ -13,25 +13,25 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_InlineRunningPictureRetainsItsSizeAndReservesBodySpace(bool footer) {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 12240;
-        section.PageSettings.Height = 15840;
-        section.Margins.Top = 1440;
-        section.Margins.Bottom = 1440;
-        section.Margins.Left = section.Margins.Right = 1440;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 720;
-        WordHeaderFooter story = footer ? section.Footer.Default! : section.Header.Default!;
-        if (footer) section.Footer.Default!._footer!.RemoveAllChildren();
-        else section.Header.Default!._header!.RemoveAllChildren();
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(612D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(792D);
+        section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+        section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+        section.PageSetup.Margins.Left = section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        section.PageSetup.Margins.HeaderDistance = section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
+        WordHeaderFooter story = footer ? section.PageSetup.Footer : section.PageSetup.Header;
+        if (footer) section.PageSetup.Footer._footer!.RemoveAllChildren();
+        else section.PageSetup.Header._header!.RemoveAllChildren();
         AddRunningGeometryPicture(story.AddParagraph(), 624, 416);
         var body = document.AddParagraph(string.Join("\n", Enumerable.Repeat("BodyMarker", 25)));
         body.FontFamily = "Arial";
-        body.FontSize = 12;
-        body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
-        body.LineSpacing = 240;
+        body.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+        body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1);
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         var placements = PdfCore.PdfDocument.Load(bytes).Images.Placements();
         Assert.NotEmpty(placements);
@@ -52,16 +52,16 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_InlineHeaderPictureReservesOnlyTheActiveVariantHeight() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        document.DifferentFirstPage = true;
-        document.DifferentOddAndEvenPages = true;
+        _ = document.PageSetup.Header;
+        document.PageSetup.DifferentFirstPage = true;
+        document.PageSetup.DifferentOddAndEvenPages = true;
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 12240;
-        section.PageSettings.Height = 15840;
-        section.Margins.Top = section.Margins.Bottom = 1440;
-        section.Margins.Left = section.Margins.Right = 1440;
-        section.Margins.HeaderDistance = 720;
-        WordHeader[] headers = { section.Header.First!, section.Header.Even!, section.Header.Default! };
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(612D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(792D);
+        section.PageSetup.Margins.Top = section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+        section.PageSetup.Margins.Left = section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        section.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(36D);
+        WordHeader[] headers = { section.PageSetup.FirstPageHeader, section.PageSetup.EvenPageHeader, section.PageSetup.Header };
         double[] heights = { 48D, 96D, 416D };
         for (int index = 0; index < headers.Length; index++) {
             headers[index]._header!.RemoveAllChildren();
@@ -69,10 +69,10 @@ public partial class Word {
             WordParagraph paragraph = document.AddParagraph("VariantBody");
             paragraph.PageBreakBefore = index > 0;
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(3, pdf.NumberOfPages);
         var placements = PdfCore.PdfDocument.Load(bytes).Images.Placements();
@@ -91,24 +91,23 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_ProjectedHeaderPictureReportsPhysicalPageClipping() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        AddRunningGeometryPicture(document.Sections[0].Header.Default!.AddParagraph(), 96, 1200);
+        AddRunningGeometryPicture(document.Sections[0].PageSetup.Header.AddParagraph(), 96, 1200);
         document.AddParagraph("BodyMarker");
-        var result = document.ToPdfDocumentResult(new WordToPdfOptions {
+        var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
             IncludePageNumbers = false,
             // An explicit projection typography override keeps the bounded
             // header-image path. Its oversized source box must report clipping.
-            PdfOptions = new PdfCore.PdfOptions { HeaderFontSize = 10D }
+            PdfOptions = new PdfCore.PdfCreateOptions { PageSetup = { Header = { FontSize = global::OfficeIMO.OfficeLength.Points(10D) } } }
         });
         byte[] bytes = result.ToBytes();
         Assert.NotEmpty(bytes);
-        Assert.Contains(result.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped" && warning.Source == "Header");
+        Assert.Contains(result.Warnings, warning => warning.Code == "header-footer-page-bounds-clipped" && warning.Source == "Header");
     }
 
     private static void AddRunningGeometryPicture(WordParagraph paragraph, double width, double height) {
         byte[] png = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(8, 8, OfficeColor.Black), OfficeImageExportFormat.Png);
         using var image = new MemoryStream(png);
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
-        paragraph.AddImage(image, "running-picture.png", width, height);
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.AddImage(image, "running-picture.png", OfficeIMO.OfficeLength.Pixels(width), OfficeIMO.OfficeLength.Pixels(height));
     }
 }

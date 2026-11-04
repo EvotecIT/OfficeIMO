@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf.Pdf;
 internal static partial class RtfPdfConverter {
     /// <summary>Records lost effective frame layout only for paragraphs projected by this operation.</summary>
     private static void RecordParagraphFrameDiagnostic(RtfDocument document, RtfParagraph paragraph,
-        RtfToPdfOptions options, string source) {
+        RtfPdfExportOptions options, string source) {
         if (!options.DiagnosedFrameParagraphs.Add(paragraph) ||
             !document.GetParagraphFormatting(paragraph).Frame.HasAnyValue) return;
         AddConversionWarning(options, "ParagraphFrameFlattened", source,
@@ -13,7 +13,7 @@ internal static partial class RtfPdfConverter {
 
     /// <summary>Uses the same effective story selection as running-text projection.</summary>
     private static void RecordHeaderFooterFrameDiagnostics(RtfDocument document, RtfPageSetup setup,
-        IReadOnlyList<RtfHeaderFooter> declarations, RtfToPdfOptions options) {
+        IReadOnlyList<RtfHeaderFooter> declarations, RtfPdfExportOptions options) {
         if (!options.IncludeHeaderFooters) return;
         Record(GetDefaultHeaderFooter(declarations, isFooter: false), isFooter: false);
         Record(GetDefaultHeaderFooter(declarations, isFooter: true), isFooter: true);

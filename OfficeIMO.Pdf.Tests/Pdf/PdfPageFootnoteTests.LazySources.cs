@@ -16,9 +16,9 @@ public partial class PdfPageFootnoteTests {
         PdfDocument document = PdfDocument.Create(Options());
         PdfDocument other = PdfDocument.Create(Options());
         PdfFootnoteDefinition note = (foreignOwner ? other : document).Content.DefineFootnote(
-            body => body.Text("LazyAssociatedNote", style: Style()));
+            body => body.AddParagraph("LazyAssociatedNote", style: Style()));
         bool materialized = false;
-        document.Content.TableDeferred(() => {
+        document.Content.AddDeferredTable(() => {
             materialized = true;
             return new[] {
                 new[] { new PdfTableCell("PlainFirstBatch") },
@@ -37,11 +37,11 @@ public partial class PdfPageFootnoteTests {
     [InlineData(true)]
     public void LazyFootnoteReferencesRemainQualifiedOnlyInStaticFlow(bool replayable) {
         PdfDocument document = PdfDocument.Create(Options());
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Text("StaticQualifiedNote", style: Style()));
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddParagraph("StaticQualifiedNote", style: Style()));
         bool materialized = false;
         Action<PdfContentBuilder> build = body => {
             materialized = true;
-            body.Paragraph(paragraph => paragraph.Runs(new[] {
+            body.AddParagraph(paragraph => paragraph.AddRuns(new[] {
                 PdfTextRun.Normal("StaticQualifiedReference").WithFootnoteReference(note)
             }), style: Style());
         };
@@ -91,7 +91,7 @@ public partial class PdfPageFootnoteTests {
         PdfTableStyle style = LazyFootnoteTableStyle();
         if (floating) style.Position = new PdfTablePosition();
         else style.ConsumesVerticalFlow = false;
-        document.Content.TableDeferred(() => new[] { new[] { new PdfTableCell("UnsupportedDeferredBody") } },
+        document.Content.AddDeferredTable(() => new[] { new[] { new PdfTableCell("UnsupportedDeferredBody") } },
             batchSize: 1, style: style);
 
         Assert.Throws<NotSupportedException>(() => document.ToBytes());
@@ -104,7 +104,7 @@ public partial class PdfPageFootnoteTests {
         bool materialized = false;
         document.Content.Deferred(_ => body => {
             materialized = true;
-            body.Columns(column => column.Text("UnsupportedDynamicBody", style: Style()), new PdfMultiColumnOptions {
+            body.Columns(column => column.AddParagraph("UnsupportedDynamicBody", style: Style()), new PdfMultiColumnOptions {
                 ColumnCount = 2, BalanceLastPage = false
             });
         });
@@ -118,25 +118,25 @@ public partial class PdfPageFootnoteTests {
     private static byte[] RenderLazyFootnoteOrdinaryTable(bool deferred, bool noteOutsideTable) {
         PdfDocument document = PdfDocument.Create(Options());
         if (noteOutsideTable) AddLazyFootnoteStaticReference(document);
-        else document.Content.Text("OrdinaryTableBefore", style: Style());
+        else document.Content.AddParagraph("OrdinaryTableBefore", style: Style());
         PdfTableCell[][] rows = Enumerable.Range(0, 12).Select(index =>
             new[] { new PdfTableCell("LazyPlain" + index.ToString("00")) }).ToArray();
-        if (deferred) document.Content.TableDeferred(() => rows, batchSize: 1, style: LazyFootnoteTableStyle());
-        else document.Content.Table(rows, style: LazyFootnoteTableStyle());
-        document.Content.Text("OrdinaryTableAfter", style: Style());
+        if (deferred) document.Content.AddDeferredTable(() => rows, batchSize: 1, style: LazyFootnoteTableStyle());
+        else document.Content.AddTable(rows, style: LazyFootnoteTableStyle());
+        document.Content.AddParagraph("OrdinaryTableAfter", style: Style());
         return document.ToBytes();
     }
 
     private static void AddLazyFootnoteStaticReference(PdfDocument document) {
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Text("OutsideNote", style: Style()));
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddParagraph("OutsideNote", style: Style()));
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("OutsideReference").WithFootnoteReference(note)
         }), style: Style());
     }
 
     private static PdfTableStyle LazyFootnoteTableStyle() {
         PdfTableStyle style = FootnoteTableStyle();
-        style.ColumnWidthPoints = new List<double?> { 220D };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(220D) };
         style.MinimumBodyRowsOnFirstPage = 0;
         style.MinimumBodyRowsOnLastPage = 0;
         style.AutoFitColumns = false;

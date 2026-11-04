@@ -7,12 +7,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralReferences_PreserveQuotedExternalThreeDimensionalQualifiers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            summary.CellFormula(
-                1,
-                1,
-                "'[Other.xlsx]First:Data'!A1+'[Other.xlsx]First':'[Other.xlsx]Data'!A1+'Data'!A1");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            summary.Cell(1, 1).SetFormula("'[Other.xlsx]First:Data'!A1+'[Other.xlsx]First':'[Other.xlsx]Data'!A1+'Data'!A1");
 
             data.InsertRows(1);
 

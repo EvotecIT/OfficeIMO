@@ -65,14 +65,14 @@ namespace OfficeIMO.Tests {
 
         private static void CreateAutoFitVisualWorkbook(string filePath, bool applyOfficeImoAutoFit) {
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("AutoFit Visual");
+            var sheet = document.AddSheet("AutoFit Visual");
 
-            sheet.CellValue(1, 1, "Case");
-            sheet.CellValue(1, 2, "Auto column text");
-            sheet.CellValue(1, 3, "Fixed wrapped text");
-            sheet.CellBold(1, 1, true);
-            sheet.CellBold(1, 2, true);
-            sheet.CellBold(1, 3, true);
+            sheet.Cell(1, 1).SetValue("Case");
+            sheet.Cell(1, 2).SetValue("Auto column text");
+            sheet.Cell(1, 3).SetValue("Fixed wrapped text");
+            sheet.Cell(1, 1).SetBold(true);
+            sheet.Cell(1, 2).SetBold(true);
+            sheet.Cell(1, 3).SetBold(true);
 
             var cases = new[] {
                 new AutoFitVisualCase("Plain short", "Plain text", "Plain wrapped text", "Calibri", 11.0),
@@ -101,13 +101,13 @@ namespace OfficeIMO.Tests {
             for (int i = 0; i < cases.Length; i++) {
                 int row = i + 2;
                 AutoFitVisualCase current = cases[i];
-                sheet.CellValue(row, 1, current.Name);
+                sheet.Cell(row, 1).SetValue(current.Name);
                 if (!string.IsNullOrEmpty(current.NumberFormat)) {
-                    sheet.Cell(row, 2, current.ColumnValue, numberFormat: current.NumberFormat);
+                    sheet.Cell(row, 2).SetValue(current.ColumnValue).SetNumberFormat(current.NumberFormat);
                 } else {
-                    sheet.CellValue(row, 2, current.ColumnValue);
+                    sheet.Cell(row, 2).SetValue(current.ColumnValue);
                 }
-                sheet.CellValue(row, 3, current.WrappedText);
+                sheet.Cell(row, 3).SetValue(current.WrappedText);
             }
 
             SpreadsheetDocument spreadsheet = document._spreadSheetDocument;
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                 SetCellStyle(spreadsheet, "C" + row.ToString(CultureInfo.InvariantCulture), wrapStyle);
             }
 
-            sheet.SetColumnWidth(3, 18);
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(18));
             if (applyOfficeImoAutoFit) {
                 sheet.AutoFitColumnsFor(new[] { 1, 2 });
                 sheet.AutoFitRows();

@@ -214,35 +214,38 @@ public static class HtmlCssPropertyParser {
         tokens.Any(token => token.Kind == HtmlCssTokenKind.Function && string.Equals(token.Value, "var", StringComparison.OrdinalIgnoreCase));
 
     private static bool HasValidVarFunctions(IReadOnlyList<HtmlCssToken> tokens, CancellationToken cancellationToken) {
+        var varFrames = new List<(int Depth, int First, int AfterName)>();
+        int depth = 0;
         for (int index = 0; index < tokens.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (tokens[index].Kind != HtmlCssTokenKind.Function
-                || !string.Equals(tokens[index].Value, "var", StringComparison.OrdinalIgnoreCase)) continue;
-            int depth = 1;
-            int cursor = index + 1;
-            int first = -1;
-            int afterName = -1;
-            for (; cursor < tokens.Count && depth > 0; cursor++) {
-                HtmlCssToken token = tokens[cursor];
-                if (token.Kind == HtmlCssTokenKind.Function || token.Kind == HtmlCssTokenKind.OpenParenthesis
-                    || token.Kind == HtmlCssTokenKind.OpenBracket || token.Kind == HtmlCssTokenKind.OpenBrace) {
-                    depth++;
-                    continue;
-                }
-                if (token.Kind == HtmlCssTokenKind.CloseParenthesis || token.Kind == HtmlCssTokenKind.CloseBracket
-                    || token.Kind == HtmlCssTokenKind.CloseBrace) {
-                    depth--;
-                    continue;
-                }
-                if (depth != 1 || IsTrivia(token.Kind)) continue;
-                if (first < 0) first = cursor;
-                else if (afterName < 0) afterName = cursor;
+            HtmlCssToken token = tokens[index];
+            if (token.Kind == HtmlCssTokenKind.Function || token.Kind == HtmlCssTokenKind.OpenParenthesis
+                || token.Kind == HtmlCssTokenKind.OpenBracket || token.Kind == HtmlCssTokenKind.OpenBrace) {
+                depth++;
+                if (token.Kind == HtmlCssTokenKind.Function && string.Equals(token.Value, "var", StringComparison.OrdinalIgnoreCase))
+                    varFrames.Add((depth, -1, -1));
+                continue;
             }
-            if (depth != 0 || first < 0 || tokens[first].Kind != HtmlCssTokenKind.Identifier
-                || tokens[first].Value?.StartsWith("--", StringComparison.Ordinal) != true) return false;
-            if (afterName >= 0 && tokens[afterName].Kind != HtmlCssTokenKind.Comma) return false;
+            if (token.Kind == HtmlCssTokenKind.CloseParenthesis || token.Kind == HtmlCssTokenKind.CloseBracket
+                || token.Kind == HtmlCssTokenKind.CloseBrace) {
+                if (varFrames.Count > 0 && varFrames[varFrames.Count - 1].Depth == depth) {
+                    var frame = varFrames[varFrames.Count - 1];
+                    if (frame.First < 0 || tokens[frame.First].Kind != HtmlCssTokenKind.Identifier
+                        || tokens[frame.First].Value?.StartsWith("--", StringComparison.Ordinal) != true
+                        || frame.AfterName >= 0 && tokens[frame.AfterName].Kind != HtmlCssTokenKind.Comma) return false;
+                    varFrames.RemoveAt(varFrames.Count - 1);
+                }
+                depth--;
+                continue;
+            }
+            if (varFrames.Count == 0 || varFrames[varFrames.Count - 1].Depth != depth || IsTrivia(token.Kind)) continue;
+            int last = varFrames.Count - 1;
+            var current = varFrames[last];
+            if (current.First < 0) current.First = index;
+            else if (current.AfterName < 0) current.AfterName = index;
+            varFrames[last] = current;
         }
-        return true;
+        return varFrames.Count == 0;
     }
 
     private static bool HasInvalidStructure(IReadOnlyList<HtmlCssToken> tokens, CancellationToken cancellationToken) {

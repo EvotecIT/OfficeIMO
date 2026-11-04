@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Buffers;
 using System.Threading;
 
@@ -32,6 +30,11 @@ namespace OfficeIMO.Excel {
             /// </summary>
             private int InitializeCellWindow(int rowCapacity, long rangeRows, int fieldCount) {
                 long maximumCells = Math.Min(MaximumIndexedCells, _options.MaxDataReaderBufferedCells);
+                if (_unknownRowExtent) {
+                    _rowContentStarts = ArrayPool<int>.Shared.Rent(rowCapacity);
+                    _rowContentEnds = ArrayPool<int>.Shared.Rent(rowCapacity);
+                    return (int)Math.Min(rowCapacity, maximumCells / fieldCount);
+                }
                 if (rangeRows * fieldCount <= maximumCells) {
                     return rowCapacity;
                 }
@@ -49,7 +52,7 @@ namespace OfficeIMO.Excel {
                 ? 0 : checked(physicalRow * _fieldCount);
 
             private void RetainQualifiedRowPosition(int physicalRow, int contentStart, int contentEnd) {
-                if (UsesCellWindow) {
+                if (UsesCellWindow || _unknownRowExtent) {
                     _rowContentStarts![physicalRow] = contentStart;
                     _rowContentEnds![physicalRow] = contentEnd;
                 }
@@ -60,7 +63,7 @@ namespace OfficeIMO.Excel {
                     Math.Min(_rowContentStarts!.Length, _rowContentEnds!.Length));
                 if (required <= currentCapacity) return;
 
-                int nextCapacity = Math.Min(A1.MaxRows, checked(currentCapacity * 2));
+                int nextCapacity = Math.Min(ExcelA1.MaxRows, checked(currentCapacity * 2));
                 GrowRowArray(ref _rowIndexes, nextCapacity, _rowCount);
                 GrowRowArray(ref _rowContentStarts, nextCapacity, _rowCount);
                 GrowRowArray(ref _rowContentEnds, nextCapacity, _rowCount);

@@ -112,8 +112,8 @@ public class ExcelSharedStringReadBenchmarks {
         return Observe(reader);
     }
 
-    private DbDataReader OpenOfficeIMO() => ExcelDocument.OpenDataReader(
-        _workbook, new ExcelReadOptions { HasHeaderRow = false });
+    private DbDataReader OpenOfficeIMO() => ExcelDocument.OpenReader(
+        _workbook, new ExcelReaderOptions { HasHeaderRow = false });
 
     private static DbDataReader OpenSylvan(Stream stream) => global::Sylvan.Data.Excel.ExcelDataReader.Create(
         stream, ExcelWorkbookType.ExcelXml, new ExcelDataReaderOptions { Schema = ExcelSchema.NoHeaders });

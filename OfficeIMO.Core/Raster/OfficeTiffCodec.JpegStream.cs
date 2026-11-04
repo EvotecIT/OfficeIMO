@@ -14,6 +14,7 @@ public static partial class OfficeTiffCodec {
         if (data.Length < 4 || data[0] != 255 || data[1] != 216) return false;
         int offset = 2;
         int[] ids = new int[samples];
+        bool[] scannedComponents = new bool[samples];
         bool frame = false, scan = false;
         while (offset < data.Length) {
             token.ThrowIfCancellationRequested();
@@ -75,7 +76,10 @@ public static partial class OfficeTiffCodec {
                 if (count < 1 || count > samples || length != 6 + 2 * count) return false;
                 for (int i = 0; i < count; i++) {
                     int p = start + 1 + 2 * i, index = Array.IndexOf(ids, (int)data[p]);
-                    if (index < 0) return false;
+                    // TIFF JPEG permits separate scans for distinct components, but
+                    // decoding the same component again multiplies work per tile.
+                    if (index < 0 || scannedComponents[index]) return false;
+                    scannedComponents[index] = true;
                     data[p] = (byte)(index + 1);
                 }
                 scan = true;

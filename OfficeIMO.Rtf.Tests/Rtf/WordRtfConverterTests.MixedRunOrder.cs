@@ -27,10 +27,10 @@ public partial class WordRtfConverterTests {
         using WordDocument opened = ReopenMixedRunSource(source);
         Dictionary<string, string> before = SnapshotMixedRunSource(opened);
 
-        RtfDocument converted = opened.ToRtfDocument();
+        RtfDocument converted = opened.ToRtf();
         AssertMixedRunBreakOrder(SelectMixedRunStory(converted, story));
-        string artifact = converted.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument readback = RtfDocument.Read(artifact).Document;
+        string artifact = converted.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument readback = RtfDocument.ParseResult(artifact).Document;
         AssertMixedRunBreakOrder(SelectMixedRunStory(readback, story), allowNoteBodyMarker: story == "footnote");
         AssertMixedRunSourceUnchanged(opened, before);
     }
@@ -58,7 +58,7 @@ public partial class WordRtfConverterTests {
         using WordDocument opened = ReopenMixedRunSource(source);
         Dictionary<string, string> before = SnapshotMixedRunSource(opened);
 
-        RtfDocument converted = opened.ToRtfDocument();
+        RtfDocument converted = opened.ToRtf();
         RtfParagraph paragraph = Assert.Single(MixedRunBodyBlocks(converted).OfType<RtfParagraph>());
         RtfNoteKind kind = endnote ? RtfNoteKind.Endnote : RtfNoteKind.Footnote;
         Assert.Collection(paragraph.Inlines,
@@ -75,7 +75,7 @@ public partial class WordRtfConverterTests {
                 Assert.True(run.Bold);
                 Assert.Null(run.Note);
             });
-        string artifact = converted.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string artifact = converted.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         AssertMixedRunArtifactOrder(artifact, "BEFORE", "NOTE-FIRST", "NOTE-SECOND", "AFTER");
         AssertMixedRunSourceUnchanged(opened, before);
     }
@@ -88,7 +88,7 @@ public partial class WordRtfConverterTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph target = source.AddParagraph();
         using (var image = new MemoryStream(png, writable: false)) {
-            target.AddImage(image, "mixed-run.png", 16, 16, WordImageTextWrapping.InLineWithText, "Mixed image");
+            target.AddImage(image, "mixed-run.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "Mixed image" });
         }
         WordDrawing drawing = Assert.Single(target._paragraph.Descendants<WordDrawing>());
         drawing.Remove();
@@ -104,7 +104,7 @@ public partial class WordRtfConverterTests {
         using WordDocument opened = ReopenMixedRunSource(source);
         Dictionary<string, string> before = SnapshotMixedRunSource(opened);
 
-        RtfDocument converted = opened.ToRtfDocument();
+        RtfDocument converted = opened.ToRtf();
         RtfParagraph paragraph = Assert.Single(MixedRunBodyBlocks(converted).OfType<RtfParagraph>());
         if (noteOnly) {
             Assert.Collection(paragraph.Inlines,
@@ -124,8 +124,8 @@ public partial class WordRtfConverterTests {
                     Assert.True(run.Bold);
                 });
         }
-        string artifact = converted.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument readback = RtfDocument.Read(artifact).Document;
+        string artifact = converted.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfDocument readback = RtfDocument.ParseResult(artifact).Document;
         IEnumerable<IRtfInline> readbackInlines = MixedRunBodyBlocks(readback).SelectMany(block => block is RtfParagraph content
             ? content.Inlines.AsEnumerable()
             : new[] { Assert.IsType<RtfImage>(block) }.Cast<IRtfInline>());
@@ -138,8 +138,8 @@ public partial class WordRtfConverterTests {
     private static WordParagraph CreateMixedRunStory(WordDocument source, string story) => story switch {
         "body" => source.AddParagraph(),
         "cell" => source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
-        "header" => source.HeaderDefaultOrCreate.AddParagraph(),
-        "footnote" => source.AddParagraph("Anchor").AddFootNote("Placeholder").FootNote!.Paragraphs!.Last(),
+        "header" => source.PageSetup.Header.AddParagraph(),
+        "footnote" => source.AddParagraph("Anchor").AddFootNote("Placeholder").Paragraph.FootNote!.Paragraphs!.Last(),
         _ => throw new ArgumentOutOfRangeException(nameof(story))
     };
 

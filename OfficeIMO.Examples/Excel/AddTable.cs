@@ -11,11 +11,11 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "Add Table.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 10d);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(10d);
                 sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
                 if (openExcel) document.OpenInApplication();

@@ -35,7 +35,7 @@ internal static class MarkdownNativeProjectionFactory {
 
         if (nativeBlock is MarkdownNativeOtherBlock) {
             diagnostics.Add(new MarkdownNativeDiagnostic(
-                "native.unsupported-block",
+                "native-unsupported-block",
                 $"No specialized native projection exists for markdown block '{block.GetType().Name}'.",
                 MarkdownNativeDiagnosticSeverity.Info,
                 nativeBlock.SourceSpan,

@@ -8,14 +8,14 @@ namespace OfficeIMO.PowerPoint {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             PowerPointTextBox? detectedTitle = slide.TextBoxes
                 .Where(box => !string.IsNullOrWhiteSpace(box.Text))
-                .OrderBy(box => box.TopPoints)
-                .ThenByDescending(box => box.FontSize ?? 0)
+                .OrderBy(box => box.Top.ToPoints())
+                .ThenByDescending(box => box.FontSize?.ToPoints() ?? 0)
                 .FirstOrDefault();
             foreach (PowerPointShape shape in slide.Shapes) {
                 if (HasDesignerDecorativeName(shape.Name) &&
                     shape.ShapeContentType != PowerPointShapeContentType.TextBox) {
                     shape.Decorative = true;
-                    shape.Description = null;
+                    shape.AltText = null;
                     continue;
                 }
 
@@ -28,21 +28,21 @@ namespace OfficeIMO.PowerPoint {
                     table.SetLanguage(language);
                     table.HeaderRow = true;
                     table.Title ??= "Data table";
-                    table.Description ??= "Data table with " + table.Rows + " row(s) and " + table.Columns + " column(s).";
+                    table.AltText ??= "Data table with " + table.Rows + " row(s) and " + table.Columns + " column(s).";
                 } else if (shape is PowerPointChart chart) {
                     chart.Title ??= "Data chart";
-                    if (string.IsNullOrWhiteSpace(chart.Description) && chart.TryGetOfficeSnapshot(out _)) {
-                        chart.Description = chart.CreateDataSummary();
+                    if (string.IsNullOrWhiteSpace(chart.AltText) && chart.TryGetOfficeSnapshot(out _)) {
+                        chart.AltText = chart.CreateDataSummary();
                     }
                 } else if (shape is PowerPointSmartArt smartArt) {
                     smartArt.Title ??= "Diagram";
-                    smartArt.Description ??= "Diagram with " + smartArt.NodeCount + " editable node(s).";
+                    smartArt.AltText ??= "Diagram with " + smartArt.NodeCount + " editable node(s).";
                 } else if (shape.ShapeContentType == PowerPointShapeContentType.Picture ||
                            shape.ShapeContentType == PowerPointShapeContentType.Media) {
-                    if (string.IsNullOrWhiteSpace(shape.Description)) {
+                    if (string.IsNullOrWhiteSpace(shape.AltText)) {
                         shape.Decorative = true;
                     } else {
-                        shape.Title ??= CreateAccessibleTitle(shape.Description, "Visual");
+                        shape.Title ??= CreateAccessibleTitle(shape.AltText, "Visual");
                     }
                 } else if (!string.IsNullOrWhiteSpace(shape.Name)) {
                     shape.Title ??= shape.Name;

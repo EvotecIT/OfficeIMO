@@ -9,7 +9,7 @@ public sealed class EmailReaderContractTests {
     public void EmailDocumentToStreamMatchesToBytesAndStartsAtBeginning() {
         var document = new EmailDocument { Subject = "Lifecycle" };
 
-        using MemoryStream stream = document.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(document.ToBytes());
 
         Assert.Equal(0, stream.Position);
         Assert.Equal(document.ToBytes(), stream.ToArray());
@@ -103,31 +103,31 @@ public sealed class EmailReaderContractTests {
     [Fact]
     public void EnforcesInputHeaderPartAndAttachmentLimits() {
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
-            new EmailReaderOptions(maxInputBytes: 3)).Read(new byte[] { 1, 2, 3, 4 }));
+            new EmailReaderOptions(maxInputBytes: 3)).ReadDocument(new byte[] { 1, 2, 3, 4 }));
 
         string largeHeader = string.Concat("Subject: ", new string('a', 64), "\r\n\r\nbody");
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
-            new EmailReaderOptions(maxHeaderBytes: 16)).Read(Encoding.ASCII.GetBytes(largeHeader)));
+            new EmailReaderOptions(maxHeaderBytes: 16)).ReadDocument(Encoding.ASCII.GetBytes(largeHeader)));
 
         const string multipart = "Subject: x\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
             "--x\r\nContent-Type: text/plain\r\n\r\na\r\n" +
             "--x\r\nContent-Type: text/plain\r\n\r\nb\r\n--x--\r\n";
         EmailLimitExceededException partLimit = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(maxPartCount: 2))
-                .Read(Encoding.ASCII.GetBytes(multipart)));
+                .ReadDocument(Encoding.ASCII.GetBytes(multipart)));
         Assert.Equal(nameof(EmailReaderOptions.MaxPartCount), partLimit.LimitName);
         Assert.Equal(3, partLimit.ActualValue);
 
         const string attachment = "Subject: x\r\nContent-Type: application/octet-stream\r\n\r\n12345";
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
-            new EmailReaderOptions(maxAttachmentBytes: 4)).Read(Encoding.ASCII.GetBytes(attachment)));
+            new EmailReaderOptions(maxAttachmentBytes: 4)).ReadDocument(Encoding.ASCII.GetBytes(attachment)));
 
         const string base64Attachment = "Subject: x\r\nContent-Type: application/octet-stream\r\n" +
             "Content-Transfer-Encoding: base64\r\n\r\nAQIDBAUG";
         EmailLimitExceededException decodedLimit = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(
                 maxAttachmentBytes: 5, includeAttachmentContent: false))
-                .Read(Encoding.ASCII.GetBytes(base64Attachment)));
+                .ReadDocument(Encoding.ASCII.GetBytes(base64Attachment)));
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), decodedLimit.LimitName);
         Assert.Equal(6, decodedLimit.ActualValue);
     }
@@ -138,7 +138,7 @@ public sealed class EmailReaderContractTests {
         MemoryStream stream = new MemoryStream(message);
         stream.Position = 3;
 
-        EmailReadResult result = await new EmailDocumentReader().ReadAsync(stream);
+        EmailReadResult result = await new EmailDocumentReader().ReadDocumentAsync(stream);
 
         Assert.Equal("async", result.Document.Subject);
         Assert.True(stream.CanRead);
@@ -165,7 +165,7 @@ public sealed class EmailReaderContractTests {
         byte[] source = Encoding.ASCII.GetBytes("Subject: cancelled\r\n\r\nbody");
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            new EmailDocumentReader().ReadAsync(new MemoryStream(source), cancellation.Token));
+            new EmailDocumentReader().ReadDocumentAsync(new MemoryStream(source), cancellation.Token));
 
         var document = new EmailDocument { Format = EmailFileFormat.Eml, Subject = "cancelled" };
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
@@ -186,7 +186,7 @@ public sealed class EmailReaderContractTests {
             document.Body.Text = "body";
             string emlPath = Path.Combine(directory, "message.eml");
             await new EmailDocumentWriter().WriteAsync(document, emlPath);
-            EmailReadResult message = await new EmailDocumentReader().ReadAsync(emlPath);
+            EmailReadResult message = await new EmailDocumentReader().ReadDocumentAsync(emlPath);
             Assert.Equal("async-file", message.Document.Subject);
 
             var mailbox = new EmailMailbox();
@@ -204,7 +204,7 @@ public sealed class EmailReaderContractTests {
     public void CanSkipAttachmentContentWhileKeepingMetadata() {
         const string eml = "Subject: x\r\nContent-Type: application/octet-stream; name=a.bin\r\n\r\n123";
         EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false))
-            .Read(Encoding.ASCII.GetBytes(eml));
+            .ReadDocument(Encoding.ASCII.GetBytes(eml));
 
         EmailAttachment attachment = Assert.Single(result.Document.Attachments);
         Assert.Equal(3, attachment.Length);
@@ -217,7 +217,7 @@ public sealed class EmailReaderContractTests {
         byte[] msg = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
-            new EmailReaderOptions(maxMapiPropertyCount: 1)).Read(msg));
+            new EmailReaderOptions(maxMapiPropertyCount: 1)).ReadDocument(msg));
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentWriter(
             new EmailWriterOptions(maxOutputBytes: 10)).ToBytes(source, EmailFileFormat.OutlookMsg));
     }

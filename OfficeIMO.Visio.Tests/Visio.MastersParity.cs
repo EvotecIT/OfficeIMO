@@ -29,13 +29,13 @@ namespace OfficeIMO.Tests {
             Assert.False(doc.TryGetMaster("Ellipse", out _));
             Assert.Contains(learned, master => string.Equals(master.NameU, "Rectangle", StringComparison.OrdinalIgnoreCase));
 
-            VisioPage page = doc.AddPage("Page-1", 29.7, 21, VisioMeasurementUnit.Centimeters);
-            page.Shapes.Add(new VisioShape("1") { NameU = "Rectangle", PinX = 2, PinY = 6 });
-            page.Shapes.Add(new VisioShape("2") { NameU = "Square", PinX = 4, PinY = 6 });
-            page.Shapes.Add(new VisioShape("3") { NameU = "Circle", PinX = 6, PinY = 6 });
-            page.Shapes.Add(new VisioShape("4") { NameU = "Ellipse", PinX = 8, PinY = 6 });
-            page.Shapes.Add(new VisioShape("5") { NameU = "Diamond", PinX = 10, PinY = 6 });
-            page.Shapes.Add(new VisioShape("6") { NameU = "Triangle", PinX = 12, PinY = 6 });
+            VisioPage page = doc.AddPage("Page-1", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21), scaleUnit: VisioMeasurementUnit.Centimeters);
+            page.Shapes.Add(new VisioShape("1") { NameU = "Rectangle", PinX = OfficeLength.Inches(2), PinY = OfficeLength.Inches(6 )});
+            page.Shapes.Add(new VisioShape("2") { NameU = "Square", PinX = OfficeLength.Inches(4), PinY = OfficeLength.Inches(6 )});
+            page.Shapes.Add(new VisioShape("3") { NameU = "Circle", PinX = OfficeLength.Inches(6), PinY = OfficeLength.Inches(6 )});
+            page.Shapes.Add(new VisioShape("4") { NameU = "Ellipse", PinX = OfficeLength.Inches(8), PinY = OfficeLength.Inches(6 )});
+            page.Shapes.Add(new VisioShape("5") { NameU = "Diamond", PinX = OfficeLength.Inches(10), PinY = OfficeLength.Inches(6 )});
+            page.Shapes.Add(new VisioShape("6") { NameU = "Triangle", PinX = OfficeLength.Inches(12), PinY = OfficeLength.Inches(6 )});
             page.Connectors.Add(new VisioConnector("connector-1", page.Shapes[0], page.Shapes[1]) { Kind = ConnectorKind.Dynamic });
             doc.Save();
 

@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.Html {
             IElement element,
             WordDocument doc,
             WordSection section,
-            HtmlToWordOptions options,
+            HtmlWordExportOptions options,
             TextFormatting formatting,
             WordTableCell? cell,
             WordHeaderFooter? headerFooter) {
@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Html {
 
             var targetSection = ResolveHeaderFooterSection(element, doc, section);
             var type = GetHeaderFooterType(element);
-            WordHeaderFooter target = isHeader ? targetSection.GetOrCreateHeader(type) : targetSection.GetOrCreateFooter(type);
+            WordHeaderFooter target = isHeader ? targetSection.PageSetup.GetOrCreateHeader(type) : targetSection.PageSetup.GetOrCreateFooter(type);
             RemoveEmptyHeaderFooterPlaceholders(target);
 
             var fmt = formatting;

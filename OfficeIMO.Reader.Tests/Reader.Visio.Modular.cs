@@ -34,16 +34,16 @@ public sealed class ReaderVisioModularTests {
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(),
             item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
 
-        Assert.Equal(VisioLoadOptions.DefaultMaxInputBytes, capability.DefaultMaxInputBytes);
+        Assert.Equal(VisioLoadLimits.DefaultMaxInputBytes, capability.DefaultMaxInputBytes);
         Assert.Equal(
-            VisioLoadOptions.DefaultMaxInputBytes,
+            VisioLoadLimits.DefaultMaxInputBytes,
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("diagram.vsdx"));
         Assert.Null(VisioReaderAdapter.CreateLoadOptions(new ReaderOptions()));
 
         VisioLoadOptions mapped = Assert.IsType<VisioLoadOptions>(
             VisioReaderAdapter.CreateLoadOptions(new ReaderOptions { MaxInputBytes = 700L * 1024L * 1024L }));
 
-        Assert.Equal(700L * 1024L * 1024L, mapped.MaxInputBytes);
+        Assert.Equal(700L * 1024L * 1024L, mapped.Limits.MaxInputBytes);
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class ReaderVisioModularTests {
             .Build();
         using MemoryStream stream = BuildSampleVisio();
 
-        List<ReaderChunk> chunks = reader.Read(stream, "registered.vsdx").ToList();
+        List<ReaderChunk> chunks = reader.Enumerate(stream, "registered.vsdx").ToList();
 
         ReaderChunk chunk = Assert.Single(chunks);
         Assert.Equal(ReaderInputKind.Visio, chunk.Kind);
@@ -269,13 +269,13 @@ public sealed class ReaderVisioModularTests {
     private static MemoryStream BuildSampleVisio() {
         var stream = new MemoryStream();
         VisioDocument document = VisioDocument.Create(stream);
-        document.Title = "Topology";
-        document.Author = "OfficeIMO";
-        VisioPage page = document.AddPage("Topology", 8, 5);
-        VisioShape gateway = page.AddRectangle(1.5, 3.5, 1.4, 0.7, "Gateway");
+        document.Properties.Title = "Topology";
+        document.Properties.Author = "OfficeIMO";
+        VisioPage page = document.AddPage("Topology", OfficeLength.Inches(8), OfficeLength.Inches(5));
+        VisioShape gateway = page.AddRectangle(OfficeLength.Inches(1.5), OfficeLength.Inches(3.5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Gateway");
         gateway.SetShapeData("Owner", "Platform", "Owner", VisioShapeDataType.String);
         gateway.AddHyperlink("https://example.test/gateway", "Gateway details");
-        VisioShape service = page.AddRectangle(5.5, 3.5, 1.4, 0.7, "Service");
+        VisioShape service = page.AddRectangle(OfficeLength.Inches(5.5), OfficeLength.Inches(3.5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Service");
         service.SetShapeData("Tier", "Backend", "Tier", VisioShapeDataType.String);
         VisioConnector connector = page.AddConnector(gateway, service, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
         connector.Label = "Gateway -> Service";
@@ -289,9 +289,9 @@ public sealed class ReaderVisioModularTests {
     private static MemoryStream BuildLargeTextVisio() {
         var stream = new MemoryStream();
         VisioDocument document = VisioDocument.Create(stream);
-        VisioPage page = document.AddPage("Large", 8, 5);
+        VisioPage page = document.AddPage("Large", OfficeLength.Inches(8), OfficeLength.Inches(5));
         for (int i = 0; i < 32; i++) {
-            page.AddRectangle(1 + (i % 4), 1 + (i / 4) * 0.3, 0.8, 0.2, "Node " + i.ToString("D2", CultureInfo.InvariantCulture) + " " + new string('A', 32));
+            page.AddRectangle(OfficeLength.Inches(1 + (i % 4)), OfficeLength.Inches(1 + (i / 4) * 0.3), OfficeLength.Inches(0.8), OfficeLength.Inches(0.2), "Node " + i.ToString("D2", CultureInfo.InvariantCulture) + " " + new string('A', 32));
         }
 
         document.Save();
@@ -302,8 +302,8 @@ public sealed class ReaderVisioModularTests {
     private static MemoryStream BuildManyShapeDataRowsVisio() {
         var stream = new MemoryStream();
         VisioDocument document = VisioDocument.Create(stream);
-        VisioPage page = document.AddPage("Shape Data", 8, 5);
-        VisioShape shape = page.AddRectangle(1.5, 3.5, 1.4, 0.7, "Data Shape");
+        VisioPage page = document.AddPage("Shape Data", OfficeLength.Inches(8), OfficeLength.Inches(5));
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(1.5), OfficeLength.Inches(3.5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Data Shape");
         for (int i = 1; i <= 5; i++) {
             string key = "Key" + i.ToString(CultureInfo.InvariantCulture);
             shape.SetShapeData(key, "Value " + i.ToString(CultureInfo.InvariantCulture), key, VisioShapeDataType.String);
@@ -319,11 +319,11 @@ public sealed class ReaderVisioModularTests {
         VisioDocument document = VisioDocument.Create(stream);
 
         VisioPage later = document.AddPage("Later", id: 10);
-        VisioShape laterShape = later.AddRectangle(1.5, 3.5, 1.4, 0.7, "Later Shape");
+        VisioShape laterShape = later.AddRectangle(OfficeLength.Inches(1.5), OfficeLength.Inches(3.5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Later Shape");
         laterShape.AddHyperlink("https://example.test/later", "Later details");
 
         VisioPage earlier = document.AddPage("Earlier", id: 5);
-        VisioShape earlierShape = earlier.AddRectangle(1.5, 3.5, 1.4, 0.7, "Earlier Shape");
+        VisioShape earlierShape = earlier.AddRectangle(OfficeLength.Inches(1.5), OfficeLength.Inches(3.5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Earlier Shape");
         earlierShape.AddHyperlink("https://example.test/earlier", "Earlier details");
 
         document.Save();

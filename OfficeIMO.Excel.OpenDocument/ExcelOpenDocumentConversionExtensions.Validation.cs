@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryCreateOdsValidationCondition(
-        ExcelDataValidationSnapshot validation,
+        ExcelDataValidationInspectionInfo validation,
         ExcelDateSystem dateSystem,
         out OdsValidationConditionSyntax? condition) {
         condition = null;
@@ -120,7 +120,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 formulaLength += item.Length + item.Count(static character => character == '"');
                 if (formulaLength > ExcelSheet.MaximumDataValidationFormulaLength) return false;
             }
-            sheet.ValidationList(references, condition.ListValues, validation.AllowEmptyCell);
+            sheet.CreateDataValidationList(references, condition.ListValues, validation.AllowEmptyCell);
             return true;
         }
         if (!TryMapValidationComparison(condition.Comparison, out ExcelDataValidationOperator comparison)) return false;
@@ -129,28 +129,28 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             case OdsValidationValueKind.WholeNumber:
                 if (!int.TryParse(condition.FirstOperand, NumberStyles.Integer, CultureInfo.InvariantCulture, out int wholeFirst)
                     || !TryParseOptionalInteger(condition.SecondOperand, out int? wholeSecond)) return false;
-                sheet.ValidationWholeNumber(references, comparison, wholeFirst, wholeSecond, validation.AllowEmptyCell);
+                sheet.CreateDataValidationWholeNumber(references, comparison, wholeFirst, wholeSecond, validation.AllowEmptyCell);
                 return true;
             case OdsValidationValueKind.DecimalNumber:
                 if (!double.TryParse(condition.FirstOperand, NumberStyles.Float, CultureInfo.InvariantCulture, out double decimalFirst)
                     || !TryParseOptionalDouble(condition.SecondOperand, out double? decimalSecond)
                     || double.IsNaN(decimalFirst) || double.IsInfinity(decimalFirst)) return false;
-                sheet.ValidationDecimal(references, comparison, decimalFirst, decimalSecond, validation.AllowEmptyCell);
+                sheet.CreateDataValidationDecimal(references, comparison, decimalFirst, decimalSecond, validation.AllowEmptyCell);
                 return true;
             case OdsValidationValueKind.TextLength:
                 if (!int.TryParse(condition.FirstOperand, NumberStyles.Integer, CultureInfo.InvariantCulture, out int lengthFirst)
                     || !TryParseOptionalInteger(condition.SecondOperand, out int? lengthSecond)) return false;
-                sheet.ValidationTextLength(references, comparison, lengthFirst, lengthSecond, validation.AllowEmptyCell);
+                sheet.CreateDataValidationTextLength(references, comparison, lengthFirst, lengthSecond, validation.AllowEmptyCell);
                 return true;
             case OdsValidationValueKind.Date:
                 if (!TryParseDateOperand(condition.FirstOperand, out DateTime dateFirst)
                     || !TryParseOptionalDateOperand(condition.SecondOperand, out DateTime? dateSecond)) return false;
-                sheet.ValidationDate(references, comparison, dateFirst, dateSecond, validation.AllowEmptyCell);
+                sheet.CreateDataValidationDate(references, comparison, dateFirst, dateSecond, validation.AllowEmptyCell);
                 return true;
             case OdsValidationValueKind.Time:
                 if (!TryParseTimeOperand(condition.FirstOperand, out TimeSpan timeFirst)
                     || !TryParseOptionalTimeOperand(condition.SecondOperand, out TimeSpan? timeSecond)) return false;
-                sheet.ValidationTime(references, comparison, timeFirst, timeSecond, validation.AllowEmptyCell);
+                sheet.CreateDataValidationTime(references, comparison, timeFirst, timeSecond, validation.AllowEmptyCell);
                 return true;
             default:
                 return false;

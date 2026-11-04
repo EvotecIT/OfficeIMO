@@ -39,7 +39,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddRtfHandler()
     .Build();
 
-foreach (var chunk in reader.Read("policy.rtf")) {
+foreach (var chunk in reader.Enumerate("policy.rtf")) {
     Console.WriteLine($"{chunk.Id}: {chunk.Location.SourceBlockKind}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -63,7 +63,7 @@ RtfConversionResult<IReadOnlyList<ReaderChunk>> result =
     MaxInputBytes = 100L * 1024L * 1024L
 }, rtfOptions);
 
-IReadOnlyList<ReaderChunk> chunks = result.RequireNoLoss();
+IReadOnlyList<ReaderChunk> chunks = result.ThrowIfLoss();
 ```
 
 ### Read the semantic RTF envelope
@@ -108,7 +108,7 @@ RTF declaring `fromhtml` with `pict` or `objdata` is refused before semantic bin
 The loaded-result extension shares one native parse between Reader projection and payload inspection:
 
 ```csharp
-RtfReadResult native = RtfDocument.LoadResult("policy.rtf", new RtfReadOptions { DeferBinaryPayloads = true });
+RtfReadResult native = RtfDocument.LoadResult("policy.rtf", new RtfLoadOptions { DeferBinaryPayloads = true });
 OfficeDocumentReadResult projected = native.ReadDocument("policy.rtf", new ReaderOptions {
     Projection = ReaderProjection.TextAndMetadata
 });

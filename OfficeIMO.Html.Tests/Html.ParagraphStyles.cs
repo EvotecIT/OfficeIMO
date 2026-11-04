@@ -9,24 +9,24 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ParagraphStyles_ColorAndSize() {
             string html = "<p style=\"color:#ff0000;background-color:#ffff00;font-size:24px\">Styled</p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var paragraph = doc.Paragraphs[0];
 
-            Assert.Equal("FF0000", paragraph.ColorHex);
-            Assert.Equal(24, paragraph.FontSize);
-            Assert.Equal("FFFF00", paragraph.ShadingFillColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Color);
+            Assert.Equal(18, paragraph.FontSize?.ToPoints());
+            Assert.Equal(OfficeColor.Parse("FFFF00"), paragraph.ShadingFillColor);
         }
 
         [Fact]
         public void HtmlToWord_ParagraphStyles_NamedAndRgbColors() {
             string html = "<p style=\"color:red;background-color:rgb(0,255,255);font-size:20px\">Styled</p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             var paragraph = doc.Paragraphs[0];
 
-            Assert.Equal("FF0000", paragraph.ColorHex);
-            Assert.Equal(20, paragraph.FontSize);
-            Assert.Equal("00FFFF", paragraph.ShadingFillColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.Color);
+            Assert.Equal(15, paragraph.FontSize?.ToPoints());
+            Assert.Equal(OfficeColor.Parse("00FFFF"), paragraph.ShadingFillColor);
         }
     }
 }

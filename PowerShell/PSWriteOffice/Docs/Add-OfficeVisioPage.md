@@ -9,9 +9,9 @@ schema: 2.0.0
 Adds a page to a Visio document and optionally executes nested DSL content.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Add-OfficeVisioPage [-Name] <string> [[-Content] <scriptblock>] [-Document <VisioDocument>] [-Width <double>] [-Height <double>] [-Unit <VisioMeasurementUnit>] [-PassThru] [<CommonParameters>]
+Add-OfficeVisioPage [-Name] <string> [[-Content] <scriptblock>] [-Document <VisioDocument>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-DisplayUnit <VisioMeasurementUnit>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,9 +21,9 @@ Adds a page to a Visio document and optionally executes nested DSL content.
 
 ### EXAMPLE 1
 ```powershell
-PS> OfficeVisio -Path .\Workbook.vsdx {
-    VisioPage -Name 'Architecture' {
-        VisioRectangle -Key api -Text 'API' -X 2 -Y 4
+PS> New-OfficeVisio -Path .\Workbook.vsdx {
+    VisioPage -Name 'Architecture' -Width 11in -Height 8.5in {
+        VisioRectangle -Key api -Text 'API' -X 2in -Y 4in
     }
 }
 ```
@@ -37,7 +37,7 @@ Nested DSL content executed within this page scope.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,12 +48,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -DisplayUnit
+Measurement unit displayed by Visio, independent of geometry input units.
+
+```yaml
+Type: VisioMeasurementUnit
+Parameter Sets: Document
+Aliases: None
+Possible values: Inches, Centimeters, Millimeters
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Document
-Target Visio document. Optional inside OfficeVisio.
+Target Visio document. Optional inside New-OfficeVisio.
 
 ```yaml
 Type: VisioDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -68,8 +84,8 @@ Accept wildcard characters: False
 Page height.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -85,7 +101,7 @@ Page name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -101,25 +117,9 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Unit
-Measurement unit for width and height.
-
-```yaml
-Type: VisioMeasurementUnit
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values: Inches, Centimeters, Millimeters
 
 Required: False
 Position: named
@@ -132,8 +132,8 @@ Accept wildcard characters: False
 Page width.
 
 ```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: OfficeLength
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

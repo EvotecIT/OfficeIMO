@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.PowerPoint;
 using System;
 using System.Management.Automation;
 using OfficeIMO;
@@ -8,59 +10,50 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Word.Pdf;
-#if FRAMEWORK
-using DrawPdfOptions = System.Object;
-using VisioPdfOptions = System.Object;
-using XpsPdfOptions = System.Object;
-using DjVuPdfOptions = System.Object;
-#else
-using DrawPdfOptions = OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions;
-using VisioPdfOptions = OfficeIMO.Visio.Pdf.VisioToPdfOptions;
-using XpsPdfOptions = OfficeIMO.Xps.XpsToPdfOptions;
-using DjVuPdfOptions = OfficeIMO.DjVu.Pdf.DjVuToPdfOptions;
-#endif
-#if !FRAMEWORK
+using DrawPdfOptions = OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfExportOptions;
+using VisioPdfOptions = OfficeIMO.Visio.Pdf.VisioPdfExportOptions;
+using XpsPdfOptions = OfficeIMO.Xps.XpsPdfExportOptions;
+using DjVuPdfOptions = OfficeIMO.DjVu.Pdf.DjVuPdfExportOptions;
 using OfficeIMO.Workflows;
-#endif
 
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 /// <summary>Creates discoverable renderer and reconstruction settings for general conversion jobs.</summary>
-/// <para>Requires PowerShell 7.4 or newer. Format-specific options apply only to their matching routes.</para>
+/// <para>Format-specific options apply only to their matching routes.</para>
 /// <example>
 ///   <summary>Keep workbook charts in a strict conversion job.</summary>
-///   <code>$options = New-OfficeConversionOptions -RequireNoLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
+///   <code>$options = New-OfficeConversionOptions -FailOnLoss -ExcelOptions (New-OfficeExcelPdfOptions -UseWorksheetCharts)
 /// ConvertTo-OfficeDocument -InputPath ./report.xlsx -OutputPath ./report.pdf -ConversionOptions $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeConversionOptions")]
 public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
     /// <summary>Word-to-PDF settings from New-OfficeWordPdfOptions.</summary>
     [Parameter]
-    public WordToPdfOptions? WordOptions { get; set; }
+    public WordPdfExportOptions? WordOptions { get; set; }
 
     /// <summary>Excel-to-PDF settings from New-OfficeExcelPdfOptions.</summary>
     [Parameter]
-    public ExcelToPdfOptions? ExcelOptions { get; set; }
+    public ExcelPdfExportOptions? ExcelOptions { get; set; }
 
     /// <summary>PowerPoint-to-PDF settings from New-OfficePowerPointPdfOptions.</summary>
     [Parameter]
-    public PowerPointToPdfOptions? PowerPointOptions { get; set; }
+    public PowerPointPdfExportOptions? PowerPointOptions { get; set; }
 
     /// <summary>HTML-to-PDF settings from New-OfficeHtmlPdfOptions.</summary>
     [Parameter]
-    public HtmlToPdfOptions? HtmlOptions { get; set; }
+    public HtmlPdfExportOptions? HtmlOptions { get; set; }
 
     /// <summary>Markdown-to-PDF settings from New-OfficeMarkdownPdfOptions.</summary>
     [Parameter]
-    public MarkdownToPdfOptions? MarkdownOptions { get; set; }
+    public MarkdownPdfExportOptions? MarkdownOptions { get; set; }
 
     /// <summary>RTF-to-PDF settings from New-OfficeRtfPdfOptions.</summary>
     [Parameter]
-    public RtfToPdfOptions? RtfOptions { get; set; }
+    public RtfPdfExportOptions? RtfOptions { get; set; }
 
     /// <summary>Literal-text settings from New-OfficeTextPdfOptions.</summary>
     [Parameter]
-    public PdfPlainTextOptions? TextOptions { get; set; }
+    public PdfTextImportOptions? TextOptions { get; set; }
 
     /// <summary>ODG/FODG drawing projection and PDF options; accepts a property hashtable.</summary>
     [Parameter]
@@ -84,11 +77,11 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
 
     /// <summary>Native Publisher decoding and projection limits.</summary>
     [Parameter]
-    public OfficeIMO.Publisher.PublisherReadOptions? PublisherReadOptions { get; set; }
+    public OfficeIMO.Publisher.PublisherLoadOptions? PublisherLoadOptions { get; set; }
 
     /// <summary>Shared PDF settings for recovered Publisher pages.</summary>
     [Parameter]
-    public PdfOptions? PublisherPdfOptions { get; set; }
+    public PdfCreateOptions? PublisherPdfOptions { get; set; }
 
     /// <summary>Losslessly compress generated PDF output.</summary>
     [Parameter]
@@ -104,7 +97,7 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
 
     /// <summary>Reject any reduction reported by the selected route.</summary>
     [Parameter]
-    public SwitchParameter RequireNoLoss { get; set; }
+    public SwitchParameter FailOnLoss { get; set; }
 
     /// <summary>Explicitly accept known legacy DOC import reductions.</summary>
     [Parameter]
@@ -116,11 +109,11 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
 
     /// <summary>PDF-to-Word reconstruction or rendered-page strategy.</summary>
     [Parameter]
-    public PdfWordImportMode? PdfWordMode { get; set; }
+    public WordPdfImportMode? PdfWordMode { get; set; }
 
     /// <summary>PDF-to-PowerPoint reconstruction or rendered-page strategy.</summary>
     [Parameter]
-    public PdfPowerPointImportMode? PdfPowerPointMode { get; set; }
+    public PowerPointPdfImportMode? PdfPowerPointMode { get; set; }
 
     /// <summary>Resolution of rendered PDF pages, when applicable.</summary>
     [Parameter]
@@ -129,19 +122,21 @@ public sealed class NewOfficeConversionOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-#if FRAMEWORK
-        throw new PlatformNotSupportedException("General conversion options require PowerShell 7.4 or newer.");
-#else
-        WriteObject(new OfficeWorkflowConversionOptions {
-            Word = WordOptions, Excel = ExcelOptions, PowerPoint = PowerPointOptions,
-            Html = HtmlOptions, Markdown = MarkdownOptions, Rtf = RtfOptions, PlainText = TextOptions,
-            Draw = DrawOptions, Visio = VisioOptions, Xps = XpsOptions, Chm = ChmOptions, DjVu = DjVuOptions,
-            PublisherRead = PublisherReadOptions, PublisherPdf = PublisherPdfOptions,
-            CompressPdfOutput = CompressPdfOutput.IsPresent, WorksheetLayout = WorksheetLayout, HtmlProfile = PdfHtmlProfile,
-            RequireNoLoss = RequireNoLoss.IsPresent,
-            LegacyDocLossPolicy = AllowLegacyImportLoss.IsPresent ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
-            PageRanges = PageRange, WordMode = PdfWordMode, PowerPointMode = PdfPowerPointMode, RasterDpi = RasterDpi
-        });
-#endif
+        var options = new OfficeConversionOptions {
+            Word = WordOptions, Excel = ExcelOptions?.Clone(), PowerPoint = PowerPointOptions,
+            Html = HtmlOptions, Markdown = MarkdownOptions, PlainText = TextOptions,
+            RegisteredSettings = new OfficeWorkflowRouteSettings {
+                Rtf = RtfOptions, Draw = DrawOptions, Visio = VisioOptions, Xps = XpsOptions,
+                Chm = ChmOptions, DjVu = DjVuOptions, PublisherRead = PublisherLoadOptions, PublisherPdf = PublisherPdfOptions
+            },
+            CompressPdfOutput = CompressPdfOutput.IsPresent, FailOnLoss = FailOnLoss.IsPresent,
+            WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = !AllowLegacyImportLoss.IsPresent },
+            PdfLoad = PageRange == null ? null : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRange) },
+            PdfWord = PdfWordMode == null && RasterDpi == null ? null : new PdfWordExportOptions { Mode = PdfWordMode ?? WordPdfImportMode.EditableContent, Dpi = RasterDpi ?? 144D },
+            PdfPowerPoint = PdfPowerPointMode == null && RasterDpi == null ? null : new PdfPowerPointExportOptions { Mode = PdfPowerPointMode ?? PowerPointPdfImportMode.Auto, Dpi = RasterDpi ?? 144D },
+            PdfHtml = PdfHtmlProfile == null ? null : new PdfHtmlExportOptions { Profile = PdfHtmlProfile.Value }
+        };
+        if (WorksheetLayout is { } layout) { options.Excel ??= new ExcelPdfExportOptions(); options.Excel.WorksheetLayout = layout; }
+        WriteObject(options);
     }
 }

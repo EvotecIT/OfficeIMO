@@ -51,7 +51,7 @@ public sealed class LatexDocumentIOTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             document.SaveAsync(output, cancellationToken: cancellation.Token));
 
         Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());
@@ -62,7 +62,7 @@ public sealed class LatexDocumentIOTests {
         using var input = new MemoryStream(Encoding.UTF8.GetBytes("0123456789"));
         input.Position = 4;
 
-        var options = new LatexParseOptions { MaximumInputBytes = 5 };
+        var options = new LatexParseOptions { MaxInputBytes = 5 };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             LatexDocument.LoadResult(input, options));

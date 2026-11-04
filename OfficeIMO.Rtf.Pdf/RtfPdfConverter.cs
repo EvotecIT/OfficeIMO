@@ -3,17 +3,18 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    internal static PdfCore.PdfDocument Convert(RtfDocument document, RtfToPdfOptions? options) {
+    internal static PdfCore.PdfDocument Convert(RtfDocument document, RtfPdfExportOptions? options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
         RtfTableTraversalGuard.ValidateDocument(document);
-        RtfToPdfOptions normalized = options ?? new RtfToPdfOptions();
-        foreach (RtfConversionDiagnostic diagnostic in document.GetStyleConversionDiagnostics().Diagnostics) {
+        RtfPdfExportOptions normalized = options ?? new RtfPdfExportOptions();
+        normalized.PdfOptions = normalized.PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
+        foreach (RtfConversionDiagnostic diagnostic in document.GetStyleConversionDiagnostics().NativeDiagnostics) {
             AddConversionWarning(normalized, diagnostic.Code, diagnostic.SourcePath ?? "Styles", diagnostic.Message, diagnostic.Action);
         }
-        PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
+        PdfCore.PdfCreateOptions pdfOptions = normalized.PdfOptions ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
         // RTF leaves pair kerning disabled unless a run supplies a positive threshold.
         pdfOptions.TextKerning = false;
         if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
@@ -21,12 +22,17 @@ internal static partial class RtfPdfConverter {
         }
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");
-        IReadOnlyDictionary<int, PdfCore.PdfStandardFont> fontSlots = ConfigureDocumentFonts(
+        IReadOnlyDictionary<int, PdfFontBinding> fontSlots = ConfigureDocumentFonts(
             document,
             pdfOptions,
             normalized);
+        if (normalized.ResourcePolicy.AllowSystemFontEmbedding) {
+            pdfOptions.ApplyDefaultFontEmbedding(standardMetrics: true);
+        } else {
+            pdfOptions.EmbedDefaultFonts = false;
+        }
         ApplyPageSetup(document, document.PageSetup, pdfOptions);
-        PdfCore.PdfOptions documentDefaults = pdfOptions.Clone();
+        PdfCore.PdfCreateOptions documentDefaults = pdfOptions.Clone();
         RtfPageSetup firstPageSetup = document.PageSetup;
         if (document.Sections.Count > 0) {
             firstPageSetup = document.GetPageSetup(document.Sections[0]);
@@ -36,7 +42,7 @@ internal static partial class RtfPdfConverter {
         ApplyHeaderFooters(document, firstPageSetup, pdfOptions, normalized,
             document.Sections.Count == 0 ? document.HeaderFooters : document.GetEffectiveHeaderFooters(document.Sections[0]));
 
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
         PdfRenderState state = new PdfRenderState(document, fontSlots, pdf.Options);
         ApplyHeaderFooterContent(document, firstPageSetup, pdf, pdf.Options, normalized, state,
@@ -49,13 +55,13 @@ internal static partial class RtfPdfConverter {
         return pdf;
     }
 
-    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state, PdfCore.PdfOptions pdfOptions) {
+    private static void RenderDocumentBlocks(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state, PdfCore.PdfCreateOptions pdfOptions) {
         if (document.Sections.Count == 0) {
             RenderBlocks(document, document.Blocks, pdf, options, state);
             return;
         }
 
-        PdfCore.PdfOptions currentPageOptions = pdf.Options.Clone();
+        PdfCore.PdfCreateOptions currentPageOptions = pdf.Options.Clone();
         RtfSection currentPageSection = document.Sections[0];
         options.CancellationToken.ThrowIfCancellationRequested();
         bool canContinueRunningStories = SupportsContinuousRunningStoryDocument(document);
@@ -85,7 +91,7 @@ internal static partial class RtfPdfConverter {
                 ApplySectionHeaderFooters(document, section, page, pdf, options, state);
                 currentPageOptions = page.Options.Clone();
                 currentPageSection = section;
-                PdfCore.PdfOptions previousFontOptions = state.FontOptions;
+                PdfCore.PdfCreateOptions previousFontOptions = state.FontOptions;
                 state.FontOptions = page.Options;
                 try {
                     RenderSectionBlocks(document, section, pdf, options, state);
@@ -101,7 +107,7 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void RenderBlocks(RtfDocument document, IEnumerable<IRtfBlock> blocks, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+    private static void RenderBlocks(RtfDocument document, IEnumerable<IRtfBlock> blocks, PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state) {
         foreach (IRtfBlock block in blocks) {
             RenderBlock(document, block, pdf, options, state);
         }
@@ -116,7 +122,7 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void RenderBlock(RtfDocument document, IRtfBlock block, PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+    private static void RenderBlock(RtfDocument document, IRtfBlock block, PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state) {
         options.CancellationToken.ThrowIfCancellationRequested();
         switch (block) {
             case RtfParagraph paragraph:
@@ -147,11 +153,11 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void AddConversionWarning(RtfToPdfOptions options, string code, string source, string message, IReadOnlyDictionary<string, string>? details = null) {
+    private static void AddConversionWarning(RtfPdfExportOptions options, string code, string source, string message, IReadOnlyDictionary<string, string>? details = null) {
         AddConversionWarning(options, code, source, message, RtfConversionAction.Omitted, details);
     }
 
-    private static void AddConversionWarning(RtfToPdfOptions options, string code, string source, string message, RtfConversionAction action, IReadOnlyDictionary<string, string>? details = null) {
+    private static void AddConversionWarning(RtfPdfExportOptions options, string code, string source, string message, RtfConversionAction action, IReadOnlyDictionary<string, string>? details = null) {
         var warningDetails = new Dictionary<string, string>();
         if (details != null) {
             foreach (KeyValuePair<string, string> detail in details) {
@@ -169,7 +175,7 @@ internal static partial class RtfPdfConverter {
 
     private static void RenderPlainTextBlock(string text, PdfCore.PdfDocument pdf) {
         if (!string.IsNullOrEmpty(text)) {
-            pdf.Paragraph(paragraph => paragraph.Text(text));
+            pdf.Paragraph(paragraph => paragraph.AddText(text));
         }
     }
 }

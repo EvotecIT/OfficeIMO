@@ -1,6 +1,6 @@
 $path = '.\Searchable-Policy.pdf'
 
-PdfNew -Path $path {
+New-OfficePdf -Path $path {
     PdfHeading 'Remote access policy'
     PdfParagraph 'Privileged access is reviewed every 30 days.'
     PdfParagraph 'Service owners record approval evidence.'

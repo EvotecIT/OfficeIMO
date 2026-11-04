@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_hyperlink_target.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_hyperlink_target.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_moved_same_part.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.AddParagraph("Anchor text");
                 doc.Save();
             }
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_moved_same_part.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Anchor text");
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -258,14 +258,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_duplicate_effective_header.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Body");
-                doc.HeaderDefaultOrCreate.AddParagraph("Shared header");
+                doc.PageSetup.Header.AddParagraph("Shared header");
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_duplicate_effective_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Body");
-                doc.HeaderDefaultOrCreate.AddParagraph("Shared header");
+                doc.PageSetup.Header.AddParagraph("Shared header");
                 doc.Save();
             }
 
@@ -283,14 +283,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_duplicate_header_image.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Body");
-                doc.HeaderDefaultOrCreate.AddParagraph("Shared header");
+                doc.PageSetup.Header.AddParagraph("Shared header");
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_duplicate_header_image.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Body");
-                doc.HeaderDefaultOrCreate.AddParagraph("Shared header");
+                doc.PageSetup.Header.AddParagraph("Shared header");
                 doc.Save();
             }
 
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_disabled_first_header.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Body");
-                doc.HeaderFirstOrCreate.AddParagraph("Dormant first header");
+                doc.PageSetup.FirstPageHeader.AddParagraph("Dormant first header");
                 doc.Save();
             }
 
@@ -366,7 +366,7 @@ namespace OfficeIMO.Tests {
             AppendFootnoteImageWithDrawingId(path, imagePath, 900U);
 
             using (WordDocument doc = WordDocument.Load(path)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -389,7 +389,7 @@ namespace OfficeIMO.Tests {
             AppendCommentImageWithDrawingId(path, imagePath, 900U);
 
             using (WordDocument doc = WordDocument.Load(path)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 

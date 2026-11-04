@@ -41,7 +41,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             throw new NotSupportedException("Preserve layout is supported only for topology envelopes.");
 
         VisioDocument document = VisioDocument.Create();
-        document.Title = HasTitle(validated) ? CombineLabel(validated.Title, validated.Subtitle) : null;
+        document.Properties.Title = HasTitle(validated) ? CombineLabel(validated.Title, validated.Subtitle) : null;
         return ProjectPage(validated, document, options, enforceFidelity);
     }
 
@@ -319,8 +319,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
         ApplySequenceMessageData(page, messages, ids, options, report);
         ApplySequenceAnnotationData(page, envelope.Annotations, activationProjections, ids, options, report);
         if (options.UseNaturalPageSize) {
-            page.Width = Math.Max(page.Width, width);
-            page.Height = Math.Max(page.Height, height);
+            page.Width = OfficeLength.Inches(Math.Max(page.Width.ToInches(), width));
+            page.Height = OfficeLength.Inches(Math.Max(page.Height.ToInches(), height));
             page.CenterContent();
         } else {
             page.FitToContent(0.5D);
@@ -465,8 +465,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualConversionReport report) {
         foreach (VisualArtifactInterchangeNode participant in participants) {
             VisioShape shape = page.Shapes.Single(item => string.Equals(item.Id, ids.Participant(participant.Id), StringComparison.Ordinal));
-            OfficeIMO.Drawing.OfficeColor? lineColor = MapNativeColor(participant.Color, "Sequence participant", participant.Id, report);
-            OfficeIMO.Drawing.OfficeColor? fillColor = MapNativeColor(participant.BackgroundColor, "Sequence participant background", participant.Id, report);
+            OfficeIMO.OfficeColor? lineColor = MapNativeColor(participant.Color, "Sequence participant", participant.Id, report);
+            OfficeIMO.OfficeColor? fillColor = MapNativeColor(participant.BackgroundColor, "Sequence participant background", participant.Id, report);
             if (lineColor.HasValue) shape.LineColor = lineColor.Value;
             if (fillColor.HasValue) shape.FillColor = fillColor.Value;
             shape.Data["CFX.Id"] = participant.Id;
@@ -505,7 +505,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         foreach (VisualArtifactInterchangeEdge message in messages) {
             VisioConnector connector = page.Connectors.Single(item => string.Equals(item.Id, ids.Message(message.Id), StringComparison.Ordinal));
             connector.LinePattern = OfficeStrokeDashStyleMapper.ToVisioLinePattern(MapSequenceLineStyle(message.Sequence!.LineStyle));
-            OfficeIMO.Drawing.OfficeColor? lineColor = MapNativeColor(message.Color, "Sequence message", message.Id, report);
+            OfficeIMO.OfficeColor? lineColor = MapNativeColor(message.Color, "Sequence message", message.Id, report);
             if (lineColor.HasValue) connector.LineColor = lineColor.Value;
             connector.Data["CFX.Id"] = message.Id;
             var data = new Dictionary<string, string?>(StringComparer.Ordinal);

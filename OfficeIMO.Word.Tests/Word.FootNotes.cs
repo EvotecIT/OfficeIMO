@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using SemanticComparison;
 using Xunit;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -26,15 +26,15 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
-                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").AddText(" continuing").AddFootNote("2nd footnote!");
+                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").Paragraph.AddText(" continuing").AddFootNote("2nd footnote!");
 
                 Assert.True(document.FootNotes.Count == 2);
                 Assert.True(document.Sections[0].FootNotes.Count == 2);
                 Assert.True(document.Sections[0].EndNotes.Count == 0);
 
 
-                var lastFootNoteParagraph = document.AddParagraph("Another paragraph").AddFootNote("more footnotes!")
-                    .AddText(" more within paragraph").AddFootNote("4th footnote!");
+                var lastFootNoteParagraph = document.AddParagraph("Another paragraph").AddFootNote("more footnotes!").Paragraph
+                    .AddText(" more within paragraph").AddFootNote("4th footnote!").Paragraph;
 
                 Assert.True(document.FootNotes.Count == 4);
                 Assert.True(document.Sections[0].FootNotes.Count == 4);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].EndNotes.Count == 1);
                 Assert.True(document.Sections[1].EndNotes.Count == 1);
 
-                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").AddText(" continuing").AddFootNote("2nd footnote!");
+                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").Paragraph.AddText(" continuing").AddFootNote("2nd footnote!");
 
                 Assert.True(document.EndNotes.Count == 2);
                 Assert.True(document.FootNotes.Count == 6);
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].FootNotes.Count >= 3);
                 Assert.True(document.Sections[0].EndNotes.Count >= 2);
 
-                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").AddText(" continuing").AddFootNote("2nd footnote!");
+                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").Paragraph.AddText(" continuing").AddFootNote("2nd footnote!");
 
                 Assert.True(document.EndNotes.Count >= 2);
                 Assert.True(document.FootNotes.Count >= 5);
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].FootNotes.Count == 0);
                 Assert.True(document.Sections[0].EndNotes.Count == 0);
 
-                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").AddText(" continuing").AddFootNote("2nd footnote!");
+                document.AddParagraph("This is my text").AddFootNote("This is a footnote to my text").Paragraph.AddText(" continuing").AddFootNote("2nd footnote!");
 
                 Assert.True(document.EndNotes.Count == 0);
                 Assert.True(document.FootNotes.Count == 2);

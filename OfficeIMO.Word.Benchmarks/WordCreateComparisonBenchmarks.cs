@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Benchmarks;
 [MemoryDiagnoser]
 [BenchmarkCategory("Word", "Comparison", "Create")]
 public class WordCreateParagraphComparisonBenchmarks {
-    [Params(100, 1000)]
+    [Params(100, 1000, 10000)]
     public int ItemCount { get; set; }
 
     [GlobalSetup]
@@ -98,9 +98,9 @@ public class WordCreateReportComparisonBenchmarks {
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() {
         using WordDocument document = WordDocument.Create();
-        document.HeaderDefaultOrCreate.AddParagraph(WordBenchmarkCorpus.ReportHeader);
-        document.FooterDefaultOrCreate.AddParagraph(WordBenchmarkCorpus.ReportFooter);
-        document.AddParagraph(WordBenchmarkCorpus.ReportTitle).SetBold().SetFontSize(18);
+        document.PageSetup.Header.AddParagraph(WordBenchmarkCorpus.ReportHeader);
+        document.PageSetup.Footer.AddParagraph(WordBenchmarkCorpus.ReportFooter);
+        document.AddParagraph(WordBenchmarkCorpus.ReportTitle).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
         document.AddParagraph(WordBenchmarkCorpus.ReportSummary);
         WordTable table = document.AddTable(RowCount + 1, 2);
         table.SetCellText(0, 0, "Record", bold: true);

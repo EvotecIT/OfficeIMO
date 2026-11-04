@@ -403,7 +403,7 @@ public sealed partial class HtmlRenderingTests {
         foreach (string code in scenario.ForbiddenDiagnosticCodes) {
             Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == code);
         }
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
         HtmlRenderVisual[] visuals = rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene)).ToArray();
         foreach (string source in scenario.RequiredVisualSources) {
             Assert.Contains(visuals, visual => string.Equals(visual.Source, source, StringComparison.Ordinal));
@@ -426,9 +426,9 @@ public sealed partial class HtmlRenderingTests {
                 $"Expected SVG paint text to retain '{word}' either in one text node or across positioned grapheme nodes.");
         }
 
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions(options);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Html).ToPdfBytes(pdfOptions);
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions(options);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Html).ToPdf(pdfOptions)).ToBytes();
         PdfCore.PdfDocumentInfo pdfInfo = PdfCore.PdfInspector.Inspect(pdf);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 

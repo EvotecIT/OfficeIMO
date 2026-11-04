@@ -182,3 +182,10 @@ extension EngineDocument {
         return try JSONDecoder().decode(RedactionResult.self, from: Data(json.utf8))
     }
 }
+
+/// Redaction the engine refuses because a match can't be removed without touching the text around it.
+enum RedactionProblem {
+    static func needsWholeBlocks(_ error: any Error) -> Bool {
+        (error as? EngineError)?.message.contains("would remove an unselected glyph") == true
+    }
+}

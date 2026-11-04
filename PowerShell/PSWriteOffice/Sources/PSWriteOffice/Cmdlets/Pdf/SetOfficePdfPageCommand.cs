@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -86,7 +88,8 @@ public sealed class SetOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutati
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed page-modification restrictions.</summary>
     [Parameter]
@@ -122,7 +125,7 @@ public sealed class SetOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutati
         var readOptions = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent);
 
         if (resizeOptions != null) {
-            PdfDocument.Load(inputPath, readOptions).Pages.Resize(resizeOptions, pages).Save(outputPath).RequireSuccess();
+            PdfDocument.Load(inputPath, readOptions).Pages.Resize(resizeOptions, pages.Length == 0 ? null : PdfPageSelection.From(pages)).Save(outputPath);
             WritePassThru(new FileInfo(outputPath));
             return;
         }
@@ -141,8 +144,7 @@ public sealed class SetOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutati
                     right,
                     top,
                     pages)
-                .Save(outputPath)
-                .RequireSuccess();
+                .Save(outputPath);
             WritePassThru(new FileInfo(outputPath));
             return;
         }
@@ -151,7 +153,7 @@ public sealed class SetOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutati
         var result = string.IsNullOrWhiteSpace(PageRange)
             ? document.Pages.Rotate(Rotation)
             : document.Pages.Rotate(Rotation, PageRange!);
-        result.Save(outputPath).RequireSuccess();
+        result.Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 

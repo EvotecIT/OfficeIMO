@@ -32,6 +32,11 @@ export interface RowOutline {
   /** Marks a summary row whose preceding detail rows are initially hidden. */
   readonly collapsed?: boolean;
 }
+/** Non-overlapping zero-based column range with native Excel outline metadata. */
+export interface ColumnOutline extends RowOutline {
+  readonly firstColumn: number;
+  readonly columnCount: number;
+}
 /** A real Excel table over this worksheet's header and data rows. Empty exports retain headers without a table part. */
 export interface TableOptions {
   readonly name?: string;
@@ -102,6 +107,10 @@ export interface SheetOptions<T = never> {
   readonly rowOutline?: (context: RowStyleContext) => RowOutline | undefined;
   /** Declared outline upper bound, from zero through seven; emitted before streamed rows. */
   readonly maxOutlineLevel?: number;
+  /** Summary position for native row/column outlines; both default to true. */
+  readonly outlineSummaryBelow?: boolean;
+  readonly outlineSummaryRight?: boolean;
+  readonly columnOutlines?: readonly ColumnOutline[];
   readonly rowHeight?: number;
   readonly headerHeight?: number;
   /** Fallback width in characters. Native tables default to 20 when no column width is supplied. */

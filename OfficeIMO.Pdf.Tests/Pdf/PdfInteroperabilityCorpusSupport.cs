@@ -33,14 +33,14 @@ internal static class PdfInteroperabilityCorpusSupport {
     public const int CaseCount = 12;
 
     public static IReadOnlyList<PdfInteroperabilityCorpusCase> Build() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Corpus encrypted"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.AddText("Corpus encrypted"))
             .ToBytes();
 
         return new[] {
             new PdfInteroperabilityCorpusCase(
                 "classic-xref",
-                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Corpus classic xref")).ToBytes(),
+                PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Corpus classic xref")).ToBytes(),
                 PdfMutationExecutionMode.FullRewrite,
                 null,
                 "classic-xref", "born-digital"),

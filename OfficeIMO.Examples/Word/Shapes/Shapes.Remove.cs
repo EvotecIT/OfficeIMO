@@ -9,12 +9,12 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var p = document.AddParagraph("Shape will be removed");
-                var shape = p.AddShape(70, 40, "#CCCCCC");
+                var shape = p.AddShape(OfficeIMO.OfficeLength.Points(70), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeColor.Parse("#CCCCCC"));
                 Console.WriteLine($"Shape size: {shape.Width}x{shape.Height}");
 
                 shape.Remove();
 
-                p.AddShape(60, 30, "#FF9900");
+                p.AddShape(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeColor.Parse("#FF9900"));
                 document.Save();
                 if (openWord) document.OpenInApplication();
             }

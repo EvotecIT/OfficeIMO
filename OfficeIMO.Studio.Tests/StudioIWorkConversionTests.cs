@@ -44,14 +44,14 @@ public sealed partial class StudioIWorkConversionTests {
                 Assert.False(job.HasOutput);
                 job.AllowPartialEditableReconstruction = true;
                 await queue.RetryFailedCommand.ExecuteAsync(null);
-                Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics,
+                Assert.Contains(job.ConversionEvidence!.Diagnostics,
                     diagnostic => diagnostic.Code == (route == "keynote-pptx"
                         ? "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED" : "IWORK_NUMBERS_CELL_PADDING_OMITTED"));
             }
             Assert.Equal(ConversionJobState.Completed, job.State);
             Assert.True(job.HasOutput, job.Summary);
             if (route == "keynote-pptx") {
-                using var saved = OfficeIMO.PowerPoint.PowerPointPresentation.Load(job.OutputPath!);
+                using var saved = OfficeIMO.PowerPoint.PowerPointDocument.Load(job.OutputPath!);
                 var table = Assert.Single(saved.Slides.SelectMany(slide => slide.Tables));
                 Assert.Equal("Widget", table.GetCell(1, 0).Text);
                 for (int row = 0; row < 3; row++)
@@ -62,9 +62,9 @@ public sealed partial class StudioIWorkConversionTests {
             } else {
                 using var saved = OfficeIMO.Excel.ExcelDocument.Load(job.OutputPath!);
                 var sheet = Assert.Single(saved.Sheets);
-                Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal(2d, sheet.CellAt(2, 2).GetValue<double>());
-                Assert.Equal("Z", sheet.CellAt(3, 3).GetValue<string>());
+                Assert.Equal("a", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal(2d, sheet.Cell(2, 2).GetValue<double>());
+                Assert.Equal("Z", sheet.Cell(3, 3).GetValue<string>());
             }
             Assert.True(job.HasConversionEvidence);
             var facts = job.ConversionEvidence!.Facts;
@@ -137,7 +137,7 @@ public sealed partial class StudioIWorkConversionTests {
                 await queue.RetryFailedCommand.ExecuteAsync(null);
                 Assert.Equal(ConversionJobState.Completed, job.State);
                 Assert.Equal("VisualFallback", job.ConversionEvidence!.Facts["projectionKind"]);
-                Assert.Contains(job.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+                Assert.Contains(job.ConversionEvidence.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
                 Assert.True(view.FindControl<StackPanel>("ConversionEvidencePanel")!.IsEffectivelyVisible);
                 Assert.Equal(job.SourceFingerprint, view.FindControl<TextBox>("SourceFingerprintText")!.Text);
                 Assert.Contains("incomplete", job.ConversionEvidenceSummary, StringComparison.OrdinalIgnoreCase);

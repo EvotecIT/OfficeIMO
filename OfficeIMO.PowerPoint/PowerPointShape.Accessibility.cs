@@ -20,12 +20,6 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        /// <summary>Gets or sets the detailed accessibility description. This is the OOXML value also exposed by <see cref="AltText"/>.</summary>
-        public string? Description {
-            get => AltText;
-            set => AltText = string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
-        }
-
         /// <summary>Gets or sets whether assistive technology should treat this shape as decorative.</summary>
         public bool Decorative {
             get {
@@ -85,9 +79,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointShape SetLanguage(string language) {
             string normalized = PowerPointTextRun.NormalizeLanguage(language)
                 ?? throw new ArgumentException("Language cannot be empty.", nameof(language));
-            foreach (A.Run run in Element.Descendants<A.Run>()) {
-                (run.RunProperties ??= new A.RunProperties()).Language = normalized;
-            }
+            PowerPointTextContent.FormatRuns(Element, properties => properties.Language = normalized);
             foreach (A.Paragraph paragraph in Element.Descendants<A.Paragraph>()) {
                 A.EndParagraphRunProperties? properties = paragraph.GetFirstChild<A.EndParagraphRunProperties>();
                 if (properties == null) {

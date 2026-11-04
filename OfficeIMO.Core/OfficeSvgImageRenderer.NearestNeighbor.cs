@@ -11,7 +11,7 @@ internal sealed class OfficeSvgImageVectorizationLimitException : InvalidOperati
 }
 
 
-public static partial class OfficeSvgImageRenderer {
+internal static partial class OfficeSvgImageRenderer {
     // Keep the nearest-neighbor decoder's admission, static-frame selection,
     // caller-codec provenance and placeholder contracts. Only the final SVG
     // representation changes from pixel rectangles to one embedded image.

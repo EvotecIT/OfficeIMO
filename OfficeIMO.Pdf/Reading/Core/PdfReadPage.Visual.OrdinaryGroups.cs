@@ -95,7 +95,7 @@ public sealed partial class PdfReadPage {
         ConfigureDrawingFonts(drawing, registeredFonts, budget);
         AddPaintedGlyphMappings(drawing, registeredFonts, elements, budget.PaintedGlyphMaps, budget, budget.CancellationToken);
         var masks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
-        var activeMasks = new HashSet<PdfStream>();
+        var activeMasks = budget.ActiveSoftMasks;
         var outputBudget = textOutputBudget ?? CreateTextOutputBudget();
         ReplayDrawingElements(drawing, elements, actualTextScopes, (destination, element) =>
             AddDrawingElement(destination, height, transform, element, masks, activeMasks,

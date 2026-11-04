@@ -82,8 +82,8 @@ internal static class ExcelRealWorldProfileRunner {
         }
 
         stageWatch.Restart();
-        var sheet = document.AddWorksheet("Data");
-        AddStage(totals, "AddWorksheet", stageWatch.Elapsed.TotalMilliseconds);
+        var sheet = document.AddSheet("Data");
+        AddStage(totals, "AddSheet", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();
         ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
@@ -134,32 +134,31 @@ internal static class ExcelRealWorldProfileRunner {
     }
 
     private static void ApplyNavigation(ExcelSheet sheet, int rowCount) {
-        sheet.Freeze(topRows: 1, leftCols: 1);
-        sheet.AddAutoFilter(BuildSalesRange(rowCount));
+        sheet.View.Freeze(topRows: 1, leftColumns: 1);
+        sheet.Range(BuildSalesRange(rowCount)).AutoFilter();
     }
 
     private static void ApplyConditionalFormatting(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.AddConditionalRule($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.GreaterThan, "3000");
-        sheet.AddConditionalRule($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.LessThan, "5");
-        sheet.AddConditionalColorScale($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.LightPink, OfficeColor.LightGreen);
-        sheet.AddConditionalDataBar($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.SteelBlue);
+        sheet.Range($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "3000");
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "5");
+        sheet.Range($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().ColorScale(OfficeColor.LightPink, OfficeColor.LightGreen);
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().DataBar(OfficeColor.SteelBlue);
     }
 
     private static void ApplyDataValidation(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.ValidationWholeNumber($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelDataValidationOperator.Between, 1, 24);
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 24);
     }
 
     private static void AddPivotTable(ExcelSheet sheet, int rowCount) {
-        sheet.AddPivotTable(
-            sourceRange: BuildSalesRange(rowCount),
-            destinationCell: "J3",
-            name: "SalesPivot",
-            rowFields: new[] { "Region" },
-            columnFields: new[] { "Owner" },
-            dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
-            pivotStyleName: "PivotStyleMedium9");
+        sheet.AddPivotTable(BuildSalesRange(rowCount), "J3", options: new ExcelPivotTableOptions {
+            Name = "SalesPivot",
+            RowFields = new[] { "Region" },
+            ColumnFields = new[] { "Owner" },
+            DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Total Amount") },
+            PivotStyleName = "PivotStyleMedium9"
+        });
     }
 
     private static void AddRegionalChart(ExcelSheet sheet, IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
@@ -180,7 +179,7 @@ internal static class ExcelRealWorldProfileRunner {
                 new ExcelChartSeries("Units", summaries.Select(static item => (double)item.Units))
             });
 
-        sheet.AddChart(chartData, row: 18, column: 10, widthPixels: 720, heightPixels: 360, type: ExcelChartType.ColumnClustered, title: "Regional Sales");
+        sheet.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.Excel.ExcelChartOptions { Row = 18, Column = 10, Width = OfficeLength.Pixels(720), Height = OfficeLength.Pixels(360), Title = "Regional Sales" });
     }
 
     private static string BuildSalesRange(int rowCount)

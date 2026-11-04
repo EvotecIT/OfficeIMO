@@ -22,8 +22,7 @@ public sealed class IWorkPagesParagraphWritingTests {
         Assert.True(projection.Body.Paragraphs[5].Runs[0].Style.Bold);
         Assert.False(projection.Body.Paragraphs[5].Runs[1].Style.Bold);
         Assert.Equal(12, projection.Body.Paragraphs[5].Runs[1].Style.FontSizePoints);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -67,8 +66,7 @@ public sealed class IWorkPagesParagraphWritingTests {
         Assert.Empty(paragraphs[1].Style.TabStops!);
         Assert.Equal(2, paragraphs[2].Style.LineSpacingMultiplier); Assert.Equal(12, paragraphs[2].Style.SpaceBeforePoints);
         Assert.Equal(18, paragraphs[2].Style.SpaceAfterPoints); Assert.Equal("", paragraphs[2].Text);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -105,7 +103,7 @@ public sealed class IWorkPagesParagraphWritingTests {
         var document = IWorkPagesDocument.Create();
         var layout = new IWorkPagesParagraphLayout(tabStops: Stops());
         document.AddParagraph("First\tvalue", layout); document.AddParagraph("Second\tvalue", layout);
-        var limits = new IWorkPagesWriteOptions { MaximumTabStops = 7 };
+        var limits = new IWorkPagesWriteOptions { MaxTabStops = 7 };
         using var output = new MemoryStream(new byte[] { 9, 8, 7 });
         Assert.Throws<InvalidDataException>(() => document.Save(output, limits)); Assert.Equal(new byte[] { 9, 8, 7 }, output.ToArray());
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-IWork-Paragraph-" + Guid.NewGuid().ToString("N"));
@@ -114,14 +112,14 @@ public sealed class IWorkPagesParagraphWritingTests {
             string path = Path.Combine(folder, "existing.pages"); File.WriteAllBytes(path, new byte[] { 9, 8, 7 });
             Assert.Throws<InvalidDataException>(() => document.Save(path, overwrite: true, options: limits));
             Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(path)); Assert.Single(Directory.GetFiles(folder));
-            limits.MaximumTabStops = 8;
+            limits.MaxTabStops = 8;
             var projection = IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes(limits))).ReadPages();
             Assert.All(projection.Body.Paragraphs.Take(2), paragraph => Assert.Equal(4, paragraph.Style.TabStops!.Count));
             using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
             Assert.Throws<OperationCanceledException>(() => document.Save(path, overwrite: true, options: limits, cancellationToken: cancelled.Token));
             Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(path));
         } finally { Directory.Delete(folder, recursive: true); }
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTabStops = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTabStops = 0 }));
     }
 
     [Fact]

@@ -87,7 +87,7 @@ internal static class XlsWritePairedRunner {
     }
 
     internal static void Validate(byte[] workbookBytes, IReadOnlyList<SalesRecord> records, string source) {
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbookBytes);
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbookBytes);
         string[] expectedHeaders = ["Id", "Region", "Owner", "Amount", "Active"];
         if (reader.FieldCount != expectedHeaders.Length) {
             throw new InvalidDataException($"{source} exposed {reader.FieldCount} fields instead of {expectedHeaders.Length}.");
@@ -194,9 +194,9 @@ internal static class XlsWriteBenchmarkScenario {
         using ExcelDocument document = ExcelDocument.Create();
         document.Execution.OnTiming = onTiming;
         document.Execution.OnInfo = onInfo;
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         WriteOfficeImoRows(sheet, records);
-        return document.ToBytes(ExcelFileFormat.Xls);
+        return document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
     }
 
     internal static byte[] WriteNpoi(IReadOnlyList<SalesRecord> records) {
@@ -209,20 +209,20 @@ internal static class XlsWriteBenchmarkScenario {
     }
 
     private static void WriteOfficeImoRows(ExcelSheet sheet, IReadOnlyList<SalesRecord> records) {
-        sheet.CellValue(1, 1, "Id");
-        sheet.CellValue(1, 2, "Region");
-        sheet.CellValue(1, 3, "Owner");
-        sheet.CellValue(1, 4, "Amount");
-        sheet.CellValue(1, 5, "Active");
+        sheet.Cell(1, 1).SetValue("Id");
+        sheet.Cell(1, 2).SetValue("Region");
+        sheet.Cell(1, 3).SetValue("Owner");
+        sheet.Cell(1, 4).SetValue("Amount");
+        sheet.Cell(1, 5).SetValue("Active");
 
         for (int index = 0; index < records.Count; index++) {
             int row = index + 2;
             SalesRecord record = records[index];
-            sheet.CellValue(row, 1, record.Id);
-            sheet.CellValue(row, 2, record.Region);
-            sheet.CellValue(row, 3, record.Owner);
-            sheet.CellValue(row, 4, record.Amount);
-            sheet.CellValue(row, 5, record.Active);
+            sheet.Cell(row, 1).SetValue(record.Id);
+            sheet.Cell(row, 2).SetValue(record.Region);
+            sheet.Cell(row, 3).SetValue(record.Owner);
+            sheet.Cell(row, 4).SetValue(record.Amount);
+            sheet.Cell(row, 5).SetValue(record.Active);
         }
     }
 

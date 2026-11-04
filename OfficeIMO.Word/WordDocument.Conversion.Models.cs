@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Represents the destination artifact and report produced by a Word file conversion.</summary>
-    public sealed class WordDocumentConversionResult : IOfficeConversionResult<string, WordDocumentConversionReport> {
+    internal sealed class WordDocumentConversionResult : IOfficeResult<string> {
         internal WordDocumentConversionResult(
             string sourcePath,
             string destinationPath,
@@ -46,6 +46,9 @@ namespace OfficeIMO.Word {
         /// <summary>Gets whether the conversion reported known content loss.</summary>
         public bool HasLoss => Report.HasLoss;
 
+        /// <summary>Throws when the conversion report describes possible fidelity loss.</summary>
+        public void ThrowIfLoss() => Report.ThrowIfLoss();
+
         /// <summary>Gets whether the destination artifact was committed.</summary>
         public bool Succeeded => Value != null;
 
@@ -53,15 +56,10 @@ namespace OfficeIMO.Word {
         public string RequireValue() => Value
             ?? throw new InvalidOperationException("The Word conversion did not produce a destination artifact.");
 
-        /// <summary>Returns the committed destination path only when no content loss was reported.</summary>
-        public string RequireNoLoss() {
-            Report.RequireNoLoss();
-            return RequireValue();
-        }
     }
 
     /// <summary>Describes formats, paths, diagnostics, and commit behavior for one Word conversion.</summary>
-    public sealed class WordDocumentConversionReport : IOfficeConversionReport {
+    internal sealed class WordDocumentConversionReport : OfficeConversionReport {
         internal WordDocumentConversionReport(
             string sourcePath,
             string destinationPath,
@@ -78,15 +76,15 @@ namespace OfficeIMO.Word {
             DestinationFormat = destinationFormat;
             SourceFormatDescriptor = sourceDescriptor;
             DestinationFormatDescriptor = destinationDescriptor;
-            Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
-            FidelityDiagnostics = Array.AsReadOnly(Diagnostics
+            NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+            FidelityDiagnostics = Array.AsReadOnly(NativeDiagnostics
                 .Select(static diagnostic => OfficeConversionFidelityDiagnostics.From(diagnostic, "OfficeIMO.Word"))
                 .ToArray());
             Compatibility = new OfficeCompatibilityReport(
                 sourceDescriptor,
                 destinationDescriptor,
                 compatibilityMode,
-                Diagnostics.Select(CreateCompatibilityFinding));
+                NativeDiagnostics.Select(CreateCompatibilityFinding));
             ReplacedExistingFile = replacedExistingFile;
         }
 
@@ -109,24 +107,21 @@ namespace OfficeIMO.Word {
         public OfficeFormatDescriptor DestinationFormatDescriptor { get; }
 
         /// <summary>Gets a snapshot of conversion diagnostics.</summary>
-        public IReadOnlyList<OfficeConversionDiagnostic> Diagnostics { get; }
+        public IReadOnlyList<OfficeConversionDiagnostic> NativeDiagnostics { get; }
 
         /// <summary>Gets the shared category-preserving fidelity diagnostics.</summary>
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
         /// <summary>Gets the shared feature-level fidelity assessment for this conversion.</summary>
         public OfficeCompatibilityReport Compatibility { get; }
 
         /// <summary>Gets whether the conversion reported approximation, omission, or failure.</summary>
-        public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+        public override bool HasLoss => NativeDiagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <summary>Gets whether a pre-existing destination file was replaced.</summary>
         public bool ReplacedExistingFile { get; }
 
-        /// <summary>Throws when the conversion reported known content loss.</summary>
-        public void RequireNoLoss() {
-            Compatibility.RequireNoLoss();
-        }
 
         private static OfficeCompatibilityFinding CreateCompatibilityFinding(OfficeConversionDiagnostic diagnostic) {
             OfficeCompatibilityState state = diagnostic.CompatibilityState;
@@ -149,7 +144,7 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Raised when a validated Word conversion cannot be completed safely.</summary>
-    public sealed class WordDocumentConversionException : InvalidOperationException {
+    internal sealed class WordDocumentConversionException : InvalidOperationException {
         internal WordDocumentConversionException(
             OfficeConversionFailureReason reason,
             WordDocumentConversionResult result,
@@ -168,7 +163,10 @@ namespace OfficeIMO.Word {
     }
 
     /// <summary>Controls file-to-file Word document conversion.</summary>
-    public sealed class WordDocumentConversionOptions {
+    internal sealed class WordDocumentConversionOptions {
+        internal WordLoadOptions? LoadOptions { get; set; }
+        internal Func<WordDocument, IReadOnlyList<OfficeImageExportResult>>? VisualFallbackRenderer { get; set; }
+
         /// <summary>Gets or sets how an existing destination is handled. The default is to fail.</summary>
         public OfficeConversionFileConflictPolicy FileConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
 

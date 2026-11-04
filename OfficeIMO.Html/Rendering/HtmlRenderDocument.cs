@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Backend-neutral result shared by HTML image and PDF export.
 /// </summary>
-public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionReport {
+public sealed class HtmlRenderDocument : OfficeConversionReport {
     private readonly ReadOnlyCollection<HtmlRenderPage> _pages;
     private readonly OfficeFontFaceCollection _fonts;
     private readonly ReadOnlyCollection<HtmlRenderHeading> _headings;
@@ -21,7 +21,7 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
         }
 
         _diagnosticReport = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).Clone();
-        // Renderer warnings have always been loss-bearing under RequireNoLoss.
+        // Renderer warnings have always been loss-bearing under ThrowIfLoss.
         // Materialize that contract in the shared report before image/PDF adapters
         // consume it, rather than letting each adapter reinterpret severity.
         for (int index = 0; index < _diagnosticReport.Count; index++) {
@@ -48,26 +48,23 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     /// <summary>Rendered pages, or one page for continuous output.</summary>
     public IReadOnlyList<HtmlRenderPage> Pages => _pages;
 
-    /// <summary>Diagnostics emitted while parsing, laying out, and preparing paint operations.</summary>
-    public IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnosticReport.Diagnostics;
+    /// <summary>NativeDiagnostics emitted while parsing, laying out, and preparing paint operations.</summary>
+    public IReadOnlyList<HtmlDiagnostic> NativeDiagnostics => _diagnosticReport.Diagnostics;
 
     /// <summary>Category-preserving HTML resource, layout, font, SVG, and bridge diagnostics.</summary>
-    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics =>
         Array.AsReadOnly(_diagnosticReport.Select(HtmlFidelityProjection.From).ToArray());
 
     /// <summary>
     /// Whether rendering reported an approximation, omission, or failure. Renderer warnings are
     /// deliberately treated as loss unless they are informational diagnostics.
     /// </summary>
-    public bool HasLoss => _diagnosticReport.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => _diagnosticReport.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws with the complete structured report when the render was not lossless.</summary>
-    public HtmlRenderDocument RequireNoLoss() {
-        if (HasLoss) throw new HtmlConversionException(Diagnostics);
-        return this;
-    }
+    protected override OfficeConversionException CreateLossException() => new HtmlConversionException(NativeDiagnostics);
 
-    void global::OfficeIMO.IOfficeConversionReport.RequireNoLoss() => RequireNoLoss();
 
     internal HtmlDiagnosticReport DiagnosticReport => _diagnosticReport;
 
@@ -263,11 +260,15 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
         var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order, int? LogicalOrder, bool IsAnchor)>();
         foreach (HtmlRenderPage page in pages) {
-            foreach (var (anchor, point) in EnumerateBookmarkAnchors(page.Scene, OfficeTransform.Identity)) {
+            var anchors = new List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)>();
+            CollectBookmarkAnchors(page.Scene, OfficeTransform.Identity, anchors);
+            foreach (var (anchor, point) in anchors) {
                 if (bookmarks == null || !bookmarks.TryGetValue(anchor.SemanticNodeId, out HtmlRenderBookmarkDefinition? definition) || definition.Suppressed) continue;
                 fragments.Add((anchor.SemanticNodeId, definition.Level, anchor.Text, page.PageNumber, point.X, point.Y, anchor.PaintOrder, null, true));
             }
-            foreach (HtmlRenderTextFragment text in EnumerateTextFragments(page.Scene, OfficeTransform.Identity)) {
+            var texts = new List<HtmlRenderTextFragment>();
+            CollectTextFragments(page.Scene, OfficeTransform.Identity, texts);
+            foreach (HtmlRenderTextFragment text in texts) {
                 if (!text.SemanticNodeId.HasValue) continue;
                 bool automatic = HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level);
                 if (bookmarks != null && bookmarks.TryGetValue(text.SemanticNodeId.Value, out HtmlRenderBookmarkDefinition? definition)) {
@@ -308,24 +309,26 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
         return headings;
     }
 
-    private static IEnumerable<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)> EnumerateBookmarkAnchors(
-        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform) {
+    // Collected into one list rather than nested iterators: every page visual is visited.
+    private static void CollectBookmarkAnchors(
+        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform,
+        List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)> anchors) {
         foreach (HtmlRenderVisual visual in visuals) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
             if (visual is HtmlRenderBookmarkAnchor anchor) {
-                yield return (anchor, transform.TransformPoint(new OfficePoint(anchor.X, anchor.Y)));
+                anchors.Add((anchor, transform.TransformPoint(new OfficePoint(anchor.X, anchor.Y))));
             }
             IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
             OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
                 ? effect.Transform.Then(transform) : transform;
-            foreach (var child in EnumerateBookmarkAnchors(children, childTransform)) yield return child;
+            CollectBookmarkAnchors(children, childTransform, anchors);
         }
     }
 
-    private static IEnumerable<HtmlRenderTextFragment> EnumerateTextFragments(
-        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform) {
-        foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+    private static void CollectTextFragments(
+        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform, List<HtmlRenderTextFragment> fragments) {
+        foreach (HtmlRenderVisual visual in InPaintOrder(visuals)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
             }
@@ -333,20 +336,20 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
                 HtmlRenderText? representative = EnumerateVisuals(logicalTextGroup.Visuals).OfType<HtmlRenderText>().FirstOrDefault();
                 if (representative != null) {
                     OfficePoint point = transform.TransformPoint(new OfficePoint(logicalTextGroup.X, logicalTextGroup.Y));
-                    yield return new HtmlRenderTextFragment(
+                    fragments.Add(new HtmlRenderTextFragment(
                         logicalTextGroup.Text,
                         representative.SemanticRole,
                         representative.SemanticNodeId,
                         point.X,
                         point.Y,
                         logicalTextGroup.PaintOrder,
-                        representative.SemanticFragmentOrder);
+                        representative.SemanticFragmentOrder));
                 }
                 continue;
             }
             if (visual is HtmlRenderText text) {
                 OfficePoint point = transform.TransformPoint(new OfficePoint(text.X, text.Y));
-                yield return new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, point.X, point.Y, text.PaintOrder, text.SemanticFragmentOrder);
+                fragments.Add(new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, point.X, point.Y, text.PaintOrder, text.SemanticFragmentOrder));
                 continue;
             }
 
@@ -354,8 +357,18 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
             if (children == null) continue;
             OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
                 ? effect.Transform.Then(transform) : transform;
-            foreach (HtmlRenderTextFragment fragment in EnumerateTextFragments(children, childTransform)) yield return fragment;
+            CollectTextFragments(children, childTransform, fragments);
         }
+    }
+
+    // Child lists are normally already in paint order; OrderBy is stable, so skip it then.
+    private static IEnumerable<HtmlRenderVisual> InPaintOrder(IEnumerable<HtmlRenderVisual> visuals) {
+        if (visuals is IReadOnlyList<HtmlRenderVisual> list) {
+            bool ordered = true;
+            for (int index = 1; index < list.Count && ordered; index++) ordered = list[index - 1].PaintOrder <= list[index].PaintOrder;
+            if (ordered) return list;
+        }
+        return visuals.OrderBy(item => item.PaintOrder);
     }
 
     private readonly struct HtmlRenderTextFragment {

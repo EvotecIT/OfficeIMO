@@ -86,8 +86,8 @@ public sealed record BookOnixSalesRestriction(BookOnixSalesRestrictionKind Kind)
     public IReadOnlyList<BookOnixSalesOutlet> Outlets { get; init; } = [];
     /// <summary>Up to 16 distinct-language translations, at most 300 decoded UTF-16 code units each (4096 source units for XHTML). Required for Unspecified.</summary>
     public IReadOnlyList<BookOnixSalesRestrictionNote> Notes { get; init; } = [];
-    /// <summary>Optional first effective date.</summary>
-    public DateOnly? ValidFrom { get; init; }
-    /// <summary>Optional last effective date; cannot precede ValidFrom.</summary>
-    public DateOnly? ValidUntil { get; init; }
+    /// <summary>Optional first effective date. Time of day is ignored during export.</summary>
+    public DateTime? ValidFrom { get; init; }
+    /// <summary>Optional last effective date; cannot precede ValidFrom. Time of day is ignored during export.</summary>
+    public DateTime? ValidUntil { get; init; }
 }

@@ -190,6 +190,10 @@ namespace OfficeIMO.Word {
 
             if (appendToBody) {
                 this._document.AppendBlockToBody(_sdtBlock);
+                // A TOC added by this library owns its title and entry styles and
+                // its visible entries; both must exist for viewers that never update fields.
+                WordTableOfContentStyles.EnsureDefined(this._document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart);
+                this._document._generatedTableOfContent = this;
             }
 
             if (minLevel.HasValue && maxLevel.HasValue) {
@@ -219,8 +223,13 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            this._document.Settings.UpdateFieldsOnOpen = true;
-            this._document.NotifyTableOfContentUpdateQueued();
+            // Write only when turning the setting on: the setter marks the value as the caller's.
+            bool enabled = !this._document.Settings.UpdateFieldsOnOpen;
+            if (enabled) {
+                this._document.Settings.UpdateFieldsOnOpen = true;
+            }
+
+            this._document.NotifyTableOfContentUpdateQueued(enabled);
         }
 
         /// <summary>

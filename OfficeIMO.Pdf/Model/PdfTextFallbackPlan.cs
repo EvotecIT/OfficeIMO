@@ -158,7 +158,7 @@ public sealed class PdfTextFallbackPlan {
 
     private static PdfTextRun CreateStyledRun(string text, PdfStandardFont font, PdfTextRun? styleTemplate) {
         if (styleTemplate == null) {
-            return PdfTextRun.Normal(text, font: font);
+            return PdfTextRun.Normal(text, standardFont: font);
         }
 
         bool keepLink = !string.IsNullOrWhiteSpace(text) &&
@@ -187,6 +187,7 @@ public sealed class PdfTextFallbackPlan {
     }
 
     private static PdfTextRun CreateStyledNamedRun(string text, string fontFamily, PdfTextRun? styleTemplate) {
+        fontFamily = OfficeIMO.Drawing.OfficeFontFamilyParser.SerializeLiteral(fontFamily);
         if (styleTemplate == null) {
             return PdfTextRun.Normal(text, fontFamily: fontFamily);
         }
@@ -202,7 +203,7 @@ public sealed class PdfTextFallbackPlan {
             styleTemplate.Italic,
             styleTemplate.Strike,
             styleTemplate.FontSize,
-            styleTemplate.Font,
+            styleTemplate.StandardFont,
             keepLink ? styleTemplate.LinkUri : null,
             keepLink ? styleTemplate.LinkContents : null,
             styleTemplate.Baseline,
@@ -230,7 +231,7 @@ public sealed class PdfTextFallbackPlan {
             styleTemplate.Italic,
             styleTemplate.Strike,
             styleTemplate.FontSize,
-            styleTemplate.Font,
+            styleTemplate.StandardFont,
             baseline: styleTemplate.Baseline,
             backgroundColor: styleTemplate.BackgroundColor,
             underlineStyle: styleTemplate.UnderlineStyle,

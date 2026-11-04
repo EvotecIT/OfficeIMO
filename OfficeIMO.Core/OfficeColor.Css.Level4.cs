@@ -1,8 +1,8 @@
+using OfficeIMO.Drawing;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 
-namespace OfficeIMO.Drawing;
+namespace OfficeIMO;
 
 public readonly partial struct OfficeColor {
     private static bool TryParseHwb(string arguments, out OfficeColor color) {

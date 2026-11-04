@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates bounded EML, MSG, and TNEF reader settings through ordinary PowerShell parameters.
 
 ## SYNTAX
-### __AllParameterSets
+### Options (Default)
 ```powershell
 New-OfficeEmailReaderOptions [-MaxInputBytes <long>] [-MaxHeaderBytes <int>] [-MaxHeaderCount <int>] [-MaxPartCount <int>] [-MaxMimeDepth <int>] [-MaxAttachmentBytes <long>] [-MaxTotalAttachmentBytes <long>] [-MaxNestedMessageDepth <int>] [-ExcludeAttachmentContent] [-PreserveRawSource] [-MaxCompoundDirectoryEntries <int>] [-MaxMapiPropertyCount <int>] [-MaxDecodedPropertyBytes <long>] [-MaxTnefAttributeCount <int>] [-MaxAttachmentCount <int>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Do not retain decoded attachment payloads in memory.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Maximum decoded bytes for one attachment.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Maximum aggregate attachment count.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Maximum CFB directory entries accepted while reading MSG.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Maximum aggregate bytes represented by decoded MSG property streams.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Maximum bytes allowed in one MIME header section.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Maximum number of header fields in one entity.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Maximum artifact size accepted by the reader.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Maximum aggregate MAPI properties across a message and embedded messages.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -177,7 +177,7 @@ Maximum nested MIME depth.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Maximum embedded-message recursion depth.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -209,7 +209,7 @@ Maximum MIME entity count.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -225,7 +225,7 @@ Maximum number of TNEF attributes.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -241,7 +241,7 @@ Maximum aggregate decoded attachment bytes.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -257,7 +257,7 @@ Retain original artifact bytes for an explicit lossless write.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 

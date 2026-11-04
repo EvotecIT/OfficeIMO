@@ -21,10 +21,10 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Native page setup marker");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(240, 320),
-                Margins = new PdfCore.PageMargins(80, 36, 36, 36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(320)),
+                Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(80),OfficeIMO.OfficeLength.Points(36),OfficeIMO.OfficeLength.Points(36),OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -46,10 +46,10 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Native explicit geometry marker");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(420, 240),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(240)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -70,19 +70,19 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection firstSection = document.Sections[0];
-            firstSection.PageSettings.PageSize = WordPageSize.Letter;
-            firstSection.PageOrientation = OfficePageOrientation.Portrait;
-            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.PageSetup.Size.PageSize = WordPageSize.Letter;
+            firstSection.PageSetup.Orientation = OfficePageOrientation.Portrait;
+            firstSection.PageSetup.Margins.Type = WordMargin.Narrow;
             document.AddParagraph("NarrowMarginMarker starts from the Word section margin.");
 
             WordSection secondSection = document.AddSection();
-            secondSection.PageSettings.PageSize = WordPageSize.Letter;
-            secondSection.PageOrientation = OfficePageOrientation.Landscape;
-            secondSection.SetMargins(WordMargin.Wide);
+            secondSection.PageSetup.Size.PageSize = WordPageSize.Letter;
+            secondSection.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            secondSection.PageSetup.Margins.Type = WordMargin.Wide;
             secondSection.AddParagraph("WideMarginMarker starts from the wider Word section margin.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }

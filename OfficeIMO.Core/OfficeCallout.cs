@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Positioned callout geometry and plain-text content used by dependency-free renderers.
 /// </summary>
-public sealed class OfficeCallout {
+internal sealed class OfficeCallout {
     /// <summary>
     /// Creates a callout with absolute coordinates in the caller's visual coordinate space.
     /// </summary>

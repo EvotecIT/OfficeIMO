@@ -29,7 +29,7 @@ public partial class Word {
         if (alignmentFirst) derived.Append(columnCondition, rowCondition);
         else derived.Append(rowCondition, columnCondition);
         styles.Append(derived);
-        WordTable table = source.AddTable(1, 1);
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = new TableStyle { Val = "DerivedRowSpacing" };
         table.ConditionalFormattingFirstRow = true;
         table.ConditionalFormattingFirstColumn = true;
@@ -37,16 +37,16 @@ public partial class Word {
         string originalStyles = styles.OuterXml;
         string originalBody = source._wordprocessingDocument.MainDocumentPart.Document.OuterXml;
 
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
 
         Assert.Equal(originalStyles, styles.OuterXml);
         Assert.Equal(originalBody, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
         WordParagraph paragraph = reopened.Tables.Single().Rows[0].Cells[0].Paragraphs[0];
         Assert.Equal("Inherited", paragraph.Text);
-        Assert.Equal(420, paragraph.LineSpacing);
-        Assert.Equal(WordLineSpacingRule.Auto, paragraph.LineSpacingRule);
-        Assert.Equal(4, paragraph.LineSpacingAfterPoints);
+        Assert.Equal(420, paragraph.NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.Auto, paragraph.NativeLineSpacingRule);
+        Assert.Equal(4, paragraph.LineSpacingAfter?.ToPoints());
         Assert.Equal(JustificationValues.Center, paragraph._paragraph.ParagraphProperties!.Justification!.Val!.Value);
     }
 }

@@ -23,20 +23,20 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(package, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Id");
-                sheet.CellValue(1, 2, "Name");
-                sheet.CellValue(1, 3, "CreatedOn");
-                sheet.CellValue(1, 4, "Amount");
-                sheet.CellValue(1, 5, "Active");
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Id");
+                sheet.Cell(1, 2).SetValue("Name");
+                sheet.Cell(1, 3).SetValue("CreatedOn");
+                sheet.Cell(1, 4).SetValue("Amount");
+                sheet.Cell(1, 5).SetValue("Active");
 
                 for (int index = 1; index <= dataRowCount; index++) {
                     int row = index + 1;
-                    sheet.CellValue(row, 1, index);
-                    sheet.CellValue(row, 2, "Row " + index);
-                    sheet.CellValue(row, 3, start.AddDays(index));
-                    sheet.CellValue(row, 4, index + 0.25d);
-                    sheet.CellValue(row, 5, (index & 1) == 0);
+                    sheet.Cell(row, 1).SetValue(index);
+                    sheet.Cell(row, 2).SetValue("Row " + index);
+                    sheet.Cell(row, 3).SetValue(start.AddDays(index));
+                    sheet.Cell(row, 4).SetValue(index + 0.25d);
+                    sheet.Cell(row, 5).SetValue((index & 1) == 0);
                 }
             }
 

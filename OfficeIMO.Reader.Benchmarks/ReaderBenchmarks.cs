@@ -170,18 +170,18 @@ public class ReaderMarkdownPipelineBenchmarks {
     }
 
     [Benchmark]
-    public MarkdownParseResult ParseWithSyntaxTreeAndTables() => MarkdownReader.ParseWithSyntaxTree(_markdown);
+    public MarkdownParseInfo ParseWithSyntaxTreeAndTables() => MarkdownDocument.Parse(_markdown).ParseInfo!;
 
     [Benchmark]
-    public MarkdownParseResult ParseWithSyntaxTreeWithoutTables() => MarkdownReader.ParseWithSyntaxTree(_markdownWithoutTables);
+    public MarkdownParseInfo ParseWithSyntaxTreeWithoutTables() => MarkdownDocument.Parse(_markdownWithoutTables).ParseInfo!;
 
     [Benchmark]
     public ReaderChunk[] ReadHeadingAndTableChunks() =>
-        _headingReader.Read(_bytes, "handbook.md", _readerOptions).ToArray();
+        _headingReader.Enumerate(_bytes, "handbook.md", _readerOptions).ToArray();
 
     [Benchmark]
     public ReaderChunk[] ReadParagraphChunks() =>
-        _paragraphReader.Read(_bytes, "handbook.md", _readerOptions).ToArray();
+        _paragraphReader.Enumerate(_bytes, "handbook.md", _readerOptions).ToArray();
 }
 
 [MemoryDiagnoser]

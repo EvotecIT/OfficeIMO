@@ -48,7 +48,7 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
         if (depth >= 4) styles.Elements<Style>().Single(style => style.StyleId == "BackgroundCharacter")
             .StyleRunProperties = new StyleRunProperties(Shade("FF00FF"), new Highlight { Val = HighlightColorValues.Magenta });
         if (depth >= 5) {
-            run.RunShadingFillColorHex = "FFFFFF";
+            run.BackgroundColor = OfficeColor.Parse("FFFFFF");
             run.Highlight = WordHighlightColor.White;
         }
         if (level is "off" or "clear") {
@@ -83,9 +83,8 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
             new DocDefaults(new RunPropertiesDefault(defaults));
         WordParagraph paragraph;
         if (story == "header") {
-            document.AddHeadersAndFooters();
             document.AddParagraph("BODY");
-            paragraph = document.Header.Default.AddParagraph("BACKGROUND");
+            paragraph = document.PageSetup.Header.AddParagraph("BACKGROUND");
         } else if (story == "cell") {
             paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "BACKGROUND";
@@ -94,12 +93,12 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
             if (story == "link") paragraph.AddHyperLink("BACKGROUND", new Uri("https://example.com/"));
         }
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
 
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = pdf.GetPage(1);
         var letters = page.Letters.Where(letter => letter.Value.Length == 1 && "BACKGROUND".Contains(letter.Value))
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
@@ -139,9 +138,9 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
             run.SetStyleId("NoHighlight");
         }
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(!reset, pdf.GetPage(1).Paths.Any(path => path.IsFilled && path.FillColor.ToRGBValues() == (0D, 0D, 1D)));
         Assert.DoesNotContain(pdf.GetPage(1).Paths, path => path.IsFilled && path.FillColor.ToRGBValues() == (1D, 1D, 0D));
     }

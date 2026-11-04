@@ -17,8 +17,8 @@ namespace OfficeIMO.Examples.Word {
                 sdt1.Italic = true;
                 sdt1.Underline = WordUnderlineStyle.Single;
                 sdt1.FontFamily = "Calibri";
-                sdt1.FontSize = 12;
-                sdt1.ColorHex = "2F5597";
+                sdt1.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                sdt1.Color = OfficeColor.Parse("2F5597");
                 sdt1.Highlight = WordHighlightColor.Yellow;
 
                 var para2 = document.AddParagraph("Formatted (fluent): ");
@@ -27,8 +27,8 @@ namespace OfficeIMO.Examples.Word {
                     .SetItalic()
                     .SetUnderline(WordUnderlineStyle.Single)
                     .SetFontFamily("Calibri")
-                    .SetFontSize(14)
-                    .SetColorHex("C00000")
+                    .SetFontSize(global::OfficeIMO.OfficeLength.Points(14))
+                    .SetColor(OfficeColor.Parse("C00000"))
                     .SetHighlight(WordHighlightColor.LightGray);
 
                 document.Save();
@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var fluent = Guard.NotNull(document.GetStructuredDocumentTagByTag("TagFluent"), "Structured document tag 'TagFluent' was not found.");
                 fluent.SetUnderline(WordUnderlineStyle.Double)
-                    .SetColorHex("0070C0");
+                    .SetColor(OfficeColor.Parse("0070C0"));
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

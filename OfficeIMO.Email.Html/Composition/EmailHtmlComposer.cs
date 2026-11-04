@@ -60,7 +60,7 @@ public static class EmailHtmlComposer {
                 if (index.Truncated) diagnostics.Add(new EmailDiagnostic("EMAIL_COMPOSITION_TEXT_QUOTE_FALLBACK", "The rich quotation exceeded its bound; bounded text was quoted instead."));
                 return Finish();
             }
-            var htmlPolicy = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+            var htmlPolicy = HtmlConversionDocumentOptions.UntrustedDefaults;
             htmlPolicy.Limits.MaxInputCharacters = effective.MaxProjectionChars;
             var projection = EmailBodyProjection.Create(original, new EmailBodyProjectionOptions {
                 IncludeResources = false, IncludeResourceReferences = false,

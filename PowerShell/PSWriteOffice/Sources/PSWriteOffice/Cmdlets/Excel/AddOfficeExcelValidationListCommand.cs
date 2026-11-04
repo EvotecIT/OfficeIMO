@@ -75,7 +75,7 @@ public sealed class AddOfficeExcelValidationListCommand : PSCmdlet
 
         var sheet = ResolveSheet();
         string targetRange = ExcelTargetRangeResolver.Resolve(sheet, Range, HeaderName, TableName, HeaderRow, IncludeHeader.IsPresent);
-        sheet.ValidationList(targetRange, Values, AllowBlank);
+        sheet.Range(targetRange).Validation().List(Values, AllowBlank);
 
         if (PassThru.IsPresent)
         {

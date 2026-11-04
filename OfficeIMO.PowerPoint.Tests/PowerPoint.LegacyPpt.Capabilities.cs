@@ -33,13 +33,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WritePreflight_FindingsReferenceNonNativeCapabilityRows() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Hidden = true;
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             shape.Fill("FF0000");
-            shape.SetGlow("4472C4", radiusPoints: 4D);
+            shape.SetGlow("4472C4", radius: OfficeIMO.OfficeLength.Points(4D));
 
             LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 
@@ -52,26 +52,26 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WritePreflight_ExposesTypedOmissionsAndStrictAcceptance() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddChart();
 
             LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
-            IOfficeConversionReport commonReport = report;
+            OfficeConversionReport commonReport = report;
 
             LegacyPptWriteFinding finding = Assert.Single(
                 report.Findings,
-                item => item.Code == "PPT-WRITE-CHART-CONVERTED");
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                commonReport.FidelityDiagnostics,
+                item => item.Code == "ppt-write-chart-converted");
+            OfficeDiagnostic diagnostic = Assert.Single(
+                commonReport.Diagnostics,
                 item => item.Code == finding.Code);
             Assert.True(report.HasConversionLoss);
             Assert.True(commonReport.HasLoss);
             Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
-            Assert.Equal("OfficeIMO.PowerPoint.LegacyPpt.Writer", diagnostic.Source);
+            Assert.Equal("OfficeIMO.PowerPoint.LegacyPpt.Writer", diagnostic.Format);
             Assert.Equal($"slide:{finding.SlideIndex!.Value + 1}/shape:{finding.ShapeIndex!.Value + 1}",
                 diagnostic.Location);
-            Assert.Throws<InvalidDataException>(commonReport.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(commonReport.ThrowIfLoss);
         }
 
         [Fact]
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
                 charts.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Converted,
                 charts.PptxToBinary);
-            Assert.Contains("PPT-WRITE-CHART-CONVERTED", charts.Note);
+            Assert.Contains("ppt-write-chart-converted", charts.Note);
         }
 
         [Fact]
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
                 smartArt.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Converted,
                 smartArt.PptxToBinary);
-            Assert.Contains("PPT-WRITE-SMARTART-CONVERTED", smartArt.Note);
+            Assert.Contains("ppt-write-smartart-converted", smartArt.Note);
         }
 
         [Fact]

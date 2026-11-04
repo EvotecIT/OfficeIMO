@@ -20,33 +20,33 @@ public sealed partial class IWorkBoundaryTests {
         string?[] expected = { "FF0000", "FFFF00", banded ? "808080" : "0000FF", "FFFF00", null, "0000FF" };
         (int Row, int Column)[] positions = { (1, 1), (4, 1), (3, 2), (4, 2), (2, 2), (2, 3) };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             Assert.False(result.IsVisualFallback); table = Assert.Single(result.Projection.Tables);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             for (int i = 0; i < positions.Length; i++) {
                 var (row, column) = positions[i]; var cell = reopened.Tables[0].Rows[row - 1].Cells[column - 1];
                 if (expected[i] == null) Assert.Equal(OfficeIMO.Word.WordShadingPattern.Nil, cell.ShadingPattern);
-                else Assert.Equal(expected[i], cell.ShadingFillColorHex);
+                else Assert.Equal(OfficeIMO.OfficeColor.Parse(expected[i]!), cell.ShadingFillColor);
             }
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelResult(policy);
             Assert.False(result.IsVisualFallback); table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             for (int i = 0; i < positions.Length; i++) {
                 var (row, column) = positions[i];
-                Assert.Equal(expected[i] == null ? null : "FF" + expected[i], reopened.Sheets[0].GetCellStyle(row, column).FillColorArgb);
+                Assert.Equal(expected[i] == null ? null : "FF" + expected[i], reopened.Sheets[0].Cell(row, column).GetStyle().FillColorArgb);
             }
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(3, 2, out var value));
             Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
             Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(2, 2, out _)); // Selected no-fill blank.
             Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(2, 3, out _)); // Inherited-fill blank.
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.False(result.IsVisualFallback); table = Assert.Single(Assert.Single(result.Projection.Slides).Tables);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             for (int i = 0; i < positions.Length; i++) {
                 var (row, column) = positions[i]; var cell = Assert.Single(reopened.Slides[0].Tables).GetCell(row - 1, column - 1);
                 Assert.Equal(expected[i], cell.FillColor); Assert.Equal(expected[i] == null, cell.NoFill);
@@ -96,7 +96,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Numbers_role_defaults_respect_the_bounded_destination_style_budget() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, rows: 100_001);
-        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult(
+        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         var table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
@@ -111,15 +111,14 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture(native.GetProperty("path").GetString()!);
         Assert.Equal(native.GetProperty("sha256").GetString(), Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         var expected = Assert.Single(manifest.RootElement.GetProperty("tables").EnumerateArray());
         var table = Assert.Single(result.Projection.Slides.SelectMany(slide => slide.Tables));
         Assert.Equal(expected.GetProperty("modelIdentifier").GetUInt64(), table.ModelRecord!.Identifier);
         Assert.True(table.FillStyles.Body!.IsNone); Assert.True(table.FillStyles.HeaderRow!.IsNone);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+        using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
         var destination = Assert.Single(reopened.Slides.SelectMany(slide => slide.Tables));
         foreach (var cell in expected.GetProperty("cells").EnumerateArray()) {
             int row = cell.GetProperty("row").GetInt32(), column = cell.GetProperty("column").GetInt32();

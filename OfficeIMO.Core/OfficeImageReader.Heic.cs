@@ -11,7 +11,8 @@ public static partial class OfficeImageReader {
         ProbeHeicSignature(bytes, cancellationToken, rejectUninspected: true);
 
     private static bool ProbeHeicSignature(byte[] bytes, CancellationToken cancellationToken, bool rejectUninspected) {
-        for (int p = 0, boxes = 0; boxes < 4096 && p <= bytes.Length - 16; boxes++) {
+        int p = 0, boxes = 0;
+        for (; boxes < 4096 && p <= bytes.Length - 16; boxes++) {
             cancellationToken.ThrowIfCancellationRequested();
             ulong size = ReadUInt32BigEndian(bytes, p);
             int header = size == 1 ? 16 : 8;
@@ -35,7 +36,8 @@ public static partial class OfficeImageReader {
             }
             p += (int)size;
         }
-        return false;
+        // Unread boxes after the scan limit cannot authorize an uninspected codec.
+        return rejectUninspected && boxes == 4096 && p < bytes.Length;
     }
 
     private static bool IsHeicBrand(uint brand) => brand is 0x68656963 or 0x68656978 or 0x68657663 or

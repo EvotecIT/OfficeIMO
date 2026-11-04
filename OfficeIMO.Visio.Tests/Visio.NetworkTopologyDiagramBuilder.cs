@@ -39,15 +39,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Branch Topology", page.Name);
             Assert.Equal(15, page.Shapes.Count);
             Assert.Equal(8, page.Connectors.Count);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "internet").PinX < page.Shapes.Single(shape => shape.Id == "firewall").PinX);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "firewall").PinX < page.Shapes.Single(shape => shape.Id == "core").PinX);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "app").PinX < page.Shapes.Single(shape => shape.Id == "db").PinX);
+            Assert.True(page.Shapes.Single(shape => shape.Id == "internet").PinX.ToInches() < page.Shapes.Single(shape => shape.Id == "firewall").PinX.ToInches());
+            Assert.True(page.Shapes.Single(shape => shape.Id == "firewall").PinX.ToInches() < page.Shapes.Single(shape => shape.Id == "core").PinX.ToInches());
+            Assert.True(page.Shapes.Single(shape => shape.Id == "app").PinX.ToInches() < page.Shapes.Single(shape => shape.Id == "db").PinX.ToInches());
             VisioShape serverZone = Assert.Single(page.Shapes, shape => shape.Id == "server-zone" && shape.IsBackgroundSurface);
             VisioShape serverZoneLabel = Assert.Single(page.Shapes, shape => shape.Id == "server-zone-label" && shape.Text == "Server Zone");
             Assert.Equal(string.Empty, serverZone.Text);
             Assert.Equal("Text Box", serverZoneLabel.NameU);
-            Assert.True(serverZoneLabel.PinY > serverZone.PinY + serverZone.Height / 2D);
-            Assert.True(serverZone.Width > page.Shapes.Single(shape => shape.Id == "app").Width);
+            Assert.True(serverZoneLabel.PinY.ToInches() > serverZone.PinY.ToInches() + serverZone.Height.ToInches() / 2D);
+            Assert.True(serverZone.Width.ToInches() > page.Shapes.Single(shape => shape.Id == "app").Width.ToInches());
             Assert.Contains(page.Shapes, shape => shape.Id == "firewall" && shape.NameU == "Decision");
             Assert.Contains(page.Shapes, shape => shape.Id == "core" && shape.NameU == "Rectangle");
             Assert.Contains(page.Shapes, shape => shape.Id == "db" && shape.NameU == "Data");
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             VisioShape zone = Assert.Single(page.Shapes, shape => shape.Id == "edge");
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Branch Topology", title.Text);
-            Assert.True(title.PinY > zone.PinY);
+            Assert.True(title.PinY.ToInches() > zone.PinY.ToInches());
             Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckConnectorShapeIntersections = false
             }).Where(issue => issue.Severity >= VisioDiagramQualityIssueSeverity.Warning).Select(issue => issue.ToString()));
@@ -160,8 +160,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Inspect north-south traffic", callout.Text);
             Assert.Equal(target.Id, callout.CalloutTargetId);
             Assert.Contains("Annotations", callout.LayerNames);
-            Assert.Equal(2.55, callout.Width);
-            Assert.Equal(0.72, callout.Height);
+            Assert.Equal(2.55, callout.Width.ToInches());
+            Assert.Equal(0.72, callout.Height.ToInches());
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
             Assert.Same(target, leader.To);
@@ -198,11 +198,11 @@ namespace OfficeIMO.Tests {
             VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "firewall-note");
             VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "core-callout");
 
-            Assert.True(explicitCallout.PinY > firewall.PinY);
-            Assert.Equal(firewall.PinX, explicitCallout.PinX, 6);
+            Assert.True(explicitCallout.PinY.ToInches() > firewall.PinY.ToInches());
+            Assert.Equal(firewall.PinX.ToInches(), explicitCallout.PinX.ToInches(), 6);
             Assert.Equal(firewall.Id, explicitCallout.CalloutTargetId);
-            Assert.Equal(2.55, explicitCallout.Width);
-            Assert.True(generatedCallout.PinX > core.PinX);
+            Assert.Equal(2.55, explicitCallout.Width.ToInches());
+            Assert.True(generatedCallout.PinX.ToInches() > core.PinX.ToInches());
             Assert.Equal(core.Id, generatedCallout.CalloutTargetId);
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
@@ -234,9 +234,9 @@ namespace OfficeIMO.Tests {
             VisioShape callout = Assert.Single(page.Callouts());
 
             Assert.True(Contains(zone, firewall));
-            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
-            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
-            Assert.InRange(page.Shapes.Single(shape => shape.Id == "edge-label").PinX, 0D, page.Width);
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX.ToInches(), 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY.ToInches(), 6);
+            Assert.InRange(page.Shapes.Single(shape => shape.Id == "edge-label").PinX.ToInches(), 0D, page.Width.ToInches());
         }
 
         [Fact]
@@ -304,9 +304,9 @@ namespace OfficeIMO.Tests {
         }
 
         private static bool Contains(VisioShape outer, VisioShape inner) =>
-            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
-            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
-            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
-            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
+            inner.PinX.ToInches() - inner.Width.ToInches() / 2D >= outer.PinX.ToInches() - outer.Width.ToInches() / 2D &&
+            inner.PinX.ToInches() + inner.Width.ToInches() / 2D <= outer.PinX.ToInches() + outer.Width.ToInches() / 2D &&
+            inner.PinY.ToInches() - inner.Height.ToInches() / 2D >= outer.PinY.ToInches() - outer.Height.ToInches() / 2D &&
+            inner.PinY.ToInches() + inner.Height.ToInches() / 2D <= outer.PinY.ToInches() + outer.Height.ToInches() / 2D;
     }
 }

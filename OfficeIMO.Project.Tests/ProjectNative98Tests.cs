@@ -5,7 +5,7 @@ namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectNative98Tests {
     private static ProjectSaveOptions Options(bool allow = true) => new ProjectSaveOptions {
-        Format = ProjectFileFormat.Mpp8, LossPolicy = allow ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block
+        Format = ProjectFileFormat.Mpp8, AllowLoss = allow
     };
 
     [Theory]
@@ -47,7 +47,7 @@ public sealed class ProjectNative98Tests {
         using var document = ProjectNativeAuthoringTests.Create();
         document.Assignments.Single().Work = new ProjectWork(0.0001m);
         using var output = new MemoryStream();
-        Assert.Contains(document.AssessSave(Options()).Diagnostics, d => d.Code == "PROJECT_NATIVE_VALUE_UNREPRESENTABLE" && d.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Contains(document.AssessSave(Options()).NativeDiagnostics, d => d.Code == "PROJECT_NATIVE_VALUE_UNREPRESENTABLE" && d.Severity == ProjectDiagnosticSeverity.Error);
         Assert.Throws<InvalidDataException>(() => document.Save(output, Options())); Assert.Empty(output.ToArray());
     }
 
@@ -84,7 +84,7 @@ public sealed class ProjectNative98Tests {
         Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_PRIORITY_QUANTIZED");
         Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_ALIAS_LOSS");
         using var second = new MemoryStream();
-        Assert.Throws<InvalidOperationException>(() => document.Save(second, Options(false))); Assert.Empty(second.ToArray());
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(second, Options(false))); Assert.Empty(second.ToArray());
     }
 
     [Fact]

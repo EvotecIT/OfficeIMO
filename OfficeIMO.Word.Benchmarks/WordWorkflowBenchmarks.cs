@@ -31,7 +31,7 @@ public class WordWorkflowBenchmarks {
         _mergeValues = new Dictionary<string, string>(ItemCount, StringComparer.OrdinalIgnoreCase);
 
         using (WordDocument fields = WordDocument.Create()) {
-            fields.BuiltinDocumentProperties.Creator = "Benchmark";
+            fields.Properties.Creator = "Benchmark";
             for (int index = 0; index < ItemCount; index++) fields.AddParagraph("Author: ").AddField(WordFieldType.Author);
             _fieldDocument = fields.ToBytes();
         }
@@ -96,7 +96,7 @@ public class WordWorkflowBenchmarks {
     }
 
     [Benchmark]
-    public int ExportLoadedHtml() => _loadedHtmlDocument.ToHtmlResult().RequireValue().Length;
+    public int ExportLoadedHtml() => _loadedHtmlDocument.ToHtml().Length;
 
     [Benchmark]
     public int CompareStructure() => WordDocumentComparer.CompareStructure(_sourcePath, _targetPath).Findings.Count;
@@ -110,7 +110,7 @@ public class WordWorkflowBenchmarks {
         EnsureEqual(nameof(ExecuteMailMerge), ItemCount, ExecuteMailMerge());
         EnsureEqual(nameof(LoadDocument), ItemCount, LoadDocument());
         ValidateHtmlOutput(nameof(ExportHtml), ExportHtmlDocument());
-        ValidateHtmlOutput(nameof(ExportLoadedHtml), _loadedHtmlDocument.ToHtmlResult().RequireValue());
+        ValidateHtmlOutput(nameof(ExportLoadedHtml), _loadedHtmlDocument.ToHtml());
         EnsureEqual(nameof(InspectMacroSignatures), ItemCount * 1024L, InspectMacroSignatures());
 
         WordComparisonResult comparison = WordDocumentComparer.CompareStructure(_sourcePath, _targetPath);
@@ -136,7 +136,7 @@ public class WordWorkflowBenchmarks {
     private string ExportHtmlDocument() {
         using var stream = new MemoryStream(_htmlDocument, writable: false);
         using WordDocument document = WordDocument.Load(stream);
-        return document.ToHtmlResult().RequireValue();
+        return document.ToHtml();
     }
 
     private void ValidateHtmlOutput(string benchmark, string html) {

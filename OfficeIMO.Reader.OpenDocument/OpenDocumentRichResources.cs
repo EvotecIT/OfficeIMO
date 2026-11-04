@@ -10,6 +10,7 @@ internal sealed class OpenDocumentRichResources {
     private readonly Dictionary<string, byte[]> _payloads = new(StringComparer.Ordinal);
     private readonly List<OfficeDocumentLink> _links = new();
     private readonly List<OfficeDocumentAsset> _assets = new();
+    private readonly List<OfficeDocumentDiagnostic> _diagnostics = new();
     private readonly CancellationToken _token;
     private long _retainedBytes;
     private long _linkCharacters;
@@ -66,13 +67,19 @@ internal sealed class OpenDocumentRichResources {
         _assets.Add(asset);
     }
 
-    internal void AddDiagnostic(string code, string message, ReaderLocation location) =>
-        _result.Diagnostics = _result.Diagnostics.Concat(new[] { new OfficeDocumentDiagnostic {
+    internal void AddDiagnostic(string code, string message, ReaderLocation location) {
+        _token.ThrowIfCancellationRequested();
+        const int maximumRichDiagnostics = 4096;
+        if (_diagnostics.Count >= maximumRichDiagnostics)
+            throw new ReaderResourceLimitException("OpenDocument.MaxRichDiagnostics", maximumRichDiagnostics);
+        _diagnostics.Add(new OfficeDocumentDiagnostic {
             Code = code, Message = message, Category = OfficeDocumentDiagnosticCategory.Content,
             Source = "officeimo.reader.opendocument", Location = location
-        }}).ToArray();
+        });
+    }
 
     internal void Complete() {
+        if (_diagnostics.Count > 0) _result.Diagnostics = _result.Diagnostics.Concat(_diagnostics).ToArray();
         _result.Links = _links; _result.Assets = _assets;
         foreach (OfficeDocumentPage page in _result.Pages) {
             page.Links = _links.Where(link => Matches(link.Location, page.Location)).ToArray();

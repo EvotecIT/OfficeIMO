@@ -16,7 +16,7 @@ internal static partial class IWorkTextReader {
         bool layoutComplete = true;
         var data = new ParagraphStyleData();
         var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
-            projectionBudget.MaximumTextStyleInheritanceDepth,
+            projectionBudget.MaxTextStyleInheritanceDepth,
             type => type == ParagraphStyleArchive, tolerateStyleDepth, references, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
             IWorkWireMessage message = chain[styleIndex].Message;
@@ -60,7 +60,7 @@ internal static partial class IWorkTextReader {
         bool resolvedCompletely = true;
         var data = TextStyleData.From(inherited);
         var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
-            projectionBudget.MaximumTextStyleInheritanceDepth,
+            projectionBudget.MaxTextStyleInheritanceDepth,
             type => type is CharacterStyleArchive or ParagraphStyleArchive,
             tolerateStyleDepth, references, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {

@@ -10,16 +10,16 @@ namespace OfficeIMO.Tests {
         public void CanCreateAndReadNamedRanges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 document.SetNamedRange("GlobalRange", "'Data'!A1:A2", save: false);
                 sheet.SetNamedRange("LocalRange", "A1", save: false);
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("GlobalRange"));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRangeText("GlobalRange"));
                 var sheet = document.Sheets.First(s => s.Name == "Data");
-                Assert.Equal("$A$1", sheet.GetNamedRange("LocalRange"));
+                Assert.Equal("$A$1", sheet.GetNamedRangeText("LocalRange"));
             }
             File.Delete(filePath);
         }
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         public void CanDeleteNamedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetNamedRange("TempRange", "A1:B2", save: false);
                 document.Save();
             }
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void InvalidA1RangeThrows() {
             using var document = ExcelDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx"));
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             Assert.Throws<ArgumentException>(() => document.SetNamedRange("Bad", "'Data'!A1:A"));
         }
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         public void CanListNamedRanges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 document.SetNamedRange("GlobalRange", "'Data'!A1:A2", save: false);
                 sheet.SetNamedRange("LocalRange", "A1:B2", save: false);
                 document.Save();
@@ -75,15 +75,15 @@ namespace OfficeIMO.Tests {
         public void SheetLookupFallsBackToWorkbookGlobalNamedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.SetNamedRange("GlobalRange", "'Data'!A1:A2", save: false);
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First(s => s.Name == "Data");
-                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("GlobalRange"));
-                Assert.Equal("'Data'!$A$1:$A$2", sheet.GetNamedRange("GlobalRange"));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRangeText("GlobalRange"));
+                Assert.Equal("'Data'!$A$1:$A$2", sheet.GetNamedRangeText("GlobalRange"));
             }
             File.Delete(filePath);
         }
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
         public void SheetLookupPrefersLocalNamedRangeOverWorkbookGlobal() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 document.SetNamedRange("SharedRange", "'Data'!A1:A2", save: false);
                 sheet.SetNamedRange("SharedRange", "B1:B2", save: false);
                 document.Save();
@@ -100,8 +100,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First(s => s.Name == "Data");
-                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("SharedRange"));
-                Assert.Equal("$B$1:$B$2", sheet.GetNamedRange("SharedRange"));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRangeText("SharedRange"));
+                Assert.Equal("$B$1:$B$2", sheet.GetNamedRangeText("SharedRange"));
             }
             File.Delete(filePath);
         }
@@ -110,11 +110,11 @@ namespace OfficeIMO.Tests {
         public void RenameNamedRange_StrictValidationFailureKeepsOriginalName() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.SetNamedRange("OriginalName", "'Data'!A1:A2", save: false);
 
                 Assert.Throws<ArgumentException>(() => document.RenameNamedRange("OriginalName", "A1", validationMode: ExcelDefinedNameValidationMode.Strict, save: false));
-                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("OriginalName"));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRangeText("OriginalName"));
                 Assert.Null(document.GetNamedRange("A1"));
             }
             File.Delete(filePath);

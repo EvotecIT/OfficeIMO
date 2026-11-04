@@ -11,15 +11,15 @@ namespace OfficeIMO.Markdown;
 /// </remarks>
 /// <example>
 /// <code>
-/// var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+/// var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
 /// options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
 ///
-/// var document = MarkdownReader.Parse("previous shutdown was unexpected### Reason", options);
+/// var document = MarkdownDocument.Parse("previous shutdown was unexpected### Reason", options);
 /// </code>
 /// </example>
 public sealed class MarkdownCompactHeadingBoundaryTransform : IMarkdownDocumentTransform {
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

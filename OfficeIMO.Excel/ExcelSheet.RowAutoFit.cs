@@ -350,7 +350,10 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            if (_excelDocument.HasUnmaterializedDirectDataSetRows) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             WriteLock(() => {
                 SheetData sheetData = GetOrCreateSheetData();
                 Row row = GetOrCreateRowElement(sheetData, rowIndex);
@@ -374,12 +377,12 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets the explicit height of the specified row in points. Use a non-positive height to clear the custom row height.
+        /// Sets the explicit height of the specified row. Use a non-positive height to clear the custom row height.
         /// </summary>
         /// <param name="rowIndex">1-based row index.</param>
-        /// <param name="height">Row height in points.</param>
-        public void SetRowHeight(int rowIndex, double height) =>
-            SetRowHeightValue(rowIndex, height, roundToHundredths: true);
+        /// <param name="height">Row height as characters or a physical length.</param>
+        public void SetRowHeight(int rowIndex, ExcelColumnWidth height) =>
+            SetRowHeightValue(rowIndex, height.ToRowPoints(this), roundToHundredths: true);
 
         internal void SetRowHeightExact(int rowIndex, double height) =>
             SetRowHeightValue(rowIndex, height, roundToHundredths: false);
@@ -390,7 +393,10 @@ namespace OfficeIMO.Excel {
             }
 
             height = NormalizeRowHeight(height);
-            _excelDocument.MaterializeDeferredDataSetImport();
+            if (_excelDocument.HasUnmaterializedDirectDataSetRows) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             WriteLock(() => {
                 SheetData sheetData = GetOrCreateSheetData();
                 Row row = GetOrCreateRowElement(sheetData, rowIndex);

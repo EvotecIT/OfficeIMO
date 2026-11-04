@@ -30,44 +30,45 @@ public sealed class OneNoteMarkdownDiagnostic {
 }
 
 /// <summary>A Markdown document paired with explicit semantic-projection diagnostics.</summary>
-public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<MarkdownDoc, OneNoteMarkdownConversionReport> {
-    internal OneNoteMarkdownConversionResult(MarkdownDoc value, IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics)
+public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<MarkdownDocument> {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new OneNoteMarkdownConversionReport Report => (OneNoteMarkdownConversionReport)base.Report;
+
+    internal OneNoteMarkdownConversionResult(MarkdownDocument value, IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics)
         : base(value, new OneNoteMarkdownConversionReport(diagnostics)) { }
 
     /// <summary>Source and projection diagnostics captured for this operation.</summary>
-    public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics => Report.Diagnostics;
+    public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics => Report.NativeDiagnostics;
 
 }
 
 /// <summary>OneNote-to-Markdown semantic-projection diagnostics captured for one operation.</summary>
-public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
+public sealed class OneNoteMarkdownConversionReport : OfficeConversionReport {
     internal OneNoteMarkdownConversionReport(IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics) {
-        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
-        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
+        NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(NativeDiagnostics.Select(static diagnostic =>
+            new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
-                GetLossKind(diagnostic),
+                diagnostic.Source,
                 "OfficeIMO.OneNote.Markdown",
-                diagnostic.Source)).ToArray());
+                GetLossKind(diagnostic))).ToArray());
     }
 
     /// <summary>Source and projection diagnostics in discovery order.</summary>
-    public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<OneNoteMarkdownDiagnostic> NativeDiagnostics { get; }
 
     /// <summary>Category-preserving conversion diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>True when projection reported an approximation, omission, or error.</summary>
-    public bool HasLoss => Diagnostics.Any(static diagnostic =>
+    public override bool HasLoss => NativeDiagnostics.Any(static diagnostic =>
         diagnostic.Severity != OneNoteDiagnosticSeverity.Information);
 
     /// <summary>Throws when projection reported possible content loss.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) {
-            throw new InvalidOperationException("OneNote-to-Markdown conversion reported one or more lossy mappings.");
-        }
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("OneNote-to-Markdown conversion reported one or more lossy mappings.", this);
 
     private static OfficeConversionLossKind GetLossKind(OneNoteMarkdownDiagnostic diagnostic) {
         if (diagnostic.LossKind.HasValue) {
@@ -88,7 +89,7 @@ public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
 }
 
 internal static class OneNoteMarkdownDiagnosticCollector {
-    internal static IReadOnlyList<OneNoteMarkdownDiagnostic> Collect(OneNoteSection section, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
+    internal static IReadOnlyList<OneNoteMarkdownDiagnostic> Collect(OneNoteSection section, OneNoteMarkdownExportOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         var diagnostics = new List<OneNoteMarkdownDiagnostic>();
         AddSourceDiagnostics(diagnostics, section.Diagnostics, SourceName(section.Name, "OneNote section"));
         AddOpaqueDiagnostic(diagnostics, section.UnknownObjects.Count, SourceName(section.Name, "OneNote section"));
@@ -96,7 +97,7 @@ internal static class OneNoteMarkdownDiagnosticCollector {
         return diagnostics.AsReadOnly();
     }
 
-    internal static IReadOnlyList<OneNoteMarkdownDiagnostic> Collect(OneNoteNotebook notebook, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
+    internal static IReadOnlyList<OneNoteMarkdownDiagnostic> Collect(OneNoteNotebook notebook, OneNoteMarkdownExportOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         var diagnostics = new List<OneNoteMarkdownDiagnostic>();
         AddSourceDiagnostics(diagnostics, notebook.Diagnostics, SourceName(notebook.Name, "OneNote notebook"));
         AddOpaqueDiagnostic(diagnostics, notebook.UnknownObjects.Count, SourceName(notebook.Name, "OneNote notebook"));
@@ -105,21 +106,21 @@ internal static class OneNoteMarkdownDiagnosticCollector {
         return diagnostics.AsReadOnly();
     }
 
-    private static void InspectGroup(List<OneNoteMarkdownDiagnostic> diagnostics, OneNoteSectionGroup group, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
+    private static void InspectGroup(List<OneNoteMarkdownDiagnostic> diagnostics, OneNoteSectionGroup group, OneNoteMarkdownExportOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         string source = SourceName(group.Name, "Section group");
         AddOpaqueDiagnostic(diagnostics, group.UnknownObjects.Count, source);
         foreach (OneNoteSection section in group.Sections) InspectSection(diagnostics, section, options, resolvedAssets);
         foreach (OneNoteSectionGroup child in group.SectionGroups) InspectGroup(diagnostics, child, options, resolvedAssets);
     }
 
-    private static void InspectSection(List<OneNoteMarkdownDiagnostic> diagnostics, OneNoteSection section, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
+    private static void InspectSection(List<OneNoteMarkdownDiagnostic> diagnostics, OneNoteSection section, OneNoteMarkdownExportOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         string source = SourceName(section.Name, "OneNote section");
         AddSourceDiagnostics(diagnostics, section.Diagnostics, source);
         AddOpaqueDiagnostic(diagnostics, section.UnknownObjects.Count, source);
         foreach (OneNotePage page in section.Pages) InspectPage(diagnostics, page, options, resolvedAssets);
     }
 
-    private static void InspectPage(List<OneNoteMarkdownDiagnostic> diagnostics, OneNotePage page, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
+    private static void InspectPage(List<OneNoteMarkdownDiagnostic> diagnostics, OneNotePage page, OneNoteMarkdownExportOptions options, ISet<OneNoteBinaryElement> resolvedAssets) {
         string source = SourceName(page.Title, "Untitled page");
         AddSourceDiagnostics(diagnostics, page.Diagnostics, source);
         AddOpaqueDiagnostic(diagnostics, page.UnknownObjects.Count, source);
@@ -167,7 +168,7 @@ internal static class OneNoteMarkdownDiagnosticCollector {
         }
     }
 
-    private static void InspectElement(OneNoteElement element, OneNoteMarkdownOptions options, ISet<OneNoteBinaryElement> resolvedAssets, PageProjectionState state) {
+    private static void InspectElement(OneNoteElement element, OneNoteMarkdownExportOptions options, ISet<OneNoteBinaryElement> resolvedAssets, PageProjectionState state) {
         OneNoteLayout? layout = element.Layout;
         if (layout != null && (layout.X.HasValue || layout.Y.HasValue || layout.Width.HasValue || layout.Height.HasValue)) {
             state.HasPositionedLayout = true;

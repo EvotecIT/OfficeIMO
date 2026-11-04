@@ -10,8 +10,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: false,
             imageCount: 1, imageBytes: CreateInvalidAdlerPng(20, 20));
         var options = new IWorkReadOptions {
-            MaximumPackageBytes = 2_000,
-            MaximumDecodedImageBytes = 2_000
+            MaxPackageBytes = 2_000,
+            MaxDecodedImageBytes = 2_000
         };
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             package, IWorkDocumentKind.Pages, options);
@@ -42,7 +42,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);

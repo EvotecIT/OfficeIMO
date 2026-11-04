@@ -89,7 +89,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark]
         public long OfficeIMOAutomatic() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new ExcelReaderOptions { HasHeaderRow = true });
             long sum = 0;
             int count = 0;
             foreach (RealDataRecord row in reader.RowsAs<RealDataRecord>()) {
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         }
 
         private IEnumerable<RealDataRecord> ReadOfficeIMO() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = true });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false), new ExcelReaderOptions { HasHeaderRow = true });
             foreach (RealDataRecord row in reader.RowsAs<RealDataRecord>()) yield return row;
         }
 

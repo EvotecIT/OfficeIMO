@@ -69,7 +69,7 @@ public sealed partial class RtfLosslessEditor {
     }
 
     private static RtfGroup SetFontInTable(RtfGroup fontTable, RtfFont font) {
-        var children = new List<RtfNode>(fontTable.Children);
+        List<RtfNode> children = GroupUngroupedFonts(fontTable);
         bool replaced = false;
 
         for (int index = children.Count - 1; index >= 0; index--) {
@@ -93,7 +93,7 @@ public sealed partial class RtfLosslessEditor {
     }
 
     private static RtfGroup? RemoveFontFromTable(RtfGroup fontTable, int id) {
-        var children = new List<RtfNode>(fontTable.Children);
+        List<RtfNode> children = GroupUngroupedFonts(fontTable);
 
         for (int index = children.Count - 1; index >= 0; index--) {
             if (children[index] is RtfGroup fontGroup && FontIdMatches(fontGroup, id)) {
@@ -104,6 +104,25 @@ public sealed partial class RtfLosslessEditor {
         return children.Any(node => node is RtfGroup group && group.Children.OfType<RtfControlWord>().Any(control => control.Name == "f"))
             ? new RtfGroup(fontTable.Position, children)
             : null;
+    }
+
+    /// <summary>Gives each font Cocoa wrote directly in the table its own group, so an edit finds it by id.</summary>
+    private static List<RtfNode> GroupUngroupedFonts(RtfGroup fontTable) {
+        var children = new List<RtfNode>(fontTable.Children.Count);
+        var entry = new List<RtfNode>();
+        foreach (RtfNode node in fontTable.Children) {
+            if (entry.Count > 0 || node is RtfControlWord { Name: "f" }) {
+                entry.Add(node);
+                if (node is RtfText text && text.Text.IndexOf(';') >= 0) {
+                    children.Add(new RtfGroup(entry[0].Position, entry.ToArray()));
+                    entry.Clear();
+                }
+            } else {
+                children.Add(node);
+            }
+        }
+        if (entry.Count > 0) children.Add(new RtfGroup(entry[0].Position, entry.ToArray()));
+        return children;
     }
 
     private static bool FontIdMatches(RtfGroup fontGroup, int id) {

@@ -19,15 +19,15 @@ public sealed class HtmlSystemUiFontTests {
     public void MacAliasLayoutAndPdfMatchAnExplicitScopedUiFace(string family) {
         if (!File.Exists(MacFont)) return;
         HtmlConversionDocument source = Source(family);
-        var options = new HtmlToPdfOptions { ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost() };
+        var options = new HtmlPdfExportOptions { ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost() };
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(source, options);
         Assert.True(rendered.Fonts.TryResolveFaceForText("Animation", family, OfficeFontStyle.Regular, 16D, out var face));
         Assert.Equal(72.5625D, face!.Program.Measure("Animation", 16D), 9);
         Assert.False(face.CanEmbedAsStaticPdfFont);
-        var reference = new HtmlToPdfOptions { AllowSystemFontFallback = false,
+        var reference = new HtmlPdfExportOptions { AllowSystemFontFallback = false,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost() };
         Assert.True(reference.Fonts.TryAdd(family, File.ReadAllBytes(MacFont)));
-        Assert.Equal(source.ToPdfBytes(reference), source.ToPdfBytes(options));
+        Assert.Equal((source.ToPdf(reference)).ToBytes(), (source.ToPdf(options)).ToBytes());
         Assert.Empty(options.Fonts.Faces);
     }
 
@@ -81,7 +81,7 @@ public sealed class HtmlSystemUiFontTests {
     [InlineData(false, true)]
     [InlineData(true, false)]
     public void PdfResourcePolicyCanDisableInstalledUiFaces(bool systemFonts, bool documentFonts) {
-        var options = new HtmlToPdfOptions { ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost() };
+        var options = new HtmlPdfExportOptions { ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost() };
         options.ResourcePolicy.AllowSystemFontEmbedding = systemFonts;
         options.ResourcePolicy.AllowDocumentFontEmbedding = documentFonts;
         HtmlPdfRenderRequestResult result = Source("system-ui").RenderToPdfResult(

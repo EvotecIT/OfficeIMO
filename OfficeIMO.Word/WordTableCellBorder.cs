@@ -63,10 +63,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set left table cell border color using hex color codes
-        /// </summary>
-        public string? LeftColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? LeftColorValue {
             get {
                 return BordersOrNull?.LeftBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -79,37 +77,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set left table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor LeftColor {
-            get {
-                var hex = LeftColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
-            }
-            set { this.LeftColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? LeftColor {
+            get => Helpers.ParseNativeColor(LeftColorValue);
+            set => LeftColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set left table cell border space
-        /// </summary>
-        public uint? LeftSpace {
+        /// <summary>Gets or sets the left cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? LeftSpace {
             get {
-                return BordersOrNull?.LeftBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.LeftBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var lb = EnsureLeft();
-                lb.Space = value;
+                lb.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set left table cell border size
-        /// </summary>
-        public uint? LeftSize {
+        /// <summary>Gets or sets the left cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? LeftSize {
             get {
-                return BordersOrNull?.LeftBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.LeftBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var lb = EnsureLeft();
-                lb.Size = value;
+                lb.Size = nativeValue;
             }
         }
 
@@ -127,10 +122,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set right table cell border color using hex color codes
-        /// </summary>
-        public string? RightColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? RightColorValue {
             get {
                 return BordersOrNull?.RightBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -143,37 +136,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set right table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor RightColor {
-            get {
-                var hex = RightColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
-            }
-            set { this.RightColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? RightColor {
+            get => Helpers.ParseNativeColor(RightColorValue);
+            set => RightColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set right table cell border space
-        /// </summary>
-        public uint? RightSpace {
+        /// <summary>Gets or sets the right cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? RightSpace {
             get {
-                return BordersOrNull?.RightBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.RightBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var rb = EnsureRight();
-                rb.Space = value;
+                rb.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set right table cell border size
-        /// </summary>
-        public uint? RightSize {
+        /// <summary>Gets or sets the right cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? RightSize {
             get {
-                return BordersOrNull?.RightBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.RightBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var rb = EnsureRight();
-                rb.Size = value;
+                rb.Size = nativeValue;
             }
         }
 
@@ -193,10 +183,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set top table cell border color using hex color codes
-        /// </summary>
-        public string? TopColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? TopColorValue {
             get {
                 return BordersOrNull?.TopBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -209,37 +197,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor TopColor {
-            get {
-                var hex = TopColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
-            }
-            set { this.TopColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? TopColor {
+            get => Helpers.ParseNativeColor(TopColorValue);
+            set => TopColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set top table cell border space
-        /// </summary>
-        public uint? TopSpace {
+        /// <summary>Gets or sets the top cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopSpace {
             get {
-                return BordersOrNull?.TopBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.TopBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var tb = EnsureTop();
-                tb.Space = value;
+                tb.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set top table cell border size
-        /// </summary>
-        public uint? TopSize {
+        /// <summary>Gets or sets the top cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopSize {
             get {
-                return BordersOrNull?.TopBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.TopBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var tb = EnsureTop();
-                tb.Size = value;
+                tb.Size = nativeValue;
             }
         }
 
@@ -262,10 +247,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set bottom table cell border color using hex color codes
-        /// </summary>
-        public string? BottomColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? BottomColorValue {
             get {
                 return BordersOrNull?.BottomBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -278,37 +261,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set bottom table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor BottomColor {
-            get {
-                var hex = BottomColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));
-            }
-            set { this.BottomColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? BottomColor {
+            get => Helpers.ParseNativeColor(BottomColorValue);
+            set => BottomColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set bottom table cell border space
-        /// </summary>
-        public uint? BottomSpace {
+        /// <summary>Gets or sets the bottom cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? BottomSpace {
             get {
-                return BordersOrNull?.BottomBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.BottomBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var bb = EnsureBottom();
-                bb.Space = value;
+                bb.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set bottom table cell border size
-        /// </summary>
-        public uint? BottomSize {
+        /// <summary>Gets or sets the bottom cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? BottomSize {
             get {
-                return BordersOrNull?.BottomBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.BottomBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var bb = EnsureBottom();
-                bb.Size = value;
+                bb.Size = nativeValue;
             }
         }
 
@@ -333,10 +313,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set inside horizontal table cell border color using hex color codes
-        /// </summary>
-        public string? InsideHorizontalColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? InsideHorizontalColorValue {
             get {
                 return BordersOrNull?.InsideHorizontalBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -349,37 +327,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside horizontal table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor InsideHorizontalColor {
-            get {
-                var hex = InsideHorizontalColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideHorizontalColorHex is null"));
-            }
-            set { this.InsideHorizontalColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? InsideHorizontalColor {
+            get => Helpers.ParseNativeColor(InsideHorizontalColorValue);
+            set => InsideHorizontalColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set inside horizontal table cell border space
-        /// </summary>
-        public uint? InsideHorizontalSpace {
+        /// <summary>Gets or sets the inside horizontal cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? InsideHorizontalSpace {
             get {
-                return BordersOrNull?.InsideHorizontalBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.InsideHorizontalBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var hb = EnsureInsideHorizontal();
-                hb.Space = value;
+                hb.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set inside horizontal table cell border size
-        /// </summary>
-        public uint? InsideHorizontalSize {
+        /// <summary>Gets or sets the inside horizontal cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? InsideHorizontalSize {
             get {
-                return BordersOrNull?.InsideHorizontalBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.InsideHorizontalBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var hb = EnsureInsideHorizontal();
-                hb.Size = value;
+                hb.Size = nativeValue;
             }
         }
 
@@ -404,10 +379,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set inside vertical table cell border color using hex color codes
-        /// </summary>
-        public string? InsideVerticalColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? InsideVerticalColorValue {
             get {
                 return BordersOrNull?.InsideVerticalBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -420,37 +393,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside vertical table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor InsideVerticalColor {
-            get {
-                var hex = InsideVerticalColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideVerticalColorHex is null"));
-            }
-            set { this.InsideVerticalColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? InsideVerticalColor {
+            get => Helpers.ParseNativeColor(InsideVerticalColorValue);
+            set => InsideVerticalColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set inside vertical table cell border space
-        /// </summary>
-        public uint? InsideVerticalSpace {
+        /// <summary>Gets or sets the inside vertical cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? InsideVerticalSpace {
             get {
-                return BordersOrNull?.InsideVerticalBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.InsideVerticalBorder?.Space?.Value);
             }
                 set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var vb = EnsureInsideVertical();
-                vb.Space = value;
+                vb.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set inside vertical table cell border size
-        /// </summary>
-        public uint? InsideVerticalSize {
+        /// <summary>Gets or sets the inside vertical cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? InsideVerticalSize {
             get {
-                return BordersOrNull?.InsideVerticalBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.InsideVerticalBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var vb = EnsureInsideVertical();
-                vb.Size = value;
+                vb.Size = nativeValue;
             }
         }
 
@@ -472,10 +442,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set start table cell border color using hex color codes
-        /// </summary>
-        public string? StartColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? StartColorValue {
             get {
                 return BordersOrNull?.StartBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -488,37 +456,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set start table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor StartColor {
-            get {
-                var hex = StartColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("StartColorHex is null"));
-            }
-            set { this.StartColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? StartColor {
+            get => Helpers.ParseNativeColor(StartColorValue);
+            set => StartColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set start table cell border space
-        /// </summary>
-        public uint? StartSpace {
+        /// <summary>Gets or sets the start cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? StartSpace {
             get {
-                return BordersOrNull?.StartBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.StartBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var sb = EnsureStart();
-                sb.Space = value;
+                sb.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set start table cell border size
-        /// </summary>
-        public uint? StartSize {
+        /// <summary>Gets or sets the start cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? StartSize {
             get {
-                return BordersOrNull?.StartBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.StartBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var sb = EnsureStart();
-                sb.Size = value;
+                sb.Size = nativeValue;
             }
         }
 
@@ -540,10 +505,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set end table cell border color using hex color codes
-        /// </summary>
-        public string? EndColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? EndColorValue {
             get {
                 return BordersOrNull?.EndBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -556,37 +519,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set end table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor EndColor {
-            get {
-                var hex = EndColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("EndColorHex is null"));
-            }
-            set { this.EndColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? EndColor {
+            get => Helpers.ParseNativeColor(EndColorValue);
+            set => EndColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set end table cell border space
-        /// </summary>
-        public uint? EndSpace {
+        /// <summary>Gets or sets the end cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? EndSpace {
             get {
-                return BordersOrNull?.EndBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.EndBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var eb = EnsureEnd();
-                eb.Space = value;
+                eb.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set end table cell border size
-        /// </summary>
-        public uint? EndSize {
+        /// <summary>Gets or sets the end cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? EndSize {
             get {
-                return BordersOrNull?.EndBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.EndBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var eb = EnsureEnd();
-                eb.Size = value;
+                eb.Size = nativeValue;
             }
         }
 
@@ -615,10 +575,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set top left to bottom right table cell border color using hex color codes
-        /// </summary>
-        public string? TopLeftToBottomRightColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? TopLeftToBottomRightColorValue {
             get {
                 return BordersOrNull?.TopLeftToBottomRightCellBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -631,37 +589,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top left to bottom right table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor TopLeftToBottomRightColor {
-            get {
-                var hex = TopLeftToBottomRightColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopLeftToBottomRightColorHex is null"));
-            }
-            set { this.TopLeftToBottomRightColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? TopLeftToBottomRightColor {
+            get => Helpers.ParseNativeColor(TopLeftToBottomRightColorValue);
+            set => TopLeftToBottomRightColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set top left to bottom right table cell border space
-        /// </summary>
-        public uint? TopLeftToBottomRightSpace {
+        /// <summary>Gets or sets the top-left to bottom-right cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopLeftToBottomRightSpace {
             get {
-                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.TopLeftToBottomRightCellBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var d = EnsureTLBR();
-                d.Space = value;
+                d.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set top left to bottom right table cell border size
-        /// </summary>
-        public uint? TopLeftToBottomRightSize {
+        /// <summary>Gets or sets the top-left to bottom-right cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopLeftToBottomRightSize {
             get {
-                return BordersOrNull?.TopLeftToBottomRightCellBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.TopLeftToBottomRightCellBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var d = EnsureTLBR();
-                d.Size = value;
+                d.Size = nativeValue;
             }
         }
 
@@ -681,10 +636,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set top right to bottom left table cell border color using hex color codes
-        /// </summary>
-        public string? TopRightToBottomLeftColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? TopRightToBottomLeftColorValue {
             get {
                 return BordersOrNull?.TopRightToBottomLeftCellBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -697,37 +650,34 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top right to bottom left table cell border color using named colors
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor TopRightToBottomLeftColor {
-            get {
-                var hex = TopRightToBottomLeftColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopRightToBottomLeftColorHex is null"));
-            }
-            set { this.TopRightToBottomLeftColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? TopRightToBottomLeftColor {
+            get => Helpers.ParseNativeColor(TopRightToBottomLeftColorValue);
+            set => TopRightToBottomLeftColorValue = value?.ToRgbHex();
         }
 
-        /// <summary>
-        /// Get or set top right to bottom left table cell border space
-        /// </summary>
-        public uint? TopRightToBottomLeftSpace {
+        /// <summary>Gets or sets the top-right to bottom-left cell border spacing.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest whole point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopRightToBottomLeftSpace {
             get {
-                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Space?.Value;
+                return WordBorderLengths.FromSpace(BordersOrNull?.TopRightToBottomLeftCellBorder?.Space?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSpace(value);
                 var d = EnsureTRBL();
-                d.Space = value;
+                d.Space = nativeValue;
             }
         }
 
-        /// <summary>
-        /// Get or set top right to bottom left table cell border size
-        /// </summary>
-        public uint? TopRightToBottomLeftSize {
+        /// <summary>Gets or sets the top-right to bottom-left cell border width.</summary>
+        /// <remarks>Nonnegative lengths round to the nearest eighth of a point; midpoint ties round away from zero. Null clears the attribute.</remarks>
+        public OfficeLength? TopRightToBottomLeftSize {
             get {
-                return BordersOrNull?.TopRightToBottomLeftCellBorder?.Size?.Value;
+                return WordBorderLengths.FromSize(BordersOrNull?.TopRightToBottomLeftCellBorder?.Size?.Value);
             }
             set {
+                uint? nativeValue = WordBorderLengths.ToSize(value);
                 var d = EnsureTRBL();
-                d.Size = value;
+                d.Size = nativeValue;
             }
         }
 

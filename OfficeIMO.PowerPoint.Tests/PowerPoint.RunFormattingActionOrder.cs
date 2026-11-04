@@ -12,11 +12,11 @@ public class PowerPointRunFormattingActionOrderTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void FormattingAndActionsRemainValidInEitherOrder(bool tableCell, bool actionsFirst) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextRun run;
         if (tableCell) {
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 20, 300, 80).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80)).GetCell(0, 0);
             cell.Text = "Linked label";
             run = cell.Runs.Single();
         } else {
@@ -25,25 +25,25 @@ public class PowerPointRunFormattingActionOrderTests {
 
         if (actionsFirst) run.SetHyperlink("https://example.test/linked-label");
         run.SetMouseOverStopsSound(true);
-        run.FontName = "Aptos";
-        run.HighlightColor = "FFFF00";
-        run.Color = "FFFFFF";
+        run.FontFamily = "Aptos";
+        run.BackgroundColor = OfficeColor.Parse("FFFF00");
+        run.Color = OfficeColor.Parse("FFFFFF");
         // Replacing the link must preserve the formatting and mouse-over action as well.
         run.SetHyperlink("https://example.test/final-label");
 
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(stream);
+        using var reopened = PowerPointDocument.Load(stream);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         PowerPointSlide actualSlide = reopened.Slides.Single();
         PowerPointTextRun actual = tableCell
             ? actualSlide.Tables.Single().GetCell(0, 0).Runs.Single()
             : actualSlide.TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Equal("Linked label", actual.Text);
-        Assert.Equal("Aptos", actual.FontName);
-        Assert.Equal("FFFF00", actual.HighlightColor);
-        Assert.Equal("FFFFFF", actual.Color);
+        Assert.Equal("Aptos", actual.FontFamily);
+        Assert.Equal(OfficeColor.Parse("FFFF00"), actual.BackgroundColor);
+        Assert.Equal(OfficeColor.Parse("FFFFFF"), actual.Color);
         Assert.Equal("https://example.test/final-label", actual.Hyperlink?.AbsoluteUri);
         Assert.True(actual.HasMouseOverInteraction);
         Assert.True(actual.MouseOverStopsSound);
@@ -53,13 +53,13 @@ public class PowerPointRunFormattingActionOrderTests {
     [InlineData(false)]
     [InlineData(true)]
     public void CellAndTextBoxFormattingPreservesLinkedRuns(bool tableCell) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTableCell? cell = null;
         PowerPointTextBox? textBox = null;
         PowerPointTextRun run;
         if (tableCell) {
-            cell = slide.AddTablePoints(1, 1, 20, 20, 300, 80).GetCell(0, 0);
+            cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80)).GetCell(0, 0);
             cell.Text = "Linked label";
             run = cell.Runs.Single();
         } else {
@@ -69,25 +69,25 @@ public class PowerPointRunFormattingActionOrderTests {
         run.SetHyperlink("https://example.test/linked-label");
         run.SetMouseOverStopsSound(true);
         if (cell != null) {
-            cell.FontName = "Aptos";
-            cell.Color = "FFFFFF";
+            cell.FontFamily = "Aptos";
+            cell.Color = OfficeColor.Parse("FFFFFF");
         } else {
-            textBox!.FontName = "Aptos";
-            textBox.Color = "FFFFFF";
+            textBox!.FontFamily = "Aptos";
+            textBox.Color = OfficeColor.Parse("FFFFFF");
         }
 
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
-        using var reopened = PowerPointPresentation.Load(stream);
+        using var reopened = PowerPointDocument.Load(stream);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         PowerPointSlide actualSlide = reopened.Slides.Single();
         PowerPointTextRun actual = tableCell
             ? actualSlide.Tables.Single().GetCell(0, 0).Runs.Single()
             : actualSlide.TextBoxes.Single().Paragraphs.Single().Runs.Single();
         Assert.Equal("Linked label", actual.Text);
-        Assert.Equal("Aptos", actual.FontName);
-        Assert.Equal("FFFFFF", actual.Color);
+        Assert.Equal("Aptos", actual.FontFamily);
+        Assert.Equal(OfficeColor.Parse("FFFFFF"), actual.Color);
         Assert.Equal("https://example.test/linked-label", actual.Hyperlink?.AbsoluteUri);
         Assert.True(actual.MouseOverStopsSound);
     }
@@ -96,7 +96,7 @@ public class PowerPointRunFormattingActionOrderTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ExplicitColorReplacesImportedFillWithoutChangingScriptFonts(bool gradient) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         PowerPointTextRun run = presentation.AddSlide().AddTextBox("Imported label")
             .Paragraphs.Single().Runs.Single();
         run.SetHyperlink("https://example.test/imported-label");
@@ -116,12 +116,12 @@ public class PowerPointRunFormattingActionOrderTests {
         using var source = new MemoryStream();
         presentation.Save(source);
         source.Position = 0;
-        using var imported = PowerPointPresentation.Load(source);
-        imported.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single().Color = "FFFFFF";
+        using var imported = PowerPointDocument.Load(source);
+        imported.Slides.Single().TextBoxes.Single().Paragraphs.Single().Runs.Single().Color = OfficeColor.Parse("FFFFFF");
         using var output = new MemoryStream();
         imported.Save(output);
         output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         A.RunProperties actual = reopened.OpenXmlDocument.PresentationPart!.SlideParts
             .Single().Slide.Descendants<A.RunProperties>().Single();

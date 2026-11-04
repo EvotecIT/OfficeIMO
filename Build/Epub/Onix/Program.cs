@@ -94,7 +94,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             Statements = [new("Second revised and annotated edition", "eng"), new("Drugie wydanie", "pol")] }
             : profile.Name == "no-edition" ? new() { NoEdition = true } : null,
         Subjects = profile.Name == "discoverability" ? SubjectFixtures.Create() : [],
-        Subtitle = "Explicit publishing assertions", PublicationDate = new DateOnly(2026, 10, 5),
+        Subtitle = "Explicit publishing assertions", PublicationDate = new DateTime(2026, 10, 5),
         NoContributors = profile.Name == "early",
         Contributors = profile.Name == "early" ? [] : [
             new("Alice Example", BookOnixContributorRole.Author), new("Jan Kowalski", BookOnixContributorRole.Translator),
@@ -117,7 +117,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         foreach (var system in Enum.GetValues<BookOnixGradeSystem>())
             foreach (var grade in Enum.GetValues<BookOnixGrade>()) {
                 var gradeResult = project.ExportOnix(options with { Audience = new() { GradeRanges = [new(system, grade, grade)] } },
-                    schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+                    schemas, new EpubSaveOptions { ModifiedAt = timestamp });
                 System.Xml.Linq.XNamespace ns = "http://ns.editeur.org/onix/3.1/reference";
                 var range = System.Xml.Linq.XDocument.Load(new MemoryStream(gradeResult.Bytes)).Descendants(ns + "AudienceRange").Single();
                 gradeCodes.Add(new { system = system.ToString(), grade = grade.ToString(),
@@ -132,7 +132,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         // Exercise every supported list 21 mapping against the authoritative schema.
         foreach (var type in Enum.GetValues<BookOnixEditionType>())
             project.ExportOnix(options with { Edition = new() { Types = [type] } }, schemas,
-                new EpubWriteOptions { ModifiedAt = timestamp });
+                new EpubSaveOptions { ModifiedAt = timestamp });
     }
     if (profile.Name == "collateral-xhtml") {
         bool invalidNestingRejected = false;
@@ -146,7 +146,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
         }
         if (!invalidNestingRejected) throw new InvalidDataException("The supplied schema accepted invalid XHTML paragraph nesting.");
     }
-    var result = project.ExportOnix(options, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+    var result = project.ExportOnix(options, schemas, new EpubSaveOptions { ModifiedAt = timestamp });
     if (profile.Name == "market-segments") MarketSegmentFixtures.Verify(result, schemas, outputDirectory);
     ChangeFixtures.Write(profile.Name, result, schemas, outputDirectory);
     if (profile.Name == "advance") MarketFixtures.Write(project, options, schemas, outputDirectory, timestamp);
@@ -173,7 +173,7 @@ foreach (var profile in new[] { (Name: "early", Language: "en", Onix: "eng", Not
             var catalogProject = BookProject.Create("Catalog second edition", profile.Language);
             catalogProject.Publication.Identifier = "urn:officeimo:fixture:onix:catalog-priced";
             catalogProject.Publication.AddIdentifier("catalog-isbn", new EpubIdentifierMetadata { Value = "9781861972712", Kind = EpubIdentifierKind.Isbn13 });
-            catalogResult = catalogProject.ExportOnix(options with { IdentifierId = "catalog-isbn" }, schemas, new EpubWriteOptions { ModifiedAt = timestamp });
+            catalogResult = catalogProject.ExportOnix(options with { IdentifierId = "catalog-isbn" }, schemas, new EpubSaveOptions { ModifiedAt = timestamp });
             File.WriteAllBytes(Path.Combine(outputDirectory, "catalog-priced.epub"), catalogResult.Publication.Bytes);
         }
         messageProducts.Add(catalogResult);

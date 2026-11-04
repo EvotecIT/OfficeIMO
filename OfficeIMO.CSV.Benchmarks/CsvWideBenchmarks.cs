@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
@@ -524,7 +522,7 @@ public class CsvWideBenchmarks
             {
                 checksum += MeasureValues(values);
             },
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         return checksum;
     }
@@ -540,7 +538,7 @@ public class CsvWideBenchmarks
             {
                 checksum += 1 + value.Length;
             },
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         return checksum;
     }
@@ -553,7 +551,7 @@ public class CsvWideBenchmarks
         CsvDocument.ReadFieldSpans(
             reader,
             ref visitor,
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         return visitor.FieldCount + visitor.TextLength;
     }
@@ -565,7 +563,7 @@ public class CsvWideBenchmarks
         CsvDocument.ReadFieldSpansFromText(
             _csvText,
             ref visitor,
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         return visitor.FieldCount + visitor.TextLength;
     }
@@ -582,7 +580,7 @@ public class CsvWideBenchmarks
     public int OfficeIMO_ReadDataTableInferredSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
-        var table = document.ToDataTable(new CsvDataTableOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        var table = document.ToDataTable(new CsvDataTableOptions { InferSchema = true, SchemaSampleRows = RowCount });
         return DataTableBenchmarkUtilities.Measure(table);
     }
 
@@ -600,7 +598,7 @@ public class CsvWideBenchmarks
     public int OfficeIMO_ReadDataTableLoadDataReaderInferredSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
-        using var csv = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        using var csv = document.CreateDataReader(new CsvReaderOptions { InferSchema = true, SchemaSampleRows = RowCount });
         var table = new System.Data.DataTable();
         table.Load(csv);
         return DataTableBenchmarkUtilities.Measure(table);
@@ -635,7 +633,7 @@ public class CsvWideBenchmarks
     public int OfficeIMO_ReadDataReaderInferredSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
-        using var csv = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        using var csv = document.CreateDataReader(new CsvReaderOptions { InferSchema = true, SchemaSampleRows = RowCount });
         return DataTableBenchmarkUtilities.Measure(csv);
     }
 
@@ -643,16 +641,15 @@ public class CsvWideBenchmarks
     public int OfficeIMO_ReadDataReaderExplicitSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
-        using var csv = document.CreateDataReader(new CsvDataReaderOptions { Schema = _wideSchema });
+        using var csv = document.CreateDataReader(new CsvReaderOptions { Schema = _wideSchema });
         return DataTableBenchmarkUtilities.Measure(csv);
     }
 
     [Benchmark]
     public int OfficeIMO_ReadFileDataReaderExplicitSchema()
     {
-        using var csv = CsvDocument.OpenDataReader(
-            _csvPath,
-            readerOptions: new CsvDataReaderOptions { Schema = _wideSchema });
+        using var csv = CsvDocument.OpenReader(_csvPath,
+            options: new CsvReaderOptions { Schema = _wideSchema });
         return DataTableBenchmarkUtilities.Measure(csv);
     }
 
@@ -664,7 +661,7 @@ public class CsvWideBenchmarks
         CsvDocument.ReadFieldSpans(
             reader,
             ref visitor,
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
         visitor.Complete();
         return visitor.FieldCount + visitor.TextLength;
     }
@@ -802,7 +799,7 @@ public class CsvWideBenchmarks
     public CsvWideReadObservation OfficeIMO_ReadUtf8Fields()
     {
         using var stream = new MemoryStream(_csvUtf8, writable: false);
-        using var reader = CsvDocument.OpenDataReader(stream);
+        using var reader = CsvDocument.OpenReader(stream);
         var observation = CsvWideReadObservation.Empty;
         while (reader.Read())
         {
@@ -822,7 +819,12 @@ public class CsvWideBenchmarks
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
         var observation = CsvWideReadObservation.Empty;
         bool header = true;
-        foreach (var row in reader)
+#if NET10_0_OR_GREATER
+        var rows = reader.FirstSheet;
+#else
+        var rows = reader;
+#endif
+        foreach (var row in rows)
         {
             if (header)
             {

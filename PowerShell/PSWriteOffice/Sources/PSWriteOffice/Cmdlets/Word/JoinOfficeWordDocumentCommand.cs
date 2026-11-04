@@ -23,7 +23,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Append into an already-open document object.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Base.docx
+///   <code>$doc = Open-OfficeWord -Path .\Base.docx
 /// $doc | Join-OfficeWordDocument -AppendPath .\Section1.docx, .\Section2.docx -PassThru |
 ///     Save-OfficeWord -Path .\Combined.docx</code>
 ///   <para>Keeps the wrapper thin by piping the OfficeIMO document object through append and save commands.</para>

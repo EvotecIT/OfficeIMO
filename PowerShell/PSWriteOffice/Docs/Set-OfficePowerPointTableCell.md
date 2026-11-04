@@ -14,31 +14,31 @@ Sets text in an existing PowerPoint table cell.
 Set-OfficePowerPointTableCell [-InputObject] <Object> -Row <int> -Column <int> -Text <string> [-PassThru] [<CommonParameters>]
 ```
 
-### Run
+### Content
 ```powershell
-Set-OfficePowerPointTableCell [-InputObject] <Object> -Row <int> -Column <int> -Run <Object[]> [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointTableCell [-InputObject] <Object> -Row <int> -Column <int> -Content <scriptblock> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 Accepts a PowerPointTable or a PowerPointShapeInfo record whose shape is a
-table. Row and column coordinates are zero-based, matching the OfficeIMO PowerPoint table API. Use
-this after Find-OfficePowerPointShape -Kind Table when a script needs to update a specific
+table. Row and column coordinates are one-based. Use
+this after Get-OfficePowerPointShape -Kind Table when a script needs to update a specific
 cell inside a deck that already exists.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Find-OfficePowerPointShape -Presentation $ppt -Text 'Metric' -Kind Table |
-                Set-OfficePowerPointTableCell -Row 1 -Column 1 -Text 'Ready'
+PS> Get-OfficePowerPointShape -Document $ppt -Text 'Metric' -Kind Table |
+                Set-OfficePowerPointTableCell -Row 2 -Column 2 -Text 'Ready'
 ```
 
-Accepts a PowerPoint table or table shape metadata and updates a zero-based table cell.
+Accepts a PowerPoint table or table shape metadata and updates a one-based table cell.
 
 ### EXAMPLE 2
 ```powershell
-PS> $table = Find-OfficePowerPointShape -Presentation $ppt -Text 'Risk' -Kind Table | Select-Object -First 1
-$table | Set-OfficePowerPointTableCell -Row 1 -Column 1 -Text 'Mitigating'
+PS> $table = Get-OfficePowerPointShape -Document $ppt -Text 'Risk' -Kind Table | Select-Object -First 1
+$table | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Text 'Mitigating'
 ```
 
 Uses the table found by text content and updates the second row, second column.
@@ -46,11 +46,27 @@ Uses the table found by text content and updates the second row, second column.
 ## PARAMETERS
 
 ### -Column
-Zero-based column index.
+One-based column number.
 
 ```yaml
 Type: Int32
-Parameter Sets: Text, Run
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Content
+Replacement rich paragraphs and runs, using PowerPointParagraph and PowerPointText.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -62,11 +78,11 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-PowerPoint table or table shape info returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.
+PowerPoint table or table shape info returned by Get-OfficePowerPointShape.
 
 ```yaml
 Type: Object
-Parameter Sets: Text, Run
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -82,7 +98,7 @@ Emit the updated table cell for additional OfficeIMO-level edits.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, Run
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -94,28 +110,12 @@ Accept wildcard characters: False
 ```
 
 ### -Row
-Zero-based row index.
+One-based row number.
 
 ```yaml
 Type: Int32
-Parameter Sets: Text, Run
+Parameter Sets: Text, Content
 Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Run
-Replacement rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.
-
-```yaml
-Type: Object[]
-Parameter Sets: Run
-Aliases: Runs
 Possible values:
 
 Required: True

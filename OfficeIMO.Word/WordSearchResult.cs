@@ -2,7 +2,8 @@ using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
     /// <summary>
-    /// Represents the results of a find and replace operation within a document.
+    /// Result of <see cref="WordDocument.Find(string, OfficeTextSearchOptions?)"/> and <see cref="WordDocument.Find(Regex)"/>:
+    /// the paragraphs containing matches, grouped by document part, and the total match count.
     /// </summary>
     public sealed class WordSearchResult {
         private readonly List<WordParagraph> _bodyParagraphs = new();
@@ -16,8 +17,23 @@ namespace OfficeIMO.Word {
 
         internal WordSearchResult() { }
 
-        /// <summary>Gets the total number of regular-expression matches.</summary>
-        public int MatchCount { get; private set; }
+        private IReadOnlyList<WordParagraph>? _paragraphs;
+
+        /// <summary>Gets the total number of matches.</summary>
+        public int MatchCount { get; internal set; }
+
+        /// <summary>
+        /// Every paragraph containing one or more matches: body, table, header and then footer paragraphs, in the order of the part-specific lists.
+        /// </summary>
+        public IReadOnlyList<WordParagraph> Paragraphs => _paragraphs ??= _bodyParagraphs
+            .Concat(_tableParagraphs)
+            .Concat(_defaultHeaderParagraphs)
+            .Concat(_evenPageHeaderParagraphs)
+            .Concat(_firstPageHeaderParagraphs)
+            .Concat(_defaultFooterParagraphs)
+            .Concat(_evenPageFooterParagraphs)
+            .Concat(_firstPageFooterParagraphs)
+            .ToList();
 
         /// <summary>Body paragraphs containing one or more matches.</summary>
         public IReadOnlyList<WordParagraph> BodyParagraphs => _bodyParagraphs;

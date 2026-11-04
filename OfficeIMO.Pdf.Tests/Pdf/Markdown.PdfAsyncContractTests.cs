@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class MarkdownPdfAsyncContractTests {
     [Fact]
     public async Task PdfAsyncSavesPerformIoAndDoNotTurnCancellationIntoFailureResults() {
-        MarkdownDoc document = MarkdownDoc.Create().H1("Async Markdown PDF");
+        MarkdownDocument document = MarkdownDocument.Create().H1("Async Markdown PDF");
         using var output = new MemoryStream();
 
         await document.SaveAsPdfAsync(output);
@@ -19,7 +19,5 @@ public sealed class MarkdownPdfAsyncContractTests {
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             document.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            document.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
     }
 }

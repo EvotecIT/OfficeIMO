@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
@@ -419,8 +419,8 @@ namespace OfficeIMO.Visio {
             VisioShape frame = VisioConnectorGeometry.CreateShape(connector);
             OfficeIMO.Drawing.OfficePoint local = VisioConnectorEndpoints.ToLocalPoint(frame, new OfficeIMO.Drawing.OfficePoint(pinX, pinY));
             bool native = connector.NativeGeometry?.AppliesTo(connector) == true;
-            pinX = native && connector.NativeGeometry!.FlipX ? frame.Width - local.X : local.X;
-            pinY = native && connector.NativeGeometry!.FlipY ? frame.Height - local.Y : local.Y;
+            pinX = native && connector.NativeGeometry!.FlipX ? frame.WidthInches - local.X : local.X;
+            pinY = native && connector.NativeGeometry!.FlipY ? frame.HeightInches - local.Y : local.Y;
             return true;
         }
 

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Decoded metadata from a legacy XLS chart MarkerFormat record.
     /// </summary>
-    public sealed class LegacyXlsChartMarkerFormat {
+    internal sealed class LegacyXlsChartMarkerFormat {
         /// <summary>
         /// Creates decoded chart marker-format metadata.
         /// </summary>

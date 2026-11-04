@@ -176,14 +176,14 @@ public sealed partial class IWorkBoundaryTests {
             RequireCompleteVisualCoverage = false
         };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, readOptions: readOptions, conversionOptions: options);
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages, readOptions).ToWordResult(options);
             return result.Report;
         }
         if (kind == IWorkDocumentKind.Numbers) {
-            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, readOptions: readOptions, conversionOptions: options);
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, readOptions).ToExcelResult(options);
             return result.Report;
         }
-        using var keynote = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, readOptions: readOptions, conversionOptions: options);
+        using var keynote = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote, readOptions).ToPowerPointResult(options);
         return keynote.Report;
     }
 }

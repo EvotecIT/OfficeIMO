@@ -56,13 +56,13 @@ public sealed class DrawPdfStandardFontClippingTests {
 
     private static void Verify(OdgDocument source, bool clipped, string text) {
         string[] before = XmlState(source);
-        var result = source.ToPdfDocumentResult();
+        var result = source.ConvertToPdfWithEvidence(null, default);
         var report = Assert.IsType<OdfConversionReport>(Assert.Single(result.SourceConversionReports));
         Assert.Equal(clipped, report.Mappings.Any(m => m.Feature.EndsWith(":text-clipped", StringComparison.Ordinal)
             && m.Status == OdfConversionMappingStatus.Unsupported));
-        var strict = new OdgToPdfOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
-        if (clipped) Assert.Throws<OdfConversionLossException>(() => source.ToPdfBytes(strict));
-        else Assert.Contains(text, PdfReadDocument.Open(source.ToPdfBytes(strict)).ExtractText());
+        var strict = new OdgPdfExportOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
+        if (clipped) Assert.Throws<OdfConversionLossException>(() => source.ToPdf(strict).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        else Assert.Contains(text, PdfDocument.Load(new System.IO.MemoryStream(source.ToPdf(strict).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText());
         Assert.Equal(before, XmlState(source));
     }
 

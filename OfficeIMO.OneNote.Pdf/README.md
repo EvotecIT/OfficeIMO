@@ -11,13 +11,13 @@ using OfficeIMO.OneNote;
 using OfficeIMO.OneNote.Pdf;
 
 OneNoteSection section = OneNoteSectionReader.Read("Section.one");
-byte[] pdf = section.ToPdfBytes();
-section.SaveAsPdf("Section.pdf");
+OfficeConversionReport report = section.SaveAsPdf("Section.pdf");
+using PdfDocument pdf = section.ToPdf();
 ```
 
-OneNote pages are free-form canvases. The current `SemanticDocument` mode intentionally flattens them into reading order. `ToPdfDocumentResult()` reports canvas flattening, formatting simplification, unresolved asset placeholders, link-only binary assets, opaque omissions, and source diagnostics. It does not claim pixel parity with the OneNote desktop canvas.
+OneNote pages are free-form canvases. The current `SemanticDocument` mode intentionally flattens them into reading order. The conversion report covers canvas flattening, formatting simplification, unresolved asset placeholders, link-only binary assets, opaque omissions, and source diagnostics. It does not claim pixel parity with the OneNote desktop canvas.
 
-Use `OneNoteToPdfOptions.ProjectionOptions` for conflict/version inclusion and asset destinations, and `OneNoteToPdfOptions.MarkdownOptions` for the intermediate Markdown-to-PDF layout, fonts, image policy, and diagnostics.
+Use `OneNotePdfExportOptions.ProjectionOptions` for conflict/version inclusion and asset destinations, and `OneNotePdfExportOptions.MarkdownOptions` for the intermediate Markdown-to-PDF layout, fonts, image policy, and diagnostics.
 
 OneNote PDF export adds multilingual fallback candidates in addition to the normal document, monospace, and symbol candidates. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit. Conversion clones both projection and PDF options so reusable caller configuration is not mutated:
 
@@ -26,16 +26,14 @@ using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.OneNote.Markdown;
 using OfficeIMO.Pdf;
 
-var options = new OneNoteToPdfOptions {
-    MarkdownOptions = new MarkdownToPdfOptions {
+var options = new OneNotePdfExportOptions {
+    MarkdownOptions = new MarkdownPdfExportOptions {
         ResourcePolicy = PdfResourcePolicy.CreateTrustedHost()
     }
 };
 
-PdfDocumentConversionResult result = section.ToPdfDocumentResult(options);
-OneNoteMarkdownConversionReport projection =
-    (OneNoteMarkdownConversionReport) result.SourceConversionReports[0];
-foreach (OneNoteMarkdownDiagnostic diagnostic in projection.Diagnostics) {
+using PdfDocument pdf = section.ToPdf(options, out OfficeConversionReport report);
+foreach (OfficeDiagnostic diagnostic in report.Diagnostics) {
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 }
 result.Save("Section.pdf");
@@ -48,7 +46,7 @@ Invalid Unicode noncharacters and native control codes are normalized by `Office
 The visual path uses the same positioned `OfficeDrawing` canvas as PNG/JPEG/TIFF/SVG/WebP and visual HTML export. Each page is rasterized once and placed edge-to-edge at the canvas's page geometry, retaining freeform placement, images and printouts, ink, structured math, and attachment placeholders.
 
 ```csharp
-var visualOptions = new OneNoteVisualPdfOptions {
+var visualOptions = new OneNoteVisualPdfExportOptions {
     RasterScale = 2, // 144 DPI
     MaximumRasterPixels = 50_000_000,
     PageRendering = new OneNotePageRenderingOptions {
@@ -58,9 +56,8 @@ var visualOptions = new OneNoteVisualPdfOptions {
     Title = "Project notebook"
 };
 
-byte[] visualPdf = section.ToVisualPdfBytes(visualOptions);
-var result = section.SaveAsVisualPdf("Section-visual.pdf", visualOptions);
-foreach (var warning in result.Report.Warnings) {
+OfficeConversionReport visual = section.SaveAsVisualPdf("Section-visual.pdf", visualOptions);
+foreach (var warning in visual.Diagnostics) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
 ```

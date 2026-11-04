@@ -36,15 +36,49 @@ namespace OfficeIMO.Excel.Utilities {
 
             packageStream.Position = originalPosition;
             using var archive = new ZipArchive(packageStream, ZipArchiveMode.Update, leaveOpen: leaveOpen);
+            byte[]? normalized = BuildNormalizedContentTypes(archive, maxCharactersInPart);
+            if (normalized == null) return false;
+
+            archive.GetEntry(ContentTypesEntry)!.Delete();
+            var newEntry = archive.CreateEntry(ContentTypesEntry, CompressionLevel.Optimal);
+            using var output = newEntry.Open();
+            output.Write(normalized, 0, normalized.Length);
+            return true;
+        }
+
+        /// <summary>
+        /// Normalizes a package held in memory by replacing only its content-types entry. Returns false when the
+        /// package is outside the plain ZIP shape the splicer handles; the stream route then applies.
+        /// </summary>
+        internal static bool TryNormalizeContentTypes(byte[] package, long maxCharactersInPart, out byte[] normalized, out bool changed) {
+            normalized = package;
+            changed = false;
+            using var input = new MemoryStream(package, writable: false);
+            if (!NeedsContentTypeNormalization(input, maxCharactersInPart)) return true;
+
+            input.Position = 0;
+            using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: true);
+            byte[]? contentTypes = BuildNormalizedContentTypes(archive, maxCharactersInPart);
+            if (contentTypes == null) return true;
+
+            byte[]? spliced = ExcelPackageEntrySplicer.TryEdit(package, splicer => splicer.Replace(ContentTypesEntry, contentTypes));
+            if (spliced == null) return false;
+            normalized = spliced;
+            changed = true;
+            return true;
+        }
+
+        /// <summary>Returns the corrected content-types part, or null when the package has none to correct.</summary>
+        private static byte[]? BuildNormalizedContentTypes(ZipArchive archive, long maxCharactersInPart) {
             var entry = archive.GetEntry(ContentTypesEntry);
             if (entry == null) {
-                return false;
+                return null;
             }
 
             string xml = ReadContentTypesXml(entry, maxCharactersInPart);
 
             if (string.IsNullOrWhiteSpace(xml)) {
-                return false;
+                return null;
             }
 
             XDocument document;
@@ -56,7 +90,7 @@ namespace OfficeIMO.Excel.Utilities {
 
             var root = document.Root;
             if (root == null) {
-                return false;
+                return null;
             }
 
             XNamespace ns = root.Name.Namespace;
@@ -114,7 +148,7 @@ namespace OfficeIMO.Excel.Utilities {
             if (corePartName != null && EnsureOverride(corePartName, CorePropsContentType)) changed = true;
 
             if (!changed) {
-                return false;
+                return null;
             }
 
             document.Declaration = new XDeclaration("1.0", "utf-8", null);
@@ -135,12 +169,7 @@ namespace OfficeIMO.Excel.Utilities {
                 document.Save(writer);
             }
             boundedTypes.Complete();
-            normalizedTypes.Position = 0;
-            entry.Delete();
-            var newEntry = archive.CreateEntry(ContentTypesEntry, CompressionLevel.Optimal);
-            using var output = newEntry.Open();
-            normalizedTypes.CopyTo(output);
-            return true;
+            return normalizedTypes.ToArray();
         }
 
         /// <summary>Preserves effective part types before replacing a specialized XML default.</summary>
@@ -180,46 +209,19 @@ namespace OfficeIMO.Excel.Utilities {
                     return true;
                 }
 
-                string xml = ReadContentTypesXml(entry, maxCharactersInPart);
-
-                if (string.IsNullOrWhiteSpace(xml)) {
+                if (!TryReadContentTypeDeclarations(entry, maxCharactersInPart, out int xmlDefaultCount, out bool xmlDefaultIsCorrect,
+                    out List<KeyValuePair<string?, string?>> overrides)) {
                     return true;
                 }
 
-                XDocument document;
-                try {
-                    document = XDocument.Parse(xml, LoadOptions.None);
-                } catch {
-                    return true;
-                }
-
-                var root = document.Root;
-                if (root == null) {
-                    return true;
-                }
-
-                XNamespace ns = root.Name.Namespace;
                 var (workbookPartName, appPartName, corePartName) = ReadRootParts(archive, maxCharactersInPart);
-                int xmlDefaultCount = 0;
-                bool xmlDefaultIsCorrect = false;
                 bool workbookOverrideIsCorrect = workbookPartName == null;
                 bool appPropsOverrideIsCorrect = appPartName == null;
                 bool corePropsOverrideIsCorrect = corePartName == null;
 
-                foreach (var element in root.Elements()) {
-                    if (element.Name == ns + "Default"
-                        && string.Equals((string?)element.Attribute("Extension"), "xml", StringComparison.OrdinalIgnoreCase)) {
-                        xmlDefaultCount++;
-                        xmlDefaultIsCorrect = string.Equals((string?)element.Attribute("ContentType"), "application/xml", StringComparison.OrdinalIgnoreCase);
-                        continue;
-                    }
-
-                    if (element.Name != ns + "Override") {
-                        continue;
-                    }
-
-                    string? partName = (string?)element.Attribute("PartName");
-                    string? contentType = (string?)element.Attribute("ContentType");
+                foreach (KeyValuePair<string?, string?> declaration in overrides) {
+                    string? partName = declaration.Key;
+                    string? contentType = declaration.Value;
                     if (string.Equals(partName, workbookPartName, StringComparison.OrdinalIgnoreCase)) {
                         workbookOverrideIsCorrect = IsSupportedWorkbookContentType(contentType);
                     } else if (string.Equals(partName, appPartName, StringComparison.OrdinalIgnoreCase)) {
@@ -236,8 +238,53 @@ namespace OfficeIMO.Excel.Utilities {
                     || !corePropsOverrideIsCorrect;
             } catch (InvalidDataException) {
                 throw;
+            } catch (XmlException exception) {
+                throw new InvalidDataException("Package root relationships are invalid or exceed XML limits.", exception);
             } catch {
                 return true;
+            }
+        }
+
+        /// <summary>
+        /// Streams the declarations that decide whether a package needs normalizing. Anything this reader rejects,
+        /// including a size limit, returns false and leaves the verdict and its error to the normalizer.
+        /// </summary>
+        private static bool TryReadContentTypeDeclarations(ZipArchiveEntry entry, long maxCharactersInPart,
+            out int xmlDefaultCount, out bool xmlDefaultIsCorrect, out List<KeyValuePair<string?, string?>> overrides) {
+            xmlDefaultCount = 0;
+            xmlDefaultIsCorrect = false;
+            overrides = new List<KeyValuePair<string?, string?>>();
+            if (entry.Length > MaximumContentTypesEntryBytes) {
+                throw new InvalidDataException(
+                    $"The package content-types part exceeds the supported {MaximumContentTypesEntryBytes}-byte limit.");
+            }
+
+            using Stream input = entry.Open();
+            using var reader = XmlReader.Create(input, new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = maxCharactersInPart > 0
+                    ? Math.Min(maxCharactersInPart, MaximumContentTypesEntryBytes)
+                    : MaximumContentTypesEntryBytes
+            });
+            try {
+                string? rootNamespace = null;
+                while (reader.Read()) {
+                    if (reader.NodeType != XmlNodeType.Element) continue;
+                    if (reader.Depth == 0) { rootNamespace = reader.NamespaceURI; continue; }
+                    if (reader.Depth != 1 || reader.NamespaceURI != rootNamespace) continue;
+                    if (reader.LocalName == "Default") {
+                        if (string.Equals(reader.GetAttribute("Extension"), "xml", StringComparison.OrdinalIgnoreCase)) {
+                            xmlDefaultCount++;
+                            xmlDefaultIsCorrect = string.Equals(reader.GetAttribute("ContentType"), "application/xml", StringComparison.OrdinalIgnoreCase);
+                        }
+                    } else if (reader.LocalName == "Override") {
+                        overrides.Add(new KeyValuePair<string?, string?>(reader.GetAttribute("PartName"), reader.GetAttribute("ContentType")));
+                    }
+                }
+                return rootNamespace != null;
+            } catch (XmlException) {
+                return false;
             }
         }
 

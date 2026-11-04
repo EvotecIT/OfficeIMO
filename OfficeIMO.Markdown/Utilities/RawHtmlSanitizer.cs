@@ -8,7 +8,7 @@ internal static class RawHtmlSanitizer {
         return Sanitize(html, null);
     }
 
-    internal static string Sanitize(string html, HtmlOptions? options) {
+    internal static string Sanitize(string html, MarkdownHtmlExportOptions? options) {
         if (string.IsNullOrEmpty(html)) return string.Empty;
 
         var sb = new StringBuilder(html.Length + 32);

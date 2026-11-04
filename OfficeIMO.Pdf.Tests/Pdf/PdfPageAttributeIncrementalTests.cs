@@ -36,7 +36,7 @@ public class PdfPageAttributeIncrementalTests {
         Assert.Equal(90, selectorResult.RequireValue().Inspect().Pages[0].RotationDegrees);
         Assert.Equal(PdfMutationOperation.RotatePages, rotated.Pipeline.Steps.Last().MutationOperation);
 
-        PdfDocument insertedPage = PdfDocument.Create().Paragraph(p => p.Text("Inserted"));
+        PdfDocument insertedPage = PdfDocument.Create().Paragraph(p => p.AddText("Inserted"));
         Assert.Equal(before.PageCount + 1, original.Pages.Insert(1, insertedPage).Inspect().PageCount);
         if (before.HasTaggedContent)
             Assert.Throws<PdfMutationBlockedException>(() => original.Pages.CropAndTranslate(0, 0, 100, 100, 1));
@@ -69,8 +69,8 @@ public class PdfPageAttributeIncrementalTests {
     [Fact]
     public void InheritedRotation_OverridesOnlyRequestedPageAndKeepsAbsoluteAngleContract() {
         byte[] source = PdfDocument.Create(compose => {
-            compose.Page(page => page.Content(c => c.Paragraph(p => p.Text("First"))));
-            compose.Page(page => page.Content(c => c.Paragraph(p => p.Text("Second"))));
+            compose.Page(page => page.Content(c => c.AddParagraph(p => p.AddText("First"))));
+            compose.Page(page => page.Content(c => c.AddParagraph(p => p.AddText("Second"))));
         }).ToBytes();
         var (objects, trailer) = PdfSyntax.ParseObjects(source);
         PdfReadDocument read = PdfReadDocument.Open(source);
@@ -115,7 +115,7 @@ public class PdfPageAttributeIncrementalTests {
 
     [Fact]
     public void PageAttributes_DoNotPersistUnrelatedParentRepairs() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Repaired parent")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Repaired parent")).ToBytes();
         var (objects, trailer) = PdfSyntax.ParseObjects(source);
         PdfReadDocument read = PdfReadDocument.Open(source);
         int pageNumber = read.Pages[0].ObjectNumber;
@@ -140,7 +140,7 @@ public class PdfPageAttributeIncrementalTests {
 
     [Fact]
     public void OrdinarySource_KeepsFullRewriteAndReportsIt() {
-        PdfDocument document = PdfDocument.Create().Paragraph(p => p.Text("Ordinary PDF"));
+        PdfDocument document = PdfDocument.Create().Paragraph(p => p.AddText("Ordinary PDF"));
         PdfOperationResult<PdfDocument> result = document.Pages.RotateResult(180, "1");
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, result.MutationPlan!.ExecutionMode);
         Assert.Equal(180, result.RequireValue().Inspect().Pages[0].RotationDegrees);

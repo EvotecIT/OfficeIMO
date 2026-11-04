@@ -9,7 +9,7 @@ public class PdfRedactionSearchCleanupTests {
     [Fact]
     public void SearchRejectsCriterionMultiplicationBeforeScanningEveryBlock() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text(new string('A', 4_096)))
+            .Paragraph(p => p.AddText(new string('A', 4_096)))
             .ToBytes();
         var search = new PdfRedactionSearchOptions();
         for (int i = 0; i < 5_000; i++) search.AddLiteral("unmatched-" + i);
@@ -22,7 +22,7 @@ public class PdfRedactionSearchCleanupTests {
     [Fact]
     public void ApplyChargesSourceCriteriaBeforeCheckingRedactionGeometry() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text(new string('A', 4_096) + " SECRET"))
+            .Paragraph(p => p.AddText(new string('A', 4_096) + " SECRET"))
             .ToBytes();
         PdfRedactionPlan searched = PdfRedactionPlanner.Search(source,
             new PdfRedactionSearchOptions().AddLiteral("SECRET"));
@@ -34,17 +34,17 @@ public class PdfRedactionSearchCleanupTests {
             searched.Findings, criteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfRedactionApplier.Apply(source, plan));
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfRedactionApplier.Apply(source, plan));
 
-        Assert.Contains("logical text work limit", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("FullRewrite.ProofFailed.RedactionResidue", exception.Plan.BlockerCodes);
     }
 
     [Fact]
     public void SearchAndApply_RemovesLiteralRegexFieldMetadataAndAttachmentResidue() {
-        var pdfOptions = new PdfOptions().AddEmbeddedFile("secret.txt", Encoding.UTF8.GetBytes("ATTACHMENT-SECRET"), "text/plain", PdfAssociatedFileRelationship.Data);
+        var pdfOptions = new PdfCreateOptions().AddEmbeddedFile("secret.txt", Encoding.UTF8.GetBytes("ATTACHMENT-SECRET"), "text/plain", PdfAssociatedFileRelationship.Data);
         byte[] source = PdfDocument.Create(pdfOptions)
             .Meta(title: "SECRET-METADATA", author: "Sensitive Author")
-            .Paragraph(p => p.Text("Payroll token SECRET-2026 and SSN 123-45-6789"))
+            .Paragraph(p => p.AddText("Payroll token SECRET-2026 and SSN 123-45-6789"))
             .TextField("Customer.Secret", value: "FIELD-SECRET")
             .ToBytes();
         var search = new PdfRedactionSearchOptions()
@@ -75,7 +75,7 @@ public class PdfRedactionSearchCleanupTests {
 
     [Fact]
     public void Search_LogicalKindProducesReviewablePlanWithoutApplyingIt() {
-        byte[] source = PdfDocument.Create().H1("Confidential heading").Paragraph(p => p.Text("Retained paragraph")).ToBytes();
+        byte[] source = PdfDocument.Create().H1("Confidential heading").Paragraph(p => p.AddText("Retained paragraph")).ToBytes();
 
         PdfRedactionPlan plan = PdfDocument.Load(source).SearchRedactions(new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
 
@@ -87,7 +87,7 @@ public class PdfRedactionSearchCleanupTests {
 
     [Fact]
     public void Apply_LogicalKindAllowsSameTextOutsideSelectedHeading() {
-        byte[] source = PdfDocument.Create().H1("Summary").Spacer(120).Paragraph(p => p.Text("Summary"))
+        byte[] source = PdfDocument.Create().H1("Summary").Spacer(120).Paragraph(p => p.AddText("Summary"))
             .ToBytes();
         PdfRedactionPlan plan = PdfRedactionPlanner.Search(source,
             new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
@@ -99,14 +99,14 @@ public class PdfRedactionSearchCleanupTests {
 
     [Fact]
     public void Apply_LogicalKindRejectsPartiallySurvivingHeading() {
-        byte[] source = PdfDocument.Create().H1("Confidential heading").Paragraph(p => p.Text("Retained paragraph")).ToBytes();
+        byte[] source = PdfDocument.Create().H1("Confidential heading").Paragraph(p => p.AddText("Retained paragraph")).ToBytes();
         PdfRedactionPlan searched = PdfRedactionPlanner.Search(source,
             new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
         PdfRedactionArea original = Assert.Single(searched.Areas);
         var partial = new PdfRedactionArea(original.PageNumber, original.X, original.Y,
             original.Width / 3D, original.Height, original.Label);
         var plan = new PdfRedactionPlan(searched.Preflight, [partial], searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
@@ -119,7 +119,7 @@ public class PdfRedactionSearchCleanupTests {
     [InlineData(true)]
     public void Apply_TextSearchRejectsPartiallySurvivingMatch(bool useRegex) {
         byte[] source = PdfDocument.Create().H1("Confidential heading")
-            .Paragraph(p => p.Text("Retained paragraph")).ToBytes();
+            .Paragraph(p => p.AddText("Retained paragraph")).ToBytes();
         PdfRedactionSearchOptions search = useRegex
             ? new PdfRedactionSearchOptions().AddRegex("Confidential heading")
             : new PdfRedactionSearchOptions().AddLiteral("Confidential heading");
@@ -128,7 +128,7 @@ public class PdfRedactionSearchCleanupTests {
         var partial = new PdfRedactionArea(original.PageNumber, original.X, original.Y,
             original.Width / 3D, original.Height, original.Label);
         var plan = new PdfRedactionPlan(searched.Preflight, [partial], searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase,
             searched.SearchRegexOptions, searched.SearchRegexTimeout);
 

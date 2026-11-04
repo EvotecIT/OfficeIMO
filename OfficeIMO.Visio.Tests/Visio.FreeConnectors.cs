@@ -19,9 +19,9 @@ public class VisioFreeConnectorTests {
         var connector = page.AddConnector("route", new OfficePoint(2.54, 5.08), new OfficePoint(12.7, 7.62));
         AssertPoint(1, 2, connector.StartPoint); AssertPoint(5, 3, connector.EndPoint);
         Assert.Empty(page.Shapes); Assert.Null(connector.From); Assert.Null(connector.To);
-        var shape = new VisioShape("target", 5, 3, 2, 2, "Target"); page.Shapes.Add(shape);
+        var shape = new VisioShape("target", OfficeLength.Inches(5), OfficeLength.Inches(3), OfficeLength.Inches(2), OfficeLength.Inches(2), "Target"); page.Shapes.Add(shape);
         page.ReconnectConnectorEnd(connector, shape, VisioSide.Left);
-        shape.PinY += 1;
+        shape.PinY += OfficeLength.Inches(1);
         AssertPoint(1, 2, connector.StartPoint); AssertPoint(4, 4, connector.EndPoint);
         connector.StartPoint = new OfficePoint(2, 2);
         connector.RouteOrthogonal();
@@ -33,7 +33,7 @@ public class VisioFreeConnectorTests {
         var projected = saved.ToOfficeDocumentModel();
         Assert.Contains(projected.Blocks, block => block.Text == "(2, 2) in -> target");
         Assert.Contains("(2, 2) in -> target", saved.ToOfficeDocumentReadResult().Chunks[0].Text);
-        var snapshot = Assert.Single(saved.CreateInspectionSnapshot().Pages[0].Connectors);
+        var snapshot = Assert.Single(saved.Inspect().Pages[0].Connectors);
         Assert.Null(snapshot.FromId); AssertPoint(2, 2, snapshot.StartPoint);
         Assert.Single(saved.Pages[0].IncomingConnectors(saved.Pages[0].Shapes[0]));
         Assert.Empty(saved.Pages[0].ConnectedShapes(saved.Pages[0].Shapes[0]));
@@ -50,7 +50,7 @@ public class VisioFreeConnectorTests {
     [Fact]
     public void DuplicationIncludesFreePageRoutesAndPartialSelectionRoutes() {
         var document = VisioDocument.Create(); var page = document.AddPage("Original");
-        var shape = new VisioShape("box", 4, 3, 2, 2, "Box"); page.Shapes.Add(shape);
+        var shape = new VisioShape("box", OfficeLength.Inches(4), OfficeLength.Inches(3), OfficeLength.Inches(2), OfficeLength.Inches(2), "Box"); page.Shapes.Add(shape);
         var free = page.AddConnector("free", new OfficePoint(1, 1), new OfficePoint(2, 2));
         var partial = page.AddConnector("partial", new OfficePoint(0, 0), new OfficePoint(3, 3));
         page.ReconnectConnectorEnd(partial, shape, VisioSide.Left);
@@ -78,7 +78,7 @@ public class VisioFreeConnectorTests {
         Assert.True(CurvePath(page, "34").Count(c => c == 'L') > 10);
         var unedited = RoundTrip(imported.Value, false);
         Assert.Equal(CurvePath(page, "34"), CurvePath(unedited.Pages[0], "34"));
-        curve.To!.PinX += 1;
+        curve.To!.PinX += OfficeLength.Inches(1);
         AssertPoint(6.06660611202271, 6.96715886639225, curve.EndPoint);
         curve.StartPoint = new OfficePoint(1, 8);
         string editedPath = CurvePath(page, "34");
@@ -98,12 +98,12 @@ public class VisioFreeConnectorTests {
     [Fact]
     public void AttachedEndpointUsesNestedShapeCoordinates() {
         var document = VisioDocument.Create(); var page = document.AddPage("Group");
-        var group = new VisioShape("group", 5, 5, 4, 4, "") { Angle = Math.PI / 2 };
-        var child = new VisioShape("child", 1, 1, 2, 2, ""); group.Children.Add(child); page.Shapes.Add(group);
+        var group = new VisioShape("group", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(4), "") { Angle = Math.PI / 2 };
+        var child = new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), ""); group.Children.Add(child); page.Shapes.Add(group);
         var connector = page.AddConnector("route", new OfficePoint(1, 1), new OfficePoint(2, 2));
         page.ReconnectConnectorEnd(connector, child, VisioSide.Left);
         AssertPoint(6, 3, connector.EndPoint);
-        group.PinX += 2;
+        group.PinX += OfficeLength.Inches(2);
         AssertPoint(8, 3, connector.EndPoint);
         AssertPoint(8, 3, RoundTrip(document, true).Pages[0].Connectors[0].EndPoint);
     }
@@ -133,7 +133,7 @@ public class VisioFreeConnectorTests {
         var shape = xml.Descendants(Legacy + "Page").Elements(Legacy + "Shapes").Elements(Legacy + "Shape").Single();
         var transform = shape.Element(Legacy + "XForm")!; var text = shape.Element(Legacy + "TextXForm")!;
         double Read(XElement parent, string name) => double.Parse(parent.Element(Legacy + name)!.Value, CultureInfo.InvariantCulture);
-        var frame = new VisioShape("frame") { PinX = Read(transform, "PinX"), PinY = Read(transform, "PinY"), LocPinX = Read(transform, "LocPinX"), LocPinY = Read(transform, "LocPinY"), Angle = Read(transform, "Angle") };
+        var frame = new VisioShape("frame") { PinXInches = Read(transform, "PinX"), PinYInches = Read(transform, "PinY"), LocPinXInches = Read(transform, "LocPinX"), LocPinYInches = Read(transform, "LocPinY"), Angle = Read(transform, "Angle") };
         var point = frame.GetAbsolutePoint(Read(text, "TxtPinX"), Read(text, "TxtPinY"));
         Assert.Equal((1 + endX) / 2, point.X, 8); Assert.Equal((1 + endY) / 2, point.Y, 8);
         Assert.Equal(0, frame.Angle + Read(text, "TxtAngle"), 8);

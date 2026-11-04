@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CellWatches");
-                    sheet.CellValue(3, 3, "Watched");
+                    ExcelSheet sheet = document.AddSheet("CellWatches");
+                    sheet.Cell(3, 3).SetValue("Watched");
                     sheet.WorksheetPart.Worksheet.Append(new CellWatches(
                         new CellWatch { CellReference = "C3" }));
                     sheet.WorksheetPart.Worksheet.Save();

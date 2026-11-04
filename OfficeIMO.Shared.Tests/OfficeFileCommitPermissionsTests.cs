@@ -11,18 +11,25 @@ namespace OfficeIMO.Shared.Tests {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void ReadableNonWritableStaleClaimCanBeRecovered(bool replace) {
+        public void ReadableNonWritableUnknownClaimBlocksPublication(bool replace) {
             if (OperatingSystem.IsWindows()) return;
-            string root = Path.Combine(Path.GetTempPath(), "officeimo-stale-claim-" + Guid.NewGuid().ToString("N"));
+            string root = Path.Combine(Path.GetTempPath(), "officeimo-unknown-claim-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             string target = Path.Combine(root, "artifact.bin");
             string claim = OfficeIMO.Core.Internal.IO.OfficeFileCommitClaim.CreatePath(target);
             byte[] payload = { 1, 2, 3 };
             try {
-                File.WriteAllText(claim, "orphaned");
+                File.WriteAllText(claim, "unrelated");
                 File.SetUnixFileMode(claim, UnixFileMode.UserRead | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
-                OfficeFileCommit.WriteAllBytes(target, payload, replace
-                    ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
+                OfficeFileCommit.ConflictPolicy policy = replace
+                    ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists;
+                Assert.Throws<IOException>(() => OfficeFileCommit.WriteAllBytes(target, payload, policy));
+                Assert.False(File.Exists(target));
+                Assert.Equal("unrelated", File.ReadAllText(claim));
+                Assert.Equal(new[] { claim }, Directory.GetFileSystemEntries(root));
+
+                File.Delete(claim);
+                OfficeFileCommit.WriteAllBytes(target, payload, policy);
                 Assert.Equal(payload, File.ReadAllBytes(target));
                 Assert.Equal(new[] { target }, Directory.GetFileSystemEntries(root));
             } finally {

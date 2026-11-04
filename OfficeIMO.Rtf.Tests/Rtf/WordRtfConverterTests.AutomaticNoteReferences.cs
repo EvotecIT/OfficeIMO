@@ -15,7 +15,7 @@ public partial class WordRtfConverterTests {
         note.AddParagraph("Footnote body");
         paragraph.AddNoteReference(note);
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordFootNote footNote = Assert.Single(word.FootNotes);
         Assert.NotNull(footNote.ParentParagraph);

@@ -24,6 +24,6 @@ internal static class RepositoryTestPaths {
     }
 
     private static bool IsRepository(string path) =>
-        File.Exists(Path.Combine(path, "OfficeIMO.sln")) &&
+        File.Exists(Path.Combine(path, "OfficeIMO.slnx")) &&
         File.Exists(Path.Combine(path, "OfficeIMO.Core", "OfficeIMO.Core.csproj"));
 }

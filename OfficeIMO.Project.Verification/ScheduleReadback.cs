@@ -15,7 +15,7 @@ internal static class ScheduleReadback {
         Directory.CreateDirectory(output);
         // This controlled producer fixture replaces one work-week interval. The default structural
         // opaque-reference warning is retained; application readback validates this explicit allowance.
-        document.Save(Path.Combine(output, "calculated.xml"), new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        document.Save(Path.Combine(output, "calculated.xml"), new ProjectSaveOptions { AllowLoss = true });
         File.WriteAllText(Path.Combine(output, "expected.json"), JsonSerializer.Serialize(schedule.Tasks, new JsonSerializerOptions { WriteIndented = true }));
         return 0;
     }

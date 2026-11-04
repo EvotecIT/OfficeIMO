@@ -21,10 +21,10 @@ public sealed class PublisherTableTests {
             absentReference ? null : uint.MaxValue));
         PublisherTable table = Assert.Single(document.Pages[1].Tables);
         Assert.False(table.HasTextMapping); Assert.Equal(6, table.Cells.Count);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_REFERENCE_UNRESOLVED"
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_REFERENCE_UNRESOLVED"
             && item.LossKind == OfficeConversionLossKind.Omission);
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TABLE_TEXT_MAPPING_UNRESOLVED");
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TABLE_CELL_STYLE_UNASSESSED"
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_TABLE_TEXT_MAPPING_UNRESOLVED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TABLE_CELL_STYLE_UNASSESSED"
             && item.LossKind == OfficeConversionLossKind.Unassessed && item.Location == "Contents/object/299");
     }
 
@@ -40,9 +40,9 @@ public sealed class PublisherTableTests {
         Assert.Equal(2, table.Cells[0].ColumnSpan); Assert.Equal(baseline.Cells.Select(cell => cell.Text), table.Cells.Select(cell => cell.Text));
         Assert.All(table.Cells, cell => Assert.All(cell.Paragraphs, paragraph => Assert.NotNull(paragraph.Label)));
         Assert.DoesNotContain("Table on page 2", document.ToSvg(1));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_STORY_NOT_PLACED"
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_STORY_NOT_PLACED"
             && item.LossKind == OfficeConversionLossKind.Omission && item.Location == "Quill/story/" + table.StoryId);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TABLE_CELL_STYLE_UNASSESSED"
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TABLE_CELL_STYLE_UNASSESSED"
             && item.LossKind == OfficeConversionLossKind.Unassessed && item.Location == "Contents/object/299");
     }
 
@@ -90,9 +90,9 @@ public sealed class PublisherTableTests {
         Assert.False(table.HasTextMapping); Assert.Equal(6, table.Cells.Count);
         Assert.All(table.Cells, cell => { Assert.Empty(cell.Paragraphs); Assert.Empty(cell.Text); });
         Assert.Equal(PublisherDocument.Load(original).TextStories.Select(story => story.Text), document.TextStories.Select(story => story.Text));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_TEXT_MAPPING_UNRESOLVED"
+        Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_TEXT_MAPPING_UNRESOLVED"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TABLE_CELL_STYLE_UNASSESSED"
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TABLE_CELL_STYLE_UNASSESSED"
             && item.LossKind == OfficeConversionLossKind.Unassessed && item.Location == "Contents/object/299");
     }
 

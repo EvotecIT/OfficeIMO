@@ -21,16 +21,16 @@ namespace OfficeIMO.Tests {
                 document.SetCustomDocumentProperty("Score", 98.5D);
                 document.SetCustomDocumentProperty("Reviewed", true);
                 document.SetCustomDocumentProperty("ReviewedAt", reviewedAt);
-                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                Assert.Equal("Approved", document.CustomDocumentProperties["ReleaseStatus"].Text);
-                Assert.Equal(42, document.CustomDocumentProperties["Ticket"].NumberInteger);
-                Assert.Equal(98.5D, document.CustomDocumentProperties["Score"].NumberDouble);
-                Assert.True(document.CustomDocumentProperties["Reviewed"].Bool);
-                Assert.Equal(reviewedAt, document.CustomDocumentProperties["ReviewedAt"].Date);
+                Assert.Equal("Approved", document.CustomProperties["ReleaseStatus"].Text);
+                Assert.Equal(42, document.CustomProperties["Ticket"].NumberInteger);
+                Assert.Equal(98.5D, document.CustomProperties["Score"].NumberDouble);
+                Assert.True(document.CustomProperties["Reviewed"].Bool);
+                Assert.Equal(reviewedAt, document.CustomProperties["ReviewedAt"].Date);
 
                 document.SetCustomDocumentProperty("ReleaseStatus", "Published");
                 Assert.True(document.RemoveCustomDocumentProperty("Ticket"));
@@ -38,8 +38,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                Assert.Equal("Published", document.CustomDocumentProperties["ReleaseStatus"].Text);
-                Assert.False(document.CustomDocumentProperties.ContainsKey("Ticket"));
+                Assert.Equal("Published", document.CustomProperties["ReleaseStatus"].Text);
+                Assert.False(document.CustomProperties.ContainsKey("Ticket"));
             }
         }
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
                 document.SetCustomDocumentProperty("UnsignedTicket", unsignedTicket);
                 document.SetCustomDocumentProperty("Score", 12345.6789012345D);
                 document.SetCustomDocumentProperty("Reviewed", true);
-                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
                 document.Save();
             }
 
@@ -66,9 +66,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                Assert.Equal(largeTicket, document.CustomDocumentProperties["LargeTicket"].Value);
-                Assert.Equal(unsignedTicket, document.CustomDocumentProperties["UnsignedTicket"].Value);
-                Assert.True(document.CustomDocumentProperties["Reviewed"].Bool);
+                Assert.Equal(largeTicket, document.CustomProperties["LargeTicket"].Value);
+                Assert.Equal(unsignedTicket, document.CustomProperties["UnsignedTicket"].Value);
+                Assert.True(document.CustomProperties["Reviewed"].Bool);
                 document.Save();
             }
 
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.SetCustomDocumentProperty("BinaryPayload", payload);
-                document.AddWorksheet("Data").CellValue(1, 1, "Binary");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Binary");
                 document.Save();
             }
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                ExcelCustomProperty property = document.CustomDocumentProperties["BinaryPayload"];
+                ExcelCustomProperty property = document.CustomProperties["BinaryPayload"];
                 Assert.Equal(ExcelCustomPropertyType.Binary, property.PropertyType);
                 Assert.Equal(payload, property.Binary);
             }
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                Assert.Equal("Reviewed", document.CustomDocumentProperties["Workflow"].Text);
+                Assert.Equal("Reviewed", document.CustomProperties["Workflow"].Text);
             }
         }
 
@@ -135,19 +135,19 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.DirectValueEdit.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Ready");
                 document.SetCustomDocumentProperty("Workflow", "Draft");
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                document.CustomDocumentProperties["Workflow"].Value = "Reviewed";
-                document.CustomDocumentProperties["Workflow"].PropertyType = ExcelCustomPropertyType.Text;
+                document.CustomProperties["Workflow"].Value = "Reviewed";
+                document.CustomProperties["Workflow"].PropertyType = ExcelCustomPropertyType.Text;
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                Assert.Equal("Reviewed", document.CustomDocumentProperties["Workflow"].Text);
+                Assert.Equal("Reviewed", document.CustomProperties["Workflow"].Text);
             }
         }
 
@@ -155,14 +155,14 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCustomDocumentProperties_DirectDictionaryAccessValidatesKeys() {
             using var document = ExcelDocument.Create(new MemoryStream());
 
-            Assert.Throws<ArgumentException>(() => document.CustomDocumentProperties[" "] = new ExcelCustomProperty("Invalid"));
-            Assert.Throws<ArgumentException>(() => document.CustomDocumentProperties.Add("\t", new ExcelCustomProperty("Invalid")));
+            Assert.Throws<ArgumentException>(() => document.CustomProperties[" "] = new ExcelCustomProperty("Invalid"));
+            Assert.Throws<ArgumentException>(() => document.CustomProperties.Add("\t", new ExcelCustomProperty("Invalid")));
 
-            document.CustomDocumentProperties[" Workflow "] = new ExcelCustomProperty("Ready");
+            document.CustomProperties[" Workflow "] = new ExcelCustomProperty("Ready");
 
-            Assert.True(document.CustomDocumentProperties.ContainsKey("Workflow"));
-            Assert.True(document.CustomDocumentProperties.ContainsKey(" Workflow "));
-            Assert.Equal("Ready", document.CustomDocumentProperties["Workflow"].Text);
+            Assert.True(document.CustomProperties.ContainsKey("Workflow"));
+            Assert.True(document.CustomProperties.ContainsKey(" Workflow "));
+            Assert.Equal("Ready", document.CustomProperties["Workflow"].Text);
         }
     }
 }

@@ -2,6 +2,7 @@ using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed partial class PdfLogicalPage {
     internal static PdfLogicalPage From(
         PdfReadDocument document,
@@ -104,6 +105,10 @@ public sealed partial class PdfLogicalPage {
             elements.Add(logicalTable);
         }
 
+        if (includeImages && tables.Count > 0) {
+            PdfLogicalTableCellStyleAnalysis.Assign(page, tables, cancellationToken);
+        }
+
         IReadOnlyList<PdfImagePlacement> imagePlacements = !includeImages ? Array.Empty<PdfImagePlacement>() : analysis is not null
             ? pageAnalysis.ImagePlacements
             : page.GetImagePlacements(pageNumber, cancellationToken);
@@ -152,7 +157,7 @@ public sealed partial class PdfLogicalPage {
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup =
             CreateLogicalTextBlockLookup(textBlocks);
         LogicalTextBlockSourceIndex textBlockSourceIndex = LogicalTextBlockSourceIndex.Create(textBlocks);
-        return new PdfLogicalPage(
+        var logicalPage = new PdfLogicalPage(
             pageNumber,
             size.Width,
             size.Height,
@@ -160,11 +165,11 @@ public sealed partial class PdfLogicalPage {
             geometry,
             elements.AsReadOnly(),
             textBlocks.AsReadOnly(),
-            BuildHeadings(pageNumber, analysis is null ? structured.Headings : new List<StructuredHeading>(), textBlocks, semanticByTextBlock, semanticIndex, textBlockLookup, textBlockSourceIndex),
+            BuildHeadings(pageNumber, analysis is null ? structured.Headings : new List<PdfStructuredHeading>(), textBlocks, semanticByTextBlock, semanticIndex, textBlockLookup, textBlockSourceIndex),
             analysis is null
                 ? BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks, textBlockSourceIndex)
                 : BuildParagraphsFromSemanticRegions(pageNumber, textBlocks, semanticByTextBlock),
-            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<StructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis),
+            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<PdfStructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis),
             tables.AsReadOnly(),
             vectorPrimitiveCount,
             unrepresentedVectorPrimitiveCount,
@@ -177,6 +182,11 @@ public sealed partial class PdfLogicalPage {
             page.HasOptionalContentUsage(cancellationToken),
             pageAnalysis, hasVisualPrimitiveCounts: includeImages,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
+        logicalPage.OmittedArtifactTextSpanCount = page.CountOmittedArtifactTextSpans(cancellationToken);
+        if (includeImages && unrepresentedVectorPrimitiveCount >= 6) {
+            logicalPage.VectorFigures = PdfLogicalVectorFigureAnalysis.Detect(page, textBlocks, tables, imagePlacements, cancellationToken);
+        }
+        return logicalPage;
     }
 
 }

@@ -7,6 +7,17 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.PowerPoint.Benchmarks;
 using ShapeCrawler;
 
+if (args.Length > 0 && string.Equals(args[0], "validate", StringComparison.OrdinalIgnoreCase)) {
+    OfficeIMO.PowerPoint.Benchmarks.Comparison.PowerPointComparisonValidation.RunAll();
+    Console.WriteLine("All PowerPoint comparison lanes produced equivalent validated output.");
+    return 0;
+}
+if (args.Length > 0 && string.Equals(args[0], "bench", StringComparison.OrdinalIgnoreCase)) {
+    BenchmarkDotNet.Running.BenchmarkSwitcher
+        .FromAssembly(typeof(OfficeIMO.PowerPoint.Benchmarks.Comparison.PowerPointComparisonCorpus).Assembly)
+        .Run(args.Skip(1).ToArray());
+    return 0;
+}
 return ShapeCrawlerBaselineRunner.Run(args);
 
 internal static class ShapeCrawlerBaselineRunner {

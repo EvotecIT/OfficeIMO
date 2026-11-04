@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
             + "<defs><linearGradient id='ink'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient></defs>"
             + "<text x='8' y='40' font-family='Painted' font-size='22' fill='url(#ink)'>" + text + "</text></svg>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         };
         options.Fonts.Add("Painted", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphOutlines('A', 0x0301));
@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
                 return pixel.A > 0 && (pixel.R != pixel.G || pixel.G != pixel.B);
             }));
         if (expectedLoss) {
-            options.Policy.RequireNoLoss = true;
+            options.Policy.FailOnLoss = true;
             OfficeImageExportPolicyException failure = Assert.Throws<OfficeImageExportPolicyException>(() =>
                 document.ExportImage(OfficeImageExportFormat.Png, options));
             Assert.Contains(failure.Diagnostics, diagnostic =>

@@ -18,10 +18,10 @@ public sealed partial class HtmlRenderingTests {
         string request = "\"" + family.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
         string html = "<style>body,p{margin:0}body{font-family:" + request
             + ";font-size:20px;line-height:24px}</style><p>BB</p><div style='margin-left:3ch'>B</div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Continuous,
             AllowSystemFontFallback = false,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
@@ -33,7 +33,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(font.Measure("BB", 20D), first.TextAdvanceWidth!.Value, 6);
         Assert.Equal(font.Measure("0", 20D) * 3D, shifted.X - first.X, 6);
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         Assert.Contains("BB", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Equal(1, PdfCore.PdfFontInspector.Inspect(PdfCore.PdfReadDocument.Open(pdf)).EmbeddedFontCount);
     }

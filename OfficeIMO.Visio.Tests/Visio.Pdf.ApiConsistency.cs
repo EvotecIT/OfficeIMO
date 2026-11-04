@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
@@ -17,14 +16,14 @@ public sealed class VisioPdfApiConsistencyTests {
 
         string? destination = diagram.FilePath;
         OfficeDocumentReadResult normalized = diagram.ToOfficeDocumentReadResult();
-        PdfDocumentConversionResult conversion = diagram.ToPdfDocumentResult();
-        string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
+        PdfDocument conversion = diagram.ToPdf(null, out OfficeConversionReport conversionReport);
+        string text = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).ExtractText();
 
         Assert.Equal(destination, diagram.FilePath);
         Assert.Equal("document.vsdx", normalized.Source.Path);
         Assert.False(string.IsNullOrWhiteSpace(normalized.Source.SourceId));
         Assert.Contains("Gateway service", text, StringComparison.Ordinal);
-        Assert.Contains(conversion.Warnings, static warning => warning.Code == "pdf-projection-visio-semantic-fallback");
+        Assert.Contains(conversionReport.Diagnostics, static warning => warning.Code == "pdf-projection-visio-semantic-fallback");
         Assert.Single(normalized.Pages);
     }
 
@@ -75,21 +74,21 @@ public sealed class VisioPdfApiConsistencyTests {
         VisioDocument diagram = CreateDiagram();
         string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            byte[] bytes = diagram.ToPdfBytes();
-            PdfSaveResult saved = diagram.SaveAsPdf(outputPath);
+            byte[] bytes = diagram.ToPdf().ToBytes();
+            OfficeConversionReport saved = diagram.SaveAsPdf(outputPath);
             using var stream = new MemoryStream();
-            PdfSaveResult streamed = await diagram.SaveAsPdfAsync(stream);
+            OfficeConversionReport streamed = await diagram.SaveAsPdfAsync(stream);
 
             Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
-            Assert.True(saved.Succeeded);
+            Assert.Equal(Path.GetFullPath(outputPath), saved.OutputPath);
             Assert.True(File.Exists(outputPath));
-            Assert.True(streamed.Succeeded);
+            Assert.Equal(1, streamed.ItemsWritten);
             Assert.True(stream.CanWrite);
             Assert.Equal("%PDF", Encoding.ASCII.GetString(stream.ToArray(), 0, 4));
 
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 diagram.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
         } finally {
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -113,24 +112,9 @@ public sealed class VisioPdfApiConsistencyTests {
         Assert.False(pngOptions.CancellationToken.IsCancellationRequested);
     }
 
-    [Fact]
-    public void PdfAdapterMatchesTheSharedDocumentLifecycle() {
-        MethodInfo[] methods = typeof(VisioPdfConverterExtensions)
-            .GetMethods(BindingFlags.Public | BindingFlags.Static);
-
-        Assert.Single(methods, method => method.Name == "ToPdfBytes");
-        Assert.DoesNotContain(methods, method => method.Name == "ToPdf");
-        Assert.Single(methods, method => method.Name == "ToPdfDocument");
-        Assert.Single(methods, method => method.Name == "ToPdfDocumentResult");
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdf"));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResult"));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfAsync"));
-        Assert.Equal(2, methods.Count(method => method.Name == "SaveAsPdfResultAsync"));
-    }
-
     private static VisioDocument CreateDiagram() {
         VisioDocument diagram = VisioDocument.Create();
-        VisioPage page = diagram.AddPage("Topology", 8, 5);
+        VisioPage page = diagram.AddPage("Topology", OfficeLength.Inches(8), OfficeLength.Inches(5));
         page.Shapes.Add(new VisioShape("gateway") { Text = "Gateway service" });
         return diagram;
     }

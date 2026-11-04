@@ -11,7 +11,7 @@ public class RtfParagraphFormattingTests {
     public void Read_Binds_Paragraph_Shading_And_Borders_Without_Leaking() {
         const string rtf = @"{\rtf1\ansi{\colortbl;\red230\green242\blue255;\red68\green114\blue196;\red0\green170\blue85;}\pard\cbpat1\brdrt\brdrs\brdrw12\brdrcf2\brdrl\brdrdb\brdrw8\brdrcf3 Boxed\par\pard Plain\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(2, result.Document.Paragraphs.Count);
@@ -46,8 +46,8 @@ public class RtfParagraphFormattingTests {
             .SetBorder(RtfParagraphBorderSide.Right, RtfParagraphBorderStyle.Dashed);
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\cbpat1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\brdrt\brdrs\brdrw12\brdrcf2", rtf, StringComparison.Ordinal);
@@ -83,8 +83,8 @@ public class RtfParagraphFormattingTests {
         shaded.SetShading(fill, foregroundColorIndex: foreground, patternPercent: 3750, pattern: RtfShadingPattern.DarkForwardDiagonal);
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\cbpat1\cfpat2\shading3750\bgdkfdiag", rtf, StringComparison.Ordinal);
         RtfParagraph readShaded = read.Document.Paragraphs[0];
@@ -104,7 +104,7 @@ public class RtfParagraphFormattingTests {
     public void Read_Binds_Paragraph_Shading_Patterns_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\colortbl;\red230\green242\blue255;\red68\green114\blue196;}\pard\cbpat1\cfpat2\shading6250\bgdcross Pattern\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -119,38 +119,38 @@ public class RtfParagraphFormattingTests {
     public void Word_To_Rtf_Bridge_Carries_Paragraph_Shading_And_Borders() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("Boxed");
-        paragraph.ShadingFillColorHex = "E6F2FF";
+        paragraph.ShadingFillColor = OfficeColor.Parse("E6F2FF");
         paragraph.Borders.TopStyle = WordBorderStyle.Single;
-        paragraph.Borders.TopSize = 12U;
-        paragraph.Borders.TopColorHex = "4472C4";
+        paragraph.Borders.TopSize = OfficeLength.Points(1.5);
+        paragraph.Borders.TopColor = OfficeColor.Parse("4472C4");
         paragraph.Borders.LeftStyle = WordBorderStyle.Double;
-        paragraph.Borders.LeftSize = 8U;
-        paragraph.Borders.LeftColorHex = "00AA55";
+        paragraph.Borders.LeftSize = OfficeLength.Points(1);
+        paragraph.Borders.LeftColor = OfficeColor.Parse("00AA55");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());
         Assert.Equal(RtfParagraphBorderStyle.Single, rtfParagraph.TopBorder.Style);
-        Assert.Equal(12, rtfParagraph.TopBorder.Width);
+        Assert.Equal(30, rtfParagraph.TopBorder.Width);
         Assert.Equal("#4472C4", rtfDocument.GetColor(rtfParagraph.TopBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfParagraphBorderStyle.Double, rtfParagraph.LeftBorder.Style);
-        Assert.Equal(8, rtfParagraph.LeftBorder.Width);
+        Assert.Equal(20, rtfParagraph.LeftBorder.Width);
         Assert.Equal("#00AA55", rtfDocument.GetColor(rtfParagraph.LeftBorder.ColorIndex!.Value)!.ToString());
         Assert.Contains($@"\cbpat{rtfParagraph.BackgroundColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\brdrt\brdrs\brdrw12\brdrcf{rtfParagraph.TopBorder.ColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\brdrl\brdrdb\brdrw8\brdrcf{rtfParagraph.LeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\brdrt\brdrs\brdrw30\brdrcf{rtfParagraph.TopBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\brdrl\brdrdb\brdrw20\brdrcf{rtfParagraph.LeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
-        Assert.Equal("E6F2FF", roundTripParagraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("E6F2FF"), roundTripParagraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, roundTripParagraph.Borders.TopStyle);
-        Assert.Equal(12U, roundTripParagraph.Borders.TopSize);
-        Assert.Equal("4472C4", roundTripParagraph.Borders.TopColorHex);
+        Assert.Equal(OfficeLength.Points(1.5), roundTripParagraph.Borders.TopSize);
+        Assert.Equal(OfficeColor.Parse("4472C4"), roundTripParagraph.Borders.TopColor);
         Assert.Equal(WordBorderStyle.Double, roundTripParagraph.Borders.LeftStyle);
-        Assert.Equal(8U, roundTripParagraph.Borders.LeftSize);
-        Assert.Equal("00AA55", roundTripParagraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeLength.Points(1), roundTripParagraph.Borders.LeftSize);
+        Assert.Equal(OfficeColor.Parse("00AA55"), roundTripParagraph.Borders.LeftColor);
     }
 
     [Fact]
@@ -161,32 +161,32 @@ public class RtfParagraphFormattingTests {
         int leftColor = document.AddColor(0x00, 0xAA, 0x55);
         RtfParagraph paragraph = document.AddParagraph("Boxed");
         paragraph.SetBackgroundColor(fill)
-            .SetBorder(RtfParagraphBorderSide.Top, RtfParagraphBorderStyle.Single, width: 12, colorIndex: topColor)
-            .SetBorder(RtfParagraphBorderSide.Left, RtfParagraphBorderStyle.Double, width: 8, colorIndex: leftColor);
+            .SetBorder(RtfParagraphBorderSide.Top, RtfParagraphBorderStyle.Single, width: 30, colorIndex: topColor)
+            .SetBorder(RtfParagraphBorderSide.Left, RtfParagraphBorderStyle.Double, width: 20, colorIndex: leftColor);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         WordParagraph wordParagraph = Assert.Single(word.Paragraphs);
-        Assert.Equal("E6F2FF", wordParagraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("E6F2FF"), wordParagraph.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, wordParagraph.Borders.TopStyle);
-        Assert.Equal(12U, wordParagraph.Borders.TopSize);
-        Assert.Equal("4472C4", wordParagraph.Borders.TopColorHex);
+        Assert.Equal(OfficeLength.Points(1.5), wordParagraph.Borders.TopSize);
+        Assert.Equal(OfficeColor.Parse("4472C4"), wordParagraph.Borders.TopColor);
         Assert.Equal(WordBorderStyle.Double, wordParagraph.Borders.LeftStyle);
-        Assert.Equal(8U, wordParagraph.Borders.LeftSize);
-        Assert.Equal("00AA55", wordParagraph.Borders.LeftColorHex);
+        Assert.Equal(OfficeLength.Points(1), wordParagraph.Borders.LeftSize);
+        Assert.Equal(OfficeColor.Parse("00AA55"), wordParagraph.Borders.LeftColor);
     }
 
     [Fact]
     public void Word_To_Rtf_Bridge_Carries_Paragraph_Shading_Pattern_And_Foreground() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("Pattern");
-        paragraph.ShadingFillColorHex = "E6F2FF";
+        paragraph.ShadingFillColor = OfficeColor.Parse("E6F2FF");
         paragraph.ShadingPattern = WordShadingPattern.Percent37;
         paragraph._paragraph.ParagraphProperties!.Shading!.Color = "4472C4";
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());
@@ -196,7 +196,7 @@ public class RtfParagraphFormattingTests {
         Assert.Contains($@"\cbpat{rtfParagraph.BackgroundColorIndex}\cfpat{rtfParagraph.ShadingForegroundColorIndex}\shading3750", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
-        Assert.Equal("E6F2FF", roundTripParagraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("E6F2FF"), roundTripParagraph.ShadingFillColor);
         Assert.Equal("4472C4", roundTripParagraph._paragraphProperties?.Shading?.Color?.Value);
         Assert.Equal(WordShadingPattern.Percent37, roundTripParagraph.ShadingPattern);
     }
@@ -209,10 +209,10 @@ public class RtfParagraphFormattingTests {
         RtfParagraph paragraph = document.AddParagraph("Pattern");
         paragraph.SetShading(fill, foregroundColorIndex: foreground, pattern: RtfShadingPattern.DarkForwardDiagonal);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         WordParagraph wordParagraph = Assert.Single(word.Paragraphs);
-        Assert.Equal("E6F2FF", wordParagraph.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("E6F2FF"), wordParagraph.ShadingFillColor);
         Assert.Equal("4472C4", wordParagraph._paragraphProperties?.Shading?.Color?.Value);
         Assert.Equal(WordShadingPattern.DiagonalStripe, wordParagraph.ShadingPattern);
     }

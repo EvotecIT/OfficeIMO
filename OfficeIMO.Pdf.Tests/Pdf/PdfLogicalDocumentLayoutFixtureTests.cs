@@ -42,21 +42,19 @@ public partial class PdfDocumentReadResultTests {
 
     [Fact]
     public void Load_GroupsWrappedTextLinesIntoParagraphs() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 260,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("This logical paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
+            .Paragraph(p => p.AddText("This logical paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "P-100", "Paragraph table text", "2" }
             }, style: new PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 50, 100, 30 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(30) },
                 HeaderRowCount = 1
             })
             .ToBytes();
@@ -74,7 +72,7 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_ReadsCompleteSeekableStreamAndRestoresPosition() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Logical stream marker."))
+            .Paragraph(p => p.AddText("Logical stream marker."))
             .ToBytes();
         using var stream = new MemoryStream(source);
         stream.Position = source.Length / 2;

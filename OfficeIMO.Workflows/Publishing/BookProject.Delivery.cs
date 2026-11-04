@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Epub;
 using OfficeIMO.Provenance;
 using System.IO.Compression;
@@ -18,7 +19,7 @@ public sealed partial class BookProject {
     /// Publication, OPF and manifest limits are 128 MiB, 4 MiB and 1 MiB respectively.
     /// No files are written and project history is not included.
     /// </summary>
-    public byte[] ToDeliveryBytes(EpubWriteOptions? options = null,
+    public byte[] ToDeliveryBytes(EpubSaveOptions? options = null,
         long maximumOutputBytes = MaximumDeliveryBytes, CancellationToken cancellationToken = default) {
         if (maximumOutputBytes <= 0 || maximumOutputBytes > MaximumDeliveryBytes)
             throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
@@ -37,11 +38,11 @@ public sealed partial class BookProject {
     }
 
     private (byte[] Publication, byte[] Package, BookDeliveryManifest Manifest) CreateDeliveryPayloads(
-        EpubWriteOptions? options, long maximumOutputBytes, CancellationToken cancellationToken) {
+        EpubSaveOptions? options, long maximumOutputBytes, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        options ??= new EpubWriteOptions();
+        options ??= new EpubSaveOptions();
         // Copy caller options so imposing the delivery bound does not change subsequent exports.
-        var writerOptions = new EpubWriteOptions {
+        var writerOptions = new EpubSaveOptions {
             CompressEntries = options.CompressEntries,
             MaxOutputBytes = Math.Min(options.MaxOutputBytes, Math.Min(MaximumPublicationBytes, maximumOutputBytes)),
             MaxExpandedBytes = options.MaxExpandedBytes, MaxEntries = options.MaxEntries,
@@ -55,7 +56,7 @@ public sealed partial class BookProject {
                 ?? throw new InvalidDataException("The exported EPUB does not contain its selected package.");
             package = Read(entry, MaximumDeliveryMetadataBytes, cancellationToken);
         }
-        if (_diagnostics.Count > 10_000 || result.Report.FidelityDiagnostics.Count > 10_000)
+        if (_diagnostics.Count > 10_000 || result.Report.Diagnostics.Count > 10_000)
             throw new InvalidDataException("The delivery manifest exceeds its diagnostic-count bound.");
         var manifest = new BookDeliveryManifest {
             PackagePath = _publication.PackagePath,
@@ -63,17 +64,17 @@ public sealed partial class BookProject {
             Files = [DescribeDeliveryFile("publication.epub", "application/epub+zip", result.Bytes),
                 DescribeDeliveryFile("package.opf", "application/oebps-package+xml", package)],
             ImportDiagnostics = _diagnostics.Select(DescribeDeliveryDiagnostic).ToArray(),
-            WriterDiagnostics = result.Report.FidelityDiagnostics.Select(DescribeDeliveryDiagnostic).ToArray()
+            WriterDiagnostics = result.Report.Diagnostics.Select(DescribeDeliveryDiagnostic).ToArray()
         };
         return (result.Bytes, package, manifest);
     }
 
     private static BookDeliveryFile DescribeDeliveryFile(string name, string mediaType, byte[] bytes) => new() {
-        Name = name, MediaType = mediaType, Bytes = bytes.LongLength, Sha256 = Convert.ToHexString(SHA256.HashData(bytes))
+        Name = name, MediaType = mediaType, Bytes = bytes.LongLength, Sha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(bytes))
     };
 
-    private static BookDeliveryDiagnostic DescribeDeliveryDiagnostic(OfficeConversionFidelityDiagnostic diagnostic) => new() {
-        Code = diagnostic.Code, Message = diagnostic.Message, Source = diagnostic.Source,
+    private static BookDeliveryDiagnostic DescribeDeliveryDiagnostic(OfficeDiagnostic diagnostic) => new() {
+        Code = diagnostic.Code, Message = diagnostic.Message, Source = diagnostic.Format ?? string.Empty,
         Location = diagnostic.Location, LossKind = diagnostic.LossKind.ToString()
     };
 }

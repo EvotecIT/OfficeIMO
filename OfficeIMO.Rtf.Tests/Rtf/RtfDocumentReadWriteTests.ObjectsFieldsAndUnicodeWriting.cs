@@ -9,7 +9,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Embedded_Object_Data_Result_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Before {\object\objemb\objw100\objh200\objscalex75\objscaley80{\*\objclass Package}{\*\objname Attachment}{\*\objdata 010203ff}{\result Display}} after\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
+        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.CreateCompatibilityProfile());
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF101");
@@ -31,7 +31,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Object_Result_Image_And_Text_Together() {
         const string rtf = @"{\rtf1\ansi\pard Before {\object\objemb{\*\objdata 0102}{\result{\pict\pngblip\bin3 abc}Caption}} after\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
+        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.CreateCompatibilityProfile());
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -52,8 +52,8 @@ public partial class RtfDocumentReadWriteTests {
         rtfObject.Result.AddText("Caption").SetBold();
         paragraph.AddText(" after");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfLoadOptions.CreateCompatibilityProfile());
 
         Assert.Contains(@"{\result {\pict\pngblip", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\b Caption\b0 ", rtf, StringComparison.Ordinal);
@@ -68,7 +68,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Hidden_Text_Runs_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Visible \v Hidden\v0  shown\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -86,8 +86,8 @@ public partial class RtfDocumentReadWriteTests {
         paragraph.AddText(" Small").SetCapsStyle(RtfCapsStyle.SmallCaps);
         paragraph.AddText(" plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\striked Double", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\striked0", rtf, StringComparison.Ordinal);
@@ -115,8 +115,8 @@ public partial class RtfDocumentReadWriteTests {
         paragraph.AddText(" Imprint").SetImprint();
         paragraph.AddText(" plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\outl Outline", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\outl0", rtf, StringComparison.Ordinal);
@@ -143,7 +143,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Bookmark_Markers_In_Inline_Order_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard {\*\bkmkstart Anchor}Bookmarked{\*\bkmkend Anchor} text\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -171,8 +171,8 @@ public partial class RtfDocumentReadWriteTests {
         paragraph.AddText("Bookmarked");
         paragraph.AddBookmarkEnd("Anchor");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\bkmkstart Anchor}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\bkmkend Anchor}", rtf, StringComparison.Ordinal);
@@ -188,7 +188,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Generated_Text_Controls_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Page \chpgn Section \sectnum Date \chdate Long \chdpl Short \chdpa Time \chtime\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -211,7 +211,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Generic_Field_In_Inline_Order_With_Rich_Result_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Page {\field{\*\fldinst PAGE \\* MERGEFORMAT}{\fldrslt {\b 1}}} done\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -231,7 +231,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Hyperlink_Field_As_Field_With_Parsed_Target_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard See {\field{\*\fldinst HYPERLINK ""https://example.test/path"" \\o ""tip""}{\fldrslt {\b Link}}} now\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -257,8 +257,8 @@ public partial class RtfDocumentReadWriteTests {
         RtfField field = paragraph.AddField(@"PAGE \* MERGEFORMAT");
         field.AddText("1").SetBold();
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\field{\*\fldinst PAGE \\* MERGEFORMAT}{\fldrslt \b 1\b0 }}", rtf, StringComparison.Ordinal);
         RtfField readField = Assert.IsType<RtfField>(Assert.Single(result.Document.Paragraphs).Inlines[1]);
@@ -275,8 +275,8 @@ public partial class RtfDocumentReadWriteTests {
         field.AddText("Link").SetBold();
         paragraph.AddText(" now");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\field{\*\fldinst HYPERLINK ""https://example.test/path"" \\o ""tip""}{\fldrslt \b Link\b0 }}", rtf, StringComparison.Ordinal);
         Assert.Equal(rtf.IndexOf(@"{\field", StringComparison.Ordinal), rtf.LastIndexOf(@"{\field", StringComparison.Ordinal));
@@ -293,7 +293,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Form_Field_Data_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Name: {\field{\*\fldinst FORMTEXT}{\*\ffdata\fftype0\ffenabled1\ffownhelp1\ffownstat1\ffprot0\ffrecalc1\ffmaxlen50{\ffname Customer}{\ffdeftext Default}{\ffformat Uppercase}{\ffhelptext Help}{\ffstattext Status}{\ffentrymcr Enter}{\ffexitmcr Exit}}{\fldrslt Value}}\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfField field = Assert.IsType<RtfField>(Assert.Single(result.Document.Paragraphs).Inlines[1]);
@@ -335,8 +335,8 @@ public partial class RtfDocumentReadWriteTests {
             data.AddDropDownItem("Second");
         });
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\ffdata\fftype2\ffenabled1\ffdefres0\ffres1{\ffname Choice}{\ffl First}{\ffl Second}}", rtf, StringComparison.Ordinal);
         RtfField readField = Assert.IsType<RtfField>(Assert.Single(result.Document.Paragraphs).Inlines[1]);
@@ -354,14 +354,14 @@ public partial class RtfDocumentReadWriteTests {
     [Fact]
     public void Write_Emits_Unicode_Surrogate_Pairs_And_Reads_Them_Back() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Smile 😀";
+        document.Properties.Title = "Smile 😀";
         document.AddParagraph("Body 😀");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\u-10179?\u-8704?", rtf, StringComparison.Ordinal);
-        Assert.Equal("Smile 😀", result.Document.Info.Title);
+        Assert.Equal("Smile 😀", result.Document.Properties.Title);
         Assert.Equal("Body 😀", Assert.Single(result.Document.Paragraphs).ToPlainText());
     }
 
@@ -371,17 +371,17 @@ public partial class RtfDocumentReadWriteTests {
     public void Write_Uses_Document_Unicode_Skip_Count_For_Metadata_And_Body(int skipCount, string expectedControl, string expectedEncodedText, string expectedPlainText) {
         RtfDocument document = RtfDocument.Create();
         document.Settings.SetUnicodeSkipCount(skipCount);
-        document.Info.Title = "ż Text";
+        document.Properties.Title = "ż Text";
         document.AddParagraph("ż Text");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(expectedControl, rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\title " + expectedEncodedText + "}", rtf, StringComparison.Ordinal);
         Assert.Contains(expectedEncodedText + @"\par", rtf, StringComparison.Ordinal);
         Assert.Equal(skipCount, result.Document.Settings.UnicodeSkipCount);
-        Assert.Equal(expectedPlainText, result.Document.Info.Title);
+        Assert.Equal(expectedPlainText, result.Document.Properties.Title);
         Assert.Equal(expectedPlainText, Assert.Single(result.Document.Paragraphs).ToPlainText());
     }
 
@@ -406,16 +406,16 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Honors_Uc0_When_Collecting_Metadata_Text() {
         const string rtf = @"{\rtf1\ansi{\info{\title \uc0\u380? Title}}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
-        Assert.Equal("ż? Title", result.Document.Info.Title);
+        Assert.Equal("ż? Title", result.Document.Properties.Title);
     }
 
     [Fact]
     public void Read_Defaults_Hex_Escapes_To_Windows1252_When_CodePage_Is_Missing() {
         const string rtf = @"{\rtf1\ansi\pard Price \'80\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal("Price €", Assert.Single(result.Document.Paragraphs).ToPlainText());
     }
@@ -432,7 +432,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Decodes_Supported_SingleByte_Ansi_CodePages_Without_Warnings(int codePage, string encodedText, string expectedText) {
         string rtf = $@"{{\rtf1\ansi\ansicpg{codePage}\pard {encodedText}\par}}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(expectedText, Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
@@ -442,8 +442,8 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Warns_When_Ansi_CodePage_Is_Unsupported_And_Uses_Documented_Fallback() {
         const string rtf = @"{\rtf1\ansi\ansicpg65001\pard Price \'80\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
-        RtfReadResult quiet = RtfDocument.Read(rtf, new RtfReadOptions { WarnOnUnsupportedCodePages = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
+        RtfReadResult quiet = RtfDocument.ParseResult(rtf, new RtfLoadOptions { WarnOnUnsupportedCodePages = false });
 
         Assert.Equal("Price €", Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103" && diagnostic.Severity == RtfDiagnosticSeverity.Warning);

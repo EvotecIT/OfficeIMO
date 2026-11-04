@@ -1,0 +1,19 @@
+{
+  "package": "OfficeIMO.Epub.Image",
+  "changes": [],
+  "extraChanges": [
+    {
+      "old": "EpubImageExportBuilder; fluent EpubDocument.ToImages",
+      "new": "EpubDocument.ExportImages(format, options), SaveAsImages(folder, options), async forms and existing streaming consumers",
+      "action": "consolidate",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Epub.Image/EpubImageExportBuilder.cs",
+        "OfficeIMO.Epub.Image/EpubImageExportExtensions.cs"
+      ],
+      "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
+      "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
+    }
+  ]
+}

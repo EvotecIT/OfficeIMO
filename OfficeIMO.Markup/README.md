@@ -82,7 +82,7 @@ using OfficeIMO.Markup.Word;
 
 OfficeMarkupParseResult result = OfficeMarkupParser.Parse(File.ReadAllText("status-brief.omd"));
 
-result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
+result.Document.SaveAsWord("status-brief.docx", new MarkupWordExportOptions {
     });
 ```
 

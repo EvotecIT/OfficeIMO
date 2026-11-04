@@ -10,14 +10,14 @@ public sealed partial class SharedStringIndexTests {
     public void IndexedTable_CompletedOwnersAndOverlappingReadersKeepExactIndependentValues() {
         string[] seedValues = CreateReuseIndexedValues("seed-", 12_291);
         using OpenXmlPooledPartStream seedStream = CreateStream(seedValues);
-        using SharedStringCache seed = SharedStringCache.Build(() => seedStream, new ExcelReadOptions());
+        using SharedStringCache seed = SharedStringCache.Build(() => seedStream, new ExcelReaderOptions());
         AssertExactIndexedValues(seed, seedValues);
         seed.Dispose();
         AssertIndexedOwnerClosed(seed, seedStream);
 
         string[] firstValues = CreateReuseIndexedValues("A-", 8_195);
         using OpenXmlPooledPartStream firstStream = CreateStream(firstValues);
-        using SharedStringCache first = SharedStringCache.Build(() => firstStream, new ExcelReadOptions());
+        using SharedStringCache first = SharedStringCache.Build(() => firstStream, new ExcelReaderOptions());
         Assert.Equal(firstValues.Length, first.Count);
         Assert.True(first.TryGetUtf8(firstValues.Length - 1, out ArraySegment<byte> borrowedFirst));
         byte[] expectedBorrowedFirst = Encoding.UTF8.GetBytes(firstValues[firstValues.Length - 1]);
@@ -26,7 +26,7 @@ public sealed partial class SharedStringIndexTests {
 
         string[] secondValues = CreateReuseIndexedValues("second-longer-", 9_219);
         using OpenXmlPooledPartStream secondStream = CreateStream(secondValues);
-        using SharedStringCache second = SharedStringCache.Build(() => secondStream, new ExcelReadOptions());
+        using SharedStringCache second = SharedStringCache.Build(() => secondStream, new ExcelReaderOptions());
         AssertExactIndexedValues(second, secondValues);
         AssertExactIndexedValues(first, firstValues);
         Assert.Equal(expectedBorrowedFirst, borrowedFirst.ToArray());
@@ -36,7 +36,7 @@ public sealed partial class SharedStringIndexTests {
 
         string[] thirdValues = CreateReuseIndexedValues("C-more-text-", 8_197);
         using OpenXmlPooledPartStream thirdStream = CreateStream(thirdValues);
-        using SharedStringCache third = SharedStringCache.Build(() => thirdStream, new ExcelReadOptions());
+        using SharedStringCache third = SharedStringCache.Build(() => thirdStream, new ExcelReaderOptions());
         AssertExactIndexedValues(third, thirdValues);
         // Reusing a different completed owner must not mutate the still-live first cache.
         second.Dispose();
@@ -55,7 +55,7 @@ public sealed partial class SharedStringIndexTests {
     public void IndexedTable_LargeInitializationExitPreservesRecoveryAndReleasesOpenedStorage(string exit) {
         string[] seedValues = CreateReuseIndexedValues("seed-long-", 12_291);
         using OpenXmlPooledPartStream seedStream = CreateStream(seedValues);
-        using SharedStringCache seed = SharedStringCache.Build(() => seedStream, new ExcelReadOptions());
+        using SharedStringCache seed = SharedStringCache.Build(() => seedStream, new ExcelReaderOptions());
         Assert.Equal(seedValues.Length, seed.Count);
         seed.Dispose();
         AssertIndexedOwnerClosed(seed, seedStream);
@@ -74,7 +74,7 @@ public sealed partial class SharedStringIndexTests {
         }
         using OpenXmlPooledPartStream failedStream = CreateStream(items.ToString(), failingCount.ToString(CultureInfo.InvariantCulture));
         using var cancellation = new CancellationTokenSource();
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             MaxSharedStringItems = exit == "Items" ? failingCount - 1 : failingCount,
             CancellationToken = cancellation.Token
         };
@@ -88,7 +88,7 @@ public sealed partial class SharedStringIndexTests {
             AssertExactIndexedValues(failed, expected);
         } else if (exit == "Items") {
             var error = Assert.Throws<OfficeInspectionResourceLimitException>(() => failed.EnsureLoaded());
-            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(options.MaxSharedStringItems, error.Maximum);
+            Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReaderOptions.MaxSharedStringItems), error.LimitName); Assert.Equal(options.MaxSharedStringItems, error.Maximum);
         } else {
             Assert.Throws<OperationCanceledException>(() => failed.EnsureLoaded());
         }
@@ -100,7 +100,7 @@ public sealed partial class SharedStringIndexTests {
 
         string[] healthyValues = CreateReuseIndexedValues("recovered-different-", 8_201);
         using OpenXmlPooledPartStream healthyStream = CreateStream(healthyValues);
-        using SharedStringCache healthy = SharedStringCache.Build(() => healthyStream, new ExcelReadOptions());
+        using SharedStringCache healthy = SharedStringCache.Build(() => healthyStream, new ExcelReaderOptions());
         seed.Dispose();
         failed.Dispose();
         AssertExactIndexedValues(healthy, healthyValues);

@@ -22,12 +22,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.Markers.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var invoice = document.AddWorksheet("Invoice");
-                invoice.CellAt(1, 1).SetValue("Invoice {{Invoice.Number}}").HeaderStyle();
-                invoice.CellAt(2, 1).SetValue("Customer: {{Customer.Name}}");
+                var invoice = document.AddSheet("Invoice");
+                invoice.Cell(1, 1).SetValue("Invoice {{Invoice.Number}}").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                invoice.Cell(2, 1).SetValue("Customer: {{Customer.Name}}");
 
-                var summary = document.AddWorksheet("Summary");
-                summary.CellAt(1, 1).SetValue("Total: {{Total}}");
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Total: {{Total}}");
 
                 int replacements = document.ApplyTemplate(new Dictionary<string, object?> {
                     ["Invoice.Number"] = "INV-001",
@@ -40,9 +40,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
-                Assert.Equal("Invoice INV-001", document["Invoice"].CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Customer: Adatum", document["Invoice"].CellAt(2, 1).GetValue<string>());
-                Assert.Equal("Total: 123.45", document["Summary"].CellAt(1, 1).GetValue<string>());
+                Assert.Equal("Invoice INV-001", document["Invoice"].Cell(1, 1).GetValue<string>());
+                Assert.Equal("Customer: Adatum", document["Invoice"].Cell(2, 1).GetValue<string>());
+                Assert.Equal("Total: 123.45", document["Summary"].Cell(1, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -53,13 +53,13 @@ namespace OfficeIMO.Tests {
             string outputPath = Path.Combine(_directoryWithFiles, "ExcelTemplate.FromTemplate.xlsx");
 
             using (var document = ExcelDocument.Create(templatePath)) {
-                var sheet = document.AddWorksheet("Template");
-                sheet.CellAt(1, 1).SetValue("{{Name}}").SetBold().SetFillColor("FFF2CC");
-                sheet.CellAt(2, 1).SetValue("Footer");
+                var sheet = document.AddSheet("Template");
+                sheet.Cell(1, 1).SetValue("{{Name}}").SetBold().SetFillColor("FFF2CC");
+                sheet.Cell(2, 1).SetValue("Footer");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });
-                sheet.AddChart(data, row: 1, column: 4, widthPixels: 320, heightPixels: 200, type: ExcelChartType.ColumnClustered, title: "Template Chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(200), Title = "Template Chart" });
                 document.Save();
             }
 
@@ -74,10 +74,10 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(outputPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Template"];
-                Assert.Equal("Adatum", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Footer", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Equal("Adatum", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Footer", sheet.Cell(2, 1).GetValue<string>());
 
-                var style = sheet.CellAt(1, 1).GetStyle();
+                var style = sheet.Cell(1, 1).GetStyle();
                 Assert.True(style.Bold);
                 Assert.Equal("FFFFF2CC", style.FillColorArgb);
 
@@ -91,8 +91,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.MissingMarker.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
-                sheet.CellAt(1, 1).SetValue("Hello {{Name}}");
+                var sheet = document.AddSheet("Template");
+                sheet.Cell(1, 1).SetValue("Hello {{Name}}");
 
                 Assert.Throws<InvalidOperationException>(() =>
                     sheet.ApplyTemplate(new Dictionary<string, object?>(), throwOnMissing: true));
@@ -109,10 +109,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.MissingValuePolicy.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
-                sheet.CellAt(1, 1).SetValue("Hello {{Name}} {{OptionalSuffix}}");
-                sheet.CellAt(2, 1).SetValue("{{OptionalTotal}}");
-                sheet.CellAt(3, 1).SetValue("Still {{Unknown}}");
+                var sheet = document.AddSheet("Template");
+                sheet.Cell(1, 1).SetValue("Hello {{Name}} {{OptionalSuffix}}");
+                sheet.Cell(2, 1).SetValue("{{OptionalTotal}}");
+                sheet.Cell(3, 1).SetValue("Still {{Unknown}}");
 
                 int replacements = sheet.ApplyTemplate(new Dictionary<string, object?> {
                     ["Name"] = "Adatum"
@@ -126,9 +126,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Template"];
-                Assert.Equal("Hello Adatum ", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal(string.Empty, sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Equal("Still ", sheet.CellAt(3, 1).GetValue<string>());
+                Assert.Equal("Hello Adatum ", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal(string.Empty, sheet.Cell(2, 1).GetValue<string>());
+                Assert.Equal("Still ", sheet.Cell(3, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -138,12 +138,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRows.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Item").HeaderStyle();
-                sheet.CellAt(1, 2).SetValue("Amount").HeaderStyle();
-                sheet.CellAt(2, 1).SetValue("{{Name}}");
-                sheet.CellAt(2, 2).SetValue("{{Amount:currency}}");
-                sheet.CellAt(3, 1).SetValue("Footer");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Item").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                sheet.Cell(1, 2).SetValue("Amount").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                sheet.Cell(2, 1).SetValue("{{Name}}");
+                sheet.Cell(2, 2).SetValue("{{Amount:currency}}");
+                sheet.Cell(3, 1).SetValue("Footer");
 
                 int replacements = sheet.ApplyTemplateRows(2, new[] {
                     new Dictionary<string, object?> {
@@ -165,11 +165,11 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
-                Assert.Equal("Consulting", sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Equal(1200d, sheet.CellAt(2, 2).GetValue<double>());
-                Assert.Equal("Support", sheet.CellAt(3, 1).GetValue<string>());
-                Assert.Equal(300d, sheet.CellAt(3, 2).GetValue<double>());
-                Assert.Equal("Footer", sheet.CellAt(4, 1).GetValue<string>());
+                Assert.Equal("Consulting", sheet.Cell(2, 1).GetValue<string>());
+                Assert.Equal(1200d, sheet.Cell(2, 2).GetValue<double>());
+                Assert.Equal("Support", sheet.Cell(3, 1).GetValue<string>());
+                Assert.Equal(300d, sheet.Cell(3, 2).GetValue<double>());
+                Assert.Equal("Footer", sheet.Cell(4, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -179,11 +179,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsBounds.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("Invoice");
-            sheet.CellAt(A1.MaxRows, 1).SetValue("{{Name}}");
+            var sheet = document.AddSheet("Invoice");
+            sheet.Cell(ExcelA1.MaxRows, 1).SetValue("{{Name}}");
 
             ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                sheet.ApplyTemplateRows(A1.MaxRows, new[] {
+                sheet.ApplyTemplateRows(ExcelA1.MaxRows, new[] {
                     new Dictionary<string, object?> { ["Name"] = "One" },
                     new Dictionary<string, object?> { ["Name"] = "Two" }
                 }));
@@ -195,16 +195,16 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Item");
-                sheet.CellAt(1, 2).SetValue("Amount");
-                sheet.CellAt(1, 3).SetValue("Double");
-                sheet.CellAt(2, 1).SetValue("{{Name}}");
-                sheet.CellAt(2, 2).SetValue("{{Amount}}");
-                sheet.CellFormula(2, 3, "B2*2");
-                sheet.CellAt(3, 1).SetValue("Footer");
-                sheet.CellFormula(3, 3, "B3");
-                sheet.MergeRange("A3:B3");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Item");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(1, 3).SetValue("Double");
+                sheet.Cell(2, 1).SetValue("{{Name}}");
+                sheet.Cell(2, 2).SetValue("{{Amount}}");
+                sheet.Cell(2, 3).SetFormula("B2*2");
+                sheet.Cell(3, 1).SetValue("Footer");
+                sheet.Cell(3, 3).SetFormula("B3");
+                sheet.Range("A3:B3").Merge();
 
                 int replacements = sheet.ApplyTemplateRows(2, new[] {
                     new Dictionary<string, object?> {
@@ -239,19 +239,19 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsStationaryFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellFormula(1, 4, "B4+$B$4");
-                sheet.CellFormula(1, 5, "'Invoice'!$B$4");
-                sheet.CellAt(2, 1).SetValue("Intro");
-                sheet.CellAt(3, 1).SetValue("{{Name}}");
-                sheet.CellAt(3, 2).SetValue("{{Amount}}");
-                sheet.CellFormula(3, 3, "B3*2");
-                sheet.CellFormula(3, 4, "B2+B3+\"A3\"");
-                sheet.CellFormula(3, 6, "$B$3+B3");
-                sheet.CellAt(4, 1).SetValue("Footer");
-                sheet.CellAt(4, 2).SetValue(25);
-                sheet.CellFormula(4, 3, "B4");
-                sheet.MergeRange("A2:A4");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 4).SetFormula("B4+$B$4");
+                sheet.Cell(1, 5).SetFormula("'Invoice'!$B$4");
+                sheet.Cell(2, 1).SetValue("Intro");
+                sheet.Cell(3, 1).SetValue("{{Name}}");
+                sheet.Cell(3, 2).SetValue("{{Amount}}");
+                sheet.Cell(3, 3).SetFormula("B3*2");
+                sheet.Cell(3, 4).SetFormula("B2+B3+\"A3\"");
+                sheet.Cell(3, 6).SetFormula("$B$3+B3");
+                sheet.Cell(4, 1).SetValue("Footer");
+                sheet.Cell(4, 2).SetValue(25);
+                sheet.Cell(4, 3).SetFormula("B4");
+                sheet.Range("A2:A4").Merge();
                 document.Save();
             }
 
@@ -309,12 +309,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsSparklines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Item");
-                sheet.CellAt(2, 1).SetValue("{{Name}}");
-                sheet.CellAt(3, 1).SetValue(1);
-                sheet.CellAt(3, 2).SetValue(2);
-                sheet.CellAt(3, 3).SetValue(3);
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Item");
+                sheet.Cell(2, 1).SetValue("{{Name}}");
+                sheet.Cell(3, 1).SetValue(1);
+                sheet.Cell(3, 2).SetValue(2);
+                sheet.Cell(3, 3).SetValue(3);
                 sheet.AddSparklines("A3:C3", "D3");
 
                 int replacements = sheet.ApplyTemplateRows(2, new[] {
@@ -345,17 +345,17 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsCharts.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Item");
-                sheet.CellAt(2, 1).SetValue("{{Name}}");
-                sheet.CellAt(4, 1).SetValue("Region");
-                sheet.CellAt(4, 2).SetValue("Amount");
-                sheet.CellAt(5, 1).SetValue("EU");
-                sheet.CellAt(5, 2).SetValue(10);
-                sheet.CellAt(6, 1).SetValue("US");
-                sheet.CellAt(6, 2).SetValue(20);
-                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
-                sheet.AddChartFromRange("A4:B6", row: 8, column: 4, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, hasHeaders: true, title: "Sales");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Item");
+                sheet.Cell(2, 1).SetValue("{{Name}}");
+                sheet.Cell(4, 1).SetValue("Region");
+                sheet.Cell(4, 2).SetValue("Amount");
+                sheet.Cell(5, 1).SetValue("EU");
+                sheet.Cell(5, 2).SetValue(10);
+                sheet.Cell(6, 1).SetValue("US");
+                sheet.Cell(6, 2).SetValue(20);
+                sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A4:B6", new OfficeIMO.Excel.ExcelChartOptions { Row = 8, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true, Title = "Sales" });
 
                 int replacements = sheet.ApplyTemplateRows(2, new[] {
                     new Dictionary<string, object?> {
@@ -393,10 +393,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsCrossSheetFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var invoice = document.AddWorksheet("Invoice");
-                document.AddWorksheet("Inputs");
-                invoice.CellAt(2, 1).SetValue("{{Name}}");
-                invoice.CellFormula(2, 2, "'Inputs'!B2+'Inputs'!$C$2");
+                var invoice = document.AddSheet("Invoice");
+                document.AddSheet("Inputs");
+                invoice.Cell(2, 1).SetValue("{{Name}}");
+                invoice.Cell(2, 2).SetFormula("'Inputs'!B2+'Inputs'!$C$2");
 
                 invoice.ApplyTemplateRows(2, new[] {
                     new Dictionary<string, object?> {
@@ -423,13 +423,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsIncluded.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellAt(2, 1).SetValue("Discount");
-                sheet.CellAt(2, 2).SetValue("{{Discount:currency}}");
-                sheet.CellAt(3, 1).SetValue("Reason");
-                sheet.CellAt(3, 2).SetValue("{{Reason}}");
-                sheet.CellAt(4, 1).SetValue("Footer");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(2, 1).SetValue("Discount");
+                sheet.Cell(2, 2).SetValue("{{Discount:currency}}");
+                sheet.Cell(3, 1).SetValue("Reason");
+                sheet.Cell(3, 2).SetValue("{{Reason}}");
+                sheet.Cell(4, 1).SetValue("Footer");
 
                 int replacements = sheet.ApplyTemplateOptionalRows(2, 2, include: true, new {
                     Discount = 25m,
@@ -445,12 +445,12 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
-                Assert.Equal("Header", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Discount", sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Equal(25d, sheet.CellAt(2, 2).GetValue<double>());
-                Assert.Equal("Reason", sheet.CellAt(3, 1).GetValue<string>());
-                Assert.Equal("Loyalty", sheet.CellAt(3, 2).GetValue<string>());
-                Assert.Equal("Footer", sheet.CellAt(4, 1).GetValue<string>());
+                Assert.Equal("Header", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Discount", sheet.Cell(2, 1).GetValue<string>());
+                Assert.Equal(25d, sheet.Cell(2, 2).GetValue<double>());
+                Assert.Equal("Reason", sheet.Cell(3, 1).GetValue<string>());
+                Assert.Equal("Loyalty", sheet.Cell(3, 2).GetValue<string>());
+                Assert.Equal("Footer", sheet.Cell(4, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -460,11 +460,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemoved.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
-                sheet.CellAt(3, 1).SetValue("Optional {{Amount:currency}}");
-                sheet.CellAt(4, 1).SetValue("Footer");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(2, 1).SetValue("Optional {{Note}}");
+                sheet.Cell(3, 1).SetValue("Optional {{Amount:currency}}");
+                sheet.Cell(4, 1).SetValue("Footer");
 
                 int replacements = sheet.RemoveTemplateOptionalRows(2, 2);
 
@@ -474,9 +474,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
-                Assert.Equal("Header", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Footer", sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Null(sheet.CellAt(3, 1).GetValue<string>());
+                Assert.Equal("Header", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Footer", sheet.Cell(2, 1).GetValue<string>());
+                Assert.Null(sheet.Cell(3, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -486,18 +486,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsCharts.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
-                sheet.CellAt(3, 1).SetValue("Optional detail");
-                sheet.CellAt(5, 1).SetValue("Region");
-                sheet.CellAt(5, 2).SetValue("Amount");
-                sheet.CellAt(6, 1).SetValue("EU");
-                sheet.CellAt(6, 2).SetValue(10);
-                sheet.CellAt(7, 1).SetValue("US");
-                sheet.CellAt(7, 2).SetValue(20);
-                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
-                sheet.AddChartFromRange("A5:B7", row: 9, column: 4, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, hasHeaders: true, title: "Sales");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(2, 1).SetValue("Optional {{Note}}");
+                sheet.Cell(3, 1).SetValue("Optional detail");
+                sheet.Cell(5, 1).SetValue("Region");
+                sheet.Cell(5, 2).SetValue("Amount");
+                sheet.Cell(6, 1).SetValue("EU");
+                sheet.Cell(6, 2).SetValue(10);
+                sheet.Cell(7, 1).SetValue("US");
+                sheet.Cell(7, 2).SetValue(20);
+                sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A5:B7", new OfficeIMO.Excel.ExcelChartOptions { Row = 9, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true, Title = "Sales" });
 
                 int replacements = sheet.RemoveTemplateOptionalRows(2, 2);
 
@@ -528,11 +528,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemovedFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
-                sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
-                sheet.CellFormula(4, 1, "B4");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(2, 1).SetValue("Optional {{Note}}");
+                sheet.Cell(3, 1).SetValue("Optional {{Amount}}");
+                sheet.Cell(4, 1).SetFormula("B4");
 
                 sheet.RemoveTemplateOptionalRows(2, 2);
                 document.Save();
@@ -552,20 +552,20 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemovedStationaryFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellFormula(1, 4, "A4+$A$4");
-                sheet.CellFormula(1, 5, "'Invoice'!$A$4");
-                sheet.CellFormula(1, 6, "$A$2");
-                sheet.CellFormula(1, 7, "IF(\"A4\"=\"A4\",A4,0)");
-                sheet.CellFormula(1, 8, "SUM(A2:A5)");
-                sheet.CellFormula(1, 9, "SUM(A1:A3)");
-                sheet.CellFormula(1, 10, "SUM(A3:A4)");
-                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
-                sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
-                sheet.CellAt(4, 1).SetValue("Footer");
-                sheet.MergeRange("B1:B4");
-                sheet.MergeRange("C2:C3");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(1, 4).SetFormula("A4+$A$4");
+                sheet.Cell(1, 5).SetFormula("'Invoice'!$A$4");
+                sheet.Cell(1, 6).SetFormula("$A$2");
+                sheet.Cell(1, 7).SetFormula("IF(\"A4\"=\"A4\",A4,0)");
+                sheet.Cell(1, 8).SetFormula("SUM(A2:A5)");
+                sheet.Cell(1, 9).SetFormula("SUM(A1:A3)");
+                sheet.Cell(1, 10).SetFormula("SUM(A3:A4)");
+                sheet.Cell(2, 1).SetValue("Optional {{Note}}");
+                sheet.Cell(3, 1).SetValue("Optional {{Amount}}");
+                sheet.Cell(4, 1).SetValue("Footer");
+                sheet.Range("B1:B4").Merge();
+                sheet.Range("C2:C3").Merge();
 
                 sheet.RemoveTemplateOptionalRows(2, 2);
                 document.Save();
@@ -592,17 +592,17 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsMetadata.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellAt(2, 1).SetValue("{{Name}}");
-                sheet.CellAt(3, 1).SetValue("Footer");
-                sheet.CellAt(3, 2).SetValue("Choice");
-                sheet.CellAt(3, 3).SetValue(1);
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(2, 1).SetValue("{{Name}}");
+                sheet.Cell(3, 1).SetValue("Footer");
+                sheet.Cell(3, 2).SetValue("Choice");
+                sheet.Cell(3, 3).SetValue(1);
                 sheet.SetComment(3, 1, "Footer note");
-                sheet.CellAt(4, 1).SetValue("Trailing");
+                sheet.Cell(4, 1).SetValue("Trailing");
                 sheet.SetComment(4, 1, "Trailing note");
                 sheet.SetHyperlink(3, 1, "https://example.org");
-                sheet.AddConditionalFormulaRule("C3", "C3>0");
+                sheet.Range("C3").ConditionalFormat().Formula("C3>0");
                 document.Save();
             }
 
@@ -664,13 +664,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsNamedRangesTables.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellAt(2, 1).SetValue("{{Name}}");
-                sheet.CellAt(4, 1).SetValue("Code");
-                sheet.CellAt(4, 2).SetValue("Amount");
-                sheet.CellAt(5, 1).SetValue("A");
-                sheet.CellAt(5, 2).SetValue(10);
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(2, 1).SetValue("{{Name}}");
+                sheet.Cell(4, 1).SetValue("Code");
+                sheet.Cell(4, 2).SetValue("Amount");
+                sheet.Cell(5, 1).SetValue("A");
+                sheet.Cell(5, 2).SetValue(10);
                 sheet.AddTable("A4:B5", hasHeader: true, name: "SalesTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 document.SetNamedRange("GlobalSales", "'Invoice'!A4:B5", save: false);
                 sheet.SetNamedRange("LocalSales", "A4:B5", save: false);
@@ -694,8 +694,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
-                Assert.Equal("'Invoice'!$A$5:$B$6", document.GetNamedRange("GlobalSales"));
-                Assert.Equal("$A$5:$B$6", sheet.GetNamedRange("LocalSales"));
+                Assert.Equal("'Invoice'!$A$5:$B$6", document.GetNamedRangeText("GlobalSales"));
+                Assert.Equal("$A$5:$B$6", sheet.GetNamedRangeText("LocalSales"));
                 Assert.Empty(document.ValidateOpenXml());
             }
 
@@ -712,14 +712,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsNamedRangesTables.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Header");
-                sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
-                sheet.CellAt(3, 1).SetValue("Optional detail");
-                sheet.CellAt(5, 1).SetValue("Code");
-                sheet.CellAt(5, 2).SetValue("Amount");
-                sheet.CellAt(6, 1).SetValue("A");
-                sheet.CellAt(6, 2).SetValue(10);
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(2, 1).SetValue("Optional {{Note}}");
+                sheet.Cell(3, 1).SetValue("Optional detail");
+                sheet.Cell(5, 1).SetValue("Code");
+                sheet.Cell(5, 2).SetValue("Amount");
+                sheet.Cell(6, 1).SetValue("A");
+                sheet.Cell(6, 2).SetValue(10);
                 sheet.AddTable("A5:B6", hasHeader: true, name: "SalesTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 document.SetNamedRange("GlobalSales", "'Invoice'!A5:B6", save: false);
                 sheet.SetNamedRange("LocalSales", "A5:B6", save: false);
@@ -736,8 +736,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
-                Assert.Equal("'Invoice'!$A$3:$B$4", document.GetNamedRange("GlobalSales"));
-                Assert.Equal("$A$3:$B$4", sheet.GetNamedRange("LocalSales"));
+                Assert.Equal("'Invoice'!$A$3:$B$4", document.GetNamedRangeText("GlobalSales"));
+                Assert.Equal("$A$3:$B$4", sheet.GetNamedRangeText("LocalSales"));
                 Assert.Empty(document.ValidateOpenXml());
             }
 
@@ -755,34 +755,40 @@ namespace OfficeIMO.Tests {
             byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Region Template");
-                sheet.CellAt(1, 1).SetValue("Region {{Region}}").HeaderStyle();
-                sheet.CellAt(2, 1).SetValue("Owner");
-                sheet.CellAt(2, 2).SetValue("{{Owner}}");
-                sheet.CellAt(3, 1).SetValue("Amount");
-                sheet.CellAt(3, 2).SetValue("{{Amount:currency}}");
-                sheet.Range("B3").Validation.DecimalBetween(0, 1000, allowBlank: false, errorTitle: "Amount", errorMessage: "Use amount 0-1000");
-                sheet.Range("C3").Validation.CustomFormula("'Region Template'!B3>0", allowBlank: false, errorTitle: "Amount", errorMessage: "Use positive amount");
-                sheet.Range("B3").ConditionalFormatting.GreaterThan("'Region Template'!B3");
-                sheet.CellFormula(4, 2, "'Region Template'!B3*2");
-                sheet.CellFormula(5, 2, "SUM(TemplateWorkbookArea)");
-                sheet.MergeRange("A1:B1");
-                sheet.SetColumnWidth(1, 18);
-                sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+                var sheet = document.AddSheet("Region Template");
+                sheet.Cell(1, 1).SetValue("Region {{Region}}").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                sheet.Cell(2, 1).SetValue("Owner");
+                sheet.Cell(2, 2).SetValue("{{Owner}}");
+                sheet.Cell(3, 1).SetValue("Amount");
+                sheet.Cell(3, 2).SetValue("{{Amount:currency}}");
+                sheet.Range("B3").Validation().Decimal(ExcelDataValidationOperator.Between, 0, 1000, allowBlank: false, errorTitle: "Amount", errorMessage: "Use amount 0-1000");
+                sheet.Range("C3").Validation().CustomFormula("'Region Template'!B3>0", allowBlank: false, errorTitle: "Amount", errorMessage: "Use positive amount");
+                sheet.Range("B3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "'Region Template'!B3");
+                sheet.Cell(4, 2).SetFormula("'Region Template'!B3*2");
+                sheet.Cell(5, 2).SetFormula("SUM(TemplateWorkbookArea)");
+                sheet.Range("A1:B1").Merge();
+                sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+                sheet.PageSetup.FitToWidth = 1U; sheet.PageSetup.FitToHeight = 0U;
                 document.SetNamedRange("TemplateWorkbookArea", "'Region Template'!A1:B3", save: false);
                 sheet.SetNamedRange("TemplateArea", "A1:B3", save: false);
-                document.SetPrintArea(sheet, "A1:B7", save: false);
-                document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-                sheet.CellAt(6, 1).SetValue("Owner");
-                sheet.CellAt(6, 2).SetValue("Amount");
-                sheet.CellAt(7, 1).SetValue("{{Owner}}");
-                sheet.CellAt(7, 2).SetValue("{{Amount}}");
+                sheet.PageSetup.PrintArea = "A1:B7";
+                sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
+                sheet.Cell(6, 1).SetValue("Owner");
+                sheet.Cell(6, 2).SetValue("Amount");
+                sheet.Cell(7, 1).SetValue("{{Owner}}");
+                sheet.Cell(7, 2).SetValue("{{Amount}}");
                 sheet.AddTable("A6:B7", hasHeader: true, name: "RegionTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 sheet.SetHyperlink("A9", "https://example.com/help", "Help");
                 sheet.SetInternalLink(11, 1, "'Region Template'!A1", "Back to top");
                 sheet.SetComment("A10", "Template note", author: "Template");
-                sheet.AddImage(10, 3, png, "image/png", widthPixels: 18, heightPixels: 14, name: "Static Logo", altText: "Static template logo");
-                var chart = sheet.AddChartFromRange("A6:B7", row: 12, column: 4, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
+                sheet.AddImage(10, 3, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(18),
+                    Height = OfficeIMO.OfficeLength.Pixels(14),
+                    Name = "Static Logo",
+                    Description = "Static template logo"
+                });
+                var chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A6:B7", new OfficeIMO.Excel.ExcelChartOptions { Row = 12, Column = 4, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true, Title = "Regional total" });
                 chart.ApplyStylePreset(ExcelChartStylePreset.Default);
 
                 int replacements = document.ApplyTemplateSheets(
@@ -815,16 +821,16 @@ namespace OfficeIMO.Tests {
 
                 var north = document["North"];
                 var south = document["South"];
-                Assert.Equal("Region North", north.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Alice", north.CellAt(2, 2).GetValue<string>());
-                Assert.Equal(125d, north.CellAt(3, 2).GetValue<double>());
-                Assert.Equal("Alice", north.CellAt(7, 1).GetValue<string>());
-                Assert.Equal("$A$1:$B$3", north.GetNamedRange("TemplateArea"));
-                Assert.Equal("Region South", south.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Bob", south.CellAt(2, 2).GetValue<string>());
-                Assert.Equal(250d, south.CellAt(3, 2).GetValue<double>());
-                Assert.Equal("Bob", south.CellAt(7, 1).GetValue<string>());
-                Assert.Equal("$A$1:$B$3", south.GetNamedRange("TemplateArea"));
+                Assert.Equal("Region North", north.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Alice", north.Cell(2, 2).GetValue<string>());
+                Assert.Equal(125d, north.Cell(3, 2).GetValue<double>());
+                Assert.Equal("Alice", north.Cell(7, 1).GetValue<string>());
+                Assert.Equal("$A$1:$B$3", north.GetNamedRangeText("TemplateArea"));
+                Assert.Equal("Region South", south.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Bob", south.Cell(2, 2).GetValue<string>());
+                Assert.Equal(250d, south.Cell(3, 2).GetValue<double>());
+                Assert.Equal("Bob", south.Cell(7, 1).GetValue<string>());
+                Assert.Equal("$A$1:$B$3", south.GetNamedRangeText("TemplateArea"));
                 Assert.Empty(document.ValidateOpenXml());
             }
 
@@ -882,16 +888,16 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("A1:B1", merge.Reference!.Value);
                     Assert.Equal(1U, setup.FitToWidth!.Value);
                     Assert.Equal(0U, setup.FitToHeight!.Value);
-                    Assert.Equal("B3:B3", validation.SequenceOfReferences!.InnerText);
+                    Assert.Equal("B3", validation.SequenceOfReferences!.InnerText);
                     Assert.Equal(DataValidationValues.Decimal, validation.Type!.Value);
                     Assert.Equal(DataValidationOperatorValues.Between, validation.Operator!.Value);
                     Assert.False(validation.AllowBlank!.Value);
                     Assert.Equal("0", validation.Formula1!.Text);
                     Assert.Equal("1000", validation.Formula2!.Text);
-                    Assert.Equal("C3:C3", customValidation.SequenceOfReferences!.InnerText);
+                    Assert.Equal("C3", customValidation.SequenceOfReferences!.InnerText);
                     Assert.False(customValidation.AllowBlank!.Value);
                     Assert.Equal($"'{generatedSheet.Name}'!B3>0", customValidation.Formula1!.Text);
-                    Assert.Equal("B3:B3", conditionalFormatting.SequenceOfReferences!.InnerText);
+                    Assert.Equal("B3", conditionalFormatting.SequenceOfReferences!.InnerText);
                     Assert.Equal(ConditionalFormatValues.CellIs, conditionalRule.Type!.Value);
                     Assert.Equal(ConditionalFormattingOperatorValues.GreaterThan, conditionalRule.Operator!.Value);
                     Assert.Equal($"'{generatedSheet.Name}'!B3", Assert.Single(conditionalRule.Elements<Formula>()).Text);
@@ -940,13 +946,13 @@ namespace OfficeIMO.Tests {
             byte[] embeddedBytes = { 0x50, 0x4B, 0x03, 0x04, 0x4F, 0x49, 0x4D, 0x4F };
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Chart Template");
-                sheet.CellAt(1, 1).SetValue("Region {{Region}}");
-                sheet.CellAt(3, 1).SetValue("Metric");
-                sheet.CellAt(3, 2).SetValue("Value");
-                sheet.CellAt(4, 1).SetValue("Sales");
-                sheet.CellAt(4, 2).SetValue("{{Amount}}");
-                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
+                var sheet = document.AddSheet("Chart Template");
+                sheet.Cell(1, 1).SetValue("Region {{Region}}");
+                sheet.Cell(3, 1).SetValue("Metric");
+                sheet.Cell(3, 2).SetValue("Value");
+                sheet.Cell(4, 1).SetValue("Sales");
+                sheet.Cell(4, 2).SetValue("{{Amount}}");
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A3:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 6, Column = 3, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true, Title = "Regional total" });
                 document.Save();
             }
 
@@ -999,13 +1005,13 @@ namespace OfficeIMO.Tests {
             byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Chart Template");
-                sheet.CellAt(1, 1).SetValue("Region {{Region}}");
-                sheet.CellAt(3, 1).SetValue("Metric");
-                sheet.CellAt(3, 2).SetValue("Value");
-                sheet.CellAt(4, 1).SetValue("Sales");
-                sheet.CellAt(4, 2).SetValue("{{Amount}}");
-                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
+                var sheet = document.AddSheet("Chart Template");
+                sheet.Cell(1, 1).SetValue("Region {{Region}}");
+                sheet.Cell(3, 1).SetValue("Metric");
+                sheet.Cell(3, 2).SetValue("Value");
+                sheet.Cell(4, 1).SetValue("Sales");
+                sheet.Cell(4, 2).SetValue("{{Amount}}");
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A3:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 6, Column = 3, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true, Title = "Regional total" });
                 document.Save();
             }
 
@@ -1077,13 +1083,13 @@ namespace OfficeIMO.Tests {
             string styleXml = "<dgm:styleDef uniqueId=\"urn:officeimo:test:style\" xmlns:dgm=\"http://schemas.openxmlformats.org/drawingml/2006/diagram\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><dgm:title val=\"\" /><dgm:desc val=\"\" /><dgm:catLst><dgm:cat type=\"simple\" pri=\"10100\" /></dgm:catLst></dgm:styleDef>";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Diagram Template");
-                sheet.CellAt(1, 1).SetValue("Region {{Region}}");
-                sheet.CellAt(3, 1).SetValue("Metric");
-                sheet.CellAt(3, 2).SetValue("Value");
-                sheet.CellAt(4, 1).SetValue("Sales");
-                sheet.CellAt(4, 2).SetValue("{{Amount}}");
-                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
+                var sheet = document.AddSheet("Diagram Template");
+                sheet.Cell(1, 1).SetValue("Region {{Region}}");
+                sheet.Cell(3, 1).SetValue("Metric");
+                sheet.Cell(3, 2).SetValue("Value");
+                sheet.Cell(4, 1).SetValue("Sales");
+                sheet.Cell(4, 2).SetValue("{{Amount}}");
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A3:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 6, Column = 3, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true, Title = "Regional total" });
                 document.Save();
             }
 
@@ -1167,14 +1173,14 @@ namespace OfficeIMO.Tests {
             byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
-                sheet.CellAt(1, 1).SetValue("{{Logo}}");
-                sheet.CellAt(3, 1).SetValue("{{Badge}}");
+                var sheet = document.AddSheet("Template");
+                sheet.Cell(1, 1).SetValue("{{Logo}}");
+                sheet.Cell(3, 1).SetValue("{{Badge}}");
 
                 using var badgeStream = new MemoryStream(png);
                 int replacements = sheet.ApplyTemplate(new Dictionary<string, object?> {
-                    ["Logo"] = ExcelTemplateImage.FromBytes(png, widthPixels: 24, heightPixels: 18, name: "Logo", altText: "Company logo"),
-                    ["Badge"] = ExcelTemplateImage.FromStream(badgeStream, widthPixels: 12, heightPixels: 10, name: "Badge", altText: "Status badge")
+                    ["Logo"] = ExcelTemplateImage.FromBytes(png, width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "Logo", altText: "Company logo"),
+                    ["Badge"] = ExcelTemplateImage.FromStream(badgeStream, width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "Badge", altText: "Status badge")
                 });
 
                 Assert.Equal(2, replacements);
@@ -1209,11 +1215,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.ObjectModel.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("Customer: {{Customer.Name}}");
-                sheet.CellAt(2, 1).SetValue("Total: {{Total:currency}}");
-                sheet.CellAt(3, 1).SetValue("Issued: {{Issued:yyyy-MM-dd}}");
-                sheet.CellAt(4, 1).SetValue("Completion: {{Completion:percent}}");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("Customer: {{Customer.Name}}");
+                sheet.Cell(2, 1).SetValue("Total: {{Total:currency}}");
+                sheet.Cell(3, 1).SetValue("Issued: {{Issued:yyyy-MM-dd}}");
+                sheet.Cell(4, 1).SetValue("Completion: {{Completion:percent}}");
 
                 int replacements = document.ApplyTemplate(new InvoiceTemplateModel {
                     Customer = new CustomerTemplateModel { Name = "Adatum" },
@@ -1228,10 +1234,10 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Invoice"];
-                Assert.Equal("Customer: Adatum", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Total: $123.45", sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Equal("Issued: 2026-05-21", sheet.CellAt(3, 1).GetValue<string>());
-                Assert.Equal("Completion: 50.00%", sheet.CellAt(4, 1).GetValue<string>());
+                Assert.Equal("Customer: Adatum", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Total: $123.45", sheet.Cell(2, 1).GetValue<string>());
+                Assert.Equal("Issued: 2026-05-21", sheet.Cell(3, 1).GetValue<string>());
+                Assert.Equal("Completion: 50.00%", sheet.Cell(4, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1241,10 +1247,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.CustomFormatters.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
-                sheet.CellAt(1, 1).SetValue("Customer {{Name:upper}}");
-                sheet.CellAt(2, 1).SetValue("Risk {{Score:risk}}");
-                sheet.CellAt(3, 1).SetValue("{{Nullable:fallback}}");
+                var sheet = document.AddSheet("Template");
+                sheet.Cell(1, 1).SetValue("Customer {{Name:upper}}");
+                sheet.Cell(2, 1).SetValue("Risk {{Score:risk}}");
+                sheet.Cell(3, 1).SetValue("{{Nullable:fallback}}");
 
                 var options = new ExcelTemplateOptions {
                     FormatProvider = System.Globalization.CultureInfo.InvariantCulture,
@@ -1269,9 +1275,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document["Template"];
-                Assert.Equal("Customer ADATUM", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("Risk High", sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Equal("n/a", sheet.CellAt(3, 1).GetValue<string>());
+                Assert.Equal("Customer ADATUM", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("Risk High", sheet.Cell(2, 1).GetValue<string>());
+                Assert.Equal("n/a", sheet.Cell(3, 1).GetValue<string>());
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1281,10 +1287,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.TypedMarkers.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
-                sheet.CellAt(1, 1).SetValue("{{Total:currency}}");
-                sheet.CellAt(2, 1).SetValue("{{Completion:percent}}");
-                sheet.CellAt(3, 1).SetValue("{{Issued:date}}");
+                var sheet = document.AddSheet("Invoice");
+                sheet.Cell(1, 1).SetValue("{{Total:currency}}");
+                sheet.Cell(2, 1).SetValue("{{Completion:percent}}");
+                sheet.Cell(3, 1).SetValue("{{Issued:date}}");
 
                 int replacements = sheet.ApplyTemplate(new {
                     Total = 123.45m,
@@ -1318,9 +1324,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.DurationAlias.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Schedule");
-                sheet.CellAt(1, 1).SetValue("Elapsed {{Duration:duration}}");
-                sheet.CellAt(2, 1).SetValue("{{Duration:duration}}");
+                var sheet = document.AddSheet("Schedule");
+                sheet.Cell(1, 1).SetValue("Elapsed {{Duration:duration}}");
+                sheet.Cell(2, 1).SetValue("{{Duration:duration}}");
 
                 int replacements = sheet.ApplyTemplate(new {
                     Duration = TimeSpan.FromMinutes(1650)
@@ -1347,12 +1353,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.Inspect.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
-                sheet.CellAt(1, 1).SetValue("Invoice {{Invoice.Number}}");
-                sheet.CellAt(2, 1).SetValue("{{Total:currency}}");
-                sheet.CellAt(3, 1).SetValue("Customer {{Customer.Name}}");
-                sheet.CellAt(4, 1).SetValue("{{Logo}}");
-                sheet.CellAt(5, 1).SetValue("Issued {{Issued:date}}");
+                var sheet = document.AddSheet("Template");
+                sheet.Cell(1, 1).SetValue("Invoice {{Invoice.Number}}");
+                sheet.Cell(2, 1).SetValue("{{Total:currency}}");
+                sheet.Cell(3, 1).SetValue("Customer {{Customer.Name}}");
+                sheet.Cell(4, 1).SetValue("{{Logo}}");
+                sheet.Cell(5, 1).SetValue("Issued {{Issued:date}}");
 
                 ExcelTemplateInspection template = document.InspectTemplate();
                 Assert.Equal(5, template.TotalMarkers);
@@ -1366,7 +1372,7 @@ namespace OfficeIMO.Tests {
                 ExcelTemplateInspection missing = document.InspectTemplate(new Dictionary<string, object?> {
                     ["Invoice.Number"] = "INV-001",
                     ["Total"] = 10,
-                    ["Logo"] = ExcelTemplateImage.FromBytes(new byte[] { 1, 2, 3 }, widthPixels: 12, heightPixels: 12),
+                    ["Logo"] = ExcelTemplateImage.FromBytes(new byte[] { 1, 2, 3 }, width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12)),
                     ["Issued"] = new DateTime(2026, 5, 28)
                 });
 
@@ -1397,7 +1403,7 @@ namespace OfficeIMO.Tests {
                     Customer = new CustomerTemplateModel { Name = "Adatum" },
                     Total = 10,
                     Invoice = new InvoiceNumberTemplateModel { Number = "INV-001" },
-                    Logo = ExcelTemplateImage.FromBytes(new byte[] { 4, 5, 6 }, widthPixels: 12, heightPixels: 12),
+                    Logo = ExcelTemplateImage.FromBytes(new byte[] { 4, 5, 6 }, width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12)),
                     Issued = new DateTime(2026, 5, 28)
                 });
 

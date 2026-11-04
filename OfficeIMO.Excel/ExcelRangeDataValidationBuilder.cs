@@ -1,9 +1,12 @@
-using DocumentFormat.OpenXml.Spreadsheet;
-
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Fluent data validation builder for an <see cref="ExcelRange"/>.
+    /// Adds data validation rules to an <see cref="ExcelRange"/>.
     /// </summary>
+    /// <remarks>
+    /// Existing rules are listed, edited and removed through the worksheet
+    /// (<see cref="ExcelSheet.GetDataValidations"/>, <see cref="ExcelSheet.SetDataValidationMessages"/>,
+    /// <see cref="ExcelSheet.UpdateDataValidationMessages"/>, <see cref="ExcelSheet.RemoveDataValidations"/>).
+    /// </remarks>
     public sealed class ExcelRangeDataValidationBuilder {
         private readonly ExcelRange _range;
 
@@ -11,119 +14,60 @@ namespace OfficeIMO.Excel {
             _range = range ?? throw new ArgumentNullException(nameof(range));
         }
 
-        /// <summary>
-        /// Applies list validation from inline items.
-        /// </summary>
-        public ExcelRange List(params string[] items) {
-            return List((IEnumerable<string>)items);
-        }
+        /// <summary>Restricts input to a drop-down list of inline items.</summary>
+        public ExcelRange List(params string[] items) => List((IEnumerable<string>)items);
 
-        /// <summary>
-        /// Applies list validation from inline items.
-        /// </summary>
+        /// <summary>Restricts input to a drop-down list of inline items.</summary>
         public ExcelRange List(IEnumerable<string> items, bool allowBlank = true) {
-            _range.Sheet.ValidationList(_range.Address, items, allowBlank);
+            _range.Sheet.CreateDataValidationList(_range.Reference, items, allowBlank);
             return _range;
         }
 
-        /// <summary>
-        /// Applies list validation using a workbook or sheet-local named range.
-        /// </summary>
+        /// <summary>Restricts input to a drop-down list read from a workbook or sheet-local named range.</summary>
         public ExcelRange ListNamedRange(string namedRange, bool allowBlank = true) {
-            _range.Sheet.ValidationListNamedRange(_range.Address, namedRange, allowBlank);
+            _range.Sheet.CreateDataValidationListNamedRange(_range.Reference, namedRange, allowBlank);
             return _range;
         }
 
-        /// <summary>
-        /// Applies list validation using a worksheet range.
-        /// </summary>
+        /// <summary>Restricts input to a drop-down list read from a worksheet range; the current sheet when no sheet is named.</summary>
         public ExcelRange ListRange(string sourceA1Range, string? sourceSheetName = null, bool allowBlank = true) {
-            _range.Sheet.ValidationListRange(_range.Address, sourceA1Range, sourceSheetName, allowBlank);
+            _range.Sheet.CreateDataValidationListRange(_range.Reference, sourceA1Range, sourceSheetName, allowBlank);
             return _range;
         }
 
-        /// <summary>
-        /// Applies whole-number validation.
-        /// </summary>
+        /// <summary>Restricts input to whole numbers; Between and NotBetween need <paramref name="formula2"/>.</summary>
         public ExcelRange WholeNumber(ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            _range.Sheet.ValidationWholeNumber(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
+            _range.Sheet.CreateDataValidationWholeNumber(_range.Reference, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
 
-        /// <summary>
-        /// Applies whole-number validation between two values.
-        /// </summary>
-        public ExcelRange WholeNumberBetween(int minimum, int maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            return WholeNumber(ExcelDataValidationOperator.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
-        }
-
-        /// <summary>
-        /// Applies decimal-number validation.
-        /// </summary>
+        /// <summary>Restricts input to decimal numbers; Between and NotBetween need <paramref name="formula2"/>.</summary>
         public ExcelRange Decimal(ExcelDataValidationOperator @operator, double formula1, double? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            _range.Sheet.ValidationDecimal(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
+            _range.Sheet.CreateDataValidationDecimal(_range.Reference, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
 
-        /// <summary>
-        /// Applies decimal-number validation between two values.
-        /// </summary>
-        public ExcelRange DecimalBetween(double minimum, double maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            return Decimal(ExcelDataValidationOperator.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
-        }
-
-        /// <summary>
-        /// Applies date validation.
-        /// </summary>
+        /// <summary>Restricts input to dates; Between and NotBetween need <paramref name="formula2"/>.</summary>
         public ExcelRange Date(ExcelDataValidationOperator @operator, DateTime formula1, DateTime? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            _range.Sheet.ValidationDate(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
+            _range.Sheet.CreateDataValidationDate(_range.Reference, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
 
-        /// <summary>
-        /// Applies date validation between two dates.
-        /// </summary>
-        public ExcelRange DateBetween(DateTime minimum, DateTime maximum, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            return Date(ExcelDataValidationOperator.Between, minimum, maximum, allowBlank, errorTitle, errorMessage);
-        }
-
-        /// <summary>
-        /// Applies time validation.
-        /// </summary>
+        /// <summary>Restricts input to times of day; Between and NotBetween need <paramref name="formula2"/>.</summary>
         public ExcelRange Time(ExcelDataValidationOperator @operator, TimeSpan formula1, TimeSpan? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            _range.Sheet.ValidationTime(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
+            _range.Sheet.CreateDataValidationTime(_range.Reference, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
 
-        /// <summary>
-        /// Applies text-length validation.
-        /// </summary>
+        /// <summary>Restricts the length of text input; Between and NotBetween need <paramref name="formula2"/>.</summary>
         public ExcelRange TextLength(ExcelDataValidationOperator @operator, int formula1, int? formula2 = null, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            _range.Sheet.ValidationTextLength(_range.Address, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
+            _range.Sheet.CreateDataValidationTextLength(_range.Reference, @operator, formula1, formula2, allowBlank, errorTitle, errorMessage);
             return _range;
         }
 
-        /// <summary>
-        /// Applies custom formula validation.
-        /// </summary>
+        /// <summary>Accepts input when a custom formula evaluates to true.</summary>
         public ExcelRange CustomFormula(string formula, bool allowBlank = true, string? errorTitle = null, string? errorMessage = null) {
-            _range.Sheet.ValidationCustomFormula(_range.Address, formula, allowBlank, errorTitle, errorMessage);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies prompt and error message metadata to validations that overlap the range.
-        /// </summary>
-        public ExcelRange Messages(ExcelDataValidationMessageOptions options) {
-            _range.Sheet.SetDataValidationMessages(_range.Address, options);
-            return _range;
-        }
-
-        /// <summary>
-        /// Removes data validations that overlap the range.
-        /// </summary>
-        public ExcelRange Clear() {
-            _range.Sheet.RemoveDataValidations(_range.Address);
+            _range.Sheet.CreateDataValidationCustomFormula(_range.Reference, formula, allowBlank, errorTitle, errorMessage);
             return _range;
         }
     }

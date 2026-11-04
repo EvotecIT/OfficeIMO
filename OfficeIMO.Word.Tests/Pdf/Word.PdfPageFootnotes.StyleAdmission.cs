@@ -31,7 +31,7 @@ public partial class Word {
         string notesBefore = main.FootnotesPart!.Footnotes!.OuterXml;
         string stylesBefore = main.StyleDefinitionsPart!.Styles!.OuterXml;
         string settingsBefore = main.DocumentSettingsPart!.Settings!.OuterXml;
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
 
         for (int serialization = 0; serialization < 2; serialization++) {
             using var pdf = PdfPigDocument.Open(result.ToBytes());
@@ -40,7 +40,7 @@ public partial class Word {
                 Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, token));
             Assert.True(text.IndexOf("LASTBODY", StringComparison.Ordinal) < text.IndexOf("FIRSTNOTEBODY", StringComparison.Ordinal));
             Assert.True(text.IndexOf("FIRSTNOTEBODY", StringComparison.Ordinal) < text.IndexOf("SECONDNOTEBODY", StringComparison.Ordinal));
-            Assert.DoesNotContain(result.Warnings, item => item.Code == "NativeFootnotePlacementApproximated");
+            Assert.DoesNotContain(result.Warnings, item => item.Code == "native-footnote-placement-approximated");
             var page = pdf.GetPages().Single(item => item.Text.Contains("FIRSTNOTEBODY", StringComparison.Ordinal));
             var letters = page.Letters.ToArray();
             Assert.True(FindRichNoteToken(letters, "FIRSTNOTEBODY")[0].StartBaseLine.Y <
@@ -67,11 +67,11 @@ public partial class Word {
         var main = source._wordprocessingDocument.MainDocumentPart!;
         string notesBefore = main.FootnotesPart!.Footnotes!.OuterXml;
         string settingsBefore = main.DocumentSettingsPart!.Settings!.OuterXml;
-        var result = source.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = source.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, "NOTEBODY"));
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         Assert.Equal(notesBefore, main.FootnotesPart.Footnotes.OuterXml);
         Assert.Equal(settingsBefore, main.DocumentSettingsPart.Settings.OuterXml);
         Assert.Empty(source.ValidateDocument());

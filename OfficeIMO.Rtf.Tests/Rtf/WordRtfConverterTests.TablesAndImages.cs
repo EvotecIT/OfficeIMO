@@ -27,15 +27,13 @@ public partial class WordRtfConverterTests {
         table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
         table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
         table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
-        table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-        table.Rows[0].Cells[0].Width = 1800;
-        table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
-        table.Rows[0].Cells[1].Width = 3000;
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1800) * 635)));
+        table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
         word.AddParagraph("After");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         Assert.Collection(rtfDocument.Blocks,
             block => Assert.Equal("Before", Assert.IsType<RtfParagraph>(block).ToPlainText()),
@@ -69,10 +67,10 @@ public partial class WordRtfConverterTests {
         Assert.Equal((short?)300, roundTripTable._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width?.Value);
         Assert.Equal((short?)300, roundTripTable._tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width?.Value);
         Assert.Equal(1020, roundTripTable._tableProperties?.TableIndentation?.Width?.Value);
-        Assert.Equal(WordTableWidthUnit.Dxa, roundTripTable.Rows[0].Cells[0].WidthType);
-        Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width);
-        Assert.Equal(WordTableWidthUnit.Dxa, roundTripTable.Rows[0].Cells[1].WidthType);
-        Assert.Equal(3000, roundTripTable.Rows[0].Cells[1].Width);
+        Assert.Equal(WordTableWidthKind.Length, roundTripTable.Rows[0].Cells[0].Width?.Kind);
+        Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width?.ToNativeValue());
+        Assert.Equal(WordTableWidthKind.Length, roundTripTable.Rows[0].Cells[1].Width?.Kind);
+        Assert.Equal(3000, roundTripTable.Rows[0].Cells[1].Width?.ToNativeValue());
         Assert.Equal("A1", GetCellText(roundTripTable, 0, 0));
         Assert.Equal("B1", GetCellText(roundTripTable, 0, 1));
         Assert.Equal("A2", GetCellText(roundTripTable, 1, 0));
@@ -87,7 +85,7 @@ public partial class WordRtfConverterTests {
         table._tableProperties!.TableCellSpacing = new TableCellSpacing { Width = "300", Type = TableWidthUnitValues.Dxa };
         table.Rows[0].Cells[0].AddParagraph("SPACED", removeExistingParagraphs: true);
 
-        RtfConversionResult<RtfDocument> result = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> result = word.ConvertToRtfWithEvidence();
 
         RtfTable converted = Assert.Single(result.Value.Blocks.OfType<RtfTable>());
         Assert.Null(Assert.Single(converted.Rows).CellGapTwips);
@@ -116,20 +114,20 @@ public partial class WordRtfConverterTests {
         secondCell.AddParagraph("Right");
         rtfDocument.AddParagraph("After");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
-        RtfDocument roundTrip = word.ToRtfDocument();
+        using WordDocument word = rtfDocument.ToWord();
+        RtfDocument roundTrip = word.ToRtf();
 
         WordTable wordTable = Assert.Single(word.Tables);
         Assert.Null(wordTable._tableProperties?.TableCellSpacing);
         Assert.Equal((short?)300, wordTable._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width?.Value);
         Assert.Equal((short?)300, wordTable._tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width?.Value);
         Assert.Equal(720, wordTable._tableProperties?.TableIndentation?.Width?.Value);
-        Assert.Equal(WordTableWidthUnit.Dxa, wordTable.Rows[0].Cells[0].WidthType);
-        Assert.Equal(1800, wordTable.Rows[0].Cells[0].Width);
+        Assert.Equal(WordTableWidthKind.Length, wordTable.Rows[0].Cells[0].Width?.Kind);
+        Assert.Equal(1800, wordTable.Rows[0].Cells[0].Width?.ToNativeValue());
         Assert.False(wordTable.Rows[0].Cells[0].WrapText);
         Assert.True(wordTable.Rows[0].Cells[0].FitText);
-        Assert.Equal(WordTableWidthUnit.Dxa, wordTable.Rows[0].Cells[1].WidthType);
-        Assert.Equal(3000, wordTable.Rows[0].Cells[1].Width);
+        Assert.Equal(WordTableWidthKind.Length, wordTable.Rows[0].Cells[1].Width?.Kind);
+        Assert.Equal(3000, wordTable.Rows[0].Cells[1].Width?.ToNativeValue());
         Assert.Equal("Left bold", GetCellText(wordTable, 0, 0));
         Assert.Equal("Right", GetCellText(wordTable, 0, 1));
         Assert.Contains(wordTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "bold" && paragraph.Bold);
@@ -155,13 +153,13 @@ public partial class WordRtfConverterTests {
         byte[] png = CreateOnePixelPng();
         using WordDocument word = WordDocument.Create();
         using (var stream = new MemoryStream(png)) {
-            word.AddParagraph().AddImage(stream, "pixel.png", 32, 16, WordImageTextWrapping.InLineWithText, "Pixel image");
+            word.AddParagraph().AddImage(stream, "pixel.png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "Pixel image" });
         }
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
-        RtfDocument roundTripRtf = roundTrip.ToRtfDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
+        RtfDocument roundTripRtf = roundTrip.ToRtf();
 
         RtfImage image = Assert.IsType<RtfImage>(Assert.Single(rtfDocument.Blocks));
         Assert.Equal(RtfImageFormat.Png, image.Format);
@@ -174,8 +172,8 @@ public partial class WordRtfConverterTests {
         Assert.Contains(@"{\pict\pngblip\picw1\pich1\picwgoal480\pichgoal240", rtf, StringComparison.Ordinal);
         Assert.Contains("89504e470d0a1a0a", rtf, StringComparison.Ordinal);
 
-        using WordDocument semanticBridge = rtfDocument.ToWordDocument();
-        Assert.Equal("Pixel image", Assert.Single(semanticBridge.Images).Description);
+        using WordDocument semanticBridge = rtfDocument.ToWord();
+        Assert.Equal("Pixel image", Assert.Single(semanticBridge.Images).AltText);
         WordImage roundTripImage = Assert.Single(roundTrip.Images);
         Assert.Equal(png, roundTripImage.ToBytes());
         RtfImage semanticRoundTripImage = Assert.IsType<RtfImage>(Assert.Single(roundTripRtf.Blocks));
@@ -191,15 +189,15 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddText("Before ");
         using (var stream = new MemoryStream(png)) {
-            paragraph.AddImage(stream, "pixel.png", 24, 12, WordImageTextWrapping.InLineWithText, "Inline pixel");
+            paragraph.AddImage(stream, "pixel.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(12), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, AltText = "Inline pixel" });
         }
 
         paragraph.AddText(" after");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
-        RtfDocument semanticRoundTrip = roundTrip.ToRtfDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
+        RtfDocument semanticRoundTrip = roundTrip.ToRtf();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Collection(rtfParagraph.Inlines,
@@ -233,18 +231,14 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddText("Before ");
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "first.png", 16, 16, description: "First image");
+            paragraph.AddImage(stream, "first.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "First image" });
         }
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "second.png", 16, 16, description: "Second image");
+            paragraph.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Second image" });
         }
-        paragraph.AddImage(
-            new Uri("https://example.test/external.png"),
-            16,
-            16,
-            description: "External image");
+        paragraph.AddImage(new Uri("https://example.test/external.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "External image" });
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
         RtfParagraph converted = Assert.Single(conversion.Value.Paragraphs);
         Assert.Collection(
             converted.Inlines,
@@ -252,10 +246,10 @@ public partial class WordRtfConverterTests {
             inline => Assert.Equal("First image", Assert.IsType<RtfImage>(inline).Description),
             inline => Assert.Equal("Second image", Assert.IsType<RtfImage>(inline).Description));
         RtfConversionDiagnostic omitted = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, omitted.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -264,13 +258,13 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "first.png", 16, 16, description: "First image");
+            paragraph.AddImage(stream, "first.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "First image" });
         }
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "second.png", 16, 16, description: "Second image");
+            paragraph.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Second image" });
         }
 
-        RtfDocument converted = word.ToRtfDocument();
+        RtfDocument converted = word.ToRtf();
 
         Assert.Collection(
             converted.Blocks,
@@ -284,13 +278,9 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "embedded.png", 16, 16, description: "Embedded image");
+            paragraph.AddImage(stream, "embedded.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Embedded image" });
         }
-        paragraph.AddImage(
-            new Uri("https://example.test/external.png"),
-            16,
-            16,
-            description: "External image");
+        paragraph.AddImage(new Uri("https://example.test/external.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "External image" });
 
         Run run = Assert.IsType<Run>(paragraph._run);
         List<WordDrawing> drawings = run.Elements<WordDrawing>().ToList();
@@ -300,14 +290,14 @@ public partial class WordRtfConverterTests {
         choice.Append(drawings);
         run.Append(new AlternateContent(choice));
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.Equal("Embedded image", Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks)).Description);
         RtfConversionDiagnostic omitted = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, omitted.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -316,13 +306,9 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "embedded.png", 16, 16, description: "Fallback image");
+            paragraph.AddImage(stream, "embedded.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Fallback image" });
         }
-        paragraph.AddImage(
-            new Uri("https://example.test/fallback.png"),
-            16,
-            16,
-            description: "Fallback external image");
+        paragraph.AddImage(new Uri("https://example.test/fallback.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Fallback external image" });
 
         Run run = Assert.IsType<Run>(paragraph._run);
         List<WordDrawing> drawings = run.Elements<WordDrawing>().ToList();
@@ -334,14 +320,14 @@ public partial class WordRtfConverterTests {
         fallback.Append(drawings);
         run.Append(new AlternateContent(choice, fallback));
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.Equal("Fallback image", Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks)).Description);
         RtfConversionDiagnostic omitted = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, omitted.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -349,12 +335,12 @@ public partial class WordRtfConverterTests {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddImage(RtfImageFormat.Dib, CreateOnePixelDib());
 
-        RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = rtf.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
 
         WordImage image = Assert.Single(word.Images);
         Assert.Equal(OfficeImageFormat.Png, OfficeImageReader.Identify(image.ToBytes()).Format);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RtfWordDibImagesNormalized" &&
             diagnostic.Action == RtfConversionAction.Substituted);
     }
@@ -369,11 +355,11 @@ public partial class WordRtfConverterTests {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddImage(RtfImageFormat.Png, png);
 
-        RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = rtf.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
 
         Assert.Empty(word.Images);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RtfWordImagesOmitted" &&
             diagnostic.Action == RtfConversionAction.Omitted);
     }
@@ -389,11 +375,11 @@ public partial class WordRtfConverterTests {
         RtfDocument rtf = RtfDocument.Create();
         rtf.AddImage(RtfImageFormat.Jpeg, markerOnlyJpeg);
 
-        RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = rtf.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
 
         Assert.Empty(word.Images);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "RtfWordImagesOmitted" &&
             diagnostic.Action == RtfConversionAction.Omitted);
     }
@@ -403,15 +389,15 @@ public partial class WordRtfConverterTests {
         byte[] bmp = CreateOnePixelBmp();
         using WordDocument word = WordDocument.Create();
         using (var stream = new MemoryStream(bmp, writable: false)) {
-            word.AddParagraph().AddImage(stream, "pixel.bmp", 16, 16);
+            word.AddParagraph().AddImage(stream, "pixel.bmp", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
         RtfImage image = Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks));
 
         Assert.Equal(RtfImageFormat.Png, image.Format);
         Assert.Equal(OfficeImageFormat.Png, OfficeImageReader.Identify(image.Data).Format);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfImagesNormalized" &&
             diagnostic.Action == RtfConversionAction.Substituted);
     }
@@ -422,19 +408,19 @@ public partial class WordRtfConverterTests {
         Assert.True(OfficeImageReader.TryValidateContent(gif, "animated.gif", out _));
         using WordDocument word = WordDocument.Create();
         using (var stream = new MemoryStream(gif, writable: false)) {
-            word.AddParagraph().AddImage(stream, "animated.gif", 16, 16);
+            word.AddParagraph().AddImage(stream, "animated.gif", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
         RtfImage image = Assert.IsType<RtfImage>(Assert.Single(conversion.Value.Blocks));
 
         Assert.Equal(RtfImageFormat.Png, image.Format);
         RtfConversionDiagnostic flattened = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == "WordRtfImageAnimationFlattened");
         Assert.Equal(RtfConversionAction.Flattened, flattened.Action);
         Assert.Equal(1, flattened.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -443,16 +429,16 @@ public partial class WordRtfConverterTests {
         byte[] bmp = CreateOnePixelBmp();
         using WordDocument word = WordDocument.Create();
         using (var stream = new MemoryStream(png, writable: false)) {
-            word.AddParagraph().AddImage(stream, "png-content.jpg", 16, 16);
+            word.AddParagraph().AddImage(stream, "png-content.jpg", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
         using (var stream = new MemoryStream(bmp, writable: false)) {
-            word.AddParagraph().AddImage(stream, "bmp-content.png", 16, 16);
+            word.AddParagraph().AddImage(stream, "bmp-content.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesNormalized");
         Assert.Equal(1, diagnostic.Count);
     }
@@ -460,107 +446,102 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Include_Footnote_And_Endnote_Stories() {
         using WordDocument word = WordDocument.Create();
-        WordParagraph footnoteReference = word.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
-        WordParagraph endnoteReference = word.AddParagraph("Endnote anchor").AddEndNote("Endnote body");
-        footnoteReference.FootNote!.Paragraphs![1].AddImage(
-            new Uri("https://example.test/footnote.png"), 16, 16);
-        endnoteReference.EndNote!.Paragraphs![1].AddImage(
-            new Uri("https://example.test/endnote.png"), 16, 16);
+        WordParagraph footnoteReference = word.AddParagraph("Footnote anchor").AddFootNote("Footnote body").Paragraph;
+        WordParagraph endnoteReference = word.AddParagraph("Endnote anchor").AddEndNote("Endnote body").Paragraph;
+        footnoteReference.FootNote!.Paragraphs![1].AddImage(new Uri("https://example.test/footnote.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        endnoteReference.EndNote!.Paragraphs![1].AddImage(new Uri("https://example.test/endnote.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(2, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Report_Images_In_Later_Section_Headers() {
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].AddHeadersAndFooters();
-        word.Sections[0].Header.Default!.AddParagraph("First section header");
+        word.Sections[0].PageSetup.Header.AddParagraph("First section header");
         WordSection laterSection = word.AddSection(WordSectionBreakType.NextPage);
-        laterSection.AddHeadersAndFooters();
+        _ = laterSection.PageSetup.Header;
         HeaderReference laterHeaderReference = Assert.Single(
             laterSection._sectionProperties.Elements<HeaderReference>(),
             reference => reference.Type?.Value == HeaderFooterValues.Default);
         var laterHeader = new WordHeader(word, laterHeaderReference, laterSection);
-        laterHeader.AddParagraph().AddImage(
-            new Uri("https://example.test/later-section-header.png"), 16, 16);
+        laterHeader.AddParagraph().AddImage(new Uri("https://example.test/later-section-header.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Report_Images_In_Skipped_Header_Tables() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].AddHeadersAndFooters();
-        WordTableCell cell = word.Sections[0].Header.Default!
+        WordTableCell cell = word.Sections[0].PageSetup.Header
             .AddTable(1, 1)
             .Rows[0]
             .Cells[0];
         using (var stream = new MemoryStream(png, writable: false)) {
-            cell.Paragraphs[0].AddImage(stream, "header-table.png", 16, 16);
+            cell.Paragraphs[0].AddImage(stream, "header-table.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Include_Hyperlink_Image_Runs() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
-        WordParagraph image = paragraph.AddImage(new Uri("https://example.test/hyperlink.png"), 16, 16);
+        WordParagraph image = paragraph.AddImage(new Uri("https://example.test/hyperlink.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16)).Paragraph;
         Run imageRun = image._run!;
         imageRun.Remove();
         paragraph._paragraph.Append(new Hyperlink(imageRun) { Anchor = "linked-image" });
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Include_Deleted_And_MoveFrom_Image_Runs() {
         using WordDocument word = WordDocument.Create();
         WordParagraph deletedParagraph = word.AddParagraph();
-        WordParagraph deletedImage = deletedParagraph.AddImage(new Uri("https://example.test/deleted.png"), 16, 16);
+        WordParagraph deletedImage = deletedParagraph.AddImage(new Uri("https://example.test/deleted.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16)).Paragraph;
         Run deletedRun = deletedImage._run!;
         deletedRun.Remove();
         deletedParagraph._paragraph.Append(new DeletedRun(deletedRun) { Author = "Reviewer" });
 
         WordParagraph movedParagraph = word.AddParagraph();
-        WordParagraph movedImage = movedParagraph.AddImage(new Uri("https://example.test/moved.png"), 16, 16);
+        WordParagraph movedImage = movedParagraph.AddImage(new Uri("https://example.test/moved.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16)).Paragraph;
         Run movedRun = movedImage._run!;
         movedRun.Remove();
         movedParagraph._paragraph.Append(new MoveFromRun(movedRun) { Author = "Reviewer" });
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(2, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -569,7 +550,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "deleted.png", 16, 16);
+            paragraph.AddImage(stream, "deleted.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
         Run imageRun = paragraph._run!;
         string relationshipId = imageRun.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single().Embed!.Value!;
@@ -578,14 +559,14 @@ public partial class WordRtfConverterTests {
         imageRun.Remove();
         paragraph._paragraph.Append(new DeletedRun(imageRun) { Author = "Reviewer" });
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.NotNull(conversion.Value);
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -594,7 +575,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph linkedParagraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            linkedParagraph.AddImage(stream, "deleted.png", 16, 16);
+            linkedParagraph.AddImage(stream, "deleted.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
         Run deletedRun = linkedParagraph._run!;
         deletedRun.Remove();
@@ -603,7 +584,7 @@ public partial class WordRtfConverterTests {
 
         WordParagraph controlParagraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            controlParagraph.AddImage(stream, "moved.png", 16, 16);
+            controlParagraph.AddImage(stream, "moved.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
         Run movedRun = controlParagraph._run!;
         movedRun.Remove();
@@ -614,20 +595,20 @@ public partial class WordRtfConverterTests {
 
         WordParagraph topLevelParagraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            topLevelParagraph.AddImage(stream, "top-level-deleted.png", 16, 16);
+            topLevelParagraph.AddImage(stream, "top-level-deleted.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
         Run topLevelDeletedRun = topLevelParagraph._run!;
         topLevelDeletedRun.Remove();
         topLevelParagraph._paragraph.Append(
             new DeletedRun(topLevelDeletedRun) { Author = "Reviewer" });
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(2, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -635,15 +616,15 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("target").AddComment("Reviewer", "RV", "comment");
         WordComment comment = Assert.Single(word.Comments);
-        comment.Paragraphs[0].AddImage(new Uri("https://example.test/comment.png"), 16, 16);
+        comment.Paragraphs[0].AddImage(new Uri("https://example.test/comment.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -652,12 +633,12 @@ public partial class WordRtfConverterTests {
         WordParagraph target = word.AddParagraph("target");
         target.AddComment("Reviewer", "RV", "orphaned comment");
         WordComment comment = Assert.Single(word.Comments);
-        comment.Paragraphs[0].AddImage(new Uri("https://example.test/orphaned-comment.png"), 16, 16);
+        comment.Paragraphs[0].AddImage(new Uri("https://example.test/orphaned-comment.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         foreach (CommentRangeStart marker in target._paragraph.Descendants<CommentRangeStart>().ToList()) marker.Remove();
         foreach (CommentRangeEnd marker in target._paragraph.Descendants<CommentRangeEnd>().ToList()) marker.Remove();
         foreach (CommentReference marker in target._paragraph.Descendants<CommentReference>().ToList()) marker.Remove();
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "WordRtfImagesOmitted");
@@ -674,7 +655,7 @@ public partial class WordRtfConverterTests {
         foreach (CommentRangeEnd marker in target._paragraph.Descendants<CommentRangeEnd>().ToList()) marker.Remove();
         foreach (CommentReference marker in target._paragraph.Descendants<CommentReference>().ToList()) marker.Remove();
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "WordRtfElementOmitted");
@@ -683,16 +664,14 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Ignore_Unreferenced_Note_Stories() {
         using WordDocument word = WordDocument.Create();
-        WordParagraph footnoteAnchor = word.AddParagraph("footnote").AddFootNote("orphaned footnote");
-        WordParagraph endnoteAnchor = word.AddParagraph("endnote").AddEndNote("orphaned endnote");
-        footnoteAnchor.FootNote!.Paragraphs![1].AddImage(
-            new Uri("https://example.test/orphaned-footnote.png"), 16, 16);
-        endnoteAnchor.EndNote!.Paragraphs![1].AddImage(
-            new Uri("https://example.test/orphaned-endnote.png"), 16, 16);
+        WordParagraph footnoteAnchor = word.AddParagraph("footnote").AddFootNote("orphaned footnote").Paragraph;
+        WordParagraph endnoteAnchor = word.AddParagraph("endnote").AddEndNote("orphaned endnote").Paragraph;
+        footnoteAnchor.FootNote!.Paragraphs![1].AddImage(new Uri("https://example.test/orphaned-footnote.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
+        endnoteAnchor.EndNote!.Paragraphs![1].AddImage(new Uri("https://example.test/orphaned-endnote.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         foreach (FootnoteReference marker in word._document.Body!.Descendants<FootnoteReference>().ToList()) marker.Remove();
         foreach (EndnoteReference marker in word._document.Body!.Descendants<EndnoteReference>().ToList()) marker.Remove();
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "WordRtfImagesOmitted");
@@ -704,7 +683,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph linkedParagraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            linkedParagraph.AddImage(stream, "linked-field.png", 16, 16);
+            linkedParagraph.AddImage(stream, "linked-field.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
         Run linkedRun = linkedParagraph._run!;
         linkedRun.Remove();
@@ -713,7 +692,7 @@ public partial class WordRtfConverterTests {
 
         WordParagraph controlledParagraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            controlledParagraph.AddImage(stream, "controlled-field.png", 16, 16);
+            controlledParagraph.AddImage(stream, "controlled-field.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         }
         Run controlledRun = controlledParagraph._run!;
         controlledRun.Remove();
@@ -722,7 +701,7 @@ public partial class WordRtfConverterTests {
                 new SdtProperties(new SdtId { Val = 2201 }),
                 new SdtContentRun(controlledRun))) { Instruction = " REF controlled " });
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfField linkedField = Assert.Single(conversion.Value.Paragraphs[0].Inlines.OfType<RtfField>());
         RtfField hyperlink = Assert.Single(linkedField.Result.Inlines.OfType<RtfField>());
@@ -738,8 +717,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         paragraph._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
-        WordParagraph image = paragraph.AddImage(
-            new Uri("https://example.test/field-instruction.png"), 16, 16);
+        WordParagraph image = paragraph.AddImage(new Uri("https://example.test/field-instruction.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16)).Paragraph;
         Run imageRun = image._run!;
         imageRun.Remove();
         paragraph._paragraph.Append(imageRun);
@@ -749,14 +727,14 @@ public partial class WordRtfConverterTests {
             new Run(new Text("visible result")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.Empty(conversion.Value.Paragraphs.SelectMany(item => item.Inlines).OfType<RtfImage>());
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -767,15 +745,15 @@ public partial class WordRtfConverterTests {
             new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
             new Run(new FieldCode(" REF target ")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
-        paragraph.AddImage(new Uri("https://example.test/unterminated-field.png"), 16, 16);
+        paragraph.AddImage(new Uri("https://example.test/unterminated-field.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "WordRtfImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -791,15 +769,15 @@ public partial class WordRtfConverterTests {
         note.AddParagraph().AddImage(RtfImageFormat.Png, png);
         reference.Note = note;
 
-        RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> conversion = rtf.ConvertToWordWithEvidence();
         using WordDocument word = conversion.Value;
 
         Assert.Empty(word.Images);
         RtfConversionDiagnostic diagnostic = Assert.Single(
-            conversion.Report.Diagnostics,
+            conversion.Report.NativeDiagnostics,
             item => item.Code == "RtfWordImagesOmitted");
         Assert.Equal(1, diagnostic.Count);
-        Assert.Throws<RtfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => conversion.ThrowIfLoss());
     }
 
     private static byte[] CreateOnePixelDib() {
@@ -885,47 +863,45 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordTable table = word.AddTable(2, 3);
         table.Alignment = WordTableAlignment.Center;
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 4250;
+        table.Width = WordTableWidth.Percent((4250) / 50d);
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
         table.Rows[0].AllowRowToBreakAcrossPages = false;
-        table.Rows[0].Height = 640;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(32D);
         table.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Restart;
         table.Rows[0].Cells[1].HorizontalMerge = WordCellMerge.Continue;
         table.Rows[0].Cells[0].VerticalMerge = WordCellMerge.Restart;
         table.Rows[1].Cells[0].VerticalMerge = WordCellMerge.Continue;
         table.Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
         table.Rows[0].Cells[0].TextDirection = WordTextDirection.TopToBottomRightToLeftRotated;
-        table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-        table.Rows[0].Cells[0].Width = 1800;
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1800) * 635)));
         table.Rows[0].Cells[0].WrapText = false;
         table.Rows[0].Cells[0].FitText = true;
         table.Rows[1].Cells[2].VerticalAlignment = WordTableVerticalAlignment.Bottom;
-        table.Rows[0].Cells[0].ShadingFillColorHex = "E6F2FF";
+        table.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("E6F2FF");
         table.Rows[0].Cells[0].ShadingPattern = WordShadingPattern.Percent37;
         table.Rows[0].Cells[0]._tableCellProperties!.Shading!.Color = "00AA55";
-        table.Rows[0].Cells[0].MarginTopWidth = 120;
-        table.Rows[0].Cells[0].MarginLeftWidth = 180;
-        table.Rows[0].Cells[0].MarginBottomWidth = 240;
-        table.Rows[0].Cells[0].MarginRightWidth = 300;
+        table.Rows[0].Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
+        table.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(9D);
+        table.Rows[0].Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Points(12D);
+        table.Rows[0].Cells[0].MarginRight = global::OfficeIMO.OfficeLength.Points(15D);
         table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
-        table.Rows[0].Cells[0].Borders.TopSize = 12U;
-        table.Rows[0].Cells[0].Borders.TopColorHex = "4472C4";
+        table.Rows[0].Cells[0].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1.5);
+        table.Rows[0].Cells[0].Borders.TopColor = OfficeColor.Parse("4472C4");
         table.Rows[0].Cells[0].Borders.LeftStyle = WordBorderStyle.Double;
-        table.Rows[0].Cells[0].Borders.LeftSize = 8U;
-        table.Rows[0].Cells[0].Borders.LeftColorHex = "00AA55";
+        table.Rows[0].Cells[0].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
+        table.Rows[0].Cells[0].Borders.LeftColor = OfficeColor.Parse("00AA55");
         table.Rows[0].Cells[0].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
-        table.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize = 6U;
-        table.Rows[0].Cells[0].Borders.TopLeftToBottomRightColorHex = "4472C4";
+        table.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(0.75);
+        table.Rows[0].Cells[0].Borders.TopLeftToBottomRightColor = OfficeColor.Parse("4472C4");
         table.Rows[0].Cells[0].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dashed;
-        table.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize = 10U;
-        table.Rows[0].Cells[0].Borders.TopRightToBottomLeftColorHex = "00AA55";
+        table.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(1.25);
+        table.Rows[0].Cells[0].Borders.TopRightToBottomLeftColor = OfficeColor.Parse("00AA55");
         table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
         table.Rows[1].Cells[0].AddParagraph("Vertical", removeExistingParagraphs: true);
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfTable rtfTable = Assert.IsType<RtfTable>(Assert.Single(rtfDocument.Blocks));
         Assert.Equal(RtfTableAlignment.Center, rtfTable.Rows[0].Alignment);
@@ -957,16 +933,16 @@ public partial class WordRtfConverterTests {
         Assert.Equal(240, rtfTable.Rows[0].Cells[0].PaddingBottomTwips);
         Assert.Equal(300, rtfTable.Rows[0].Cells[0].PaddingRightTwips);
         Assert.Equal(RtfTableCellBorderStyle.Single, rtfTable.Rows[0].Cells[0].TopBorder.Style);
-        Assert.Equal(12, rtfTable.Rows[0].Cells[0].TopBorder.Width);
+        Assert.Equal(30, rtfTable.Rows[0].Cells[0].TopBorder.Width);
         Assert.Equal("#4472C4", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].TopBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfTableCellBorderStyle.Double, rtfTable.Rows[0].Cells[0].LeftBorder.Style);
-        Assert.Equal(8, rtfTable.Rows[0].Cells[0].LeftBorder.Width);
+        Assert.Equal(20, rtfTable.Rows[0].Cells[0].LeftBorder.Width);
         Assert.Equal("#00AA55", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].LeftBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfTableCellBorderStyle.Dotted, rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.Style);
-        Assert.Equal(6, rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.Width);
+        Assert.Equal(15, rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.Width);
         Assert.Equal("#4472C4", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfTableCellBorderStyle.Dashed, rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.Style);
-        Assert.Equal(10, rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.Width);
+        Assert.Equal(25, rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.Width);
         Assert.Equal("#00AA55", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.ColorIndex!.Value)!.ToString());
         Assert.Contains(@"\trqc", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trftsWidth2\trwWidth4250", rtf, StringComparison.Ordinal);
@@ -984,47 +960,47 @@ public partial class WordRtfConverterTests {
         Assert.Contains(@"\clpadl180\clpadfl3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clpadb240\clpadfb3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clpadr300\clpadfr3", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\clbrdrt\brdrs\brdrw12\brdrcf{rtfTable.Rows[0].Cells[0].TopBorder.ColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\clbrdrl\brdrdb\brdrw8\brdrcf{rtfTable.Rows[0].Cells[0].LeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\cldglu\brdrdot\brdrw6\brdrcf{rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.ColorIndex}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\cldgll\brdrdash\brdrw10\brdrcf{rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\clbrdrt\brdrs\brdrw30\brdrcf{rtfTable.Rows[0].Cells[0].TopBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\clbrdrl\brdrdb\brdrw20\brdrcf{rtfTable.Rows[0].Cells[0].LeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\cldglu\brdrdot\brdrw15\brdrcf{rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\cldgll\brdrdash\brdrw25\brdrcf{rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
 
         WordTable roundTripTable = Assert.Single(roundTrip.Tables);
         Assert.Equal(WordTableAlignment.Center, roundTripTable.Alignment);
-        Assert.Equal(WordTableWidthUnit.Pct, roundTripTable.WidthType);
-        Assert.Equal(4250, roundTripTable.Width);
+        Assert.Equal(WordTableWidthKind.Percent, roundTripTable.Width?.Kind);
+        Assert.Equal(4250, roundTripTable.Width?.ToNativeValue());
         Assert.True(roundTripTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
         Assert.False(roundTripTable.Rows[0].AllowRowToBreakAcrossPages);
-        Assert.Equal(640, roundTripTable.Rows[0].Height);
+        Assert.Equal(640, checked((int?)(roundTripTable.Rows[0].Height?.ToTwips())));
         Assert.Equal(WordCellMerge.Restart, roundTripTable.Rows[0].Cells[0].HorizontalMerge);
         Assert.Equal(WordCellMerge.Continue, roundTripTable.Rows[0].Cells[1].HorizontalMerge);
         Assert.Equal(WordCellMerge.Restart, roundTripTable.Rows[0].Cells[0].VerticalMerge);
         Assert.Equal(WordCellMerge.Continue, roundTripTable.Rows[1].Cells[0].VerticalMerge);
         Assert.Equal(WordTableVerticalAlignment.Center, roundTripTable.Rows[0].Cells[0].VerticalAlignment);
         Assert.Equal(WordTextDirection.TopToBottomRightToLeftRotated, roundTripTable.Rows[0].Cells[0].TextDirection);
-        Assert.Equal(WordTableWidthUnit.Dxa, roundTripTable.Rows[0].Cells[0].WidthType);
-        Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width);
+        Assert.Equal(WordTableWidthKind.Length, roundTripTable.Rows[0].Cells[0].Width?.Kind);
+        Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width?.ToNativeValue());
         Assert.False(roundTripTable.Rows[0].Cells[0].WrapText);
         Assert.True(roundTripTable.Rows[0].Cells[0].FitText);
         Assert.Equal(WordTableVerticalAlignment.Bottom, roundTripTable.Rows[1].Cells[2].VerticalAlignment);
-        Assert.Equal("E6F2FF", roundTripTable.Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("E6F2FF"), roundTripTable.Rows[0].Cells[0].ShadingFillColor);
         Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0]._tableCellProperties?.Shading?.Color?.Value);
         Assert.Equal(WordShadingPattern.Percent37, roundTripTable.Rows[0].Cells[0].ShadingPattern);
-        Assert.Equal((short?)120, roundTripTable.Rows[0].Cells[0].MarginTopWidth);
-        Assert.Equal((short?)180, roundTripTable.Rows[0].Cells[0].MarginLeftWidth);
-        Assert.Equal((short?)240, roundTripTable.Rows[0].Cells[0].MarginBottomWidth);
-        Assert.Equal((short?)300, roundTripTable.Rows[0].Cells[0].MarginRightWidth);
+        Assert.Equal((short?)120, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginTop?.ToTwips())));
+        Assert.Equal((short?)180, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginLeft?.ToTwips())));
+        Assert.Equal((short?)240, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginBottom?.ToTwips())));
+        Assert.Equal((short?)300, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginRight?.ToTwips())));
         Assert.Equal(WordBorderStyle.Single, roundTripTable.Rows[0].Cells[0].Borders.TopStyle);
-        Assert.Equal(12U, roundTripTable.Rows[0].Cells[0].Borders.TopSize);
-        Assert.Equal("4472C4", roundTripTable.Rows[0].Cells[0].Borders.TopColorHex);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), roundTripTable.Rows[0].Cells[0].Borders.TopSize);
+        Assert.Equal(OfficeColor.Parse("4472C4"), roundTripTable.Rows[0].Cells[0].Borders.TopColor);
         Assert.Equal(WordBorderStyle.Double, roundTripTable.Rows[0].Cells[0].Borders.LeftStyle);
-        Assert.Equal(8U, roundTripTable.Rows[0].Cells[0].Borders.LeftSize);
-        Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0].Borders.LeftColorHex);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), roundTripTable.Rows[0].Cells[0].Borders.LeftSize);
+        Assert.Equal(OfficeColor.Parse("00AA55"), roundTripTable.Rows[0].Cells[0].Borders.LeftColor);
         Assert.Equal(WordBorderStyle.Dotted, roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightStyle);
-        Assert.Equal(6U, roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize);
-        Assert.Equal("4472C4", roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightColorHex);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.75), roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize);
+        Assert.Equal(OfficeColor.Parse("4472C4"), roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightColor);
         Assert.Equal(WordBorderStyle.Dashed, roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftStyle);
-        Assert.Equal(10U, roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize);
-        Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftColorHex);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.25), roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize);
+        Assert.Equal(OfficeColor.Parse("00AA55"), roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftColor);
     }
 }

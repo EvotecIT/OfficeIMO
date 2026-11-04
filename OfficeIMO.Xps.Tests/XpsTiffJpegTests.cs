@@ -74,7 +74,7 @@ public sealed class XpsTiffJpegTests {
                     "{ColorConvertedBitmap " + resource + " " + profileUri + "}");
                 originalPage.ReplaceMarkup(markup);
             }
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             if (hasAlphaCorpus) {
                 Assert.True(OfficeTiffCodec.TryDecode(File.ReadAllBytes(Path.Combine(corpus, fields[0])), out var source));
                 var transparent = OfficeDrawingRasterRenderer.Render(page.ToDrawing());
@@ -87,7 +87,7 @@ public sealed class XpsTiffJpegTests {
             foreach (var background in (folder == "TiffJpegArithmeticMultiscan" || folder == "TiffJpegArithmeticExtra" || folder == "TiffJpegArithmeticLosslessChroma" || folder == "TiffJpegArithmeticLosslessColor" || folder == "TiffJpegArithmetic12" || folder == "TiffJpegArithmeticLowAlpha" || folder == "TiffJpegLowAlpha" || folder == "TiffExtraSamples" || folder == "TiffJpegLossless" || (folder == "TiffJpegLossless16" || folder == "TiffJpegLossless12")) ? new[] { OfficeColor.White, OfficeColor.Black } : new[] { OfficeColor.White }) {
                 var native = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: background);
                 var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: background);
-                var pdfImage = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(document.ToPdf()).Pages[0].ToDrawing(),
+                var pdfImage = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].ToDrawing(),
                     scale: 4D / 3D, background: background);
                 for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
                     var expected = native.GetPixel(x * 3 + 1, y * 3 + 1);

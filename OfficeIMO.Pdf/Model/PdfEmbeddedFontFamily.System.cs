@@ -40,8 +40,13 @@ public sealed partial class PdfEmbeddedFontFamily {
     public static bool TryFromSystem(string familyName, out PdfEmbeddedFontFamily? fontFamily, string? pdfFamilyName = null) {
         Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
         string requestedFamily = familyName.Trim();
+        string normalizedFamily = NormalizeFamilyKey(requestedFamily);
+        if (normalizedFamily.Length == 0) {
+            fontFamily = null;
+            return false;
+        }
         string exposedFamily = string.IsNullOrWhiteSpace(pdfFamilyName) ? requestedFamily : pdfFamilyName!.Trim();
-        string cacheKey = NormalizeFamilyKey(requestedFamily) + "\0" + exposedFamily;
+        string cacheKey = normalizedFamily + "\0" + exposedFamily;
         System.Lazy<SystemFontFamilyCacheEntry> lazyEntry;
         lock (SystemFontFamilyCacheLock) {
             if (!SystemFontFamilyCache.TryGetValue(cacheKey, out lazyEntry!)) {
@@ -61,7 +66,9 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     private static SystemFontFamilyCacheEntry ResolveSystemFontFamily(string requestedFamily, string exposedFamily) {
         foreach (string candidate in OfficeIMO.Drawing.OfficeSystemFontFamilyAliases.Expand(requestedFamily)) {
-            System.Collections.Generic.IReadOnlyList<string> files = SystemFontIndex.Value.Find(NormalizeFamilyKey(candidate));
+            string normalizedCandidate = NormalizeFamilyKey(candidate);
+            if (normalizedCandidate.Length == 0) continue;
+            System.Collections.Generic.IReadOnlyList<string> files = SystemFontIndex.Value.Find(normalizedCandidate);
             if (TryFromSystemFontFiles(candidate, files, out PdfEmbeddedFontFamily? family, exposedFamily))
                 return new SystemFontFamilyCacheEntry(family);
         }
@@ -101,6 +108,10 @@ public sealed partial class PdfEmbeddedFontFamily {
         Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
         Guard.NotNull(fontFiles, nameof(fontFiles));
         string normalizedFamily = NormalizeFamilyKey(familyName);
+        if (normalizedFamily.Length == 0) {
+            fontFamily = null;
+            return false;
+        }
         string[] acceptedFileNamePrefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
 
         SystemFontFaceCandidate? regularFace = null;
@@ -178,9 +189,14 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
 
             byte[] fileData = PdfFontInput.ReadFile(path);
+            // Name tables already say which faces of a collection this family can use.
+            System.Predicate<int>? selectedFace = inspectedAllFaces && metadataFaces != null
+                ? index => index < metadataFaces.Count
+                    && GetMetadataFamilyMatchScore(metadataFaces[index], normalizedMetadataFamily) >= 0
+                : null;
             System.Collections.Generic.List<byte[]> fontPrograms = IsOpenTypeCffData(fileData)
                 ? new System.Collections.Generic.List<byte[]> { fileData }
-                : ExtractTrueTypeFontPrograms(fileData);
+                : ExtractTrueTypeFontPrograms(fileData, selectedFace);
             var found = new System.Collections.Generic.List<SystemFontFaceCandidate>();
             for (int i = 0; i < fontPrograms.Count; i++) {
                 if (TryReadSystemFontFace(path, fontPrograms[i], normalizedMetadataFamily, acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) &&
@@ -207,9 +223,6 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static bool TryReadSystemFontFace(string path, byte[] data, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) {
         candidate = null;
         try {
-            if (IsOpenTypeCffData(data))
-                _ = PdfFontProgramCache.GetOpenTypeCff(data, fontNameOverride: null);
-            else _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata, out bool nameTableAbsent) && metadata != null) {
                 int familyScore = GetMetadataFamilyMatchScore(metadata, normalizedMetadataFamily);
                 if (familyScore >= 0) {
@@ -247,8 +260,27 @@ public sealed partial class PdfEmbeddedFontFamily {
     }
 
     private static void SelectBetterFace(ref SystemFontFaceCandidate? current, SystemFontFaceCandidate candidate) {
-        if (current == null || candidate.Score > current.Score) {
+        if ((current == null || candidate.Score > current.Score) && HasUsableProgram(candidate.Data)) {
             current = candidate;
+        }
+    }
+
+    // Decoding a program is the expensive step, so it waits until a face would actually be used.
+    private static bool HasUsableProgram(byte[] data) {
+        try {
+            if (IsOpenTypeCffData(data)) _ = PdfFontProgramCache.GetOpenTypeCff(data, fontNameOverride: null);
+            else _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
+            return true;
+        } catch (System.Exception exception) when (
+            exception is System.IO.IOException ||
+            exception is System.UnauthorizedAccessException ||
+            exception is System.NotSupportedException ||
+            exception is System.ArgumentException ||
+            exception is System.ArithmeticException ||
+            exception is System.FormatException ||
+            exception is System.IndexOutOfRangeException ||
+            exception is System.InvalidOperationException) {
+            return false;
         }
     }
 
@@ -670,6 +702,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
 
         internal System.Collections.Generic.IReadOnlyList<string> Find(string normalizedFamily) {
+            if (normalizedFamily.Length == 0) return System.Array.Empty<string>();
             if (_filesByFamily.TryGetValue(normalizedFamily, out System.Collections.Generic.List<string>? files)) return files;
             string[] prefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
             return _allFiles.Where(path => {

@@ -1,5 +1,7 @@
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
@@ -39,7 +41,8 @@ public sealed class SetOfficeExcelWriteReservationCommand : PSCmdlet
 
     /// <summary>Optional write-reservation password. This is legacy Excel metadata, not package encryption.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>Optional precomputed legacy write-reservation hash.</summary>
     [Parameter]
@@ -61,7 +64,7 @@ public sealed class SetOfficeExcelWriteReservationCommand : PSCmdlet
         scope.Document.SetWriteReservation(new ExcelWorkbookWriteReservationOptions {
             ReadOnlyRecommended = ReadOnlyRecommended.IsPresent,
             UserName = UserName,
-            Password = Password,
+            Password = Password.ToPlainText(),
             LegacyPasswordHash = LegacyPasswordHash
         });
         scope.SaveIfOwned();

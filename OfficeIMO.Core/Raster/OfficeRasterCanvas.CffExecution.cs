@@ -10,6 +10,8 @@ public sealed partial class OfficeRasterCanvas {
 
     internal void ShareCffOperationBudget(OfficeRasterCanvas canvas) => ShareCffOperationBudget(canvas._cffOperationBudget);
 
+    internal OfficeCffOperationBudget CreateCffExecutionBudget() => _cffOperationBudget.CreateExecutionScope();
+
     // Reset a transformed run's measurement sequence to match its fresh paint
     // canvas, then restore the surrounding direct-text sequence without refunding work.
     internal IDisposable PushCffExecutionScope() {

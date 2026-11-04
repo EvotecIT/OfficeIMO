@@ -9,7 +9,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Word95_Legacy_Numbering_Destination_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\pntext\f0 3.\tab}{\*\pn\pnlvlbody\pndec\pnstart3\pnindent720\pnsp240\pnprev\pnql{\pntxtb (}{\pntxta )}}\pard\li720\fi-360 Legacy\par}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(read.Document.Paragraphs);
@@ -59,8 +59,8 @@ public partial class RtfDocumentRichFeatureTests {
         });
         paragraph.SetIndentation(leftTwips: 720, firstLineTwips: -360);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\pn\pnlvlbody\pndec\pnf1\pnfs24\pnb1\pni0\pncaps1\pnscaps0\pnuldb\pnstrike1\pncf2{\pntxtb (}{\pntxta )}\pnnumonce1\pnacross0\pnindent720\pnsp240\pnprev1\pnqc\pnstart3\pnhang1\pnrestart0}", rtf, StringComparison.Ordinal);
         RtfParagraph roundTrip = Assert.Single(read.Document.Paragraphs);
@@ -93,7 +93,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Word95_Legacy_Numbering_In_Stylesheet_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\stylesheet{\s1{\*\pn\pnlvlbody\pnucrm\pnstart4\pnindent720\pnsp240\pnqr{\pntxtb Chapter }{\pntxta .}}\li720\fi-360 Numbered Heading;}}\pard\s1 Heading\par}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfStyle style = Assert.Single(read.Document.Styles);
@@ -130,8 +130,8 @@ public partial class RtfDocumentRichFeatureTests {
         });
         document.AddParagraph("Heading").SetStyle(1);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\stylesheet{\s1{\*\pn\pnlvlbody\pnucrm{\pntxtb Chapter}{\pntxta .}\pnindent720\pnsp240\pnqr\pnstart4}\li720\fi-360 Numbered Heading;}}", rtf, StringComparison.Ordinal);
         RtfStyle roundTrip = Assert.Single(read.Document.Styles);
@@ -150,7 +150,7 @@ public partial class RtfDocumentRichFeatureTests {
     public void Read_Binds_Word97_ListText_As_Marker_Not_Body_Text_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\listtext\f0 1.\tab}\pard\ls3\ilvl0 Item\par}";
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, read.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(read.Document.Paragraphs);
@@ -168,8 +168,8 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.SetList(listId: 3, level: 0, kind: RtfListKind.Decimal);
         paragraph.SetListText(marker => marker.AddText("1.\t").FontId = 0);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\listtext \f0 1.\tab }", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pard\ls3\ilvl0\ql Item\par", rtf, StringComparison.Ordinal);

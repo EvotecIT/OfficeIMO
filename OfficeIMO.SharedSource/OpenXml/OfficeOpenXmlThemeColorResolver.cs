@@ -190,7 +190,12 @@ internal static class OfficeOpenXmlThemeColorResolver {
     }
 
     private static OfficeColor? ResolveDefaultSpreadsheetSchemeColor(string? token) {
-        uint? index = token switch {
+        uint? index = GetSpreadsheetThemeColorIndex(token);
+        return index.HasValue ? ResolveSpreadsheetThemeColor(null, index.Value) : null;
+    }
+
+    /// <summary>Maps shared theme slot identities to SpreadsheetML's light-first color indexes.</summary>
+    internal static uint? GetSpreadsheetThemeColorIndex(string? token) => token switch {
             "light1" or "lt1" => 0U,
             "dark1" or "dk1" => 1U,
             "light2" or "lt2" => 2U,
@@ -205,8 +210,6 @@ internal static class OfficeOpenXmlThemeColorResolver {
             "followedHyperlink" or "folHlink" => 11U,
             _ => null
         };
-        return index.HasValue ? ResolveSpreadsheetThemeColor(null, index.Value) : null;
-    }
 
     private static OfficeColor? ResolveColorElement(
         OpenXmlElement? colorElement,

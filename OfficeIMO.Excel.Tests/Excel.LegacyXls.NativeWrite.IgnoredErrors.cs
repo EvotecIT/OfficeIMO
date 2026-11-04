@@ -14,10 +14,10 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("IgnoredErrors");
-                    sheet.CellValue(1, 1, "1");
-                    sheet.CellValue(2, 1, "2");
-                    sheet.CellValue(3, 3, "3");
+                    ExcelSheet sheet = document.AddSheet("IgnoredErrors");
+                    sheet.Cell(1, 1).SetValue("1");
+                    sheet.Cell(2, 1).SetValue("2");
+                    sheet.Cell(3, 3).SetValue("3");
 
                     sheet.WorksheetPart.Worksheet.Append(new IgnoredErrors(
                         new IgnoredError {

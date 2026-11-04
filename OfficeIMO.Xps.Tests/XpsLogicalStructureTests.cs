@@ -16,7 +16,7 @@ public sealed class XpsLogicalStructureTests {
         page.ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, Paragraph(ns, "B", "A")));
         var native = page.GetStoryFragmentsMarkup()!;
         native.Descendants(ns + "NamedElement").First().SetAttributeValue("NameReference", "A");
-        var result = XpsDocument.Load(doc.Save()).ReadLogicalStructure();
+        var result = XpsDocument.Load(doc.ToBytes()).ReadLogicalStructure();
         Assert.True(result.HasNativeStructure); Assert.True(result.IsComplete);
         Assert.Equal("BA", Assert.Single(Assert.Single(result.Stories).Blocks).Text);
         Assert.Equal("B", Assert.Single(result.Stories).Blocks[0].Children[0].Content!.Name);
@@ -55,7 +55,7 @@ public sealed class XpsLogicalStructureTests {
         doc.Pages[1].ReplaceStoryFragmentsMarkup(Fragments(doc, "body", "second",
             Table(Row(Cell(), Cell("Block10", "Block11")), Row(Cell("Block12"), Cell("Block13")))));
         doc.Documents[0].ReplaceDocumentStructureMarkup(Story(doc, "body", (1, "first"), (2, "second")));
-        var result = XpsDocument.Load(doc.Save()).ReadLogicalStructure();
+        var result = XpsDocument.Load(doc.ToBytes()).ReadLogicalStructure();
         Assert.True(result.IsComplete);
         var rows = Assert.Single(result.Stories).Blocks[0].Children[0].Children[0].Children;
         Assert.Equal(3, rows.Count);
@@ -112,7 +112,7 @@ public sealed class XpsLogicalStructureTests {
         var native = Fragments(doc, null, null, Paragraph(doc.StructureNamespace, "A"));
         native.Element(doc.StructureNamespace + "StoryFragment")!.Add(new XElement(XName.Get("Semantic", "urn:extension"), "opaque"));
         doc.Pages[0].ReplaceStoryFragmentsMarkup(native);
-        var reopened = XpsDocument.Load(doc.Save()); var result = reopened.ReadLogicalStructure();
+        var reopened = XpsDocument.Load(doc.ToBytes()); var result = reopened.ReadLogicalStructure();
         Assert.False(result.IsComplete); Assert.Contains(result.Diagnostics, d => d.Contains("Unsupported structure element"));
         Assert.Equal("opaque", reopened.Pages[0].GetStoryFragmentsMarkup()!.Descendants(XName.Get("Semantic", "urn:extension")).Single().Value);
         Assert.Throws<OperationCanceledException>(() => reopened.ReadLogicalStructure(new CancellationToken(true)));

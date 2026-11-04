@@ -98,11 +98,11 @@ public sealed partial class IWorkBoundaryTests {
             ($"Data/{imageName}", CreateSizedPreviewPng(2400, 1200)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_IMAGE_UNSUPPORTED");
-        Assert.Single(Assert.Single(result.Value.Slides).Pictures);
+        Assert.Single(Assert.Single(result.Value.Slides).Images);
     }
 
     [Theory]
@@ -123,7 +123,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);

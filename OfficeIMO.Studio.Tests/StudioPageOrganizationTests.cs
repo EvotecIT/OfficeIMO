@@ -162,11 +162,11 @@ public sealed class StudioPageOrganizationTests {
         return PdfDocument.Create(compose => {
             for (int page = 1; page <= 6; page++) {
                 int number = page;
-                compose.Page(builder => builder.Content(content => content.Item(item => item.Text("Page " + number))));
+                compose.Page(builder => builder.Content(content => content.Item(item => item.AddParagraph("Page " + number))));
             }
         });
     }
-    private static string[] ReadPages(string path) => PdfReadDocument.Open(path).Pages.Select(page => page.ExtractText().Trim()).ToArray();
+    private static string[] ReadPages(string path) => PdfDocument.Load(path).Pages.Select(page => page.ExtractText().Trim()).ToArray();
     private static int[] Selected(MainWindowViewModel model) => model.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray();
     private static async Task Layout(Window window) => await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
         () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);

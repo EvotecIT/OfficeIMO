@@ -18,14 +18,14 @@ public sealed class IWorkDirectoryWorkflowTests {
         var result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.True(result.Succeeded, result.Summary);
         Assert.True(File.Exists(bundle.Output));
-        Assert.Contains(result.Diagnostics, item => item.Code == "OutputReopened");
+        Assert.Contains(result.Diagnostics, item => item.Code == "conversion-output-reopened");
         var snapshot = Assert.Single(result.Diagnostics, item => item.Code == "SourceSnapshot");
         Assert.Equal("DirectoryPackage", snapshot.Details["snapshotKind"]);
         Assert.Equal(64, snapshot.Details["sha256"].Length);
         Assert.NotNull(result.ConversionEvidence);
         if (kind == "key") {
             Assert.Equal("True", result.ConversionEvidence!.Facts["partialEditableReconstruction"]);
-            Assert.Contains(result.ConversionEvidence.FidelityDiagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
+            Assert.Contains(result.ConversionEvidence.Diagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
         }
         Assert.True(result.InputBytes > Directory.GetFiles(bundle.Input, "*", SearchOption.AllDirectories).Sum(path => new FileInfo(path).Length));
     }
@@ -101,7 +101,7 @@ public sealed class IWorkDirectoryWorkflowTests {
         File.WriteAllText(existing, "keep");
         var request = bundle.Request("pages-docx");
         request.OutputPath = existing;
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         var result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
         Assert.Equal("keep", File.ReadAllText(existing));
@@ -112,7 +112,7 @@ public sealed class IWorkDirectoryWorkflowTests {
     public async Task Directory_read_bounds_and_cancellation_leave_no_output() {
         using var bundle = new Bundle("numbers", "xlsx");
         var request = bundle.Request("numbers-xlsx");
-        request.RegisteredConversionSettings = new IWorkWorkflowSettings { ReadOptions = new() { MaximumPackageBytes = 16 } };
+        request.RegisteredConversionSettings = new IWorkWorkflowSettings { ReadOptions = new() { MaxPackageBytes = 16 } };
         var bounded = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(bounded.Succeeded);
         Assert.False(File.Exists(bundle.Output));
@@ -136,7 +136,7 @@ public sealed class IWorkDirectoryWorkflowTests {
         bool linked = OperatingSystem.IsWindows() ? CreateHardLink(bundle.Output, member, IntPtr.Zero) : Link(member, bundle.Output) == 0;
         Assert.True(linked, "The test filesystem must support hard links.");
         var request = bundle.Request("numbers-xlsx");
-        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.ConflictPolicy = OfficePublicationPolicy.Replace;
         bool openedWrite = false;
         var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(bundle.Root, "recovery"));
         request.OutputStream = new OfficeWorkflowStreamOutput("result.xlsx", _ => Task.FromResult<Stream>(File.OpenRead(bundle.Output)),
@@ -183,11 +183,11 @@ public sealed class IWorkDirectoryWorkflowTests {
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CreateHardLink(string destination, string source, IntPtr reserved);
 
-    private sealed class ActionGuard(Action mutation) : IOfficeWorkflowPublicationGuard {
+    private sealed class ActionGuard(Action mutation) : IOfficePublicationGuard {
         private bool _changed;
-        public ValueTask<bool> CanPublishAsync(string outputPath, bool isDirectory, CancellationToken token) {
+        public Task<bool> CanPublishAsync(string outputPath, bool isDirectory, CancellationToken token) {
             if (!_changed) { _changed = true; mutation(); }
-            return ValueTask.FromResult(true);
+            return Task.FromResult(true);
         }
     }
 

@@ -10,10 +10,10 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfDocument_RegisteredFallbacksPreserveSelectedFontCoveredSpans() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .EmbedStandardFont(PdfStandardFont.Helvetica, CreateRegistrationPrimaryFont(), "OfficeIMO Primary")
             .RegisterEmbeddedFontFallbacks(CreateRegistrationEmojiFallbacks(coverLatin: true))
-            .Paragraph(paragraph => paragraph.Text("Invoice 😀 marker"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice 😀 marker"))
             .ToBytes();
 
         AssertRegistrationFonts(bytes, "OfficeIMOPrimary", "EmojiFallback");
@@ -32,10 +32,10 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfDocument_RegisteredFallbacksSplitMixedUnsupportedTokenWithoutDroppingSelectedText() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .EmbedStandardFont(PdfStandardFont.Helvetica, CreateRegistrationPrimaryFont(), "OfficeIMO Primary")
             .RegisterEmbeddedFontFallbacks(CreateRegistrationEmojiFallbacks())
-            .Paragraph(paragraph => paragraph.Text("A😀B"))
+            .Paragraph(paragraph => paragraph.AddText("A😀B"))
             .ToBytes();
 
         AssertRegistrationFonts(bytes, "OfficeIMOPrimary", "EmojiFallback");
@@ -49,10 +49,10 @@ public partial class PdfFontFamilyTests {
             new PdfEmbeddedFontFallbackCandidate("Unused Secondary Fallback", CreateMinimalOpenTypeCffFont()),
             new PdfEmbeddedFontFallbackCandidate("Unused Tertiary Fallback", CreateMinimalOpenTypeCffFont())
         }, new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman, PdfStandardFont.Courier });
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .EmbedStandardFont(PdfStandardFont.Helvetica, CreateRegistrationPrimaryFont(), "OfficeIMO Primary")
             .RegisterEmbeddedFontFallbacks(fallbacks)
-            .Paragraph(paragraph => paragraph.Text("Invoice 😀 marker"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice 😀 marker"))
             .ToBytes();
 
         AssertRegistrationFonts(bytes, "OfficeIMOPrimary", "EmojiFallback");
@@ -68,13 +68,13 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfDocument_RegisteredFallbackReplacementDoesNotOverwriteDocumentDefaultFontSlot() {
         byte[] primary = CreateRegistrationPrimaryFont();
-        var options = new PdfOptions { CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressContentStreams = false };
         options.RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("OfficeIMO Default", primary));
         options.RegisterFontFamily(PdfStandardFont.TimesRoman, new PdfEmbeddedFontFamily("OfficeIMO Primary", primary));
         options.RegisterEmbeddedFontFallbacks(CreateRegistrationEmojiFallbacks());
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Plain text"))
-            .Paragraph(paragraph => paragraph.Font(PdfStandardFont.TimesRoman).Text("A😀B"))
+            .Paragraph(paragraph => paragraph.AddText("Plain text"))
+            .Paragraph(paragraph => paragraph.AddText("A😀B").SetStandardFont(PdfStandardFont.TimesRoman))
             .ToBytes();
 
         AssertRegistrationFonts(bytes, "OfficeIMODefault", "OfficeIMOPrimary", "EmojiFallback");
@@ -85,7 +85,7 @@ public partial class PdfFontFamilyTests {
 
     [Fact]
     public void PdfDocument_ReplacingRegisteredFallbacksReusesPriorFallbackOwnedSlot() {
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()))
             .RegisterFontFamily(PdfStandardFont.Courier, new PdfEmbeddedFontFamily("Document Mono", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
@@ -94,7 +94,7 @@ public partial class PdfFontFamilyTests {
             .RegisterEmbeddedFontFallbacks(CreateRegistrationEmojiFallbacks());
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("A😀B"))
+            .Paragraph(paragraph => paragraph.AddText("A😀B"))
             .ToBytes();
         Assert.Contains("A😀B", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
         AssertRegistrationFonts(bytes, "DocumentPrimary-Regular", "EmojiFallback-Regular");
@@ -104,7 +104,7 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfDocument_ReplacingFallbacksPreservesLaterCallerFamilyWithSameData() {
         byte[] symbols = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x2605);
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
                 new[] { new PdfEmbeddedFontFallbackCandidate("Old Symbols", symbols) },
@@ -113,8 +113,8 @@ public partial class PdfFontFamilyTests {
             .RegisterEmbeddedFontFallbacks(CreateRegistrationEmojiFallbacks());
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Font(PdfStandardFont.TimesRoman).Text("★"))
-            .Paragraph(paragraph => paragraph.Text("A😀B"))
+            .Paragraph(paragraph => paragraph.AddText("★").SetStandardFont(PdfStandardFont.TimesRoman))
+            .Paragraph(paragraph => paragraph.AddText("A😀B"))
             .ToBytes();
         AssertRegistrationFonts(bytes, "CallerSymbols-Regular", "EmojiFallback-Regular");
         Assert.Equal("Caller Symbols-Regular", options.EmbeddedFonts[PdfStandardFont.TimesRoman].FontName);
@@ -128,7 +128,7 @@ public partial class PdfFontFamilyTests {
     [InlineData(true)]
     public void PdfDocument_ReplacingFallbacksPreservesLaterCallerItalicFaceWithSameNameAndData(bool bold) {
         byte[] symbols = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x2605);
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Document Primary", CreateRegistrationPrimaryFont()))
             .RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
                 new[] { new PdfEmbeddedFontFallbackCandidate("Old Symbols", symbols) },
@@ -138,8 +138,8 @@ public partial class PdfFontFamilyTests {
             .RegisterEmbeddedFontFallbacks(CreateRegistrationEmojiFallbacks());
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun("★", bold: bold, italic: true, font: PdfStandardFont.TimesRoman) }))
-            .Paragraph(paragraph => paragraph.Text("A😀B"))
+            .Paragraph(paragraph => paragraph.AddRuns(new[] { new PdfTextRun("★", bold: bold, italic: true, standardFont: PdfStandardFont.TimesRoman) }))
+            .Paragraph(paragraph => paragraph.AddText("A😀B"))
             .ToBytes();
         AssertRegistrationFonts(bytes, bold ? "OldSymbols-BoldItalic" : "OldSymbols-Italic", "EmojiFallback-Regular");
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
@@ -150,12 +150,12 @@ public partial class PdfFontFamilyTests {
     [Fact]
     public void PdfDocument_PreservingPrimaryFallbackSpansAppliesHeaderOffsetOnce() {
         static PdfTextSpan[] Render(double offset) {
-            byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
                 .EmbedStandardFont(PdfStandardFont.Helvetica, CreateRegistrationPrimaryFont(), "OfficeIMO Primary")
                 .RegisterEmbeddedFontFallbacks(CreateRegistrationEmojiFallbacks(coverLatin: true))
                 .Header(header => header.StyledZones(
                     left => left.Run(new PdfTextRun("A😀B").WithHorizontalOffset(offset)), null, null))
-                .Paragraph(paragraph => paragraph.Text("Plain text"))
+                .Paragraph(paragraph => paragraph.AddText("Plain text"))
                 .ToBytes();
             return PdfReadDocument.Open(bytes).Pages[0].GetTextSpans()
                 .Where(span => span.Text == "A" || span.Text == "😀" || span.Text == "B").ToArray();

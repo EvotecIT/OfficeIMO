@@ -15,7 +15,10 @@ namespace OfficeIMO.Excel {
                 TransformColumnReference(reference, firstColumn, lastDeletedColumn, count, deleting);
 
             editedSheet.RemapWorksheetAutoFilterColumns(firstColumn, count, deleting);
-            int editedSheetIndex = RewriteMutationReferencesAcrossPackage(editedSheet, Transform);
+            int editedSheetIndex = RewriteMutationReferencesAcrossPackage(
+                editedSheet,
+                Transform,
+                ExcelFormulaAxisShift.Columns(firstColumn, count, deleting));
             RewriteCalculationChainColumns(editedSheetIndex, firstColumn, count, deleting);
             RewriteDrawingColumns(editedSheet.WorksheetPart.DrawingsPart?.WorksheetDrawing, firstColumn, count, deleting);
         }
@@ -87,10 +90,10 @@ namespace OfficeIMO.Excel {
             int columnCount = ac2 - ac1 + 1;
             bool wholeRowsAffected = reference.Kind == ExcelReferenceKind.WholeRow
                 && ac1 == 1
-                && ac2 == A1.MaxColumns;
+                && ac2 == ExcelA1.MaxColumns;
             bool wholeColumnsAffected = reference.Kind == ExcelReferenceKind.WholeColumn
                 && ar1 == 1
-                && ar2 == A1.MaxRows;
+                && ar2 == ExcelA1.MaxRows;
             bool ColumnIsAffected(int column) => wholeRowsAffected || (column >= ac1 && column <= ac2);
             bool RowIsAffected(int row) => wholeColumnsAffected || (row >= ar1 && row <= ar2);
             int TransformRow(int row, int column) {
@@ -150,7 +153,8 @@ namespace OfficeIMO.Excel {
 
         private int RewriteMutationReferencesAcrossPackage(
             ExcelSheet editedSheet,
-            Func<ExcelReference, ExcelReference?> transform) {
+            Func<ExcelReference, ExcelReference?> transform,
+            ExcelFormulaAxisShift? plainFormulaShift = null) {
             Workbook workbook = WorkbookPartRoot.Workbook ?? throw new InvalidOperationException("Workbook root is missing.");
             List<Sheet> sheets = workbook.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
             int editedSheetIndex = sheets.FindIndex(sheet => string.Equals(sheet.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase));
@@ -163,7 +167,7 @@ namespace OfficeIMO.Excel {
             foreach (Sheet sheetElement in sheets) {
                 if (sheetElement.Id?.Value is not string relationshipId || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) continue;
                 bool ownerIsEdited = string.Equals(sheetElement.Name?.Value, editedSheet.Name, StringComparison.OrdinalIgnoreCase);
-                RewriteMutationFormulaLeaves(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform);
+                RewriteMutationFormulaLeaves(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform, plainFormulaShift);
                 RewriteMutationHyperlinks(worksheetPart.Worksheet, editedSheet.Name, ownerIsEdited, transform);
                 RewriteMutationDataConsolidationReferences(
                     worksheetPart.Worksheet,
@@ -210,7 +214,8 @@ namespace OfficeIMO.Excel {
                     if (ownerIsEdited) RewriteMutationAddressAttributes(pivotPart.PivotTableDefinition, transform);
                     pivotPart.PivotTableDefinition?.Save();
                 }
-                worksheetPart.Worksheet?.Save();
+                // The edited sheet is saved with the workbook; serializing its grid here repeats that for every edit.
+                if (!ownerIsEdited) worksheetPart.Worksheet?.Save();
             }
             foreach (ChartsheetPart chartsheetPart in WorkbookPartRoot.ChartsheetParts) {
                 RewriteMutationDrawingReferences(
@@ -298,10 +303,18 @@ namespace OfficeIMO.Excel {
             OpenXmlPartRootElement? root,
             string editedSheetName,
             bool unqualifiedTargetsEdited,
-            Func<ExcelReference, ExcelReference?> transform) {
+            Func<ExcelReference, ExcelReference?> transform,
+            ExcelFormulaAxisShift? plainFormulaShift = null) {
             if (root == null) return;
-            foreach (OpenXmlLeafTextElement leaf in root.Descendants<OpenXmlLeafTextElement>().Where(IsMutationFormulaLeaf)) {
-                leaf.Text = RewriteMutationFormula(leaf.Text, editedSheetName, unqualifiedTargetsEdited, transform);
+            foreach (OpenXmlLeafTextElement leaf in EnumerateMutationFormulaLeaves(root)) {
+                string text = leaf.Text;
+                if (plainFormulaShift.HasValue && (unqualifiedTargetsEdited
+                    ? plainFormulaShift.Value.TryRewrite(text, out string plain)
+                    : (plain = text).IndexOf('!') < 0)) {
+                    if (!ReferenceEquals(plain, text)) leaf.Text = plain;
+                    continue;
+                }
+                leaf.Text = RewriteMutationFormula(text, editedSheetName, unqualifiedTargetsEdited, transform);
             }
         }
 
@@ -311,7 +324,7 @@ namespace OfficeIMO.Excel {
             bool unqualifiedTargetsEdited,
             Func<ExcelReference, ExcelReference?> transform) {
             if (worksheet == null) return;
-            foreach (Hyperlink hyperlink in worksheet.Descendants<Hyperlink>()) {
+            foreach (Hyperlink hyperlink in worksheet.MetadataDescendants<Hyperlink>()) {
                 if (!string.IsNullOrWhiteSpace(hyperlink.Id?.Value)
                     || string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) continue;
                 hyperlink.Location = RewriteMutationFormula(
@@ -406,11 +419,19 @@ namespace OfficeIMO.Excel {
             return string.Equals(qualifier, editedSheetName, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>Limits a worksheet to what can carry a ref or sqref: its metadata and array or shared formula ranges.</summary>
+        private static IEnumerable<OpenXmlElement> EnumerateAddressedElements(OpenXmlPartRootElement root) {
+            if (root is not Worksheet worksheet) return root.Descendants().Prepend(root);
+            return worksheet.MetadataDescendants<OpenXmlElement>()
+                .Prepend(root)
+                .Concat(ExcelWorksheetScan.CellFormulas(worksheet).Where(static formula => formula.Reference != null));
+        }
+
         private static void RewriteMutationAddressAttributes(
             OpenXmlPartRootElement? root,
             Func<ExcelReference, ExcelReference?> transform) {
             if (root == null) return;
-            foreach (OpenXmlElement element in root.Descendants().Prepend(root).ToList()) {
+            foreach (OpenXmlElement element in EnumerateAddressedElements(root).ToList()) {
                 if (element is Selection || element is DataReference) continue;
                 bool removeElement = false;
                 foreach (OpenXmlAttribute attribute in element.GetAttributes().Where(item =>
@@ -430,7 +451,10 @@ namespace OfficeIMO.Excel {
                 }
                 if (removeElement) element.Remove();
             }
-            foreach (OpenXmlElement container in root.Descendants().Where(element =>
+            IEnumerable<OpenXmlElement> containers = root is Worksheet worksheet
+                ? worksheet.MetadataDescendants<OpenXmlElement>()
+                : root.Descendants();
+            foreach (OpenXmlElement container in containers.Where(element =>
                 string.Equals(element.LocalName, "mergeCells", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(element.LocalName, "dataValidations", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(element.LocalName, "ignoredErrors", StringComparison.OrdinalIgnoreCase)
@@ -471,7 +495,7 @@ namespace OfficeIMO.Excel {
             Func<ExcelReference, ExcelReference?> transform) {
             if (worksheet == null) return;
             foreach (DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline
-                in worksheet.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
+                in worksheet.MetadataDescendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
                 DocumentFormat.OpenXml.Office.Excel.ReferenceSequence? location = sparkline.ReferenceSequence;
                 if (location?.Text is not string original) continue;
                 string rewritten = RewriteReferenceList(original, transform);
@@ -577,7 +601,7 @@ namespace OfficeIMO.Excel {
 
         private static bool SetDrawingMarkerPoint(Xdr.MarkerType? marker, int row, int column) {
             if (marker?.RowId == null || marker.ColumnId == null) return false;
-            if (row < 1 || row > A1.MaxRows || column < 1 || column > A1.MaxColumns) {
+            if (row < 1 || row > ExcelA1.MaxRows || column < 1 || column > ExcelA1.MaxColumns) {
                 throw new InvalidOperationException("Structural edit would move a drawing anchor beyond worksheet limits.");
             }
             string rowText = (row - 1).ToString(CultureInfo.InvariantCulture);

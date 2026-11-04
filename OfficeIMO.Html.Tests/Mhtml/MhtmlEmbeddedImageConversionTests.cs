@@ -68,11 +68,11 @@ public sealed class MhtmlEmbeddedImageConversionTests {
         HtmlVisibleContentResult result = await source.CreateVisibleContentDocumentResultAsync();
 
         Assert.Equal(0, result.AppliedStylesheetCount);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Source == "file:///private/article.css"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(result.Report.HasLoss);
-        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class MhtmlEmbeddedImageConversionTests {
         Assert.Contains("styles.css", print.Value.SourceHtml, StringComparison.Ordinal);
         Assert.Contains("Print navigation", archive.Html, StringComparison.Ordinal);
 
-        HtmlToWordResult word = print.Value.ToWordDocumentResult();
+        HtmlToWordResult word = print.Value.ConvertToWordWithEvidence();
         using var output = new MemoryStream();
         using (var document = word.RequireValue()) document.Save(output);
         using WordprocessingDocument saved = WordprocessingDocument.Open(
@@ -149,13 +149,13 @@ public sealed class MhtmlEmbeddedImageConversionTests {
 
         HtmlConversionDocument images = archive.CreateEmbeddedImageDocumentResult().RequireValue();
         HtmlVisibleContentResult visible = await images.CreateVisibleContentDocumentResultAsync(options);
-        HtmlToWordResult converted = visible.Value.ToWordDocumentResult();
+        HtmlToWordResult converted = visible.Value.ConvertToWordWithEvidence();
         using var document = converted.RequireValue();
 
         Assert.Equal(1, visible.AppliedStylesheetCount);
         Assert.Contains("max-width:210px", visible.Value.SourceHtml, StringComparison.Ordinal);
-        Assert.Equal(210D, Assert.Single(document.Images).Width!.Value, precision: 2);
-        Assert.Contains(converted.Report.Diagnostics, diagnostic =>
+        Assert.Equal(210D, Assert.Single(document.Images).Width!.Value.ToPixels(), precision: 2);
+        Assert.Contains(converted.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Source == "Site logo");
         Assert.DoesNotContain("max-width:210px", archive.Html, StringComparison.Ordinal);
@@ -186,7 +186,7 @@ public sealed class MhtmlEmbeddedImageConversionTests {
         Assert.Contains("images/gallery.png", archive.HtmlDocument.SourceHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/", archive.HtmlDocument.SourceHtml, StringComparison.Ordinal);
 
-        HtmlToWordResult word = prepared.Value.ToWordDocumentResult();
+        HtmlToWordResult word = prepared.Value.ConvertToWordWithEvidence();
         Assert.True(word.Report.Succeeded);
         using var packageBytes = new MemoryStream();
         using (var document = word.RequireValue()) document.Save(packageBytes);
@@ -210,10 +210,10 @@ public sealed class MhtmlEmbeddedImageConversionTests {
         Assert.Equal(0, prepared.EmbeddedResourceCount);
         Assert.Equal(0, prepared.EmbeddedResourceBytes);
         Assert.True(prepared.Report.HasLoss);
-        Assert.Contains(prepared.Report.Diagnostics,
+        Assert.Contains(prepared.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded
                 && diagnostic.Source == "present.png");
-        Assert.Contains(prepared.Report.Diagnostics,
+        Assert.Contains(prepared.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
                 && diagnostic.Source == "missing.png");
         Assert.DoesNotContain("data:image/", prepared.Value.SourceHtml, StringComparison.Ordinal);

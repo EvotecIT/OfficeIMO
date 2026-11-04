@@ -11,7 +11,7 @@ Copies selected PDF pages into a new PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Copy-OfficePdfPage -Path <string> -PageRange <string> -OutputPath <string> [-Password <string>] [-IgnorePermissionRestrictions] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OfficePdfPage -Path <string> -PageRange <string> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -100,7 +100,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -15,7 +15,7 @@ public sealed partial class PdfPageCanvas {
     /// Groups positioned paint under one logical replacement string and anchors the invisible
     /// extraction span at an absolute top-left page coordinate.
     /// </summary>
-    public PdfPageCanvas ActualText(string text, double x, double y, Action<PdfPageCanvas> build) => ActualText(text, x, y, build, logicalOrder: null);
+    public PdfPageCanvas ActualText(string text, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, Action<PdfPageCanvas> build) => ActualText(text, x.ToPoints(), y.ToPoints(), build, logicalOrder: null);
 
     internal PdfPageCanvas ActualText(string text, double x, double y, Action<PdfPageCanvas> build, long? logicalOrder) {
         ValidateCanvasCoordinate(x, nameof(x));
@@ -28,7 +28,7 @@ public sealed partial class PdfPageCanvas {
     /// top-left page coordinates. The rectangle preserves spacing between adjacent
     /// spans; the paint remains owned by the same replacement for extraction and editing.
     /// </summary>
-    public PdfPageCanvas ActualText(string text, double x, double y, double width, double height, Action<PdfPageCanvas> build) => ActualText(text, x, y, width, height, build, logicalOrder: null);
+    public PdfPageCanvas ActualText(string text, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, Action<PdfPageCanvas> build) => ActualText(text, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), build, logicalOrder: null);
 
     internal PdfPageCanvas ActualText(string text, double x, double y, double width, double height, Action<PdfPageCanvas> build, long? logicalOrder) {
         ValidateCanvasCoordinate(x, nameof(x));

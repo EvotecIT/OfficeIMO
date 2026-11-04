@@ -134,7 +134,7 @@ public sealed class CslConditionalDetailTests {
     [Fact]
     public void ConditionalAttemptsConsumeTheSharedRenderingWorkBudget() {
         string constants = string.Concat(Enumerable.Range(0, 100).Select(index => "<choose><if disambiguate=\"true\"><text value=\"same\"/></if></choose>"));
-        var processor = new CslProcessor(Data(), Style(Author + constants + Edition), new CslRenderOptions { MaximumRenderingOperations = 10000 });
+        var processor = new CslProcessor(Data(), Style(Author + constants + Edition), new CslRenderOptions { MaxRenderingOperations = 10000 });
         Assert.Throws<InvalidDataException>(() => processor.Render(new[] { Cite("one", 1, "a", "b") }));
     }
 }

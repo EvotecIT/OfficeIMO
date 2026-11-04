@@ -4,6 +4,7 @@ async function runReportContracts(fixtureJson) {
   const operations = ["sum", "count", "average", "min", "max"];
   for (const compression of ["auto", "store"]) {
     for (const streamed of [false, true]) {
+      console.info("OfficeIMO report: regions " + compression + "/" + (streamed ? "stream" : "blob"));
       const chunks = [], reports = new OfficeIMO.Workbook({ compression, cellValueWriters: { milliseconds: value => Number(value) / 1000 }, ...(streamed ? { sink: { write(bytes) { chunks.push(bytes.slice()); } } } : {}) });
       const titled = reports.addWorksheet("Report", { title: { text: "Łódź 🧪 report", height: 32 }, columns: [{ header: "Name", groups: ["Metrics"] }, { header: "Amount", key: "amount", groups: ["Metrics"], type: "number" }], table: { name: "Report" }, freezeHeader: true, autoSize: {}, footer: { values: ["Total"], totals: { amount: "sum" } }, print: { repeatHeaders: true } });
       await titled.addRows([["one", 12], ["two", 8]]); await titled.close();
@@ -21,15 +22,18 @@ async function runReportContracts(fixtureJson) {
       const hidden = invalid.addWorksheet("Hidden", { columns: [{ header: "A" }, { header: "B" }], includeHeader: false, mergedCells: ["A1:B1"] });
       try { await hidden.addRows([["anchor", 0]]); throw new Error("Merged value was lost"); } catch (error) { if (!String(error).includes("would hide")) throw error; }
     }
+    console.info("OfficeIMO report: dates " + compression);
     const dates = new OfficeIMO.Workbook({ dateMode: "utc", compression });
     const sheet = dates.addWorksheet("Dates", { columns: operations.map(header => ({ header, type: "date", format: "yyyy-mm-dd" })), autoSize: {}, table: { name: "DateTotals" },
       footer: { totals: Object.fromEntries(operations.map(operation => [operation, operation])) } });
     await sheet.addRows([operations.map(() => new Date("2026-10-06T00:00:00Z")), operations.map(() => new OfficeIMO.ExportCell(new Date("2026-10-08T00:00:00Z")))]);
     await emit("report-dates-" + compression + ".xlsx", await dates.toBlob());
+    console.info("OfficeIMO report: preserved footer " + compression);
     const footer = new OfficeIMO.Workbook({ compression, oversizedText: "preserve", limits: { maxTextCharacters: 140000 } });
     await footer.addWorksheet("Footer", { columns: [{ header: "A" }], footer: { values: ["x".repeat(100000)] } }).addRows([[1]]);
     await emit("report-preserved-footer-" + compression + ".xlsx", await footer.toBlob());
     for (const closed of [false, true]) {
+      console.info("OfficeIMO report: cancellation " + compression + "/closed=" + closed);
       const controller = new AbortController(), reason = new Error("cancel between calls");
       const book = new OfficeIMO.Workbook({ compression, signal: controller.signal });
       const cancelled = book.addWorksheet("Cancel", { columns: [{ header: "A" }] });

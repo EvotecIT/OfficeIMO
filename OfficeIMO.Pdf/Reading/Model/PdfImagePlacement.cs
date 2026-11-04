@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Placement geometry for one image XObject invocation on a PDF page.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfImagePlacement {
     internal PdfImagePlacement(
         int pageNumber,
@@ -108,16 +109,16 @@ public sealed class PdfImagePlacement {
     /// <summary>Current transformation matrix F translation component at the image invocation.</summary>
     public double F { get; }
 
-    /// <summary>Left edge of the placement bounding box in PDF points.</summary>
+    /// <summary>Left edge of the placement bounding box in page user-space units.</summary>
     public double X { get; }
 
-    /// <summary>Bottom edge of the placement bounding box in PDF points.</summary>
+    /// <summary>Bottom edge of the placement bounding box in page user-space units.</summary>
     public double Y { get; }
 
-    /// <summary>Bounding-box width in PDF points.</summary>
+    /// <summary>Bounding-box width in page user-space units.</summary>
     public double Width { get; }
 
-    /// <summary>Bounding-box height in PDF points.</summary>
+    /// <summary>Bounding-box height in page user-space units.</summary>
     public double Height { get; }
 
     internal PdfPageClipPath? ClipPath { get; }

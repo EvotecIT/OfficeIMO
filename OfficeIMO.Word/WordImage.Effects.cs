@@ -7,7 +7,6 @@ using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
 using V = DocumentFormat.OpenXml.Vml;
 
-#nullable enable annotations
 using DocumentFormat.OpenXml.Office2010.Word.Drawing;
 using Pic = DocumentFormat.OpenXml.Drawing.Pictures;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -42,7 +41,7 @@ namespace OfficeIMO.Word {
                 }
                 if (ar == null) {
                     ar = new AlphaReplace();
-                    blip.Append(ar);
+                    AppendBlipEffect(blip, ar);
                 }
                 ar.Alpha = value.Value * 1000;
             }
@@ -51,15 +50,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the alpha inversion color in hex.
         /// </summary>
-        public string? AlphaInversionColorHex {
+        private string? AlphaInversionColorValue {
             get {
                 var blip = GetBlip();
                 var ai = blip?.GetFirstChild<AlphaInverse>();
-                _alphaInversionColorHex = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
-                return _alphaInversionColorHex;
+                _alphaInversionColorValue = ai?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _alphaInversionColorValue;
             }
             set {
-                _alphaInversionColorHex = value;
+                _alphaInversionColorValue = value;
                 var blip = GetBlip();
                 if (blip == null) return;
                 var ai = blip.GetFirstChild<AlphaInverse>();
@@ -69,7 +68,7 @@ namespace OfficeIMO.Word {
                 }
                 if (ai == null) {
                     ai = new AlphaInverse();
-                    blip.Append(ai);
+                    AppendBlipEffect(blip, ai);
                 }
                 var clr = ai.GetFirstChild<RgbColorModelHex>();
                 if (clr == null) {
@@ -84,12 +83,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the alpha inversion color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? AlphaInversionColor {
+        public OfficeIMO.OfficeColor? AlphaInversionColor {
             get {
-                if (AlphaInversionColorHex == null) return (OfficeIMO.Drawing.OfficeColor?)null;
-                return Helpers.ParseColor(AlphaInversionColorHex);
+                if (AlphaInversionColorValue == null) return (OfficeIMO.OfficeColor?)null;
+                return Helpers.ParseColor(AlphaInversionColorValue);
             }
-            set { AlphaInversionColorHex = value?.ToRgbHex(); }
+            set { AlphaInversionColorValue = value?.ToRgbHex(); }
         }
 
         /// <summary>
@@ -116,25 +115,25 @@ namespace OfficeIMO.Word {
                 }
                 if (bi == null) {
                     bi = new BiLevel();
-                    blip.Append(bi);
+                    AppendBlipEffect(blip, bi);
                 }
                 bi.Threshold = value.Value * 1000;
             }
         }
 
         /// <summary>
-        /// Gets or sets the blur radius in EMUs.
+        /// Gets or sets the image blur radius.
         /// </summary>
-        public int? BlurRadius {
+        public OfficeLength? BlurRadius {
             get {
                 var blip = GetBlip();
                 var blur = blip?.GetFirstChild<Blur>();
                 var radius = blur?.Radius?.Value;
                 _blurRadius = radius != null ? (int?)radius : null;
-                return _blurRadius;
+                return radius.HasValue ? OfficeLength.Emus(radius.Value) : null;
             }
             set {
-                _blurRadius = value;
+                _blurRadius = value.HasValue ? checked((int)value.Value.ToEmus()) : null;
                 var blip = GetBlip();
                 if (blip == null) return;
                 var blur = blip.GetFirstChild<Blur>();
@@ -144,9 +143,9 @@ namespace OfficeIMO.Word {
                 }
                 if (blur == null) {
                     blur = new Blur();
-                    blip.Append(blur);
+                    AppendBlipEffect(blip, blur);
                 }
-                blur.Radius = value != null ? new Int64Value((long)value.Value) : null;
+                blur.Radius = value != null ? new Int64Value(value.Value.ToEmus()) : null;
                 blur.Grow = _blurGrow ?? false;
             }
         }
@@ -172,7 +171,7 @@ namespace OfficeIMO.Word {
                 }
                 if (blur == null) {
                     blur = new Blur();
-                    blip.Append(blur);
+                    AppendBlipEffect(blip, blur);
                 }
                 blur.Radius = _blurRadius != null ? new Int64Value((long)_blurRadius.Value) : null;
                 blur.Grow = value ?? false;
@@ -182,15 +181,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the source color to change from in hex.
         /// </summary>
-        public string? ColorChangeFromHex {
+        private string? ColorChangeFromValue {
             get {
                 var blip = GetBlip();
                 var cc = blip?.GetFirstChild<ColorChange>();
-                _colorChangeFromHex = cc?.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
-                return _colorChangeFromHex;
+                _colorChangeFromValue = cc?.ColorFrom?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorChangeFromValue;
             }
             set {
-                _colorChangeFromHex = value;
+                _colorChangeFromValue = value;
                 UpdateColorChange();
             }
         }
@@ -198,15 +197,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the target color to change to in hex.
         /// </summary>
-        public string? ColorChangeToHex {
+        private string? ColorChangeToValue {
             get {
                 var blip = GetBlip();
                 var cc = blip?.GetFirstChild<ColorChange>();
-                _colorChangeToHex = cc?.ColorTo?.GetFirstChild<RgbColorModelHex>()?.Val;
-                return _colorChangeToHex;
+                _colorChangeToValue = cc?.ColorTo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorChangeToValue;
             }
             set {
-                _colorChangeToHex = value;
+                _colorChangeToValue = value;
                 UpdateColorChange();
             }
         }
@@ -214,46 +213,46 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the source color to change from.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? ColorChangeFrom {
+        public OfficeIMO.OfficeColor? ColorChangeFrom {
             get {
-                return ColorChangeFromHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorChangeFromHex);
+                return ColorChangeFromValue == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(ColorChangeFromValue);
             }
-            set { ColorChangeFromHex = value?.ToRgbHex(); }
+            set { ColorChangeFromValue = value?.ToRgbHex(); }
         }
 
         /// <summary>
         /// Gets or sets the target color to change to.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? ColorChangeTo {
+        public OfficeIMO.OfficeColor? ColorChangeTo {
             get {
-                return ColorChangeToHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorChangeToHex);
+                return ColorChangeToValue == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(ColorChangeToValue);
             }
-            set { ColorChangeToHex = value?.ToRgbHex(); }
+            set { ColorChangeToValue = value?.ToRgbHex(); }
         }
 
         private void UpdateColorChange() {
             var blip = GetBlip();
             if (blip == null) return;
             var cc = blip.GetFirstChild<ColorChange>();
-            if (_colorChangeFromHex == null && _colorChangeToHex == null) {
+            if (_colorChangeFromValue == null && _colorChangeToValue == null) {
                 cc?.Remove();
                 return;
             }
             if (cc == null) {
                 cc = new ColorChange();
-                blip.Append(cc);
+                AppendBlipEffect(blip, cc);
             }
-            if (_colorChangeFromHex != null) {
+            if (_colorChangeFromValue != null) {
                 var from = cc.ColorFrom ?? new ColorFrom();
                 var clr = from.GetFirstChild<RgbColorModelHex>() ?? new RgbColorModelHex();
-                clr.Val = _colorChangeFromHex;
+                clr.Val = _colorChangeFromValue;
                 if (from.FirstChild == null) from.Append(clr);
                 cc.ColorFrom = from;
             }
-            if (_colorChangeToHex != null) {
+            if (_colorChangeToValue != null) {
                 var to = cc.ColorTo ?? new ColorTo();
                 var clr = to.GetFirstChild<RgbColorModelHex>() ?? new RgbColorModelHex();
-                clr.Val = _colorChangeToHex;
+                clr.Val = _colorChangeToValue;
                 if (to.FirstChild == null) to.Append(clr);
                 cc.ColorTo = to;
             }
@@ -262,15 +261,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets a color replacement hex value.
         /// </summary>
-        public string? ColorReplacementHex {
+        private string? ColorReplacementValue {
             get {
                 var blip = GetBlip();
                 var cr = blip?.GetFirstChild<ColorReplacement>();
-                _colorReplacementHex = cr?.GetFirstChild<RgbColorModelHex>()?.Val;
-                return _colorReplacementHex;
+                _colorReplacementValue = cr?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _colorReplacementValue;
             }
             set {
-                _colorReplacementHex = value;
+                _colorReplacementValue = value;
                 var blip = GetBlip();
                 if (blip == null) return;
                 var cr = blip.GetFirstChild<ColorReplacement>();
@@ -280,7 +279,7 @@ namespace OfficeIMO.Word {
                 }
                 if (cr == null) {
                     cr = new ColorReplacement();
-                    blip.Append(cr);
+                    AppendBlipEffect(blip, cr);
                 }
                 var clr = cr.GetFirstChild<RgbColorModelHex>();
                 if (clr == null) {
@@ -295,25 +294,25 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets a color replacement.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? ColorReplacement {
+        public OfficeIMO.OfficeColor? ColorReplacement {
             get {
-                return ColorReplacementHex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(ColorReplacementHex);
+                return ColorReplacementValue == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(ColorReplacementValue);
             }
-            set { ColorReplacementHex = value?.ToRgbHex(); }
+            set { ColorReplacementValue = value?.ToRgbHex(); }
         }
 
         /// <summary>
         /// Gets or sets the first duotone color in hex.
         /// </summary>
-        public string? DuotoneColor1Hex {
+        private string? DuotoneColor1Value {
             get {
                 var blip = GetBlip();
                 var duo = blip?.GetFirstChild<Duotone>();
-                _duotoneColor1Hex = duo?.GetFirstChild<RgbColorModelHex>()?.Val;
-                return _duotoneColor1Hex;
+                _duotoneColor1Value = duo?.GetFirstChild<RgbColorModelHex>()?.Val;
+                return _duotoneColor1Value;
             }
             set {
-                _duotoneColor1Hex = value;
+                _duotoneColor1Value = value;
                 UpdateDuotone();
             }
         }
@@ -321,15 +320,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the second duotone color in hex.
         /// </summary>
-        public string? DuotoneColor2Hex {
+        private string? DuotoneColor2Value {
             get {
                 var blip = GetBlip();
                 var duo = blip?.GetFirstChild<Duotone>();
-                _duotoneColor2Hex = duo?.Elements<RgbColorModelHex>().Skip(1).FirstOrDefault()?.Val;
-                return _duotoneColor2Hex;
+                _duotoneColor2Value = duo?.Elements<RgbColorModelHex>().Skip(1).FirstOrDefault()?.Val;
+                return _duotoneColor2Value;
             }
             set {
-                _duotoneColor2Hex = value;
+                _duotoneColor2Value = value;
                 UpdateDuotone();
             }
         }
@@ -337,40 +336,40 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the first duotone color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? DuotoneColor1 {
+        public OfficeIMO.OfficeColor? DuotoneColor1 {
             get {
-                return DuotoneColor1Hex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(DuotoneColor1Hex);
+                return DuotoneColor1Value == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(DuotoneColor1Value);
             }
-            set { DuotoneColor1Hex = value?.ToRgbHex(); }
+            set { DuotoneColor1Value = value?.ToRgbHex(); }
         }
 
         /// <summary>
         /// Gets or sets the second duotone color.
         /// </summary>
-        public OfficeIMO.Drawing.OfficeColor? DuotoneColor2 {
+        public OfficeIMO.OfficeColor? DuotoneColor2 {
             get {
-                return DuotoneColor2Hex == null ? (OfficeIMO.Drawing.OfficeColor?)null : Helpers.ParseColor(DuotoneColor2Hex);
+                return DuotoneColor2Value == null ? (OfficeIMO.OfficeColor?)null : Helpers.ParseColor(DuotoneColor2Value);
             }
-            set { DuotoneColor2Hex = value?.ToRgbHex(); }
+            set { DuotoneColor2Value = value?.ToRgbHex(); }
         }
 
         private void UpdateDuotone() {
             var blip = GetBlip();
             if (blip == null) return;
             var duo = blip.GetFirstChild<Duotone>();
-            if (_duotoneColor1Hex == null && _duotoneColor2Hex == null) {
+            if (_duotoneColor1Value == null && _duotoneColor2Value == null) {
                 duo?.Remove();
                 return;
             }
             if (duo == null) {
                 duo = new Duotone();
-                blip.Append(duo);
+                AppendBlipEffect(blip, duo);
             }
             duo.RemoveAllChildren();
-            if (_duotoneColor1Hex != null)
-                duo.Append(new RgbColorModelHex { Val = _duotoneColor1Hex });
-            if (_duotoneColor2Hex != null)
-                duo.Append(new RgbColorModelHex { Val = _duotoneColor2Hex });
+            if (_duotoneColor1Value != null)
+                duo.Append(new RgbColorModelHex { Val = _duotoneColor1Value });
+            if (_duotoneColor2Value != null)
+                duo.Append(new RgbColorModelHex { Val = _duotoneColor2Value });
         }
 
         /// <summary>
@@ -389,7 +388,7 @@ namespace OfficeIMO.Word {
                 if (blip == null) return;
                 var gs = blip.GetFirstChild<Grayscale>();
                 if (value == true && gs == null) {
-                    blip.Append(new Grayscale());
+                    AppendBlipEffect(blip, new Grayscale());
                 } else if (value != true) {
                     gs?.Remove();
                 }
@@ -441,7 +440,7 @@ namespace OfficeIMO.Word {
             }
             if (lum == null) {
                 lum = new LuminanceEffect();
-                blip.Append(lum);
+                AppendBlipEffect(blip, lum);
             }
             lum.Brightness = _luminanceBrightness != null ? new Int32Value(_luminanceBrightness.Value * 1000) : null;
             lum.Contrast = _luminanceContrast != null ? new Int32Value(_luminanceContrast.Value * 1000) : null;
@@ -489,10 +488,17 @@ namespace OfficeIMO.Word {
             }
             if (tint == null) {
                 tint = new TintEffect();
-                blip.Append(tint);
+                AppendBlipEffect(blip, tint);
             }
             tint.Amount = _tintAmount != null ? new Int32Value(_tintAmount.Value * 1000) : null;
             tint.Hue = _tintHue != null ? new Int32Value(_tintHue.Value * 60000) : null;
+        }
+
+        /// <summary>Appends an effect before the required trailing extension list, preserving the order of existing effects.</summary>
+        private static void AppendBlipEffect(Blip blip, OpenXmlElement effect) {
+            var extensions = blip.GetFirstChild<BlipExtensionList>();
+            if (extensions != null) blip.InsertBefore(effect, extensions);
+            else blip.Append(effect);
         }
 
     }

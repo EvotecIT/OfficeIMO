@@ -18,18 +18,18 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: options);
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             result.Value.Save(saved);
         } else if (kind == IWorkDocumentKind.Keynote) {
-            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: options);
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             result.Value.Save(saved);
         } else {
-            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: options);
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
-            Assert.Equal("Value", result.Value.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Value", result.Value.Sheets[0].Cell(1, 1).GetValue<string>());
             return;
         }
         saved.Position = 0;
@@ -102,10 +102,10 @@ public sealed partial class IWorkBoundaryTests {
         using var package = ParagraphLayoutPackage(kind, BytesField(13, FloatField(2, multiplier)));
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: IWorkTestPolicy.ForIncompletePreview(options));
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(IWorkTestPolicy.ForIncompletePreview(options));
             Assert.True(result.IsVisualFallback);
         } else {
-            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: IWorkTestPolicy.ForIncompletePreview(options));
+            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(options));
             Assert.True(result.IsVisualFallback);
         }
     }

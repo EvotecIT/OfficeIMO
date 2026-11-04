@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumFormulaRenderingOperations = 1 })
+                new IWorkReadOptions { MaxFormulaRenderingOperations = 1 })
                 .ReadNumbers());
 
         Assert.Contains("Formula rendering work", exception.Message,
@@ -42,7 +42,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_presenter_note_pagination_uses_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithStyledPresenterNote();
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

@@ -158,7 +158,7 @@ public sealed class StudioWorkflowJobIntegrationTests {
             if (folderExport) {
                 Assert.True(completed.HasOutput);
                 Assert.Equal(output, completed.OutputPath);
-                Assert.True(File.Exists(Path.Combine(output, "source.txt.pdf")));
+                Assert.True(File.Exists(Path.Combine(output, "source.pdf")));
             } else {
                 Assert.False(completed.HasOutput);
                 provenance.RemoveReferences = true;

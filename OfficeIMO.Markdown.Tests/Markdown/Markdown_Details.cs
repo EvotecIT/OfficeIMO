@@ -5,7 +5,7 @@ namespace OfficeIMO.Tests {
     public partial class Markdown {
         [Fact]
         public void Builder_Creates_Details_Block() {
-            var doc = MarkdownDoc.Create()
+            var doc = MarkdownDocument.Create()
                 .Details("More info", body => body.P("Hidden text"));
 
             var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
         public void Reader_RoundTrips_Details_Html() {
             string markdown = "<details open>\n<summary>  Expand  </summary>\n\nParagraph text\n</details>";
 
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown);
 
             var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
             Assert.True(details.Open);

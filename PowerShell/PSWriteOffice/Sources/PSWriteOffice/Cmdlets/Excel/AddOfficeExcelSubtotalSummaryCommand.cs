@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
@@ -152,7 +153,7 @@ public sealed class AddOfficeExcelSubtotalSummaryCommand : PSCmdlet
 
     private static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ResolveUsedRange(ExcelSheet sheet)
     {
-        if (!A1.TryParseRange(sheet.UsedRangeA1, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn))
+        if (!ExcelA1.TryParseRange(sheet.UsedRange.Address, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn))
         {
             throw new PSArgumentException("Unable to resolve the worksheet used range.");
         }
@@ -194,8 +195,8 @@ public sealed class AddOfficeExcelSubtotalSummaryCommand : PSCmdlet
 
         if (lettersOnly && trimmed.Length <= 3)
         {
-            int letterIndex = A1.ColumnLettersToIndex(trimmed);
-            if (letterIndex > 0 && letterIndex <= A1.MaxColumns)
+            int letterIndex = ExcelA1.ColumnLettersToIndex(trimmed);
+            if (letterIndex > 0 && letterIndex <= ExcelA1.MaxColumns)
             {
                 return letterIndex;
             }

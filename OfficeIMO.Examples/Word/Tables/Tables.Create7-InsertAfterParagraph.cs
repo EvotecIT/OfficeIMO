@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Tables {
@@ -32,8 +32,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable1.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
                 wordTable1.Rows[3].Cells[0].Paragraphs[0].Text = "Test 4";
 
-                wordTable1.WidthType = WordTableWidthUnit.Pct;
-                wordTable1.Width = 3000;
+                wordTable1.Width = WordTableWidth.Percent(60);
 
                 wordTable1.AllowTextWrap = true;
 

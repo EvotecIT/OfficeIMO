@@ -4,18 +4,22 @@ namespace OfficeIMO.Xps;
 
 /// <summary>A portable XPS/OpenXPS document sequence. Retains unmodified native package parts.</summary>
 public sealed partial class XpsDocument {
+    private string? _filePath;
+    /// <summary>Gets the associated path, or null for an in-memory document.</summary>
+    public string? FilePath => _filePath;
+
     private readonly Dictionary<string, byte[]> _parts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _types = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<XpsPage> _pages = new();
     private readonly Dictionary<string, Dictionary<string, int>> _linkTargets = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _documentStarts = new(StringComparer.OrdinalIgnoreCase);
-    private readonly XpsReadOptions _limits;
+    private readonly XpsReadLimits _limits;
     private readonly string _sequence;
     private XElement _sequenceMarkup = null!;
     private readonly List<XpsFixedDocument> _documents = new();
     private readonly Dictionary<string, XpsFixedDocument> _documentCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, XpsPage> _pageCache = new(StringComparer.OrdinalIgnoreCase);
-    private XpsDocument(XpsFormat format, XpsReadOptions limits, string sequence) {
+    private XpsDocument(XpsFormat format, XpsReadLimits limits, string sequence) {
         Format = format; _limits = limits; _sequence = sequence;
     }
     /// <summary>The markup dialect detected from the package relationship and sequence.</summary>
@@ -27,7 +31,7 @@ public sealed partial class XpsDocument {
     /// <summary>Creates an empty native document with no external resources.</summary>
     public static XpsDocument Create(XpsFormat format = XpsFormat.OpenXps) {
         if (!Enum.IsDefined(typeof(XpsFormat), format)) throw new ArgumentOutOfRangeException(nameof(format));
-        var result = new XpsDocument(format, new XpsReadOptions(), "FixedDocumentSequence.fdseq");
+        var result = new XpsDocument(format, new XpsReadLimits(), "FixedDocumentSequence.fdseq");
         XNamespace ns = XpsPackage.Namespace(format);
         result.PutXml(result._sequence, new XElement(ns + "FixedDocumentSequence", new XElement(ns + "DocumentReference", new XAttribute("Source", "/Documents/1/FixedDocument.fdoc"))), "fixeddocumentsequence");
         result.PutXml("Documents/1/FixedDocument.fdoc", new XElement(ns + "FixedDocument"), "fixeddocument");
@@ -37,31 +41,34 @@ public sealed partial class XpsDocument {
         return result;
     }
     /// <summary>Loads from a file without retaining handles.</summary>
-    public static XpsDocument Load(string path, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
-        using var stream = File.OpenRead(path);
-        return Load(stream, options, cancellationToken);
+    public static XpsDocument Load(string path, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
+        using var stream = File.OpenRead(fullPath);
+        var document = Load(stream, options, cancellationToken);
+        document._filePath = fullPath;
+        return document;
     }
     /// <summary>Loads from bytes with bounded package and XML expansion.</summary>
-    public static XpsDocument Load(byte[] bytes, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static XpsDocument Load(byte[] bytes, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         using var stream = new MemoryStream(bytes, false);
         return Load(stream, options, cancellationToken);
     }
     /// <summary>Reads from the current position to EOF. The caller's stream remains open; non-seekable streams are supported.</summary>
-    public static XpsDocument Load(Stream stream, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static XpsDocument Load(Stream stream, XpsLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        var limits = (options ?? new XpsReadOptions()).Snapshot();
+        var limits = (options ?? new XpsLoadOptions()).SnapshotLimits();
         using var input = new MemoryStream();
         var buffer = new byte[81920];
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
-            int read = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, limits.MaximumInputBytes - input.Length + 1));
+            int read = stream.Read(buffer, 0, (int)Math.Min(buffer.Length, limits.MaxInputBytes - input.Length + 1));
             if (read == 0) break;
-            if (input.Length + read > limits.MaximumInputBytes) throw new InvalidDataException("XPS input byte limit exceeded.");
+            if (input.Length + read > limits.MaxInputBytes) throw new InvalidDataException("XPS input byte limit exceeded.");
             input.Write(buffer, 0, read);
         }
         input.Position = 0;
-        var scan = OfficeArchiveSafety.ScanZipCentralDirectory(input, input.Length, limits.MaximumParts, cancellationToken);
+        var scan = OfficeArchiveSafety.ScanZipCentralDirectory(input, input.Length, limits.MaxParts, cancellationToken);
         if (!scan.IsValid || scan.LimitExceeded) throw new InvalidDataException("Invalid or excessive XPS ZIP directory.");
         var parts = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
         using (var zip = new ZipArchive(input, ZipArchiveMode.Read, true)) {
@@ -71,13 +78,13 @@ public sealed partial class XpsDocument {
                 if (entry.FullName.EndsWith("/", StringComparison.Ordinal)) continue;
                 string name = XpsPackage.PartName(entry.FullName);
                 if (entry.FullName.StartsWith("/", StringComparison.Ordinal) || parts.ContainsKey(name)) throw new InvalidDataException("Duplicate or absolute XPS ZIP part.");
-                if (entry.Length > limits.MaximumPartBytes || entry.Length > limits.MaximumExpandedBytes - expanded) throw new InvalidDataException("XPS expanded byte limit exceeded.");
+                if (entry.Length > limits.MaxPartBytes || entry.Length > limits.MaxExpandedBytes - expanded) throw new InvalidDataException("XPS expanded byte limit exceeded.");
                 expanded += entry.Length;
                 using var part = entry.Open();
-                parts.Add(name, OfficeArchiveSafety.ReadEntryBytes(part, entry.Length, limits.MaximumPartBytes));
+                parts.Add(name, OfficeArchiveSafety.ReadEntryBytes(part, entry.Length, limits.MaxPartBytes));
             }
         }
-        parts = OfficeOpcPieceAssembler.Assemble(parts, limits.MaximumPartBytes, cancellationToken);
+        parts = OfficeOpcPieceAssembler.Assemble(parts, limits.MaxPartBytes, cancellationToken);
         byte[] Required(string name) => parts.TryGetValue(name, out var data) ? data : throw new InvalidDataException("Missing XPS part: " + name);
         XElement rels = XpsPackage.Xml(Required("_rels/.rels"), limits, cancellationToken);
         if (rels.Name != XpsPackage.Relationships + "Relationships") throw new InvalidDataException("Invalid package relationships.");

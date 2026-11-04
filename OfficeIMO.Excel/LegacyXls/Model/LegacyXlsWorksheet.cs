@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a worksheet parsed from a legacy XLS workbook stream.
     /// </summary>
-    public sealed class LegacyXlsWorksheet {
+    internal sealed class LegacyXlsWorksheet {
         private readonly List<LegacyXlsCell> _cells = new();
         private readonly List<LegacyXlsColumnLayout> _columns = new();
         private readonly List<LegacyXlsCellWatch> _cellWatches = new();

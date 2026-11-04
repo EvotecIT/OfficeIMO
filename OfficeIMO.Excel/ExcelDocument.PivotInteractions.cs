@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
             PivotTablePart? pivotPart) {
             if (string.IsNullOrWhiteSpace(pivot.SourceSheet)
                 || string.IsNullOrWhiteSpace(pivot.SourceRange)
-                || !A1.TryParseRange(pivot.SourceRange!.Replace("$", string.Empty), out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                || !ExcelA1.TryParseRange(pivot.SourceRange!.Replace("$", string.Empty), out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return null;
             }
 
@@ -161,7 +161,7 @@ namespace OfficeIMO.Excel {
 
             bool foundDate = false;
             for (int row = firstRow + 1; row <= lastRow; row++) {
-                if (!sourceSheet.TryGetCellValueSnapshot(row, sourceColumn, out ExcelCellValueSnapshot? value)) {
+                if (!sourceSheet.TryGetCellValueSnapshot(row, sourceColumn, out ExcelNativeCellValueInfo? value)) {
                     continue;
                 }
                 if (value!.Kind == ExcelCellValueKind.Text && value.Text.Length == 0) {

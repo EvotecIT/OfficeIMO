@@ -60,7 +60,7 @@ namespace OfficeIMO.PowerPoint {
 
             Background background = new Background(new BackgroundProperties(new D.NoFill()));
 
-            return new NotesMaster(
+            var master = new NotesMaster(
                 new CommonSlideData(background, shapeTree),
                 new P.ColorMap {
                     Background1 = D.ColorSchemeIndexValues.Light1,
@@ -87,6 +87,9 @@ namespace OfficeIMO.PowerPoint {
                     new D.Level8ParagraphProperties(new D.DefaultRunProperties { Language = "en-US" }),
                     new D.Level9ParagraphProperties(new D.DefaultRunProperties { Language = "en-US" }))
             );
+            // Loading the serialized master promotes this namespace to the root; emit it now so an unchanged notes part stays byte-stable.
+            master.AddNamespaceDeclaration("a", DrawingNamespace);
+            return master;
         }
 
         private static P.Shape CreatePlaceholderShape(uint id, string name, PlaceholderValues type, uint index, bool includeEndParagraph) {

@@ -15,14 +15,15 @@ public sealed partial class PdfDocumentStamper {
     /// requested pages and removes its previous occurrences on other pages. An unchanged foreground
     /// or background setting preserves its position relative to other page content.
     /// </summary>
-    public PdfDocument Watermark(PdfWatermarkOptions options, PdfLoadOptions? readOptions = null) {
+    public PdfDocument Watermark(PdfWatermarkOptions options, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(options, nameof(options));
         options.CancellationToken.ThrowIfCancellationRequested();
         PdfWatermarkOptions snapshot = options.Clone();
         snapshot.Validate();
         return Content((canvas, page) => {
-            double x = snapshot.X ?? (page.Width - snapshot.Width) / 2D;
-            double y = snapshot.Y ?? (page.Height - snapshot.Height) / 2D;
+            global::OfficeIMO.OfficeLength x = snapshot.X ?? (page.Width - snapshot.Width) * 0.5D;
+            global::OfficeIMO.OfficeLength y = snapshot.Y ?? (page.Height - snapshot.Height) * 0.5D;
             if (snapshot.ImageBytes is { } image) {
                 canvas.Image(image, x, y, snapshot.Width, snapshot.Height,
                     rotationAngle: -snapshot.RotationDegrees);
@@ -30,8 +31,8 @@ public sealed partial class PdfDocumentStamper {
                 canvas.TextBox(snapshot.Text, x, y, snapshot.Width, snapshot.Height,
                     new PdfCanvasTextBoxStyle {
                         Font = snapshot.Font, FontSize = snapshot.FontSize, TextColor = snapshot.Color,
-                        Align = PdfAlign.Center, VerticalAlign = PdfVerticalAlign.Middle,
-                        PaddingX = 0D, PaddingY = 0D, Background = null, BorderColor = null, BorderWidth = 0D
+                        Align = OfficeAlignment.Center, VerticalAlign = PdfVerticalAlign.Middle,
+                        PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D), Background = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0D)
                     }, -snapshot.RotationDegrees);
             }
         }, new PdfCanvasStampOptions {
@@ -39,6 +40,6 @@ public sealed partial class PdfDocumentStamper {
             ContentIdentifier = snapshot.Id,
             WatermarkSettings = snapshot,
             TargetPages = snapshot.TargetPages, Opacity = snapshot.Opacity, BehindContent = snapshot.BehindContent
-        }, readOptions);
+        }, readOptions, cancellationToken: cancellationToken);
     }
 }

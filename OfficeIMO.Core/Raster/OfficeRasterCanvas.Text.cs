@@ -109,11 +109,18 @@ public sealed partial class OfficeRasterCanvas {
         double fontSize,
         OfficeTextAlignment alignment,
         OfficeFontStyle style,
-        string? fontFamily) =>
+        string? fontFamily) {
+        if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) return;
+        // Drawing text already supplies its content rectangle. The canvas's standalone
+        // DrawText inset must not shrink that rectangle a second time.
+        double size = ResolveRasterTextSize(fontSize, height, positioned: false);
+        string value = FitRasterText(text!, size, Math.Max(1D, width), fontFamily, style,
+            featureSettings: null, textDirection: OfficeTextDirection.Auto);
         DrawTextCore(
-            text, x, y, width, height, color, fontSize, alignment, style, fontFamily,
-            OfficeTextOverflowBehavior.Ellipsis, textAdvanceWidth: null,
+            value, x, y, width, height, color, fontSize, alignment, style, fontFamily,
+            OfficeTextOverflowBehavior.Clip, textAdvanceWidth: null,
             baselineFontSize: fontSize);
+    }
 
     internal void DrawPositionedText(
         string? text,
@@ -389,6 +396,8 @@ public sealed partial class OfficeRasterCanvas {
 
         string value = text!;
         double fontHeight = Math.Max(1D, height);
+        if (Math.Abs(rotationDegrees % 360D) < 0.000001D && !flipVertical)
+            top += SnapBaselineOffset(top + fontHeight * .84D);
         OfficeFontStyle fontStyle = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         if (TryDrawMixedTextLine(

@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordComboBox -Items 'Red','Blue' -DefaultValue 'Blue' -Alias 'Color' }</code>
 ///   <para>Creates a combo box control with the selected default value.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordComboBox")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordComboBox", DefaultParameterSetName = "Default")]
 [Alias("WordComboBox")]
 [OutputType(typeof(WordComboBox))]
 public sealed class AddOfficeWordComboBoxCommand : PSCmdlet

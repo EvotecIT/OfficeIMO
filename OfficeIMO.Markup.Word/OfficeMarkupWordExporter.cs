@@ -1,6 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Drawing;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Markup.Word;
 
@@ -14,7 +14,7 @@ internal sealed class OfficeMarkupWordExporter {
         OfficeColor.DarkCyan
     };
 
-    public WordDocument Convert(OfficeMarkupDocument document, MarkupToWordOptions options) {
+    public WordDocument Convert(OfficeMarkupDocument document, MarkupWordExportOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -119,7 +119,7 @@ internal sealed class OfficeMarkupWordExporter {
     private static void ApplyTextStyle(WordParagraph paragraph, OfficeMarkupResolvedStyle? style) {
         if (style == null) return;
         if (!string.IsNullOrWhiteSpace(style.FontName)) paragraph.FontFamily = style.FontName;
-        if (style.FontSize != null) paragraph.FontSizePoints = style.FontSize.Value;
+        if (style.FontSize != null) paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSize.Value);
         if (style.Bold != null) paragraph.Bold = style.Bold.Value;
         if (style.Italic != null) paragraph.Italic = style.Italic.Value;
         if (style.UnderlineStyle != null) paragraph.Underline = ToWordUnderline(style.UnderlineStyle.Value);
@@ -135,9 +135,9 @@ internal sealed class OfficeMarkupWordExporter {
         };
         if (style.TextCase is { } textCase && textCase != OfficeTextCase.None) paragraph.TransformTextCase(textCase, CultureInfo.InvariantCulture);
         if (style.SmallCaps != null) paragraph.CapsStyle = style.SmallCaps.Value ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
-        if (!string.IsNullOrWhiteSpace(style.TextColor)) paragraph.ColorHex = style.TextColor!;
-        if (!string.IsNullOrWhiteSpace(style.HighlightColor)) paragraph.RunShadingFillColorHex = style.HighlightColor!;
-        if (!string.IsNullOrWhiteSpace(style.FillColor)) paragraph.ShadingFillColorHex = style.FillColor!;
+        if (OfficeIMO.OfficeColor.TryParse(style.TextColor, out OfficeIMO.OfficeColor textColor)) paragraph.Color = textColor;
+        if (OfficeIMO.OfficeColor.TryParse(style.HighlightColor, out OfficeIMO.OfficeColor highlightColor)) paragraph.BackgroundColor = highlightColor;
+        if (OfficeIMO.OfficeColor.TryParse(style.FillColor, out OfficeIMO.OfficeColor fillColor)) paragraph.ShadingFillColor = fillColor;
         if (TryParseAlignment(style.TextAlign, out WordParagraphAlignment alignment)) paragraph.ParagraphAlignment = alignment;
     }
 
@@ -175,17 +175,16 @@ internal sealed class OfficeMarkupWordExporter {
             double? width = image.Width, height = image.Height;
             if (!width.HasValue && !height.HasValue) {
                 var section = context.CurrentSection ?? context.Document.Sections.FirstOrDefault();
-                double pageWidth = (double?)section?.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips;
-                double leftMargin = (double?)section?.Margins.Left ?? 1440;
-                double rightMargin = (double?)section?.Margins.Right ?? 1440;
+                double pageWidth = (double?)section?.PageSetup.Size.Width?.ToTwips() ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips()));
+                double leftMargin = (double?)section?.PageSetup.Margins.Left?.ToTwips() ?? 1440;
+                double rightMargin = (double?)section?.PageSetup.Margins.Right?.ToTwips() ?? 1440;
                 double scale = Math.Min(1, Math.Max(1, (pageWidth - leftMargin - rightMargin) / 15) / info.Width);
                 width = info.Width * scale;
                 height = info.Height * scale;
             }
-            context.AddParagraph().AddImage(stream, "diagram" + OfficeImageInfo.GetDefaultExtension(info.Format),
-                width, height, description: image.Alt ?? image.Title ?? string.Empty);
+            context.AddParagraph().AddImage(stream, "diagram" + OfficeImageInfo.GetDefaultExtension(info.Format), (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { AltText = image.Alt ?? image.Title ?? string.Empty });
         } else if (TryResolveImagePath(context.Options, image.Source, out var path) && File.Exists(path)) {
-            context.AddParagraph().AddImage(path, image.Width, image.Height, description: image.Alt ?? image.Title ?? string.Empty);
+            context.AddParagraph().AddImage(path, (image.Width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (image.Height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { AltText = image.Alt ?? image.Title ?? string.Empty });
         } else {
             if (context.Options.IncludeUnsupportedBlocksAsText) {
                 context.AddParagraph("Image: " + (image.Source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
@@ -243,18 +242,20 @@ internal sealed class OfficeMarkupWordExporter {
     }
 
     private static void AddHeaderFooter(WordExportContext context, OfficeMarkupHeaderFooterBlock headerFooter) {
-        var section = context.CurrentSection ?? context.Document.Sections.FirstOrDefault();
-        if (section == null) {
-            context.Document.AddHeadersAndFooters();
-            section = context.Document.Sections.First();
-        }
-
+        var setup = (context.CurrentSection ?? context.Document.Sections[0]).PageSetup;
         var type = ParseHeaderFooterType(headerFooter.Attributes);
-        if (string.Equals(headerFooter.HeaderFooterKind, "footer", StringComparison.OrdinalIgnoreCase)) {
-            section.GetOrCreateFooter(type).AddParagraph(headerFooter.Text);
-        } else {
-            section.GetOrCreateHeader(type).AddParagraph(headerFooter.Text);
-        }
+        WordHeaderFooter target = string.Equals(headerFooter.HeaderFooterKind, "footer", StringComparison.OrdinalIgnoreCase)
+            ? type switch {
+                WordHeaderFooterType.First => setup.FirstPageFooter,
+                WordHeaderFooterType.Even => setup.EvenPageFooter,
+                _ => setup.Footer
+            }
+            : type switch {
+                WordHeaderFooterType.First => setup.FirstPageHeader,
+                WordHeaderFooterType.Even => setup.EvenPageHeader,
+                _ => setup.Header
+            };
+        target.AddParagraph(headerFooter.Text);
     }
 
     private static void AddTableOfContents(WordExportContext context, OfficeMarkupTableOfContentsBlock toc) {
@@ -280,10 +281,7 @@ internal sealed class OfficeMarkupWordExporter {
 
         var data = ParseChartData(chart);
         var wordChart = context.Document.AddChart(
-            chart.Title ?? string.Empty,
-            roundedCorners: false,
-            width: GetInt(chart.Attributes, "width") ?? GetInt(chart.Attributes, "w") ?? context.Options.DefaultChartWidthPixels,
-            height: GetInt(chart.Attributes, "height") ?? GetInt(chart.Attributes, "h") ?? context.Options.DefaultChartHeightPixels);
+            chart.Title ?? string.Empty,            roundedCorners: false,            width: OfficeIMO.OfficeLength.Pixels(GetInt(chart.Attributes, "width") ?? GetInt(chart.Attributes, "w") ?? context.Options.DefaultChartWidthPixels),            height: OfficeIMO.OfficeLength.Pixels(GetInt(chart.Attributes, "height") ?? GetInt(chart.Attributes, "h") ?? context.Options.DefaultChartHeightPixels));
 
         switch (Normalize(chart.ChartType)) {
             case "line":
@@ -372,7 +370,7 @@ internal sealed class OfficeMarkupWordExporter {
         return new ChartData(categories, series);
     }
 
-    private static bool TryResolveImagePath(MarkupToWordOptions options, string source, out string path) {
+    private static bool TryResolveImagePath(MarkupWordExportOptions options, string source, out string path) {
         path = string.Empty;
         if (string.IsNullOrWhiteSpace(source) || source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
             return false;
@@ -440,14 +438,14 @@ internal sealed class OfficeMarkupWordExporter {
         (value ?? string.Empty).Trim().Replace("-", string.Empty).Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
 
     private sealed class WordExportContext {
-        public WordExportContext(WordDocument document, MarkupToWordOptions options, OfficeMarkupStyleResolver styles) {
+        public WordExportContext(WordDocument document, MarkupWordExportOptions options, OfficeMarkupStyleResolver styles) {
             Document = document;
             Options = options;
             Styles = styles;
         }
 
         public WordDocument Document { get; }
-        public MarkupToWordOptions Options { get; }
+        public MarkupWordExportOptions Options { get; }
         public OfficeMarkupStyleResolver Styles { get; }
         public WordSection? CurrentSection { get; set; }
 

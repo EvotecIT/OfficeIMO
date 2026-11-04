@@ -125,6 +125,10 @@ namespace OfficeIMO.Data {
             "IL2070",
             Justification = "Implemented generic dictionary interfaces are required for runtime interface dispatch and were verified by the published NativeAOT dictionary scenarios.")]
         private static bool IsGenericDictionaryType(Type type) {
+            if (type.IsGenericType) {
+                Type definition = type.GetGenericTypeDefinition();
+                if (definition == typeof(IDictionary<,>) || definition == typeof(IReadOnlyDictionary<,>)) return true;
+            }
             return type.GetInterfaces().Any(interfaceType => {
                 if (!interfaceType.IsGenericType) return false;
                 Type definition = interfaceType.GetGenericTypeDefinition();

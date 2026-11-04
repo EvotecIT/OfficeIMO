@@ -86,7 +86,7 @@ public sealed class EmailAttachmentExtractionTests {
             Assert.Equal(80, source.Stream!.BytesRead);
             Assert.Equal(80 + entry.BytesWritten, result.BytesRead);
             Assert.True(source.Stream.Disposed);
-            using var read = new EmailDocumentReader().Read(entry.OutputPath!);
+            using var read = new EmailDocumentReader().ReadDocument(entry.OutputPath!);
             Assert.Equal(new byte[80], Assert.Single(read.Document.Attachments).Content);
         } finally { Directory.Delete(root, true); }
     }
@@ -184,7 +184,7 @@ public sealed class EmailAttachmentExtractionTests {
             parent.Attachments.Add(new EmailAttachment { FileName = "original.msg", EmbeddedDocument = nested });
             var result = EmailAttachmentExtractor.Extract(parent, root, new EmailAttachmentExtractionOptions(recurseEmbeddedMessages: true));
             Assert.Equal(new[] { "0", "0/0" }, result.Entries.Select(item => item.SourcePath));
-            using var read = new EmailDocumentReader().Read(result.Entries[0].OutputPath!);
+            using var read = new EmailDocumentReader().ReadDocument(result.Entries[0].OutputPath!);
             Assert.Equal("Nested", read.Document.Subject);
             using var hash = SHA256.Create();
             Assert.Equal(BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(result.Entries[0].OutputPath!))).Replace("-", "").ToLowerInvariant(), result.Entries[0].Sha256);

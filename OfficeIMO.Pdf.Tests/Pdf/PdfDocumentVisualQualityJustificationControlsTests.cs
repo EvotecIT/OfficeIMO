@@ -18,8 +18,8 @@ namespace OfficeIMO.Tests.Pdf {
             var options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Control Distribution",
                 ManagedTextShapingTestAssets.CreateCharacterDistributionControlFont()))
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
-            byte[] Render(string value) => PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(value),
-                PdfAlign.Justify, style: new PdfParagraphStyle {
+            byte[] Render(string value) => PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText(value),
+                OfficeAlignment.Justify, style: new PdfParagraphStyle {
                     JustificationMode = PdfJustificationMode.Characters, JustifyLastLine = true,
                     UseWordJustificationSpacing = wordSpacing
                 }).ToBytes();
@@ -45,15 +45,15 @@ namespace OfficeIMO.Tests.Pdf {
             var options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Control Distribution",
                 ManagedTextShapingTestAssets.CreateCharacterDistributionControlFont()))
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
-            byte[] actual = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("a\u200E"),
-                PdfAlign.Justify, style: new PdfParagraphStyle {
+            byte[] actual = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("a\u200E"),
+                OfficeAlignment.Justify, style: new PdfParagraphStyle {
                     JustificationMode = PdfJustificationMode.Characters, JustifyLastLine = true,
                     UseWordJustificationSpacing = wordSpacing
                 }).ToBytes();
             var letter = Assert.Single(ReadJustificationPolicyLetters(actual).Where(item => item.Value == "a"));
             Assert.Equal(30D, letter.StartBaseLine.X, 3);
             Assert.Equal(36D, letter.EndBaseLine.X, 3);
-            byte[] natural = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("a\u200E")).ToBytes();
+            byte[] natural = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("a\u200E")).ToBytes();
             // A zero-advance control can still require a TJ correction to its
             // nominal encoded width. Distribution must not add another one.
             Assert.Equal(JustificationTextAdjustments(natural), JustificationTextAdjustments(actual));

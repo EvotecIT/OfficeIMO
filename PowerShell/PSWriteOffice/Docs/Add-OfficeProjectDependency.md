@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a finish-to-start relationship between two tasks.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Add-OfficeProjectDependency -Document <ProjectDocument> -PredecessorUid <int> -SuccessorUid <int> [-Type <ProjectDependencyType>] [-LagDays <decimal>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project to inspect or change.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Working-day delay; negative values represent lead time.
 
 ```yaml
 Type: Decimal
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Predecessor task UID.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Successor task UID.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Dependency relationship.
 
 ```yaml
 Type: ProjectDependencyType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: FinishToFinish, FinishToStart, StartToFinish, StartToStart
 

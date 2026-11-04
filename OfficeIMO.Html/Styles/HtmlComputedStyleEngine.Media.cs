@@ -589,12 +589,16 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private readonly struct MediaEnvironment {
+        internal IReadOnlyDictionary<AngleSharp.Dom.IElement, double>? ContainerInlineSizes { get; }
+
         internal MediaEnvironment(
             HtmlCssMediaContext context,
             double width,
             double height,
             HtmlRenderMediaFeatures? features = null,
-            HtmlRenderingFontDefaults? fontDefaults = null) {
+            HtmlRenderingFontDefaults? fontDefaults = null,
+            IReadOnlyDictionary<AngleSharp.Dom.IElement, double>? containerInlineSizes = null) {
+            ContainerInlineSizes = containerInlineSizes;
             Context = context;
             Width = width;
             Height = height;
@@ -614,8 +618,8 @@ public static partial class HtmlComputedStyleEngine {
             if (context == HtmlCssMediaContext.Print) {
                 return new MediaEnvironment(
                     context,
-                    OfficePageSizes.A4.WidthInches * HtmlRenderOptions.CssPixelsPerInch,
-                    OfficePageSizes.A4.HeightInches * HtmlRenderOptions.CssPixelsPerInch,
+                    OfficePageSizes.A4.Width.ToInches() * HtmlRenderOptions.CssPixelsPerInch,
+                    OfficePageSizes.A4.Height.ToInches() * HtmlRenderOptions.CssPixelsPerInch,
                     features);
             }
 

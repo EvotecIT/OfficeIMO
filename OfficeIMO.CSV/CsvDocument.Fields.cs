@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.CSV;
 
 public sealed partial class CsvDocument
@@ -12,7 +10,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
     /// <param name="options">Optional load settings.</param>
-    internal static void ReadRowFieldSpans<TVisitor>(string path, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+    internal static void ReadRowFieldSpans<TVisitor>(string path, ref TVisitor rowVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -20,9 +18,9 @@ public sealed partial class CsvDocument
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
-        options ??= new CsvLoadOptions();
+        options ??= new CsvParsingSettings();
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+        var resolvedOptions = ResolveParsingSettings(readerFactory, options);
         if (CanUseMemoryBackedFileText(path, resolvedOptions))
         {
             using var boundedReader = CsvFile.OpenTextReader(path, resolvedOptions, FileBufferSize);
@@ -44,7 +42,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
     /// <param name="options">Optional load settings.</param>
-    internal static void ReadRowFieldSpans<TVisitor>(TextReader reader, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+    internal static void ReadRowFieldSpans<TVisitor>(TextReader reader, ref TVisitor rowVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
         if (reader == null)
@@ -52,13 +50,13 @@ public sealed partial class CsvDocument
             throw new ArgumentNullException(nameof(reader));
         }
 
-        options ??= new CsvLoadOptions();
+        options ??= new CsvParsingSettings();
         if (options.DetectDelimiter)
         {
             var text = ReadAllTextWithCancellation(
                 reader,
                 options.CancellationToken);
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
+            var resolvedOptions = ResolveParsingSettings(() => new StringReader(text), options);
             using var bufferedReader = new StringReader(text);
             ReadRowFieldSpans(bufferedReader, ref rowVisitor, resolvedOptions);
             return;
@@ -84,7 +82,7 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
     /// <param name="options">Optional load settings.</param>
-    internal static void ReadRowFieldSpansFromText<TVisitor>(string text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+    internal static void ReadRowFieldSpansFromText<TVisitor>(string text, ref TVisitor rowVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
         if (text == null)
@@ -102,14 +100,14 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
     /// <param name="options">Optional load settings.</param>
-    internal static void ReadRowFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+    internal static void ReadRowFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor rowVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
-        options ??= new CsvLoadOptions();
+        options ??= new CsvParsingSettings();
         if (options.DetectDelimiter)
         {
             var sourceText = text.ToString();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(sourceText), options);
+            var resolvedOptions = ResolveParsingSettings(() => new StringReader(sourceText), options);
             using var bufferedReader = new StringReader(sourceText);
             ReadRowFieldSpans(bufferedReader, ref rowVisitor, resolvedOptions);
             return;
@@ -134,7 +132,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="fieldAction">Action receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadFieldSpans(string path, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans(string path, CsvFieldSpanAction fieldAction, CsvParsingSettings? options = null)
     {
         if (fieldAction == null)
         {
@@ -152,7 +150,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="fieldVisitor">Visitor receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadFieldSpans<TVisitor>(string path, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans<TVisitor>(string path, ref TVisitor fieldVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -162,7 +160,7 @@ public sealed partial class CsvDocument
 
         options = CreateRawRecordOptions(options);
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
+        var resolvedOptions = ResolveParsingSettings(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
         using var reader = readerFactory();
         ReadFieldSpans(reader, ref fieldVisitor, resolvedOptions);
     }
@@ -173,7 +171,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="fieldAction">Action receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadFieldSpans(TextReader reader, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans(TextReader reader, CsvFieldSpanAction fieldAction, CsvParsingSettings? options = null)
     {
         if (fieldAction == null)
         {
@@ -191,7 +189,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="fieldVisitor">Visitor receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadFieldSpans<TVisitor>(TextReader reader, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans<TVisitor>(TextReader reader, ref TVisitor fieldVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (reader == null)
@@ -203,7 +201,7 @@ public sealed partial class CsvDocument
         if (options.DetectDelimiter)
         {
             var text = reader.ReadToEnd();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
+            var resolvedOptions = ResolveParsingSettings(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
             using var bufferedReader = new StringReader(text);
             ReadFieldSpans(bufferedReader, ref fieldVisitor, resolvedOptions);
             return;
@@ -218,7 +216,7 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="fieldAction">Action receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadFieldSpansFromText(string text, CsvFieldSpanAction fieldAction, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpansFromText(string text, CsvFieldSpanAction fieldAction, CsvParsingSettings? options = null)
     {
         if (fieldAction == null)
         {
@@ -236,7 +234,7 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="fieldVisitor">Visitor receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadFieldSpansFromText<TVisitor>(string text, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpansFromText<TVisitor>(string text, ref TVisitor fieldVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (text == null)
@@ -247,7 +245,7 @@ public sealed partial class CsvDocument
         options = CreateRawRecordOptions(options);
         if (options.DetectDelimiter)
         {
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
+            var resolvedOptions = ResolveParsingSettings(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
             CsvParser.ReadFieldSpans(text, resolvedOptions, GetInitialRecordsToSkip(resolvedOptions), ref fieldVisitor);
             return;
         }
@@ -262,14 +260,14 @@ public sealed partial class CsvDocument
     /// <param name="text">Source CSV text.</param>
     /// <param name="fieldVisitor">Visitor receiving each field as a transient span.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor fieldVisitor, CsvLoadOptions? options = null)
+    internal static void ReadFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor fieldVisitor, CsvParsingSettings? options = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         options = CreateRawRecordOptions(options);
         if (options.DetectDelimiter)
         {
             var sourceText = text.ToString();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(sourceText), options, useHeaderDiscoveryForDelimiterDetection: false);
+            var resolvedOptions = ResolveParsingSettings(() => new StringReader(sourceText), options, useHeaderDiscoveryForDelimiterDetection: false);
             CsvParser.ReadFieldSpans(sourceText, resolvedOptions, GetInitialRecordsToSkip(resolvedOptions), ref fieldVisitor);
             return;
         }
@@ -280,7 +278,7 @@ public sealed partial class CsvDocument
     private static void ReadRowFieldSpansWithHeader<TVisitor>(
         TextReader reader,
         IReadOnlyList<string> header,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int recordsToSkip,
         ref TVisitor rowVisitor)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
@@ -294,7 +292,7 @@ public sealed partial class CsvDocument
     private static void ReadRowFieldSpansWithHeader<TVisitor>(
         ReadOnlySpan<char> text,
         IReadOnlyList<string> header,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int recordsToSkip,
         ref TVisitor rowVisitor)
         where TVisitor : struct, ICsvRowFieldSpanVisitor
@@ -308,7 +306,7 @@ public sealed partial class CsvDocument
     private struct CsvHeaderAwareFieldSpanVisitor<TVisitor> : ICsvFieldSpanVisitor
         where TVisitor : struct, ICsvRowFieldSpanVisitor
     {
-        private readonly CsvLoadOptions _options;
+        private readonly CsvParsingSettings _options;
         private readonly List<string> _headerFields;
         private readonly bool _firstRecordIsData;
         private TVisitor _rowVisitor;
@@ -321,7 +319,7 @@ public sealed partial class CsvDocument
         private bool _hasRowStarted;
         private bool _needsHeader;
 
-        public CsvHeaderAwareFieldSpanVisitor(TVisitor rowVisitor, CsvLoadOptions options, bool firstRecordIsData, IReadOnlyList<string>? header = null)
+        public CsvHeaderAwareFieldSpanVisitor(TVisitor rowVisitor, CsvParsingSettings options, bool firstRecordIsData, IReadOnlyList<string>? header = null)
         {
             _rowVisitor = rowVisitor;
             _options = options;
@@ -526,7 +524,7 @@ public sealed partial class CsvDocument
 
         private int GetSourceHeaderCount() => _sourceHeaderCount == 0 ? _header!.Count : _sourceHeaderCount;
 
-        private static IReadOnlyList<string> ResolveSourceHeader(IReadOnlyList<string> fields, CsvLoadOptions options)
+        private static IReadOnlyList<string> ResolveSourceHeader(IReadOnlyList<string> fields, CsvParsingSettings options)
         {
             if (TryGetW3CFieldsHeader(fields, options, out var w3cHeader))
             {

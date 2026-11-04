@@ -27,10 +27,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedBold, run.Bold);
         Assert.Equal(expectedItalic, run.Italic);
 
-        using ExcelDocument workbook = source.ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+        using ExcelDocument workbook = source.ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        ExcelCell cell = Assert.Single(Enumerable.Range(1, 4).Select(row => sheet.CellAt(row, 1)),
+        ExcelCell cell = Assert.Single(Enumerable.Range(1, 4).Select(row => sheet.Cell(row, 1)),
             candidate => candidate.GetValue<string>() == "X");
         ExcelRichTextRun exported = Assert.Single(cell.GetRichText());
         Assert.Equal(expectedBold, exported.Bold);

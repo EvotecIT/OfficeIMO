@@ -7,8 +7,8 @@ internal static partial class PdfWriter {
         public List<TableSpanCellFlow> ActiveCells { get; } = new();
 
         // A delayed opaque fill can overlap a border drawn for an earlier neighbor.
-        public bool HasDeferredFills(PdfTableStyle style) =>
-            style.CellFills?.Keys.Any(key => Contains(key.Item1, key.Item2)) == true;
+        // The span anchors and the effective style are fixed for this render.
+        public bool HasDeferredFills { get; private set; }
         private readonly Dictionary<(int Row, int Column), TableSpanCellFlow> anchors = new();
         private readonly HashSet<int> coveredRows = new();
         private int nextCell;
@@ -29,12 +29,15 @@ internal static partial class PdfWriter {
                     }
                 }
             }
+            HasDeferredFills = anchors.Count > 0 &&
+                style.CellFills?.Keys.Any(key => anchors.ContainsKey(key)) == true;
         }
 
         /// <summary>Copies only span progress; prepared cell content remains shared and preview registers no page resources.</summary>
         public TableSpanFlow CloneCursor() {
             var copy = new TableSpanFlow();
             copy.nextCell = nextCell;
+            copy.HasDeferredFills = HasDeferredFills;
             foreach (TableSpanCellFlow source in Cells) {
                 var cell = new TableSpanCellFlow(source.Row, source.Cell) {
                     ConsumedLines = source.ConsumedLines, ProcessedHeight = source.ProcessedHeight,

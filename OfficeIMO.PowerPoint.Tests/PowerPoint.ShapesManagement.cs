@@ -10,13 +10,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ShapeAllocationStopsWhenDescendantIdsAreExhausted() {
             byte[] bytes;
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape first = slide.AddRectangle(
-                    1000, 1000, 2000, 1000);
+                    OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointAutoShape second = slide.AddRectangle(
-                    4000, 1000, 2000, 1000);
+                    OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { first, second });
                 NonVisualDrawingProperties descendant = group.GroupShape
@@ -26,15 +26,15 @@ namespace OfficeIMO.Tests {
             }
 
             using var stream = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation loaded =
-                PowerPointPresentation.Load(stream);
+            using PowerPointDocument loaded =
+                PowerPointDocument.Load(stream);
             PowerPointSlide loadedSlide = Assert.Single(loaded.Slides);
             PowerPointAutoShape finalShape = loadedSlide.AddRectangle(
-                7000, 1000, 2000, 1000);
+                OfficeIMO.OfficeLength.Emus(7000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
             Assert.Equal(uint.MaxValue, finalShape.Id);
             InvalidOperationException exception = Assert.Throws<
                 InvalidOperationException>(() => loadedSlide.AddRectangle(
-                    10000, 1000, 2000, 1000));
+                    OfficeIMO.OfficeLength.Emus(10000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000)));
             Assert.Contains("identifier space is exhausted",
                 exception.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -44,12 +44,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box1 = slide.AddTextBox("First");
-                PowerPointPicture pic1 = slide.AddPicture(imagePath);
+                PowerPointImage pic1 = slide.AddImage(imagePath);
                 PowerPointTextBox box2 = slide.AddTextBox("Second");
-                PowerPointPicture pic2 = slide.AddPicture(imagePath);
+                PowerPointImage pic2 = slide.AddImage(imagePath);
 
                 Assert.Equal("TextBox 1", box1.Name);
                 Assert.Equal("TextBox 2", box2.Name);
@@ -57,11 +57,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Picture 2", pic2.Name);
 
                 Assert.Same(box1, slide.GetTextBox("TextBox 1"));
-                Assert.Same(pic2, slide.GetPicture("Picture 2"));
+                Assert.Same(pic2, slide.GetImage("Picture 2"));
                 Assert.Same(box1, slide.GetShape("TextBox 1"));
 
                 slide.RemoveShape(pic1);
-                Assert.Null(slide.GetPicture("Picture 1"));
+                Assert.Null(slide.GetImage("Picture 1"));
                 Assert.Equal(3, slide.Shapes.Count);
 
                 presentation.Save();
@@ -75,11 +75,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTextBox textBox = slide.AddTextBox("Quarterly update");
-                    PowerPointAutoShape rectangle = slide.AddRectangle(1000, 1000, 2000, 1000);
-                    PowerPointTable table = slide.AddTable(2, 2);
+                    PowerPointAutoShape rectangle = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
+                    PowerPointTable table = slide.AddTable(2,2);
 
                     textBox.Name = "Hero Title";
                     textBox.AltText = "Main slide title";
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides[0];
                     PowerPointTextBox? loadedTextBox = slide.GetShapeByName<PowerPointTextBox>("Hero Title");
                     PowerPointTable? loadedTable = slide.GetShapeByName<PowerPointTable>("Metrics Table");
@@ -128,18 +128,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape original = slide.AddRectangle(1000, 2000, 3000, 4000);
+                    PowerPointAutoShape original = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000));
                     original.Name = "Source Shape";
 
-                    PowerPointShape duplicate = original.Duplicate(offsetX: 500, offsetY: 600);
+                    PowerPointShape duplicate = original.Duplicate(OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(600));
                     duplicate.Name = "Duplicated Shape";
 
                     Assert.Equal(2, slide.Shapes.Count);
                     Assert.NotEqual(original.Id, duplicate.Id);
-                    Assert.Equal(original.Left + 500, duplicate.Left);
-                    Assert.Equal(original.Top + 600, duplicate.Top);
+                    Assert.Equal(original.Left.ToEmus() + 500, duplicate.Left.ToEmus());
+                    Assert.Equal(original.Top.ToEmus() + 600, duplicate.Top.ToEmus());
                     Assert.Same(duplicate, slide.GetShapeByName("Duplicated Shape"));
 
                     original.Remove();
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides[0];
 
                     Assert.Single(slide.Shapes);
@@ -174,9 +174,9 @@ namespace OfficeIMO.Tests {
                 File.WriteAllText(svgPath,
                     "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"80\" viewBox=\"0 0 120 80\"><rect width=\"120\" height=\"80\" fill=\"#1f4e79\"/><circle cx=\"60\" cy=\"40\" r=\"24\" fill=\"#f4b183\"/></svg>");
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointPicture picture = slide.AddPicture(svgPath, left: 1000, top: 1000, width: 2000, height: 1200);
+                    PowerPointImage picture = slide.AddImage(svgPath,left: global::OfficeIMO.OfficeLength.Emus(1000),top: global::OfficeIMO.OfficeLength.Emus(1000),width: global::OfficeIMO.OfficeLength.Emus(2000),height: global::OfficeIMO.OfficeLength.Emus(1200));
                     picture.Name = "Vector Logo";
 
                     Assert.Equal("image/svg+xml", picture.ContentType);
@@ -185,8 +185,8 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
-                    PowerPointPicture? picture = presentation.Slides[0].GetShapeByName<PowerPointPicture>("Vector Logo");
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
+                    PowerPointImage? picture = presentation.Slides[0].GetShapeByName<PowerPointImage>("Vector Logo");
 
                     Assert.NotNull(picture);
                     Assert.Equal("image/svg+xml", picture!.ContentType);

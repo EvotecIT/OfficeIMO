@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed partial class PdfProvenanceTests {
     [Fact]
     public void ProvenanceReaderForwardsCancellationIntoPdfParsing() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancellation")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Cancellation")).ToBytes();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -21,7 +21,7 @@ public sealed partial class PdfProvenanceTests {
 
     [Fact]
     public void ProvenanceGraphEditorForwardsCancellationIntoTheFullRewrite() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancellation")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Cancellation")).ToBytes();
         using var cancellation = new CancellationTokenSource();
         PdfReadDocument document = PdfReadDocument.Open(pdf);
         cancellation.Cancel();
@@ -39,7 +39,7 @@ public sealed partial class PdfProvenanceTests {
     public void InspectAndRemoveUseTheExactC2paAssociatedFileProfile() {
         byte[] manifest = CreateManifestStore();
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("PDF provenance"))
+            .Paragraph(paragraph => paragraph.AddText("PDF provenance"))
             .AttachFile(new PdfEmbeddedFile(
                 "keep.txt",
                 Encoding.UTF8.GetBytes("keep"),
@@ -70,7 +70,7 @@ public sealed partial class PdfProvenanceTests {
     [Fact]
     public void MalformedC2paAssociatedFileIsPreservedByDefault() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Malformed provenance"))
+            .Paragraph(paragraph => paragraph.AddText("Malformed provenance"))
             .AttachFile(new PdfEmbeddedFile(
                 "content-credential.c2pa",
                 Encoding.ASCII.GetBytes("not-a-manifest"),
@@ -89,7 +89,7 @@ public sealed partial class PdfProvenanceTests {
     [Fact]
     public void CallerCanExplicitlyRemoveMalformedCandidateCarrier() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Malformed provenance"))
+            .Paragraph(paragraph => paragraph.AddText("Malformed provenance"))
             .AttachFile(new PdfEmbeddedFile(
                 "content-credential.c2pa",
                 Encoding.ASCII.GetBytes("not-a-manifest"),
@@ -106,7 +106,7 @@ public sealed partial class PdfProvenanceTests {
 
     [Fact]
     public void InspectionEnforcesTheSharedAssetLimitBeforePdfParsing() {
-        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Bounded")).ToBytes();
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Bounded")).ToBytes();
 
         Assert.Throws<InvalidDataException>(() => PdfProvenance.Inspect(
             pdf,
@@ -119,7 +119,7 @@ public sealed partial class PdfProvenanceTests {
     [Fact]
     public void CandidateWithoutAnAssociatedFileReferenceIsNotStructurallyValid() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Detached PDF provenance"))
+            .Paragraph(paragraph => paragraph.AddText("Detached PDF provenance"))
             .AttachFile(new PdfEmbeddedFile(
                 "content-credential.c2pa",
                 CreateManifestStore(),
@@ -791,7 +791,7 @@ public sealed partial class PdfProvenanceTests {
     [Fact]
     public void InspectionDoesNotDecodeUnrelatedAttachmentsAgainstTheProvenanceBudget() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Bounded provenance"))
+            .Paragraph(paragraph => paragraph.AddText("Bounded provenance"))
             .AttachFile(new PdfEmbeddedFile(
                 "unrelated.bin",
                 new byte[1024 * 1024],
@@ -818,7 +818,7 @@ public sealed partial class PdfProvenanceTests {
     [Fact]
     public void InspectionAppliesTheManifestLimitBeforeDecodingEachCandidate() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Bounded provenance manifest"))
+            .Paragraph(paragraph => paragraph.AddText("Bounded provenance manifest"))
             .AttachFile(new PdfEmbeddedFile(
                 "content-credential.c2pa",
                 new byte[4096],
@@ -1257,7 +1257,7 @@ public sealed partial class PdfProvenanceTests {
     }
 
     private static byte[] CreatePdfWithCandidateAndRetainedAttachment() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("PDF provenance"))
+        .Paragraph(paragraph => paragraph.AddText("PDF provenance"))
         .AttachFile(new PdfEmbeddedFile(
             "keep.txt",
             Encoding.UTF8.GetBytes("keep"),

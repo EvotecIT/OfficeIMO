@@ -11,8 +11,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Native_pages_inline_tables_and_image_keep_their_place_between_body_paragraphs_after_save() {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var stream = new MemoryStream(); result.Value.Save(stream); stream.Position = 0;
         using var reopened = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
         var blocks = reopened.MainDocumentPart!.Document!.Body!.ChildElements.ToArray();
@@ -78,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Inline_images_preserve_UTF16_offsets_and_text_order_with_two_images_in_one_paragraph() {
         using var package = InlineImagePackage();
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         Assert.False(result.IsVisualFallback);
         var anchors = result.Projection.Body.Paragraphs.SelectMany(paragraph => paragraph.Runs)
             .Where(run => run.InlineObject != null).Select(run => run.InlineObject!).ToArray();
@@ -98,8 +97,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Reader_counts_repeated_inline_image_uses_before_allocating_assets(bool byteLimit) {
         using var package = InlineImagePackage("repeatedDrawable");
         var limits = new IWorkReadOptions {
-            MaximumProjectedImages = byteLimit ? 2 : 1,
-            MaximumProjectedImageBytes = byteLimit ? ValidPreviewPng().Length : 1024
+            MaxProjectedImages = byteLimit ? 2 : 1,
+            MaxProjectedImageBytes = byteLimit ? ValidPreviewPng().Length : 1024
         };
         var source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages, limits).ReadPages();
         Assert.Single(source.Images);
@@ -129,7 +128,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] expected = ValidPreviewPng();
         var result = IWorkReaderAdapter.ReadDocument(package, "sample.pages", new ReaderOptions(),
             new ReaderIWorkOptions { IncludeImagePayloads = true,
-                ReadOptions = new IWorkReadOptions { MaximumProjectedImages = 2, MaximumProjectedImageBytes = 2L * expected.Length } },
+                ReadOptions = new IWorkReadOptions { MaxProjectedImages = 2, MaxProjectedImageBytes = 2L * expected.Length } },
             CancellationToken.None);
         Assert.Equal(2, result.Assets.Count);
         Assert.All(result.Assets, asset => Assert.Equal(expected, asset.PayloadBytes));
@@ -142,8 +141,8 @@ public sealed partial class IWorkBoundaryTests {
         using var package = InlineImagePackage("repeatedDrawableDescription");
         var options = new ReaderIWorkOptions {
             ReadOptions = new IWorkReadOptions {
-                MaximumProjectedImages = 2,
-                MaximumProjectedTextCharacters = 90
+                MaxProjectedImages = 2,
+                MaxProjectedTextCharacters = 90
             }
         };
 
@@ -152,7 +151,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains("Text character count", failure.Message);
 
         using var acceptedPackage = InlineImagePackage("repeatedDrawableDescription");
-        options.ReadOptions!.MaximumProjectedTextCharacters = 120;
+        options.ReadOptions!.MaxProjectedTextCharacters = 120;
         OfficeDocumentReadResult accepted = IWorkReaderAdapter.ReadDocument(
             acceptedPackage, "sample.pages", new ReaderOptions(), options, CancellationToken.None);
         Assert.Equal(2, accepted.Assets.Count);
@@ -203,7 +202,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Inline_attachment_tables_obey_the_existing_source_wide_attribute_boundary_limit() {
         using var package = InlineImagePackage();
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextItems = 1 });
+            new IWorkReadOptions { MaxProjectedTextItems = 1 });
         Assert.Throws<InvalidDataException>(() => source.ReadPages());
     }
 

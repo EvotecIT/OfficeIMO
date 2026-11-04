@@ -59,7 +59,7 @@ public sealed class SetOfficePdfHeaderCommand : PSCmdlet
 
     /// <summary>Header alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Center;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Center;
 
     /// <summary>Header font size in PDF points.</summary>
     [Parameter]
@@ -89,7 +89,7 @@ public sealed class SetOfficePdfHeaderCommand : PSCmdlet
             ApplyAlignment(header);
             if (FontSize.HasValue)
             {
-                header.FontSize(FontSize.Value);
+                header.FontSize(global::OfficeIMO.OfficeLength.Points(FontSize.Value));
             }
             if (compose != null)
             {
@@ -111,14 +111,14 @@ public sealed class SetOfficePdfHeaderCommand : PSCmdlet
     {
         switch (Align)
         {
-            case PdfAlign.Right:
-                header.AlignRight();
+            case OfficeAlignment.Right:
+                header.Alignment(OfficeAlignment.Right);
                 break;
-            case PdfAlign.Left:
-                header.AlignLeft();
+            case OfficeAlignment.Left:
+                header.Alignment(OfficeAlignment.Left);
                 break;
             default:
-                header.AlignCenter();
+                header.Alignment(OfficeAlignment.Center);
                 break;
         }
     }

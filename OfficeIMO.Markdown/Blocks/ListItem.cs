@@ -17,7 +17,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     /// <summary>Additional paragraphs inside the list item (multi-paragraph list items).</summary>
     public List<InlineSequence> AdditionalParagraphs => _additionalParagraphs ??= new List<InlineSequence>();
     /// <summary>
-    /// Paragraph blocks owned by this list item.
+    /// MarkdownParagraph blocks owned by this list item.
     /// This exposes list-item paragraph content as blocks for AST-style consumers.
     /// </summary>
     public IReadOnlyList<ParagraphBlock> ParagraphBlocks {

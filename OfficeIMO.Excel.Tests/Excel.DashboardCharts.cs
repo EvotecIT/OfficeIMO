@@ -1,5 +1,6 @@
 using System.Data;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -9,13 +10,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DashboardChartPreset.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Revenue");
-                sheet.CellValue(2, 1, "EU");
-                sheet.CellValue(2, 2, 100);
-                sheet.CellValue(3, 1, "US");
-                sheet.CellValue(3, 2, 120);
+                ExcelSheet sheet = document.AddSheet("Dashboard");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Revenue");
+                sheet.Cell(2, 1).SetValue("EU");
+                sheet.Cell(2, 2).SetValue(100);
+                sheet.Cell(3, 1).SetValue("US");
+                sheet.Cell(3, 2).SetValue(120);
 
                 ExcelChart chart = sheet.AddDashboardChart(new ExcelDashboardChartOptions {
                     Preset = ExcelDashboardChartPreset.CompactComparison,
@@ -25,14 +26,14 @@ namespace OfficeIMO.Tests {
                     Title = "Revenue"
                 });
 
-                Assert.Equal(ExcelChartType.BarClustered, chart.ChartType);
+                Assert.Equal(OfficeChartType.BarClustered, chart.ChartType);
                 Assert.Equal("Revenue", chart.Title);
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 ExcelChart chart = Assert.Single(document["Dashboard"].Charts);
-                Assert.Equal(ExcelChartType.BarClustered, chart.ChartType);
+                Assert.Equal(OfficeChartType.BarClustered, chart.ChartType);
                 Assert.Equal("Revenue", chart.Title);
             }
         }
@@ -47,7 +48,7 @@ namespace OfficeIMO.Tests {
             data.Rows.Add("US", 120);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 ExcelDashboardResult result = sheet.AddDashboard(data, new ExcelDashboardOptions {
                     Title = "Sales Dashboard",
                     Subtitle = "Monthly revenue",
@@ -59,7 +60,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A3:B5", result.TableRange);
                 Assert.Equal("SalesTable", result.TableName);
                 Assert.NotNull(result.Chart);
-                Assert.Equal(ExcelChartType.BarClustered, result.Chart!.ChartType);
+                Assert.Equal(OfficeChartType.BarClustered, result.Chart!.ChartType);
                 document.Save();
             }
 
@@ -81,7 +82,7 @@ namespace OfficeIMO.Tests {
             data.Rows.Add("EU", 100);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 ExcelDashboardResult result = sheet.AddDashboard(data, new ExcelDashboardOptions {
                     TableName = "Sales Data",
                     AddChart = false
@@ -101,16 +102,16 @@ namespace OfficeIMO.Tests {
             data.Rows.Add("EU", 100);
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
 
             Assert.Throws<ArgumentException>(() => sheet.AddDashboard(data, new ExcelDashboardOptions {
-                TableRow = A1.MaxRows,
+                TableRow = ExcelA1.MaxRows,
                 AddChart = false
             }));
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddDashboard(data, new ExcelDashboardOptions {
                 TableRow = 3,
-                ChartColumn = A1.MaxColumns + 1
+                ChartColumn = ExcelA1.MaxColumns + 1
             }));
         }
     }

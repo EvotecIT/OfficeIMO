@@ -15,16 +15,14 @@ namespace OfficeIMO.Tests;
 public partial class Word {
     private static void ConfigureMarginTable(WordTable table, string label) {
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = 2880;
-        cell.WidthType = WordTableWidthUnit.Dxa;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
         cell.Paragraphs[0].Text = label;
     }
 
     private static void ConfigurePlacementTable(WordTable table, string label, WordTableAlignment alignment) {
         table.Alignment = alignment;
         foreach (WordTableCell cell in table.Rows[0].Cells) {
-            cell.Width = 1440;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
         }
 
         table.Rows[0].Cells[0].Paragraphs[0].Text = label;
@@ -33,8 +31,7 @@ public partial class Word {
 
     private static void ConfigureCellSpacingTable(WordTable table, string left, string right) {
         foreach (WordTableCell cell in table.Rows[0].Cells) {
-            cell.Width = 1440;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
         }
 
         table.Rows[0].Cells[0].Paragraphs[0].Text = left;
@@ -45,16 +42,16 @@ public partial class Word {
         return CreateNativeTableStyleForTest(table, null, null);
     }
 
-    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, WordToPdfOptions? options) {
+    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, WordPdfExportOptions? options) {
         return CreateNativeTableStyleForTest(table, options, null);
     }
 
-    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, WordToPdfOptions? options, double? contentWidth) {
+    private static PdfCore.PdfTableStyle CreateNativeTableStyleForTest(WordTable table, WordPdfExportOptions? options, double? contentWidth) {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
             "CreateNativeTableStyle",
             BindingFlags.NonPublic | BindingFlags.Static,
             binder: null,
-            new[] { typeof(WordTable), typeof(int), typeof(WordToPdfOptions), typeof(double?) },
+            new[] { typeof(WordTable), typeof(int), typeof(WordPdfExportOptions), typeof(double?) },
             modifiers: null)!;
         return Assert.IsType<PdfCore.PdfTableStyle>(method.Invoke(null, new object?[] { table, table.Rows.Count, options, contentWidth }));
     }

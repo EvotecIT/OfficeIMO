@@ -414,11 +414,11 @@ internal static partial class PdfPageExtractor {
             ".");
     }
     
-    internal static string BuildInfoDictionary(PdfMetadata metadata) {
+    internal static string BuildInfoDictionary(PdfDocumentProperties metadata) {
         return PdfInfoDictionaryBuilder.Build(metadata);
     }
 
-    internal static byte[] BuildInfoDictionaryBytesCancellable(PdfMetadata metadata, CancellationToken cancellationToken) {
+    internal static byte[] BuildInfoDictionaryBytesCancellable(PdfDocumentProperties metadata, CancellationToken cancellationToken) {
         return PdfInfoDictionaryBuilder.BuildBytesCancellable(metadata, cancellationToken);
     }
     

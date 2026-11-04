@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 public sealed class HtmlEditableLayoutReviewWave17Tests {
     [Fact]
     public void ProjectionRenderIntersectsCallerAndOwningDocumentNodeLimits() {
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxHtmlNodes = 64;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<div style='position:absolute;width:120px;height:30px'>Projected</div>" +
@@ -63,17 +63,17 @@ public sealed class HtmlEditableLayoutReviewWave17Tests {
     [Fact]
     public void ShortConfiguredWordPageKeepsContinuousRegionsInSemanticFlow() {
         const string html = "<div style='position:absolute;top:500px;width:120px;height:30px'>Page owned</div>";
-        var options = new HtmlToWordOptions {
+        var options = new HtmlWordExportOptions {
             DefaultPageSize = WordPageSize.A6,
             DefaultOrientation = OfficePageOrientation.Landscape
         };
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Page owned", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.NotEmpty(word.Find("Page owned", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("maximumPageHeight", StringComparison.Ordinal));

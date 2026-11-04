@@ -1,5 +1,6 @@
 namespace OfficeIMO.Pdf;
 
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed partial class PdfTextSpan {
     /// <summary>
     /// Projects the reader's glyph codes, text ranges and baseline origins into immutable evidence.
@@ -9,7 +10,9 @@ public sealed partial class PdfTextSpan {
     /// </summary>
     public bool TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs) {
         glyphs = Array.Empty<PdfTextGlyph>();
-        if (HasActualText || GlyphCharacterLengths is null || GlyphBytes is null || GlyphPaintedAdvances is null ||
+        bool mappedActualText = HasExactActualTextGlyphMapping && DecodingEvidence.UnderlyingSource is
+            PdfTextDecodingSource.ToUnicode or PdfTextDecodingSource.PredefinedCMap or PdfTextDecodingSource.FontEncoding;
+        if (HasActualText && !mappedActualText || GlyphCharacterLengths is null || GlyphBytes is null || GlyphPaintedAdvances is null ||
             GlyphCharacterLengths.Count != GlyphBytes.Count || GlyphBytes.Count != GlyphPaintedAdvances.Count ||
             GlyphCharacterLengths.Count == 0 || GlyphCharacterLengths.Any(static length => length <= 0) ||
             GlyphCharacterLengths.Sum(static length => (long)length) != Text.Length ||

@@ -23,9 +23,9 @@ public sealed class StudioSearchTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Wrapped search.pdf");
             string[] words = Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D3")).ToArray();
-            byte[] pdf = PdfDocument.Create(compose => compose.Page(page => page.Size(400D, 600D)
-                .Content(content => content.Text(string.Join(" ", words))))).ToBytes();
-            PdfDocument sourceDocument = PdfDocument.Load(pdf);
+            byte[] pdf = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(600D))
+                .Content(content => content.AddParagraph(string.Join(" ", words))))).ToBytes();
+            PdfDocument sourceDocument = PdfDocument.Load(new System.IO.MemoryStream(pdf));
             string query = Enumerable.Range(0, words.Length - 1)
                 .Select(index => words[index] + " " + words[index + 1])
                 .First(candidate => sourceDocument.Text.Find(candidate).Any(hit => hit.VisualLineBounds.Count == 2));
@@ -66,8 +66,8 @@ public sealed class StudioSearchTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Find occurrences.pdf");
             var document = PdfDocument.Create(compose => {
-                compose.Page(page => page.Size(400, 500).Content(content => content.Text("Needle and needle")));
-                compose.Page(page => page.Size(400, 500).Content(content => content.Text("Another needle")));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.AddParagraph("Needle and needle")));
+                compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.AddParagraph("Another needle")));
             });
             if (rotate) document = document.Pages.Rotate(90);
             document.Save(source);
@@ -130,7 +130,7 @@ public sealed class StudioSearchTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Search snapshot.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Text("Needle needle")))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.AddParagraph("Needle needle")))).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             await model.OpenDocumentAsync(source);
             model.SearchQuery = "needle";
@@ -155,7 +155,7 @@ public sealed class StudioSearchTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Search notification scope.pdf");
-            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Text("Needle")))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.AddParagraph("Needle")))).Save(source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             await model.OpenDocumentAsync(source);
             model.SearchQuery = "needle";
@@ -180,9 +180,9 @@ public sealed class StudioSearchTests {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Scanned page.pdf");
-            byte[] image = PdfDocument.Create(compose => compose.Page(page => page.Content(text => text.Text("Scanned needle"))))
-                .Render.Pages(PdfPageSelection.From(1), new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72 }).Single().Bytes!;
-            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Image(image, 400, 500)))).Save(source);
+            byte[] image = PdfDocument.Create(compose => compose.Page(page => page.Content(text => text.AddParagraph("Scanned needle"))))
+                .Render.Pages(PdfPageSelection.From(1), new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72 }).Single().Bytes!;
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.AddImage(image, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500))))).Save(source);
             var window = new MainWindow(services) { Width = 960, Height = 620 };
             try {
                 window.Show(); await window.TabHost.OpenDocumentAsync(source);
@@ -210,7 +210,7 @@ public sealed class StudioSearchTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "Search layouts.pdf");
             PdfDocument.Create(compose => {
-                for (int page = 0; page < 12; page++) compose.Page(item => item.Size(400, 500).Content(content => content.Text("Needle on this page")));
+                for (int page = 0; page < 12; page++) compose.Page(item => item.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.AddParagraph("Needle on this page")));
             }).Save(source);
             var window = new MainWindow(services) { Width = 1280, Height = 800 };
             try {

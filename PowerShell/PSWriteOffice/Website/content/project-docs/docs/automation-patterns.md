@@ -30,7 +30,7 @@ Keep the source, destination, diagnostics, warnings, and any fidelity policy tog
 
 Create a fresh output folder or use stable file names with deliberate overwrite behavior. Avoid appending the same section, sheet, or slide on every rerun unless the script first detects whether it already exists.
 
-For object workflows, create with `-NoSave`, apply the complete change set, then use the matching `Save-*` and `Close-*` commands once. Saved DSL constructors are quiet by default; use `-PassThru` only when another command needs the saved file.
+For object workflows, leave out the constructor's content block, apply the complete change set to the live document, then use the matching `Save-*` and `Close-*` commands once. Saved DSL constructors are quiet by default; use `-PassThru` only when another command needs the saved file.
 
 ## Bound batch work
 

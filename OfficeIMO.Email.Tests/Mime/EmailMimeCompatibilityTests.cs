@@ -26,7 +26,7 @@ public sealed class EmailMimeCompatibilityTests {
         using var stream = new MemoryStream();
         source.WriteTo(stream);
 
-        EmailReadResult result = new EmailDocumentReader().Read(stream.ToArray());
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(stream.ToArray());
 
         Assert.Equal("MimeKit żółć", result.Document.Subject);
         Assert.Equal("José Sender", result.Document.From!.DisplayName);

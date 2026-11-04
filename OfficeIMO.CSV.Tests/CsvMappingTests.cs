@@ -26,8 +26,7 @@ public class CsvMappingTests
         int active = 0;
         int maximumActive = 0;
 
-        PositionalPerson[] rows = CsvDocument.ReadTextRowsAsParallel<PositionalPerson>(
-            text,
+        PositionalPerson[] rows = CsvDocument.ReadTextRowsAsParallel<PositionalPerson>(text,
             header => {
                 int id = header.GetOrdinal("Id");
                 int name = header.GetOrdinal("Name");
@@ -44,7 +43,7 @@ public class CsvMappingTests
                     }
                 };
             },
-            loadOptions: new CsvLoadOptions {
+            options: new CsvReaderOptions {
                 // Progress reporting intentionally selects the scalar batch producer.
                 ProgressCallback = _ => { }
             },
@@ -166,7 +165,7 @@ public class CsvMappingTests
     {
         var source = new CsvParser.CsvTextDataReaderRowSource(
             "Id\n1\n2\n",
-            new CsvLoadOptions(),
+            new CsvReaderOptions(),
             recordsToSkip: 1,
             sourceColumnCount: 1);
         using (source)
@@ -215,11 +214,9 @@ public class CsvMappingTests
             .Done()
             .Build();
 
-        string[] rows = CsvDocument.ReadTextRowsAsParallel<string>(
-            "Id\n 42 \n",
+        string[] rows = CsvDocument.ReadTextRowsAsParallel<string>("Id\n 42 \n",
             _ => record => record.GetString(0),
-            loadOptions: new CsvLoadOptions { TrimWhitespace = true },
-            readerOptions: new CsvDataReaderOptions { Schema = schema },
+            options: new CsvReaderOptions { TrimWhitespace = true, Schema = schema },
             parallelOptions: new ParallelRowMappingOptions {
                 MaxDegreeOfParallelism = degreeOfParallelism,
                 BatchSize = 1
@@ -239,10 +236,9 @@ public class CsvMappingTests
             .Done()
             .Build();
 
-        string[] rows = CsvDocument.ReadTextRowsAsParallel<string>(
-            "# generated export\nId\n001\n",
+        string[] rows = CsvDocument.ReadTextRowsAsParallel<string>("# generated export\nId\n001\n",
             _ => record => $"{record.GetString(0)}:{record.GetSpan(0).ToString()}",
-            readerOptions: new CsvDataReaderOptions { Schema = schema },
+            options: new CsvReaderOptions { Schema = schema },
             parallelOptions: new ParallelRowMappingOptions
             {
                 MaxDegreeOfParallelism = degreeOfParallelism,
@@ -260,13 +256,12 @@ public class CsvMappingTests
     public void Transient_Record_Projection_Enforces_Strict_Column_Counts(string text)
     {
         Assert.Throws<CsvException>(() =>
-            CsvDocument.ReadTextRowsAsParallel<string>(
-                text,
-                _ => row => row.GetString(0),
-                loadOptions: new CsvLoadOptions {
+            CsvDocument.ReadTextRowsAsParallel<string>(text,
+            _ => row => row.GetString(0),
+            options: new CsvReaderOptions {
                     ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
                 },
-                parallelOptions: new ParallelRowMappingOptions {
+            parallelOptions: new ParallelRowMappingOptions {
                     MaxDegreeOfParallelism = 2,
                     BatchSize = 1024
                 }).ToArray());
@@ -278,13 +273,12 @@ public class CsvMappingTests
         string text = "A,B\n" + new string('x', 40) + "\n";
 
         Assert.Throws<CsvException>(() =>
-            CsvDocument.ReadTextRowsAsParallel<string>(
-                text,
-                _ => row => row.GetString(0),
-                loadOptions: new CsvLoadOptions {
+            CsvDocument.ReadTextRowsAsParallel<string>(text,
+            _ => row => row.GetString(0),
+            options: new CsvReaderOptions {
                     ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
                 },
-                parallelOptions: new ParallelRowMappingOptions {
+            parallelOptions: new ParallelRowMappingOptions {
                     MaxDegreeOfParallelism = 2,
                     BatchSize = 1024
                 }).ToArray());
@@ -293,9 +287,8 @@ public class CsvMappingTests
     [Fact]
     public void Strict_Text_DataReader_Yields_Valid_Prefix_Before_Mismatched_Row()
     {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            "A,B\n1,2\n3\n",
-            new CsvLoadOptions {
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("A,B\n1,2\n3\n"),
+            options: new CsvReaderOptions {
                 ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
             });
 
@@ -310,7 +303,7 @@ public class CsvMappingTests
     {
         using var source = new CsvParser.CsvTextDataReaderRowSource(
             "1\n2\n",
-            new CsvLoadOptions(),
+            new CsvReaderOptions(),
             recordsToSkip: 0,
             sourceColumnCount: 1);
 
@@ -349,10 +342,9 @@ public class CsvMappingTests
         var text = new StringBuilder("Id\n");
         for (int id = 1; id <= 1024; id++) text.Append(id).Append('\n');
         using var cancellation = new CancellationTokenSource();
-        using IEnumerator<int> rows = CsvDocument.ReadTextRowsAsParallel<int>(
-            text.ToString(),
+        using IEnumerator<int> rows = CsvDocument.ReadTextRowsAsParallel<int>(text.ToString(),
             _ => row => row.GetInt32(0),
-            loadOptions: new CsvLoadOptions {
+            options: new CsvReaderOptions {
                 CancellationToken = cancellation.Token
             },
             parallelOptions: new ParallelRowMappingOptions {
@@ -372,10 +364,9 @@ public class CsvMappingTests
     {
         var reports = new List<long>();
         using var cancellation = new CancellationTokenSource();
-        using IEnumerator<int> rows = CsvDocument.ReadTextRowsAsParallel<int>(
-            "Id\n1\n2\n3\n",
+        using IEnumerator<int> rows = CsvDocument.ReadTextRowsAsParallel<int>("Id\n1\n2\n3\n",
             _ => row => row.GetInt32(0),
-            new CsvLoadOptions {
+            options: new CsvReaderOptions {
                 ProgressReportInterval = 1,
                 ProgressCallback = progress => reports.Add(progress.RecordsRead)
             },
@@ -401,8 +392,7 @@ public class CsvMappingTests
     {
         string text = "Id,Value,Extra\n1,NULL\n2,,x\n3,\"NULL\",\"multi\nline\"\n";
 
-        FieldState[] rows = CsvDocument.ReadTextRowsAsParallel<FieldState>(
-            text,
+        FieldState[] rows = CsvDocument.ReadTextRowsAsParallel<FieldState>(text,
             header => {
                 int value = header.GetOrdinal("Value");
                 int extra = header.GetOrdinal("Extra");
@@ -414,7 +404,7 @@ public class CsvMappingTests
                     record.IsNull(extra),
                     record.IsMissing(extra) || record.IsNull(extra) ? null : record.GetString(extra));
             },
-            loadOptions: new CsvLoadOptions {
+            options: new CsvReaderOptions {
                 NullValue = "NULL",
                 TrimWhitespace = true
             },
@@ -437,14 +427,13 @@ public class CsvMappingTests
             AssertMapsConcurrently(materialized);
         }
 
-        using (DbDataReader touched = CsvDocument.OpenTextDataReader(text)) {
+        using (DbDataReader touched = CsvDocument.OpenReader(new System.IO.StringReader(text))) {
             Assert.True(touched.HasRows);
             AssertMapsConcurrently(touched);
         }
 
-        using (DbDataReader progress = CsvDocument.OpenTextDataReader(
-                   text,
-                   new CsvLoadOptions {
+        using (DbDataReader progress = CsvDocument.OpenReader(new System.IO.StringReader(text),
+            options: new CsvReaderOptions {
                        ProgressReportInterval = 1,
                        ProgressCallback = _ => { }
                    })) {
@@ -454,14 +443,14 @@ public class CsvMappingTests
         string path = Path.Combine(Path.GetTempPath(), $"officeimo-parallel-{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(path, text, new UTF8Encoding(false));
-            using DbDataReader file = CsvDocument.OpenDataReader(path);
+            using DbDataReader file = CsvDocument.OpenReader(path);
             AssertMapsConcurrently(file);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(text));
-        using DbDataReader streamed = CsvDocument.OpenDataReader(stream);
+        using DbDataReader streamed = CsvDocument.OpenReader(stream);
         AssertMapsConcurrently(streamed);
         Assert.True(stream.CanRead);
     }
@@ -577,9 +566,8 @@ public class CsvMappingTests
     public void Parallel_DataReader_Yields_Queued_Prefix_Before_A_Source_Failure()
     {
         var sourceFailure = new InvalidOperationException("source failed");
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            "Id\n1\n2\n3\n4\n5\n",
-            new CsvLoadOptions {
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Id\n1\n2\n3\n4\n5\n"),
+            options: new CsvReaderOptions {
                 ProgressReportInterval = 2,
                 ProgressCallback = progress => {
                     if (progress.RecordsRead >= 4) throw sourceFailure;
@@ -727,17 +715,17 @@ public class CsvMappingTests
             BatchSize = 37
         };
 
-        using DbDataReader automaticReader = CsvDocument.OpenTextDataReader(text);
+        using DbDataReader automaticReader = CsvDocument.OpenReader(new System.IO.StringReader(text));
         Person[] automatic = automaticReader.RowsAsParallel<Person>(parallel).ToArray();
 
-        using DbDataReader explicitReader = CsvDocument.OpenTextDataReader(text);
+        using DbDataReader explicitReader = CsvDocument.OpenReader(new System.IO.StringReader(text));
         Person[] explicitRows = explicitReader.RowsAsParallel<Person>(map => map
             .FromColumn<int>("Id", (person, value) => person with { Id = value })
             .FromColumn<string>("Name", (person, value) => person with { Name = value })
             .FromColumn<int>("Age", (person, value) => person with { Age = value })
             .FromColumn<string>("City", (person, value) => person with { City = value }), parallel).ToArray();
 
-        using DbDataReader factoryReader = CsvDocument.OpenTextDataReader(text);
+        using DbDataReader factoryReader = CsvDocument.OpenReader(new System.IO.StringReader(text));
         PositionalPerson[] factoryRows = factoryReader.RowsAsParallel(
             row => new PositionalPerson(row.GetInt32(0), row.GetString(1)),
             parallel).ToArray();
@@ -754,7 +742,7 @@ public class CsvMappingTests
         string text = "Id,Name,Age,City\n1,Ada,36,London\n2,Grace,37,Arlington\n";
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(text);
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(text));
 
         Assert.Throws<OperationCanceledException>(() => reader.RowsAsParallel<Person>(
             new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 },
@@ -766,7 +754,7 @@ public class CsvMappingTests
     {
         string text = "Id,Name,Age,City\n1,Ada,36,London\n2,Grace,37,Arlington\n3,Linus,40,Helsinki\n";
         using var cancellation = new CancellationTokenSource();
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(text);
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(text));
         using IEnumerator<Person> rows = reader.RowsAsParallel<Person>(
             new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 3 },
             cancellation.Token).GetEnumerator();
@@ -779,7 +767,7 @@ public class CsvMappingTests
     [Fact]
     public void Parallel_DataReader_Mapping_Rejects_Invalid_Bounds()
     {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader("Id,Name,Age,City\n1,Ada,36,London\n");
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Id,Name,Age,City\n1,Ada,36,London\n"));
         Assert.Throws<ArgumentOutOfRangeException>(() => reader.RowsAsParallel<Person>(
             new ParallelRowMappingOptions { MaxDegreeOfParallelism = 0 }).ToArray());
     }

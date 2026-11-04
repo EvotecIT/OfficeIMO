@@ -16,7 +16,7 @@ Add-OfficeMarkdownList [-Items] <string[]> [-Ordered] [-Start <int>] [-PassThru]
 
 ### Document
 ```powershell
-Add-OfficeMarkdownList [-Items] <string[]> -Document <MarkdownDoc> [-Ordered] [-Start <int>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownList [-Items] <string[]> -Document <MarkdownDocument> [-Ordered] [-Start <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,7 +42,7 @@ Appends bullet and ordered lists to the current Markdown document.
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -123,11 +123,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

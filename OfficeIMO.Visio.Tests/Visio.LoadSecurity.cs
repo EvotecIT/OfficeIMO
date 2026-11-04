@@ -72,6 +72,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LoadAppliesConfiguredCharacterLimitToPageContentPart() {
+            string filePath = CreateBasicVisioDocument();
+            try {
+                ReplaceZipEntry(filePath, "visio/pages/page1.xml", writer => {
+                    writer.Write("<PageContents xmlns=\"http://schemas.microsoft.com/office/visio/2012/main\">");
+                    writer.Write("<!--");
+                    writer.Write(new string('x', 24_000));
+                    writer.Write("--></PageContents>");
+                });
+
+                Assert.ThrowsAny<XmlException>(() => VisioDocument.Load(filePath,
+                    new VisioLoadOptions { Limits = { MaxPackageXmlCharacters = 20_000 } }));
+                VisioDocument accepted = VisioDocument.Load(filePath,
+                    new VisioLoadOptions { Limits = { MaxPackageXmlCharacters = 30_000 } });
+                Assert.Single(accepted.Pages);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void ListMastersRejectsDtdInMastersPart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             using (ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Create)) {
@@ -105,8 +126,8 @@ namespace OfficeIMO.Tests {
         private static string CreateBasicVisioDocument() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Secure Load", 8.5, 11);
-            page.Shapes.Add(new VisioShape("shape-1", 1, 1, 1, 1, "Shape"));
+            VisioPage page = document.AddPage("Secure Load", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
+            page.Shapes.Add(new VisioShape("shape-1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Shape"));
             document.Save();
             return filePath;
         }

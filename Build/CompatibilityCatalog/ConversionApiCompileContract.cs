@@ -1,3 +1,6 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
+using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO;
 using OfficeIMO.Adf;
 using DBAClientX.Dbf;
@@ -54,7 +57,7 @@ internal static class ConversionApiCompileContract {
         HtmlConversionDocument html,
         HtmlBrowserPdfResult browserPdf,
         LatexDocument latex,
-        MarkdownDoc markdown,
+        MarkdownDocument markdown,
         OfficeMarkupDocument officeMarkup,
         MhtmlDocument mhtml,
         OneNoteSection oneNote,
@@ -63,7 +66,7 @@ internal static class ConversionApiCompileContract {
         OdpPresentation odp,
         OdgDocument odg,
         PdfDocument pdf,
-        PowerPointPresentation powerPoint,
+        PowerPointDocument powerPoint,
         PublisherDocument publisher,
         RtfDocument rtf,
         RtfReadResult rtfRead,
@@ -76,16 +79,16 @@ internal static class ConversionApiCompileContract {
             Language = "en",
             NewLine = "\n"
         };
-        _ = DjVuDocument.Load(stream).SaveAsPdf(stream, new DjVuToPdfOptions());
-        WordToHtmlOptions wordOptions = WordToHtmlOptions.CreateDocumentRoundTripProfile();
+        _ = DjVuDocument.Load(stream).SaveAsPdf(stream, new DjVuPdfExportOptions());
+        WordHtmlExportOptions wordOptions = WordHtmlExportOptions.CreateDocumentRoundTripProfile();
         wordOptions.DocumentOutput = output.Clone();
-        ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
+        ExcelHtmlExportOptions excelOptions = ExcelHtmlExportOptions.CreateVisualReviewProfile();
         excelOptions.DocumentOutput = output.Clone();
-        PowerPointHtmlSaveOptions powerPointOptions = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions powerPointOptions = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
         powerPointOptions.DocumentOutput = output.Clone();
-        RtfToHtmlOptions rtfOptions = RtfToHtmlOptions.CreatePrintReviewProfile();
+        RtfHtmlExportOptions rtfOptions = RtfHtmlExportOptions.CreatePrintReviewProfile();
         rtfOptions.DocumentOutput = output.Clone();
-        PdfToHtmlOptions pdfOptions = PdfToHtmlOptions.CreatePositionedReviewProfile();
+        PdfHtmlExportOptions pdfOptions = PdfHtmlExportOptions.CreatePositionedReviewProfile();
         pdfOptions.DocumentOutput = output.Clone();
         HtmlConversionProfile wordSharedProfile = wordOptions.SharedProfile;
         HtmlConversionProfile excelSharedProfile = excelOptions.SharedProfile;
@@ -99,68 +102,66 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(source);
         _ = OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownConverterExtensions.ToMarkdownDocumentResult(asciiDoc);
         _ = OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownConverterExtensions.ToAsciiDocDocumentResult(markdown);
-        _ = OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfConverterExtensions.ToPdfDocumentResult(asciiDoc);
+        _ = OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfConverterExtensions.ToPdf(asciiDoc);
         _ = OfficeIMO.Latex.Markdown.LatexMarkdownConverterExtensions.ToMarkdownDocumentResult(latex);
         _ = OfficeIMO.Latex.Markdown.LatexMarkdownConverterExtensions.ToLatexDocumentResult(markdown);
-        _ = OfficeIMO.Latex.Pdf.LatexPdfConverterExtensions.ToPdfDocumentResult(latex);
-        _ = OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdownDocumentResult(html);
-        _ = OfficeIMO.Markdown.Pdf.MarkdownPdfConverterExtensions.ToPdfDocumentResult(markdown);
-        _ = OfficeIMO.Rtf.Markdown.RtfMarkdownConverterExtensions.ToMarkdownResult(rtf);
-        _ = OfficeIMO.Rtf.Markdown.RtfMarkdownConverterExtensions.ToRtfDocumentResult(markdown);
-        _ = OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToMarkdownDocumentResult(word);
-        _ = OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWordDocumentResult(markdown);
-        _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionExtensions.ToOpenDocumentResult(word);
-        _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionExtensions.ToWordDocumentResult(odt);
-        _ = OfficeIMO.Html.HtmlRtfConverterExtensions.ToRtfDocumentResult(html);
-        _ = OfficeIMO.Html.HtmlRtfConverterExtensions.ToHtmlResult(rtf);
-        _ = OfficeIMO.Word.Rtf.WordRtfConverterExtensions.ToRtfDocumentResult(word);
-        _ = OfficeIMO.Word.Rtf.WordRtfConverterExtensions.ToWordDocumentResult(rtfRead);
-        _ = OfficeIMO.Excel.Html.ExcelHtmlConverterExtensions.ToHtmlResult(excel);
-        _ = OfficeIMO.Excel.Html.HtmlExcelConverterExtensions.ToExcelDocumentResult(html);
-        _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionExtensions.ToOpenDocumentResult(excel);
-        _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionExtensions.ToExcelDocumentResult(ods);
-        _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtmlResult(word);
-        _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResult(html);
-        _ = OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtmlResult(powerPoint);
-        _ = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointPresentationResult(html);
-        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToOpenDocumentResult(powerPoint);
-        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToPowerPointPresentationResult(odp);
-        _ = OfficeIMO.OneNote.Markdown.OneNoteMarkdownConverterExtensions.ToMarkdownDocumentResult(oneNote);
-        _ = OfficeIMO.OneNote.Html.OneNoteHtmlConverterExtensions.ToHtmlDocumentResult(oneNote);
-        _ = OfficeIMO.OneNote.Html.HtmlOneNoteConverterExtensions.ToOneNoteSectionResult(html);
-        _ = OfficeIMO.OneNote.Pdf.OneNoteSectionPdfConverterExtensions.ToPdfDocumentResult(oneNote);
-        _ = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocumentResult(word);
-        _ = OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(pdf);
-        _ = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdfDocumentResult(excel);
-        _ = OfficeIMO.Excel.Pdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(pdf);
-        _ = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocumentResult(powerPoint);
-        _ = OfficeIMO.PowerPoint.Pdf.PdfPowerPointConverterExtensions.ToPowerPointPresentationResult(pdf);
-        _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(html);
+        _ = OfficeIMO.Latex.Pdf.LatexPdfConverterExtensions.ToPdf(latex);
+        _ = OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(html);
+        _ = OfficeIMO.Markdown.Pdf.MarkdownPdfConverterExtensions.ToPdf(markdown);
+        _ = OfficeIMO.Rtf.Markdown.RtfMarkdownConverterExtensions.ToMarkdown(rtf);
+        _ = OfficeIMO.Rtf.Markdown.RtfMarkdownConverterExtensions.ToRtf(markdown);
+        _ = OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToMarkdown(word);
+        _ = OfficeIMO.Word.Markdown.WordMarkdownConverterExtensions.ToWord(markdown);
+        _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionExtensions.ToOpenDocument(word);
+        _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentConversionExtensions.ToWord(odt);
+        _ = OfficeIMO.Html.HtmlRtfConverterExtensions.ToRtf(html);
+        _ = OfficeIMO.Html.HtmlRtfConverterExtensions.ToHtml(rtf);
+        _ = OfficeIMO.Word.Rtf.WordRtfConverterExtensions.ToRtf(word);
+        _ = OfficeIMO.Word.Rtf.WordRtfConverterExtensions.ToWord(rtfRead);
+        _ = OfficeIMO.Excel.Html.ExcelHtmlConverterExtensions.ToHtml(excel);
+        _ = OfficeIMO.Excel.Html.HtmlExcelConverterExtensions.ToExcel(html);
+        _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionExtensions.ToOpenDocument(excel);
+        _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionExtensions.ToExcel(ods);
+        _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtml(word);
+        _ = OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWord(html);
+        _ = OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtml(powerPoint, null, out OfficeConversionReport powerPointHtmlReport);
+        _ = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPoint(html);
+        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToOpenDocument(powerPoint);
+        _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionExtensions.ToPowerPoint(odp);
+        _ = OfficeIMO.OneNote.Markdown.OneNoteMarkdownConverterExtensions.ToMarkdown(oneNote);
+        _ = OfficeIMO.OneNote.Html.OneNoteHtmlConverterExtensions.ToHtml(oneNote);
+        _ = OfficeIMO.OneNote.Html.HtmlOneNoteConverterExtensions.ToOneNoteSection(html);
+        _ = OfficeIMO.OneNote.Pdf.OneNoteSectionPdfConverterExtensions.ToPdf(oneNote);
+        _ = OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdf(word);
+        _ = OfficeIMO.Pdf.Word.PdfWordConverterExtensions.ToWord(pdf);
+        _ = OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(excel);
+        _ = OfficeIMO.Pdf.Excel.PdfExcelTableConverterExtensions.ToExcel(pdf);
+        _ = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdf(powerPoint);
+        _ = OfficeIMO.Pdf.PowerPoint.PdfPowerPointConverterExtensions.ToPowerPoint(pdf);
+        _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdf(html);
         _ = browserPdf.ToPdfDocumentResult();
-        _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);
-        _ = ChmDocument.Load(stream).ToPdfBytesResult();
-        _ = chm.ToMarkdownResult();
-        _ = chm.ToMarkdownDocumentResult();
-        _ = chm.ToEpubBytesResult();
-        PdfHtmlConversionResult pdfHtmlResult = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(pdf);
-        PdfConversionReport pdfHtmlReport = pdfHtmlResult.Report;
-        OfficeIMO.OfficeOutputResult<PdfConversionReport> pdfHtmlOutput = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(pdf, stream, pdfOptions);
-        _ = pdfHtmlReport.Warnings;
-        _ = pdfHtmlOutput.RequireSuccess().Report!.Warnings;
+        _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdf(mhtml);
+        _ = ChmDocument.Load(stream).ToPdf();
+        _ = chm.ToMarkdown();
+        _ = chm.ToEpub();
+        string pdfHtml = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtml(pdf, null, out OfficeConversionReport pdfHtmlReport);
+        OfficeConversionReport pdfHtmlOutput = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(pdf, stream, pdfOptions);
+        _ = pdfHtmlReport.Diagnostics;
+        _ = pdfHtmlOutput.Diagnostics;
         var galleryResult = new HtmlCapabilityGalleryResult(
             new HtmlCapabilityGalleryScenario("compat", "Compatibility", "HTML", "Established gallery API"));
         galleryResult.AddArtifact(new HtmlCapabilityGalleryArtifact(
             "source", "html", "source.html", "text/html", 1, new string('0', 64)));
         galleryResult.Diagnostics.Add(new HtmlDiagnostic("Compatibility", "EstablishedApi", "Established gallery diagnostics API"));
-        _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(rtf);
+        _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdf(rtf);
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(pdf);
-        _ = OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfConversionExtensions.ToPdfDocumentResult(odg);
-        _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToPdfDocumentResult(odt);
-        _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToOdtDocumentResult(pdf);
-        _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToPdfDocumentResult(ods);
-        _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(pdf);
-        _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToPdfDocumentResult(odp);
-        _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToOdpPresentationResult(pdf);
+        _ = OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfConversionExtensions.ToPdf(odg);
+        _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToPdf(odt);
+        _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToOdt(pdf);
+        _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToPdf(ods);
+        _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOds(pdf);
+        _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToPdf(odp);
+        _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToOdp(pdf);
         OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryVisio = VisioDocument.LoadLegacyBinary(stream);
         OfficeLegacyImportReport binaryImportReport = binaryVisio.Report;
         binaryVisio.Value.Save(stream);
@@ -173,10 +174,10 @@ internal static class ConversionApiCompileContract {
         OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryPageSource = VisioDocument.LoadLegacyBinary(source);
         OfficeLegacyImportReport pageSourceImportReport = binaryPageSource.Report;
         string binarySvg = binaryPageSource.Value.Pages[0].ToSvg();
-        PdfDocumentConversionResult binaryPdf = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(binaryPageSource.Value,
-            new OfficeIMO.Visio.Pdf.VisioToPdfOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages });
-        _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(visio);
-        _ = OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocumentResult(publisher);
+        PdfDocument binaryPdf = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdf(binaryPageSource.Value,
+            new OfficeIMO.Visio.Pdf.VisioPdfExportOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages }, out OfficeConversionReport binaryPdfReport);
+        _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdf(visio);
+        _ = OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdf(publisher);
         _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);
         _ = WordGoogleDocsExtensions.ImportGoogleDocAsync(session, "document-id");
         _ = ExcelGoogleSheetsExtensions.ExportToGoogleSheetsAsync(excel, session);
@@ -198,11 +199,23 @@ internal static class ConversionApiCompileContract {
             CsvDocument.WriteDataReader(csvOutput, dbf);
         }
         using (DbfDataReader dbf = DbfDataReader.Open(source)) {
-            _ = ExcelDocument.WriteDataReader(stream, dbf);
+            var destination1 = stream;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                UseSharedStrings = false,
+                CreateTable = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                _ = workbookWriter1.WriteTable(writeOptions1.SheetName, dbf);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
         }
         _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);
-        _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointPresentationResult(officeMarkup);
+        _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointDocumentResult(officeMarkup);
 
         // Every cataloged image source compiles against the same five-format owner
         // contract. Runtime tests enumerate PNG, SVG, JPEG, TIFF, and WebP.
@@ -210,7 +223,7 @@ internal static class ConversionApiCompileContract {
         _ = word.ExportImages(imageFormat);
         _ = excel.ExportImages(imageFormat);
         _ = powerPoint.ExportImages(imageFormat);
-        _ = OfficeIMO.Html.HtmlImageExportExtensions.ExportImages(html, imageFormat);
+        _ = OfficeIMO.Html.Pdf.HtmlImageExportExtensions.ExportImages(html, imageFormat);
         _ = OfficeIMO.OneNote.OneNoteImageExportExtensions.ExportImages(oneNote, imageFormat);
         _ = OfficeIMO.Visio.VisioImageExportExtensions.ExportImages(visio, imageFormat);
         _ = OfficeIMO.Email.EmailImageExportExtensions.ExportImages(email, imageFormat);
@@ -218,6 +231,6 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentImageExportExtensions.ExportImages(odt, imageFormat);
         _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentImageExportExtensions.ExportImages(ods, imageFormat);
         _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentImageExportExtensions.ExportImages(odp, imageFormat);
-        _ = pdf.Render.ExportImages(imageFormat);
+        _ = pdf.ExportImages(new PdfImageExportOptions { Format = imageFormat }, out _);
     }
 }

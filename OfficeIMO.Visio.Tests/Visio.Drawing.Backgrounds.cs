@@ -33,7 +33,7 @@ public sealed class VisioBackgroundCompositionTests {
             Assert.Contains("data-officeimo-visio-background=\"Overlay\"", svg);
             Assert.True(svg.IndexOf("Base", StringComparison.Ordinal) < svg.IndexOf("Overlay", StringComparison.Ordinal));
             Assert.Equal(3, document.ToDrawings().Value.Count);
-            var pdf = PdfReadDocument.Open(document.ToPdfBytes(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }));
+            var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf(new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages }).ToBytes()));
             Assert.Equal(3, pdf.Pages.Count);
             Assert.Equal((288D, 216D), pdf.Pages[2].GetPageSize());
             Assert.Contains("Base label", pdf.Pages[2].ExtractText());
@@ -47,20 +47,20 @@ public sealed class VisioBackgroundCompositionTests {
     [InlineData(VisioLayerRenderMode.Printable, "Print background", "Screen background")]
     public void BackgroundLayersAreResolvedOnTheirOwnPage(VisioLayerRenderMode mode, string included, string excluded) {
         VisioDocument document = VisioDocument.Create(); document.UseMastersByDefault = false;
-        VisioPage background = document.AddBackgroundPage("Background", 4, 3);
+        VisioPage background = document.AddBackgroundPage("Background", OfficeLength.Inches(4), OfficeLength.Inches(3));
         background.AddLayer("Screen").Print = false;
         background.AddLayer("Print").Visible = false;
-        background.AddRectangle(1, 1, 1.5, 1, "Screen background").LayerNames.Add("Screen");
-        background.AddRectangle(3, 1, 1.5, 1, "Print background").LayerNames.Add("Print");
-        VisioPage foreground = document.AddPage("Foreground", 4, 3).SetBackgroundPage(background);
+        background.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, background.DefaultUnit)), "Screen background").LayerNames.Add("Screen");
+        background.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, background.DefaultUnit)), "Print background").LayerNames.Add("Print");
+        VisioPage foreground = document.AddPage("Foreground", OfficeLength.Inches(4), OfficeLength.Inches(3)).SetBackgroundPage(background);
         foreground.AddLayer("Screen").Visible = false;
         foreground.AddLayer("Print").Print = false;
         string svg = foreground.ToSvg(new VisioSvgSaveOptions { LayerMode = mode });
         Assert.Contains(included, svg); Assert.DoesNotContain(excluded, svg);
-        var result = document.ToPdfDocumentResult(new VisioToPdfOptions {
+        var result = document.ToPdf(new VisioPdfExportOptions {
             Mode = VisioPdfProjectionMode.DiagramPages, DrawingOptions = new VisioDrawingOptions { LayerMode = mode }
-        });
-        string text = PdfReadDocument.Open(result.ToBytes()).Pages[1].ExtractText();
+        }, out OfficeConversionReport resultReport);
+        string text = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Pages[1].ExtractText();
         Assert.Contains(included, text); Assert.DoesNotContain(excluded, text);
     }
 
@@ -87,7 +87,7 @@ public sealed class VisioBackgroundCompositionTests {
         string fixture = Path.Combine(RepositoryTestPaths.Find(), "Assets", "VisioTemplates", "DrawingWithLotsOfShapresAndArrows.vsdx");
         VisioDocument document = VisioDocument.Load(fixture);
         byte[] before = document.ToLegacyXmlResult().Value;
-        var pdf = PdfReadDocument.Open(document.ToPdfBytes(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages }));
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf(new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages }).ToBytes()));
         for (int index = 0; index < document.Pages.Count; index++) {
             VisioPage page = document.Pages[index];
             if (page.BackgroundPage == null) continue;
@@ -114,13 +114,13 @@ public sealed class VisioBackgroundCompositionTests {
         VisioDocument document = VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()))).Value;
         byte[] before = document.ToLegacyXmlResult().Value;
         var result = document.Pages[2].ToDrawing();
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<OfficeConversionException>(() => document.Pages[2].ToDrawing(new VisioDrawingOptions { RequireNoLoss = true }));
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<OfficeConversionException>(() => document.Pages[2].ToDrawing(new VisioDrawingOptions { FailOnLoss = true }));
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
             var exported = document.Pages[2].ExportImage(format, new VisioImageExportOptions { RenderText = false, TargetDpi = 24, Supersampling = 1 });
             Assert.Contains(exported.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Throws<OfficeImageExportPolicyException>(() => document.Pages[2].ExportImage(format, new VisioImageExportOptions {
-                RenderText = false, TargetDpi = 24, Supersampling = 1, Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+                RenderText = false, TargetDpi = 24, Supersampling = 1, Policy = new OfficeImageExportPolicy { FailOnLoss = true }
             }));
         }
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
@@ -128,22 +128,22 @@ public sealed class VisioBackgroundCompositionTests {
 
     private static VisioDocument CreateChain() {
         VisioDocument document = VisioDocument.Create(); document.UseMastersByDefault = false;
-        VisioPage background = document.AddBackgroundPage("Base", 4, 4);
+        VisioPage background = document.AddBackgroundPage("Base", OfficeLength.Inches(4), OfficeLength.Inches(4));
         background.PageScale = new VisioScaleSetting(.5, VisioMeasurementUnit.Inches);
         background.DrawingScale = new VisioScaleSetting(1, VisioMeasurementUnit.Inches);
         AddColor(background, 2, 2, 4, 4, OfficeColor.Red);
         AddColor(background, 7, 1, .5, .5, OfficeColor.Red);
-        background.AddRectangle(1.5, 3.5, 2, .8, "Base label");
-        VisioPage overlay = document.AddBackgroundPage("Overlay", 3, 2).SetBackgroundPage(background);
+        background.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.5, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, background.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.8, background.DefaultUnit)), "Base label");
+        VisioPage overlay = document.AddBackgroundPage("Overlay", OfficeLength.Inches(3), OfficeLength.Inches(2)).SetBackgroundPage(background);
         AddColor(overlay, 1, 1, 1.5, 1.5, OfficeColor.Blue);
-        overlay.AddRectangle(2, 1.75, 1.7, .4, "Overlay label");
-        VisioPage foreground = document.AddPage("Foreground", 4, 3).SetBackgroundPage(overlay);
+        overlay.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, overlay.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.75, overlay.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.7, overlay.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.4, overlay.DefaultUnit)), "Overlay label");
+        VisioPage foreground = document.AddPage("Foreground", OfficeLength.Inches(4), OfficeLength.Inches(3)).SetBackgroundPage(overlay);
         AddColor(foreground, 1.5, 1.5, .5, .5, OfficeColor.Green);
         return document;
     }
 
     private static void AddColor(VisioPage page, double x, double y, double width, double height, OfficeColor color) {
-        VisioShape shape = page.AddRectangle(x, y, width, height, string.Empty);
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(x, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(width, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(height, page.DefaultUnit)), string.Empty);
         shape.FillColor = color; shape.LinePattern = 0;
     }
 

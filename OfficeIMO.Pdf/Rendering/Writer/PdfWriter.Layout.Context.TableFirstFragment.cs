@@ -4,21 +4,21 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         /// <summary>Previews only references in the first legal visual fragment used by a preceding keep chain.</summary>
         private IEnumerable<RichSeg> GetFirstTableFootnoteSegments(TableBlock table) {
-            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? PdfTableStyles.Light();
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0 || !ValidateTableFootnotePlacement(table, style, columns))
                 return Enumerable.Empty<RichSeg>();
             style = PreparePairedTableBorders(table, style);
             double gap = GetTableCellSpacing(style);
             int footerStart = table.Rows.Count - style.FooterRowCount;
-            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize);
+            double fontSize = GetTableBodyFontSize(style, currentOpts.DefaultFontSize.ToPoints());
             TableColumnLayout columnLayout = ResolveTableColumnLayout(table, currentOpts, style, columns,
-                currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight,
+                currentOpts.PageWidth.ToPoints() - currentOpts.MarginLeft.ToPoints() - currentOpts.MarginRight.ToPoints(),
                 fontSize, style.HeaderRowCount, footerStart);
             PreparedFlowTableRows rows = PrepareFlowTableRows(table, style, columns, columnLayout.Widths,
                 gap, gap, style.HeaderRowCount, footerStart);
             var spans = new TableSpanFlow(table, style, columns, style.HeaderRowCount, footerStart);
-            double firstHeight = MeasureTableFirstFragmentHeight(table, style, rows, columns, columnLayout.Widths, gap);
+            double firstHeight = MeasureTableFirstFragmentHeight(table, style, rows, columns, columnLayout.Widths, gap, out _);
             int count = rows.LineCounts[0];
             if (!style.KeepTogether && GetTableRowAllowBreakAcrossPages(style, 0) && !TableRowHasViewport(table, 0, columns)) {
                 IReadOnlyList<TableCellLayout> cells = GetTableCellLayouts(table, 0, columns);
@@ -31,13 +31,14 @@ internal static partial class PdfWriter {
                 }
             }
             return GetTableRowFootnoteSegments(table, style, rows, columns, columnLayout.Widths, gap, gap,
-                spans, 0, 0, count, y, firstHeight, currentOpts.MarginLeft,
-                GetMeasuredContinuationFrameHeight(), GetClosingTextPadding(style.SpacingAfter));
+                spans, 0, 0, count, y, firstHeight, currentOpts.MarginLeft.ToPoints(),
+                GetMeasuredContinuationFrameHeight(), GetClosingTextPadding(style.SpacingAfter.ToPoints()));
         }
 
         /// <summary>Preflights a breakable first row at its first legal cell boundary instead of requiring the entire row.</summary>
         private double MeasureTableFirstFragmentHeight(TableBlock table, PdfTableStyle style, PreparedFlowTableRows rows,
-            int columns, double[] widths, double gap) {
+            int columns, double[] widths, double gap, out bool completesFirstRow) {
+            completesFirstRow = true;
             if (style.KeepTogether || !GetTableRowAllowBreakAcrossPages(style, 0) || TableRowHasViewport(table, 0, columns))
                 return rows.Heights[0];
             IReadOnlyList<TableCellLayout> cells = GetTableCellLayouts(table, 0, columns);
@@ -51,9 +52,11 @@ internal static partial class PdfWriter {
                 if (IsTableRowFragmentBoundaryAllowed(rows.Lines[0], cells, 0, count, fullHeight, requireDefaultFirstFragment: true)) {
                     double height = MeasurePreparedTableRowSegmentHeight(table, style, rows, columns, widths, gap,
                         0, 0, count, suppressCellObjects: false);
+                    completesFirstRow = !hasIndependentSpan && count == rows.LineCounts[0];
                     return hasIndependentSpan ? Math.Min(height, rows.IntrinsicHeights[0]) : height;
                 }
             }
+            completesFirstRow = !hasIndependentSpan;
             return rows.Heights[0];
         }
     }

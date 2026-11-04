@@ -5,12 +5,16 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
-        [InlineData(ExcelDateSystem.NineteenHundred, false, false)]
-        [InlineData(ExcelDateSystem.NineteenFour, false, true)]
-        [InlineData(ExcelDateSystem.NineteenHundred, true, true)]
-        [InlineData(ExcelDateSystem.NineteenFour, true, false)]
-        public void Xlsb_DirectDates_PreserveInsertionValuesAndFormats(
-            ExcelDateSystem dateSystem, bool dataTable, bool sharedStrings) {
+        [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenHundred, false, false)]
+        [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenFour, false, true)]
+        [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenHundred, true, true)]
+        [InlineData(ExcelFileFormat.Xls, ExcelDateSystem.NineteenFour, true, false)]
+        [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenHundred, false, false)]
+        [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenFour, false, true)]
+        [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenHundred, true, true)]
+        [InlineData(ExcelFileFormat.Xlsb, ExcelDateSystem.NineteenFour, true, false)]
+        public void NativeDirectDates_PreserveInsertionValuesAndFormats(
+            ExcelFileFormat format, ExcelDateSystem dateSystem, bool dataTable, bool sharedStrings) {
             var rows = new[] {
                 new DirectDateRecord { Name = "early", When = new DateTime(1900, 2, 28, 6, 30, 0), Value = 42.5 },
                 new DirectDateRecord { Name = "epoch", When = new DateTime(1904, 1, 1), Value = -1.25 },
@@ -19,12 +23,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument direct = CreateDirectDateDocument(rows, dateSystem, dataTable);
             var diagnostics = new List<string>();
             direct.Execution.OnInfo = diagnostics.Add;
-            byte[] bytes = direct.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
+            byte[] bytes = direct.ToBytes(new ExcelSaveOptions { Format = format,  XlsbUseSharedStrings = format == ExcelFileFormat.Xlsb ? sharedStrings : null });
 
             Assert.True(direct.LastSaveDiagnostics.Writer == ExcelSavePackageWriter.NativeBinaryDirectPackage,
                 string.Join("; ", diagnostics));
             Assert.True(direct.HasDeferredDirectDataSetImport);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(bytes);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes);
             Assert.Equal(new[] { "Name", "When", "Value" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
             foreach (DirectDateRecord row in rows) {
                 Assert.True(reader.Read());
@@ -36,14 +40,13 @@ namespace OfficeIMO.Tests {
             Assert.False(reader.NextResult());
 
             using ExcelDocument standard = CreateDirectDateDocument(rows, dateSystem, dataTable);
-            byte[] standardBytes = standard.ToBytes(ExcelFileFormat.Xlsb,
-                new ExcelSaveOptions { DisableFastPackageWriter = true, XlsbUseSharedStrings = sharedStrings });
+            byte[] standardBytes = standard.ToBytes(new ExcelSaveOptions { Format = format,  DisableFastPackageWriter = true, XlsbUseSharedStrings = format == ExcelFileFormat.Xlsb ? sharedStrings : null });
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(bytes, writable: false));
             using ExcelDocument loadedStandard = ExcelDocument.Load(new MemoryStream(standardBytes, writable: false));
             Assert.Equal(dateSystem, loaded.DateSystem);
             for (int row = 2; row <= rows.Length + 1; row++) {
-                Assert.Equal(loadedStandard.Sheets[0].GetCellStyle(row, 2).NumberFormatCode,
-                    loaded.Sheets[0].GetCellStyle(row, 2).NumberFormatCode);
+                Assert.Equal(loadedStandard.Sheets[0].Cell(row, 2).GetStyle().NumberFormatCode,
+                    loaded.Sheets[0].Cell(row, 2).GetStyle().NumberFormatCode);
                 Assert.Equal(AssertCellValue(loadedStandard.Sheets[0], row, 2).DateTimeValue,
                     AssertCellValue(loaded.Sheets[0], row, 2).DateTimeValue);
             }
@@ -72,7 +75,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(destination.ToArray());
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(destination.ToArray());
             Assert.True(reader.Read());
             Assert.Equal(date, reader.GetDateTime(0));
             Assert.True(reader.Read());
@@ -103,8 +106,7 @@ namespace OfficeIMO.Tests {
                 dataSet.Tables.Add(table);
                 document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
             } else {
-                document.AddWorksheet("Data").InsertObjects(rows,
-                    ("Name", static row => row.Name), ("When", static row => row.When), ("Value", static row => row.Value));
+                document.AddSheet("Data").WriteData(rows, ("Name", static row => row.Name), ("When", static row => row.When), ("Value", static row => row.Value));
             }
             return document;
         }

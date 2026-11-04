@@ -28,7 +28,7 @@ public sealed partial class OutputIntakeWorkbenchViewModel : ObservableObject, I
         Func<CancellationToken, Task<string?>> pickAssemblyFolder,
         Func<CancellationToken, Task<string?>> pickOutputPdf,
         IStudioLocalizer? localizer = null,
-        IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        IOfficePublicationGuard? publicationGuard = null,
         StudioJobHistory? jobHistory = null,
         OfficeIMO.Studio.Infrastructure.StudioStorageAccess? storage = null,
         OfficeWorkflowOutputRecoveryStore? recoveryStore = null,

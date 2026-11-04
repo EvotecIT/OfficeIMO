@@ -79,12 +79,12 @@ internal static partial class PdfMerger {
     }
 
     /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
-    public static PdfMergeResult MergeResult(PdfMergeOptions options, params byte[][] pdfs) {
+    internal static PdfMergeResult MergeResult(PdfMergeOptions options, params byte[][] pdfs) {
         return MergeResult(options, (IEnumerable<byte[]>)pdfs);
     }
 
     /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
-    public static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
+    internal static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
         Guard.NotNull(options, nameof(options));
         return MergeCore(pdfs, primarySourceIndex: 0, options);
     }
@@ -108,7 +108,7 @@ internal static partial class PdfMerger {
         IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories, CancellationToken cancellationToken = default) {
         Guard.NotNull(readOptions, nameof(readOptions));
         Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
-        return MergeCore(pdfs, primarySourceIndex, options: null, readOptions, readDocumentFactories, cancellationToken).OwnedBytes;
+        return MergeCore(pdfs, primarySourceIndex, PageImportMergeOptions(), readOptions, readDocumentFactories, cancellationToken).OwnedBytes;
     }
 
     internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {
@@ -139,7 +139,7 @@ internal static partial class PdfMerger {
 
         (_, primaryDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
             primaryPdf,
-            PdfMutationOperation.ModifyPageTree,
+            PdfMutationOperation.ImportPages,
             primaryDocument,
             primaryReadOptions, cancellationToken: cancellationToken);
         if (primaryDocument.Pages.Count == 0) {
@@ -187,7 +187,8 @@ internal static partial class PdfMerger {
         byte[] output = WriteMerged(importedSources, primarySourceIndex: 0, outputOrder, out int outputObjectCount, cancellationToken);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(primaryDocument.ReadOptions,
             new[] { primaryDocument.ReadOptions, insertedDocument.ReadOptions }, output.LongLength, outputObjectCount);
-        return PdfSourceEncryptionContext.Create(primaryDocument, cancellationToken)?.Protect(output, generatedReadOptions: outputReadOptions, cancellationToken: cancellationToken) ?? output;
+        return ApplyMergePolicy(output, importedSources, 0, PageImportMergeOptions(), outputReadOptions,
+            outputOrder.Select(page => page.SourceIndex).ToArray(), cancellationToken).OwnedBytes;
     }
 
     private static PdfMergeResult MergeCore(
@@ -692,9 +693,9 @@ internal static partial class PdfMerger {
         outputPageCount = (int)pages;
     }
 
-    private static PdfMetadata BuildMergedMetadata(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
+    private static PdfDocumentProperties BuildMergedMetadata(IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
         var primary = sources[primarySourceIndex].Metadata;
-        return new PdfMetadata {
+        return new PdfDocumentProperties {
             Title = string.IsNullOrEmpty(primary.Title) ? "Merged PDF" : primary.Title,
             Author = primary.Author,
             Subject = primary.Subject,
@@ -739,7 +740,7 @@ internal static partial class PdfMerger {
 
         public PdfReadDocument Document { get; }
 
-        public PdfMetadata Metadata => Document.UncheckedMetadata;
+        public PdfDocumentProperties Metadata => Document.UncheckedMetadata;
 
         public int[] PageObjectNumbers { get; }
 

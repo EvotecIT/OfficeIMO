@@ -15,7 +15,7 @@ public sealed class ConversionIntakeVisualTests {
     [InlineData(1400)]
     public async Task MismatchedPdfCanBeQueuedFromItsVisibleRouteChoiceAndConverted(int width) {
         using var files = new TextEditingReviewTests.Files();
-        PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("Conversion evidence")))).Save(files.Source);
+        PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("Conversion evidence")))).Save(files.Source);
         byte[] original = File.ReadAllBytes(files.Source);
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

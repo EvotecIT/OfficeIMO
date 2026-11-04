@@ -12,7 +12,7 @@ public sealed partial class ProjectDocument {
     }
 
     /// <summary>Creates a document associated with an XML, MPP, or MPT path; creation does not write a file.</summary>
-    public static ProjectDocument Create(string path, DocumentCreateOptions? options = null) {
+    public static ProjectDocument Create(string path, ProjectCreateOptions? options = null) {
         var format = FormatFromPath(path);
         var document = Create();
         document._path = Path.GetFullPath(path);
@@ -22,12 +22,12 @@ public sealed partial class ProjectDocument {
     }
 
     /// <summary>Creates a document associated with a caller-owned writable seekable stream.</summary>
-    public static ProjectDocument Create(Stream stream, DocumentCreateOptions? options = null) {
+    public static ProjectDocument Create(Stream stream, ProjectCreateOptions? options = null) {
         OfficeDocumentLifecycle.EnsureAssociatedDestination(stream, nameof(stream));
         var document = Create(); document._associatedStream = stream; document.SetCreateOptions(options); return document;
     }
 
-    private void SetCreateOptions(DocumentCreateOptions? options) {
+    private void SetCreateOptions(ProjectCreateOptions? options) {
         _persistenceMode = options?.PersistenceMode ?? DocumentPersistenceMode.Explicit;
         if (!Enum.IsDefined(typeof(DocumentPersistenceMode), _persistenceMode)) throw new ArgumentOutOfRangeException(nameof(options));
     }
@@ -166,11 +166,11 @@ public sealed partial class ProjectDocument {
         if (_batchDepth != 0) throw new InvalidOperationException("Complete the update scope before saving.");
         long revision = Revision; var format = ResolveFormat(options);
         var assessment = AssessFormat(options, format, token, includeWriterPlan: false); assessment.ThrowIfErrors();
-        if (options.LossPolicy == OfficeConversionLossPolicy.Block) assessment.RequireNoLoss();
+        if (!options.AllowLoss) assessment.ThrowIfLoss();
         byte[] bytes; ProjectNativeSource? native = null; ProjectMpxSource? mpx = null;
         if (format == ProjectFileFormat.Mpx4) {
             var plan = ProjectMpxWriter.Plan(this, WithFormat(options, format), true, token);
-            plan.Report.ThrowIfErrors(); if (options.LossPolicy == OfficeConversionLossPolicy.Block) plan.Report.RequireNoLoss();
+            plan.Report.ThrowIfErrors(); if (!options.AllowLoss) plan.Report.ThrowIfLoss();
             bytes = plan.Bytes!;
             if (ProjectMpxWriter.CanRetain(this, options)) mpx = MpxSource;
             else {
@@ -187,7 +187,7 @@ public sealed partial class ProjectDocument {
                 bytes = NativeSource.Bytes; native = NativeSource;
             } else {
                 var plan = ProjectNativeWriter.Plan(this, WithFormat(options, format), true, token);
-                plan.Report.ThrowIfErrors(); if (options.LossPolicy == OfficeConversionLossPolicy.Block) plan.Report.RequireNoLoss();
+                plan.Report.ThrowIfErrors(); if (!options.AllowLoss) plan.Report.ThrowIfLoss();
                 bytes = plan.Bytes!;
                 if (!OfficeCompoundFileReader.TryRead(bytes, new OfficeCompoundReadOptions(int.MaxValue, int.MaxValue, bytes.Length, bytes.Length), token, out var file, out var error) || file == null)
                     throw new InvalidDataException("Prepared native output could not be read: " + error);
@@ -210,7 +210,7 @@ public sealed partial class ProjectDocument {
         return new ProjectSerialization(bytes, format, revision, native, mpx);
     }
     private static IReadOnlyList<ProjectDiagnostic> RetainedLosses(params ProjectReport[] reports) =>
-        reports.SelectMany(report => report.Diagnostics).Where(d => d.RepresentsLoss)
+        reports.SelectMany(report => report.NativeDiagnostics).Where(d => d.RepresentsLoss)
             .GroupBy(d => new { d.Code, d.Severity, d.Message, d.Location, d.RepresentsLoss }).Select(group => group.First()).ToArray();
     private static ProjectDiagnostic XmlOutputLimitDiagnostic() => new ProjectDiagnostic("PROJECT_OUTPUT_LIMIT", ProjectDiagnosticSeverity.Error,
         "Project XML output exceeds MaxOutputBytes.", "/");

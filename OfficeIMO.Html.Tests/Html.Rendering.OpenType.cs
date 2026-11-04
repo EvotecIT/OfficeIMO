@@ -105,11 +105,11 @@ public sealed partial class HtmlRenderingTests {
             .ExportImage(OfficeImageExportFormat.Png, renderOptions).Bytes;
         OfficeRasterImage enabledSvg = RasterizeHtmlImageSvg(HtmlConversionDocument.Parse(enabledHtml).ToSvg(renderOptions));
         OfficeRasterImage disabledSvg = RasterizeHtmlImageSvg(HtmlConversionDocument.Parse(disabledHtml).ToSvg(renderOptions));
-        var pdfOptions = new HtmlToPdfOptions(renderOptions) {
-            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+        var pdfOptions = new HtmlPdfExportOptions(renderOptions) {
+            PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
         };
-        byte[] enabledPdf = HtmlConversionDocument.Parse(enabledHtml).ToPdfBytes(pdfOptions);
-        byte[] disabledPdf = HtmlConversionDocument.Parse(disabledHtml).ToPdfBytes(pdfOptions);
+        byte[] enabledPdf = (HtmlConversionDocument.Parse(enabledHtml).ToPdf(pdfOptions)).ToBytes();
+        byte[] disabledPdf = (HtmlConversionDocument.Parse(disabledHtml).ToPdf(pdfOptions)).ToBytes();
         PdfCore.PdfReadDocument enabledRead = PdfCore.PdfReadDocument.Open(enabledPdf);
         PdfCore.PdfReadDocument disabledRead = PdfCore.PdfReadDocument.Open(disabledPdf);
 
@@ -125,8 +125,8 @@ public sealed partial class HtmlRenderingTests {
         // Retained outlines and embedded text operators must paint the same glyphs.
         Assert.Equal(new[] { 3 }, ObservePaintedTrueTypeGlyphs(enabledScene, enabledText).Select(glyph => glyph.GlyphId));
         Assert.Equal(new[] { 1, 2 }, ObservePaintedTrueTypeGlyphs(disabledScene, disabledText).Select(glyph => glyph.GlyphId));
-        enabledScene.RequireNoLoss();
-        disabledScene.RequireNoLoss();
+        enabledScene.ThrowIfLoss();
+        disabledScene.ThrowIfLoss();
         OfficeImageExportResult enabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
             enabledRead, OfficeImageExportFormat.Png));
         OfficeImageExportResult disabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
@@ -158,8 +158,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(OfficePngReader.TryDecode(light.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? lightImage));
         Assert.True(OfficePngReader.TryDecode(dark.ExportImage(OfficeImageExportFormat.Png, options).Bytes, out OfficeRasterImage? darkImage));
         string darkSvg = Encoding.UTF8.GetString(dark.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        byte[] darkPdf = dark.ToPdfBytes(new HtmlToPdfOptions(options));
-        OfficeColor[] pdfPaints = DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(darkPdf).Render.Drawing(1))
+        byte[] darkPdf = (dark.ToPdf(new HtmlPdfExportOptions(options))).ToBytes();
+        OfficeColor[] pdfPaints = DrawingTestTraversal.Elements(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(darkPdf)).Render.Drawing(1))
             .OfType<OfficeDrawingShape>()
             .Select(shape => shape.Shape.FillColor ?? OfficeColor.Transparent)
             .ToArray();

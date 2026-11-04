@@ -58,7 +58,7 @@
       "validate":"NotApplicable",
       "mutate":"Supported",
       "remove":"Supported",
-      "api":"PowerPointPresentation.Load / Save",
+      "api":"PowerPointDocument.Load / Save",
       "limitation":"Legacy PPT RC4 password protection is format-owned.",
       "unsupportedOperations":[]
     },
@@ -178,7 +178,7 @@
       "validate":"Supported",
       "mutate":"Blocked",
       "remove":"Supported",
-      "api":"InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
+      "api":"Word/PowerPoint/Visio: InspectSignatures / SignPackage / ValidateSignatures; Excel: InspectPackageSignatures / SignPackageSignature / ValidatePackageSignatures",
       "limitation":"Changed signed packages require explicit invalidation handling.",
       "unsupportedOperations":[]
     },
@@ -208,7 +208,7 @@
       "validate":"Supported",
       "mutate":"Blocked",
       "remove":"Supported",
-      "api":"OdfDocument.SignPackage / ValidatePackageSignatures",
+      "api":"OdfDocument.SignPackage / ValidateSignatures",
       "limitation":"The bounded OfficeIMO XML manifest profile does not claim every producer-specific ODF signature profile.",
       "unsupportedOperations":[]
     },
@@ -223,7 +223,7 @@
       "validate":"Supported",
       "mutate":"Blocked",
       "remove":"Supported",
-      "api":"EpubDocument.SignPackage / ValidatePackageSignatures",
+      "api":"EpubDocument.SignPackage / ValidateSignatures",
       "limitation":"The bounded OfficeIMO XML manifest profile does not claim arbitrary EPUB DRM or signature profiles.",
       "unsupportedOperations":[]
     },

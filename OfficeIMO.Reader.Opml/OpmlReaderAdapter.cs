@@ -35,7 +35,7 @@ internal static partial class OpmlReaderAdapter {
         OpmlValidationResult validation = document.Validate(null, cancellationToken);
         OpmlConversionResult<OfficeDocumentModel> conversion = document.ToOfficeDocumentModel(
             sourceName, options.ConversionOptions, cancellationToken);
-        OpmlDiagnostic[] diagnostics = validation.Diagnostics.Concat(conversion.Diagnostics).ToArray();
+        OpmlDiagnostic[] diagnostics = validation.Diagnostics.Concat(conversion.NativeDiagnostics).ToArray();
         IReadOnlyList<string>? warnings = includeChunkWarnings && options.IncludeDiagnostics
             ? diagnostics.Where(d => d.Severity != OpmlDiagnosticSeverity.Info)
                 .Select(d => d.Code + ": " + d.Message).ToArray()
@@ -179,7 +179,7 @@ internal static partial class OpmlReaderAdapter {
         internal string Markdown { get; }
     }
 
-    private static void ApplyReaderLimit(OpmlReadOptions options, long? maxBytes) {
+    private static void ApplyReaderLimit(OpmlLoadOptions options, long? maxBytes) {
         if (maxBytes.HasValue) options.MaxInputBytes = Math.Min(options.MaxInputBytes, maxBytes.Value);
     }
 

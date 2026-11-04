@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
         [InlineData("UNIQUE(SEQUENCE(2,2))", "4")]
         public void Test_ArrayCalculation_FixedRangeAndDependentTail(string formula, string expectedTail) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             // The dependency sorts before the array owner in the worksheet.
-            sheet.CellFormula(1, 1, "H3");
+            sheet.Cell(1, 1).SetFormula("H3");
             sheet.SetArrayFormula("G2:H3", formula);
             Assert.Equal(2, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? cached));
@@ -49,9 +49,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_DeferredShapeDoesNotReplaceCaches() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.SetArrayFormula("G1:H2", "SEQUENCE(3,2)");
-            sheet.CellValue(2, 8, "preserve");
+            sheet.Cell(2, 8).SetValue("preserve");
             Assert.Equal(0, document.Calculate());
             Assert.False(Assert.Single(sheet.InspectFormulas().Formulas).IsSupportedByOfficeIMO);
         }
@@ -59,9 +59,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_AnotherFormulaInRangeIsPreserved() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.SetArrayFormula("G1:H2", "SEQUENCE(2,2)");
-            sheet.CellFormula(2, 8, "99");
+            sheet.Cell(2, 8).SetFormula("99");
             Assert.Equal(1, document.Calculate());
             var formulas = sheet.InspectFormulas().Formulas;
             Assert.False(formulas.Single(f => f.CellReference == "G1").IsSupportedByOfficeIMO);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SORT(A1:A100001)")]
         public void Test_ArrayCalculation_CellLimitDefersWithoutOutput(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.SetArrayFormula("G1:G2", formula);
             Assert.Equal(0, document.Calculate());
             Assert.Null(Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_CircularTailReferenceUsesDependencyGuard() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.SetArrayFormula("G1:G2", "SEQUENCE(2,1,G2)");
             Assert.Equal(0, document.Calculate());
         }
@@ -91,9 +91,9 @@ namespace OfficeIMO.Tests {
         public void Test_ArrayCalculation_AnchorReferenceIsScalarAndDoesNotWriteNeighbors() {
             string path = Path.Combine(_directoryWithFiles, "ArrayAnchorReference.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Arrays");
-                sheet.CellFormula(1, 1, "G2");
-                sheet.CellValue(1, 2, "neighbor");
+                var sheet = document.AddSheet("Arrays");
+                sheet.Cell(1, 1).SetFormula("G2");
+                sheet.Cell(1, 2).SetValue("neighbor");
                 sheet.SetArrayFormula("G2:H3", "SEQUENCE(2,2)");
                 Assert.Equal(2, document.Calculate());
                 document.Save();
@@ -109,11 +109,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_TextLookingLikeNumberOrErrorRetainsItsType() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
-            sheet.CellValue(1, 1, "12");
-            sheet.CellValue(2, 1, "#N/A");
-            sheet.CellFormula(1, 2, "ISNUMBER(A1)");
-            sheet.CellFormula(2, 2, "ISERROR(A2)");
+            var sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetValue("12");
+            sheet.Cell(2, 1).SetValue("#N/A");
+            sheet.Cell(1, 2).SetFormula("ISNUMBER(A1)");
+            sheet.Cell(2, 2).SetFormula("ISERROR(A2)");
             Assert.Equal(2, document.Calculate());
             Assert.All(sheet.InspectFormulas().Formulas, formula => Assert.Equal("0", formula.CachedValue));
         }
@@ -123,9 +123,9 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         public void Test_ArrayCalculation_UnsupportedFormulaCacheIsNotSortKey(bool cachedAsText) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
-            sheet.CellFormula(1, 1, "UNSUPPORTED()");
-            sheet.CellFormula(2, 1, "UNSUPPORTED()");
+            var sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetFormula("UNSUPPORTED()");
+            sheet.Cell(2, 1).SetFormula("UNSUPPORTED()");
             var cells = document.WorkbookPartRoot.WorksheetParts.Single().Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().ToArray();
             foreach (var cell in cells) {
                 cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(cell.CellReference == "A1" ? "12" : "2");
@@ -142,11 +142,11 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_ArrayCalculation_DerivedUnsupportedFormulaCacheIsNotSortKey(bool crossSheet) {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet(crossSheet ? "Inputs" : "Sort");
-            source.CellFormula(1, 1, "UNSUPPORTED()");
-            var sheet = crossSheet ? document.AddWorksheet("Sort") : source;
-            sheet.CellFormula(1, 2, crossSheet ? "Inputs!A1+1" : "A1+1");
-            sheet.CellValue(2, 2, 2d);
+            var source = document.AddSheet(crossSheet ? "Inputs" : "Sort");
+            source.Cell(1, 1).SetFormula("UNSUPPORTED()");
+            var sheet = crossSheet ? document.AddSheet("Sort") : source;
+            sheet.Cell(1, 2).SetFormula(crossSheet ? "Inputs!A1+1" : "A1+1");
+            sheet.Cell(2, 2).SetValue(2d);
             var cachedSource = document.WorkbookPartRoot.WorksheetParts
                 .SelectMany(part => part.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>())
                 .Single(cell => cell.CellFormula?.Text == "UNSUPPORTED()");
@@ -163,9 +163,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_ComparedUnsupportedFormulaCacheIsNotSortKey() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Sort");
-            sheet.CellFormula(1, 1, "UNSUPPORTED()");
-            sheet.CellValue(2, 1, 2d);
+            var sheet = document.AddSheet("Sort");
+            sheet.Cell(1, 1).SetFormula("UNSUPPORTED()");
+            sheet.Cell(2, 1).SetValue(2d);
             var cachedSource = document.WorkbookPartRoot.WorksheetParts.Single().Worksheet
                 .Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()
                 .Single(cell => cell.CellReference == "A1");
@@ -182,8 +182,8 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_ArrayCalculation_SpillChildFromUnsupportedFormulaCacheIsNotSortKey(bool dynamicSpill) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Sort");
-            sheet.CellFormula(1, 1, "UNSUPPORTED()");
+            var sheet = document.AddSheet("Sort");
+            sheet.Cell(1, 1).SetFormula("UNSUPPORTED()");
             var cachedSource = document.WorkbookPartRoot.WorksheetParts.Single().Worksheet
                 .Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()
                 .Single(cell => cell.CellReference == "A1");
@@ -203,8 +203,8 @@ namespace OfficeIMO.Tests {
         public void Test_ArrayCalculation_UnsupportedFormulaErrorLookingTextReopensAsText() {
             string path = Path.Combine(_directoryWithFiles, "ArrayTextCache.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Arrays");
-                sheet.CellFormula(1, 1, "UNSUPPORTED()");
+                var sheet = document.AddSheet("Arrays");
+                sheet.Cell(1, 1).SetFormula("UNSUPPORTED()");
                 var cell = document.WorkbookPartRoot.WorksheetParts.Single().Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
                 cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("#N/A");
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
@@ -221,11 +221,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_SmallNonzeroComparisonIsNotEqualToZero() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
-            sheet.CellValue(1, 1, 5e-8);
-            sheet.CellValue(2, 1, -5e-8);
+            var sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetValue(5e-8);
+            sheet.Cell(2, 1).SetValue(-5e-8);
             sheet.SetArrayFormula("G1:G1", "FILTER(A1:A2,A1:A2>0,\"empty\")");
-            sheet.CellFormula(1, 8, "A1=0");
+            sheet.Cell(1, 8).SetFormula("A1=0");
             Assert.Equal(2, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out string? cached));
             Assert.Equal(5e-8, double.Parse(cached!, System.Globalization.CultureInfo.InvariantCulture));
@@ -240,13 +240,13 @@ namespace OfficeIMO.Tests {
                 try {
                     using var document = ExcelDocument.Create();
                     document.Calculation.MaximumDependencyDepth = 320;
-                    var sheet = document.AddWorksheet("Arrays");
+                    var sheet = document.AddSheet("Arrays");
                     for (int i = 0; i < 150; i++) {
                         int row = 1 + i * 2;
                         string start = i == 149 ? "1" : "G" + (row + 2) + "+1";
                         sheet.SetArrayFormula("G" + row + ":G" + (row + 1), "SEQUENCE(2,1," + start + ")");
                     }
-                    sheet.CellFormula(1, 8, "42");
+                    sheet.Cell(1, 8).SetFormula("42");
                     Assert.InRange(document.Calculate(), 1, 151);
                     Assert.True(sheet.TryGetCachedFormulaValue(1, 8, out string? cached));
                     Assert.Equal("42", cached);
@@ -262,7 +262,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SEQUENCE(1,16385)")]
         public void Test_ArrayCalculation_OutsideWorksheetExtentStaysDeferred(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.SetArrayFormula("G1:G1", formula);
             Assert.Equal(0, document.Calculate());
         }
@@ -270,17 +270,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_AtCellBudgetPublishesFinalCell() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.SetArrayFormula("G1:G100000", "SEQUENCE(100000)");
             Assert.Equal(1, document.Calculate());
-            Assert.Equal(100000d, sheet.CellAt(100000, 7).GetValue().Value);
+            Assert.Equal(100000d, sheet.Cell(100000, 7).GetValue().Value);
         }
 
         [Fact]
         public void Test_ArrayCalculation_UnqualifiedMixedComparisonStaysDeferred() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
-            sheet.CellValue(1, 1, 1d);
+            var sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetValue(1d);
             sheet.SetArrayFormula("H1:H1", "FILTER(A1:A1,A1:A1=\"1\",\"none\")");
             Assert.Equal(0, document.Calculate());
         }
@@ -288,10 +288,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_BlankMaskCellIsFalse() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
-            sheet.CellValue(1, 1, 2d);
-            sheet.CellValue(2, 1, 3d);
-            sheet.CellValue(1, 4, true);
+            var sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetValue(2d);
+            sheet.Cell(2, 1).SetValue(3d);
+            sheet.Cell(1, 4).SetValue(true);
             sheet.SetArrayFormula("G1:G1", "FILTER(A1:A2,D1:D2)");
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out string? cached));
@@ -301,7 +301,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ArrayCalculation_MergedOutputRangeStaysDeferred() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
+            var sheet = document.AddSheet("Arrays");
             sheet.SetArrayFormula("G1:H2", "SEQUENCE(2,2)");
             document.WorkbookPartRoot.WorksheetParts.Single().Worksheet.AppendChild(
                 new DocumentFormat.OpenXml.Spreadsheet.MergeCells(
@@ -317,12 +317,12 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<ArgumentException>(() => document.Calculation.RegisterCustomFunction(function,
                     (context, arguments) => ExcelFormulaValue.FromNumber(1)));
             }
-            var sheet = document.AddWorksheet("Arrays");
-            sheet.CellFormula(1, 1, "SEQUENCE(2)");
-            sheet.CellValue(2, 1, "neighbor");
+            var sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetFormula("SEQUENCE(2)");
+            sheet.Cell(2, 1).SetValue("neighbor");
             Assert.Equal(0, document.Calculate());
             Assert.False(Assert.Single(sheet.InspectFormulas().Formulas).IsSupportedByOfficeIMO);
-            Assert.Equal("neighbor", sheet.CellAt(2, 1).GetValue().Value);
+            Assert.Equal("neighbor", sheet.Cell(2, 1).GetValue().Value);
         }
 
         [Theory]
@@ -331,9 +331,9 @@ namespace OfficeIMO.Tests {
         [InlineData("a-b", "ab")]
         public void Test_ArrayCalculation_UnqualifiedTextSortStaysDeferred(string first, string second) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arrays");
-            sheet.CellValue(1, 1, first);
-            sheet.CellValue(2, 1, second);
+            var sheet = document.AddSheet("Arrays");
+            sheet.Cell(1, 1).SetValue(first);
+            sheet.Cell(2, 1).SetValue(second);
             sheet.SetArrayFormula("G1:G2", "SORT(A1:A2)");
             Assert.Equal(0, document.Calculate());
         }

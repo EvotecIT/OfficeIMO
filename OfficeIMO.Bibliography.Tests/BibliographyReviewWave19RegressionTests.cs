@@ -20,7 +20,7 @@ public sealed class BibliographyReviewWave19RegressionTests {
         string source = "[{\"id\":\"x\"" + typedType + ",\"" + property + "\":" + rawValue + "}]";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         BibliographyNativeField field = Assert.Single(reopened.NativeFields, field => field.Format == BibliographyFormat.CslJson && field.Name == property);
@@ -39,7 +39,7 @@ public sealed class BibliographyReviewWave19RegressionTests {
         const string source = "[{\"id\":\"x\",\"type\":\"book\",\"issued\":{\"literal\":123}}]";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate date = Assert.Single(Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items).Dates);
 
         BibliographyNativeField field = Assert.Single(date.NativeFields, field => field.Name == "literal");
@@ -74,9 +74,9 @@ public sealed class BibliographyReviewWave19RegressionTests {
         entry.Value = "<record><rec-number>2</rec-number><ref-type name=\"Book\">6</ref-type></record>";
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "metadata");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "metadata");
     }
 
     [Theory]

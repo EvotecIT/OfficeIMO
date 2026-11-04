@@ -2,7 +2,7 @@ using OfficeIMO.Drawing.Binary;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one resolved color stop in a legacy OfficeArt gradient.</summary>
-    public sealed class LegacyPptGradientStop {
+    internal sealed class LegacyPptGradientStop {
         internal LegacyPptGradientStop(string? color, double position) {
             Color = color;
             Position = position;
@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Identifies the OfficeArt fill used by a binary slide or master background.</summary>
-    public enum LegacyPptBackgroundKind {
+    internal enum LegacyPptBackgroundKind {
         /// <summary>The background shape explicitly disables its fill.</summary>
         None,
         /// <summary>A solid color.</summary>
@@ -44,7 +44,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents an OfficeArt background shape and its decoded fill.</summary>
-    public sealed class LegacyPptBackground {
+    internal sealed class LegacyPptBackground {
         internal LegacyPptBackground(LegacyPptBackgroundKind kind, uint rawFillType,
             string? foregroundColor, string? backgroundColor, double? foregroundOpacity,
             double? backgroundOpacity, double? angleDegrees, int? focusPercent,

@@ -79,7 +79,7 @@ internal static partial class DocumentReaderEngine {
             OfficeCompoundDocumentDetector.DocumentKind.ExcelWorkbook =>
                 DetectionCandidate.High(ReaderInputKind.Excel, "application/vnd.ms-excel",
                     "container:ole-excel-workbook"),
-            OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation =>
+            OfficeCompoundDocumentDetector.DocumentKind.PowerPointDocument =>
                 DetectionCandidate.High(ReaderInputKind.PowerPoint, "application/vnd.ms-powerpoint",
                     "container:ole-powerpoint-presentation"),
             OfficeCompoundDocumentDetector.DocumentKind.VisioDrawing =>

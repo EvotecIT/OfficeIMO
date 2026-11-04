@@ -59,7 +59,7 @@ internal static class NativePagesNineLevelSmoke {
         Require(pages.Body.IsFormattingComplete && pages.Diagnostics.Count == 0 && pages.SourceDeclarationIssues.Count == 0
             && pages.SourceReferenceIssues.Count == 0 && items.Select(p => p.ListNumber!.Value).SequenceEqual(numbers)
             && items.Select(p => p.ListLevel).SequenceEqual(levels), "Nine-level projection lost content or counters.");
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var bytes = new MemoryStream(); result.Value.Save(bytes); bytes.Position = 0;
         using var saved = WordDocument.Load(bytes);
         Require(!saved.ValidateDocument().Any() && WordDocumentTraversal.BuildListIndices(saved).Values

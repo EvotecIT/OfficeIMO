@@ -45,8 +45,8 @@ internal static class ReaderComparisonCorpus {
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Status";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Retention marker";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Ready";
-            document.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
-            document.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
+            document.Properties.Created = FixedPackageTimestamp;
+            document.Properties.Modified = FixedPackageTimestamp;
             document.Save();
         }
 
@@ -68,15 +68,15 @@ internal static class ReaderComparisonCorpus {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-reader-evidence-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Evidence");
-                sheet.Cell(1, 1, "Control");
-                sheet.Cell(1, 2, "Owner");
-                sheet.Cell(1, 3, "Status");
-                sheet.Cell(2, 1, "Spreadsheet retention marker");
-                sheet.Cell(2, 2, "Reader team");
-                sheet.Cell(2, 3, "Ready");
-                document.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
-                document.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
+                ExcelSheet sheet = document.AddSheet("Evidence");
+                sheet.Cell(1, 1).SetValue("Control");
+                sheet.Cell(1, 2).SetValue("Owner");
+                sheet.Cell(1, 3).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Spreadsheet retention marker");
+                sheet.Cell(2, 2).SetValue("Reader team");
+                sheet.Cell(2, 3).SetValue("Ready");
+                document.Properties.Created = FixedPackageTimestamp;
+                document.Properties.Modified = FixedPackageTimestamp;
                 document.Save();
             }
 
@@ -92,26 +92,26 @@ internal static class ReaderComparisonCorpus {
 
     private static ReaderComparisonCase CreatePowerPoint() {
         using var stream = new MemoryStream();
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBox("Quarterly evidence");
             text.AddBullet("Presentation list marker");
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.GetCell(0, 0).Text = "Measure";
             table.GetCell(0, 1).Text = "Value";
             table.GetCell(1, 0).Text = "Presentation table marker";
             table.GetCell(1, 1).Text = "42";
             using var image = new MemoryStream(Convert.FromBase64String(TinyPngBase64));
-            slide.AddPicture(image, OfficeIMO.Drawing.OfficeImageFormat.Png);
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png);
             slide.Notes.Text = "Presenter notes retention marker";
             presentation.Save();
-            presentation.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
-            presentation.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
+            presentation.Properties.Created = FixedPackageTimestamp;
+            presentation.Properties.Modified = FixedPackageTimestamp;
         }
 
         return Case("pptx", "evidence-deck.pptx", NormalizeOfficePackage(stream.ToArray()),
             Probe("title", ReaderComparisonProbeKind.ContainsText, "Quarterly evidence"),
-            Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "Presentation list marker"),
+            Probe("list", ReaderComparisonProbeKind.ListItem, "Presentation list marker"),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "Presentation table marker"),
             Probe("notes", ReaderComparisonProbeKind.ContainsText, "Presenter notes retention marker"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
@@ -122,10 +122,10 @@ internal static class ReaderComparisonCorpus {
     private static ReaderComparisonCase CreatePdf() {
         PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content
             .H1("PDF evidence heading")
-            .Paragraph(value => value.Text("PDF first-page retention marker."))
+            .AddParagraph(value => value.AddText("PDF first-page retention marker."))
             .PageBreak()
             .H1("PDF second page")
-            .Paragraph(value => value.Text("PDF second-page retention marker."))));
+            .AddParagraph(value => value.AddText("PDF second-page retention marker."))));
 
         return Case("pdf", "evidence-report.pdf", document.ToBytes(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "PDF evidence heading"),
@@ -145,7 +145,7 @@ internal static class ReaderComparisonCorpus {
 
         return Case("html", "evidence-article.html", Encoding.UTF8.GetBytes(html),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "HTML evidence heading"),
-            Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "HTML list retention marker"),
+            Probe("list", ReaderComparisonProbeKind.ListItem, "HTML list retention marker"),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "HTML table retention marker"),
             Probe(
                 "link",
@@ -309,7 +309,7 @@ internal static class ReaderComparisonCorpus {
 
         return Case("epub", "evidence-book.epub", stream.ToArray(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "EPUB evidence heading"),
-            Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "EPUB list retention marker"),
+            Probe("list", ReaderComparisonProbeKind.ListItem, "EPUB list retention marker"),
             Probe(
                 "link",
                 ReaderComparisonProbeKind.MarkdownLink,
@@ -329,7 +329,7 @@ internal static class ReaderComparisonCorpus {
 
         return Case("zip", "evidence-archive.zip", stream.ToArray(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "ZIP evidence heading"),
-            Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "ZIP list retention marker"),
+            Probe("list", ReaderComparisonProbeKind.ListItem, "ZIP list retention marker"),
             Probe(
                 "link",
                 ReaderComparisonProbeKind.MarkdownLink,

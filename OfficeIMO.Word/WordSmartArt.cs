@@ -142,14 +142,17 @@ namespace OfficeIMO.Word {
         /// <param name="bold">True to render each replacement in bold; otherwise false.</param>
         /// <param name="italic">True to render each replacement in italics; otherwise false.</param>
         /// <param name="underline">True to underline each replacement; otherwise false.</param>
-        /// <param name="colorHex">An optional RGB color value (for example, "FF0000") applied to each replacement, or <c>null</c> to keep the existing color.</param>
-        /// <param name="sizePt">An optional font size in points applied to each replacement, or <c>null</c> to keep the existing size.</param>
-        public void ReplaceTexts(IEnumerable<string> texts, bool bold, bool italic, bool underline, string? colorHex = null, double? sizePt = null) {
+        /// <param name="color">An optional RGB color applied to each replacement, or <c>null</c> to keep the existing color.</param>
+        /// <param name="fontSize">An optional physical font size applied to each replacement, or <c>null</c> to inherit the diagram font size.</param>
+#pragma warning disable RS0026 // Existing overload shape; only the colour parameter type changed.
+        public void ReplaceTexts(IEnumerable<string> texts, bool bold, bool italic, bool underline, OfficeColor? color = null, OfficeLength? fontSize = null) {
+#pragma warning restore RS0026
+            int? nativeFontSize = GetSmartArtFontSize(fontSize);
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             int i = 0;
             foreach (var t in texts) {
                 if (i >= paras.Count) break;
-                ReplaceParagraphText(paras[i], ns.a, t, bold, italic, underline, colorHex, sizePt);
+                ReplaceParagraphText(paras[i], ns.a, t, bold, italic, underline, color?.ToRgbHex(), nativeFontSize);
                 i++;
             }
             SaveDiagramData(dataPart, xdoc);
@@ -161,11 +164,13 @@ namespace OfficeIMO.Word {
         /// <param name="bold">True to render each replacement in bold; otherwise false.</param>
         /// <param name="italic">True to render each replacement in italics; otherwise false.</param>
         /// <param name="underline">True to underline each replacement; otherwise false.</param>
-        /// <param name="colorHex">An optional RGB color value (for example, "FF0000") applied to each replacement, or <c>null</c> to keep the existing color.</param>
-        /// <param name="sizePt">An optional font size in points applied to each replacement, or <c>null</c> to keep the existing size.</param>
+        /// <param name="color">An optional RGB color applied to each replacement, or <c>null</c> to keep the existing color.</param>
+        /// <param name="fontSize">An optional physical font size applied to each replacement, or <c>null</c> to inherit the diagram font size.</param>
         /// <param name="texts">The ordered replacement strings to apply to each node in turn.</param>
-        public void ReplaceTexts(bool bold, bool italic, bool underline, string? colorHex = null, double? sizePt = null, params string[] texts)
-            => ReplaceTexts((IEnumerable<string>)texts, bold, italic, underline, colorHex, sizePt);
+#pragma warning disable RS0026 // Existing overload shape; only the colour parameter type changed.
+        public void ReplaceTexts(bool bold, bool italic, bool underline, OfficeColor? color = null, OfficeLength? fontSize = null, params string[] texts)
+#pragma warning restore RS0026
+            => ReplaceTexts((IEnumerable<string>)texts, bold, italic, underline, color, fontSize);
 
         /// <summary>
         /// Sets the text of the node at the specified 0-based index while applying basic formatting options.
@@ -189,19 +194,21 @@ namespace OfficeIMO.Word {
         /// <param name="bold">True to render the new text in bold; otherwise false.</param>
         /// <param name="italic">True to render the new text in italics; otherwise false.</param>
         /// <param name="underline">True to underline the new text; otherwise false.</param>
-        /// <param name="colorHex">An optional RGB color value (for example, "FF0000") applied to the new text, or <c>null</c> to keep the existing color.</param>
-        /// <param name="sizePt">An optional font size in points applied to the new text, or <c>null</c> to keep the existing size.</param>
-        public void SetNodeText(int index, string text, bool bold, bool italic, bool underline, string? colorHex, double? sizePt) {
+        /// <param name="color">An optional RGB color applied to the new text, or <c>null</c> to keep the existing color.</param>
+        /// <param name="fontSize">An optional physical font size applied to the new text, or <c>null</c> to inherit the diagram font size.</param>
+        public void SetNodeText(int index, string text, bool bold, bool italic, bool underline, OfficeColor? color, OfficeLength? fontSize) {
+            int? nativeFontSize = GetSmartArtFontSize(fontSize);
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             if (index < 0 || index >= paras.Count) throw new ArgumentOutOfRangeException(nameof(index));
-            ReplaceParagraphText(paras[index], ns.a, text, bold, italic, underline, colorHex, sizePt);
+            ReplaceParagraphText(paras[index], ns.a, text, bold, italic, underline, color?.ToRgbHex(), nativeFontSize);
             SaveDiagramData(dataPart, xdoc);
         }
 
         /// <summary>
         /// Adds a new node (algorithmic layouts only: BasicProcess or Cycle) and sets its text.
         /// </summary>
-        public void AddNode(string text) {
+        /// <returns>The attached node, addressed independently of its position.</returns>
+        public WordSmartArtNode AddNode(string text) {
             if (!CanModifyNodes) throw new NotSupportedException("Adding nodes is supported only for algorithmic layouts (BasicProcess, Cycle). Use formatted templates for exact visual parity with fixed nodes.");
             var (xdoc, ns, paras, dataPart) = LoadNodeParagraphsWithPart();
             var dgm = ns.dgm; var a = ns.a;
@@ -253,6 +260,7 @@ namespace OfficeIMO.Word {
             // Set text with formatting preserved default
             ReplaceParagraphText(p, a, text);
             SaveDiagramData(dataPart, xdoc);
+            return new WordSmartArtNode(this, newId);
         }
 
         /// <summary>
@@ -507,6 +515,14 @@ namespace OfficeIMO.Word {
             return ordered.Count == nodes.Count ? ordered : nodes;
         }
 
+        // DrawingML stores font sizes in hundredths of a point (1 through 4000 points).
+        private static int? GetSmartArtFontSize(OfficeLength? fontSize) {
+            if (!fontSize.HasValue) return null;
+            if (fontSize.Value < OfficeLength.Points(1) || fontSize.Value > OfficeLength.Points(4000))
+                throw new ArgumentOutOfRangeException(nameof(fontSize), "SmartArt font size must be between 1 and 4000 points.");
+            return checked((int)Math.Round(fontSize.Value.ToPoints() * 100D, MidpointRounding.AwayFromZero));
+        }
+
         private void ReplaceParagraphText(XElement p, XNamespace a, string text) {
             // Remove existing runs; keep endParaRPr if present.
             var endPr = p.Element(a + "endParaRPr");
@@ -522,11 +538,11 @@ namespace OfficeIMO.Word {
             InsertRunsWithBreaks(p, a, text, bold, italic);
         }
 
-        private void ReplaceParagraphText(XElement p, XNamespace a, string text, bool bold, bool italic, bool underline, string? colorHex, double? sizePt) {
+        private void ReplaceParagraphText(XElement p, XNamespace a, string text, bool bold, bool italic, bool underline, string? rgb, int? fontSize) {
             var endPr = p.Element(a + "endParaRPr");
             p.Elements(a + "r").Remove();
             p.Elements(a + "br").Remove();
-            InsertRunsWithBreaks(p, a, text, bold, italic, underline, colorHex, sizePt);
+            InsertRunsWithBreaks(p, a, text, bold, italic, underline, rgb, fontSize);
         }
 
         private void InsertRunsWithBreaks(XElement p, XNamespace a, string text, bool bold, bool italic) {
@@ -547,7 +563,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void InsertRunsWithBreaks(XElement p, XNamespace a, string text, bool bold, bool italic, bool underline, string? colorHex, double? sizePt) {
+        private void InsertRunsWithBreaks(XElement p, XNamespace a, string text, bool bold, bool italic, bool underline, string? rgb, int? fontSize) {
             var lines = (text ?? string.Empty).Split('\n');
             XNamespace xml = XNamespace.Xml;
             for (int i = 0; i < lines.Length; i++) {
@@ -556,12 +572,12 @@ namespace OfficeIMO.Word {
                 if (bold) rPr.SetAttributeValue("b", 1);
                 if (italic) rPr.SetAttributeValue("i", 1);
                 if (underline) rPr.SetAttributeValue("u", "sng");
-                if (sizePt.HasValue) rPr.SetAttributeValue("sz", (int)Math.Round(sizePt.Value * 100));
+                if (fontSize.HasValue) rPr.SetAttributeValue("sz", fontSize.Value);
                 var run = new XElement(a + "r",
                     rPr,
                     new XElement(a + "t", new XAttribute(xml + "space", "preserve"), lines[i]));
-                if (!string.IsNullOrWhiteSpace(colorHex)) {
-                    var hex = colorHex!.Trim();
+                if (!string.IsNullOrWhiteSpace(rgb)) {
+                    var hex = rgb!.Trim();
                     if (hex.StartsWith("#")) hex = hex.Substring(1);
                     if (hex.Length == 6) {
                         rPr.Add(new XElement(a + "solidFill",

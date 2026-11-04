@@ -13,7 +13,7 @@ internal static class AccessibilityFixtures {
             Summary = "Synthetic feature and conformance values for schema validation only; not an assessment of the accompanying EPUB.",
             Features = Enum.GetValues<BookOnixAccessibilityFeature>(),
             Conformance = new(BookOnixWcagVersion.V2_2, BookOnixWcagLevel.AA),
-            AssessmentDate = new DateOnly(2026, 10, 5),
+            AssessmentDate = new DateTime(2026, 10, 5),
             PublisherInformationUrl = "https://example.org/accessibility?edition=1&format=epub",
             PublisherContactEmail = "accessibility@example.org"
         },

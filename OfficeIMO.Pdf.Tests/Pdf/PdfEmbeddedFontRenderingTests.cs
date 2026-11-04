@@ -12,15 +12,15 @@ public class PdfEmbeddedFontRenderingTests {
 
         byte[] fontBytes = File.ReadAllBytes(fontPath);
         var family = new PdfEmbeddedFontFamily("Managed Embedded", fontBytes);
-        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .UseFontFamily(family)
-            .Paragraph(paragraph => paragraph.Text("Document font outlines"))
+            .Paragraph(paragraph => paragraph.AddText("Document font outlines"))
             .ToBytes();
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         OfficeFontFace face = Assert.Single(drawing.Fonts.Faces);
         // Generated subsets carry a six-letter tag before the font name.
@@ -41,12 +41,12 @@ public class PdfEmbeddedFontRenderingTests {
     [Fact]
     public void RenderPage_ReportsSubstitutionForUnembeddedStandardFont() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Standard font"))
+            .Paragraph(paragraph => paragraph.AddText("Standard font"))
             .ToBytes();
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.font-substitution");
     }

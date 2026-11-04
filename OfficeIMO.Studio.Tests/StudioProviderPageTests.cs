@@ -66,8 +66,8 @@ public sealed class StudioProviderPageTests {
     private static byte[] CreatePdf() => PdfDocument.Create(compose => {
         for (int page = 1; page <= 2; page++) {
             string text = "Provider page " + page;
-            compose.Page(sheet => sheet.Size(300, 400).Content(content => content.Item(item =>
-                item.Paragraph(paragraph => paragraph.Text(text)))));
+            compose.Page(sheet => sheet.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item =>
+                item.AddParagraph(paragraph => paragraph.AddText(text)))));
         }
     }).ToBytes();
 

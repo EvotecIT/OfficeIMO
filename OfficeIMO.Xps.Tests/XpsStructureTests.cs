@@ -14,7 +14,7 @@ public sealed class XpsStructureTests {
     public void LoadedDocumentsCanInsertMoveRemoveAndReopenWithoutLosingNativeParts(XpsFormat format) {
         var created = XpsDocument.Create(format); created.AddPage(100, 80).AddPath("M0,0H20V20Z");
         created.AddResource("Metadata/opaque.bin", new byte[] { 7, 9 }, "application/octet-stream");
-        var doc = XpsDocument.Load(created.Save()); var original = doc.Pages[0];
+        var doc = XpsDocument.Load(created.ToBytes()); var original = doc.Pages[0];
         var first = doc.Documents[0]; var second = doc.AddDocument();
         var inserted = first.InsertPage(0, 120, 90); second.InsertPage(0, original);
         Assert.Same(original, doc.Pages[2]);
@@ -22,17 +22,17 @@ public sealed class XpsStructureTests {
         first.MovePageTo(1, second, 0); Assert.Same(inserted, second.Pages[0]);
         doc.MoveDocument(1, 0); Assert.Same(inserted, doc.Pages[0]);
         doc.RemoveDocumentAt(1); second.RemovePageAt(1);
-        var reopened = XpsDocument.Load(doc.Save());
+        var reopened = XpsDocument.Load(doc.ToBytes());
         Assert.Single(reopened.Documents); Assert.Single(reopened.Pages);
         Assert.Equal(120, reopened.Pages[0].Width);
         Assert.Contains(original.PartName, reopened.PartNames);
         Assert.Equal(new byte[] { 7, 9 }, reopened.GetPartBytes("Metadata/opaque.bin"));
-        Assert.Equal(doc.Save(), doc.Save());
+        Assert.Equal(doc.ToBytes(), doc.ToBytes());
         // Removed backing objects are still usable, and their edits survive restoration.
         original.AddPath("M2,2H10V10Z", "#FFFF0000");
         doc.InsertDocument(0, first);
         Assert.Same(original, doc.Pages[0]);
-        Assert.Equal("#FFFF0000", (string?)XpsDocument.Load(doc.Save()).Pages[0].GetMarkup().Elements().Last().Attribute("Fill"));
+        Assert.Equal("#FFFF0000", (string?)XpsDocument.Load(doc.ToBytes()).Pages[0].GetMarkup().Elements().Last().Attribute("Fill"));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class XpsStructureTests {
         pageXml.Add(new XElement(ns + "Path", new XAttribute("Name", "target"), new XAttribute("Data", "M0,0H10V10Z"), new XAttribute("Fill", "#FF000000")));
         two.ReplaceMarkup(pageXml);
         one.AddPath("M0,0H10V10Z"); var source = one.GetMarkup(); source.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", "/Documents/1/FixedDocument.fdoc#target"); one.ReplaceMarkup(source);
-        byte[] bytes = XpsDocumentTests.Rewrite(doc.Save(), doc.Documents[0].PartName, b => {
+        byte[] bytes = XpsDocumentTests.Rewrite(doc.ToBytes(), doc.Documents[0].PartName, b => {
             var xml = XElement.Parse(Encoding.UTF8.GetString(b)); xml.SetAttributeValue("custom", "retained");
             xml.Elements().Last().SetAttributeValue("custom-page", "retained");
             xml.Elements().Last().Add(new XElement(ns + "PageContent.LinkTargets", new XElement(ns + "LinkTarget", new XAttribute("Name", "target"))));
@@ -64,42 +64,42 @@ public sealed class XpsStructureTests {
     [Fact]
     public void FailedRepeatedDocumentEditsAreAtomicAndEmptySequenceCanAppend() {
         var created = XpsDocument.Create(); created.AddPage(100, 100);
-        var doc = XpsDocument.Load(created.Save(), new XpsReadOptions { MaximumPages = 2 });
+        var doc = XpsDocument.Load(created.ToBytes(), new XpsLoadOptions { Limits = { MaxPages = 2 } });
         var first = doc.Documents[0]; doc.InsertDocument(1, first);
-        byte[] before = doc.Save(); string[] parts = doc.PartNames.ToArray();
+        byte[] before = doc.ToBytes(); string[] parts = doc.PartNames.ToArray();
         Assert.Throws<InvalidDataException>(() => first.AddPage());
-        Assert.Equal(before, doc.Save()); Assert.Equal(parts, doc.PartNames);
+        Assert.Equal(before, doc.ToBytes()); Assert.Equal(parts, doc.PartNames);
         Assert.Throws<ArgumentOutOfRangeException>(() => doc.MoveDocument(0, 2));
         Assert.Throws<ArgumentException>(() => first.InsertPage(0, XpsDocument.Create().AddPage()));
         doc.RemoveDocumentAt(1); doc.RemoveDocumentAt(0);
         var page = doc.AddPage(200, 300);
         Assert.Single(doc.Documents); Assert.Same(page, doc.Pages.Single());
         Assert.NotEqual(first.PartName, doc.Documents[0].PartName);
-        Assert.Single(XpsDocument.Load(doc.Save()).Pages);
+        Assert.Single(XpsDocument.Load(doc.ToBytes()).Pages);
     }
 
     [Fact]
     public void CrossDocumentMoveWithRepeatedDestinationHonorsSequencePageLimitAtomically() {
         var created = XpsDocument.Create(); created.AddPage(100, 100); created.AddDocument();
-        var doc = XpsDocument.Load(created.Save(), new XpsReadOptions { MaximumPages = 1 });
+        var doc = XpsDocument.Load(created.ToBytes(), new XpsLoadOptions { Limits = { MaxPages = 1 } });
         var target = doc.Documents[1]; doc.InsertDocument(2, target);
-        byte[] before = doc.Save();
+        byte[] before = doc.ToBytes();
         Assert.Throws<InvalidDataException>(() => doc.Documents[0].MovePageTo(0, target, 0));
-        Assert.Equal(before, doc.Save()); Assert.Single(doc.Pages);
+        Assert.Equal(before, doc.ToBytes()); Assert.Single(doc.Pages);
     }
     [Fact]
     public void ResourceReplacementIsSharedAndCannotOverwriteStructure() {
         var doc = XpsDocument.Create(); doc.AddPage();
         doc.AddResource("data.bin", new byte[] { 1 }, "application/octet-stream");
         byte[] replacement = { 2, 3 }; doc.ReplaceResource("data.bin", replacement); replacement[0] = 9;
-        Assert.Equal(new byte[] { 2, 3 }, XpsDocument.Load(doc.Save()).GetPartBytes("data.bin"));
+        Assert.Equal(new byte[] { 2, 3 }, XpsDocument.Load(doc.ToBytes()).GetPartBytes("data.bin"));
         Assert.Throws<ArgumentException>(() => doc.ReplaceResource(doc.Pages[0].PartName, new byte[] { 1 }));
         Assert.Throws<ArgumentException>(() => doc.ReplaceResource(doc.Documents[0].PartName, new byte[] { 1 }));
     }
     [Fact]
     public void PageReplacementRespectsLoadedXmlLimitsAndKeepsOriginalOnFailure() {
         var created = XpsDocument.Create(); created.AddPage();
-        var doc = XpsDocument.Load(created.Save(), new XpsReadOptions { MaximumXmlDepth = 2 });
+        var doc = XpsDocument.Load(created.ToBytes(), new XpsLoadOptions { Limits = { MaxDepth = 2 } });
         var page = doc.Pages[0]; var xml = page.GetMarkup(); XNamespace ns = xml.Name.Namespace;
         xml.Add(new XElement(ns + "Canvas", new XElement(ns + "Canvas", new XElement(ns + "Canvas"))));
         Assert.Throws<InvalidDataException>(() => page.ReplaceMarkup(xml));
@@ -110,24 +110,24 @@ public sealed class XpsStructureTests {
     [InlineData(true)]
     [InlineData(false)]
     public void StructuralEditsBudgetRegeneratedMetadataBeforeMutation(bool partLimit) {
-        var created = XpsDocument.Create(); created.AddPage(); byte[] initial = created.Save();
+        var created = XpsDocument.Create(); created.AddPage(); byte[] initial = created.ToBytes();
         var baseline = XpsDocument.Load(initial);
         int typesLength = baseline.GetPartBytes("[Content_Types].xml").Length;
         long expanded = baseline.PartNames.Sum(n => (long)baseline.GetPartBytes(n).Length);
-        var limits = partLimit ? new XpsReadOptions { MaximumPartBytes = typesLength }
-            : new XpsReadOptions { MaximumExpandedBytes = expanded + 220 };
-        var doc = XpsDocument.Load(initial, limits); byte[] before = doc.Save();
+        var limits = partLimit ? new XpsLoadOptions { Limits = { MaxPartBytes = typesLength } }
+            : new XpsLoadOptions { Limits = { MaxExpandedBytes = expanded + 220 } };
+        var doc = XpsDocument.Load(initial, limits); byte[] before = doc.ToBytes();
         Assert.Throws<InvalidOperationException>(() => doc.AddDocument());
-        Assert.Single(doc.Documents); Assert.Equal(before, doc.Save());
+        Assert.Single(doc.Documents); Assert.Equal(before, doc.ToBytes());
     }
 
     [Fact]
     public void ResourceAdditionBudgetsGeneratedContentTypesAtomically() {
-        var created = XpsDocument.Create(); created.AddPage(); byte[] initial = created.Save();
+        var created = XpsDocument.Create(); created.AddPage(); byte[] initial = created.ToBytes();
         var baseline = XpsDocument.Load(initial);
-        var doc = XpsDocument.Load(initial, new XpsReadOptions { MaximumPartBytes = baseline.GetPartBytes("[Content_Types].xml").Length });
+        var doc = XpsDocument.Load(initial, new XpsLoadOptions { Limits = { MaxPartBytes = baseline.GetPartBytes("[Content_Types].xml").Length } });
         Assert.Throws<InvalidOperationException>(() => doc.AddResource("new.bin", new byte[] { 1 }, "application/octet-stream"));
-        Assert.DoesNotContain("new.bin", doc.PartNames); Assert.Equal(initial, doc.Save());
+        Assert.DoesNotContain("new.bin", doc.PartNames); Assert.Equal(initial, doc.ToBytes());
     }
 
     [Theory]
@@ -136,13 +136,13 @@ public sealed class XpsStructureTests {
     public void ResourceEditsUseSpaceReleasedByCurrentPageMarkup(bool addition) {
         var created = XpsDocument.Create(); created.AddPage().AddPath("M0,0" + new string(' ', 4000) + "L1,1");
         created.AddResource("data.bin", new byte[] { 1 }, "application/octet-stream");
-        byte[] initial = created.Save(); var baseline = XpsDocument.Load(initial);
+        byte[] initial = created.ToBytes(); var baseline = XpsDocument.Load(initial);
         long expanded = baseline.PartNames.Sum(n => (long)baseline.GetPartBytes(n).Length);
-        var doc = XpsDocument.Load(initial, new XpsReadOptions { MaximumExpandedBytes = expanded });
+        var doc = XpsDocument.Load(initial, new XpsLoadOptions { Limits = { MaxExpandedBytes = expanded } });
         var markup = doc.Pages[0].GetMarkup(); markup.RemoveNodes(); doc.Pages[0].ReplaceMarkup(markup);
         if (addition) doc.AddResource("other.bin", new byte[100], "application/octet-stream");
         else doc.ReplaceResource("data.bin", new byte[100]);
-        Assert.Single(XpsDocument.Load(doc.Save(), new XpsReadOptions { MaximumExpandedBytes = expanded }).Pages);
+        Assert.Single(XpsDocument.Load(doc.ToBytes(), new XpsLoadOptions { Limits = { MaxExpandedBytes = expanded } }).Pages);
     }
 
 }

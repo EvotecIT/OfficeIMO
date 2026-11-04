@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
     // High-level builder for generic graph diagrams where OfficeIMO lays out arbitrary nodes and edges.
@@ -29,26 +29,26 @@ namespace OfficeIMO.Visio.Diagrams {
                 AssignCoordinates();
             }
 
-            VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
             page.Grid(visible: false, snap: true);
             AddZones(page);
             AddNodes(page);
             AddEdges(page);
             if (_preserveLayout && _fitPageToGraph) {
                 VisioShapeBounds bounds = page.GetContentBounds();
-                if (bounds.Left < 0 || bounds.Bottom < 0) {
+                if (bounds.LeftInches < 0 || bounds.BottomInches < 0) {
                     // Reuse the page owner so routes, label coordinates, and shapes move together.
                     page.FitToContent(
-                        bounds.Left < 0 ? _leftMargin.ToInches(_unit) : bounds.Left,
-                        bounds.Bottom < 0 ? _bottomMargin.ToInches(_unit) : bounds.Bottom,
+                        bounds.LeftInches < 0 ? _leftMargin.ToInches(_unit) : bounds.LeftInches,
+                        bounds.BottomInches < 0 ? _bottomMargin.ToInches(_unit) : bounds.BottomInches,
                         resizePage: false);
                     bounds = page.GetContentBounds();
                 }
-                _pageWidth = Math.Max(_pageWidth, bounds.Right.FromInches(_unit) + _rightMargin);
+                _pageWidth = Math.Max(_pageWidth, bounds.RightInches.FromInches(_unit) + _rightMargin);
                 ResolveTitleHeight();
-                _pageHeight = Math.Max(_pageHeight, bounds.Top.FromInches(_unit) + _topMargin + TitleHeaderHeight + LegendHeaderHeight);
-                page.Width = _pageWidth.ToInches(_unit);
-                page.Height = _pageHeight.ToInches(_unit);
+                _pageHeight = Math.Max(_pageHeight, bounds.TopInches.FromInches(_unit) + _topMargin + TitleHeaderHeight + LegendHeaderHeight);
+                page.WidthInches = _pageWidth.ToInches(_unit);
+                page.HeightInches = _pageHeight.ToInches(_unit);
             }
             AddLegend(page);
             AddTitle(page);

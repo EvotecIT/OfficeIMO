@@ -1004,11 +1004,155 @@
     "IncludeExternal": false
   },
   "Redirects": [
-    { "From": "/showcase/html-rendering/", "To": "/showcase/?format=html", "Status": 301 },
+    {
+      "From": "/showcase/html-rendering/",
+      "To": "/showcase/?format=html",
+      "Status": 301
+    },
     {
       "From": "/playground/",
       "To": "/convert/",
       "Status": 301,
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-htmlrtfconversiondiagnostic/",
+      "To": "/api/html-rtf/officeimo-html-htmlrtfconversiondiagnostic/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-htmlrtfconversiondiagnosticseverity/",
+      "To": "/api/html-rtf/officeimo-html-htmlrtfconversiondiagnosticseverity/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-htmlrtfconversionlimitexception/",
+      "To": "/api/html-rtf/officeimo-html-htmlrtfconversionlimitexception/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-htmlrtfconverterextensions/",
+      "To": "/api/html-rtf/officeimo-html-htmlrtfconverterextensions/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-htmltortfoptions/",
+      "To": "/api/html-rtf/officeimo-html-htmltortfoptions/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-htmltortfresult/",
+      "To": "/api/html-rtf/officeimo-html-htmltortfresult/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-rtfhtmlexportprofile/",
+      "To": "/api/html-rtf/officeimo-html-rtfhtmlexportprofile/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-rtftohtmloptions/",
+      "To": "/api/html-rtf/officeimo-html-rtftohtmloptions/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/html/officeimo-html-rtftohtmlresult/",
+      "To": "/api/html-rtf/officeimo-html-rtftohtmlresult/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrenrichmentextensions/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrenrichmentextensions/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrenrichmentoptions/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrenrichmentoptions/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrenrichmentreport/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrenrichmentreport/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrenrichmentresult/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrenrichmentresult/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrexecutionextensions/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrexecutionextensions/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrexecutionoptions/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrexecutionoptions/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrexecutionreport/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrexecutionreport/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrexecutionresult/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrexecutionresult/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrprocessor/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrprocessor/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrrecognition/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrrecognition/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
+      "From": "/api/reader/officeimo-reader-officedocumentocrtextresult/",
+      "To": "/api/reader-ocr/officeimo-reader-officedocumentocrtextresult/",
+      "Status": 301,
+      "MatchType": "Exact",
       "PreserveQuery": true
     }
   ]

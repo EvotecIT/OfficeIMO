@@ -18,9 +18,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(input.GetProperty("sha256").GetString(),
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
         }
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture(
-            "native-exports/" + evidence.GetProperty("source").GetString()),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture(
+            "native-exports/" + evidence.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
         Assert.Equal(39, table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete));
         Assert.False(table.GetCell(10, 6)!.FormulaIsComplete);
@@ -32,18 +31,18 @@ public sealed partial class IWorkBoundaryTests {
             int row = expected.GetProperty("row").GetInt32(), column = expected.GetProperty("column").GetInt32();
             Assert.True(table.GetCell(row, column)!.FormulaIsComplete);
             Assert.Equal(expected.GetProperty("formula").GetString(), sheet.GetFormulaText(row, column));
-            Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), sheet.CellAt(row, column).GetValue<double>());
+            Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), sheet.Cell(row, column).GetValue<double>());
         }
         Assert.Equal(39, reopened.Calculate());
-        sheet.CellValue(2, 2, 24d); Assert.Equal(39, reopened.Calculate());
-        foreach (int column in new[] { 5, 7 }) Assert.Equal(12d, sheet.CellAt(2, column).GetValue<double>());
-        foreach (int column in new[] { 6, 8 }) Assert.Equal(360d, sheet.CellAt(2, column).GetValue<double>());
+        sheet.Cell(2, 2).SetValue(24d); Assert.Equal(39, reopened.Calculate());
+        foreach (int column in new[] { 5, 7 }) Assert.Equal(12d, sheet.Cell(2, column).GetValue<double>());
+        foreach (int column in new[] { 6, 8 }) Assert.Equal(360d, sheet.Cell(2, column).GetValue<double>());
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
         Assert.Equal("GCD(B2,C2,D2)", final.Sheets[0].GetFormulaText(2, 7));
         Assert.Equal("LCM($B$2,$C$2:$D$2,1)", final.Sheets[0].GetFormulaText(2, 8));
-        Assert.Equal(12d, final.Sheets[0].CellAt(2, 7).GetValue<double>());
-        Assert.Equal(360d, final.Sheets[0].CellAt(2, 8).GetValue<double>());
+        Assert.Equal(12d, final.Sheets[0].Cell(2, 7).GetValue<double>());
+        Assert.Equal(360d, final.Sheets[0].Cell(2, 8).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
     }
 
@@ -120,7 +119,7 @@ public sealed partial class IWorkBoundaryTests {
         var cells = Enumerable.Range(1, 5).Select(c => new IWorkTableCell(1, c, IWorkCellKind.Number, 12d)).ToArray();
         var own = new IWorkFormulaTableBinding(new IWorkTable("Inputs", 1, 5, cells), string.Empty, false);
         IWorkWireMessage formula = IntegerReferenceFormula(58, IntegerRectangle(4));
-        var options = new IWorkReadOptions { MaximumFormulaRenderingOperations = 5 };
+        var options = new IWorkReadOptions { MaxFormulaRenderingOperations = 5 };
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 4, 1000, owningTable: own,
             budget: new IWorkProjectionBudget(options)).IsComplete);
         var budget = new IWorkProjectionBudget(options);

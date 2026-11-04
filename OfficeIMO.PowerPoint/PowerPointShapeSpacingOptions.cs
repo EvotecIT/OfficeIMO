@@ -4,9 +4,9 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public sealed class PowerPointShapeSpacingOptions {
         /// <summary>
-        ///     Spacing between shapes in EMUs.
+        ///     Spacing between shapes. The default is zero; layout rejects negative spacing.
         /// </summary>
-        public long SpacingEmus { get; set; }
+        public OfficeLength Spacing { get; set; }
 
         /// <summary>
         ///     Main-axis alignment (Left/Center/Right for horizontal; Top/Middle/Bottom for vertical).

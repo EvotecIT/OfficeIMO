@@ -16,8 +16,8 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Contract comparison").Style = WordParagraphStyles.Heading1;
-                document.HeaderDefaultOrCreate.AddParagraph("Classification: Internal");
-                document.FooterDefaultOrCreate.AddParagraph("Contract pack: Draft");
+                document.PageSetup.Header.AddParagraph("Classification: Internal");
+                document.PageSetup.Footer.AddParagraph("Contract pack: Draft");
                 document.AddParagraph("Service tier: Standard");
                 document.AddParagraph("The supplier must respond within 48 hours.");
                 WordTable table = document.AddTable(2, 2);
@@ -36,8 +36,8 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Contract comparison").Style = WordParagraphStyles.Heading1;
-                document.HeaderDefaultOrCreate.AddParagraph("Classification: Customer");
-                document.FooterDefaultOrCreate.AddParagraph("Contract pack: Approved");
+                document.PageSetup.Header.AddParagraph("Classification: Customer");
+                document.PageSetup.Footer.AddParagraph("Contract pack: Approved");
                 document.AddParagraph("Service tier: Premium");
                 document.AddParagraph("The supplier must respond within 24 hours.");
                 WordTable table = document.AddTable(3, 2);

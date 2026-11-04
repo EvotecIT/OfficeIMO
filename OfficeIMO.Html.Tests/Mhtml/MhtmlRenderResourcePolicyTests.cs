@@ -118,8 +118,8 @@ public sealed class MhtmlRenderResourcePolicyTests {
         Assert.Equal(allowRemote ? 1 : 0, unwrappedCalls);
     }
 
-    private static HtmlToPdfOptions CreateOptions() => new() {
-        PageSize = new OfficePageSize(160D / 96D, 120D / 96D),
+    private static HtmlPdfExportOptions CreateOptions() => new() {
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(160D / 96D), global::OfficeIMO.OfficeLength.Inches(120D / 96D)),
         Margins = HtmlRenderMargins.All(8D),
         ViewportWidth = 160D,
         ViewportHeight = 120D,

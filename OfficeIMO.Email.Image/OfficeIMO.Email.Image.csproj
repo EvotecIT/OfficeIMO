@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>HTML-backed image rendering for OfficeIMO email documents.</Description>
-    <AssemblyName>OfficeIMO.Email.Image</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Email.Image</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -31,6 +29,7 @@
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="System" />

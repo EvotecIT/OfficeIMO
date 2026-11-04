@@ -13,8 +13,8 @@ extension DocumentSession {
 
     /// Writes an optimized, repaired or sanitized copy, which the window offers to save once the sheet closes, and
     /// returns what changed.
-    func writeHealthCopy(_ kind: HealthCopyKind, profile: String? = nil) async throws -> String? {
-        let name = String(localized: "\(documentBaseName) – \(kind.suffix).pdf")
+    func writeHealthCopy(_ kind: HealthCopyKind, profile: String? = nil, suffix: String? = nil) async throws -> String? {
+        let name = String(localized: "\(documentBaseName) – \(suffix ?? kind.suffix).pdf")
         var summary: String?
         pendingExportedFile = try await writeOutputFile(named: name) { engine, url in
             let copy = WriteRequest.HealthCopy(path: url.path, profile: profile)
@@ -45,7 +45,7 @@ extension DocumentSession {
             guard let verification = box.value else { return }
             session.noticeTitle = verification.verified ? String(localized: "Redacted") : String(localized: "Redaction Not Verified")
             session.notice = verification.verified
-                ? String(localized: "The content was removed from \(verification.pages.count) page(s) and checked. Save to keep the change; until then Undo restores it.")
+                ? String(localized: "The content was removed from \(verification.pages.count) page(s) and checked. Your document saves automatically; Undo brings the content back until you close it.")
                 : String(localized: "Some of the marked content is still in the document or couldn’t be checked. Undo the redaction and mark a larger area.")
         })
     }

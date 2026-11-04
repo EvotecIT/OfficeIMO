@@ -13,7 +13,6 @@ public static class VisioShapeResizeExtensions {
     /// <param name="shape">Shape to resize.</param>
     /// <param name="width">Finite positive requested width.</param>
     /// <param name="height">Finite positive requested height.</param>
-    /// <param name="unit">Size unit, or the page's default unit when omitted.</param>
     /// <returns>The same shape instance.</returns>
     /// <exception cref="NotSupportedException">The original frame is invalid, or native geometry or unequal scaling of a rotated child/text frame cannot be represented by this resize profile.</exception>
     /// <remarks>
@@ -21,14 +20,11 @@ public static class VisioShapeResizeExtensions {
     /// mutation. Arbitrary ShapeSheet recalculation and sheared child/text frames are not
     /// supported. Physical font sizes, margins and line weights remain unchanged.
     /// </remarks>
-    public static VisioShape ResizeShape(this VisioPage page, VisioShape shape, double width, double height,
-        VisioMeasurementUnit? unit = null) {
+    public static VisioShape ResizeShape(this VisioPage page, VisioShape shape, OfficeLength width, OfficeLength height) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (shape == null) throw new ArgumentNullException(nameof(shape));
         if (!ReferenceEquals(shape.OwnerPage, page)) throw new InvalidOperationException("The shape is not part of this page.");
-        VisioMeasurementUnit sizeUnit = unit ?? page.DefaultUnit;
-        width = width.ToInches(sizeUnit); height = height.ToInches(sizeUnit);
-        VisioShapeResizing.Resize(page, shape, width, height);
+        VisioShapeResizing.Resize(page, shape, width.ToInches(), height.ToInches());
         return shape;
     }
 }

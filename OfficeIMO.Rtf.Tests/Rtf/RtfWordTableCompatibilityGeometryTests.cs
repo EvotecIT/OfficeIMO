@@ -17,7 +17,7 @@ public sealed class RtfWordTableCompatibilityGeometryTests {
         string name = "table-cell-minimum-exact-gap" + gapTwips.ToString(System.Globalization.CultureInfo.InvariantCulture);
         string directory = Path.Combine(AppContext.BaseDirectory, "Documents", "RtfTableGapNative");
         RtfDocument source = RtfDocument.Load(Path.Combine(directory, name + ".rtf"));
-        using WordDocument mapped = source.ToWordDocument();
+        using WordDocument mapped = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(mapped.ToBytes()));
         using WordDocument native = WordDocument.Load(Path.Combine(directory, name + ".native.docx"));
         Assert.Equal(WordCompatibilityMode.Word2013, reopened.CompatibilitySettings.CompatibilityMode);
@@ -26,8 +26,8 @@ public sealed class RtfWordTableCompatibilityGeometryTests {
         // The independently Word-imported DOCX retains legacy layout. Rendering
         // both artifacts through the same owner/resources isolates the bridge's
         // coordinate conversion from different font or PDF producer metrics.
-        using PdfPigDocument expected = PdfPigDocument.Open(native.ToPdfBytes(Options()));
-        using PdfPigDocument actual = PdfPigDocument.Open(reopened.ToPdfBytes(Options()));
+        using PdfPigDocument expected = PdfPigDocument.Open((native.ToPdf(Options())).ToBytes());
+        using PdfPigDocument actual = PdfPigDocument.Open((reopened.ToPdf(Options())).ToBytes());
         Assert.Equal(1, expected.NumberOfPages);
         Assert.Equal(expected.NumberOfPages, actual.NumberOfPages);
         foreach (string marker in new[] { "TABLE-BEFORE", "TABLE-MIN-A", "TABLE-EXACT-A", "TABLE-AFTER" }) {
@@ -52,21 +52,21 @@ public sealed class RtfWordTableCompatibilityGeometryTests {
         RtfTableRow row = source.AddTable(1, 1).Rows[0];
         row.SetCellGap(300).SetLeftIndent(0);
         row.Cells[0].AddParagraph("CELL");
-        using WordDocument original = source.ToWordDocument();
+        using WordDocument original = source.ToWord();
         original.CompatibilitySettings.CompatibilityMode = mode;
         WordTable table = Assert.Single(original.Tables);
         table._tableProperties!.TableIndentation = new W.TableIndentation { Width = 1020, Type = W.TableWidthUnitValues.Dxa };
 
-        RtfDocument exported = original.ToRtfDocument();
+        RtfDocument exported = original.ToRtf();
         RtfTableRow exportedRow = Assert.Single(Assert.Single(exported.Blocks.OfType<RtfTable>()).Rows);
         Assert.Equal(300, exportedRow.CellGapTwips);
         Assert.Equal(expectedRowIndent, exportedRow.LeftIndentTwips);
         Assert.Equal(mode, original.CompatibilitySettings.CompatibilityMode);
         Assert.Equal(1020, table._tableProperties.TableIndentation.Width?.Value);
-        using WordDocument returned = exported.ToWordDocument();
+        using WordDocument returned = exported.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(returned.ToBytes()));
-        using PdfPigDocument expected = PdfPigDocument.Open(original.ToPdfBytes(Options()));
-        using PdfPigDocument actual = PdfPigDocument.Open(reopened.ToPdfBytes(Options()));
+        using PdfPigDocument expected = PdfPigDocument.Open((original.ToPdf(Options())).ToBytes());
+        using PdfPigDocument actual = PdfPigDocument.Open((reopened.ToPdf(Options())).ToBytes());
         foreach (string marker in new[] { "BODY", "CELL" }) {
             Assert.InRange(Math.Abs(MarkerX(actual, marker) - MarkerX(expected, marker)), 0D, .03D);
         }
@@ -83,11 +83,11 @@ public sealed class RtfWordTableCompatibilityGeometryTests {
         row.SetCellGap(gapTwips).SetLeftIndent(rowIndent);
         row.Cells[0].AddParagraph("CONTENT");
 
-        RtfConversionResult<WordDocument> result = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> result = source.ConvertToWordWithEvidence();
         using WordDocument mapped = result.Value;
         Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "RtfWordTableCellGapFlattened");
         Assert.Equal(rowIndent, Assert.Single(mapped.Tables)._tableProperties?.TableIndentation?.Width?.Value);
-        RtfDocument exported = mapped.ToRtfDocument();
+        RtfDocument exported = mapped.ToRtf();
         RtfTableRow exportedRow = Assert.Single(Assert.Single(exported.Blocks.OfType<RtfTable>()).Rows);
         Assert.Equal(gapTwips, exportedRow.CellGapTwips);
         Assert.Equal(rowIndent, exportedRow.LeftIndentTwips);
@@ -100,7 +100,7 @@ public sealed class RtfWordTableCompatibilityGeometryTests {
         Assert.Single(document.GetPages().SelectMany(page => page.GetWords()), word => word.Text == marker)
             .Letters[0].StartBaseLine.X;
 
-    private static WordToPdfOptions Options() => new() {
+    private static WordPdfExportOptions Options() => new() {
         IncludePageNumbers = false,
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None

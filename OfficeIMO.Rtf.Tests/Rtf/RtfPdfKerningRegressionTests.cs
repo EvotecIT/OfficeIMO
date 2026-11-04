@@ -45,7 +45,7 @@ public sealed class RtfPdfKerningRegressionTests {
     [Fact]
     public void ParsedKerningStateInheritsIntoGroupsAndExplicitZeroDisablesIt() {
         const string rtf = @"{\rtf1\ansi\fs24\kerning24\pard {TA}\par\kerning0 TA\par}";
-        RtfReadResult parsed = RtfDocument.Read(rtf);
+        RtfReadResult parsed = RtfDocument.ParseResult(rtf);
         RtfParagraph[] paragraphs = parsed.Document.Paragraphs.ToArray();
         Assert.Equal(2, paragraphs.Length);
         Assert.Equal(24, Assert.Single(paragraphs[0].Runs).KerningHalfPoints);
@@ -100,12 +100,12 @@ public sealed class RtfPdfKerningRegressionTests {
     }
 
     private static IReadOnlyList<(Letter Left, Letter Right)> ReadPairs(RtfDocument source, string artifactName,
-        RtfToPdfOptions? options = null) {
-        string before = source.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfToPdfOptions caller = options ?? PortableOptions(12);
-        PdfCore.PdfOptions callerPdfOptions = caller.PdfOptions!;
+        RtfPdfExportOptions? options = null) {
+        string before = source.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfPdfExportOptions caller = options ?? PortableOptions(12);
+        PdfCore.PdfCreateOptions callerPdfOptions = caller.PdfOptions!;
         Assert.True(callerPdfOptions.TextKerning);
-        PdfCore.PdfDocumentConversionResult result = source.ToPdfDocumentResult(caller);
+        PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(caller);
         Assert.True(callerPdfOptions.TextKerning);
         byte[] bytes = result.ToBytes();
         if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
@@ -121,7 +121,7 @@ public sealed class RtfPdfKerningRegressionTests {
                 pairs.Add((letters[index], letters[index + 1]));
             }
         }
-        Assert.Equal(before, source.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        Assert.Equal(before, source.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "RunFormattingFlattened" &&
             warning.Details.TryGetValue("Features", out string? features) &&
             features?.Split(',').Contains("character-metrics") == true);
@@ -137,11 +137,11 @@ public sealed class RtfPdfKerningRegressionTests {
         }
     }
 
-    private static RtfToPdfOptions PortableOptions(double fontSize) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions PortableOptions(double fontSize) => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-        PdfOptions = new PdfCore.PdfOptions {
+        PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = fontSize,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(fontSize),
             TextKerning = true
         }
     };

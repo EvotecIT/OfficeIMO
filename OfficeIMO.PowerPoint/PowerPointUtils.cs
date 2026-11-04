@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
         private const string DefaultDocumentAuthor = "OfficeIMO";
         internal const string RelationshipIdNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
-        public static PresentationDocument CreatePresentation(string filepath) {
+        public static PresentationDocument CreateDocument(string filepath) {
             // Create a presentation at a specified file path. The presentation document type is pptx by default.
             PresentationDocument presentationDoc = PresentationDocument.Create(filepath, PresentationDocumentType.Presentation);
             PresentationPart presentationPart = presentationDoc.AddPresentationPart();

@@ -99,17 +99,17 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string excel = Path.Combine(scope.Path, "workbook.xlsx");
         using (ExcelDocument document = ExcelDocument.Create(excel)) {
-            document.AddWorksheet("Data").Cell(1, 1, "workflow provenance");
+            document.AddSheet("Data").Cell(1, 1).SetValue("workflow provenance");
             document.Save();
         }
         string powerPoint = Path.Combine(scope.Path, "deck.pptx");
-        using (PowerPointPresentation presentation = PowerPointPresentation.Create(powerPoint)) {
-            presentation.AddSlide().AddTextBoxPoints("workflow provenance", 20, 20, 300, 60);
+        using (PowerPointDocument presentation = PowerPointDocument.Create(powerPoint)) {
+            presentation.AddSlide().AddTextBox("workflow provenance",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
             presentation.Save();
         }
         string visio = Path.Combine(scope.Path, "drawing.vsdx");
         VisioDocument visioDocument = VisioDocument.Create(visio);
-        visioDocument.AddPage("Page-1", 8.5, 11);
+        visioDocument.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
         visioDocument.Save();
         string odt = Path.Combine(scope.Path, "document.odt");
         OdtDocument openDocument = OdtDocument.Create();
@@ -119,7 +119,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         CreateEpub(epub);
         string pdf = Path.Combine(scope.Path, "document.pdf");
         PdfDocument.Create(document => document.Page(page => page.Content(content =>
-            content.Item(item => item.Paragraph(paragraph => paragraph.Text("workflow provenance")))))).Save(pdf);
+            content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("workflow provenance")))))).Save(pdf);
         string html = scope.Write("document.html", "<!doctype html><html><body>workflow provenance</body></html>");
         string markdown = scope.Write("document.md", "# Workflow provenance");
         string png = Path.Combine(scope.Path, "image.png");
@@ -222,7 +222,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             });
 
         Assert.True(result.Succeeded, result.Summary);
@@ -248,7 +248,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficePublicationPolicy.Fail
             });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
@@ -325,7 +325,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         string source = Path.Combine(scope.Path, "drawing.vsdm");
         string input = Path.Combine(scope.Path, "renamed.vsdx");
         VisioDocument document = VisioDocument.Create(source, VisioPackageType.MacroEnabledDrawing);
-        document.AddPage("Page-1", 8.5, 11);
+        document.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
         document.Save();
         File.Copy(source, input);
 
@@ -425,7 +425,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                ConflictPolicy = OfficePublicationPolicy.Replace
             })
             .ToArray();
 
@@ -450,7 +450,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                     Operation = OfficeProvenanceWorkflowOperation.Remove,
                     InputPath = first,
                     OutputPath = second,
-                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                    ConflictPolicy = OfficePublicationPolicy.Replace
                 },
                 new OfficeProvenanceWorkflowRequest {
                     Id = "second",
@@ -609,7 +609,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         using var scope = new TempScope();
         string input = scope.Write("page.html", HtmlWithExternalManifest("tiny"));
         string output = Path.Combine(scope.Path, "cleaned.html");
-        var limits = new OfficeWorkflowLimits {
+        var limits = new OfficeOperationLimits {
             MaximumInputBytes = 1024,
             MaximumOutputBytes = 1024
         };
@@ -644,7 +644,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Operation = OfficeProvenanceWorkflowOperation.Remove,
                 InputPath = input,
                 OutputPath = output,
-                Limits = new OfficeWorkflowLimits { MaximumOutputBytes = 1 }
+                Limits = new OfficeOperationLimits { MaximumOutputBytes = 1 }
             });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);

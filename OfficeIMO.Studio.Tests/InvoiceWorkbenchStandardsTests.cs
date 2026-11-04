@@ -62,8 +62,8 @@ public sealed class InvoiceWorkbenchStandardsTests {
 
     private sealed class CapturedRunner(Action entered) : IOfficeInvoiceWorkflowRunner {
         public Task<OfficeInvoiceStorageWorkflowResult> RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request,
-            InvoiceValidator? validator = null, CancellationToken cancellationToken = default) {
-            entered(); return new OfficeWorkflowRunner().RunInvoiceAsync(request, validator, cancellationToken);
+            CancellationToken cancellationToken = default) {
+            entered(); return new OfficeWorkflowRunner().RunInvoiceAsync(request, cancellationToken);
         }
     }
     private static void Capture(Window window, string name) {

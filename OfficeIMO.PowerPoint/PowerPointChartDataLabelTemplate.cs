@@ -28,11 +28,11 @@ namespace OfficeIMO.PowerPoint {
         public bool? ShowLeaderLines { get; set; }
         /// <summary>Leader line color (hex).</summary>
         public string? LeaderLineColor { get; set; }
-        /// <summary>Leader line width in points.</summary>
-        public double? LeaderLineWidthPoints { get; set; }
+        /// <summary>Physical leader line width.</summary>
+        public OfficeLength? LeaderLineWidth { get; set; }
 
-        /// <summary>Font size in points.</summary>
-        public double? FontSizePoints { get; set; }
+        /// <summary>Physical font size.</summary>
+        public OfficeLength? FontSize { get; set; }
         /// <summary>Toggle bold text.</summary>
         public bool? Bold { get; set; }
         /// <summary>Toggle italic text.</summary>
@@ -46,8 +46,8 @@ namespace OfficeIMO.PowerPoint {
         public string? FillColor { get; set; }
         /// <summary>Line color (hex).</summary>
         public string? LineColor { get; set; }
-        /// <summary>Line width in points.</summary>
-        public double? LineWidthPoints { get; set; }
+        /// <summary>Physical outline width.</summary>
+        public OfficeLength? LineWidth { get; set; }
         /// <summary>Disable fill.</summary>
         public bool NoFill { get; set; }
         /// <summary>Disable line.</summary>

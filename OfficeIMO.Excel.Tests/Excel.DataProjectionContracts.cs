@@ -2,12 +2,11 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Data;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests;
-
-public sealed class ExcelDataProjectionContractsTests {
+public sealed class ExcelDataProjectionContractsTests
+{
     [Fact]
     public void ObjectProjectionIncludesOnlyReadableNonIndexedPublicProperties() {
         var flattener = new ObjectFlattener();
@@ -22,34 +21,54 @@ public sealed class ExcelDataProjectionContractsTests {
     [InlineData(null, "Metrics.Score")]
     [InlineData("Custom", "Custom.Score")]
     [InlineData("", "Score")]
-    public void CollectionHeaderPrefixChangesDisplayedHeaderWithoutChangingSelectionOrFormatting(string? prefix, string expectedHeader) {
+    public void CollectionHeaderPrefixChangesDisplayedHeaderWithoutChangingSelectionOrFormatting(string? prefix, string expectedHeader)
+    {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-        var options = new ObjectFlattenerOptions {
-            Columns = new[] { "Metrics.Score" }
+        var options = new ObjectFlattenerOptions
+        {
+            Columns = new[]
+            {
+                "Metrics.Score"
+            }
         };
-        options.CollectionMapColumns["Metrics"] = new CollectionColumnMapping { HeaderPrefix = prefix };
+        options.CollectionMapColumns["Metrics"] = new CollectionColumnMapping
+        {
+            HeaderPrefix = prefix
+        };
         options.Formatters["Metrics.Score"] = value => (int)value! + 1;
         var row = new MetricsRow();
-
         Assert.Equal(13, new ObjectFlattener().Flatten(row, options)["Metrics.Score"]);
-        try {
-            using (var document = ExcelDocument.Create(path)) {
-                document.AsFluent().Sheet("Metrics", sheet => sheet.RowsFrom(new[] { row }, settings => {
-                    settings.Columns = options.Columns;
-                    settings.CollectionMapColumns["Metrics"] = options.CollectionMapColumns["Metrics"];
-                    settings.Formatters["Metrics.Score"] = options.Formatters["Metrics.Score"];
-                })).End().Save();
+        try
+        {
+            using (var document = ExcelDocument.Create(path))
+            {
+                {
+                    var sheet1 = document.AddSheet("Metrics");
+                    int nextRow2 = 1;
+                    var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
+                    {
+                        (projection3).Columns = options.Columns;
+                        (projection3).CollectionMapColumns["Metrics"] = options.CollectionMapColumns["Metrics"];
+                        (projection3).Formatters["Metrics.Score"] = options.Formatters["Metrics.Score"];
+                    }
+
+                    var table4 = sheet1.AddTable(new[] { row }, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = projection3 }, row: nextRow2);
+                    nextRow2 = table4.AsRange().LastRow + 1;
+                    document.Save();
+                }
             }
+
             using var package = SpreadsheetDocument.Open(path, false);
             var worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet;
             Cell header = worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A1");
-            string text = header.DataType?.Value == CellValues.SharedString
-                ? package.WorkbookPart.SharedStringTablePart!.SharedStringTable.ChildElements[int.Parse(header.CellValue!.Text)].InnerText
-                : header.InlineString?.InnerText ?? header.CellValue?.Text ?? string.Empty;
+            string text = header.DataType?.Value == CellValues.SharedString ? package.WorkbookPart.SharedStringTablePart!.SharedStringTable.ChildElements[int.Parse(header.CellValue!.Text)].InnerText : header.InlineString?.InnerText ?? header.CellValue?.Text ?? string.Empty;
             Assert.Equal(expectedHeader, text);
             Assert.Equal("13", worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2").CellValue!.Text);
-        } finally {
-            if (File.Exists(path)) File.Delete(path);
+        }
+        finally
+        {
+            if (File.Exists(path))
+                File.Delete(path);
         }
     }
 

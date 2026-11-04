@@ -15,7 +15,7 @@ public sealed class BibliographyCslVocabularyTests {
             if (role != BibliographyContributorRole.Other) item.Contributors.Add(new BibliographyContributor(role, new BibliographyName { Family = role.ToString() }));
         }
         document.Items.Add(item);
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         using JsonDocument json = JsonDocument.Parse(written.Content);
         string[] names = json.RootElement[0].EnumerateObject().Select(property => property.Name).Where(property => property != "id" && property != "type").OrderBy(name => name, StringComparer.Ordinal).ToArray();
         Assert.Equal(NameProperties.Split(' ').OrderBy(name => name, StringComparer.Ordinal), names);
@@ -32,7 +32,7 @@ public sealed class BibliographyCslVocabularyTests {
         string source = "[" + string.Join(",", types.Select((type, index) => "{\"id\":\"" + index + "\",\"type\":\"" + type + "\"}")) + "]";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
         Assert.All(document.Items, item => { Assert.NotEqual(BibliographyItemType.Unknown, item.Type); item.NativeType = null; });
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         using JsonDocument output = JsonDocument.Parse(written.Content);
         Assert.Equal(types, output.RootElement.EnumerateArray().Select(item => item.GetProperty("type").GetString()));
         Assert.Equal(document.Items.Select(item => item.Type), BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items.Select(item => item.Type));
@@ -47,13 +47,13 @@ public sealed class BibliographyCslVocabularyTests {
         Assert.Equal("true", date.NativeFields.Single().Value);
         Assert.Equal(source, document.Write().Content);
         date.EndDay = 3;
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items.Single().GetDate(BibliographyDateRole.Available)!;
         Assert.Equal(3, reopened.EndDay); Assert.Equal("true", reopened.NativeFields.Single().Value);
         foreach (BibliographyFormat format in new[] { BibliographyFormat.BibTex, BibliographyFormat.BibLatex, BibliographyFormat.Ris, BibliographyFormat.Nbib, BibliographyFormat.EndNoteXml }) {
             BibliographyWriteResult converted = document.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical });
-            Assert.Contains(converted.Report.Diagnostics, issue => issue.Code == "BIBCONV202" && issue.Field == "dates.Available");
-            Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = format, RequireNoLoss = true }));
+            Assert.Contains(converted.Report.NativeDiagnostics, issue => issue.Code == "BIBCONV202" && issue.Field == "dates.Available");
+            Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = format, FailOnLoss = true }));
         }
     }
 
@@ -66,7 +66,7 @@ public sealed class BibliographyCslVocabularyTests {
         Assert.Equal("true", item.Contributors.Single().Name.NativeFields.Single().Value);
         Assert.Contains(item.NativeFields, field => field.Name == "director" && field.Value == "17");
         Assert.Contains(item.NativeFields, field => field.Name == "available-date" && field.Value == "unknown");
-        BibliographyWriteResult exact = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult exact = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         Assert.Equal(2, BibliographyDocument.Parse(exact.Content, BibliographyFormat.CslJson).Document.Items.Single().NativeFields.Count);
         item.NativeFields.Single(field => field.Name == "director").Value = "[{\"family\":\"Promoted\"}]";
         BibliographyWriteResult changed = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
@@ -79,8 +79,8 @@ public sealed class BibliographyCslVocabularyTests {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"work\",\"type\":\"motion_picture\",\"director\":[{\"family\":\"Doe\"}]}]", BibliographyFormat.CslJson).Document;
         foreach (BibliographyFormat format in new[] { BibliographyFormat.BibTex, BibliographyFormat.BibLatex, BibliographyFormat.Ris, BibliographyFormat.Nbib, BibliographyFormat.EndNoteXml }) {
             BibliographyWriteResult converted = document.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical });
-            Assert.Contains(converted.Report.Diagnostics, issue => issue.Code == "BIBCONV201" && issue.Field == "contributors.Director");
-            Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = format, RequireNoLoss = true }));
+            Assert.Contains(converted.Report.NativeDiagnostics, issue => issue.Code == "BIBCONV201" && issue.Field == "contributors.Director");
+            Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = format, FailOnLoss = true }));
         }
     }
 
@@ -96,6 +96,6 @@ public sealed class BibliographyCslVocabularyTests {
         Assert.Contains(written.Report.Diagnostics, issue => issue.Code == "BIBCONV230");
         BibliographyItem reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items.Single();
         Assert.Equal(new[] { "Author", "First", "Second" }, reopened.Contributors.Select(value => value.Name.Family));
-        Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
     }
 }

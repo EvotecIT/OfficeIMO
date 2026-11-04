@@ -6,13 +6,17 @@ namespace OfficeIMO.Drawing;
 
 internal sealed partial class OfficeHeifImageComposer {
     internal static bool TryDecode(byte[] bytes, OfficeRasterDecodeOptions options, out OfficeRasterImage? image,
-        out OfficeRasterCodecAvailability availability, out string? diagnostic) {
+        out OfficeRasterCodecAvailability availability, out string? diagnostic,
+        out OfficeImageOrientation sourceOrientation, out bool orientationNormalized) {
         image = null;
         diagnostic = null;
+        sourceOrientation = OfficeImageOrientation.Normal;
+        orientationNormalized = false;
         availability = new OfficeRasterCodecAvailability(OfficeRasterCodecUnavailableReason.None);
         try {
             if (!TryCreate(bytes, options, out var composer)) return false;
             Layout layout = composer!.ReadLayout(composer._info.PrimaryItem!, new HashSet<uint>(), 0);
+            sourceOrientation = (OfficeImageOrientation)layout.SourceExif;
             IOfficeRasterImageCodec? codec = OfficeRasterImageCodecs.Resolve(options.ImageCodec);
             if (codec == null) {
                 availability = new OfficeRasterCodecAvailability(OfficeRasterCodecUnavailableReason.NoPlatformCodec);
@@ -44,6 +48,7 @@ internal sealed partial class OfficeHeifImageComposer {
             if (layout.Exif != 1) image = composer.Orient(image, layout.Exif);
             composer.ApplyColor(image, layout.Item.ItemType == "tmap" ? layout.Tiles[0] : layout.Item);
             options.CancellationToken.ThrowIfCancellationRequested();
+            orientationNormalized = layout.Exif != 1;
             return true;
         } catch (Exception e) when (e is FormatException || e is OverflowException || e is ArgumentException || e is NotSupportedException ||
             e is System.IO.IOException || e is InvalidOperationException) {

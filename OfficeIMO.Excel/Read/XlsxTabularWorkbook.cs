@@ -1,7 +1,6 @@
-#nullable enable
-
 using OfficeIMO.Core.Internal;
 using System.Data.Common;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
@@ -53,7 +52,7 @@ namespace OfficeIMO.Excel {
         private readonly IDisposable? _ownedResource;
         private readonly SharedStringCache _sharedStrings;
         private readonly StylesCacheProvider _styles;
-        private readonly ExcelReadOptions _options;
+        private readonly ExcelReaderOptions _options;
         private readonly Lazy<RichValueErrorLookup> _richValueErrors;
         private readonly Dictionary<string, string> _contentTypeOverrides;
         private readonly Dictionary<string, string> _contentTypeDefaults;
@@ -65,7 +64,7 @@ namespace OfficeIMO.Excel {
             OpenXmlPackagePartBufferReader parts,
             OpenXmlPackagePartBufferReader? prefetchedParts,
             IDisposable? ownedResource,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             bool metadataOnly = false) {
             _parts = parts;
             _prefetchedParts = prefetchedParts;
@@ -119,7 +118,7 @@ namespace OfficeIMO.Excel {
                 ? int.MaxValue
                 : checked((int)options.MaxInputBytes);
 
-            string partLimitName = options.MaxInputBytes > int.MaxValue ? "MaxPackagePartBytes" : nameof(ExcelReadOptions.MaxInputBytes);
+            string partLimitName = options.MaxInputBytes > int.MaxValue ? "MaxPackagePartBytes" : nameof(ExcelReaderOptions.MaxInputBytes);
             string? sharedStringsPart = ResolveOptionalPart(
                 workbookPartName,
                 workbookRelationships,
@@ -152,11 +151,29 @@ namespace OfficeIMO.Excel {
 
         internal ExcelDateSystem DateSystem { get; }
 
-        internal static XlsxTabularWorkbook Open(string path, ExcelReadOptions options) {
+        // Indexing may overlap foreground inflation only when metadata has an
+        // independent archive. Explicit sequential policies and diagnostic callbacks
+        // retain their existing execution and callback-thread behavior.
+        private static bool CanPipelineWorksheetIndex(ExcelReaderOptions options) {
+#if NET8_0_OR_GREATER
+            // WebAssembly may schedule the worker on this same event loop and
+            // cannot synchronously join it. Keep its fully validated serial path.
+            return RuntimeInformation.ProcessArchitecture != Architecture.Wasm
+                && !options.EnableWorksheetPrefetch && options.A1Range == null
+                && options.Execution.Mode != ExcelExecutionMode.Sequential
+                && (options.Execution.MaxDegreeOfParallelism ?? 2) > 1
+                && options.Execution.OnDecision == null && options.Execution.OnTiming == null
+                && options.Execution.OnInfo == null && !options.Execution.DiagnosticsRequested;
+#else
+            return false;
+#endif
+        }
+
+        internal static XlsxTabularWorkbook Open(string path, ExcelReaderOptions options) {
             return Open(path, options, metadataOnly: false);
         }
 
-        internal static IReadOnlyList<string> ReadSheetNames(string path, ExcelReadOptions options) {
+        internal static IReadOnlyList<string> ReadSheetNames(string path, ExcelReaderOptions options) {
             using XlsxTabularWorkbook workbook = Open(path, options, metadataOnly: true);
             options.CancellationToken.ThrowIfCancellationRequested();
             return workbook._tableNames.ToArray();
@@ -164,7 +181,7 @@ namespace OfficeIMO.Excel {
 
         private static XlsxTabularWorkbook Open(
             string path,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             bool metadataOnly) {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
@@ -179,15 +196,16 @@ namespace OfficeIMO.Excel {
             try {
                 snapshot = SharedReadOnlyFileSnapshot.Open(path);
                 if (snapshot.Length > options.MaxInputBytes) {
-                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), options.MaxInputBytes,
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), options.MaxInputBytes,
                         $"Workbook input contains {snapshot.Length} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
                 }
 
                 parts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1))
                     ?? throw new XlsxTabularFastPathNotSupportedException(
                         "The workbook is not a readable Open XML package.");
-                if (!metadataOnly && options.EnableWorksheetPrefetch) {
-                    prefetchedParts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
+                if (!metadataOnly && (options.EnableWorksheetPrefetch || CanPipelineWorksheetIndex(options))) {
+                    prefetchedParts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1),
+                        allowPipelining: CanPipelineWorksheetIndex(options));
                 }
                 var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, snapshot, options, metadataOnly);
                 parts = null;
@@ -202,7 +220,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static XlsxTabularWorkbook Open(byte[] bytes, ExcelReadOptions options) {
+        internal static XlsxTabularWorkbook Open(byte[] bytes, ExcelReaderOptions options) {
             if (bytes == null) {
                 throw new ArgumentNullException(nameof(bytes));
             }
@@ -210,7 +228,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(options));
             }
             if (bytes.LongLength > options.MaxInputBytes) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), options.MaxInputBytes,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), options.MaxInputBytes,
                     $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
             }
 
@@ -219,8 +237,8 @@ namespace OfficeIMO.Excel {
                     "The workbook is not a readable Open XML package.");
             OpenXmlPackagePartBufferReader? prefetchedParts = null;
             try {
-                prefetchedParts = options.EnableWorksheetPrefetch
-                    ? OpenXmlPackagePartBufferReader.TryOpen(bytes)
+                prefetchedParts = options.EnableWorksheetPrefetch || CanPipelineWorksheetIndex(options)
+                    ? OpenXmlPackagePartBufferReader.TryOpen(bytes, allowPipelining: CanPipelineWorksheetIndex(options))
                     : null;
                 var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, ownedResource: null, options);
                 parts = null!;
@@ -251,9 +269,10 @@ namespace OfficeIMO.Excel {
                 _styles,
                 _options,
                 DateSystem,
-                string.Equals(sheet.PartName, _prefetchedSheetPartName, StringComparison.OrdinalIgnoreCase)
-                    ? _prefetchedParts ?? _parts
-                    : _parts,
+                !_options.EnableWorksheetPrefetch
+                    || string.Equals(sheet.PartName, _prefetchedSheetPartName, StringComparison.OrdinalIgnoreCase)
+                        ? _prefetchedParts ?? _parts
+                        : _parts,
                 _richValueErrors);
             DbDataReader dataReader = string.IsNullOrWhiteSpace(_options.A1Range)
                 ? (DbDataReader)reader.ReadUsedRangeAsDataReader(
@@ -263,7 +282,7 @@ namespace OfficeIMO.Excel {
                 : (DbDataReader)reader.ReadRangeAsDataReader(
                     _options.A1Range!,
                     hasHeaderRow,
-                    chunkRows: Math.Min(1024, _options.MaxDataReaderChunkRows),
+                    chunkRows: Math.Min(ExcelSheetReader.DataReaderChunkRows, _options.MaxDataReaderChunkRows),
                     schemaSampleRows: 0,
                     ct: cancellationToken);
 
@@ -376,9 +395,9 @@ namespace OfficeIMO.Excel {
             int maximumBytes = (int)Math.Min(_options.MaxInputBytes, Math.Min(_options.MaxMetadataPartBytes, RichValueErrorLookup.MaximumPartBytes));
             string limitName = _options.MaxInputBytes <= _options.MaxMetadataPartBytes
                 && _options.MaxInputBytes <= RichValueErrorLookup.MaximumPartBytes
-                ? nameof(ExcelReadOptions.MaxInputBytes)
+                ? nameof(ExcelReaderOptions.MaxInputBytes)
                 : _options.MaxMetadataPartBytes <= RichValueErrorLookup.MaximumPartBytes
-                    ? nameof(ExcelReadOptions.MaxMetadataPartBytes)
+                    ? nameof(ExcelReaderOptions.MaxMetadataPartBytes)
                     : "MaxRichValuePartBytes";
             string Read(string name) {
                 using Stream stream = _parts.OpenPart(name, maximumBytes, _options.CancellationToken, limitName: limitName);
@@ -399,7 +418,7 @@ namespace OfficeIMO.Excel {
         private TResult ReadXmlPart<TResult>(string partName, int maximumBytes, Func<XmlReader, TResult> parse) {
             try {
                 using Stream stream = _parts.OpenPart(partName, maximumBytes, _options.CancellationToken,
-                    limitName: nameof(ExcelReadOptions.MaxMetadataPartBytes));
+                    limitName: nameof(ExcelReaderOptions.MaxMetadataPartBytes));
                 using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                     NameTable = new OpenXmlReadNameTable(),
                     DtdProcessing = DtdProcessing.Prohibit,
@@ -618,7 +637,7 @@ namespace OfficeIMO.Excel {
 
         private static XlsxTabularSheet? ResolvePrefetchedSheet(
             IReadOnlyList<XlsxTabularSheet> sheets,
-            ExcelReadOptions options) {
+            ExcelReaderOptions options) {
             if (!string.IsNullOrWhiteSpace(options.SheetName)) {
                 return sheets.FirstOrDefault(sheet => string.Equals(
                     sheet.Name,

@@ -19,9 +19,8 @@ namespace OfficeIMO.Tests {
         [InlineData("1048576:1048576", "C1048576")]
         public void WholeGridValidationRangesSupportQueryMessageUpdateAndPartialRemoval(string range, string cell) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.ValidationWholeNumber(range, ExcelDataValidationOperator.Between, 1, 10,
-                errorTitle: "Existing error", errorMessage: "Use 1-10");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Range(range).Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10, errorTitle: "Existing error", errorMessage: "Use 1-10");
 
             Assert.Single(sheet.GetDataValidations(cell));
             sheet.UpdateDataValidationMessages(range, message => message.Prompt = "Choose a value");
@@ -41,8 +40,8 @@ namespace OfficeIMO.Tests {
         public void ValidationWholeNumberBetween() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationWholeNumber.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationWholeNumber("A1:A10", ExcelDataValidationOperator.Between, 1, 10, errorTitle: "Error", errorMessage: "1-10");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("A1:A10").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10, errorTitle: "Error", errorMessage: "1-10");
                 document.Save();
             }
 
@@ -66,9 +65,9 @@ namespace OfficeIMO.Tests {
         public void ValidationRangeFluentListAndMessages() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationRangeFluentList.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.Range("B2:B5").Validation.List("Open", "Closed", "Pending");
-                sheet.Range("B2:B5").Validation.Messages(new ExcelDataValidationMessageOptions {
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("B2:B5").Validation().List("Open", "Closed", "Pending");
+                sheet.SetDataValidationMessages("B2:B5", new ExcelDataValidationMessageOptions {
                     PromptTitle = "Status",
                     Prompt = "Pick a status",
                     ErrorTitle = "Invalid status",
@@ -96,8 +95,8 @@ namespace OfficeIMO.Tests {
         public void ValidationDecimalGreaterThan() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationDecimal.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationDecimal("B1:B10", ExcelDataValidationOperator.GreaterThan, 5.5);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("B1:B10").Validation().Decimal(ExcelDataValidationOperator.GreaterThan, 5.5);
                 document.Save();
             }
 
@@ -120,8 +119,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationDate.xlsx");
             DateTime dt = new DateTime(2024, 1, 1);
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationDate("C1:C10", ExcelDataValidationOperator.LessThanOrEqual, dt);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("C1:C10").Validation().Date(ExcelDataValidationOperator.LessThanOrEqual, dt);
                 document.Save();
             }
 
@@ -144,8 +143,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationTime.xlsx");
             TimeSpan ts = TimeSpan.FromHours(12);
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationTime("D1:D10", ExcelDataValidationOperator.Equal, ts);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("D1:D10").Validation().Time(ExcelDataValidationOperator.Equal, ts);
                 document.Save();
             }
 
@@ -167,8 +166,8 @@ namespace OfficeIMO.Tests {
         public void ValidationTextLengthLessThan() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationTextLength.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationTextLength("E1:E10", ExcelDataValidationOperator.LessThan, 10);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("E1:E10").Validation().TextLength(ExcelDataValidationOperator.LessThan, 10);
                 document.Save();
             }
 
@@ -189,8 +188,8 @@ namespace OfficeIMO.Tests {
         public void ValidationCustomFormula() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationCustom.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.ValidationCustomFormula("F1:F10", "SUM(A1:B1)>10");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Range("F1:F10").Validation().CustomFormula("SUM(A1:B1)>10");
                 document.Save();
             }
 
@@ -211,19 +210,19 @@ namespace OfficeIMO.Tests {
         public void ValidationListNamedRange() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationListNamedRange.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet options = document.AddWorksheet("Options");
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet options = document.AddSheet("Options");
+                ExcelSheet data = document.AddSheet("Data");
 
-                options.CellValue(1, 1, "Open");
-                options.CellValue(2, 1, "Closed");
-                options.CellValue(3, 1, "Pending");
+                options.Cell(1, 1).SetValue("Open");
+                options.Cell(2, 1).SetValue("Closed");
+                options.Cell(3, 1).SetValue("Pending");
                 document.SetNamedRange("StatusOptions", "'Options'!A1:A3", save: false);
-                data.ValidationListNamedRange("B2:B5", "StatusOptions");
+                data.Range("B2:B5").Validation().ListNamedRange("StatusOptions");
                 document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.Last();
+                WorksheetPart wsPart = GetWorksheetPartByName(spreadsheet, "Data");
                 DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
                 Assert.Equal(DataValidationValues.List, dv.Type!.Value);
                 Assert.Equal("=StatusOptions", dv.GetFirstChild<Formula1>()!.Text);
@@ -238,18 +237,18 @@ namespace OfficeIMO.Tests {
         public void ValidationListRange() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationListRange.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet options = document.AddWorksheet("Options");
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet options = document.AddSheet("Options");
+                ExcelSheet data = document.AddSheet("Data");
 
-                options.CellValue(1, 1, "Open");
-                options.CellValue(2, 1, "Closed");
-                options.CellValue(3, 1, "Pending");
-                data.ValidationListRange("B2:B5", "A1:A3", "Options");
+                options.Cell(1, 1).SetValue("Open");
+                options.Cell(2, 1).SetValue("Closed");
+                options.Cell(3, 1).SetValue("Pending");
+                data.Range("B2:B5").Validation().ListRange("A1:A3", "Options");
                 document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.Last();
+                WorksheetPart wsPart = GetWorksheetPartByName(spreadsheet, "Data");
                 DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
                 Assert.Equal(DataValidationValues.List, dv.Type!.Value);
                 Assert.Equal("='Options'!A1:A3", dv.GetFirstChild<Formula1>()!.Text);
@@ -264,12 +263,12 @@ namespace OfficeIMO.Tests {
         public void ValidationListRangeOnCurrentSheet() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidationListRangeOnCurrentSheet.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet data = document.AddSheet("Data");
 
-                data.CellValue(1, 4, "Open");
-                data.CellValue(2, 4, "Closed");
-                data.CellValue(3, 4, "Pending");
-                data.ValidationListRange("B2:B5", "D1:D3");
+                data.Cell(1, 4).SetValue("Open");
+                data.Cell(2, 4).SetValue("Closed");
+                data.Cell(3, 4).SetValue("Pending");
+                data.Range("B2:B5").Validation().ListRange("D1:D3");
                 document.Save();
             }
 
@@ -288,16 +287,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ValidationFormulaLimitsAreEnforcedBeforeInvalidOpenXmlIsWritten() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
-            sheet.ValidationList("A1", new[] { new string('x', 253) });
+            sheet.Range("A1").Validation().List(new[] { new string('x', 253) });
 
             Assert.Throws<ArgumentException>(() =>
-                sheet.ValidationList("A2", new[] { new string('x', 254) }));
+                sheet.Range("A2").Validation().List(new[] { new string('x', 254) }));
             Assert.Throws<ArgumentException>(() =>
-                sheet.ValidationList("A3", new[] { "one,two" }));
+                sheet.Range("A3").Validation().List(new[] { "one,two" }));
             Assert.Throws<ArgumentException>(() =>
-                sheet.ValidationCustomFormula("A4", new string('x', ExcelSheet.MaximumDataValidationFormulaLength + 1)));
+                sheet.Range("A4").Validation().CustomFormula(new string('x', ExcelSheet.MaximumDataValidationFormulaLength + 1)));
         }
     }
 }

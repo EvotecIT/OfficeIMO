@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.Pdf {
                 if (!TryGetWorksheetConditionalIconBounds(data, columnWidths, rowHeights, key.Row, key.Column, out var cell)) continue;
                 var bounds = OfficeConditionalIconRenderer.GetCellBounds(cell.Width / 0.75D, cell.Height / 0.75D, 0.75D * scale);
                 PdfCore.PdfCellPadding padding = paddings.TryGetValue(key, out var existing) ? existing.Clone() : new PdfCore.PdfCellPadding();
-                padding.Left = Math.Min(cell.Width * scale, bounds.X + bounds.Size + 3D * scale + (padding.Left ?? style.CellPaddingLeft ?? style.CellPaddingX));
+                padding.Left = global::OfficeIMO.OfficeLength.Points(Math.Min(cell.Width * scale, bounds.X + bounds.Size + 3D * scale + (padding.Left?.ToPoints() ?? style.CellPaddingLeft?.ToPoints() ?? style.CellPaddingX.ToPoints())));
                 paddings[key] = padding;
             }
             style.CellPaddings = paddings;
@@ -39,8 +39,8 @@ namespace OfficeIMO.Excel.Pdf {
                 }
                 double x = sceneX + cell.X * scale;
                 double y = sceneY + cell.Y * scale;
-                canvas.Clip(x, y, cell.Width * scale, cell.Height * scale, clipped =>
-                    clipped.Artifact(artifact => artifact.Drawing(drawing, x + bounds.X, y + bounds.Y, bounds.Size, bounds.Size)));
+                canvas.Clip(global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(cell.Width * scale), global::OfficeIMO.OfficeLength.Points(cell.Height * scale), clipped =>
+                    clipped.Artifact(artifact => artifact.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(x + bounds.X), global::OfficeIMO.OfficeLength.Points(y + bounds.Y), global::OfficeIMO.OfficeLength.Points(bounds.Size), global::OfficeIMO.OfficeLength.Points(bounds.Size))));
             }
         }
 
@@ -70,10 +70,10 @@ namespace OfficeIMO.Excel.Pdf {
             _ => PdfCore.PdfCellIconKind.Circle
         };
 
-        private static PdfCore.PdfColor GetLegacyConditionalIconColor(OfficeConditionalIconKind kind) => kind switch {
-            OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenFlag or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull => PdfCore.PdfColor.FromRgb(99, 155, 71),
-            OfficeConditionalIconKind.RedCross or OfficeConditionalIconKind.RedCircle or OfficeConditionalIconKind.RedDownArrow or OfficeConditionalIconKind.RedFlag or OfficeConditionalIconKind.RatingOne or OfficeConditionalIconKind.QuarterEmpty => PdfCore.PdfColor.FromRgb(192, 80, 77),
-            _ => PdfCore.PdfColor.FromRgb(255, 192, 0)
+        private static global::OfficeIMO.OfficeColor GetLegacyConditionalIconColor(OfficeConditionalIconKind kind) => kind switch {
+            OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenFlag or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull => global::OfficeIMO.OfficeColor.FromRgb(99, 155, 71),
+            OfficeConditionalIconKind.RedCross or OfficeConditionalIconKind.RedCircle or OfficeConditionalIconKind.RedDownArrow or OfficeConditionalIconKind.RedFlag or OfficeConditionalIconKind.RatingOne or OfficeConditionalIconKind.QuarterEmpty => global::OfficeIMO.OfficeColor.FromRgb(192, 80, 77),
+            _ => global::OfficeIMO.OfficeColor.FromRgb(255, 192, 0)
         };
     }
 }

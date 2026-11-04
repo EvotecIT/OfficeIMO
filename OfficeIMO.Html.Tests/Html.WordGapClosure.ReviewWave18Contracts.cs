@@ -15,13 +15,13 @@ public partial class HtmlWordGapClosure {
             </div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTableCell cell = Assert.Single(Assert.Single(document.Tables).Rows).Cells[0];
 
-        Assert.Equal("0000FF", cell.Borders.LeftColorHex);
-        Assert.Equal("0000FF", cell.Borders.RightColorHex);
-        Assert.Equal("0000FF", cell.Borders.TopColorHex);
-        Assert.Equal("0000FF", cell.Borders.BottomColorHex);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.RightColor);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.TopColor);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.BottomColor);
     }
 
     [Fact]
@@ -36,9 +36,9 @@ public partial class HtmlWordGapClosure {
             });
         WordParagraph run = document.AddParagraph("Layered");
         run.SetCharacterStyleId("StyledHighlight");
-        run.RunShadingFillColorHex = "FF0000";
+        run.BackgroundColor = OfficeColor.Parse("FF0000");
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains("background-color:#ffff00", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("background-color:#ff0000", html, StringComparison.OrdinalIgnoreCase);
@@ -51,13 +51,13 @@ public partial class HtmlWordGapClosure {
             <div style="background-color:#0000ff;border-left-style:solid;border-left-width:1px;border-left-color:rgba(255,0,0,0.5)">Blended</div>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph transparent = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Transparent");
         WordParagraph blended = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Blended");
 
         Assert.Null(transparent.Borders.LeftStyle);
         Assert.Equal(WordBorderStyle.Single, blended.Borders.LeftStyle);
-        Assert.Equal("800080", blended.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("800080"), blended.Borders.LeftColor);
     }
 
     [Fact]
@@ -68,12 +68,12 @@ public partial class HtmlWordGapClosure {
             <p>After</p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph spacing = Assert.Single(
             document.Paragraphs,
             paragraph => string.IsNullOrEmpty(paragraph.Text));
 
-        Assert.Equal(300, spacing.LineSpacingBefore);
-        Assert.Equal(300, spacing.LineSpacingAfter);
+        Assert.Equal(300, checked((int?)(spacing.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(300, checked((int?)(spacing.LineSpacingAfter?.ToTwips())));
     }
 }

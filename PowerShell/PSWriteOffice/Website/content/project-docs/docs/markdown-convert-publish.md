@@ -20,4 +20,4 @@ The [publish-HTML recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/Powe
 
 ## Bring HTML back
 
-Use `ConvertFrom-OfficeMarkdownHtml` for imported web fragments or articles. Base64 image handling, output directories, and URL policies should be chosen explicitly when the HTML is not fully trusted. Conversion preserves useful document meaning but is not expected to reproduce every browser layout detail.
+Use `Convert-OfficeDocument -From Html -To Markdown` for imported web fragments or articles. `New-OfficeHtmlMarkdownOptions` supplies the image policy, table limits and Markdown writer settings. Start with `-Portable` for portable Markdown, or use `-BaseOptions` to adjust a copy of existing native settings.

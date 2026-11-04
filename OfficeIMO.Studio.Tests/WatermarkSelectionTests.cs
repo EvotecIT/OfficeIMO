@@ -17,14 +17,14 @@ public sealed class WatermarkSelectionTests {
     public async Task ClickingManagedContentOpensThatWatermarkInsteadOfInlineEditing(bool image) {
         using var files = new TextEditingReviewTests.Files();
         var settings = new PdfWatermarkOptions {
-            Text = "CHOOSE THIS", X = 80, Y = 180, Width = 200, Height = 70, FontSize = 24, RotationDegrees = 0,
+            Text = "CHOOSE THIS", X = global::OfficeIMO.OfficeLength.Points(80), Y = global::OfficeIMO.OfficeLength.Points(180), Width = global::OfficeIMO.OfficeLength.Points(200), Height = global::OfficeIMO.OfficeLength.Points(70), FontSize = global::OfficeIMO.OfficeLength.Points(24), RotationDegrees = 0,
             ImageBytes = image ? Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=") : null,
             BehindContent = true
         };
-        var document = PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800)
-            .Canvas(canvas => canvas.Text("FOREGROUND CONTENT", 80, 180, 200, 70, fontSize: 24))))
+        var document = PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800))
+            .Canvas(canvas => canvas.Text("FOREGROUND CONTENT", global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(70), fontSize: global::OfficeIMO.OfficeLength.Points(24)))))
             .Stamp.Watermark(settings)
-            .Stamp.Watermark(new PdfWatermarkOptions { Text = "OTHER MARK", X = 80, Y = 320, Width = 200, Height = 70, FontSize = 24, RotationDegrees = 0 });
+            .Stamp.Watermark(new PdfWatermarkOptions { Text = "OTHER MARK", X = global::OfficeIMO.OfficeLength.Points(80), Y = global::OfficeIMO.OfficeLength.Points(320), Width = global::OfficeIMO.OfficeLength.Points(200), Height = global::OfficeIMO.OfficeLength.Points(70), FontSize = global::OfficeIMO.OfficeLength.Points(24), RotationDegrees = 0 });
         document.Save(files.Source);
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {

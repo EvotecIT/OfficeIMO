@@ -11,7 +11,7 @@ public sealed class MarkdownToAsciiDocContractTests {
             "- one\n- two\n\n" +
             "```csharp\nConsole.WriteLine();\n```\n\n" +
             "| Name | Value |\n| --- | --- |\n| A | B |\n";
-        MarkdownDoc document = MarkdownReader.Parse(markdown);
+        MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
         MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
@@ -41,7 +41,7 @@ public sealed class MarkdownToAsciiDocContractTests {
 
     [Fact]
     public void DefinitionsCalloutsAndCompoundListChildren_MapBackToNativeBlocks() {
-        var document = MarkdownDoc.Create();
+        var document = MarkdownDocument.Create();
         var definitions = new DefinitionListBlock();
         definitions.AddEntry(new DefinitionListEntry(
             new InlineSequence().Text("Term"),
@@ -68,21 +68,21 @@ public sealed class MarkdownToAsciiDocContractTests {
 
     [Fact]
     public void UnsupportedMarkdownBlock_IsVisibleAndDiagnosed() {
-        MarkdownDoc document = MarkdownDoc.Create().Hr();
+        MarkdownDocument document = MarkdownDocument.Create().Hr();
 
         MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
         Assert.Contains("[source,markdown]", result.Source, StringComparison.Ordinal);
         Assert.Contains("---", result.Source, StringComparison.Ordinal);
-        Assert.Equal(AsciiDocMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Report.Diagnostics).Outcome);
+        Assert.Equal(AsciiDocMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Report.NativeDiagnostics).Outcome);
         Assert.True(result.HasLoss);
     }
 
     [Fact]
     public void RequestedLineEnding_IsUsedThroughoutGeneratedSource() {
-        MarkdownDoc document = MarkdownReader.Parse("# Title\n\nParagraph\n");
+        MarkdownDocument document = MarkdownDocument.Parse("# Title\n\nParagraph\n");
 
-        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult(new MarkdownToAsciiDocOptions { LineEnding = "\r\n" });
+        MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult(new MarkdownAsciiDocExportOptions { LineEnding = "\r\n" });
 
         Assert.DoesNotContain("\n", result.Source.Replace("\r\n", string.Empty), StringComparison.Ordinal);
         Assert.Equal(result.Source, result.Value.ToAsciiDoc());
@@ -90,22 +90,24 @@ public sealed class MarkdownToAsciiDocContractTests {
 
     [Fact]
     public void CodeContainingListingFence_UsesALongerDelimiterWithoutChangingContent() {
-        MarkdownDoc document = MarkdownDoc.Create().Code("text", "before\n----\nafter");
+        MarkdownDocument document = MarkdownDocument.Create().Code("text", "before\n----\nafter");
 
         MarkdownToAsciiDocResult result = document.ToAsciiDocDocumentResult();
 
         Assert.Contains("-----\nbefore\n----\nafter\n-----", result.Source, StringComparison.Ordinal);
         AsciiDocDelimitedBlock block = Assert.Single(result.Value.BlocksOfType<AsciiDocDelimitedBlock>());
         Assert.Equal("before\n----\nafter\n", block.Content);
-        Assert.DoesNotContain(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "code-delimiter");
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "code-delimiter");
     }
 
     [Fact]
     public void TableColumnCount_IncludesLogicalColumnSpans() {
-        TableBlock table = Assert.Single(MarkdownReader.Parse("| H |\n| --- |\n| wide |\n").Blocks.OfType<TableBlock>());
+        TableBlock table = Assert.Single(MarkdownDocument.Parse("| H |\n| --- |\n| wide |\n").Blocks.OfType<TableBlock>());
         table.GetCell(0, 0)!.ColumnSpan = 2;
 
-        MarkdownToAsciiDocResult result = MarkdownDoc.Create().Add(table).ToAsciiDocDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(table);
+        MarkdownToAsciiDocResult result = addedDocument.ToAsciiDocDocumentResult();
 
         Assert.Contains("[cols=2*", result.Source, StringComparison.Ordinal);
         Assert.Equal(2, Assert.Single(result.Value.BlocksOfType<AsciiDocTableBlock>()).Table.ColumnCount);

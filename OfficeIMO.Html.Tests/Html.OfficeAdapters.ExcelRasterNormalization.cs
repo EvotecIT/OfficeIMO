@@ -16,12 +16,12 @@ public class HtmlExcelRasterNormalization {
         byte[] exif = Convert.FromBase64String("TU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAA=");
         byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red),
             new OfficeJpegEncodeOptions { Metadata = new OfficeJpegMetadata(exif: exif) });
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         string html = "<div style='" + containerStyle + "'><img src='data:image/jpeg;base64,"
             + Convert.ToBase64String(jpeg) + "' style='width:120px' alt='Retained picture'></div><p>After</p>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         using var output = new MemoryStream();
         workbook.Save(output);
@@ -46,18 +46,18 @@ public class HtmlExcelRasterNormalization {
         byte[] exif = Convert.FromBase64String("TU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAA=");
         byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red),
             new OfficeJpegEncodeOptions { Metadata = new OfficeJpegMetadata(exif: exif) });
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         if (limit == "pixels") limits.MaxDecodedImagePixels = 1;
         else limits.MaxImages = 1;
         string image = "<img src='data:image/jpeg;base64," + Convert.ToBase64String(jpeg) + "' width='120' height='80'>";
         string html = "<div style='position:absolute;left:20px;top:60px;width:300px;height:100px'>Control"
             + image + image + "</div>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         if (limit == "pixels") Assert.Empty(workbook.Sheets.SelectMany(sheet => sheet.Images));
         else Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Contains(result.Report.NativeDiagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && d.Detail!.Contains(limit == "pixels" ? "MaxDecodedImagePixels" : "raster decode attempts"));
     }
 
@@ -86,10 +86,10 @@ public class HtmlExcelRasterNormalization {
         string retained = "<img src='data:image/png;base64," + Convert.ToBase64String(png) + "'>";
         string html = "<div style='position:absolute;left:20px;top:60px;width:300px;height:100px'>Control"
             + rejected + retained + "</div>";
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxDecodedImagePixels = 2;
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         using var output = new MemoryStream();
         workbook.Save(output);
@@ -117,8 +117,8 @@ public class HtmlExcelRasterNormalization {
             : "<section class='officeimo-sheet' data-officeimo-sheet='Image'><table><tr><td>Before</td></tr></table>"
                 + "<section class='officeimo-images'><ul><li data-officeimo-row='3' data-officeimo-column='2'"
                 + " data-officeimo-width='120' data-officeimo-height='80'>" + image + "</li></ul></section></section>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = mode });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = mode });
         using ExcelDocument workbook = result.RequireValue();
         using var output = new MemoryStream();
         workbook.Save(output);
@@ -126,8 +126,8 @@ public class HtmlExcelRasterNormalization {
         using ExcelDocument reopened = ExcelDocument.Load(output);
         ExcelImage picture = Assert.Single(Assert.Single(reopened.Sheets).Images);
         Assert.Equal("image/png", picture.ContentType);
-        Assert.Equal(120, picture.WidthPixels);
-        Assert.Equal(80, picture.HeightPixels);
+        Assert.Equal(120, picture.Width.ToPixels());
+        Assert.Equal(80, picture.Height.ToPixels());
         Assert.Equal(target, picture.HyperlinkUri!.OriginalString);
         Assert.True(OfficeRasterImageDecoder.TryDecode(picture.ToBytes(), out OfficeRasterImage? decoded));
         byte[] expected = File.ReadAllBytes(fixture + ".rgba");
@@ -137,7 +137,7 @@ public class HtmlExcelRasterNormalization {
             Assert.InRange(Math.Abs(expected[index] - actual[index]), 0, index % 4 == 3 ? 0 : 3);
         }
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported);
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+        Assert.Contains(result.Report.NativeDiagnostics, d => d.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && d.Detail == "sourceMediaType=image/" + format + "; nativeMediaType=image/png");
     }
 
@@ -146,14 +146,14 @@ public class HtmlExcelRasterNormalization {
         string source = "data:image/webp;base64," + Convert.ToBase64String(ReadWebp());
         string html = "<div style='position:absolute;left:20px;top:60px;width:150px;height:100px'>Picture region"
             + "<img src='" + source + "' style='width:120px;height:80px' alt='Positioned control'></div>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
         ExcelImage picture = Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
         Assert.True(picture.HasAbsoluteAnchor);
         Assert.Equal("image/png", picture.ContentType);
-        Assert.Equal(120, picture.WidthPixels);
-        Assert.Equal(80, picture.HeightPixels);
+        Assert.Equal(120, picture.Width.ToPixels());
+        Assert.Equal(80, picture.Height.ToPixels());
     }
 
     [Theory]
@@ -167,7 +167,7 @@ public class HtmlExcelRasterNormalization {
         if (reason == "malformed") source = source.Take(source.Length - 12).ToArray();
         if (reason == "animated") source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
             "Fixtures", "ExcelRaster", "animated.webp"));
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 1;
         if (reason == "pixels") limits.MaxDecodedImagePixels = 49 * 33 - 1;
@@ -182,8 +182,8 @@ public class HtmlExcelRasterNormalization {
         string html = mode == HtmlImportMode.Generic ? rejected + retained
             : "<section class='officeimo-sheet' data-officeimo-sheet='Budget'><table><tr><td>Values</td></tr></table>"
                 + "<section class='officeimo-images'><ul><li>" + rejected + "</li><li>" + retained + "</li></ul></section></section>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = mode, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = mode, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         ExcelImage picture = Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
         Assert.Equal(png, picture.ToBytes());
@@ -199,15 +199,15 @@ public class HtmlExcelRasterNormalization {
         byte[] source = ReadWebp();
         Assert.True(OfficeImagePngConverter.TryConvertToPng(source, out byte[] png));
         Assert.True(png.Length > source.Length);
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxImageBytes = png.Length - 1;
         string image = "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "'>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(image + image + image).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(image + image + image).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Empty(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Equal(2, result.Report.Diagnostics.Count(d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Equal(2, result.Report.NativeDiagnostics.Count(d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && d.Detail!.Contains("raster decode attempts")));
     }
 
@@ -232,12 +232,12 @@ public class HtmlExcelRasterNormalization {
             source[20] |= 8;
         }
         Assert.False(OfficeImageOrientationNormalizer.TryNormalizeToPng(source, out _, out _));
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         if (!animated) limits.MaxDecodedImagePixels = 5;
         string html = "<div style='position:absolute;left:20px;top:60px;width:150px;height:100px'>Control"
             + "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "' width='120' height='80'></div>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Empty(workbook.Sheets.SelectMany(sheet => sheet.Images));
         Assert.Contains(result.Report.Diagnostics, d => d.Code == (animated
@@ -249,17 +249,17 @@ public class HtmlExcelRasterNormalization {
         byte[] source = ReadWebp();
         Assert.True(OfficeImagePngConverter.TryConvertToPng(source, out byte[] png));
         Assert.True(png.Length > source.Length);
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImageBytes = png.Length - 1;
         limits.MaxTotalImageBytes = limits.MaxImageBytes;
         int admitted = (int)(limits.MaxTotalImageBytes / source.Length);
         string image = "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "'>";
         string html = string.Concat(Enumerable.Repeat(image, admitted + 1));
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Empty(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Single(result.Report.Diagnostics.Where(d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Single(result.Report.NativeDiagnostics.Where(d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && d.Detail!.Contains("raster decode input bytes")));
     }
 
@@ -268,15 +268,15 @@ public class HtmlExcelRasterNormalization {
         byte[] source = ReadWebp();
         Assert.True(OfficeImagePngConverter.TryConvertToPng(source, out byte[] normalized));
         Assert.True(normalized.Length > source.Length);
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImageBytes = normalized.Length;
         limits.MaxTotalImageBytes = normalized.Length + source.Length;
         string image = "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "'>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(image + image).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(image + image).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && diagnostic.Detail!.StartsWith("MaxTotalImageBytes:", StringComparison.Ordinal));
     }
 
@@ -290,15 +290,15 @@ public class HtmlExcelRasterNormalization {
         Write32(source, 4, source.Length - 8);
         Assert.True(OfficeImagePngConverter.TryConvertToPng(source, out byte[] normalized));
         Assert.True(normalized.Length < source.Length);
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImageBytes = source.Length;
         limits.MaxTotalImageBytes = source.Length * 2 - 1;
         string image = "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "'>";
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(image + image).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(image + image).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Contains(result.Report.NativeDiagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && d.Detail!.StartsWith("MaxTotalImageBytes:", StringComparison.Ordinal));
     }
 

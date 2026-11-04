@@ -3,48 +3,45 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
-    private static void ApplyMetadata(RtfDocument document, PdfCore.PdfDocument pdf, RtfToPdfOptions options) {
+    private static void ApplyMetadata(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfExportOptions options) {
         if (!options.IncludeMetadata) {
             return;
         }
 
         pdf.Meta(
-            title: document.Info.Title,
-            author: document.Info.Author,
-            subject: document.Info.Subject,
-            keywords: document.Info.Keywords);
+            title: document.Properties.Title,
+            author: document.Properties.Author,
+            subject: document.Properties.Subject,
+            keywords: document.Properties.Keywords);
     }
 
-    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfOptions options) {
+    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfCreateOptions options) {
         if (setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0) {
-            options.PageWidth = RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value);
+            options.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value)), options.PageSetup.Size.Height);
         }
 
         if (setup.PaperHeightTwips.HasValue && setup.PaperHeightTwips.Value > 0) {
-            options.PageHeight = RtfPdfMapping.TwipsToPoints(setup.PaperHeightTwips.Value);
+            options.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.PaperHeightTwips.Value)));
         }
 
-        if ((setup.DirectLandscape == true && options.PageWidth < options.PageHeight) ||
-            (setup.DirectLandscape == false && options.PageWidth > options.PageHeight)) {
-            double width = options.PageWidth;
-            options.PageWidth = options.PageHeight;
-            options.PageHeight = width;
+        if (setup.DirectLandscape.HasValue) {
+            options.PageSetup.Orientation = setup.DirectLandscape.Value ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
         }
 
         if (setup.MarginLeftTwips.HasValue) {
-            options.MarginLeft = RtfPdfMapping.TwipsToPoints(setup.MarginLeftTwips.Value);
+            options.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.MarginLeftTwips.Value));
         }
 
         if (setup.MarginRightTwips.HasValue) {
-            options.MarginRight = RtfPdfMapping.TwipsToPoints(setup.MarginRightTwips.Value);
+            options.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.MarginRightTwips.Value));
         }
 
         if (setup.MarginTopTwips.HasValue) {
-            options.MarginTop = RtfPdfMapping.TwipsToPoints(setup.MarginTopTwips.Value);
+            options.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.MarginTopTwips.Value));
         }
 
         if (setup.MarginBottomTwips.HasValue) {
-            options.MarginBottom = RtfPdfMapping.TwipsToPoints(setup.MarginBottomTwips.Value);
+            options.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(RtfPdfMapping.TwipsToPoints(setup.MarginBottomTwips.Value));
         }
 
         if (setup.PageNumberStart.HasValue) {
@@ -61,18 +58,17 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page, PdfCore.PdfOptions inheritedOptions) {
+    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page, PdfCore.PdfCreateOptions inheritedOptions) {
         ApplyPageSetup(document, section, page.Options, inheritedOptions);
     }
 
-    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfOptions options, PdfCore.PdfOptions inheritedOptions) {
+    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfCreateOptions options, PdfCore.PdfCreateOptions inheritedOptions) {
         RtfPageSetup setup = document.GetPageSetup(section);
-        options.PageWidth = inheritedOptions.PageWidth;
-        options.PageHeight = inheritedOptions.PageHeight;
-        options.MarginLeft = inheritedOptions.MarginLeft;
-        options.MarginRight = inheritedOptions.MarginRight;
-        options.MarginTop = inheritedOptions.MarginTop;
-        options.MarginBottom = inheritedOptions.MarginBottom;
+        options.PageSetup.Size = inheritedOptions.PageSetup.Size;
+        options.PageSetup.Margins.Left = inheritedOptions.PageSetup.Margins.Left;
+        options.PageSetup.Margins.Right = inheritedOptions.PageSetup.Margins.Right;
+        options.PageSetup.Margins.Top = inheritedOptions.PageSetup.Margins.Top;
+        options.PageSetup.Margins.Bottom = inheritedOptions.PageSetup.Margins.Bottom;
         options.PageBorder = inheritedOptions.PageBorder;
         options.PageNumberStyle = inheritedOptions.PageNumberStyle;
         ApplyPageSetup(document, setup, options);
@@ -88,7 +84,7 @@ internal static partial class RtfPdfConverter {
                 : null;
     }
 
-    private static void ApplyHeaderFooters(RtfDocument document, RtfPageSetup setup, PdfCore.PdfOptions options, RtfToPdfOptions saveOptions, IReadOnlyList<RtfHeaderFooter> declarations) {
+    private static void ApplyHeaderFooters(RtfDocument document, RtfPageSetup setup, PdfCore.PdfCreateOptions options, RtfPdfExportOptions saveOptions, IReadOnlyList<RtfHeaderFooter> declarations) {
         if (document.HeaderFooters.Count == 0) {
             return;
         }
@@ -112,29 +108,29 @@ internal static partial class RtfPdfConverter {
         string? defaultHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightHeader)
             ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Header);
         if (defaultHeader != null) {
-            options.ShowHeader = defaultHeader.Length > 0;
-            options.HeaderFormat = defaultHeader;
+            options.PageSetup.Header.Show = defaultHeader.Length > 0;
+            options.PageSetup.Header.Format = defaultHeader;
         }
 
         string? defaultFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightFooter)
             ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Footer);
         if (defaultFooter != null) {
-            options.ShowPageNumbers = defaultFooter.Length > 0;
-            options.FooterFormat = defaultFooter;
+            options.PageSetup.Footer.Show = defaultFooter.Length > 0;
+            options.PageSetup.Footer.Format = defaultFooter;
         }
 
         string? firstHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstHeader);
         string? firstFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstFooter);
-        options.DifferentFirstPageHeaderFooter = setup.DifferentFirstPageHeaderFooter;
-        options.FirstPageHeaderFormat = firstHeader ?? string.Empty;
-        options.FirstPageFooterFormat = firstFooter ?? string.Empty;
+        options.PageSetup.DifferentFirstPage = setup.DifferentFirstPageHeaderFooter;
+        options.PageSetup.FirstPageHeader.Format = firstHeader ?? string.Empty;
+        options.PageSetup.FirstPageFooter.Format = firstFooter ?? string.Empty;
 
         string? evenHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.LeftHeader);
         string? evenFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.LeftFooter);
-        options.DifferentOddAndEvenPagesHeaderFooter = document.Settings.FacingPages == true;
-        options.UsePageNumberParityForHeaderFooter = true;
-        options.EvenPageHeaderFormat = evenHeader ?? string.Empty;
-        options.EvenPageFooterFormat = evenFooter ?? string.Empty;
+        options.PageSetup.DifferentOddAndEvenPages = document.Settings.FacingPages == true;
+        options.PageSetup.UseVisiblePageNumberParity = true;
+        options.PageSetup.EvenPageHeader.Format = evenHeader ?? string.Empty;
+        options.PageSetup.EvenPageFooter.Format = evenFooter ?? string.Empty;
     }
 
     private static string? GetHeaderFooterText(IReadOnlyList<RtfHeaderFooter> declarations, RtfHeaderFooterKind kind) {
@@ -148,7 +144,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void ApplySectionHeaderFooters(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page,
-        PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state) {
+        PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state) {
         if (!options.IncludeHeaderFooters) return;
         IReadOnlyList<RtfHeaderFooter> declarations = document.GetEffectiveHeaderFooters(section);
         if (declarations.Count == 0) return;

@@ -35,7 +35,7 @@ public enum OfficeTextBaseline {
 }
 
 /// <summary>Resolved fixed-layout geometry for a cumulative superscript or subscript level.</summary>
-public readonly struct OfficeTextScriptGeometry {
+internal readonly struct OfficeTextScriptGeometry {
     internal OfficeTextScriptGeometry(double renderedFontSize, double baselineOffset) {
         RenderedFontSize = renderedFontSize;
         BaselineOffset = baselineOffset;

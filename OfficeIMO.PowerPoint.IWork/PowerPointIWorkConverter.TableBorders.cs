@@ -13,7 +13,7 @@ public static partial class PowerPointIWorkConverter {
 
         void Apply(OfficeBorderSide? side, PowerPointTableCellBorders edge) {
             if (side is not { } value) return;
-            if (value.IsVisible) target.SetBorders(edge, value.Color.ToRgbHex(), value.Width);
+            if (value.IsVisible) target.SetBorders(edge, value.Color.ToRgbHex(), global::OfficeIMO.OfficeLength.Points(value.Width));
             else target.HideBorders(edge);
         }
     }

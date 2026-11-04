@@ -13,9 +13,9 @@ public partial class Excel {
     public void ValuesModeWorkbookMergeDoesNotResolveOrCopySourceDefinedNames() {
         using var sourceStream = new MemoryStream();
         using (ExcelDocument source = ExcelDocument.Create(sourceStream)) {
-            ExcelSheet data = source.AddWorksheet("Data");
-            data.CellValue(1, 1, 21);
-            data.CellFormula(1, 2, "TaxRate*2");
+            ExcelSheet data = source.AddSheet("Data");
+            data.Cell(1, 1).SetValue(21);
+            data.Cell(1, 2).SetFormula("TaxRate*2");
             source.SetNamedRange("TaxRate", "A1", data, save: false);
             source.Save(sourceStream);
         }
@@ -25,7 +25,7 @@ public partial class Excel {
             AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly
         });
         using ExcelDocument target = ExcelDocument.Create(new MemoryStream());
-        target.AddWorksheet("Existing");
+        target.AddSheet("Existing");
 
         target.MergeWorkbookFrom(sourceDocument, new ExcelWorkbookMergeOptions {
             CopyMode = ExcelWorksheetCopyMode.Values

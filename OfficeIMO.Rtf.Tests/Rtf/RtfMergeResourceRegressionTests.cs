@@ -9,14 +9,14 @@ public class RtfMergeResourceRegressionTests {
         RtfDocument destination = RtfDocument.Create();
         destination.AddFileReference("file:///destination.docx");
         destination.AddXmlNamespace(0, "urn:destination");
-        destination.Info.Title = "Destination";
+        destination.Properties.Title = "Destination";
         destination.AddDocumentVariable("Shared", "Destination");
         RtfDocument source = RtfDocument.Create();
         source.AddParagraph("Imported");
         source.AddFileReference("file:///source.docx").RelativePathStart = 8;
         source.AddXmlNamespace(0, "urn:source");
-        source.Info.Title = "Source";
-        source.Info.Author = "Author";
+        source.Properties.Title = "Source";
+        source.Properties.Author = "Author";
         source.AddDocumentVariable("Shared", "Source");
         source.AddUserProperty("Unique", RtfUserProperty.TextType, "Value");
         source.AddRevisionSaveId(123);
@@ -27,14 +27,14 @@ public class RtfMergeResourceRegressionTests {
         Assert.Equal(2, destination.FileReferences.Select(item => item.Id).Distinct().Count());
         Assert.Equal(2, destination.XmlNamespaces.Select(item => item.Id).Distinct().Count());
         Assert.Equal(8, destination.FileReferences[1].RelativePathStart);
-        Assert.Equal("Destination", destination.Info.Title);
-        Assert.Equal("Author", destination.Info.Author);
+        Assert.Equal("Destination", destination.Properties.Title);
+        Assert.Equal("Author", destination.Properties.Author);
         Assert.Equal("Value", Assert.Single(destination.UserProperties).StaticValue);
         Assert.Contains(123, destination.RevisionSaveIds);
         Assert.Equal("Destination", Assert.Single(destination.DocumentVariables).Value);
-        Assert.Equal(new[] { "DocumentVariables/Shared", "Info/Title" }, result.Report.Diagnostics.Where(item => item.Code == "RtfMergeMetadataConflict").Select(item => item.SourcePath));
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
-        RtfDocument reopened = RtfDocument.Read(destination.ToRtf(), new RtfReadOptions { ReadFileReferences = true }).Document;
+        Assert.Equal(new[] { "DocumentVariables/Shared", "Info/Title" }, result.Report.NativeDiagnostics.Where(item => item.Code == "RtfMergeMetadataConflict").Select(item => item.SourcePath));
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
+        RtfDocument reopened = RtfDocument.ParseResult(destination.ToRtf(), new RtfLoadOptions { ReadFileReferences = true }).Document;
         Assert.Equal("file:///source.docx", reopened.FileReferences[1].Path);
         Assert.Equal("urn:source", reopened.XmlNamespaces[1].Uri);
         Assert.Equal(0, source.FileReferences[0].Id);
@@ -75,7 +75,7 @@ public class RtfMergeResourceRegressionTests {
         source.AddParagraph("Source default");
 
         RtfDocumentMergeResult result = destination.AppendDocument(source);
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         RtfParagraph imported = destination.Paragraphs[1];
         Assert.NotEqual(6, imported.StyleId);
         Assert.NotEqual(3, imported.ListId);
@@ -89,7 +89,7 @@ public class RtfMergeResourceRegressionTests {
         Assert.Equal((byte)255, destination.GetColor(effective.ForegroundColorIndex!.Value)!.Red);
         Assert.True(destination.ResolveRunFormatting(destination.Paragraphs[2], destination.Paragraphs[2].Runs[0]).Italic);
         Assert.False(destination.ResolveRunFormatting(destination.Paragraphs[2], destination.Paragraphs[2].Runs[0]).Bold);
-        foreach (RtfDocument value in new[] { destination, RtfDocument.Read(destination.ToRtf()).Document }) {
+        foreach (RtfDocument value in new[] { destination, RtfDocument.ParseResult(destination.ToRtf()).Document }) {
             var numbering = new RtfListNumbering(value);
             Assert.Equal("90.", numbering.Next(value.Paragraphs[0])!.Text);
             Assert.Equal("IV.", numbering.Next(value.Paragraphs[1])!.Text);
@@ -113,7 +113,7 @@ public class RtfMergeResourceRegressionTests {
         paragraph.Runs[0].ForegroundColorIndex = red;
         source.AddBlock(paragraph);
 
-        destination.AppendDocument(source).Report.RequireNoLoss();
+        destination.AppendDocument(source).Report.ThrowIfLoss();
         Assert.Same(Assert.IsType<RtfObject>(destination.Blocks[0]).Result, destination.Blocks[1]);
         Assert.Equal(2, destination.Paragraphs[0].Runs[0].ForegroundColorIndex);
         Assert.Equal(2, destination.Fonts.Count);

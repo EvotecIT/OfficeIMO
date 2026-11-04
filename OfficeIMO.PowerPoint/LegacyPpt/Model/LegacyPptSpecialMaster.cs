@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies a notes or handout master decoded from a binary PowerPoint file.</summary>
-    public enum LegacyPptSpecialMasterKind {
+    internal enum LegacyPptSpecialMasterKind {
         /// <summary>The master used by notes pages.</summary>
         Notes,
 
@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     }
 
     /// <summary>Represents a notes or handout master referenced by the binary document atom.</summary>
-    public sealed class LegacyPptSpecialMaster {
+    internal sealed class LegacyPptSpecialMaster {
         private readonly List<LegacyPptShape> _shapes = new();
         private readonly List<LegacyPptConnectorRule> _connectorRules = new();
 

@@ -6,7 +6,7 @@ public sealed partial class PdfTextRun {
 
     private PdfTextRun(PdfTextRun source, PdfInlineElement element)
         : this(source.Text, source.Bold, source.Underline, source.Color, source.Italic, source.Strike,
-            source.FontSize, source.Font, source.LinkUri, source.LinkContents, source.Baseline,
+            source.FontSize, source.StandardFont, source.LinkUri, source.LinkContents, source.Baseline,
             source.LinkDestinationName, source.TabLeader, source.TabAlignment, source.BackgroundColor,
             source.FontFamily, source.UnderlineStyle, source.StrikeStyle, source.DecorationColor) {
         InlineElement = element;

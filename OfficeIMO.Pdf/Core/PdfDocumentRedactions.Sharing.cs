@@ -12,7 +12,10 @@ public sealed partial class PdfDocumentRedactions {
         PdfRedactionPlan plan,
         PdfSanitizationOptions sanitizationOptions,
         PdfRedactionApplyOptions? applyOptions = null,
-        PdfRedactionVerificationOptions? verificationOptions = null) {
+        PdfRedactionVerificationOptions? verificationOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        sanitizationOptions = PdfOperationCancellation.Bind(sanitizationOptions, createWhenNull: false, cancellationToken)!;
+        applyOptions = PdfOperationCancellation.Bind(applyOptions, createWhenNull: true, cancellationToken);
+        verificationOptions = PdfOperationCancellation.Bind(verificationOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(sanitizationOptions, nameof(sanitizationOptions));
         sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
         var verification = verificationOptions ?? new PdfRedactionVerificationOptions {
@@ -24,10 +27,10 @@ public sealed partial class PdfDocumentRedactions {
         // Prove the reviewed page-content rewrite first; apply whole-artifact requirements only
         // to the final output so validators never receive the intermediate unsanitized artifact.
         PdfRedactionApplyResult redaction = ApplyWithEvidence(plan, applyOptions,
-            CreateIntermediateVerification(verification)).ThrowIfUnverified();
+            CreateIntermediateVerification(verification), cancellationToken: cancellationToken).ThrowIfUnverified();
         sanitizationOptions.CancellationToken.ThrowIfCancellationRequested();
         PdfDocument redactedDocument = redaction.ToDocument();
-        PdfSanitizationResult sanitization = redactedDocument.Sanitize(sanitizationOptions);
+        PdfSanitizationResult sanitization = redactedDocument.Sanitize(sanitizationOptions, cancellationToken: cancellationToken);
         if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
             throw new InvalidOperationException("The redacted artifact did not pass sanitization and preservation checks.");
         }
@@ -45,9 +48,9 @@ public sealed partial class PdfDocumentRedactions {
         // intentionally remove. Its replacement is the full page-content comparison above plus
         // the sanitizer's policy-specific preservation report, not a blanket identity bypass.
         var contentPlan = new PdfRedactionPlan(plan.Preflight, plan.Areas, plan.Matches, plan.Findings,
-            plan.SearchCriteria, plan.SourceSha256, reviewedTextObjectScopes: plan.ReviewedTextObjectScopes,
+            plan.RequestedSearchCriteria, plan.SourceSha256, reviewedTextObjectScopes: plan.ReviewedTextObjectScopes,
             searchMatchCase: plan.SearchMatchCase, searchRegexOptions: plan.SearchRegexOptions,
-            searchRegexTimeout: plan.SearchRegexTimeout);
+            searchRegexTimeout: plan.SearchRegexTimeout, searchPageNumbers: plan.SearchPageNumbers, alternateTextSections: plan.AlternateTextSections, alternateTextPlacements: plan.AlternateTextPlacements);
         PdfRedactionMatch[] provenImageRewrites = redaction.Evidence.Items
             .Where(item => item.Status == PdfRedactionEvidenceStatus.VerifiedAbsent && item.ReviewedMatch.Kind == PdfRedactionMatchKind.ImagePlacement)
             .Select(item => item.ReviewedMatch).ToArray();

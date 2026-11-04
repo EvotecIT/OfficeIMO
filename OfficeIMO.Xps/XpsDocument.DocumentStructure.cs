@@ -10,8 +10,9 @@ public sealed partial class XpsDocument {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var document in activeOnly ? _documents.Distinct() : _documentCache.Values.AsEnumerable()) {
             token.ThrowIfCancellationRequested();
-            var structure = ReadOwnedDocumentStructure(document, token);
-            if (structure.HasValue && seen.Add(structure.Value.Part)) yield return structure.Value;
+            // Validate every owner's relationship, then parse each shared payload once.
+            string? part = ResolveOwnedDocumentStructurePart(document, token);
+            if (part != null && seen.Add(part)) yield return (part, ReadDocumentStructurePart(part, token));
         }
     }
 
@@ -22,17 +23,27 @@ public sealed partial class XpsDocument {
             bool changed = false;
             // These are payload-global, one-based page numbers, not document-local
             // page indexes (ECMA-388 section 16.1.1.6).
-            foreach (var story in structure.Markup.Elements(StructureNamespace + "Story").ToArray()) {
-                bool removed = false;
+            var removedStories = new HashSet<XNode>();
+            foreach (var story in structure.Markup.Elements(StructureNamespace + "Story")) {
+                var removedReferences = new HashSet<XNode>();
                 foreach (var reference in story.Elements(StructureNamespace + "StoryFragmentReference").ToArray()) {
                     string? value = (string?)reference.Attribute("Page");
                     if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int number) || number < 1 || number > _pages.Count)
                         throw new InvalidDataException("Unresolved story-fragment page number.");
                     int current = pageMap[number - 1];
-                    if (current < 0) { reference.Remove(); changed = removed = true; }
+                    if (current < 0) { removedReferences.Add(reference); changed = true; }
                     else if (current != number - 1) { reference.SetAttributeValue("Page", current + 1); changed = true; }
                 }
-                if (removed && !story.Elements().Any()) story.Remove();
+                if (removedReferences.Count == 0) continue;
+                XNode[] retained = story.Nodes().Where(node => !removedReferences.Contains(node)).ToArray();
+                story.RemoveNodes();
+                story.Add(retained);
+                if (!story.Elements().Any()) removedStories.Add(story);
+            }
+            if (removedStories.Count != 0) {
+                XNode[] retained = structure.Markup.Nodes().Where(node => !removedStories.Contains(node)).ToArray();
+                structure.Markup.RemoveNodes();
+                structure.Markup.Add(retained);
             }
             foreach (var outline in structure.Markup.Elements(StructureNamespace + "DocumentStructure.Outline")
                 .Elements(StructureNamespace + "DocumentOutline").Elements(StructureNamespace + "OutlineEntry")) {

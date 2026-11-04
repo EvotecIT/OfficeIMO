@@ -169,7 +169,7 @@ public sealed partial class OfficeFontFaceCollection {
             if (existing.Style == normalizedStyle
                 && string.Equals(existing.FamilyName, normalizedFamily, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(existing.ResourceFamilyName, normalizedResourceFamily, StringComparison.OrdinalIgnoreCase)) {
-                _faces[index] = new OfficeFontFace(
+                FacesToChange[index] = new OfficeFontFace(
                     normalizedFamily,
                     normalizedResourceFamily,
                     acceptedData,
@@ -185,7 +185,7 @@ public sealed partial class OfficeFontFaceCollection {
             }
         }
 
-        _faces.Add(new OfficeFontFace(
+        FacesToChange.Add(new OfficeFontFace(
             normalizedFamily,
             normalizedResourceFamily,
             acceptedData,

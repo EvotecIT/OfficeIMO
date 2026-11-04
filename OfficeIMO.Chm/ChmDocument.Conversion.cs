@@ -17,8 +17,8 @@ public sealed partial class ChmDocument {
         if (topics.Count > options.MaxTopics) throw ChmBinary.Error("CONVERSION_LIMIT", "The selected topics exceed MaxTopics.");
         return topics;
     }
-    internal List<OfficeConversionFidelityDiagnostic> SourceDiagnostics() => Diagnostics.Select(diagnostic =>
-        new OfficeConversionFidelityDiagnostic(diagnostic.Code, diagnostic.Message, OfficeConversionLossKind.Unassessed, "OfficeIMO.Chm", diagnostic.Path)).ToList();
+    internal List<OfficeDiagnostic> SourceDiagnostics() => Diagnostics.Select(diagnostic =>
+        new global::OfficeIMO.OfficeDiagnostic(diagnostic.Code, global::OfficeIMO.OfficeDiagnosticSeverity.Warning, diagnostic.Message, diagnostic.Path, "OfficeIMO.Chm", OfficeConversionLossKind.Unassessed)).ToList();
 
     internal static void ReserveCharacters(ref long count, int additional, ChmConversionOptions options) {
         if (additional > options.MaxTotalHtmlCharacters - count) throw ChmBinary.Error("CONVERSION_LIMIT", "The selected HTML exceeds MaxTotalHtmlCharacters.");

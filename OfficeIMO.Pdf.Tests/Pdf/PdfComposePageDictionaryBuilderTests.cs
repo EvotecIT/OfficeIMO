@@ -368,8 +368,8 @@ namespace OfficeIMO.Tests.Pdf {
                 Array.Empty<(string Name, int Id)>(),
                 Array.Empty<int>(),
                 printProductionPageBoxes: new PdfPrintProductionPageBoxes(
-                    PageMargins.Uniform(9D),
-                    PageMargins.Uniform(3D)));
+                    PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(9D)),
+                    PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(3D))));
 
             Assert.Contains("/TrimBox [9 9 603 783] /BleedBox [3 3 609 789]", page, StringComparison.Ordinal);
         }
@@ -377,8 +377,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PageDictionaryBuilder_RejectsPrintProductionBoxCollapsedBySerialization() {
             var boxes = new PdfPrintProductionPageBoxes(
-                PageMargins.Uniform(49.9996D),
-                PageMargins.Uniform(0D));
+                PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(49.9996D)),
+                PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0D)));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
@@ -516,21 +516,21 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /Text /Rect [10 20.5 26 36.5] /Contents <52657669657720286C61796F757429> /Name /Key /C [1 0 0] /Open true >>\n",
-                PdfAnnotationDictionaryBuilder.BuildTextAnnotation(10, 20.5, 26, 36.5, "Review (layout)", PdfTextAnnotationIcon.Key, new PdfColor(1D, 0D, 0D), open: true));
+                PdfAnnotationDictionaryBuilder.BuildTextAnnotation(10, 20.5, 26, 36.5, "Review (layout)", PdfTextAnnotationIcon.Key, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D), open: true));
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /FreeText /Rect [10 20.5 110 44.25] /Contents <5265766965776572206E6F7465> /DA (/Helv 9.5 Tf 0 0 1 rg) /Border [0 0 0.75] /C [1 0 0] /IC [1 1 0.8] >>\n",
-                PdfAnnotationDictionaryBuilder.BuildFreeTextAnnotation(10, 20.5, 110, 44.25, "Reviewer note", 9.5, new PdfColor(0D, 0D, 1D), new PdfColor(1D, 0D, 0D), 0.75, new PdfColor(1D, 1D, 0.8D)));
+                PdfAnnotationDictionaryBuilder.BuildFreeTextAnnotation(10, 20.5, 110, 44.25, "Reviewer note", 9.5, global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0D, 1D), global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D), 0.75, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0.8D)));
             string freeTextAppearance = PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(
                 70,
                 48,
                 "Reviewer note wraps across words",
                 10,
-                new PdfColor(0D, 0D, 1D),
-                new PdfColor(1D, 0D, 0D),
+                global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0D, 1D),
+                global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D),
                 0.75,
-                new PdfColor(1D, 1D, 0.8D),
-                PdfAlign.Center,
+                global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0.8D),
+                OfficeAlignment.Center,
                 4D,
                 11D);
             Assert.True(CountOccurrences(freeTextAppearance, " Tj ET") >= 2);
@@ -539,7 +539,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /Highlight /Rect [10 20.5 110 44.25] /Contents <496D706F7274616E74> /C [1 0.9 0.1] /QuadPoints [10 44.25 110 44.25 10 20.5 110 20.5] >>\n",
-                PdfAnnotationDictionaryBuilder.BuildHighlightAnnotation(10, 20.5, 110, 44.25, "Important", new PdfColor(1D, 0.9D, 0.1D)));
+                PdfAnnotationDictionaryBuilder.BuildHighlightAnnotation(10, 20.5, 110, 44.25, "Important", global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D)));
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /Widget /FT /Tx /T <506572736F6E2E4E616D65> /V <416461> /DV <416461> /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 0 0 rg) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
@@ -701,7 +701,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildFreeTextAnnotation(10, 20, 110, 44, "note", 0));
             Assert.Throws<ArgumentException>(() =>
-                PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(100, 40, "note", textAlign: PdfAlign.Justify));
+                PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(100, 40, "note", textAlign: OfficeAlignment.Justify));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(100, 40, "note", padding: -1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -724,6 +724,31 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Countries", new[] { "Poland" }, new[] { "Poland", "Poland" }, 10, 12, isComboBox: false, allowsMultipleSelection: true));
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Countries", new[] { "Poland", "Germany" }, new[] { "Poland", "Germany" }, 10, 12, isComboBox: true, allowsMultipleSelection: true));
+        }
+
+        [Fact]
+        public void ChildFormWidgetsDoNotReadMetadataOwnedByTheirParent() {
+            string textWidget = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(
+                10, 20, 110, 44, "Field", "Value", 10, 12, parentObjectId: 7);
+            string scalarChoiceWidget = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
+                10, 20, 110, 44, "Field", new UnreadableOptions<string>(), new[] { "Value" },
+                10, 12, isComboBox: true, allowsMultipleSelection: false, parentObjectId: 7);
+            string pairedChoiceWidget = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
+                10, 20, 110, 44, "Field", new UnreadableOptions<PdfFormFieldOption>(), new[] { "Value" },
+                10, 12, isComboBox: true, allowsMultipleSelection: false, parentObjectId: 7);
+
+            Assert.Equal(textWidget, scalarChoiceWidget);
+            Assert.Equal(textWidget, pairedChoiceWidget);
+            Assert.Contains("/Parent 7 0 R", textWidget, StringComparison.Ordinal);
+            Assert.DoesNotContain("/Opt", textWidget, StringComparison.Ordinal);
+        }
+
+        private sealed class UnreadableOptions<T> : System.Collections.Generic.IReadOnlyList<T> {
+            public int Count => throw new InvalidOperationException("Child widget read parent metadata.");
+            public T this[int index] => throw new InvalidOperationException("Child widget read parent metadata.");
+            public System.Collections.Generic.IEnumerator<T> GetEnumerator() =>
+                throw new InvalidOperationException("Child widget read parent metadata.");
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
         [Fact]
@@ -886,7 +911,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void VisualResourceDictionaryBuilder_SamplesNonlinearPrintGradientTransform() {
-            var options = new PdfOptions().ConfigurePdfXGroundwork(
+            var options = new PdfCreateOptions().ConfigurePdfXGroundwork(
                 PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(),
                 "FOGRA51",

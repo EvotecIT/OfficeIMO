@@ -1,10 +1,10 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    public static string Write(RtfDocument document, RtfWriteOptions options, RtfConversionReport? report = null,
+    public static string Write(RtfDocument document, RtfSaveOptions options, RtfConversionReport? report = null,
         bool semanticBaseline = false) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        options ??= new RtfWriteOptions();
+        options ??= new RtfSaveOptions();
         RtfTableTraversalGuard.ValidateDocument(document);
         // The comparison string keeps the authored \uc setting in the header, but
         // does not need fallback bytes to detect semantic edits.
@@ -37,7 +37,7 @@ internal static partial class RtfDocumentWriter {
         WriteHtmlEncapsulation(builder, document, options, unicodeSkipCount);
         if (options.IncludeGenerator) {
             builder.Append(@"{\*\generator ");
-            builder.Append(EscapeText(string.IsNullOrWhiteSpace(document.Info.Generator) ? "OfficeIMO.Rtf" : document.Info.Generator!.Trim(), unicodeSkipCount));
+            builder.Append(EscapeText(string.IsNullOrWhiteSpace(document.Properties.Generator) ? "OfficeIMO.Rtf" : document.Properties.Generator!.Trim(), unicodeSkipCount));
             builder.Append(";}");
         }
 
@@ -73,7 +73,7 @@ internal static partial class RtfDocumentWriter {
 
     private static int GetUnicodeSkipCount(RtfDocumentSettings settings) => settings.UnicodeSkipCount ?? 1;
 
-    private static void WriteHtmlEncapsulation(StringBuilder builder, RtfDocument document, RtfWriteOptions options, int unicodeSkipCount) {
+    private static void WriteHtmlEncapsulation(StringBuilder builder, RtfDocument document, RtfSaveOptions options, int unicodeSkipCount) {
         if (!options.IncludeHtmlEncapsulation || !document.IsHtmlEncapsulationCurrent) return;
         RtfHtmlEncapsulation? encapsulation = document.HtmlEncapsulation;
         if (encapsulation == null || string.IsNullOrEmpty(encapsulation.Html)) return;
@@ -211,7 +211,7 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void WriteInfo(StringBuilder builder, RtfDocument document, int unicodeSkipCount) {
-        RtfDocumentInfo info = document.Info;
+        RtfDocumentInfo info = document.Properties;
         if (!HasText(info.Title) && !HasText(info.Subject) && !HasText(info.Author) &&
             !HasText(info.Manager) && !HasText(info.Company) && !HasText(info.Operator) &&
             !HasText(info.Category) && !HasText(info.Keywords) && !HasText(info.Comments) &&

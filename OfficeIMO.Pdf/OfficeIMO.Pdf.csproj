@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <Description>First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.</Description>
-    <AssemblyName>OfficeIMO.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -58,10 +56,6 @@
     <Using Include="System.IO" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
-
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
@@ -69,12 +63,12 @@
     <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Benchmarks" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Ocr" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
-    <InternalsVisibleTo Include="OfficeIMO.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Chm.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
@@ -82,6 +76,9 @@
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Word" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Excel" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.PowerPoint" />
     <InternalsVisibleTo Include="OfficeIMO.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Excel.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
@@ -92,6 +89,28 @@
     <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odg.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Xps.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.DjVu.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Publisher.Pdf" />
   </ItemGroup>
 
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Invoicing.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Mhtml.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.AsciiDoc.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Latex.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odp.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Ods.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odt.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Studio.Core" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Tool.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Shared.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Studio" />
+    <InternalsVisibleTo Include="PSWriteOffice" />
+  </ItemGroup>
 </Project>

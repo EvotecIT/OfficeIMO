@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Markdown {
             string mdPath = Path.Combine(mdFolder, "AnchorsAndTheme.md");
             string htmlPath = Path.ChangeExtension(mdPath, ".html");
 
-            var md = MarkdownDoc.Create()
+            var md = MarkdownDocument.Create()
                 .FrontMatter(new { title = "Markdown Anchors & Theme" })
                 .H1("Report Title")
                 // Collapsible TOC at top (HTML only); avoid duplicate heading by setting IncludeTitle=false
@@ -40,10 +40,10 @@ namespace OfficeIMO.Examples.Markdown {
 
             File.WriteAllText(mdPath, md.ToMarkdown(), Encoding.UTF8);
 
-            var html = md.ToHtmlDocument(new HtmlOptions {
+            var html = md.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document,
                 Title = "Markdown Anchors & Theme",
-                Style = HtmlStyle.Word,
-                CssDelivery = CssDelivery.Inline,
+                Style = MarkdownHtmlStyle.Word,
+                CssDelivery = MarkdownCssDelivery.Inline,
                 ShowAnchorIcons = true,
                 AnchorIcon = "🔗",
                 CopyHeadingLinkOnClick = true,

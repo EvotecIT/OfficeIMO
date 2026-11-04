@@ -98,6 +98,14 @@ internal sealed class ExcelExtractTable {
 /// </summary>
 internal sealed class ExcelExtractChunkingOptions {
     /// <summary>
+    /// Maximum dense cell positions projected across all sheets in one Reader result.
+    /// Sparse source cells still expand to rectangular rows during extraction.
+    /// </summary>
+    public long MaxProjectedCells { get; set; } = 1_000_000;
+
+    internal long ProjectedCells { get; set; }
+
+    /// <summary>
     /// Maximum characters per emitted chunk (best-effort).
     /// </summary>
     public int MaxChars { get; set; } = 8_000;

@@ -173,9 +173,12 @@ public static partial class OfficeRasterImageDecoder {
         }
 
         if (format == OfficeImageFormat.Heic) {
-            bool decoded = OfficeHeifImageComposer.TryDecode(bytes, effective, out image, out var availability, out string? diagnostic);
+            bool decoded = OfficeHeifImageComposer.TryDecode(bytes, effective, out image, out var availability, out string? diagnostic,
+                out OfficeImageOrientation sourceOrientation, out bool orientationNormalized);
             info = new OfficeRasterDecodeInfo(format, 1, 0, decoded, diagnostic, container) {
                 CodecUnavailableReason = availability.Reason,
+                SourceOrientation = sourceOrientation,
+                OrientationNormalized = orientationNormalized,
                 UsedCallerCodec = decoded,
                 Failure = decoded ? OfficeRasterDecodeFailure.None : availability.IsAvailable ? OfficeRasterDecodeFailure.InvalidOrUnsupported : OfficeRasterDecodeFailure.CodecUnavailable
             };

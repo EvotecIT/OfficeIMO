@@ -14,9 +14,9 @@ using OfficeIMO.Excel;
 using var workbook = ExcelDocument.Create("worksheets.xlsx");
 
 // Add worksheets
-var sheet1 = workbook.AddWorksheet("Sales");
-var sheet2 = workbook.AddWorksheet("Inventory");
-var sheet3 = workbook.AddWorksheet("Summary");
+var sheet1 = workbook.AddSheet("Sales");
+var sheet2 = workbook.AddSheet("Inventory");
+var sheet3 = workbook.AddSheet("Summary");
 
 workbook.Save();
 ```
@@ -26,7 +26,7 @@ workbook.Save();
 By default, OfficeIMO validates sheet names against Excel's rules (no special characters like `:`, `\`, `/`, `?`, `*`, `[`, `]`; maximum 31 characters). You can control validation behavior:
 
 ```csharp
-var sheet = workbook.AddWorksheet("My Sheet!", ExcelSheetNameValidationMode.Sanitize);
+var sheet = workbook.AddSheet("My Sheet!", ExcelSheetNameValidationMode.Sanitize);
 // Name will be sanitized to remove invalid characters
 ```
 
@@ -35,7 +35,7 @@ var sheet = workbook.AddWorksheet("My Sheet!", ExcelSheetNameValidationMode.Sani
 Access cells using A1-style references:
 
 ```csharp
-var sheet = workbook.AddWorksheet("Data");
+var sheet = workbook.AddSheet("Data");
 
 // String values
 sheet.Cells["A1"].Value = "Name";
@@ -123,11 +123,12 @@ sheet.Cells["C1"].Value = "=COUNTIF(A1:A3,\">150\")";
 
 ```csharp
 // Set column width
-sheet.SetColumnWidth("A", 25);
-sheet.SetColumnWidth("B", 15);
+sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(25));
+sheet.SetColumnWidth(2, ExcelColumnWidth.Length(OfficeLength.Centimeters(3)));
+sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(24)));
 
 // Auto-fit columns (requires data to be populated first)
-sheet.AutoFitColumn("A");
+sheet.AutoFitColumn(1);
 ```
 
 ## Named Ranges
@@ -148,16 +149,26 @@ Configure print settings:
 
 ```csharp
 sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
-sheet.PageSetup.PaperSize = 1;  // Letter
+sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 sheet.PageSetup.FitToWidth = 1;
 sheet.PageSetup.FitToHeight = 0;  // 0 = as many pages as needed
+sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
+sheet.PageSetup.PrintArea = "A1:F40";
+sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1);
 ```
 
 ## Sheet Headers and Footers
 
+Each header and footer has left, center and right sections. Excel codes such as `&P` (page), `&N` (pages) and `&D` (date) are kept.
+
 ```csharp
-sheet.HeaderFooter.OddHeader = "&CMonthly Sales Report";
-sheet.HeaderFooter.OddFooter = "&LPage &P of &N&R&D";
+sheet.PageSetup.Header.Center.Text = "Monthly Sales Report";
+sheet.PageSetup.Footer.Left.Text = "Page &P of &N";
+sheet.PageSetup.Footer.Right.Text = "&D";
+sheet.PageSetup.Header.Right.SetImage(File.ReadAllBytes("logo.png"), "image/png");
+
+// A different first page
+sheet.PageSetup.FirstPageHeader.Center.Text = "Monthly Sales Report - cover";
 ```
 
 ## Images
@@ -165,20 +176,27 @@ sheet.HeaderFooter.OddFooter = "&LPage &P of &N&R&D";
 Add images to worksheets:
 
 ```csharp
-sheet.AddImage("chart.png", "A10", width: 400, height: 300);
+sheet.AddImageFromFile(10, 1, "chart.png", width: OfficeIMO.OfficeLength.Pixels(400), height: OfficeIMO.OfficeLength.Pixels(300));
 ```
 
 ## Freezing Panes
 
 ```csharp
 // Freeze the top row
-sheet.FreezePane(1, 0);
+sheet.View.Freeze(topRows: 1);
 
 // Freeze the first column
-sheet.FreezePane(0, 1);
+sheet.View.Freeze(leftColumns: 1);
 
 // Freeze both (top-left corner stays fixed)
-sheet.FreezePane(1, 1);
+sheet.View.Freeze(1, 1);
+```
+
+Gridlines, zero values, row and column headings, direction and zoom are on `sheet.View` too:
+
+```csharp
+sheet.View.ShowGridlines = false;
+sheet.View.ZoomScale = 90;
 ```
 
 ## Iterating Over Sheets

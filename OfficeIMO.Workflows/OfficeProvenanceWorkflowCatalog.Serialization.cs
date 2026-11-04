@@ -27,7 +27,7 @@ public static partial class OfficeProvenanceWorkflowCatalog {
                 OfficeProvenanceWorkflowFormat format = capability.Formats[formatIndex];
                 output.Append("        {\"extension\":\"").Append(EscapeJson(format.Extension))
                     .Append("\",\"assetFormats\":[")
-                    .Append(string.Join(',', format.AssetFormats.Select(static item => "\"" + item + "\"")))
+                    .Append(string.Join(",", format.AssetFormats.Select(static item => "\"" + item + "\"")))
                     .Append("],\"memoryOnlyAvailable\":").Append(format.MemoryOnlyAvailable ? "true" : "false")
                     .Append(",\"browserAvailable\":").Append(format.BrowserAvailable ? "true" : "false")
                     .Append('}');

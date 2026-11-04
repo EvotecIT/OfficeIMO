@@ -176,11 +176,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static bool TryParseReference(string reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
-            if (A1.TryParseRange(reference, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
+            if (ExcelA1.TryParseRange(reference, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
                 return true;
             }
 
-            (int row, int column) = A1.ParseCellRef(reference);
+            (int row, int column) = ExcelA1.ParseCellRef(reference);
             if (row <= 0 || column <= 0) {
                 firstRow = firstColumn = lastRow = lastColumn = 0;
                 return false;

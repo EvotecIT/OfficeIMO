@@ -1,6 +1,8 @@
 using System.Management.Automation;
+using System.Security;
 using System.Text;
 using OfficeIMO.Email.Store;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Email;
 
@@ -11,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 ///   <code>$options = New-OfficeEmailStoreReaderOptions -ExcludeAttachmentContent -MaxAttachmentsPerItem 100
 /// Get-OfficeEmail -Path .\Message.emlx -StoreOptions $options -AsResult</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeEmailStoreReaderOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeEmailStoreReaderOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(EmailStoreReaderOptions))]
 public sealed class NewOfficeEmailStoreReaderOptionsCommand : PSCmdlet {
     /// <summary>Maximum seekable source length.</summary>
@@ -39,7 +41,9 @@ public sealed class NewOfficeEmailStoreReaderOptionsCommand : PSCmdlet {
     /// <summary>Do not retain decoded attachment payloads in memory.</summary>
     [Parameter] public SwitchParameter ExcludeAttachmentContent { get; set; }
     /// <summary>Password used to validate legacy protected PST files.</summary>
-    [Parameter] public string? PstPassword { get; set; }
+    [Parameter]
+    [OfficePasswordTransformation]
+    public SecureString? PstPassword { get; set; }
     /// <summary>Encoding name used for the legacy PST password checksum.</summary>
     [Parameter] public string PstPasswordEncoding { get; set; } = "us-ascii";
     /// <summary>Materialize folder-associated information items.</summary>
@@ -87,7 +91,7 @@ public sealed class NewOfficeEmailStoreReaderOptionsCommand : PSCmdlet {
             MaxAttachmentBytes,
             MaxTotalAttachmentBytes,
             !ExcludeAttachmentContent.IsPresent,
-            PstPassword,
+            PstPassword.ToPlainText(),
             encoding,
             IncludeAssociatedItems.IsPresent,
             IncludeOrphanedItems.IsPresent,

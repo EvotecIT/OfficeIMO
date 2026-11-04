@@ -12,11 +12,11 @@ public static class WordRtfWorkflowExtensions {
         if (template == null) throw new ArgumentNullException(nameof(template));
         if (values == null) throw new ArgumentNullException(nameof(values));
 
-        RtfConversionResult<WordDocument> input = template.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> input = template.ConvertToWordWithEvidence();
         using WordDocument word = input.Value;
         WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(word, values.Keys);
         WordMailMerge.Execute(word, values, removeFields);
-        return Complete(word, inspection, input.Report, "RtfWordMailMergeCompleted", "Mail merge was executed by OfficeIMO.Word.");
+        return Complete(word, inspection, input.Report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordMailMergeCompleted, "Mail merge was executed by OfficeIMO.Word.");
     }
 
     /// <summary>Executes Word mail merge from a parsed RTF result, retaining parser diagnostics.</summary>
@@ -37,10 +37,13 @@ public static class WordRtfWorkflowExtensions {
         string textToReplace,
         StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        RtfConversionResult<WordDocument> input = document.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> input = document.ConvertToWordWithEvidence();
         using WordDocument word = input.Value;
-        int replacements = word.FindAndReplace(textToFind, textToReplace, comparison);
-        return Complete(word, replacements, input.Report, "RtfWordFindReplaceCompleted", "Find and replace was executed by OfficeIMO.Word.");
+        var options = new global::OfficeIMO.OfficeTextSearchOptions {
+            MatchCase = comparison is StringComparison.Ordinal or StringComparison.CurrentCulture or StringComparison.InvariantCulture
+        };
+        int replacements = word.ReplaceAll(textToFind, textToReplace, options);
+        return Complete(word, replacements, input.Report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordFindReplaceCompleted, "Find and replace was executed by OfficeIMO.Word.");
     }
 
     /// <summary>Runs find/replace from a parsed RTF result, retaining parser diagnostics.</summary>
@@ -60,10 +63,10 @@ public static class WordRtfWorkflowExtensions {
         this RtfDocument document,
         WordFieldUpdateOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        RtfConversionResult<WordDocument> input = document.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> input = document.ConvertToWordWithEvidence();
         using WordDocument word = input.Value;
         WordFieldUpdateReport workflow = word.UpdateFieldsAndGetReport(options ?? WordFieldUpdateOptions.Default);
-        RtfWordWorkflowResult<WordFieldUpdateReport> result = Complete(word, workflow, input.Report, "RtfWordFieldsUpdated", "Fields were evaluated by OfficeIMO.Word.");
+        RtfWordWorkflowResult<WordFieldUpdateReport> result = Complete(word, workflow, input.Report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordFieldsUpdated, "Fields were evaluated by OfficeIMO.Word.");
         if (workflow.UnsupportedCount > 0 || workflow.ParseErrorCount > 0) {
             result.Report.Add(
                 RtfConversionSeverity.Warning,
@@ -91,15 +94,15 @@ public static class WordRtfWorkflowExtensions {
     public static RtfWordWorkflowResult<int> MergeResult(this RtfDocument document, RtfDocument source) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (source == null) throw new ArgumentNullException(nameof(source));
-        RtfConversionResult<WordDocument> destinationConversion = document.ToWordDocumentResult();
-        RtfConversionResult<WordDocument> sourceConversion = source.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> destinationConversion = document.ConvertToWordWithEvidence();
+        RtfConversionResult<WordDocument> sourceConversion = source.ConvertToWordWithEvidence();
         using WordDocument destinationWord = destinationConversion.Value;
         using WordDocument sourceWord = sourceConversion.Value;
         destinationWord.AppendDocument(sourceWord);
         var report = new RtfConversionReport();
         report.Merge(destinationConversion.Report);
         report.Merge(sourceConversion.Report);
-        return Complete(destinationWord, 1, report, "RtfWordMergeCompleted", "One RTF document was appended by OfficeIMO.Word.");
+        return Complete(destinationWord, 1, report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordMergeCompleted, "One RTF document was appended by OfficeIMO.Word.");
     }
 
     /// <summary>Compares two RTF documents using the machine-readable OfficeIMO.Word comparison engine.</summary>
@@ -109,8 +112,8 @@ public static class WordRtfWorkflowExtensions {
         WordComparisonOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (target == null) throw new ArgumentNullException(nameof(target));
-        RtfConversionResult<WordDocument> sourceConversion = source.ToWordDocumentResult();
-        RtfConversionResult<WordDocument> targetConversion = target.ToWordDocumentResult();
+        RtfConversionResult<WordDocument> sourceConversion = source.ConvertToWordWithEvidence();
+        RtfConversionResult<WordDocument> targetConversion = target.ConvertToWordWithEvidence();
         using WordDocument sourceWord = sourceConversion.Value;
         using WordDocument targetWord = targetConversion.Value;
         WordComparisonResult comparison = WordDocumentComparer.CompareStructure(
@@ -132,7 +135,7 @@ public static class WordRtfWorkflowExtensions {
         RtfConversionReport inputReport,
         string code,
         string message) {
-        RtfConversionResult<RtfDocument> output = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> output = word.ConvertToRtfWithEvidence();
         var report = new RtfConversionReport();
         report.Merge(inputReport);
         report.Merge(output.Report);

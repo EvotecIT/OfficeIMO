@@ -329,7 +329,7 @@ internal static class PdfInspector {
         }
 
         if (probe.HasForms) {
-            AddRewriteBlocker(PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
+            AddRewriteBlocker(PdfRewriteBlockerKind.Forms, "PDF contains AcroForm fields; this writer requires explicit field and widget preservation.");
         }
 
         var rewriteMarkerSource = new PdfRewriteMarkerSource(pdf, effectiveOptions, readDocument);
@@ -388,7 +388,14 @@ internal static class PdfInspector {
 
         cancellationToken.ThrowIfCancellationRequested();
         bool canRewrite = canRead && rewriteBlockers.Count == 0;
-        return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly(), effectiveOptions.PermissionPolicy, readDocumentException);
+        return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly(), effectiveOptions.PermissionPolicy, readDocumentException) {
+            HasCompressedRedactionStructures = readDocument is not null && PdfSyntax.HasCompressedRedactionStructures(readDocument),
+            // A plan keeps its preflight beyond this call, so the proofs own no caller token and never cache a failure.
+            RedactionNavigationProof = new Lazy<bool>(() => readDocument is not null &&
+                PdfRedactionNavigation.CanPreserve(readDocument, CancellationToken.None), LazyThreadSafetyMode.PublicationOnly),
+            RedactionObjectGraphProof = new Lazy<bool>(() => readDocument is not null &&
+                PdfSyntax.CanNormalizeRedactionObjectGraph(pdf, readDocument, CancellationToken.None), LazyThreadSafetyMode.PublicationOnly)
+        };
 
         void AddReadBlocker(PdfReadBlockerKind kind, string message) {
             AddDiagnostic(message);

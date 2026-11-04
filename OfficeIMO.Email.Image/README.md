@@ -9,14 +9,16 @@ dotnet add package OfficeIMO.Email.Image
 The public APIs remain in the `OfficeIMO.Email` namespace:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Email;
+using OfficeIMO.Html;
 
 EmailDocument message = EmailDocument.Load("message.eml");
-IReadOnlyList<OfficeImageExportResult> pages = message
-    .ToImages(new EmailImageExportOptions())
-    .Paged()
-    .AsPng()
-    .Save("message-pages");
+var imageOptions1 = new EmailImageExportOptions();
+imageOptions1.Mode = HtmlRenderMode.Paged;
+imageOptions1.Format = OfficeImageExportFormat.Png;
+OfficeConversionReport pages = message.SaveAsImages("message-pages", imageOptions1);
 ```
 
 The renderer consumes `OfficeIMO.Email.Html` for the same body selection, untrusted sanitization, remote-resource policy, and CID/Content-Location resolution used by Reader. It can convert an RTF body when HTML is absent and safely encodes plain text as the final fallback. Rendering limits, page selection, and diagnostics come from the shared HTML renderer.
@@ -26,6 +28,8 @@ The renderer consumes `OfficeIMO.Email.Html` for the same body selection, untrus
 Keeping this capability separate prevents MIME-only applications from acquiring AngleSharp, CSS layout, and the RTF bridge.
 
 Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Email`, `OfficeIMO.Email.Html`, and `OfficeIMO.Html`.
+
+`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ExportImages` consumer overloads to process each image with its sequence metadata and diagnostics.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

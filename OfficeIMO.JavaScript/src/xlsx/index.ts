@@ -2,7 +2,7 @@ export { Workbook } from "./workbook.js";
 export { writeXlsx, writeXlsxTo } from "./write.js";
 export { writeGroupedXlsx, writeGroupedXlsxTo, addGroupedXlsx } from "./grouped.js";
 export type { GroupedXlsxOptions, GroupedXlsxSheetOptions, GroupedXlsxWorksheet, GroupedXlsxGroupRows } from "./grouped.js";
-export type { RowOutline } from "./types.js";
+export type { RowOutline, ColumnOutline } from "./types.js";
 export { createGroupedReport } from "../core/grouped-report.js";
 export type { GroupedReportSource, GroupedReportOptions, GroupedReportEvent, GroupedReportSummary, GroupedReportValueContext, GroupedReportLevel, GroupedReportGroup } from "../core/grouped-report.js";
 export type { XlsxOptions } from "./write.js";

@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsExternalReference externalReference = Assert.Single(legacy.ExternalReferences);
             Assert.Equal(LegacyXlsExternalReferenceKind.ExternalWorkbook, externalReference.Kind);
             Assert.Equal("C:\\Data\\Budget.xls", externalReference.Target);
@@ -161,6 +161,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeSaveCannotRestoreExternalLinksFilteredDuringImport() {
+            byte[] workbook = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbook);
+            using var document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
+
+            Assert.Throws<NotSupportedException>(() => document.ToBytes(ExcelFileFormat.Xls));
+            byte[] permittedLoss = document.ToBytes(ExcelFileFormat.Xls, new ExcelSaveOptions {
+                LossPolicy = OfficeConversionLossPolicy.Allow
+            });
+            LegacyXlsWorkbook saved = LegacyXlsWorkbook.Load(permittedLoss);
+            Assert.DoesNotContain(saved.ExternalReferences, reference =>
+                reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook);
+
+            using var optedIn = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                PreserveExternalWorkbookLinks = true
+            });
+            LegacyXlsWorkbook preserved = LegacyXlsWorkbook.Load(optedIn.ToBytes(ExcelFileFormat.Xls));
+            Assert.Contains(preserved.ExternalReferences, reference =>
+                reference.Kind == LegacyXlsExternalReferenceKind.ExternalWorkbook);
+        }
+
+        [Fact]
         public void LegacyXls_Load_DropsExternalFormulaWhenWorkbookNameContainsApostrophe() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateFormulaExternalWorkbookReferenceWorkbookStream("C:\\Data\\O'Brien.xls");
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -221,7 +243,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsExternalReference externalReference = Assert.Single(legacy.ExternalReferences);
             LegacyXlsExternalName externalName = Assert.Single(externalReference.ExternalNames);
             Assert.Equal(LegacyXlsExternalReferenceKind.ExternalWorkbook, externalReference.Kind);
@@ -282,7 +304,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsExternalReference addInReference = Assert.Single(legacy.ExternalReferences);
             Assert.Equal(LegacyXlsExternalReferenceKind.AddIn, addInReference.Kind);
             LegacyXlsExternalName addInName = Assert.Single(addInReference.ExternalNames);
@@ -320,7 +342,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             Assert.Equal(2, legacy.Worksheets.Count);
             LegacyXlsChartSheet chartSheet = Assert.Single(legacy.ChartSheets);
             Assert.Equal("Chart1", chartSheet.Name);
@@ -455,7 +477,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             AssertFormula(sheet, 2, 1, "LEFT(A1,6)", "Office");
             AssertFormula(sheet, 3, 1, "RIGHT(A1,3)", "IMO");
@@ -619,7 +641,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3);
             Assert.True(formula.IsFormula);
@@ -652,7 +674,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.True(formula.IsFormula);
@@ -685,7 +707,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);
@@ -718,7 +740,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell spaceFormula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(spaceFormula.IsFormula);
@@ -760,7 +782,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);
@@ -793,7 +815,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
             Assert.True(formula.IsFormula);
@@ -826,7 +848,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell rangeFormula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 4);
             Assert.True(rangeFormula.IsFormula);
@@ -877,7 +899,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 3 && cell.Column == 1);
             Assert.True(formula.IsFormula);
@@ -910,7 +932,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3);
             Assert.True(formula.IsFormula);
@@ -943,7 +965,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             Assert.Contains(legacy.DefinedNames, name => name.Name == "TaxRate" && name.Reference == "'NameFormula'!$C$1");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
@@ -955,7 +977,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.Equal("'NameFormula'!$C$1", document.GetNamedRange("TaxRate"));
+            Assert.Equal("'NameFormula'!$C$1", document.GetNamedRangeText("TaxRate"));
             Assert.True(document.Sheets[0].TryGetCellText(1, 2, out string? cachedText));
             Assert.Equal("2.5", cachedText);
 
@@ -980,7 +1002,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             Assert.Equal(2, legacy.Worksheets.Count);
             LegacyXlsWorksheet formulas = legacy.Worksheets[1];
             LegacyXlsCell sameSheetReference = Assert.Single(formulas.Cells, cell => cell.Row == 1 && cell.Column == 1);
@@ -1036,7 +1058,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell singleReferenceFormula = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 3);
             Assert.True(singleReferenceFormula.IsFormula);
@@ -1077,7 +1099,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.ShrFmla);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell firstFormula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
@@ -1127,7 +1149,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-SHARED-UNRESOLVED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-shared-unresolved");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Array);
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(3, report.FormulaTokensByContext["ArrayFormula"]);
@@ -1204,7 +1226,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             LegacyXlsCell formula = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.True(formula.IsFormula);
@@ -1238,7 +1260,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             LegacyXlsImportDiagnostic diagnostic = Assert.Single(legacy.Diagnostics, d =>
-                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                d.Code == "xls-biff-formula-tokens-unsupported"
                 && d.SheetName == "FormulaDiag"
                 && d.RecordType == (ushort)BiffRecordType.Formula);
             Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
@@ -1318,7 +1340,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "xls-biff-formula-tokens-unsupported");
 
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.FormulaFunctionsById["Function:0x002E"]);
@@ -1371,7 +1393,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             LegacyXlsImportDiagnostic diagnostic = Assert.Single(legacy.Diagnostics, d =>
-                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                d.Code == "xls-biff-formula-tokens-unsupported"
                 && d.SheetName == "SharedDiag"
                 && d.RecordType == (ushort)BiffRecordType.ShrFmla);
             Assert.Equal("FormulaToken0x01", diagnostic.DetailCode);
@@ -1408,7 +1430,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             LegacyXlsImportDiagnostic diagnostic = Assert.Single(legacy.Diagnostics, d =>
-                d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                d.Code == "xls-biff-formula-tokens-unsupported"
                 && d.SheetName == "FormulaStack"
                 && d.RecordType == (ushort)BiffRecordType.Formula);
             Assert.Equal("FormulaFunction0x0004StackUnderflow", diagnostic.DetailCode);
@@ -1445,9 +1467,9 @@ namespace OfficeIMO.Tests {
             foreach (byte[] workbookStream in workbookStreams) {
                 byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                    ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                         compound,
-                        new ExcelReadOptions { UseCachedFormulaResult = false }));
+                        new ExcelReaderOptions { UseCachedFormulaResult = false }); _ = reader.FieldCount; });
 
                 Assert.Contains("cannot be projected", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("UseCachedFormulaResult=false", exception.Message, StringComparison.Ordinal);

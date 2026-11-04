@@ -10,7 +10,7 @@ public sealed class ExcelPdfAsyncContractTests {
     [Fact]
     public async Task PdfAsyncSavesPerformIoAndDoNotTurnCancellationIntoFailureResults() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        workbook.AddWorksheet("Data").CellValue(1, 1, "Async Excel PDF");
+        workbook.AddSheet("Data").Cell(1, 1).SetValue("Async Excel PDF");
         using var output = new MemoryStream();
 
         await workbook.SaveAsPdfAsync(output);
@@ -20,22 +20,20 @@ public sealed class ExcelPdfAsyncContractTests {
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             workbook.SaveAsPdfAsync(new MemoryStream(), cancellationToken: cancellation.Token));
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            workbook.SaveAsPdfResultAsync(new MemoryStream(), cancellationToken: cancellation.Token));
     }
 
     [Fact]
     public async Task PdfAsyncSaveMethodTokenStopsSynchronousConversionAtTheNextCheckpoint() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        ExcelSheet first = workbook.AddWorksheet("First");
-        first.CellValue(1, 1, "First sheet");
-        first.SetHeaderFooter(headerCenter: "&D");
-        ExcelSheet second = workbook.AddWorksheet("Second");
-        second.CellValue(1, 1, "Second sheet");
-        second.SetHeaderFooter(headerCenter: "&D");
+        ExcelSheet first = workbook.AddSheet("First");
+        first.Cell(1, 1).SetValue("First sheet");
+        first.PageSetup.Header.Center.Text = "&D";
+        ExcelSheet second = workbook.AddSheet("Second");
+        second.Cell(1, 1).SetValue("Second sheet");
+        second.PageSetup.Header.Center.Text = "&D";
         using var cancellation = new CancellationTokenSource();
         int providerCalls = 0;
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             HeaderFooterDateTimeProvider = () => {
                 providerCalls++;
                 cancellation.Cancel();

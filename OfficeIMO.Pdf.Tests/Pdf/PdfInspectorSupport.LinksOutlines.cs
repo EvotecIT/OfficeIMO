@@ -11,14 +11,14 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfInspectorTests {
     private static byte[] BuildAnnotatedPdf() {
         return PdfDocument.Create()
-            .Paragraph(p => p.Link("OfficeIMO link", "https://evotec.xyz"))
+            .Paragraph(p => p.AddLink("OfficeIMO link", "https://evotec.xyz"))
             .ToBytes();
     }
 
     private static byte[] BuildOutlinePdf() {
-        return PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
+        return PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true })
             .H1("Executive summary")
-            .Paragraph(p => p.Text("Outline sample"))
+            .Paragraph(p => p.AddText("Outline sample"))
             .ToBytes();
     }
 

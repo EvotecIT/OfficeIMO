@@ -5,14 +5,14 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Convenience APIs for column-aware text extraction at the document level.
 /// </summary>
-public static class PdfReadDocumentExtensions {
+internal static class PdfReadDocumentExtensions {
     /// <summary>
     /// Extracts text for all pages using simple two-column detection per page, separating pages with a blank line.
     /// </summary>
     /// <param name="doc">Source document.</param>
     /// <param name="options">Optional layout options controlling column detection, margins and trimming.</param>
     /// <returns>Concatenated plain text for all pages with inferred reading order.</returns>
-    public static string ExtractTextWithColumns(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+    internal static string ExtractTextWithColumns(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
         var sb = new StringBuilder();
         for (int i = 0; i < doc.Pages.Count; i++) {
             if (i > 0) sb.AppendLine();
@@ -26,8 +26,8 @@ public static class PdfReadDocumentExtensions {
     /// </summary>
     /// <param name="doc">Source document.</param>
     /// <param name="options">Optional layout options.</param>
-    public static IReadOnlyList<StructuredPage> ExtractStructuredPages(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
-        var pages = new List<StructuredPage>(doc.Pages.Count);
+    internal static IReadOnlyList<PdfStructuredPage> ExtractStructuredPages(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<PdfStructuredPage>(doc.Pages.Count);
         for (int i = 0; i < doc.Pages.Count; i++) {
             pages.Add(doc.Pages[i].ExtractStructured(options));
         }
@@ -40,11 +40,11 @@ public static class PdfReadDocumentExtensions {
     /// </summary>
     /// <param name="doc">Source document.</param>
     /// <param name="options">Optional layout options.</param>
-    public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
-        var pages = new List<StructuredTablePage>(doc.Pages.Count);
+    internal static IReadOnlyList<PdfStructuredTablePage> ExtractTablesByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<PdfStructuredTablePage>(doc.Pages.Count);
         for (int i = 0; i < doc.Pages.Count; i++) {
             var structuredPage = doc.Pages[i].ExtractStructured(options);
-            pages.Add(new StructuredTablePage(i + 1, structuredPage.TablesDetailed));
+            pages.Add(new PdfStructuredTablePage(i + 1, structuredPage.TablesDetailed));
         }
 
         return pages.AsReadOnly();
@@ -55,11 +55,11 @@ public static class PdfReadDocumentExtensions {
     /// </summary>
     /// <param name="doc">Source document.</param>
     /// <param name="options">Optional layout options.</param>
-    public static IReadOnlyList<StructuredParagraphPage> ExtractParagraphsByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
-        var pages = new List<StructuredParagraphPage>(doc.Pages.Count);
+    internal static IReadOnlyList<PdfStructuredParagraphPage> ExtractParagraphsByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<PdfStructuredParagraphPage>(doc.Pages.Count);
         for (int i = 0; i < doc.Pages.Count; i++) {
             var structuredPage = doc.Pages[i].ExtractStructured(options);
-            pages.Add(new StructuredParagraphPage(i + 1, structuredPage.Paragraphs));
+            pages.Add(new PdfStructuredParagraphPage(i + 1, structuredPage.Paragraphs));
         }
 
         return pages.AsReadOnly();
@@ -70,11 +70,11 @@ public static class PdfReadDocumentExtensions {
     /// </summary>
     /// <param name="doc">Source document.</param>
     /// <param name="options">Optional layout options.</param>
-    public static IReadOnlyList<StructuredHeadingPage> ExtractHeadingsByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
-        var pages = new List<StructuredHeadingPage>(doc.Pages.Count);
+    internal static IReadOnlyList<PdfStructuredHeadingPage> ExtractHeadingsByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<PdfStructuredHeadingPage>(doc.Pages.Count);
         for (int i = 0; i < doc.Pages.Count; i++) {
             var structuredPage = doc.Pages[i].ExtractStructured(options);
-            pages.Add(new StructuredHeadingPage(i + 1, structuredPage.Headings));
+            pages.Add(new PdfStructuredHeadingPage(i + 1, structuredPage.Headings));
         }
 
         return pages.AsReadOnly();
@@ -85,11 +85,11 @@ public static class PdfReadDocumentExtensions {
     /// </summary>
     /// <param name="doc">Source document.</param>
     /// <param name="options">Optional layout options.</param>
-    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
-        var pages = new List<StructuredListItemPage>(doc.Pages.Count);
+    internal static IReadOnlyList<PdfStructuredListItemPage> ExtractListItemsByPage(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
+        var pages = new List<PdfStructuredListItemPage>(doc.Pages.Count);
         for (int i = 0; i < doc.Pages.Count; i++) {
             var structuredPage = doc.Pages[i].ExtractStructured(options);
-            pages.Add(new StructuredListItemPage(i + 1, structuredPage.ListNodes));
+            pages.Add(new PdfStructuredListItemPage(i + 1, structuredPage.ListNodes));
         }
 
         return pages.AsReadOnly();
@@ -100,7 +100,7 @@ public static class PdfReadDocumentExtensions {
     /// </summary>
     /// <param name="doc">Source document.</param>
     /// <param name="options">Optional layout options.</param>
-    public static (List<string> Lines, List<(string Label, int Page)> Toc, List<string> Lists, List<string[]> LeaderRows)
+    internal static (List<string> Lines, List<(string Label, int Page)> Toc, List<string> Lists, List<string[]> LeaderRows)
         ExtractStructured(this PdfReadDocument doc, PdfTextLayoutOptions? options = null) {
         var lines = new List<string>();
         var toc = new List<(string, int)>();

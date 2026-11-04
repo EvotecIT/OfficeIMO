@@ -66,7 +66,7 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
 
         $pdfPath = Join-Path $TestDrive 'operations.pdf'
         $pdfEvidence = ConvertFrom-OfficeOneNote -Path $onePath -OutputPath $pdfPath -PassThruReport
-        $pdfEvidence.GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfDocumentConversionResult'
+        $pdfEvidence.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
         Get-OfficePdfText -Path $pdfPath | Should -Match 'Review backup status'
 
         # Semantic PDF projection flattens an explicitly sized OneNote canvas.
@@ -137,12 +137,12 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
         $path = Join-Path $TestDrive 'provenance.txt'
         [IO.File]::WriteAllText($path, "Human-readable text`n")
 
-        $assessment = Get-OfficeProvenance -Path $path
+        $assessment = Get-OfficeDocumentProvenance -Path $path
         $assessment.Structural.Format.ToString() | Should -Be 'StructuredText'
         $assessment.Verification | Should -BeNullOrEmpty
         $assessment.HasVerifiedContentCredential | Should -BeFalse
 
-        $unavailable = Get-OfficeProvenance -Path $path -C2paToolPath 'definitely-missing-c2patool-for-pswriteoffice'
+        $unavailable = Get-OfficeDocumentProvenance -Path $path -C2paToolPath 'definitely-missing-c2patool-for-pswriteoffice'
         $unavailable.Verification.Status.ToString() | Should -Be 'ProviderUnavailable'
         $unavailable.HasVerifiedContentCredential | Should -BeFalse
     }

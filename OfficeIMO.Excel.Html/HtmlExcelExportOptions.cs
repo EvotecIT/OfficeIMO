@@ -1,0 +1,83 @@
+using OfficeIMO.Html;
+
+namespace OfficeIMO.Excel.Html;
+
+/// <summary>
+/// Options for importing semantic OfficeIMO Excel HTML into a workbook.
+/// </summary>
+public sealed class HtmlExcelExportOptions {
+    private HtmlImportLimits _limits = new HtmlImportLimits();
+
+    /// <summary>Shared native-artifact limits for this import operation.</summary>
+    public HtmlImportLimits Limits {
+        get => _limits;
+        set => _limits = value ?? new HtmlImportLimits();
+    }
+
+    /// <summary>
+    /// Maximum number of HTML table grid slots imported across each worksheet table, including merged spans.
+    /// </summary>
+    public int MaxTableCells {
+        get => Limits.MaxTableCells;
+        set => Limits.MaxTableCells = value;
+    }
+
+    /// <summary>Controls semantic restoration versus ordinary HTML table import.</summary>
+    public HtmlImportMode Mode { get; set; } = HtmlImportMode.Semantic;
+
+    /// <summary>
+    /// Imports explicitly annotated text, number, Boolean, and date/time values from ordinary HTML table cells.
+    /// Applies to generic imports, including the generic path selected by <see cref="HtmlImportMode.Auto"/>.
+    /// Unannotated cells remain text and generic formula metadata is never executed.
+    /// Date/time metadata must contain a complete ISO calendar date, optionally followed by a time with minutes,
+    /// seconds, and up to seven fractional second digits. Explicit Z or +/-HH:mm zones normalize to UTC;
+    /// unzoned values retain their wall-clock time. Invalid metadata falls back to visible text with a diagnostic.
+    /// </summary>
+    public bool ImportTypedCellValues { get; set; }
+
+    /// <summary>
+    /// Imports embedded data URI images from the semantic image inventory.
+    /// </summary>
+    public bool ImportImages { get; set; } = true;
+
+    /// <summary>
+    /// Imports chart inventory items as native charts when the worksheet table contains enough data.
+    /// </summary>
+    public bool ImportChartInventory { get; set; } = true;
+
+    /// <summary>
+    /// Imports comment inventory items as native cell comments.
+    /// </summary>
+    public bool ImportComments { get; set; } = true;
+
+    /// <summary>
+    /// Imports formula inventory items as native cell formulas.
+    /// </summary>
+    public bool ImportFormulas { get; set; } = true;
+
+    /// <summary>
+    /// Allows formula restoration from caller-untrusted semantic HTML when <see cref="ImportFormulas"/> is enabled.
+    /// Keep disabled unless the caller has independently validated the formula source.
+    /// </summary>
+    public bool AllowUntrustedFormulas { get; set; }
+
+    /// <summary>Maps bounded positioned, floating, flex, and grid regions to editable cells and drawing anchors.</summary>
+    public bool ImportEditableLayoutRegions { get; set; } = true;
+
+    /// <summary>Throws <see cref="OfficeConversionException"/> when the conversion reports loss.</summary>
+    public bool FailOnLoss { get; set; }
+
+    /// <summary>Creates an independent copy of these settings.</summary>
+    public HtmlExcelExportOptions Clone() => new HtmlExcelExportOptions {
+        Limits = Limits.Clone(),
+        Mode = Mode,
+        ImportTypedCellValues = ImportTypedCellValues,
+        ImportImages = ImportImages,
+        ImportChartInventory = ImportChartInventory,
+        ImportComments = ImportComments,
+        ImportFormulas = ImportFormulas,
+        AllowUntrustedFormulas = AllowUntrustedFormulas,
+        ImportEditableLayoutRegions = ImportEditableLayoutRegions,
+        FailOnLoss = FailOnLoss
+    };
+}

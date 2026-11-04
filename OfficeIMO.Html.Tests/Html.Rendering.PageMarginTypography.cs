@@ -100,7 +100,7 @@ public sealed partial class HtmlRenderingTests {
             + "@bottom-center{content:'C';font:10px/8px Pinned}"
             + "@bottom-right{content:'R';font:10px/8px Pinned}}"
             + "body,p{margin:0;font:16px/20px Pinned}</style><p>BodyOnly</p>";
-        var options = new HtmlToPdfOptions(PageMarginTypographyOptions()) {
+        var options = new HtmlPdfExportOptions(PageMarginTypographyOptions()) {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
@@ -111,7 +111,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(8D, margin.LineHeight, 6);
         // Short leading advances the lines without shrinking their glyph-paint frames.
         Assert.True(margin.Height > 4D * margin.LineHeight);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Source == "@page @bottom-left"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         HtmlRenderSemanticGroup artifact = Assert.Single(page.Scene.OfType<HtmlRenderSemanticGroup>(),
@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(PageMarginTypographyCompact(footer),
             PageMarginTypographyCompact(string.Concat(painted.Select(text => text.Text))));
 
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         Assert.Equal("BodyOnly", PdfCore.PdfReadDocument.Open(pdf).ExtractText().Trim());
         var pdfPage = Assert.Single(PdfCore.PdfReadDocument.Open(pdf,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).Pages);
@@ -189,7 +189,7 @@ public sealed partial class HtmlRenderingTests {
             + footer + "';font:10px/0 Pinned}}body,p{margin:0}</style><p>B</p>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html),
             PageMarginTypographyOptions());
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @bottom-center"
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @bottom-center"
             && diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }

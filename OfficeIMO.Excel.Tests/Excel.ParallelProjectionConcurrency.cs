@@ -15,10 +15,10 @@ public sealed class ExcelParallelProjectionConcurrencyTests {
     [Fact]
     public void RowsAsParallel_FactoryActuallyRunsConcurrentlyAndPreservesOrder() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "OrderId");
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("OrderId");
         for (int index = 0; index < 8; index++) {
-            sheet.CellValue(index + 2, 1, index);
+            sheet.Cell(index + 2, 1).SetValue(index);
         }
 
         using var firstWorkers = new Barrier(2);

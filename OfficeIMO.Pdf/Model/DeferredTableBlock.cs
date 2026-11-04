@@ -9,14 +9,14 @@ internal sealed class DeferredTableBlock : IPdfBlock {
     internal DeferredTableBlock(
         System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory,
         int batchSize,
-        PdfAlign align,
+        OfficeAlignment align,
         PdfTableStyle? style) {
         Guard.NotNull(rowFactory, nameof(rowFactory));
         if (batchSize <= 0) {
             throw new System.ArgumentOutOfRangeException(nameof(batchSize), "Deferred table batch size must be greater than zero.");
         }
 
-        Guard.LeftCenterRightAlign(align, nameof(align), "Deferred table");
+        align = Guard.LeftCenterRightAlign(align, nameof(align), "Deferred table");
         _rowFactory = rowFactory;
         BatchSize = batchSize;
         Align = align;
@@ -24,7 +24,7 @@ internal sealed class DeferredTableBlock : IPdfBlock {
     }
 
     internal int BatchSize { get; }
-    internal PdfAlign Align { get; }
+    internal OfficeAlignment Align { get; }
     internal PdfTableStyle? Style { get; }
 
     internal System.Collections.Generic.IEnumerable<PdfTableCell[]> EnumerateRows() {
@@ -173,14 +173,14 @@ internal sealed class DeferredTableBlock : IPdfBlock {
         int footerRowCount) {
         PdfTableStyle style = source.Clone();
         style.Caption = isFirst ? source.Caption : null;
-        style.SpacingBefore = isFirst ? source.SpacingBefore : 0D;
-        style.SpacingAfter = isLast ? source.SpacingAfter : 0D;
+        style.SpacingBefore = isFirst ? source.SpacingBefore : global::OfficeIMO.OfficeLength.Zero;
+        style.SpacingAfter = isLast ? source.SpacingAfter : global::OfficeIMO.OfficeLength.Zero;
         style.FooterRowCount = isLast ? footerRowCount : 0;
         style.MinimumBodyRowsOnLastPage = isLast ? source.MinimumBodyRowsOnLastPage : 0;
         style.KeepTogether = isFirst && isLast && source.KeepTogether;
         style.KeepWithNext = isLast && source.KeepWithNext;
-        style.RowMinHeights = RemapList(source.RowMinHeights, sourceIndexes);
-        style.FixedRowHeights = RemapList(source.FixedRowHeights, sourceIndexes);
+        style.RowMinHeights = (RemapList(source.RowMinHeights?.ConvertAll(static length => length?.ToPoints()), sourceIndexes)) is { } lengths8992 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths8992, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
+        style.FixedRowHeights = (RemapList(source.FixedRowHeights?.ConvertAll(static length => length?.ToPoints()), sourceIndexes)) is { } lengths9072 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths9072, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         style.RowAllowBreakAcrossPages = RemapList(source.RowAllowBreakAcrossPages, sourceIndexes);
         style.CellFills = RemapDictionary(source.CellFills, sourceIndexes);
         style.CellDataBars = RemapDictionary(source.CellDataBars, sourceIndexes);

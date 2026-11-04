@@ -83,7 +83,8 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
 
         using var workbook = ResolveWorkbook(target);
         var culture = string.IsNullOrWhiteSpace(CultureName) ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(CultureName!);
-        var loadOptions = new CsvLoadOptions {
+        var loadOptions = new CsvReaderOptions {
+            InferSchema = !NoTypeConversion.IsPresent,
             DetectDelimiter = !Delimiter.HasValue,
             HasHeaderRow = !NoHeader.IsPresent,
             SkipInitialRecords = SkipRows,
@@ -97,10 +98,7 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
             SheetName = string.IsNullOrWhiteSpace(SheetName) ? "Import" : SheetName!,
             IncludeHeaders = !NoHeader.IsPresent,
             CreateTable = !NoTable.IsPresent,
-            LoadOptions = loadOptions,
-            ReaderOptions = new CsvDataReaderOptions {
-                InferSchema = !NoTypeConversion.IsPresent
-            }
+            ReaderOptions = loadOptions
         });
 
         workbook.SaveIfOwned();
@@ -110,7 +108,7 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
             var rowCount = 0;
             var columnCount = 0;
             if (!string.IsNullOrWhiteSpace(result.Range)) {
-                var (firstRow, firstColumn, lastRow, lastColumn) = A1.ParseRange(result.Range);
+                var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(result.Range);
                 rowCount = Math.Max(0, lastRow - firstRow + (NoHeader.IsPresent ? 1 : 0));
                 columnCount = lastColumn - firstColumn + 1;
             }

@@ -26,15 +26,15 @@ public class RtfHtmlNativeNoteModeTests {
             note.AddParagraph("First note paragraph");
             note.AddParagraph("Second note paragraph");
             source.AddParagraph("Body").AddNoteReference(note);
-        } else source = RtfDocument.Read(RtfNativeNoteModeTests.Source(controls)).Document;
-        string html = source.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
-        RtfDocument returned = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        } else source = RtfDocument.ParseResult(RtfNativeNoteModeTests.Source(controls)).Document;
+        string html = source.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
+        RtfDocument returned = HtmlConversionDocument.Parse(html).ToRtf();
         RtfNote raw = Assert.Single(returned.Paragraphs.SelectMany(paragraph => paragraph.Inlines)
             .Select(inline => inline is RtfRun run ? run.Note : (inline as RtfGeneratedText)?.Note).OfType<RtfNote>());
         Assert.Equal(RtfNoteKind.Footnote, raw.Kind);
         Assert.Equal(new[] { "First note paragraph", "Second note paragraph" }, raw.Paragraphs.Select(p => p.ToPlainText()));
         Assert.Contains(expectedHeader, returned.ToRtf());
-        using WordDocument word = returned.ToWordDocument();
+        using WordDocument word = returned.ToWord();
         using var stream = new MemoryStream();
         word.Save(stream);
         stream.Position = 0;

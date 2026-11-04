@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath))
             {
-                document.AddWorksheet("Empty");
+                document.AddSheet("Empty");
                 document.Save();
             }
 
@@ -41,14 +41,8 @@ namespace OfficeIMO.Tests
                 var styleEx = Record.Exception(() => sheet.ColumnStyleByHeader("Missing"));
                 Assert.Null(styleEx);
 
-                var linkInternalEx = Record.Exception(() => sheet.LinkByHeaderToInternalSheets("Missing"));
-                Assert.Null(linkInternalEx);
-
-                var linkExternalEx = Record.Exception(() => sheet.LinkByHeaderToUrls("Missing", urlForCellText: text => text));
-                Assert.Null(linkExternalEx);
-
-                Assert.False(sheet.TryLinkByHeaderToInternalSheets("Missing"));
-                Assert.False(sheet.TryLinkByHeaderToUrls("Missing", urlForCellText: _ => "https://example.com"));
+                Assert.False(sheet.LinkByHeader("Missing", ExcelLinkTarget.Sheet()).Succeeded);
+                Assert.False(sheet.LinkByHeader("Missing", ExcelLinkTarget.Url(text => text)).Succeeded);
             }
             finally
             {

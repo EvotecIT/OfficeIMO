@@ -36,6 +36,20 @@ public enum PdfFootnotePlacement {
 
 /// <summary>Composition options captured by <see cref="PdfContentBuilder.DefineFootnote"/>.</summary>
 public sealed class PdfFootnoteOptions {
+    // Word conversion composes a section's shared stories once, then reuses the
+    // validated, document-owned blocks for its remaining note definitions.
+    internal PdfDocument? SharedDecorationOwner { get; private set; }
+    internal IReadOnlyList<IPdfBlock>? SharedSeparator { get; private set; }
+    internal IReadOnlyList<IPdfBlock>? SharedContinuationSeparator { get; private set; }
+    internal IReadOnlyList<IPdfBlock>? SharedContinuationNotice { get; private set; }
+
+    internal void ReuseDecorations(PdfFootnoteDefinition definition) {
+        SharedDecorationOwner = definition.Owner;
+        SharedSeparator = definition.Separator;
+        SharedContinuationSeparator = definition.ContinuationSeparator;
+        SharedContinuationNotice = definition.ContinuationNotice;
+    }
+
     /// <summary>Vertical placement. The default is <see cref="PdfFootnotePlacement.BottomOfPage"/>.</summary>
     public PdfFootnotePlacement Placement { get; set; }
     /// <summary>Optional ordinary flow rendered before the first footnote on a page. No separator is invented when omitted.</summary>

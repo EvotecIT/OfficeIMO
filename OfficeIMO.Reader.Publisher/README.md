@@ -11,8 +11,8 @@ using OfficeIMO.Reader.Publisher;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPublisherHandler(new ReaderPublisherOptions {
-        ReadOptions = new OfficeIMO.Publisher.PublisherReadOptions {
-            MaximumPages = 256
+        ReadOptions = new OfficeIMO.Publisher.PublisherLoadOptions {
+            MaxPages = 256
         },
         IncludeImagePayloads = false
     })
@@ -86,7 +86,7 @@ are not fetched and active content is not executed.
 Registration snapshots `ReaderPublisherOptions` and its native read settings.
 `ReaderOptions.MaxInputBytes` can tighten the native input ceiling. Native item
 and text ceilings also bound projection work, and shared Reader resource limits
-apply to emitted chunks, pages and assets. `MaximumPages` counts both document
+apply to emitted chunks, pages and assets. `MaxPages` counts both document
 and master definitions.
 `MaxTableRows` limits each structured table. Shared Reader settings clamp zero
 and negative values to one. Truncation records the total row count and an omission diagnostic.

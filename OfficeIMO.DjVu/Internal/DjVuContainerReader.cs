@@ -60,7 +60,7 @@ internal sealed class DjVuContainerReader {
         bool bundled = (flags & 128) != 0;
         int count = DjVuBinary.U16(source, start); start += 2;
         if (count == 0) throw new InvalidDataException("Empty DjVu directory.");
-        if (count > _budget.Options.MaxComponents) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxComponents));
+        if (count > _budget.Options.MaxComponents) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxComponents));
         var offsets = new uint[count];
         if (bundled) {
             if (count > (end - start) / 4) throw new InvalidDataException("Truncated DjVu component offsets.");
@@ -83,7 +83,7 @@ internal sealed class DjVuContainerReader {
             if (id.Length == 0 || !ids.Add(id)) throw new InvalidDataException("Empty or duplicate DjVu component identity.");
             string name = (recordFlags & 128) != 0 ? ReadString(data, ref position) : id;
             string title = (recordFlags & 64) != 0 ? ReadString(data, ref position) : id;
-            if (kind == 1 && ++pageCount > _budget.Options.MaxPages) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxPages));
+            if (kind == 1 && ++pageCount > _budget.Options.MaxPages) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxPages));
             DjVuChunk form;
             if (bundled) {
                 if (!usedOffsets.Add(offsets[i]) || !forms.TryGetValue(offsets[i], out form!)) throw new InvalidDataException("DjVu directory points outside a unique component FORM.");
@@ -91,7 +91,7 @@ internal sealed class DjVuContainerReader {
             } else {
                 var resolver = _budget.Options.ComponentResolver ?? throw new NotSupportedException("Indirect DjVu documents require an explicit component resolver.");
                 byte[] resolved = resolver(id, _budget.Cancellation) ?? throw new InvalidDataException("DjVu component resolver returned no bytes.");
-                if (resolved.LongLength > _budget.Options.MaxSourceBytes - _sourceBytes) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSourceBytes));
+                if (resolved.LongLength > _budget.Options.MaxSourceBytes - _sourceBytes) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxSourceBytes));
                 _sourceBytes += resolved.Length;
                 var owned = (byte[])resolved.Clone();
                 form = ParseFile(owned, false);

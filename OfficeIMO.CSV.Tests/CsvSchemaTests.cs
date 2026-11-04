@@ -106,9 +106,8 @@ public class CsvSchemaTests
             .Column("Time").AsTimeOnly().Required()
             .Done()
             .Build();
-        using var reader = CsvDocument.OpenTextDataReader(
-            "Date,Time\n2026-08-06,14:35:12\n",
-            readerOptions: new CsvDataReaderOptions { Schema = schema });
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Date,Time\n2026-08-06,14:35:12\n"),
+            options: new CsvReaderOptions { Schema = schema });
 
         Assert.True(reader.Read());
         Assert.Equal(typeof(DateOnly), reader.GetFieldType(0));

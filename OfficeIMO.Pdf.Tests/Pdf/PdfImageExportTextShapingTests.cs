@@ -9,10 +9,10 @@ public sealed class PdfImageExportTextShapingTests {
     [Fact]
     public void UnembeddedPdfRasterExport_UsesSharedFallbackShapingProvider() {
         byte[] fontData = ManagedTextShapingTestAssets.CreateFont(' ', 'A');
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica
             })
-            .Paragraph(paragraph => paragraph.Text("A"))
+            .Paragraph(paragraph => paragraph.AddText("A"))
             .ToBytes();
         PdfFontInfo font = Assert.Single(PdfDocument.Load(pdf).Resources.Fonts().Fonts);
         Assert.Equal("Helvetica", font.BaseFontName);

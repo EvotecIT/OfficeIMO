@@ -3,11 +3,11 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Writes markdown from parse results while preserving original source bytes when that is provably safe.
 /// </summary>
-public static class MarkdownRoundtripWriter {
-    private const string PreserveTriviaRequiredId = "roundtrip.preserve-trivia-required";
-    private const string DocumentTransformedId = "roundtrip.document-transformed";
-    private const string OriginalSourceSliceUnavailableId = "roundtrip.original-source-slice-unavailable";
-    private const string OverlappingEditsId = "roundtrip.overlapping-edits";
+internal static class MarkdownRoundtripWriter {
+    private const string PreserveTriviaRequiredId = "roundtrip-preserve-trivia-required";
+    private const string DocumentTransformedId = "roundtrip-document-transformed";
+    private const string OriginalSourceSliceUnavailableId = "roundtrip-original-source-slice-unavailable";
+    private const string OverlappingEditsId = "roundtrip-overlapping-edits";
 
     /// <summary>
     /// Returns the captured original markdown for unchanged parse results, otherwise falls back to semantic markdown generation.
@@ -16,7 +16,7 @@ public static class MarkdownRoundtripWriter {
     /// This is an intentionally conservative first lossless primitive. It preserves bytes only when the parse
     /// result retained the original input and no document transforms reported changes.
     /// </remarks>
-    public static MarkdownRoundtripResult WriteUnchanged(MarkdownParseResult result) {
+    public static MarkdownRoundtripResult WriteUnchanged(MarkdownParseInfo result) {
         if (result == null) {
             throw new ArgumentNullException(nameof(result));
         }
@@ -44,7 +44,7 @@ public static class MarkdownRoundtripWriter {
     /// <summary>
     /// Applies one source edit and preserves original source bytes around it when the parse result can be mapped safely.
     /// </summary>
-    public static MarkdownRoundtripResult WriteWithSourceEdit(MarkdownParseResult result, MarkdownNativeSourceEdit edit) {
+    public static MarkdownRoundtripResult WriteWithSourceEdit(MarkdownParseInfo result, MarkdownNativeSourceEdit edit) {
         if (edit == null) {
             throw new ArgumentNullException(nameof(edit));
         }
@@ -56,7 +56,7 @@ public static class MarkdownRoundtripWriter {
     /// Applies source edits and preserves original source bytes around them when the parse result can be mapped safely.
     /// </summary>
     public static MarkdownRoundtripResult WriteWithSourceEdits(
-        MarkdownParseResult result,
+        MarkdownParseInfo result,
         IEnumerable<MarkdownNativeSourceEdit> edits) {
         if (result == null) {
             throw new ArgumentNullException(nameof(result));
@@ -99,7 +99,7 @@ public static class MarkdownRoundtripWriter {
         return ApplyReplacements(result.SourceMarkdown, normalizedReplacements, diagnostics);
     }
 
-    private static bool HasSourceAffectingTransform(MarkdownParseResult result) {
+    private static bool HasSourceAffectingTransform(MarkdownParseInfo result) {
         for (var i = 0; i < result.TransformDiagnostics.Count; i++) {
             if (result.TransformDiagnostics[i].HasChangedBlocks) {
                 return true;
@@ -110,7 +110,7 @@ public static class MarkdownRoundtripWriter {
     }
 
     private static MarkdownRoundtripResult GeneratedWithDiagnostic(
-        MarkdownParseResult result,
+        MarkdownParseInfo result,
         string id,
         string message,
         MarkdownSourceSpan? sourceSpan = null,
@@ -121,7 +121,7 @@ public static class MarkdownRoundtripWriter {
             new[] { new MarkdownRoundtripDiagnostic(id, message, sourceSpan, relatedSourceSpans, originalSourceFailureReason) });
     }
 
-    private static MarkdownSourceSpan? GetTransformFallbackSpan(MarkdownParseResult result) {
+    private static MarkdownSourceSpan? GetTransformFallbackSpan(MarkdownParseInfo result) {
         for (var i = 0; i < result.TransformDiagnostics.Count; i++) {
             var diagnostic = result.TransformDiagnostics[i];
             if (!diagnostic.HasChangedBlocks) {
@@ -142,7 +142,7 @@ public static class MarkdownRoundtripWriter {
         return null;
     }
 
-    private static IReadOnlyList<MarkdownSourceSpan> GetTransformFallbackRelatedSpans(MarkdownParseResult result) {
+    private static IReadOnlyList<MarkdownSourceSpan> GetTransformFallbackRelatedSpans(MarkdownParseInfo result) {
         for (var i = 0; i < result.TransformDiagnostics.Count; i++) {
             var diagnostic = result.TransformDiagnostics[i];
             if (diagnostic.HasChangedBlocks && diagnostic.AffectedSourceSpans.Count > 0) {
@@ -154,7 +154,7 @@ public static class MarkdownRoundtripWriter {
     }
 
     private static bool TryCreateOriginalReplacements(
-        MarkdownParseResult result,
+        MarkdownParseInfo result,
         IReadOnlyList<MarkdownNativeSourceEdit> edits,
         ICollection<MarkdownRoundtripDiagnostic> diagnostics,
         out SourceReplacement[] replacements) {

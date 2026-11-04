@@ -20,7 +20,9 @@ public sealed partial class OfficeWorkflowRunner {
             info.DiagnosticCode!, info.Diagnostic ?? exception.Message, OfficeWorkflowDiagnosticSeverity.Error,
             GetDiagnosticStage(stage), new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["reason"] = info.CodecUnavailableReason.ToString(),
-                ["format"] = info.Format.ToString()
+                ["format"] = info.Format.ToString(),
+                ["source"] = info.Format.ToString(),
+                ["lossKind"] = OfficeConversionLossKind.Failure.ToString()
             }));
     }
 }

@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string message) {
             diagnostics.Add(new LegacyXlsImportDiagnostic(
                 LegacyXlsDiagnosticSeverity.Warning,
-                "XLS-BIFF-DCONNAME-INVALID",
+                "xls-biff-dconname-invalid",
                 "The DConName named consolidation source record could not be decoded. " + message,
                 recordOffset: record.Offset,
                 recordType: record.Type,

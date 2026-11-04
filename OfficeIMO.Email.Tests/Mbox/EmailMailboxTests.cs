@@ -53,7 +53,7 @@ public sealed class EmailMailboxTests {
     public void MailboxToStreamMatchesToBytesAndStartsAtBeginning() {
         var mailbox = new EmailMailbox();
 
-        using MemoryStream stream = mailbox.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(mailbox.ToBytes());
 
         Assert.Equal(0, stream.Position);
         Assert.Equal(mailbox.ToBytes(), stream.ToArray());
@@ -160,7 +160,7 @@ public sealed class EmailMailboxTests {
     public void SingleDocumentReaderDirectsMboxToAggregateApi() {
         byte[] source = Encoding.ASCII.GetBytes("From a@example.com Fri Jul 10 12:00:00 2026\nSubject: A\n\nA\n");
 
-        EmailReadResult result = new EmailDocumentReader().Read(source);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(source);
 
         Assert.Equal(EmailFileFormat.Mbox, result.Document.Format);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MBOX_REQUIRES_MAILBOX_READER");

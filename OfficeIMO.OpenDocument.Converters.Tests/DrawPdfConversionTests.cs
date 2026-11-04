@@ -23,9 +23,9 @@ public sealed class DrawPdfConversionTests {
         if (flat) source.SaveFlatXml(input); else source.Save(input);
         input.Position = 0;
         OdgDocument loaded = flat ? OdgDocument.LoadFlatXml(input) : OdgDocument.Load(input);
-        var conversion = loaded.ToPdfDocumentResult();
+        var conversion = loaded.ConvertToPdfWithEvidence(null, default);
         byte[] bytes = conversion.ToBytes();
-        PdfReadDocument read = PdfReadDocument.Open(bytes);
+        PdfDocument read = PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Equal(3, read.Pages.Count);
         Assert.Equal((360D, 220D), read.Pages[0].GetPageSize());
         Assert.Equal((220D, 360D), read.Pages[1].GetPageSize());
@@ -46,8 +46,8 @@ public sealed class DrawPdfConversionTests {
         OdgPage page = source.AddPage();
         page.Shapes.AddTextBox(new OdfRect(OdfLength.Points(20), OdfLength.Points(20), OdfLength.Points(150), OdfLength.Points(50)), "ScreenOnly").Layer = "screen";
         page.Shapes.AddTextBox(new OdfRect(OdfLength.Points(20), OdfLength.Points(80), OdfLength.Points(150), OdfLength.Points(50)), "PrintOnly").Layer = "print";
-        string printed = PdfReadDocument.Open(source.ToPdfBytes()).ExtractText();
-        string screened = PdfReadDocument.Open(source.ToPdfBytes(new() { ForPrint = false })).ExtractText();
+        string printed = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
+        string screened = PdfDocument.Load(new System.IO.MemoryStream(source.ToPdf(new() { ForPrint = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Contains("PrintOnly", printed); Assert.DoesNotContain("ScreenOnly", printed);
         Assert.Contains("ScreenOnly", screened); Assert.DoesNotContain("PrintOnly", screened);
     }
@@ -56,24 +56,23 @@ public sealed class DrawPdfConversionTests {
     public void UnsupportedContentHasPageLocationsAndStrictPolicyLeavesOutputUntouched() {
         OdgDocument source = CreateDrawing();
         source.Pages[1].Shapes.AddRectangle(OdfRect.FromCentimeters(1, 4, 2, 2), "UnsupportedGeometry").Element.Name = OdfNamespaces.Draw + "custom-shape";
-        var conversion = source.ToPdfDocumentResult();
-        Assert.Contains(conversion.FidelityDiagnostics, d => d.Location!.StartsWith("page:2:Second/") && d.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<OdfConversionLossException>(() => conversion.RequireNoLoss());
+        var conversion = source.ToPdf(null, out OfficeConversionReport conversionReport);
+        Assert.Contains(conversionReport.Diagnostics, d => d.Location!.StartsWith("page:2:Second/") && d.LossKind == OfficeConversionLossKind.Omission);
+        Assert.ThrowsAny<OfficeConversionException>(() => conversionReport.ThrowIfLoss());
         using var output = new MemoryStream(new byte[] { 1, 2, 3 }, writable: true);
-        var result = source.SaveAsPdfResult(output, new() { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported });
-        Assert.False(result.Succeeded);
+        Assert.ThrowsAny<OfficeConversionException>(() => source.SaveAsPdf(output, new() { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
         Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());
     }
 
     [Fact]
     public void EmptyPageLimitInvalidSettingsAndCancellationFailBeforeSaving() {
-        Assert.Throws<InvalidOperationException>(() => OdgDocument.Create().ToPdfDocumentResult());
+        Assert.Throws<InvalidOperationException>(() => OdgDocument.Create().ToPdf(null, out _));
         OdgDocument source = CreateDrawing();
-        Assert.Throws<InvalidOperationException>(() => source.ToPdfDocumentResult(new() { MaximumPages = 2 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => source.ToPdfDocumentResult(new() { MaximumPages = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => source.ToPdfDocumentResult(new() { LossPolicy = (OdfConversionLossPolicy)42 }));
+        Assert.Throws<InvalidOperationException>(() => source.ToPdf(new() { MaximumPages = 2 }, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() => source.ToPdf(new() { MaximumPages = 0 }, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() => source.ToPdf(new() { LossPolicy = (OdfConversionLossPolicy)42 }, out _));
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
-        Assert.Throws<OperationCanceledException>(() => source.ToPdfDocumentResult(cancellationToken: canceled.Token));
+        Assert.Throws<OperationCanceledException>(() => source.ToPdf(null, out _, canceled.Token));
         Assert.Throws<OperationCanceledException>(() => source.Pages[0].ToDrawing(OdfConversionLossPolicy.ReportOnly, true, canceled.Token));
     }
 
@@ -81,27 +80,27 @@ public sealed class DrawPdfConversionTests {
     public async Task SaveLifecyclePreservesSourceAndRefreshesPdfStageWarnings() {
         OdgDocument source = CreateDrawing();
         string xml = source.GetXml("content.xml").ToString(SaveOptions.DisableFormatting);
-        var settings = new OdgToPdfOptions { PdfOptions = new PdfOptions { PageSize = PageSizes.Letter } };
-        var conversion = source.ToPdfDocumentResult(settings);
+        var settings = new OdgPdfExportOptions { PdfOptions = new PdfCreateOptions { PageSetup = { Size = PdfPageSizes.Letter } } };
+        var conversion = source.ConvertToPdfWithEvidence(settings, default);
         // A caller may add PDF-native content before saving; its save-time diagnostics must stay linked.
         var vertical = new OfficeDrawing(100, 100).AddVerticalText("Vertical", 0, 0, 100, 100);
-        conversion.Value.Compose(builder => builder.Page(page => page.Canvas(canvas => canvas.Drawing(vertical, 0, 0, 100, 100))));
+        conversion.Value.Compose(builder => builder.Page(page => page.Canvas(canvas => canvas.Drawing(vertical, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)))));
         using var output = new MemoryStream();
         PdfSaveResult saved = await conversion.SaveAsync(output);
         saved.RequireSuccess();
         Assert.Equal(2, saved.ConversionReports.Count);
         Assert.True(saved.HasLoss);
-        Assert.Contains(conversion.FidelityDiagnostics, d => d.Source.StartsWith("OfficeIMO.OpenDocument:"));
+        Assert.Contains(conversion.Diagnostics, d => d.Format.StartsWith("OfficeIMO.OpenDocument:"));
         Assert.Contains(conversion.Warnings, w => w.Code == "vertical-text-stacked-fallback");
         Assert.Equal(xml, source.GetXml("content.xml").ToString(SaveOptions.DisableFormatting));
-        Assert.Equal(PageSizes.Letter, settings.PdfOptions.PageSize);
+        Assert.Equal(PdfPageSizes.Letter, settings.PdfOptions.PageSetup.Size);
         Assert.True(output.CanWrite);
     }
 
     [Fact]
     public void ImageCaptionsProjectWhileDocumentMetadataRemainsAnExplicitOmission() {
         OdgDocument source = CreateDrawing();
-        source.Metadata.Title = "Drawing title";
+        source.Properties.Title = "Drawing title";
         byte[] png = OfficeDrawingRasterRenderer.ToPng(new OfficeDrawing(2, 2).AddShape(OfficeShape.Rectangle(2, 2), 0, 0));
         var image = source.Pages[0].Shapes.AddImage(png, "caption.png", OdfRect.FromCentimeters(2, 3, 6, 2), "ImageCaption");
         var paragraph = image.AddParagraph("ImageCaptionMarker");
@@ -109,10 +108,10 @@ public sealed class DrawPdfConversionTests {
         var projected = source.ToDrawings(forPrint: true);
         Assert.Contains(projected.Report.Mappings, m => m.Feature == "document-metadata" && m.Status == OdfConversionMappingStatus.Skipped);
         Assert.Contains(projected.Report.Mappings, m => m.Feature == "page:1:First/shape:ImageCaption:text" && m.Status == OdfConversionMappingStatus.Approximated);
-        var conversion = source.ToPdfDocumentResult();
-        Assert.Contains("ImageCaptionMarker", PdfReadDocument.Open(conversion.ToBytes()).ExtractText());
-        Assert.DoesNotContain(conversion.FidelityDiagnostics, d => d.Location == "page:1:First/shape:ImageCaption:image-text");
-        Assert.Contains(conversion.FidelityDiagnostics, d => d.Location == "document-metadata" && d.LossKind == OfficeConversionLossKind.Omission);
+        var conversion = source.ToPdf(null, out OfficeConversionReport conversionReport);
+        Assert.Contains("ImageCaptionMarker", PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText());
+        Assert.DoesNotContain(conversionReport.Diagnostics, d => d.Location == "page:1:First/shape:ImageCaption:image-text");
+        Assert.Contains(conversionReport.Diagnostics, d => d.Location == "document-metadata" && d.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]
@@ -134,10 +133,10 @@ public sealed class DrawPdfConversionTests {
         OdgDocument loaded = OdgDocument.Load(withoutMetadata);
         Assert.True(loaded.Validate().IsValid);
         string before = loaded.GetXml("content.xml").ToString(SaveOptions.DisableFormatting);
-        var conversion = loaded.ToPdfDocumentResult();
-        Assert.Equal(3, PdfReadDocument.Open(conversion.ToBytes()).Pages.Count);
+        var conversion = loaded.ToPdf(null, out OfficeConversionReport conversionReport);
+        Assert.Equal(3, PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages.Count);
         Assert.Equal(before, loaded.GetXml("content.xml").ToString(SaveOptions.DisableFormatting));
-        Assert.DoesNotContain(conversion.FidelityDiagnostics, d => d.Location == "document-metadata");
+        Assert.DoesNotContain(conversionReport.Diagnostics, d => d.Location == "document-metadata");
     }
 
     [Theory]
@@ -149,18 +148,17 @@ public sealed class DrawPdfConversionTests {
         OdgDocument source = CreateDrawing();
         source.Pages[1].Shapes.AddRectangle(OdfRect.FromCentimeters(1, 4, 2, 2), "Rejected")
             .Element.Name = OdfNamespaces.Draw + "custom-shape";
-        var options = new OdgToPdfOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
+        var options = new OdgPdfExportOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported };
         byte[] original = { 1, 2, 3 };
         string outputPath = Path.Combine(Path.GetTempPath(), "officeimo-draw-strict-" + Guid.NewGuid().ToString("N") + ".pdf");
         using var output = new MemoryStream(original.ToArray(), writable: true);
         try {
             if (path) File.WriteAllBytes(outputPath, original);
-            PdfSaveResult result = path
-                ? useAsync ? await source.SaveAsPdfResultAsync(outputPath, options) : source.SaveAsPdfResult(outputPath, options)
-                : useAsync ? await source.SaveAsPdfResultAsync(output, options) : source.SaveAsPdfResult(output, options);
-            Assert.False(result.Succeeded);
-            Assert.True(result.HasLoss);
-            Assert.Contains(result.FidelityDiagnostics, d => d.Location!.StartsWith("page:2:Second/") && d.LossKind == OfficeConversionLossKind.Omission);
+            OfficeConversionException failure = path
+                ? useAsync ? await Assert.ThrowsAnyAsync<OfficeConversionException>(() => source.SaveAsPdfAsync(outputPath, options)) : Assert.ThrowsAny<OfficeConversionException>(() => source.SaveAsPdf(outputPath, options))
+                : useAsync ? await Assert.ThrowsAnyAsync<OfficeConversionException>(() => source.SaveAsPdfAsync(output, options)) : Assert.ThrowsAny<OfficeConversionException>(() => source.SaveAsPdf(output, options));
+            Assert.True(failure.Report.HasLoss);
+            Assert.Contains(failure.Report.Diagnostics, d => d.Location!.StartsWith("page:2:Second/") && d.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal(original, path ? File.ReadAllBytes(outputPath) : output.ToArray());
             Assert.True(output.CanWrite);
         } finally { if (File.Exists(outputPath)) File.Delete(outputPath); }

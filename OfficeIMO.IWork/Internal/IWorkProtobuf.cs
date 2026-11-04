@@ -48,14 +48,14 @@ internal sealed class IWorkWireMessage {
     }
 
     internal IReadOnlyList<ulong> GetRepeatedUnsigned(int field, bool packed = false) =>
-        GetRepeatedUnsigned(field, packed, _options.MaximumProtobufFieldCount);
+        GetRepeatedUnsigned(field, packed, _options.MaxProtobufFieldCount);
 
     internal IReadOnlyList<ulong> GetRepeatedUnsigned(int field, bool packed,
         int maximumValues) {
         if (maximumValues < 0) throw new ArgumentOutOfRangeException(nameof(maximumValues));
-        int effectiveMaximum = Math.Min(maximumValues, _options.MaximumProtobufFieldCount);
+        int effectiveMaximum = Math.Min(maximumValues, _options.MaxProtobufFieldCount);
         string limitDescription = effectiveMaximum < maximumValues
-            ? $"configured value limit of {_options.MaximumProtobufFieldCount}"
+            ? $"configured value limit of {_options.MaxProtobufFieldCount}"
             : $"remaining aggregate limit of {maximumValues}";
         var result = new List<ulong>();
         foreach (IWorkWireValue value in Values(field)) {
@@ -150,11 +150,11 @@ internal sealed class IWorkWireMessage {
         IWorkProtobuf.Parse(bytes, _options, _depth + 1);
 
     internal int CountNestedFields(byte[] bytes, int field) =>
-        IWorkProtobuf.CountFields(bytes, field, _options.MaximumProtobufFieldCount);
+        IWorkProtobuf.CountFields(bytes, field, _options.MaxProtobufFieldCount);
 
     internal int CountNestedFields(byte[] bytes, int field,
         out int totalFieldCount) =>
-        IWorkProtobuf.CountFields(bytes, field, _options.MaximumProtobufFieldCount,
+        IWorkProtobuf.CountFields(bytes, field, _options.MaxProtobufFieldCount,
             out totalFieldCount);
 
     internal string? GetString(int field) => GetString(field, out _);
@@ -342,16 +342,16 @@ internal static class IWorkProtobuf {
                         $"Unsupported protobuf wire type {wire} at offset {keyOffset}.");
             }
             fieldCount++;
-            if (fieldCount > options.MaximumProtobufFieldCount) {
-                throw LimitException($"A protobuf message exceeds the configured field limit of {options.MaximumProtobufFieldCount}.");
+            if (fieldCount > options.MaxProtobufFieldCount) {
+                throw LimitException($"A protobuf message exceeds the configured field limit of {options.MaxProtobufFieldCount}.");
             }
         }
         return result;
     }
 
     internal static IWorkWireMessage Parse(byte[] data, IWorkReadOptions options, int depth = 0) {
-        if (depth > options.MaximumProtobufDepth) {
-            throw LimitException($"Protobuf nesting exceeds the configured depth of {options.MaximumProtobufDepth}.");
+        if (depth > options.MaxProtobufDepth) {
+            throw LimitException($"Protobuf nesting exceeds the configured depth of {options.MaxProtobufDepth}.");
         }
 
         var fields = new Dictionary<int, List<IWorkWireValue>>();
@@ -396,8 +396,8 @@ internal static class IWorkProtobuf {
             }
 
             fieldCount++;
-            if (fieldCount > options.MaximumProtobufFieldCount) {
-                throw LimitException($"A protobuf message exceeds the configured field limit of {options.MaximumProtobufFieldCount}.");
+            if (fieldCount > options.MaxProtobufFieldCount) {
+                throw LimitException($"A protobuf message exceeds the configured field limit of {options.MaxProtobufFieldCount}.");
             }
             if (!fields.TryGetValue(field, out List<IWorkWireValue>? values)) {
                 values = new List<IWorkWireValue>();

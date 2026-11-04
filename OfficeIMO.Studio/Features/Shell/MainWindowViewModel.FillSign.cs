@@ -190,7 +190,7 @@ public sealed partial class MainWindowViewModel {
 
     // A click places the item at a natural size; a drawn box fits the image inside it without distortion.
     private (PdfEditorTool Tool, PdfEditorGesture Gesture, PdfEditorProperties Properties) PrepareFillSignPlacement(PdfEditorGesture gesture, PdfEditorProperties properties) {
-        var ink = OfficeIMO.Pdf.PdfColor.FromRgb(27, 42, 74);
+        var ink = global::OfficeIMO.OfficeColor.FromRgb(27, 42, 74);
         if (_pendingPlacementText is { } text) {
             if (CanEditPageContent) return (PdfEditorTool.AddText, gesture, properties with { Text = text, FontSize = 11D, Color = ink });
             var box = gesture with { Right = gesture.Left + 110D, Bottom = gesture.Top + 22D };

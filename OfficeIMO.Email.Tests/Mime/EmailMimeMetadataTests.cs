@@ -16,9 +16,9 @@ public sealed class EmailMimeMetadataTests {
             "Content-Type: text/plain; charset=utf-8\r\n\r\nBody\r\n");
         var reader = new EmailDocumentReader();
         var writer = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn));
-        EmailDocument source = reader.Read(eml).Document;
+        EmailDocument source = reader.ReadDocument(eml).Document;
 
-        EmailDocument stored = reader.Read(writer.ToBytes(source, storeFormat)).Document;
+        EmailDocument stored = reader.ReadDocument(writer.ToBytes(source, storeFormat)).Document;
         byte[] roundTrip = writer.ToBytes(stored, EmailFileFormat.Eml);
         using var stream = new MemoryStream(roundTrip);
         MimeMessage message = MimeMessage.Load(stream);
@@ -57,7 +57,7 @@ public sealed class EmailMimeMetadataTests {
         source.MessageMetadata.Categories.Add("Project X");
         source.MessageMetadata.Categories.Add("Project, X");
 
-        EmailDocument result = new EmailDocumentReader().Read(
+        EmailDocument result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml)).Document;
 
         Assert.Equal(EmailMessageImportance.High, result.MessageMetadata.Importance);
@@ -116,7 +116,7 @@ public sealed class EmailMimeMetadataTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Importance: critical\r\nPriority: immediate\r\nX-Unsent: maybe\r\n" +
             "Content-Type: text/plain; charset=utf-8\r\n\r\nBody\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         byte[] output = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
         using var stream = new MemoryStream(output);
@@ -132,7 +132,7 @@ public sealed class EmailMimeMetadataTests {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Importance: high\r\nPriority: urgent\r\nX-Unsent: 1\r\n" +
             "Keywords: Secret Project\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nBody\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
         document.MessageMetadata.Importance = null;
         document.MessageMetadata.Priority = null;
         document.MessageMetadata.IsDraft = false;

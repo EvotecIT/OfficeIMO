@@ -14,30 +14,30 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("AdvancedFilter");
-                    sheet.CellValue(1, 1, "Optional");
-                    sheet.CellValue(1, 2, "Required");
-                    sheet.CellValue(1, 3, "Score");
-                    sheet.CellValue(1, 4, "Ratio");
-                    sheet.CellValue(2, 1, string.Empty);
-                    sheet.CellValue(2, 2, "Alpha");
-                    sheet.CellValue(2, 3, 95d);
-                    sheet.CellValue(2, 4, 0.1d);
-                    sheet.CellValue(3, 1, "Filled");
-                    sheet.CellValue(3, 2, "Beta");
-                    sheet.CellValue(3, 3, 85d);
-                    sheet.CellValue(3, 4, 0.2d);
-                    sheet.CellValue(4, 1, string.Empty);
-                    sheet.CellValue(4, 2, "Gamma");
-                    sheet.CellValue(4, 3, 75d);
-                    sheet.CellValue(4, 4, 0.3d);
-                    sheet.CellValue(5, 1, "Filled");
-                    sheet.CellValue(5, 2, "Delta");
-                    sheet.CellValue(5, 3, 65d);
-                    sheet.CellValue(5, 4, 0.4d);
+                    ExcelSheet sheet = document.AddSheet("AdvancedFilter");
+                    sheet.Cell(1, 1).SetValue("Optional");
+                    sheet.Cell(1, 2).SetValue("Required");
+                    sheet.Cell(1, 3).SetValue("Score");
+                    sheet.Cell(1, 4).SetValue("Ratio");
+                    sheet.Cell(2, 1).SetValue(string.Empty);
+                    sheet.Cell(2, 2).SetValue("Alpha");
+                    sheet.Cell(2, 3).SetValue(95d);
+                    sheet.Cell(2, 4).SetValue(0.1d);
+                    sheet.Cell(3, 1).SetValue("Filled");
+                    sheet.Cell(3, 2).SetValue("Beta");
+                    sheet.Cell(3, 3).SetValue(85d);
+                    sheet.Cell(3, 4).SetValue(0.2d);
+                    sheet.Cell(4, 1).SetValue(string.Empty);
+                    sheet.Cell(4, 2).SetValue("Gamma");
+                    sheet.Cell(4, 3).SetValue(75d);
+                    sheet.Cell(4, 4).SetValue(0.3d);
+                    sheet.Cell(5, 1).SetValue("Filled");
+                    sheet.Cell(5, 2).SetValue("Delta");
+                    sheet.Cell(5, 3).SetValue(65d);
+                    sheet.Cell(5, 4).SetValue(0.4d);
 
                     const string range = "A1:D5";
-                    sheet.AutoFilterAdd(range);
+                    sheet.Range(range).AutoFilter();
                     AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                     FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(column => column.ColumnId?.Value == 0U);
                     existingColumn?.Remove();
@@ -131,14 +131,14 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
 
-                    ExcelSheet sheet = document.AddWorksheet("DateFilter");
-                    sheet.CellValue(1, 1, "Entered");
-                    sheet.CellValue(2, 1, new DateTime(2026, 6, 27));
-                    sheet.CellValue(3, 1, new DateTime(2026, 6, 28));
-                    sheet.CellValue(4, 1, new DateTime(2026, 6, 29));
-                    sheet.CellValue(5, 1, new DateTime(2026, 7, 1));
+                    ExcelSheet sheet = document.AddSheet("DateFilter");
+                    sheet.Cell(1, 1).SetValue("Entered");
+                    sheet.Cell(2, 1).SetValue(new DateTime(2026, 6, 27));
+                    sheet.Cell(3, 1).SetValue(new DateTime(2026, 6, 28));
+                    sheet.Cell(4, 1).SetValue(new DateTime(2026, 6, 29));
+                    sheet.Cell(5, 1).SetValue(new DateTime(2026, 7, 1));
 
-                    sheet.AutoFilterAdd("A1:A5");
+                    sheet.Range("A1:A5").AutoFilter();
                     AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
                     autoFilter.Append(new FilterColumn(
                         new Filters(

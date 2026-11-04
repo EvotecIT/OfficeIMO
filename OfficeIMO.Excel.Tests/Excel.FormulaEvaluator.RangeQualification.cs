@@ -29,12 +29,12 @@ namespace OfficeIMO.Tests {
         [InlineData("MAXIFS(B1,OFFSET(A1,-1,0),UNKNOWN()+1)")]
         public void Unsupported_inputs_are_not_masked_by_reference_errors(string expression) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Qualification");
-            sheet.CellValue(1, 1, 1d); sheet.CellValue(1, 2, 1d);
+            var sheet = document.AddSheet("Qualification");
+            sheet.Cell(1, 1).SetValue(1d); sheet.Cell(1, 2).SetValue(1d);
             string[] wrappers = { "IFERROR({0},99)", "IFNA({0},99)", "ISERROR({0})" };
             for (int index = 0; index < wrappers.Length; index++) {
-                sheet.CellValue(index + 1, 4, 42d);
-                sheet.CellFormula(index + 1, 4, string.Format(wrappers[index], expression));
+                sheet.Cell(index + 1, 4).SetValue(42d);
+                sheet.Cell(index + 1, 4).SetFormula(string.Format(wrappers[index], expression));
             }
             Assert.Equal(0, document.Calculate());
             for (int row = 1; row <= wrappers.Length; row++) {
@@ -46,8 +46,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Qualified_reference_errors_still_reach_error_handlers_across_range_consumers() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Qualified");
-            sheet.CellValue(1, 1, 1d); sheet.CellValue(1, 2, 1d);
+            var sheet = document.AddSheet("Qualified");
+            sheet.Cell(1, 1).SetValue(1d); sheet.Cell(1, 2).SetValue(1d);
             string[] expressions = { "GCD(OFFSET(A1,-1,0),12)", "LCM(OFFSET(A1,-1,0),12)",
                 "COUNT(OFFSET(A1,-1,0))", "COUNTA(OFFSET(A1,-1,0))", "AVERAGEA(OFFSET(A1,-1,0))",
                 "SUMPRODUCT(OFFSET(A1,-1,0),B1)", "NPV(0.1,OFFSET(A1,-1,0),B1)",
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                 "SUBTOTAL(9,OFFSET(A1,-1,0))", "FORMULATEXT(OFFSET(A1,-1,0))", "ISFORMULA(OFFSET(A1,-1,0))",
                 "XLOOKUP(1,OFFSET(A1,-1,0),B1,,0,-1)" };
             for (int index = 0; index < expressions.Length; index++)
-                sheet.CellFormula(index + 1, 4, "IFERROR(" + expressions[index] + ",99)");
+                sheet.Cell(index + 1, 4).SetFormula("IFERROR(" + expressions[index] + ",99)");
             Assert.Equal(expressions.Length, document.Calculate());
             for (int index = 0; index < expressions.Length; index++) {
                 Assert.True(sheet.TryGetCachedFormulaValue(index + 1, 4, out string? cache));
@@ -79,10 +79,10 @@ namespace OfficeIMO.Tests {
         [InlineData("XLOOKUP(2,A1:A1,B1:B1,99,0,)", "99")]
         public void Optional_lookup_positions_follow_fresh_native_Excel_results(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Lookup positions");
-            sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 1d);
-            sheet.CellValue(1, 2, 10d); sheet.CellValue(2, 2, 20d);
-            sheet.CellFormula(1, 4, formula);
+            var sheet = document.AddSheet("Lookup positions");
+            sheet.Cell(1, 1).SetValue(1d); sheet.Cell(2, 1).SetValue(1d);
+            sheet.Cell(1, 2).SetValue(10d); sheet.Cell(2, 2).SetValue(20d);
+            sheet.Cell(1, 4).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 4, out string? cache)); Assert.Equal(expected, cache);
         }
@@ -90,13 +90,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Criteria_keep_quoted_expression_text_and_resolved_arithmetic() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Criteria qualification");
-            sheet.CellValue(1, 1, "UNKNOWN()+1"); sheet.CellValue(2, 1, 2d);
-            sheet.CellValue(1, 2, 7d); sheet.CellValue(2, 2, 11d);
-            sheet.CellFormula(1, 4, "COUNTIF(A1:A2,\"UNKNOWN()+1\")");
-            sheet.CellFormula(2, 4, "SUMIF(A1:A2,\"UNKNOWN()+1\",B1:B2)");
-            sheet.CellFormula(3, 4, "IFERROR(COUNTIFS(OFFSET(A1,-1,0),\"UNKNOWN()+1\"),99)");
-            sheet.CellFormula(4, 4, "COUNTIF(A1:A2,1+1)");
+            var sheet = document.AddSheet("Criteria qualification");
+            sheet.Cell(1, 1).SetValue("UNKNOWN()+1"); sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetValue(7d); sheet.Cell(2, 2).SetValue(11d);
+            sheet.Cell(1, 4).SetFormula("COUNTIF(A1:A2,\"UNKNOWN()+1\")");
+            sheet.Cell(2, 4).SetFormula("SUMIF(A1:A2,\"UNKNOWN()+1\",B1:B2)");
+            sheet.Cell(3, 4).SetFormula("IFERROR(COUNTIFS(OFFSET(A1,-1,0),\"UNKNOWN()+1\"),99)");
+            sheet.Cell(4, 4).SetFormula("COUNTIF(A1:A2,1+1)");
             Assert.Equal(4, document.Calculate());
             string[] expected = { "1", "7", "99", "1" };
             for (int row = 1; row <= expected.Length; row++) {
@@ -111,11 +111,11 @@ namespace OfficeIMO.Tests {
         [InlineData("SUM", "12")]
         public void Scalar_references_share_the_aggregate_range_cell_budget(string function, string exactLimitResult) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Budget");
-            sheet.CellValue(1, 1, 12d); sheet.CellValue(1, 2, 18d);
-            sheet.CellFormula(1, 4, function + "(A1:A100000)");
-            sheet.CellValue(2, 4, 42d); sheet.CellFormula(2, 4, function + "(A1:A100000,B1)");
-            sheet.CellValue(3, 4, 42d); sheet.CellFormula(3, 4, function + "(A1:A100000,OFFSET(B1,0,0))");
+            var sheet = document.AddSheet("Budget");
+            sheet.Cell(1, 1).SetValue(12d); sheet.Cell(1, 2).SetValue(18d);
+            sheet.Cell(1, 4).SetFormula(function + "(A1:A100000)");
+            sheet.Cell(2, 4).SetValue(42d); sheet.Cell(2, 4).SetFormula(function + "(A1:A100000,B1)");
+            sheet.Cell(3, 4).SetValue(42d); sheet.Cell(3, 4).SetFormula(function + "(A1:A100000,OFFSET(B1,0,0))");
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 4, out string? exactLimit));
             Assert.Equal(exactLimitResult, exactLimit);
@@ -133,11 +133,11 @@ namespace OfficeIMO.Tests {
                 calls++;
                 return ExcelFormulaValue.FromNumber(arguments.Count);
             });
-            var sheet = document.AddWorksheet("Custom");
-            sheet.CellFormula(1, 4, "QUALIFIEDINPUTS(12,18)");
-            sheet.CellFormula(2, 4, "IFERROR(QUALIFIEDINPUTS(OFFSET(A1,-1,0),18),99)");
-            sheet.CellValue(3, 4, 42d);
-            sheet.CellFormula(3, 4, "IFERROR(QUALIFIEDINPUTS(OFFSET(A1,-1,0),UNKNOWN()),99)");
+            var sheet = document.AddSheet("Custom");
+            sheet.Cell(1, 4).SetFormula("QUALIFIEDINPUTS(12,18)");
+            sheet.Cell(2, 4).SetFormula("IFERROR(QUALIFIEDINPUTS(OFFSET(A1,-1,0),18),99)");
+            sheet.Cell(3, 4).SetValue(42d);
+            sheet.Cell(3, 4).SetFormula("IFERROR(QUALIFIEDINPUTS(OFFSET(A1,-1,0),UNKNOWN()),99)");
             Assert.Equal(2, document.Calculate());
             Assert.Equal(1, calls);
             Assert.True(sheet.TryGetCachedFormulaValue(1, 4, out string? first)); Assert.Equal("2", first);
@@ -148,11 +148,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Unqualified_array_reference_errors_do_not_leak_into_dependent_scalar_calculation() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Array owner");
-            sheet.CellValue(1, 6, 42d);
+            var sheet = document.AddSheet("Array owner");
+            sheet.Cell(1, 6).SetValue(42d);
             sheet.SetArrayFormula("F1:F1", "SORT(OFFSET(A1,-1,0))");
-            sheet.CellFormula(1, 8, "COUNT(F1)");
-            sheet.CellFormula(2, 8, "IFERROR(SUM(F1),99)");
+            sheet.Cell(1, 8).SetFormula("COUNT(F1)");
+            sheet.Cell(2, 8).SetFormula("IFERROR(SUM(F1),99)");
             Assert.Equal(2, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 6, out string? source)); Assert.Equal("42", source);
             Assert.True(sheet.TryGetCachedFormulaValue(1, 8, out string? count)); Assert.Equal("1", count);

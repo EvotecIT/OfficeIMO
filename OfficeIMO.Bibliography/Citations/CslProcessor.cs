@@ -20,7 +20,7 @@ public sealed partial class CslProcessor {
         _options = CopyOptions(options ?? new CslRenderOptions());
         if (document.Items.Any(item => string.IsNullOrWhiteSpace(item.Key)) || document.Items.Select(item => item.Key).Distinct(StringComparer.Ordinal).Count() != document.Items.Count)
             throw new ArgumentException("CSL rendering requires nonempty, unique bibliography keys.", nameof(document));
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = _options.RequireNoDataLoss }, cancellationToken);
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, FailOnLoss = _options.RequireNoDataLoss }, cancellationToken);
         DataConversionReport = written.Report;
         using JsonDocument json = JsonDocument.Parse(written.Content);
         JsonElement[] data = json.RootElement.ValueKind == JsonValueKind.Array ? json.RootElement.EnumerateArray().ToArray() : new[] { json.RootElement };
@@ -112,26 +112,26 @@ public sealed partial class CslProcessor {
     /// <summary>Renders all records as a bibliography without requiring document citations.</summary>
     public IReadOnlyList<CslRenderedEntry> RenderBibliography(CancellationToken cancellationToken = default) => Render(Array.Empty<CslCitation>(), true, cancellationToken).Bibliography;
     private string Output(CslText value, CslLocale locale, CancellationToken token, out int maximumLeftMarginCharacters, out bool isEmpty) {
-        value = value.ResolveQuotes(locale, _options.MaximumIntermediateCharacters, token)
-            .ProjectDisplay(_options.MaximumIntermediateCharacters, token)
-            .LocalizePunctuation(locale, _options.MaximumIntermediateCharacters, token);
+        value = value.ResolveQuotes(locale, _options.MaxIntermediateCharacters, token)
+            .ProjectDisplay(_options.MaxIntermediateCharacters, token)
+            .LocalizePunctuation(locale, _options.MaxIntermediateCharacters, token);
         isEmpty = value.IsEmpty;
         if (_options.OutputFormat == CslOutputFormat.Html)
-            return value.FinalizeHtml(_options.MaximumIntermediateCharacters, token, out maximumLeftMarginCharacters);
-        maximumLeftMarginCharacters = value.MeasureLeftMarginCharacters(_options.MaximumIntermediateCharacters, token);
+            return value.FinalizeHtml(_options.MaxIntermediateCharacters, token, out maximumLeftMarginCharacters);
+        maximumLeftMarginCharacters = value.MeasureLeftMarginCharacters(_options.MaxIntermediateCharacters, token);
         return value.Plain;
     }
     private CslContext CreateContext(CslRecord record, XElementScope scope) => new CslContext(record, scope) { AutomaticYearSuffix = !_style.HasExplicitYearSuffix };
-    private CslText Join(IEnumerable<CslText> values, string delimiter) => CslText.Join(values, delimiter, maximumCharacters: _options.MaximumIntermediateCharacters);
+    private CslText Join(IEnumerable<CslText> values, string delimiter) => CslText.Join(values, delimiter, maximumCharacters: _options.MaxIntermediateCharacters);
     private static XElement ItemLayout(XElement layout) => new XElement(CslStyle.Namespace + "layout", layout.Elements().Select(CslElementIdentity.Copy));
     private void CheckOutput(ref int current, int length) {
-        if ((long)current + length > _options.MaximumOutputCharacters) throw new InvalidDataException("CSL rendering exceeds MaximumOutputCharacters.");
+        if ((long)current + length > _options.MaxOutputCharacters) throw new InvalidDataException("CSL rendering exceeds MaxOutputCharacters.");
         current += length;
     }
 
     private static CslRenderOptions CopyOptions(CslRenderOptions options) {
-        if (options.MaximumOutputCharacters < 1 || options.MaximumIntermediateCharacters < 1 || options.MaximumCitationItems < 1 || options.MaximumRenderingOperations < 1 || !Enum.IsDefined(typeof(CslOutputFormat), options.OutputFormat)) throw new ArgumentOutOfRangeException(nameof(options));
-        var copy = new CslRenderOptions { OutputFormat = options.OutputFormat, LinkBibliographyIdentifiers = options.LinkBibliographyIdentifiers, Locale = options.Locale, MaximumOutputCharacters = options.MaximumOutputCharacters, MaximumIntermediateCharacters = options.MaximumIntermediateCharacters, MaximumCitationItems = options.MaximumCitationItems, MaximumRenderingOperations = options.MaximumRenderingOperations, RequireNoDataLoss = options.RequireNoDataLoss };
+        if (options.MaxOutputCharacters < 1 || options.MaxIntermediateCharacters < 1 || options.MaxCitationItems < 1 || options.MaxRenderingOperations < 1 || !Enum.IsDefined(typeof(CslOutputFormat), options.OutputFormat)) throw new ArgumentOutOfRangeException(nameof(options));
+        var copy = new CslRenderOptions { OutputFormat = options.OutputFormat, LinkBibliographyIdentifiers = options.LinkBibliographyIdentifiers, Locale = options.Locale, MaxOutputCharacters = options.MaxOutputCharacters, MaxIntermediateCharacters = options.MaxIntermediateCharacters, MaxCitationItems = options.MaxCitationItems, MaxRenderingOperations = options.MaxRenderingOperations, RequireNoDataLoss = options.RequireNoDataLoss };
         foreach (var locale in options.Locales) copy.Locales.Add(locale.Key, locale.Value);
         foreach (var variable in options.Abbreviations) copy.Abbreviations.Add(variable.Key, new Dictionary<string, string>(variable.Value, StringComparer.Ordinal));
         return copy;
@@ -150,11 +150,11 @@ public sealed partial class CslProcessor {
                 if (item.AuthorOnly && item.SuppressAuthor) throw new ArgumentException("AuthorOnly and SuppressAuthor cannot both be enabled for one citation item.", nameof(citations));
                 if (!string.IsNullOrEmpty(item.Locator) && string.IsNullOrWhiteSpace(item.LocatorType))
                     throw new ArgumentException("A nonempty locator requires a locator type.", nameof(citations));
-                if (++itemCount > _options.MaximumCitationItems) throw new InvalidDataException("CSL citations exceed MaximumCitationItems.");
+                if (++itemCount > _options.MaxCitationItems) throw new InvalidDataException("CSL citations exceed MaxCitationItems.");
                 copy.Items.Add(new CslCitationItem(item.Key) { Locator = item.Locator, LocatorType = item.LocatorType, Prefix = item.Prefix, Suffix = item.Suffix, AuthorOnly = item.AuthorOnly, SuppressAuthor = item.SuppressAuthor });
             }
             result.Add(copy);
-            if (result.Count > _options.MaximumCitationItems) throw new InvalidDataException("CSL clusters exceed MaximumCitationItems.");
+            if (result.Count > _options.MaxCitationItems) throw new InvalidDataException("CSL clusters exceed MaxCitationItems.");
         }
         return result.ToArray();
     }

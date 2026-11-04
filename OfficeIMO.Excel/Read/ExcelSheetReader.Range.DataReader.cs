@@ -1,5 +1,3 @@
-#nullable enable
-
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections;
 using System.Data;
@@ -14,6 +12,8 @@ namespace OfficeIMO.Excel {
     /// Data-reader projections for <see cref="ExcelSheetReader"/> ranges.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
+        internal const int DataReaderChunkRows = 1024;
+
         internal IDataReader ReadUsedRangeAsDataReader(
             bool headersInFirstRow = true,
             int schemaSampleRows = 0,
@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
             return ReadRangeAsDataReaderCore(
                 usedRange,
                 headersInFirstRow: headersInFirstRow,
-                chunkRows: Math.Min(1024, _opt.MaxDataReaderChunkRows),
+                chunkRows: Math.Min(DataReaderChunkRows, _opt.MaxDataReaderChunkRows),
                 schemaSampleRows: schemaSampleRows,
                 mode: null,
                 ct: ct,
@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("Excel data-reader safety limits must be positive.");
             }
 
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) {
                 throw new ArgumentException($"Invalid range '{a1Range}'.", nameof(a1Range));
             }
@@ -162,17 +162,17 @@ namespace OfficeIMO.Excel {
             int cols = c2 - c1 + 1;
             int rows = r2 - r1 + 1;
             if (cols > _opt.MaxDataReaderColumns) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderColumns), _opt.MaxDataReaderColumns, $"Range data-reader column count exceeds {nameof(ExcelReadOptions.MaxDataReaderColumns)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderColumns), _opt.MaxDataReaderColumns, $"Range data-reader column count exceeds {nameof(ExcelReaderOptions.MaxDataReaderColumns)}.");
             }
             long sampleCells = (long)Math.Min(Math.Max(0, rows - (headersInFirstRow ? 1 : 0)), schemaSampleRows) * cols;
             if (sampleCells > _opt.MaxDataReaderBufferedCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
             }
             if (schemaSampleRows == 0
                 && (!_hasSdkWorksheetPart || rows > BufferedRangeStreamRowLimit)
                 && CanUseRangeStreamXmlReader()) {
                 if (cols > _opt.MaxDataReaderBufferedCells) {
-                    throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                    throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
                 }
 
                 return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct,
@@ -181,7 +181,7 @@ namespace OfficeIMO.Excel {
 
             long chunkCells = (long)Math.Min(rows, chunkRows) * cols;
             if (chunkCells > _opt.MaxDataReaderBufferedCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxDataReaderBufferedCells), _opt.MaxDataReaderBufferedCells, $"Range data-reader buffering exceeds {nameof(ExcelReaderOptions.MaxDataReaderBufferedCells)}.");
             }
 
             IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct, trackCellPresence);
@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(chunkRows), "Chunk row count must be greater than zero.");
             }
 
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) {
                 yield break;
             }
@@ -410,7 +410,8 @@ namespace OfficeIMO.Excel {
 
         private bool TryConvertCellForDataReader(Cell cell, out object? value) {
             CellValues? typeHint = cell.DataType?.Value;
-            string? rawText = ExtractRawText(cell);
+            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out _);
+            string? rawText = cellValue?.InnerText;
             uint? styleIndex = cell.StyleIndex?.Value;
             bool canPreserveDateSerial =
                 _opt.TreatDatesUsingNumberFormat
@@ -421,7 +422,7 @@ namespace OfficeIMO.Excel {
                 && typeHint != CellValues.String
                 && typeHint != CellValues.InlineString
                 && typeHint != CellValues.Date
-                && (cell.CellFormula == null || _opt.UseCachedFormulaResult);
+                && (formula == null || _opt.UseCachedFormulaResult);
             if (canPreserveDateSerial
                 && Styles.IsDateLike(styleIndex!.Value)
                 && (TryParseInvariantDouble(rawText, out double serial)
@@ -513,7 +514,7 @@ namespace OfficeIMO.Excel {
                 int fieldCount,
                 bool headersInFirstRow,
                 int schemaSampleRows,
-                ExcelReadOptions options,
+                ExcelReaderOptions options,
                 CancellationToken ct) {
                 _chunks = chunks.GetEnumerator();
                 _nextRow = firstRow;

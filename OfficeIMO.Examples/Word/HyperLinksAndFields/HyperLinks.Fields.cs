@@ -7,14 +7,14 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with Fields");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Fields.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is my title";
+                document.Properties.Title = "This is my title";
                 document.AddParagraph("This is my test");
 
                 document.AddParagraph("This is page number ").AddField(WordFieldType.Page);
 
                 document.AddParagraph("Our title is ").AddField(WordFieldType.Title, WordFieldFormat.Caps);
 
-                var para = document.AddParagraph("Our author is ").AddField(WordFieldType.Author);
+                var para = document.AddParagraph("Our author is ").AddField(WordFieldType.Author).Paragraph;
                 Console.WriteLine("----");
                 Console.WriteLine(document.Fields[0].FieldFormat);
                 Console.WriteLine(document.Fields[0].FieldType);

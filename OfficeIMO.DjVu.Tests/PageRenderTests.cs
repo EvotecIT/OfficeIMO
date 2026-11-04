@@ -87,8 +87,8 @@ public sealed class PageRenderTests {
         int[] errors = native.Zip(actual, (a, b) => Math.Abs(a - b)).ToArray();
         Assert.True(errors.Max() <= 5);
         Assert.True(errors.Average() <= 0.25); // Includes the exact alpha channel.
-        Assert.Contains(rendered.FidelityDiagnostics, d => d.Code == "djvu.render.short-iw44-edge" && d.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<OfficeConversionException>(() => rendered.RequireNoLoss());
+        Assert.Contains(rendered.Diagnostics, d => d.Code == "djvu.render.short-iw44-edge" && d.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<OfficeConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class PageRenderTests {
         for (int i = layer.Offset; i < layer.Offset + layer.Length - 8; i++) if (jpeg[i] == 255 && jpeg[i + 1] == 192) { sof = i; break; }
         Assert.True(sof >= 0);
         jpeg[sof + 5] = jpeg[sof + 6] = jpeg[sof + 7] = jpeg[sof + 8] = 255;
-        Assert.Equal(nameof(DjVuReadOptions.MaxPagePixels), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(jpeg).Pages[0].Render()).LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxPagePixels), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(jpeg).Pages[0].Render()).LimitName);
     }
 
     [Fact]

@@ -16,7 +16,7 @@ Get-OfficePdfCompliance [-Document <PdfDocument>] [-Profile <PdfComplianceProfil
 
 ### Path
 ```powershell
-Get-OfficePdfCompliance [-Path] <string> -Profile <PdfComplianceProfile> [-Password <string>] [-IgnorePermissionRestrictions] [-Proof] [-ExternalValidator <PdfExternalValidatorKind[]>] [-ExternalValidation <PdfExternalValidationResult[]>] [-ExternalStatus <PdfExternalValidationStatus>] [-ExternalProfile <string>] [-ExternalDiagnostic <string>] [-ExternalValidatorName <string>] [-ExternalValidatorVersion <string>] [-ExternalExitCode <Int32>] [-ExternalSuccessExitCode <int>] [-ExternalExecutablePath <string>] [-ExternalArguments <string>] [<CommonParameters>]
+Get-OfficePdfCompliance [-Path] <string> -Profile <PdfComplianceProfile> [-Password <securestring>] [-IgnorePermissionRestrictions] [-Proof] [-ExternalValidator <PdfExternalValidatorKind[]>] [-ExternalValidation <PdfExternalValidationResult[]>] [-ExternalStatus <PdfExternalValidationStatus>] [-ExternalProfile <string>] [-ExternalDiagnostic <string>] [-ExternalValidatorName <string>] [-ExternalValidatorVersion <string>] [-ExternalExitCode <Int32>] [-ExternalSuccessExitCode <int>] [-ExternalExecutablePath <string>] [-ExternalArguments <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -250,7 +250,7 @@ Accept wildcard characters: False
 Password used to inspect a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Path
 Aliases: None
 Possible values:

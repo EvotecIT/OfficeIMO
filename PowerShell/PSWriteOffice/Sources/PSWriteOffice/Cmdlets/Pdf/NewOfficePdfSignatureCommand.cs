@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -32,7 +34,8 @@ public sealed class NewOfficePdfSignatureCommand : PSCmdlet
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed signature-field restrictions.</summary>
     [Parameter]
@@ -102,7 +105,9 @@ public sealed class NewOfficePdfSignatureCommand : PSCmdlet
         PdfExternalSignaturePreparation preparation = PdfDocument
             .Load(inputPath, readOptions)
             .Security.PrepareExternalSignature(options);
-        PdfDocument.Load(preparation.PreparedPdf, readOptions).Save(outputPath).RequireSuccess();
+        using var preparedStream = new MemoryStream(preparation.PreparedPdf, writable: false);
+        using var prepared = PdfDocument.Load(preparedStream, readOptions);
+        prepared.Save(outputPath);
         WriteObject(PassThruReport.IsPresent ? preparation : new FileInfo(outputPath));
     }
 }

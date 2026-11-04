@@ -5,9 +5,9 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static MarkdownReaderOptions CloneOptionsWithoutFrontMatter(MarkdownReaderOptions source) {
-        var clone = new MarkdownReaderOptions {
+internal static partial class MarkdownReader {
+    private static MarkdownLoadOptions CloneOptionsWithoutFrontMatter(MarkdownLoadOptions source) {
+        var clone = new MarkdownLoadOptions {
             FrontMatter = false,
             Callouts = source.Callouts,
             CalloutTitleMode = source.CalloutTitleMode,
@@ -218,6 +218,7 @@ public static partial class MarkdownReader {
         clone.SuppressHeadingGenericAttributes = state.SuppressHeadingGenericAttributes;
         clone.IsMarkdigDefinitionListBody = state.IsMarkdigDefinitionListBody;
         clone.NestedBlockDepth = state.NestedBlockDepth;
+        clone.DiscardsNestedListSourceRemap = state.DiscardsNestedListSourceRemap;
         foreach (var line in state.LazyQuoteContinuationLines) clone.LazyQuoteContinuationLines.Add(line);
         foreach (var line in state.QuoteContainerLines) clone.QuoteContainerLines.Add(line);
         foreach (var line in state.SuppressedSetextHeadingUnderlineLines) clone.SuppressedSetextHeadingUnderlineLines.Add(line);
@@ -225,7 +226,7 @@ public static partial class MarkdownReader {
         return clone;
     }
 
-    private static void CopyFencedBlockExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+    private static void CopyFencedBlockExtensions(MarkdownLoadOptions source, MarkdownLoadOptions target) {
         var extensions = source.FencedBlockExtensions;
         if (extensions.Count == 0) {
             return;
@@ -239,7 +240,7 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static void CopyBlockParserExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+    private static void CopyBlockParserExtensions(MarkdownLoadOptions source, MarkdownLoadOptions target) {
         if (source == null || target == null) {
             return;
         }
@@ -258,7 +259,7 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static void CopyInlineParserExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+    private static void CopyInlineParserExtensions(MarkdownLoadOptions source, MarkdownLoadOptions target) {
         if (source == null || target == null) {
             return;
         }
@@ -277,7 +278,7 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static void CopyInlineTransformExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+    private static void CopyInlineTransformExtensions(MarkdownLoadOptions source, MarkdownLoadOptions target) {
         if (source == null || target == null) {
             return;
         }
@@ -296,7 +297,7 @@ public static partial class MarkdownReader {
         }
     }
 
-    private static void CopyDocumentTransforms(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+    private static void CopyDocumentTransforms(MarkdownLoadOptions source, MarkdownLoadOptions target) {
         if (source == null || target == null) {
             return;
         }

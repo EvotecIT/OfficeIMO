@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using Xunit;
@@ -10,7 +11,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [InlineData(PowerPointHtmlExportProfile.VisualReview, "PowerPoint Visual Review")]
     public void HeadingIsWrittenByDefaultAndCanBeOmitted(PowerPointHtmlExportProfile profile, string fallback) {
         using var presentation = CreateWithOffSlideShape();
-        var options = new PowerPointHtmlSaveOptions { ExportProfile = profile };
+        var options = new PowerPointHtmlExportOptions { ExportProfile = profile };
 
         string withHeading = presentation.ToHtml(options);
         options.IncludeHeading = false;
@@ -28,7 +29,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [InlineData(PowerPointHtmlExportProfile.VisualReview)]
     public void SlideHeadingsAreWrittenByDefaultAndCanBeOmitted(PowerPointHtmlExportProfile profile) {
         using var presentation = CreateWithOffSlideShape();
-        var options = new PowerPointHtmlSaveOptions { ExportProfile = profile };
+        var options = new PowerPointHtmlExportOptions { ExportProfile = profile };
 
         string withHeadings = presentation.ToHtml(options);
         options.IncludeSlideHeadings = false;
@@ -41,7 +42,7 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [Fact]
     public void OmittedHeadingIgnoresTitle() {
         using var presentation = CreateWithOffSlideShape();
-        var options = new PowerPointHtmlSaveOptions { Title = "Quarterly review", IncludeHeading = false };
+        var options = new PowerPointHtmlExportOptions { Title = "Quarterly review", IncludeHeading = false };
 
         string html = presentation.ToHtml(options);
 
@@ -52,35 +53,76 @@ public sealed class PowerPointHtmlOutputOptionsTests {
     [Fact]
     public void RenderDiagnosticsAreVisibleByDefaultAndCanBeLeftOutWhileStillReported() {
         using var presentation = CreateWithOffSlideShape();
-        PowerPointHtmlSaveOptions options = PowerPointHtmlSaveOptions.CreateVisualReviewProfile();
+        PowerPointHtmlExportOptions options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
 
-        PowerPointToHtmlResult visible = presentation.ToHtmlResult(options);
+        string visible = presentation.ToHtml(options, out OfficeConversionReport visibleReport);
         options.IncludeRenderDiagnostics = false;
-        PowerPointToHtmlResult omitted = presentation.ToHtmlResult(options);
+        string omitted = presentation.ToHtml(options, out OfficeConversionReport omittedReport);
 
-        Assert.Contains("<ul class=\"officeimo-snapshot-diagnostics\">", visible.Value, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-diagnostic-code=\"invalid-shape-bounds\"", visible.Value, StringComparison.Ordinal);
-        Assert.DoesNotContain("officeimo-snapshot-diagnostics\"", omitted.Value, StringComparison.Ordinal);
-        Assert.DoesNotContain("invalid-shape-bounds", omitted.Value, StringComparison.Ordinal);
-        Assert.Contains(omitted.ImageDiagnostics, _ => _.Code == "invalid-shape-bounds");
-        Assert.Equal(visible.ImageDiagnostics.Select(_ => _.Code), omitted.ImageDiagnostics.Select(_ => _.Code));
+        Assert.Contains("<ul class=\"officeimo-snapshot-diagnostics\">", visible, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-diagnostic-code=\"invalid-shape-bounds\"", visible, StringComparison.Ordinal);
+        Assert.DoesNotContain("officeimo-snapshot-diagnostics\"", omitted, StringComparison.Ordinal);
+        Assert.DoesNotContain("invalid-shape-bounds", omitted, StringComparison.Ordinal);
+        Assert.Contains(omittedReport.Diagnostics, _ => _.Code == "invalid-shape-bounds");
+        Assert.Equal(visibleReport.Diagnostics.Select(_ => _.Code), omittedReport.Diagnostics.Select(_ => _.Code));
     }
 
     [Fact]
     public void CloneCopiesHeadingAndRenderDiagnosticChoices() {
-        var options = new PowerPointHtmlSaveOptions { IncludeHeading = false, IncludeSlideHeadings = false, IncludeRenderDiagnostics = false };
+        var options = new PowerPointHtmlExportOptions { IncludeHeading = false, IncludeSlideHeadings = false, IncludeRenderDiagnostics = false };
 
-        PowerPointHtmlSaveOptions clone = options.Clone();
+        PowerPointHtmlExportOptions clone = options.Clone();
 
         Assert.False(clone.IncludeHeading);
         Assert.False(clone.IncludeSlideHeadings);
         Assert.False(clone.IncludeRenderDiagnostics);
     }
 
-    static PowerPointPresentation CreateWithOffSlideShape() {
-        var presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(160, 100);
-        presentation.AddSlide().AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
+    [Fact]
+    public void VisualReviewSnapshotEmbedsSuppliedFonts() {
+        using var presentation = CreateWithCalibriText();
+        PowerPointHtmlExportOptions options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
+        string installed = presentation.ToHtml(options);
+        var fonts = new OfficeFontFaceCollection().Add("Calibri", ReadBaselineSans());
+        options.Fonts = fonts;
+
+        string supplied = presentation.ToHtml(options);
+
+        Assert.Contains(SlideSvg(presentation, new PowerPointImageExportOptions { Fonts = fonts }), supplied, StringComparison.Ordinal);
+        Assert.Equal(supplied, presentation.ToHtml(options.Clone()));
+        Assert.NotEqual(installed, supplied);
+    }
+
+    [Fact]
+    public void VisualReviewSnapshotKeepsPlatformFontsWithoutFonts() {
+        using var presentation = CreateWithCalibriText();
+        PowerPointHtmlExportOptions options = PowerPointHtmlExportOptions.CreateVisualReviewProfile();
+
+        string html = presentation.ToHtml(options);
+
+        Assert.Null(options.Fonts);
+        Assert.Null(options.Clone().Fonts);
+        Assert.Contains(SlideSvg(presentation, new PowerPointImageExportOptions()), html, StringComparison.Ordinal);
+    }
+
+    static string SlideSvg(PowerPointDocument presentation, PowerPointImageExportOptions options) =>
+        OfficeDrawingSvgExporter.ToSvg(presentation.Slides[0].CreateVisualSnapshot(options).Drawing);
+
+    static byte[] ReadBaselineSans() =>
+        File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
+
+    static PowerPointDocument CreateWithCalibriText() {
+        var presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeLength.Points(320), OfficeLength.Points(120));
+        var box = presentation.AddSlide().AddTextBox("Pinned fonts", OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(280), OfficeLength.Points(60));
+        box.FontFamily = "Calibri";
+        return presentation;
+    }
+
+    static PowerPointDocument CreateWithOffSlideShape() {
+        var presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
+        presentation.AddSlide().AddRectangle(OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Outside slide bounds");
         return presentation;
     }
 }

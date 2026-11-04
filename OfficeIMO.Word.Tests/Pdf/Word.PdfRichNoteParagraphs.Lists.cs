@@ -28,7 +28,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = (endnote ? (OpenXmlElement)main.EndnotesPart!.Endnotes! : main.FootnotesPart!.Footnotes!).OuterXml;
-        var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Contains("1.", text, StringComparison.Ordinal);
@@ -41,7 +41,7 @@ public partial class Word {
         Assert.Equal(middle[0].StartBaseLine.X, last[0].StartBaseLine.X, 3);
         Assert.True(middle[0].StartBaseLine.Y > last[0].StartBaseLine.Y);
         Assert.DoesNotContain(result.Warnings, warning => warning.Code is
-            "NativeFootnotePlacementApproximated" or "NativeEndnoteContentApproximated");
+            "native-footnote-placement-approximated" or "native-endnote-content-approximated");
         Assert.Equal(original, (endnote ? (OpenXmlElement)main.EndnotesPart.Endnotes! : main.FootnotesPart!.Footnotes!).OuterXml);
     }
 
@@ -58,7 +58,7 @@ public partial class Word {
             NoteBodyMarker(endnote: true), RichNoteRun("HEADINGNOTE")), new W.Paragraph(RichNoteRun("FOLLOWINGNOTE")));
         Assert.Empty(source.ValidateDocument());
         string original = note.OuterXml;
-        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(FootnoteDiagnosticOptions()));
+        using var pdf = PdfPigDocument.Open(source.ToPdf(FootnoteDiagnosticOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPages().SelectMany(page => page.Letters).ToArray();
         var heading = FindRichNoteToken(letters, "HEADINGNOTE");
         var following = FindRichNoteToken(letters, "FOLLOWINGNOTE");

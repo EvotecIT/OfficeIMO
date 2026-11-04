@@ -102,7 +102,7 @@ namespace OfficeIMO.Visio {
 
             VisioContainerOptions effectiveOptions = options ?? new VisioContainerOptions();
             GetContainerBounds(memberList, effectiveOptions, DefaultUnit, out double pinX, out double pinY, out double width, out double height);
-            VisioShape container = AddContainer(id, pinX, pinY, width, height, text, effectiveOptions);
+            VisioShape container = AddContainerInches(id, pinX, pinY, width, height, text, effectiveOptions);
 
             foreach (VisioShape member in memberList) {
                 if (!container.ContainerMemberIds.Contains(member.Id, StringComparer.OrdinalIgnoreCase)) {
@@ -128,7 +128,7 @@ namespace OfficeIMO.Visio {
         /// <param name="text">Container heading text.</param>
         /// <param name="options">Optional style and semantic settings.</param>
         /// <returns>The created container shape.</returns>
-        public VisioShape AddContainer(string id, double pinX, double pinY, double width, double height, string? text = null, VisioContainerOptions? options = null) {
+        internal VisioShape AddContainerInches(string id, double pinX, double pinY, double width, double height, string? text = null, VisioContainerOptions? options = null) {
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException("Container id cannot be empty.", nameof(id));
             }
@@ -154,7 +154,7 @@ namespace OfficeIMO.Visio {
             double top = double.NegativeInfinity;
 
             foreach (VisioShape member in members) {
-                (double memberLeft, double memberBottom, double memberRight, double memberTop) = member.GetBounds();
+                (double memberLeft, double memberBottom, double memberRight, double memberTop) = member.GetBoundsInches();
                 left = Math.Min(left, memberLeft);
                 bottom = Math.Min(bottom, memberBottom);
                 right = Math.Max(right, memberRight);

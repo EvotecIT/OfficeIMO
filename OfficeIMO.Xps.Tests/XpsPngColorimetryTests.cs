@@ -16,14 +16,14 @@ public sealed class XpsPngColorimetryTests {
         foreach (string row in File.ReadAllLines(Path.Combine(Fixtures, "expected.csv")).Skip(1)) {
             string[] values = row.Split(',');
             var document = Create(format, File.ReadAllBytes(Path.Combine(Fixtures, values[0])));
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             Assert.Empty(page.ToSvg().Diagnostics);
             OfficeColor pixel = Raster(page).GetPixel(8, 8);
             Assert.InRange(Math.Abs(pixel.R - int.Parse(values[3])), 0, 2);
             Assert.InRange(Math.Abs(pixel.G - int.Parse(values[4])), 0, 2);
             Assert.InRange(Math.Abs(pixel.B - int.Parse(values[5])), 0, 2);
             Assert.Equal(int.Parse(values[6]), (int)pixel.A);
-            Assert.NotEmpty(document.ToPdf());
+            Assert.NotEmpty(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         }
     }
 
@@ -75,11 +75,11 @@ public sealed class XpsPngColorimetryTests {
                 markup.Descendants().Single(e => e.Name.LocalName == "ImageBrush").SetAttributeValue("ImageSource", "{ColorConvertedBitmap /Images/source.png " + profile + "}");
                 document.Pages[0].ReplaceMarkup(markup);
             }
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             Assert.Empty(page.ToSvg().Diagnostics);
             OfficeColor pixel = Raster(page).GetPixel(8, 8);
             Assert.InRange(pixel.R, 250, 255); Assert.InRange(pixel.G, 0, 5); Assert.InRange(pixel.B, 0, 5); Assert.Equal(255, pixel.A);
-            Assert.NotEmpty(document.ToPdf());
+            Assert.NotEmpty(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         }
     }
 

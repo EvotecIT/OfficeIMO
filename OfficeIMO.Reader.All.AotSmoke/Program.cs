@@ -12,7 +12,10 @@ ReaderHandlerCapability[] capabilities = reader.GetCapabilities()
 
 string[] requiredHandlers = {
     "officeimo.reader.asciidoc",
+    "officeimo.reader.chm",
     "officeimo.reader.csv",
+    "officeimo.reader.dbf",
+    "officeimo.reader.djvu",
     "officeimo.reader.email",
     "officeimo.reader.epub",
     "officeimo.reader.excel",
@@ -27,11 +30,13 @@ string[] requiredHandlers = {
     "officeimo.reader.opendocument",
     "officeimo.reader.pdf",
     "officeimo.reader.powerpoint",
+    "officeimo.reader.publisher",
     "officeimo.reader.rtf",
     "officeimo.reader.subtitles",
     "officeimo.reader.visio",
     "officeimo.reader.word",
     "officeimo.reader.xml",
+    "officeimo.reader.xps",
     "officeimo.reader.yaml",
     "officeimo.reader.zip"
 };
@@ -44,7 +49,7 @@ foreach (string handlerId in requiredHandlers) {
 
 const string csv = "Name,Score\nAlice,42\nBob,51\n";
 using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
-List<ReaderChunk> chunks = reader.Read(stream, "scores.csv").ToList();
+List<ReaderChunk> chunks = reader.Enumerate(stream, "scores.csv").ToList();
 if (!chunks.Any(chunk => chunk.Kind == ReaderInputKind.Csv && chunk.Tables is { Count: > 0 })) {
     throw new InvalidOperationException("The NativeAOT all-formats reader lost structured CSV extraction.");
 }
@@ -56,4 +61,28 @@ if (pages.Kind != ReaderInputKind.IWork ||
     throw new InvalidOperationException("The NativeAOT all-formats reader lost iWork Pages extraction.");
 }
 
-Console.WriteLine($"PASS | Reader all-formats preset registered {capabilities.Length} in-process handlers and extracted CSV and Pages");
+// Each fixture's expected text comes from its producer or source description, not from this reader.
+OfficeDocumentReadResult dbf = ReadFixture("plain.dbf", ReaderInputKind.Dbf);
+if (!dbf.Chunks.Any(chunk => chunk.Tables?.Any(table => table.Rows.Any(row => row.Contains("Café | <script> & **bold**"))) == true)) {
+    throw new InvalidOperationException("The NativeAOT all-formats reader lost the DBF table.");
+}
+RequireText(ReadFixture("reader-book.djvu", ReaderInputKind.DjVu), "Zażółć 😀", "DjVu hidden text");
+RequireText(ReadFixture("Test_Document.xps", ReaderInputKind.Xps), "This is a test XPS file.", "XPS page text");
+RequireText(ReadFixture("svnbook-ms-htmlhelp.chm", ReaderInputKind.Chm), "Subversion", "CHM topic text");
+RequireText(ReadFixture("Simple.pub", ReaderInputKind.Publisher), "0123456789abcdef", "Publisher story text");
+
+Console.WriteLine($"PASS | Reader all-formats preset registered {capabilities.Length} in-process handlers and extracted CSV, Pages, DBF, DjVu, XPS, CHM and Publisher");
+
+OfficeDocumentReadResult ReadFixture(string fileName, ReaderInputKind expectedKind) {
+    OfficeDocumentReadResult result = reader.ReadDocument(Path.Combine(AppContext.BaseDirectory, fileName));
+    if (result.Kind != expectedKind) {
+        throw new InvalidOperationException($"The NativeAOT all-formats reader read '{fileName}' as {result.Kind}, not {expectedKind}.");
+    }
+    return result;
+}
+
+static void RequireText(OfficeDocumentReadResult result, string expected, string description) {
+    if (!result.Chunks.Any(chunk => chunk.Text.Contains(expected, StringComparison.Ordinal))) {
+        throw new InvalidOperationException($"The NativeAOT all-formats reader lost {description}.");
+    }
+}

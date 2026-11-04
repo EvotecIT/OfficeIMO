@@ -6,13 +6,13 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Loss-aware PDF projection over the neutral document model.</summary>
-public static partial class OfficeDocumentModelPdfExtensions {
+internal static partial class OfficeDocumentModelPdfExtensions {
     private const string ConverterName = "OfficeIMO.Pdf";
 
     /// <summary>
     /// Projects neutral document content into a PDF document while merging source and PDF diagnostics.
     /// </summary>
-    public static PdfDocumentConversionResult ToPdfDocumentResult(
+    internal static PdfDocumentConversionResult ToPdfDocumentResult(
         this OfficeDocumentModel source,
         PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -26,10 +26,10 @@ public static partial class OfficeDocumentModelPdfExtensions {
 
         var report = new PdfConversionReport();
         AddSourceDiagnostics(source, report, cancellationToken);
-        PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfOptions();
+        PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCreateOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(report, ConverterName);
-        PdfDocument document = PdfDocument.Create(pdfOptions)
+        PdfDocument document = PdfDocument.CreateForImportedLayout(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);
         OfficeRasterDecodeOptions rasterDecodeOptions = options.SnapshotRasterDecodeOptions();
         rasterDecodeOptions.MaximumDecodedPixels = Math.Min(
@@ -95,7 +95,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
         }
 
         if (identities.HasAmbiguousTableProjection) report.Add(new PdfConversionWarning(ConverterName,
-            "MODEL_TABLE_CORRELATION_UNASSESSED", source.Format + "/document",
+            "model-table-correlation-unassessed", source.Format + "/document",
             "Unlocated aggregate table content occurs in several page scopes. Correspondence is not inferred and all supplied entries are retained.",
             PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Unassessed));
         AddSourceSpecificPolicyEvidence(source, options, assetSummary, report);
@@ -166,7 +166,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
         } else if (ContainsOrdinalIgnoreCase(kind, "list")) {
             document.Bullets(new[] { block.Text });
         } else {
-            document.Paragraph(paragraph => paragraph.Text(block.Text));
+            document.Paragraph(paragraph => paragraph.AddText(block.Text));
         }
     }
 
@@ -210,13 +210,13 @@ public static partial class OfficeDocumentModelPdfExtensions {
                 double height = pixelHeight * width / pixelWidth;
                 document.Image(imageBytes, width, height, style: new PdfImageStyle {
                     ScaleDownToFit = true,
-                    AlternativeText = label
+                    AltText = label
                 });
                 embedded++;
                 continue;
             }
 
-            document.Paragraph(paragraph => paragraph.Bold(label).Text(BuildAssetSuffix(asset)));
+            document.Paragraph(paragraph => { paragraph.AddText(label).SetBold(); paragraph.AddText(BuildAssetSuffix(asset)); });
             listed++;
             if (policy == PdfProjectionAssetPolicy.EmbedSupportedImages && asset.PayloadBytes != null) {
                 report.Add(Warning("pdf-projection-asset-listed-not-embedded", sourceLabel + "/" + label, "The asset payload is not part of the shared PDF raster contract and was represented as metadata."));
@@ -341,10 +341,10 @@ public static partial class OfficeDocumentModelPdfExtensions {
             bool canPreserveUri = Uri.TryCreate(link.Uri, UriKind.RelativeOrAbsolute, out Uri? uri) &&
                 (uri.IsAbsoluteUri || allowRelativeUriLinks);
             if (policy == PdfProjectionLinkPolicy.PreserveUriLinks && canPreserveUri) {
-                document.Paragraph(paragraph => paragraph.Link(text, link.Uri!));
+                document.Paragraph(paragraph => paragraph.AddLink(text, link.Uri!));
             } else {
                 string target = link.DestinationName ?? link.RemoteDestinationName ?? link.RemoteFile ?? link.Uri ?? string.Empty;
-                document.Paragraph(paragraph => paragraph.Text(string.IsNullOrWhiteSpace(target) ? text : text + ": " + target));
+                document.Paragraph(paragraph => paragraph.AddText(string.IsNullOrWhiteSpace(target) ? text : text + ": " + target));
                 if (policy == PdfProjectionLinkPolicy.PreserveUriLinks) {
                     report.Add(Warning("pdf-projection-navigation-listed", sourceLabel + "/" + text, "A non-URI navigation target was represented as text."));
                 }
@@ -370,7 +370,7 @@ public static partial class OfficeDocumentModelPdfExtensions {
             .Select(static entry => new[] { entry.Name, entry.Value ?? string.Empty })
             .ToArray();
         if (rows.Length > 0) {
-            document.Table(rows, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = 10 });
+            document.Table(rows, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
         }
     }
 

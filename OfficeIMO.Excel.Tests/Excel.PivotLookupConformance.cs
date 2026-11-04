@@ -26,8 +26,8 @@ namespace OfficeIMO.Tests {
             fieldItems.Count = 100_001;
             definition.RowItems.Count = 100_001;
             definition.Location!.Reference = "A1:B100002";
-            sheet.CellValue(2, 2, 7d);
-            sheet.CellValue(100002, 2, 11d);
+            sheet.Cell(2, 2).SetValue(7d);
+            sheet.Cell(100002, 2).SetValue(11d);
             Assert.Equal(7d, sheet.GetPivotData("PivotRowsOnly", "Metric", new Dictionary<string, object?> { ["Region"] = "Key0" }).Value);
             Assert.Equal(11d, sheet.GetPivotData("PivotRowsOnly", "Metric").Value);
         }
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
                         Assert.Equal(rows, sheet.RecalculateSupportedFormulas());
                         var expected = oracle.GetSheet(name).ReadRange(column == 2 ? $"B1:B{rows}" : $"A1:A{rows}");
                         for (int row = 1; row <= rows; row++) {
-                            object? actual = sheet.CellAt(row, column).GetValue().Value;
+                            object? actual = sheet.Cell(row, column).GetValue().Value;
                             AssertPivotLookupOracleValue(expected[row - 1, 0], actual);
                         }
                     }
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("#REF!", sheet.GetPivotData("missing", "Metric").Value);
             Assert.Equal("#REF!", sheet.GetPivotData("PivotSum", "missing").Value);
             Assert.Equal("#REF!", sheet.GetPivotData("PivotSum", "Metric", new Dictionary<string, object?> { ["Product"] = 1 }).Value);
-            document.GetSheet("Source").CellValue(2, 3, 999d);
+            document.GetSheet("Source").Cell(2, 3).SetValue(999d);
             Assert.Equal(48d, sheet.GetPivotData("PivotSum", "Metric").Value);
             var error = document.GetSheet("ErrorGroups").GetPivotData("PivotErrorGroups", "Count");
             Assert.Equal(ExcelCellDataKind.Error, error.Kind);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<NotSupportedException>(() => sheet.GetPivotData("PivotSum", "Metric"));
             document.GetSheet("LookupEdges").ClearCachedFormulaResults();
             Assert.True(document.GetSheet("LookupEdges").RecalculateSupportedFormulas() < 35);
-            Assert.Null(document.GetSheet("LookupEdges").CellAt(2, 1).GetValue().Value);
+            Assert.Null(document.GetSheet("LookupEdges").Cell(2, 1).GetValue().Value);
         }
 
         [Theory]
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
             var lookup = document.GetSheet("LookupEdges");
             lookup.ClearCachedFormulaResults();
             lookup.RecalculateSupportedFormulas();
-            Assert.Equal("#REF!", lookup.CellAt(2, 1).GetValue().Value);
+            Assert.Equal("#REF!", lookup.Cell(2, 1).GetValue().Value);
         }
 
         [Theory]
@@ -140,10 +140,10 @@ namespace OfficeIMO.Tests {
             }
             Assert.Throws<NotSupportedException>(() => sheet.GetPivotData("PivotSum", "SecondMeasure"));
             var lookup = document.GetSheet("LookupEdges");
-            lookup.CellFormula(1, 1, "GETPIVOTDATA(\"SecondMeasure\",Sum!A1)");
+            lookup.Cell(1, 1).SetFormula("GETPIVOTDATA(\"SecondMeasure\",Sum!A1)");
             lookup.ClearCachedFormulaResults();
             lookup.RecalculateSupportedFormulas();
-            Assert.Null(lookup.CellAt(1, 1).GetValue().Value);
+            Assert.Null(lookup.Cell(1, 1).GetValue().Value);
         }
     }
 }

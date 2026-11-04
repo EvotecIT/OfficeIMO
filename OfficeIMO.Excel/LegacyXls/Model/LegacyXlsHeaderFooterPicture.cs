@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes the HFPicture wrapper used for legacy XLS header and footer pictures.
     /// </summary>
-    public sealed class LegacyXlsHeaderFooterPicture {
+    internal sealed class LegacyXlsHeaderFooterPicture {
         /// <summary>
         /// Creates header/footer picture metadata.
         /// </summary>

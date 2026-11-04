@@ -21,10 +21,10 @@ public sealed class PdfPipelineReport {
     public bool HasFailures => !Succeeded;
 
     /// <summary>First captured PDF artifact, when the pipeline opened existing bytes.</summary>
-    public PdfArtifactSnapshot? Input => _steps.Select(step => step.Input).FirstOrDefault(snapshot => snapshot is not null);
+    public PdfArtifactInfo? Input => _steps.Select(step => step.Input).FirstOrDefault(snapshot => snapshot is not null);
 
     /// <summary>Most recent captured PDF artifact.</summary>
-    public PdfArtifactSnapshot? Output => _steps.Reverse().Select(step => step.Output).FirstOrDefault(snapshot => snapshot is not null);
+    public PdfArtifactInfo? Output => _steps.Reverse().Select(step => step.Output).FirstOrDefault(snapshot => snapshot is not null);
 
     /// <summary>Total duration of stages whose execution time was measured.</summary>
     public TimeSpan TotalDuration => TimeSpan.FromTicks(_steps
@@ -88,7 +88,7 @@ public sealed class PdfPipelineReport {
 
     internal static PdfPipelineReport Opened(PdfDocumentSource source, System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(source, nameof(source));
-        PdfArtifactSnapshot artifact = source.CaptureArtifact(cancellationToken);
+        PdfArtifactInfo artifact = source.CaptureArtifact(cancellationToken);
         return new PdfPipelineReport(new[] {
             new PdfPipelineStep(
                 PdfPipelineStepKind.Open,

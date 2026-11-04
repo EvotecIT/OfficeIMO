@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void InsertObjectsWithTable_UsesDirectWriterForCleanWorkbook() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 object?[] rows = {
                     new Dictionary<string, object?> {
                         ["Region"] = "NA",
@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
                     }
                 };
 
-                sheet.InsertObjects(rows);
-                string range = sheet.UsedRangeA1;
+                sheet.WriteData(rows);
+                string range = sheet.UsedRange.Address;
                 Assert.Equal("A1:D3", range);
                 sheet.AddTable(range, hasHeader: true, name: "Sales", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         public void InsertObjects_GetUsedRangeIncludesOverlayCells() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 object?[] rows = {
                     new Dictionary<string, object?> {
                         ["Region"] = "NA",
@@ -74,10 +74,10 @@ namespace OfficeIMO.Tests {
                     }
                 };
 
-                sheet.InsertObjects(rows);
-                sheet.CellValue(10, 5, "note");
+                sheet.WriteData(rows);
+                sheet.Cell(10, 5).SetValue("note");
 
-                Assert.Equal("A1:E10", sheet.UsedRangeA1);
+                Assert.Equal("A1:E10", sheet.UsedRange.Address);
 
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);

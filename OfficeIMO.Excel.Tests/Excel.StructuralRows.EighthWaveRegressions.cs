@@ -12,11 +12,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsWorkbookConsolidationSources() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             var source = new DataReference {
                 Sheet = "Data",
-                Reference = $"A{A1.MaxRows}"
+                Reference = $"A{ExcelA1.MaxRows}"
             };
             summary.WorksheetPart.Worksheet.Append(
                 new DataConsolidate(
@@ -28,15 +28,15 @@ namespace OfficeIMO.Tests {
                 () => data.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}", source.Reference!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}", source.Reference!.Value);
         }
 
         [Fact]
         public void Test_StructuralRows_RemovesEmptyConsolidationSourceContainer() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            data.CellAt(2, 1).SetValue(1);
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
+            data.Cell(2, 1).SetValue(1);
             var consolidate = new DataConsolidate(
                 new DataReferences(
                     new DataReference {
@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemovesScenariosWithoutInputs() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 1).SetValue(1);
             sheet.WorksheetPart.Worksheet.Append(
                 new Scenarios(
                     new Scenario(
@@ -80,8 +80,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemovesEmptyRowBreakContainer() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 1).SetValue(1);
             sheet.AddManualRowPageBreak(2);
 
             sheet.DeleteRows(2);
@@ -93,9 +93,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemovesEmptySparklineExtension() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
-            sheet.CellAt(2, 2).SetValue(2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
             sheet.AddSparklines("A2:B2", "C2");
 
             sheet.DeleteRows(2);
@@ -109,8 +109,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsWebPublishedRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(5, 1).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(5, 1).SetValue(1);
             WorkbookPart workbookPart = sheet.WorksheetPart.GetParentParts().OfType<WorkbookPart>().Single();
             var item = new WebPublishItem {
                 Id = 1U,
@@ -131,8 +131,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsCellSmartTagReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(5, 1).SetValue(1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(5, 1).SetValue(1);
             const string spreadsheetNamespace =
                 "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
             var tags = new OpenXmlUnknownElement(string.Empty, "smartTags", spreadsheetNamespace);

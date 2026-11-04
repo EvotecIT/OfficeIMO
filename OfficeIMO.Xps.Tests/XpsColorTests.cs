@@ -25,7 +25,7 @@ public sealed class XpsColorTests {
             var page = doc.AddPage(20, 20);
             string channels = string.Join(",", fields[1].Split(':').Select(s => (int.Parse(s, CultureInfo.InvariantCulture) / 255D).ToString("R", CultureInfo.InvariantCulture)));
             page.AddPath("M0,0H20V20H0Z", "ContextColor " + uri + " 1," + channels);
-            byte[] package = doc.Save();
+            byte[] package = doc.ToBytes();
             Assert.Contains(uri, Relationships(package));
             OfficeColor color = Raster(XpsDocument.Load(package).Pages[0]).GetPixel(10, 10);
             int[] expected = fields[2].Split(':').Select(s => int.Parse(s, CultureInfo.InvariantCulture)).ToArray();
@@ -53,11 +53,11 @@ public sealed class XpsColorTests {
         xml.Add(new XElement(ns + "FixedPage.Resources", new XElement(ns + "ResourceDictionary", new XAttribute("Source", source))),
             new XElement(ns + "Path", new XAttribute("Data", "M0,0H20V20H0Z"), new XAttribute("Fill", "{StaticResource paint}")));
         page.ReplaceMarkup(xml);
-        byte[] package = doc.Save();
+        byte[] package = doc.ToBytes();
         Assert.Contains(uri, Relationships(package));
         var pixel = Raster(XpsDocument.Load(package).Pages[0]).GetPixel(10, 10);
         Assert.True(pixel.R >= 253 && pixel.G <= 2 && pixel.B <= 2 && pixel.A == 255);
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]
@@ -84,11 +84,11 @@ public sealed class XpsColorTests {
         string uri = doc.AddResource("Images/color.tif", tiff, "image/tiff");
         var page = doc.AddPage(80, 40).AddImage(uri, 0, 0, 80, 40);
         Assert.Equal("0,0,4,2", (string?)page.GetMarkup().Descendants().Single(e => e.Name.LocalName == "ImageBrush").Attribute("Viewbox"));
-        page = XpsDocument.Load(doc.Save()).Pages[0];
+        page = XpsDocument.Load(doc.ToBytes()).Pages[0];
         var raster = Raster(page);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(15, 20));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(65, 20));
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]

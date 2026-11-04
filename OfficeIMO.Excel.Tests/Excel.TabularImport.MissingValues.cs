@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
 
             byte[] package = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             Assert.Equal(new[] { "Id", "Missing", "Empty", "Date" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
             Assert.True(reader.Read());
             Assert.Equal(1, reader.GetInt32(0));
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             Assert.True(reader.IsDBNull(3));
             Assert.False(reader.Read());
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Contains("yy", loaded.Sheets[0].GetCellStyle(2, 4).NumberFormatCode, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("yy", loaded.Sheets[0].Cell(2, 4).GetStyle().NumberFormatCode, StringComparison.OrdinalIgnoreCase);
         }
 
         [Theory]
@@ -57,13 +57,13 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelFileFormat.Xlsb, ExcelExecutionMode.Parallel, true)]
         public void TabularImport_DataTable_AppendAndOverwritePreserveMissingValues(ExcelFileFormat format, ExcelExecutionMode mode, bool overwrite) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             // A second worksheet requires ordinary DOM insertion rather than a deferred source.
-            document.AddWorksheet("Other");
+            document.AddSheet("Other");
             if (overwrite) {
-                sheet.CellValue(2, 1, "Previous");
-                sheet.CellFormula(2, 2, "123");
-                sheet.FormatCell(2, 2, "0.0000");
+                sheet.Cell(2, 1).SetValue("Previous");
+                sheet.Cell(2, 2).SetFormula("123");
+                sheet.Cell(2, 2).SetNumberFormat("0.0000");
                 Cell inlineCell = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
                 inlineCell.CellValue = null;
                 inlineCell.DataType = CellValues.InlineString;
@@ -77,10 +77,10 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 2, "Beta");
             using var cancellation = new CancellationTokenSource();
 
-            sheet.InsertDataTable(table, mode: mode, ct: cancellation.Token);
+            sheet.WriteData(table, mode: mode, cancellationToken: cancellation.Token);
             byte[] package = document.ToBytes(format);
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { SheetName = "Data" });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data" });
             Assert.True(reader.Read());
             Assert.True(reader.IsDBNull(0));
             Assert.True(reader.IsDBNull(1));
@@ -92,8 +92,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Beta", reader.GetString(2));
             Assert.False(reader.Read());
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Null(loaded.Sheets[0].CellAt(2, 2).GetValue().Formula);
-            if (overwrite) Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
+            Assert.Null(loaded.Sheets[0].Cell(2, 2).GetValue().Formula);
+            if (overwrite) Assert.Equal("0.0000", loaded.Sheets[0].Cell(2, 2).GetStyle().NumberFormatCode);
         }
 
         [Theory]
@@ -103,15 +103,13 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelFileFormat.Xlsb, true)]
         public void TabularImport_ProjectedObjects_PreserveNullAndDbNullAsMissing(ExcelFileFormat format, bool standardWriter) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(new[] { 1, 2, 3 },
-                ("Id", (Func<int, object?>)(id => id)),
-                ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.WriteData(new[] { 1, 2, 3 }, ("Id", (Func<int, object?>)(id => id)), ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
 
             byte[] package = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
 
             if (format == ExcelFileFormat.Xlsx && standardWriter) AssertMissingTabularDefaultStyles(package, "B2", "B3");
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             for (int id = 1; id <= 3; id++) {
                 Assert.True(reader.Read());
                 Assert.Equal(id, reader.GetInt32(0));
@@ -126,19 +124,19 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelExecutionMode.Parallel)]
         public void TabularImport_MissingOverwriteRegistersDefaultStyleForStandardXlsx(ExcelExecutionMode mode) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Previous");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Previous");
             DataTable table = new DataTable();
             table.Columns.Add("Missing", typeof(string));
             table.Columns.Add("AlsoMissing", typeof(string));
             table.Columns.Add("Empty", typeof(string));
             table.Rows.Add(DBNull.Value, DBNull.Value, string.Empty);
 
-            sheet.InsertDataTable(table, includeHeaders: false, mode: mode);
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = true });
+            sheet.WriteData(table, includeHeaders: false, mode: mode);
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = true });
 
             AssertMissingTabularDefaultStyles(package, "A1", "B1");
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.True(reader.IsDBNull(0));
@@ -169,16 +167,14 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelFileFormat.Xlsb, true)]
         public void TabularImport_ProjectedFallback_PreservesMissingValuesWhenAppendingOrOverwriting(ExcelFileFormat format, bool overwrite) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
-            if (overwrite) sheet.CellFormula(2, 2, "123");
-            sheet.InsertObjects(Enumerable.Range(1, 20),
-                ("Id", (Func<int, object?>)(id => id)),
-                ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
+            if (overwrite) sheet.Cell(2, 2).SetFormula("123");
+            sheet.WriteData(Enumerable.Range(1, 20), ("Id", (Func<int, object?>)(id => id)), ("Text", id => id == 1 ? null : id == 2 ? DBNull.Value : string.Empty));
 
             byte[] package = document.ToBytes(format);
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { SheetName = "Data" });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data" });
             for (int id = 1; id <= 20; id++) {
                 Assert.True(reader.Read());
                 Assert.Equal(id, reader.GetInt32(0));
@@ -198,14 +194,14 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("Empty", typeof(string));
             table.Rows.Add(DBNull.Value, string.Empty);
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             using DataTableReader source = table.CreateDataReader();
             sheet.InsertDataReader(source, createTable: false, includeAutoFilter: false);
 
             byte[] package = document.ToBytes(format);
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { SheetName = "Data" });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data" });
             Assert.True(reader.Read());
             Assert.True(reader.IsDBNull(0));
             Assert.False(reader.IsDBNull(1));
@@ -232,7 +228,7 @@ namespace OfficeIMO.Tests {
 
             byte[] package = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(2, reader.FieldCount);
             for (int row = 0; row < 4; row++) {
                 Assert.True(reader.Read());
@@ -245,12 +241,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TabularImport_ExplicitCellNullCompatibility_SurvivesDeferredMaterialization() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             for (int row = 1; row <= 140; row++) {
-                sheet.CellValue(row, 1, row == 2 ? DBNull.Value : row == 3 ? null : (object)"Value");
+                sheet.Cell(row, 1).SetValue(row == 2 ? DBNull.Value : row == 3 ? null : (object)"Value");
             }
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = true });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = true });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -269,10 +265,10 @@ namespace OfficeIMO.Tests {
                 table.Rows.Add(DBNull.Value);
                 table.Rows.Add(string.Empty);
                 using ExcelDocument document = ExcelDocument.Create();
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.InsertDataTable(table);
-                sheet.CellFormula(1, 2, "ISBLANK(A2)");
-                sheet.CellFormula(1, 3, "ISTEXT(A3)");
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.WriteData(table);
+                sheet.Cell(1, 2).SetFormula("ISBLANK(A2)");
+                sheet.Cell(1, 3).SetFormula("ISTEXT(A3)");
                 document.Save(path, new ExcelSaveOptions { XlsbUseSharedStrings = true, DisableFastPackageWriter = true });
 
                 AssertWorkbookOpensViaExcelComWhenAvailable(path,

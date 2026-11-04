@@ -11,13 +11,13 @@ namespace OfficeIMO.Examples.Google {
             string filePath = Path.Combine(folderPath, "GoogleSheets.Plan.xlsx");
 
             using var workbook = ExcelDocument.Create(filePath);
-            var summary = workbook.AddWorksheet("Summary");
-            summary.CellValue(1, 1, "Quarter");
-            summary.CellValue(1, 2, "Revenue");
-            summary.CellValue(2, 1, "Q1");
-            summary.CellValue(2, 2, 125000);
-            summary.CellValue(3, 1, "Q2");
-            summary.CellValue(3, 2, 151500);
+            var summary = workbook.AddSheet("Summary");
+            summary.Cell(1, 1).SetValue("Quarter");
+            summary.Cell(1, 2).SetValue("Revenue");
+            summary.Cell(2, 1).SetValue("Q1");
+            summary.Cell(2, 2).SetValue(125000);
+            summary.Cell(3, 1).SetValue("Q2");
+            summary.Cell(3, 2).SetValue(151500);
             workbook.Save();
 
             var plan = workbook.BuildGoogleSheetsPlan(new GoogleSheetsSaveOptions {
@@ -41,13 +41,13 @@ namespace OfficeIMO.Examples.Google {
             string filePath = Path.Combine(folderPath, "GoogleSheets.Export.xlsx");
 
             using var workbook = ExcelDocument.Create(filePath);
-            var summary = workbook.AddWorksheet("Summary");
-            summary.CellValue(1, 1, "Quarter");
-            summary.CellValue(1, 2, "Revenue");
-            summary.CellValue(2, 1, "Q3");
-            summary.CellValue(2, 2, 178000);
-            summary.CellValue(3, 1, "Q4");
-            summary.CellValue(3, 2, 210250);
+            var summary = workbook.AddSheet("Summary");
+            summary.Cell(1, 1).SetValue("Quarter");
+            summary.Cell(1, 2).SetValue("Revenue");
+            summary.Cell(2, 1).SetValue("Q3");
+            summary.Cell(2, 2).SetValue(178000);
+            summary.Cell(3, 1).SetValue("Q4");
+            summary.Cell(3, 2).SetValue(210250);
             workbook.Save();
 
             try {

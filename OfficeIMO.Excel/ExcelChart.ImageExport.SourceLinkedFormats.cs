@@ -63,7 +63,7 @@ public sealed partial class ExcelChart {
                 }
                 for (int row = address.Start.Row; row <= address.End.Row; row++) {
                     for (int column = address.Start.Column; column <= address.End.Column; column++) {
-                        uint styleIndex = styles.Resolve(row, column, A1.CellReference(row, column));
+                        uint styleIndex = styles.Resolve(row, column, ExcelA1.CellReference(row, column));
                         if (styleIndex >= numberFormats.Length) return null;
                         string? cellFormat = numberFormats[styleIndex];
                         if (cellFormat == null) return null;

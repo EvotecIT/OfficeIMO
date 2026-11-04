@@ -66,7 +66,7 @@ public sealed class AdfDestinationPolicyTests {
         Assert.True(markdown.Report.HasErrors);
         Assert.Contains(markdown.Report.Diagnostics, issue => issue.Code == "ADF_DESTINATION_NODE");
         Assert.Contains(markdown.Report.Diagnostics, issue => issue.Code == "ADF_DESTINATION_MARK");
-        Assert.Throws<InvalidOperationException>(() => markdown.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => markdown.Report.ThrowIfLoss());
         Assert.Equal("heading", markdown.Value.Content[0].Type);
         var html = AdfConverter.FromHtml("<h1>Heading</h1><p>Visible</p>", null, options);
         Assert.True(html.Report.HasErrors);

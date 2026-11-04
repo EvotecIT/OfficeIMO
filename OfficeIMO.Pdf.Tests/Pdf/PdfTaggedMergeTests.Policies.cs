@@ -45,9 +45,9 @@ public sealed partial class PdfTaggedMergeTests {
 
     [Fact]
     public void MergeRejectsUntaggedPagesWhenPrimaryDeclaresPdfUa() {
-        byte[] primary = PdfDocument.Create(new PdfOptions().SetPdfUaIdentification())
+        byte[] primary = PdfDocument.Create(new PdfCreateOptions().SetPdfUaIdentification())
             .TaggedPdfCatalogMarkers().H1("Service review").ToBytes();
-        byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Attachment")).ToBytes();
+        byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Attachment")).ToBytes();
         var error = Assert.Throws<NotSupportedException>(() => PdfDocument.MergeToBytes(primary, plain));
         Assert.Contains("untagged", error.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -70,7 +70,7 @@ public sealed partial class PdfTaggedMergeTests {
         } };
         byte[] output = PdfDocument.MergeToBytes(options, TaggedForm("first"), TaggedForm("second"));
         var read = PdfReadDocument.Open(output);
-        Assert.Equal(new[] { "Name", "Name.source2" }, read.FormFields.Select(field => field.Name).OrderBy(name => name));
+        Assert.Equal(new[] { "Name", "Name_source2" }, read.FormFields.Select(field => field.Name).OrderBy(name => name));
         var tags = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(output).TaggedContent);
         Assert.Equal(2, tags.StructureElements.Count(element => element.StructureType == "Form"));
         var catalog = (PdfDictionary)read.Objects[read.Security.RootObjectNumber!.Value].Value;
@@ -147,7 +147,7 @@ public sealed partial class PdfTaggedMergeTests {
             throw new InvalidOperationException("Cancelled enumeration must not continue.");
         }
         Assert.Throws<OperationCanceledException>(() => PdfPageInterleaver.Interleave(Sources(),
-            new PdfInterleaveOptions { CancellationToken = stop.Token }));
+            new PdfInterleaveOptions(), cancellationToken: stop.Token));
         Assert.Equal(cancelBeforeEnumeration ? 0 : 1, visited);
     }
 }

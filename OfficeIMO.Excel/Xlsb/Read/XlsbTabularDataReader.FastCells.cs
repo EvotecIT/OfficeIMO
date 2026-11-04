@@ -1,7 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
@@ -151,7 +150,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private static string ReadValidatedWideString(byte[] bytes, int position) {
             int characterCount = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(
                 bytes.AsSpan(position, sizeof(uint))));
-            return Encoding.Unicode.GetString(
+            return XlsbWideText.Decode(
                 bytes,
                 position + sizeof(uint),
                 checked(characterCount * sizeof(char)));

@@ -7,12 +7,12 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsRejectsCyclicDictionaryGraphs() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         var row = new Dictionary<string, object?>();
         row["Self"] = row;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(new[] { row }));
+            sheet.WriteData(new[] { row }));
 
         Assert.Contains("reference cycle", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -20,10 +20,10 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsStopsSourcesAtRemainingWorksheetRows() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(TwoRows(), includeHeaders: false, startRow: 1_048_576));
+            sheet.WriteData(TwoRows(), includeHeaders: false, row: 1_048_576));
 
         Assert.Contains("1-row worksheet limit", exception.Message, StringComparison.Ordinal);
     }
@@ -31,18 +31,18 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsCapturesReadOnlyListCountBeforeIndexedTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
-        sheet.InsertObjects(new EscalatingCountReadOnlyList(), includeHeaders: false, startRow: 1_048_576);
+        sheet.WriteData(new EscalatingCountReadOnlyList(), includeHeaders: false, row: 1_048_576);
     }
 
     [Fact]
     public void InsertObjectsRejectsDictionaryHeaderExpansionPastWorksheetColumns() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(new object[] { new ExpandingReadOnlyDictionary() }, includeHeaders: false));
+            sheet.WriteData(new object[] { new ExpandingReadOnlyDictionary() }, includeHeaders: false));
 
         Assert.Contains("16384-column limit", exception.Message, StringComparison.Ordinal);
     }
@@ -50,12 +50,12 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsRejectsDenseDictionaryProjectionPastCellBudget() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         Dictionary<string, object?> row = Enumerable.Range(0, 1_024)
             .ToDictionary(index => $"Column{index}", index => (object?)index);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            sheet.InsertObjects(Enumerable.Repeat<object>(row, 4_096)));
+            sheet.WriteData(Enumerable.Repeat<object>(row, 4_096)));
 
         Assert.Contains("cell safety limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

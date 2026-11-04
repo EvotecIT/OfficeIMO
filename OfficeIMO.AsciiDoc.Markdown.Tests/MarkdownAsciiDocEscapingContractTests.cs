@@ -13,7 +13,8 @@ public sealed class MarkdownAsciiDocEscapingContractTests {
     [InlineData("[literal-role]")]
     [InlineData("[[literal-anchor]]")]
     public void TypedPlainParagraphsRemainLiteral(string literal) {
-        MarkdownDoc source = MarkdownDoc.Create().Add(new ParagraphBlock(new InlineSequence().Text(literal)));
+        MarkdownDocument source = MarkdownDocument.Create();
+        source.Add(new ParagraphBlock(new InlineSequence().Text(literal)));
         MarkdownToAsciiDocResult result = source.ToAsciiDocDocumentResult();
         Assert.Single(result.Value.Blocks.OfType<AsciiDocParagraph>());
         AsciiDocToMarkdownResult reopened = result.Value.ToMarkdownDocumentResult();
@@ -28,7 +29,7 @@ public sealed class MarkdownAsciiDocEscapingContractTests {
     [InlineData("a*b*c")]
     [InlineData("a`b`c")]
     public void IntrawordFormattingSurvivesNativeProjection(string markdown) {
-        MarkdownDoc source = MarkdownReader.Parse(markdown);
+        MarkdownDocument source = MarkdownDocument.Parse(markdown);
         MarkdownToAsciiDocResult result = source.ToAsciiDocDocumentResult();
         Assert.Equal(source.ToMarkdown(), result.Value.ToMarkdownDocumentResult().Value.ToMarkdown());
         Assert.False(result.HasLoss);
@@ -37,8 +38,9 @@ public sealed class MarkdownAsciiDocEscapingContractTests {
     [Fact]
     public void CodeSpanPreservesLiteralFormattingCharacters() {
         var content = new InlineSequence().Code("*literal* {attribute} \\ `code`");
-        MarkdownDoc source = MarkdownDoc.Create().Add(new ParagraphBlock(content));
-        MarkdownDoc reopened = source.ToAsciiDocDocumentResult().Value.ToMarkdownDocumentResult().Value;
+        MarkdownDocument source = MarkdownDocument.Create();
+        source.Add(new ParagraphBlock(content));
+        MarkdownDocument reopened = source.ToAsciiDocDocumentResult().Value.ToMarkdownDocumentResult().Value;
         CodeSpanInline code = Assert.Single(Assert.Single(reopened.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<CodeSpanInline>());
         Assert.Equal("*literal* {attribute} \\ `code`", code.Text);
     }

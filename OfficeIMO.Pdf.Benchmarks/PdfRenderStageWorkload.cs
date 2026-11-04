@@ -17,7 +17,7 @@ public sealed partial class PdfRenderStageWorkload {
     private readonly List<OfficeImageExportDiagnostic> _rasterDiagnostics = new();
     private readonly OfficeDrawingRasterRenderOptions _rasterOptions;
     private readonly PdfPageRenderOptions _controlOptions;
-    private PdfReadDocument? _reader;
+    private PdfDocument? _reader;
     private OfficeDrawing[]? _drawings;
     private OfficeRasterImage[]? _rasters;
     private byte[][]? _pngs;
@@ -37,7 +37,7 @@ public sealed partial class PdfRenderStageWorkload {
             DiagnosticSink = _rasterDiagnostics
         };
         _controlOptions = new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Scale = Scale,
             Background = OfficeColor.White,
             MaxPages = PreviewPages,
@@ -108,6 +108,7 @@ public sealed partial class PdfRenderStageWorkload {
 
     /// <summary>Releases previous prepared inputs and results outside measurement; source qualification is retained.</summary>
     public void ReleaseResults() {
+        _reader?.Dispose();
         _reader = null;
         _drawings = null;
         _rasters = null;
@@ -132,13 +133,13 @@ public sealed partial class PdfRenderStageWorkload {
             case "RenderPng":
                 break;
             case "Projection":
-                _reader = PdfReadDocument.Open(_source);
+                _reader = OpenReader();
                 break;
             case "Rasterization":
-                _drawings = Project(PdfReadDocument.Open(_source));
+                _drawings = ProjectSource();
                 break;
             case "PngEncoding":
-                _rasters = Rasterize(Project(PdfReadDocument.Open(_source)));
+                _rasters = Rasterize(ProjectSource());
                 break;
             default:
                 throw new ArgumentException("Unknown PDF render-stage operation.", nameof(operation));
@@ -151,7 +152,7 @@ public sealed partial class PdfRenderStageWorkload {
         if (_preparedOperation is null || _preparedOperation != operation || _executed) throw new InvalidOperationException("Prepare the same stage before each measured call.");
         switch (operation) {
             case "SourceOpen":
-                _reader = PdfReadDocument.Open(_source);
+                _reader = OpenReader();
                 break;
             case "Projection":
                 _drawings = Project(_reader!);
@@ -180,7 +181,25 @@ public sealed partial class PdfRenderStageWorkload {
         HasIndependentSource = true;
     }
 
-    private OfficeDrawing[] Project(PdfReadDocument reader) {
+    private PdfDocument OpenReader() {
+        using var input = new MemoryStream(_source, writable: false);
+        PdfDocument document = PdfDocument.Load(input);
+        try {
+            // SourceOpen includes parsing; later stages prepare it outside measurement.
+            _ = document.Pages.Count;
+            return document;
+        } catch {
+            document.Dispose();
+            throw;
+        }
+    }
+
+    private OfficeDrawing[] ProjectSource() {
+        using PdfDocument reader = OpenReader();
+        return Project(reader);
+    }
+
+    private OfficeDrawing[] Project(PdfDocument reader) {
         var drawings = new OfficeDrawing[PreviewPages];
         for (int index = 0; index < drawings.Length; index++) drawings[index] = reader.Pages[index].ToDrawing();
         return drawings;

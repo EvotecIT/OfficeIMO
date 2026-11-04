@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -27,7 +25,7 @@ namespace OfficeIMO.Excel {
                                 if (value > 127 || value == (byte)'&') return false;
                                 reference[index] = (char)value;
                             }
-                            if (A1.TryParseCellReferenceFast(reference.Slice(0, length), out int referencedRow, out _)) {
+                            if (ExcelA1.TryParseCellReferenceFast(reference.Slice(0, length), out int referencedRow, out _)) {
                                 rowIndex = referencedRow;
                                 return true;
                             }

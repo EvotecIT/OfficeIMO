@@ -6,18 +6,20 @@ import { captureCommonLimits, captureXlsxOptions, captureCsvOptions, capturePdfO
 import { writeXlsxTo } from "../../xlsx/index.js";
 import { writeCsvTo } from "../../csv/index.js";
 import { writePdfTo, writeGroupedPdfTo } from "../../pdf/index.js";
+import { canopyDiagnostics } from "./diagnostics.js";
 import { prepareCanopyExport } from "./source.js";
 import { canopyPins } from "./presentation.js";
 import { canopyRules } from "./rules.js";
 import { canopyGrouped } from "./grouping.js";
 import { canopyAbout } from "./metadata.js";
 import { writeCanopyWorkbook } from "./workbook.js";
+import { withCanopyPdfLayout } from "./pdf-layout.js";
 import type { CanopyCapture, CanopyExport, CanopyFormat, CanopyWriteOptions } from "./types.js";
 export { createCanopyExport } from "./source.js";
 export { ExportCell } from "../../core/presentation.js";
 export { PdfFont } from "../../pdf/font.js";
 export type { CanopyCapture, CanopyExportCell, CanopyExportColumn, CanopyExportRow, CanopyExport, CanopyFormat, CanopyDiagnostic, CanopySourceOptions, CanopyWriteOptions,
-  CanopyNumberFormat, CanopyExportGroup, CanopyExportGrouping, CanopyRuleFilter, CanopyRulePredicate, CanopyFormatRule } from "./types.js";
+  CanopyPivotAxisPresentation, CanopyPivotAxis, CanopyPivotColumnGroup, CanopyPivotDescriptor, CanopyNumberFormat, CanopyExportGroup, CanopyExportGrouping, CanopyRuleFilter, CanopyRulePredicate, CanopyFormatRule } from "./types.js";
 
 /** Write a captured CanopyX grid to a caller-owned destination; partial bytes remain caller-owned on failure. */
 export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat, destination: OutputDestination, options: CanopyWriteOptions = {}): Promise<ExportResult> {
@@ -26,7 +28,7 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
   const xlsx = captureXlsxOptions(format === "xlsx" ? selected.xlsx : undefined);
   const csv = captureCsvOptions(format === "csv" ? selected.csv : undefined);
   const pdf = capturePdfOptions(format === "pdf" ? selected.pdf : undefined);
-  const prepared = prepareCanopyExport(capture, format, { ...selected, xlsx }), { request, report, tones } = prepared;
+  const prepared = prepareCanopyExport(capture, format, { ...selected, xlsx }), { request, report, tones, pivot } = prepared;
   if (selected.about !== undefined && typeof selected.about !== "boolean") throw new TypeError("Canopy about must be boolean.");
   const labels = selected.grouped === undefined ? undefined : captureFields(selected.grouped, ["labelColumn", "subtotalLabel", "grandTotalLabel", "includeGrandTotal", "continuationLabel", "groupHeadingLevel"]);
   const capturedLabels = labels && { ...labels, ...(labels.labelColumn === undefined ? {} : { labelColumn: Object.freeze({ header: labels.labelColumn.header }) }) };
@@ -54,9 +56,14 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
   } } : {};
   const stream = { ...(signal ? { signal } : {}), ...progress };
   if (format === "xlsx") {
-    const formatLimits = mergeAdapterLimits(xlsx.limits, limits), grouped = canopyGrouped(source, request, { ...selected, xlsx }, formatLimits, report, format);
+    const formatLimits = mergeAdapterLimits(xlsx.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, { ...selected, xlsx }, formatLimits, report, format);
     const pinned = canopyPins(request.columns, report), rules = canopyRules(request, format, grouped !== undefined, tones, report, { ...selected, xlsx }, ruleCellTypes);
-    const sheet = { ...xlsx.sheet,
+    if (pivot && (xlsx.sheet?.rowOutline !== undefined || xlsx.sheet?.columnOutlines !== undefined || xlsx.sheet?.maxOutlineLevel !== undefined ||
+      xlsx.sheet?.outlineSummaryBelow !== undefined || xlsx.sheet?.outlineSummaryRight !== undefined || xlsx.sheet?.table !== undefined || xlsx.sheet?.footer !== undefined))
+      throw new TypeError("Captured pivot metadata owns outlines and totals; worksheet overrides cannot regroup or recalculate it.");
+    if (pivot && xlsx.cellValueWriters !== undefined)
+      throw new TypeError("Captured pivot exports use frozen values rather than custom cellValueWriters.");
+    const sheet = { ...xlsx.sheet, ...(pivot?.sheet ?? {}), ...(pivot ? { autoFilter: false } : {}),
       freezeHeader: xlsx.sheet?.freezeHeader ?? (xlsx.sheet?.includeHeader !== false),
       freezeColumns: xlsx.sheet?.freezeColumns ?? (pinned ? pinned + (grouped ? 1 : 0) : 0),
       conditionalFormats: [...rules, ...(xlsx.sheet?.conditionalFormats ?? [])] };
@@ -64,13 +71,16 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
     if (grouped || about) return writeCanopyWorkbook(source, grouped, destination, settings, capturedLabels, about);
     return writeXlsxTo(source.rows(), destination, settings);
   }
+  if (pivot) canopyDiagnostics(format, { ...selected, unsupportedPresentation: "text" })({ code: "PIVOT_OUTLINES_XLSX_ONLY" });
   if (format === "pdf") {
-    const formatLimits = mergeAdapterLimits(pdf.limits, limits), grouped = canopyGrouped(source, request, selected, formatLimits, report, format);
+    if (pivot && pdf.footer?.totals !== undefined)
+      throw new TypeError("Captured pivot metadata owns totals; PDF footer totals cannot recalculate it.");
+    const formatLimits = mergeAdapterLimits(pdf.limits, limits), grouped = pivot ? undefined : canopyGrouped(source, request, selected, formatLimits, report, format);
     canopyRules(request, format, grouped !== undefined, tones, report, selected);
     // CSS pixels become points before the existing fit/band policy. Explicit PDF point widths win.
     const fitted = request.columns.every(column => column.width !== undefined) ? request.columns.map(column => column.width!.preferred * 72 / 96) : undefined;
     const widths = pdf.columnWidths ?? fitted;
-    const settings = { ...(fitted === undefined ? {} : { orientation: "landscape" as const, wideTable: "fit" as const }), ...pdf, ...stream, limits: formatLimits };
+    const settings = { orientation: "landscape" as const, wideTable: "fit" as const, ...pdf, ...stream, limits: formatLimits };
     if (grouped) {
       if (pdf.headerRows !== undefined || pdf.footer !== undefined) throw new TypeError("Grouped Canopy PDF owns heading and summary rows.");
       const { headerRows: _headers, footer: _footer, ...groupedSettings } = settings;
@@ -83,7 +93,10 @@ export async function writeCanopyTo(capture: CanopyCapture, format: CanopyFormat
         ...(capturedLabels?.continuationLabel === undefined ? {} : { continuationLabel: capturedLabels.continuationLabel }),
         ...(capturedLabels?.groupHeadingLevel === undefined ? {} : { groupHeadingLevel: capturedLabels.groupHeadingLevel }) });
     }
-    return writePdfTo(source.rows(), destination, { ...settings, columns: source.columns, ...(widths === undefined ? {} : { columnWidths: widths }) });
+    return withCanopyPdfLayout(prepared.source, request.columns, settings, async (rows, layout, captured) => {
+      const counted = async function* () { for await (const row of rows) { consumed++; yield row; } };
+      return writePdfTo(counted(), destination, { ...captured, ...layout, columns: source.columns });
+    });
   }
   return writeCsvTo(source.rows(), destination, { ...csv, ...stream, columns: source.columns, valueMode: request.values,
     limits: mergeAdapterLimits(csv.limits, limits) });

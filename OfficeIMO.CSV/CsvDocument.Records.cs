@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.CSV;
 
 public sealed partial class CsvDocument
@@ -9,7 +7,7 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="path">Source CSV path.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static IEnumerable<string[]> ReadRecords(string path, CsvLoadOptions? options = null)
+    internal static IEnumerable<string[]> ReadRecords(string path, CsvParsingSettings? options = null)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -18,7 +16,7 @@ public sealed partial class CsvDocument
 
         options = CreateRawRecordOptions(options);
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
+        var resolvedOptions = ResolveParsingSettings(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
 
         return ReadRecordsIterator(readerFactory, resolvedOptions, disposeReader: true);
     }
@@ -28,7 +26,7 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="reader">Source text reader.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static IEnumerable<string[]> ReadRecords(TextReader reader, CsvLoadOptions? options = null)
+    internal static IEnumerable<string[]> ReadRecords(TextReader reader, CsvParsingSettings? options = null)
     {
         if (reader == null)
         {
@@ -39,7 +37,7 @@ public sealed partial class CsvDocument
         if (options.DetectDelimiter)
         {
             var text = reader.ReadToEnd();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
+            var resolvedOptions = ResolveParsingSettings(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
             return ReadRecordsIterator(() => new StringReader(text), resolvedOptions, disposeReader: true);
         }
 
@@ -52,7 +50,7 @@ public sealed partial class CsvDocument
     /// <param name="path">Source CSV path.</param>
     /// <param name="recordAction">Action receiving the current record values. Record values must not be captured after the callback returns.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadRecordsReusable(string path, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
+    internal static void ReadRecordsReusable(string path, Action<IReadOnlyList<string>> recordAction, CsvParsingSettings? options = null)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -66,7 +64,7 @@ public sealed partial class CsvDocument
 
         options = CreateRawRecordOptions(options);
         var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
+        var resolvedOptions = ResolveParsingSettings(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
         using var reader = readerFactory();
         ReadRecordsReusable(reader, recordAction, resolvedOptions);
     }
@@ -77,7 +75,7 @@ public sealed partial class CsvDocument
     /// <param name="reader">Source text reader.</param>
     /// <param name="recordAction">Action receiving the current record values. Record values must not be captured after the callback returns.</param>
     /// <param name="options">Optional load settings. Header handling is not applied; records are emitted as parsed.</param>
-    internal static void ReadRecordsReusable(TextReader reader, Action<IReadOnlyList<string>> recordAction, CsvLoadOptions? options = null)
+    internal static void ReadRecordsReusable(TextReader reader, Action<IReadOnlyList<string>> recordAction, CsvParsingSettings? options = null)
     {
         if (reader == null)
         {
@@ -93,7 +91,7 @@ public sealed partial class CsvDocument
         if (options.DetectDelimiter)
         {
             var text = reader.ReadToEnd();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
+            var resolvedOptions = ResolveParsingSettings(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
             using var bufferedReader = new StringReader(text);
             ReadRecordsReusable(bufferedReader, recordAction, resolvedOptions);
             return;
@@ -102,7 +100,7 @@ public sealed partial class CsvDocument
         ReadRecordsReusableSkippingInitial(reader, options, GetInitialRecordsToSkip(options), recordAction);
     }
 
-    private static IEnumerable<string[]> ReadRecordsIterator(Func<TextReader> readerFactory, CsvLoadOptions options, bool disposeReader)
+    private static IEnumerable<string[]> ReadRecordsIterator(Func<TextReader> readerFactory, CsvParsingSettings options, bool disposeReader)
     {
         var reader = readerFactory();
         try
@@ -128,9 +126,9 @@ public sealed partial class CsvDocument
         }
     }
 
-    private static CsvLoadOptions CreateRawRecordOptions(CsvLoadOptions? options)
+    private static CsvParsingSettings CreateRawRecordOptions(CsvParsingSettings? options)
     {
-        var rawOptions = options?.Clone() ?? new CsvLoadOptions();
+        var rawOptions = options?.Clone() ?? new CsvParsingSettings();
         rawOptions.HasHeaderRow = false;
         rawOptions.Header = null;
         rawOptions.SkipCommentRowsBeforeHeader = false;

@@ -14,14 +14,14 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Tries to create a dependency-free chart snapshot from cached Word chart data.
         /// </summary>
-        public bool TryGetSnapshot(out WordChartSnapshot snapshot) {
+        internal bool TryGetSnapshot(out WordChartInfo snapshot) {
             snapshot = null!;
             try {
                 C.Chart? chart = _chartPart?.ChartSpace?.GetFirstChild<C.Chart>() ?? _chart;
                 C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
                 if (chart == null || plotArea == null || !HasSingleSupportedChartElement(plotArea)) return false;
                 OpenXmlCompositeElement group = plotArea.ChildElements.OfType<OpenXmlCompositeElement>().Single(IsSupportedChartPlotElement);
-                if (!OfficeOpenXmlChartSeriesReader.TryReadKind(group, out OfficeIMO.Drawing.OfficeChartKind kind)) return false;
+                if (!OfficeOpenXmlChartSeriesReader.TryReadKind(group, out OfficeIMO.OfficeChartType kind)) return false;
                 A.ColorScheme? scheme = _document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
                 OfficeOpenXmlChartSeriesReader.Result? result = group is C.ScatterChart scatter
                     ? OfficeOpenXmlChartSeriesReader.ReadScatter(scatter.Elements<C.ScatterChartSeries>(), scheme, (int)MaxCachedChartPoints)
@@ -37,23 +37,23 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static WordChartSnapshotKind ToWordSnapshotKind(OfficeIMO.Drawing.OfficeChartKind kind) => kind switch {
-            OfficeIMO.Drawing.OfficeChartKind.ColumnClustered => WordChartSnapshotKind.ClusteredColumn,
-            OfficeIMO.Drawing.OfficeChartKind.ColumnStacked => WordChartSnapshotKind.StackedColumn,
-            OfficeIMO.Drawing.OfficeChartKind.ColumnStacked100 => WordChartSnapshotKind.StackedColumn100,
-            OfficeIMO.Drawing.OfficeChartKind.BarClustered => WordChartSnapshotKind.ClusteredBar,
-            OfficeIMO.Drawing.OfficeChartKind.BarStacked => WordChartSnapshotKind.StackedBar,
-            OfficeIMO.Drawing.OfficeChartKind.BarStacked100 => WordChartSnapshotKind.StackedBar100,
-            OfficeIMO.Drawing.OfficeChartKind.Line => WordChartSnapshotKind.Line,
-            OfficeIMO.Drawing.OfficeChartKind.LineStacked => WordChartSnapshotKind.StackedLine,
-            OfficeIMO.Drawing.OfficeChartKind.LineStacked100 => WordChartSnapshotKind.StackedLine100,
-            OfficeIMO.Drawing.OfficeChartKind.Area => WordChartSnapshotKind.Area,
-            OfficeIMO.Drawing.OfficeChartKind.AreaStacked => WordChartSnapshotKind.StackedArea,
-            OfficeIMO.Drawing.OfficeChartKind.AreaStacked100 => WordChartSnapshotKind.StackedArea100,
-            OfficeIMO.Drawing.OfficeChartKind.Radar => WordChartSnapshotKind.Radar,
-            OfficeIMO.Drawing.OfficeChartKind.Scatter => WordChartSnapshotKind.Scatter,
-            OfficeIMO.Drawing.OfficeChartKind.Pie => WordChartSnapshotKind.Pie,
-            OfficeIMO.Drawing.OfficeChartKind.Doughnut => WordChartSnapshotKind.Doughnut,
+        private static WordChartSnapshotKind ToWordSnapshotKind(OfficeIMO.OfficeChartType kind) => kind switch {
+            OfficeIMO.OfficeChartType.ColumnClustered => WordChartSnapshotKind.ClusteredColumn,
+            OfficeIMO.OfficeChartType.ColumnStacked => WordChartSnapshotKind.StackedColumn,
+            OfficeIMO.OfficeChartType.ColumnStacked100 => WordChartSnapshotKind.StackedColumn100,
+            OfficeIMO.OfficeChartType.BarClustered => WordChartSnapshotKind.ClusteredBar,
+            OfficeIMO.OfficeChartType.BarStacked => WordChartSnapshotKind.StackedBar,
+            OfficeIMO.OfficeChartType.BarStacked100 => WordChartSnapshotKind.StackedBar100,
+            OfficeIMO.OfficeChartType.Line => WordChartSnapshotKind.Line,
+            OfficeIMO.OfficeChartType.LineStacked => WordChartSnapshotKind.StackedLine,
+            OfficeIMO.OfficeChartType.LineStacked100 => WordChartSnapshotKind.StackedLine100,
+            OfficeIMO.OfficeChartType.Area => WordChartSnapshotKind.Area,
+            OfficeIMO.OfficeChartType.AreaStacked => WordChartSnapshotKind.StackedArea,
+            OfficeIMO.OfficeChartType.AreaStacked100 => WordChartSnapshotKind.StackedArea100,
+            OfficeIMO.OfficeChartType.Radar => WordChartSnapshotKind.Radar,
+            OfficeIMO.OfficeChartType.Scatter => WordChartSnapshotKind.Scatter,
+            OfficeIMO.OfficeChartType.Pie => WordChartSnapshotKind.Pie,
+            OfficeIMO.OfficeChartType.Doughnut => WordChartSnapshotKind.Doughnut,
             _ => throw new NotSupportedException("This chart family has no legacy Word snapshot projection.")
         };
         private static bool HasSingleSupportedChartElement(C.PlotArea plotArea) {
@@ -93,8 +93,8 @@ namespace OfficeIMO.Word {
                 || element is C.DoughnutChart;
         }
 
-        private WordChartSnapshot CreateSnapshot(C.Chart chart, WordChartSnapshotKind kind, WordChartData data) {
-            return new WordChartSnapshot(
+        private WordChartInfo CreateSnapshot(C.Chart chart, WordChartSnapshotKind kind, WordChartData data) {
+            return new WordChartInfo(
                 ReadDrawingName(),
                 ReadTitle(chart),
                 kind,
@@ -122,19 +122,19 @@ namespace OfficeIMO.Word {
         private static IReadOnlyList<string> ReadCachedStrings(OpenXmlElement? container) =>
             OfficeOpenXmlChartCacheReader.ReadCachedStrings(container, (int)MaxCachedChartPoints);
         private string ReadDrawingName() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
                 ? layout.Name
                 : string.Empty;
         }
 
         private double GetWidthPoints() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
                 ? layout.WidthPoints
                 : 450D;
         }
 
         private double GetHeightPoints() {
-            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutSnapshot layout)
+            return WordDrawingLayoutReader.TryRead(_drawing, out WordDrawingLayoutInfo layout)
                 ? layout.HeightPoints
                 : 300D;
         }

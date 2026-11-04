@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Friendly presets for common table appearances.
 /// </summary>
-public static class TableStyles {
+public static class PdfTableStyles {
     private static readonly string[] CanonicalWordStyleNameValues = {
         "TableNormal",
         "TableGrid",
@@ -55,24 +55,24 @@ public static class TableStyles {
     /// Light preset: report-friendly header fill, soft grid, comfortable padding, and gentle row striping.
     /// </summary>
     public static PdfTableStyle Light() => new PdfTableStyle {
-        HeaderFill = PdfColor.FromRgb(32, 76, 120),
-        HeaderTextColor = PdfColor.White,
-        TextColor = PdfColor.FromRgb(31, 41, 55),
-        RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-        BorderColor = PdfColor.FromRgb(210, 218, 226),
-        BorderWidth = 0.5,
-        CellPaddingX = 6,
-        CellPaddingY = 5,
-        SpacingBefore = 4,
-        SpacingAfter = 8
+        HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(32, 76, 120),
+        HeaderTextColor = global::OfficeIMO.OfficeColor.White,
+        TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
+        RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
+        SpacingAfter = global::OfficeIMO.OfficeLength.Points(8)
     };
 
     /// <summary>
     /// Minimal preset: grid only with no header or row fills.
     /// </summary>
     public static PdfTableStyle Minimal() => new PdfTableStyle {
-        BorderColor = PdfColor.FromRgb(210, 210, 210),
-        BorderWidth = 0.5
+        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 210, 210),
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5)
     };
 
     /// <summary>
@@ -89,13 +89,13 @@ public static class TableStyles {
     /// </summary>
     public static PdfTableStyle TechnicalDocument() {
         PdfTableStyle style = CreateDocumentTable(Light(), 9.75, 9.75, 1.2, 6, 5, 6, 10);
-        style.HeaderFill = PdfColor.FromRgb(15, 23, 42);
-        style.HeaderTextColor = PdfColor.White;
-        style.RowStripeFill = PdfColor.FromRgb(248, 250, 252);
-        style.BorderColor = PdfColor.FromRgb(203, 213, 225);
-        style.RowSeparatorColor = PdfColor.FromRgb(226, 232, 240);
-        style.BorderWidth = 0.45;
-        style.HeaderSeparatorWidth = 0.75;
+        style.HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42);
+        style.HeaderTextColor = global::OfficeIMO.OfficeColor.White;
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252);
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
+        style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240);
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45);
+        style.HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.75);
         return style;
     }
 
@@ -104,7 +104,7 @@ public static class TableStyles {
     /// </summary>
     public static PdfTableStyle Compact() {
         PdfTableStyle style = CreateDocumentTable(ListTable1Light(), 9, 9, 1.12, 4, 3, 4, 7);
-        style.RowSeparatorColor = PdfColor.FromRgb(226, 232, 240);
+        style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240);
         return style;
     }
 
@@ -113,11 +113,11 @@ public static class TableStyles {
     /// </summary>
     public static PdfTableStyle Report() {
         PdfTableStyle style = CreateDocumentTable(Light(), 9.25, 9.25, 1.18, 5, 4, 6, 10);
-        style.HeaderFill = PdfColor.FromRgb(30, 64, 175);
-        style.HeaderTextColor = PdfColor.White;
-        style.RowStripeFill = PdfColor.FromRgb(239, 246, 255);
-        style.BorderColor = PdfColor.FromRgb(191, 219, 254);
-        style.BorderWidth = 0.45;
+        style.HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175);
+        style.HeaderTextColor = global::OfficeIMO.OfficeColor.White;
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255);
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254);
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45);
         return style;
     }
 
@@ -208,14 +208,14 @@ public static class TableStyles {
     /// </summary>
     public static PdfTableStyle TableGrid() => new PdfTableStyle {
         HeaderFill = null,
-        HeaderTextColor = PdfColor.Black,
-        TextColor = PdfColor.FromRgb(25, 25, 25),
+        HeaderTextColor = global::OfficeIMO.OfficeColor.Black,
+        TextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 25, 25),
         FooterFill = null,
         RowStripeFill = null,
-        BorderColor = PdfColor.Black,
-        BorderWidth = 0.5,
-        CellPaddingX = 5,
-        CellPaddingY = 4,
+        BorderColor = global::OfficeIMO.OfficeColor.Black,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(4),
         HeaderBold = false,
         HeaderRowCount = 1,
         FooterRowCount = 0
@@ -226,14 +226,14 @@ public static class TableStyles {
     /// </summary>
     public static PdfTableStyle TableGridLight() => new PdfTableStyle {
         HeaderFill = null,
-        HeaderTextColor = PdfColor.Black,
-        TextColor = PdfColor.FromRgb(25, 25, 25),
+        HeaderTextColor = global::OfficeIMO.OfficeColor.Black,
+        TextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 25, 25),
         FooterFill = null,
         RowStripeFill = null,
-        BorderColor = PdfColor.FromRgb(191, 191, 191),
-        BorderWidth = 0.5,
-        CellPaddingX = 5,
-        CellPaddingY = 4,
+        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(4),
         HeaderRowCount = 1,
         FooterRowCount = 0
     };
@@ -243,14 +243,14 @@ public static class TableStyles {
     /// </summary>
     public static PdfTableStyle PlainTable1() => new PdfTableStyle {
         HeaderFill = null,
-        HeaderTextColor = PdfColor.Black,
-        TextColor = PdfColor.FromRgb(25, 25, 25),
+        HeaderTextColor = global::OfficeIMO.OfficeColor.Black,
+        TextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 25, 25),
         FooterFill = null,
         RowStripeFill = null,
         BorderColor = null,
-        BorderWidth = 0,
-        CellPaddingX = 5,
-        CellPaddingY = 4,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(4),
         HeaderRowCount = 1,
         FooterRowCount = 0
     };
@@ -260,18 +260,18 @@ public static class TableStyles {
     /// </summary>
     public static PdfTableStyle GridTable1Light() => new PdfTableStyle {
         HeaderFill = null,
-        HeaderTextColor = PdfColor.Black,
-        TextColor = PdfColor.FromRgb(25, 25, 25),
+        HeaderTextColor = global::OfficeIMO.OfficeColor.Black,
+        TextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 25, 25),
         FooterFill = null,
         RowStripeFill = null,
-        BorderColor = PdfColor.FromRgb(217, 217, 217),
-        BorderWidth = 0.45,
-        HeaderSeparatorColor = PdfColor.FromRgb(127, 127, 127),
-        HeaderSeparatorWidth = 0.8,
-        FooterSeparatorColor = PdfColor.FromRgb(127, 127, 127),
-        FooterSeparatorWidth = 0.8,
-        CellPaddingX = 5,
-        CellPaddingY = 5,
+        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(217, 217, 217),
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0.45),
+        HeaderSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(127, 127, 127),
+        HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+        FooterSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(127, 127, 127),
+        FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(5),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(5),
         HeaderRowCount = 1,
         FooterRowCount = 0
     };
@@ -281,20 +281,20 @@ public static class TableStyles {
     /// </summary>
     public static PdfTableStyle ListTable1Light() => new PdfTableStyle {
         HeaderFill = null,
-        HeaderTextColor = PdfColor.Black,
-        TextColor = PdfColor.FromRgb(25, 25, 25),
+        HeaderTextColor = global::OfficeIMO.OfficeColor.Black,
+        TextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 25, 25),
         FooterFill = null,
         RowStripeFill = null,
         BorderColor = null,
-        BorderWidth = 0,
-        RowSeparatorColor = PdfColor.FromRgb(224, 224, 224),
-        RowSeparatorWidth = 0.45,
-        HeaderSeparatorColor = PdfColor.Black,
-        HeaderSeparatorWidth = 0.8,
-        FooterSeparatorColor = PdfColor.Black,
-        FooterSeparatorWidth = 0.8,
-        CellPaddingX = 4,
-        CellPaddingY = 6,
+        BorderWidth = global::OfficeIMO.OfficeLength.Points(0),
+        RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(224, 224, 224),
+        RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.45),
+        HeaderSeparatorColor = global::OfficeIMO.OfficeColor.Black,
+        HeaderSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+        FooterSeparatorColor = global::OfficeIMO.OfficeColor.Black,
+        FooterSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+        CellPaddingX = global::OfficeIMO.OfficeLength.Points(4),
+        CellPaddingY = global::OfficeIMO.OfficeLength.Points(6),
         HeaderRowCount = 1,
         FooterRowCount = 0
     };
@@ -318,35 +318,35 @@ public static class TableStyles {
     }
 
     private readonly struct WordAccentColors {
-        public WordAccentColors(PdfColor light, PdfColor strong, PdfColor pale) {
+        public WordAccentColors(global::OfficeIMO.OfficeColor light, global::OfficeIMO.OfficeColor strong, global::OfficeIMO.OfficeColor pale) {
             Light = light;
             Strong = strong;
             Pale = pale;
         }
 
-        public PdfColor Light { get; }
-        public PdfColor Strong { get; }
-        public PdfColor Pale { get; }
+        public global::OfficeIMO.OfficeColor Light { get; }
+        public global::OfficeIMO.OfficeColor Strong { get; }
+        public global::OfficeIMO.OfficeColor Pale { get; }
     }
 
     private static WordAccentColors GetWordTableAccentColors(int accentNumber) => accentNumber switch {
-        1 => new WordAccentColors(PdfColor.FromRgb(180, 198, 231), PdfColor.FromRgb(142, 170, 219), PdfColor.FromRgb(217, 226, 243)),
-        2 => new WordAccentColors(PdfColor.FromRgb(247, 202, 172), PdfColor.FromRgb(244, 176, 131), PdfColor.FromRgb(251, 228, 213)),
-        3 => new WordAccentColors(PdfColor.FromRgb(219, 219, 219), PdfColor.FromRgb(201, 201, 201), PdfColor.FromRgb(237, 237, 237)),
-        4 => new WordAccentColors(PdfColor.FromRgb(255, 229, 153), PdfColor.FromRgb(255, 217, 102), PdfColor.FromRgb(255, 242, 204)),
-        5 => new WordAccentColors(PdfColor.FromRgb(189, 214, 238), PdfColor.FromRgb(156, 194, 229), PdfColor.FromRgb(222, 234, 246)),
-        6 => new WordAccentColors(PdfColor.FromRgb(197, 224, 179), PdfColor.FromRgb(168, 208, 141), PdfColor.FromRgb(226, 239, 217)),
+        1 => new WordAccentColors(global::OfficeIMO.OfficeColor.FromRgb(180, 198, 231), global::OfficeIMO.OfficeColor.FromRgb(142, 170, 219), global::OfficeIMO.OfficeColor.FromRgb(217, 226, 243)),
+        2 => new WordAccentColors(global::OfficeIMO.OfficeColor.FromRgb(247, 202, 172), global::OfficeIMO.OfficeColor.FromRgb(244, 176, 131), global::OfficeIMO.OfficeColor.FromRgb(251, 228, 213)),
+        3 => new WordAccentColors(global::OfficeIMO.OfficeColor.FromRgb(219, 219, 219), global::OfficeIMO.OfficeColor.FromRgb(201, 201, 201), global::OfficeIMO.OfficeColor.FromRgb(237, 237, 237)),
+        4 => new WordAccentColors(global::OfficeIMO.OfficeColor.FromRgb(255, 229, 153), global::OfficeIMO.OfficeColor.FromRgb(255, 217, 102), global::OfficeIMO.OfficeColor.FromRgb(255, 242, 204)),
+        5 => new WordAccentColors(global::OfficeIMO.OfficeColor.FromRgb(189, 214, 238), global::OfficeIMO.OfficeColor.FromRgb(156, 194, 229), global::OfficeIMO.OfficeColor.FromRgb(222, 234, 246)),
+        6 => new WordAccentColors(global::OfficeIMO.OfficeColor.FromRgb(197, 224, 179), global::OfficeIMO.OfficeColor.FromRgb(168, 208, 141), global::OfficeIMO.OfficeColor.FromRgb(226, 239, 217)),
         _ => throw new ArgumentOutOfRangeException(nameof(accentNumber), "Word table accent number must be between 1 and 6.")
     };
 
     private static PdfTableStyle CreateDocumentTable(PdfTableStyle style, double fontSize, double headerFontSize, double lineHeight, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
-        style.FontSize = fontSize;
-        style.HeaderFontSize = headerFontSize;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(headerFontSize);
         style.LineHeight = lineHeight;
-        style.CellPaddingX = paddingX;
-        style.CellPaddingY = paddingY;
-        style.SpacingBefore = spacingBefore;
-        style.SpacingAfter = spacingAfter;
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(paddingX);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(paddingY);
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
         style.AutoFitColumns = true;
         return style;
     }

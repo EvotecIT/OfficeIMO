@@ -34,7 +34,7 @@ public sealed class HtmlZeroLineHeightTests {
             shape => shape.Source == "div#following" && shape.Shape.FillColor.HasValue);
         Assert.Equal(20D, following.Y, 6);
         Assert.NotEmpty(rendered.Pages[0].CreateDrawing().Elements);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
 
         HtmlPdfRenderRequestResult result = document.RenderToPdfResult(HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options: Options()));
@@ -43,7 +43,7 @@ public sealed class HtmlZeroLineHeightTests {
         // raised superscript before the adjoining baseline text.
         Assert.Equal(expectedText, string.Concat(pdf.Pages.SelectMany(page => page.GetTextSpans())
             .Select(span => span.Text)).Replace("\n", "").Replace(" ", ""));
-        result.Output.RequireNoLoss();
+        result.Output.ThrowIfLoss();
         Assert.Equal(html, document.SourceHtml);
     }
 
@@ -62,7 +62,7 @@ public sealed class HtmlZeroLineHeightTests {
         Assert.Equal(20D, Assert.Single(rendered.Pages.SelectMany(page => Enumerate(page.Scene))
             .OfType<HtmlRenderShape>(), shape => shape.Source == "div#following" && shape.Shape.FillColor.HasValue).Y, 6);
         Assert.Equal("A", PdfReadDocument.Open(result.ToBytes()).ExtractText().Trim());
-        result.Output.RequireNoLoss();
+        result.Output.ThrowIfLoss();
     }
 
     private static string Source(string scenario) {
@@ -87,7 +87,7 @@ public sealed class HtmlZeroLineHeightTests {
     private static HtmlRenderOptions Options() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 600D, ViewportHeight = 900D,
-            PageSize = new OfficePageSize(600D / 96D, 900D / 96D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(900D / 96D)),
             Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false,
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,
             ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile()

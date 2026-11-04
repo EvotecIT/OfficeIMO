@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             else {
                 Assert.NotNull(direct);
                 Assert.Throws<OfficeImageExportPolicyException>(() =>
-                    new OfficeImageExportPolicy { RequireNoLoss = true }.EnsureAccepted(new[] { direct! }));
+                    new OfficeImageExportPolicy { FailOnLoss = true }.EnsureAccepted(new[] { direct! }));
             }
 
             // Installed CFF math can be registered even where the direct TrueType
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
             drawing.AddText(text, 0, 0, 160, 32, new OfficeFontInfo(family, 16), OfficeColor.Black);
             var diagnostics = new System.Collections.Generic.List<OfficeImageExportDiagnostic>();
             drawing.AppendFontDiagnostics(diagnostics);
-            new OfficeImageExportPolicy { RequireNoLoss = true }.EnsureAccepted(diagnostics);
+            new OfficeImageExportPolicy { FailOnLoss = true }.EnsureAccepted(diagnostics);
             Assert.Empty(diagnostics);
         }
     }

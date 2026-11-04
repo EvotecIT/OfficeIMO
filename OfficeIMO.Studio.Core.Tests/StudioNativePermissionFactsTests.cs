@@ -14,7 +14,7 @@ public sealed class StudioNativePermissionFactsTests : IDisposable {
 
     private string Source(PdfStandardPermissions permissions) {
         string path = Path.Combine(_root, "restricted.pdf");
-        File.WriteAllBytes(path, PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)))
+        File.WriteAllBytes(path, PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))))
             .Security.Encrypt(new PdfStandardEncryptionOptions("reader") { OwnerPassword = "owner", AllowedPermissions = permissions }).Pdf);
         return path;
     }
@@ -52,8 +52,8 @@ public sealed class StudioNativePermissionFactsTests : IDisposable {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC");
         string path = Path.Combine(_root, "accessible-image.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => {
-                content.Paragraph(paragraph => paragraph.Text("Accessible text"));
-                content.Image(png, 24, 24);
+                content.AddParagraph(paragraph => paragraph.AddText("Accessible text"));
+                content.AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24));
             }))
             .Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.Accessibility
@@ -113,7 +113,7 @@ public sealed class StudioNativePermissionFactsTests : IDisposable {
     public async Task RestrictedStructureAndFillOnlyFieldsDoNotExtractPageContents(bool fillAllowed) {
         string path = Path.Combine(_root, "restricted-form.pdf");
         var source = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
-            canvas.TextField("Name", null, 72, 72, 200, 24))));
+            canvas.TextField("Name", null, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24)))));
         File.WriteAllBytes(path, source.Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", AllowedPermissions = fillAllowed ? PdfStandardPermissions.FillForms : PdfStandardPermissions.None
         }).Pdf);
@@ -141,7 +141,7 @@ public sealed class StudioNativePermissionFactsTests : IDisposable {
     public async Task Form_authoring_metadata_uses_its_own_authorization_without_copy_permission() {
         string path = Path.Combine(_root, "author-form.pdf");
         byte[] original = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
-            canvas.TextField("Name", "Ada", 72, 72, 200, 24)))).Security.Encrypt(new("reader") {
+            canvas.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24))))).Security.Encrypt(new("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.ModifyContents | PdfStandardPermissions.ModifyAnnotations
             }).Pdf;
         File.WriteAllBytes(path, original);

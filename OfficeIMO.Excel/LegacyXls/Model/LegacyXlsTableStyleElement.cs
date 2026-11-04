@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a BIFF TableStyleElement record.
     /// </summary>
-    public sealed class LegacyXlsTableStyleElement {
+    internal sealed class LegacyXlsTableStyleElement {
         /// <summary>
         /// Initializes a new instance of the <see cref="LegacyXlsTableStyleElement"/> class.
         /// </summary>

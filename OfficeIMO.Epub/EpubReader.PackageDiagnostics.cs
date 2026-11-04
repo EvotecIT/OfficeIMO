@@ -8,7 +8,7 @@ internal static partial class EpubReader {
 
     private static EpubSignatureInfo ReadSignatures(
         IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         const string signaturePath = "META-INF/signatures.xml";
@@ -43,7 +43,7 @@ internal static partial class EpubReader {
 
     private static IReadOnlyList<EpubEncryptionInfo> ReadEncryption(
         IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         const string encryptionPath = "META-INF/encryption.xml";

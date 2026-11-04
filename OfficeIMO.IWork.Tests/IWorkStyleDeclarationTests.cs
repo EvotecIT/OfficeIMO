@@ -25,17 +25,17 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordResult(policy);
             Assert.False(result.IsVisualFallback); Assert.True(result.Report.IsPartialEditableReconstruction);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var run = Assert.Single(reopened.Tables[0].Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Value");
             Assert.False(run.Bold);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointResult(policy);
             Assert.False(result.IsVisualFallback); Assert.True(result.Report.IsPartialEditableReconstruction);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var cell = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0);
             Assert.Equal("Value", cell.Text); Assert.False(cell.Paragraphs[0].Runs[0].Bold);
             Assert.Empty(reopened.ValidateDocument());
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkSourceDeclarationIssueKind.InvalidValue, issue.Kind);
         Assert.Empty(report.SourceReferenceIssues);
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -103,7 +103,7 @@ public sealed partial class IWorkBoundaryTests {
                     BytesField(11, Message(VarintField(4, 0), VarintField(4, 1), StringField(5, "Other"))))),
                 ArchiveRecord(20, 2021, Message(BytesField(11, StringField(5, "Arial"))))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         IWorkTable table = ReadSelectedRichTable(source, kind).Item1;
         Assert.Equal(2, table.Cells.Count);
         foreach (IWorkTableCell cell in table.Cells) {
@@ -112,7 +112,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         package.Position = 0;
         IWorkSourceDeclarationIssue issue = Assert.Single(ConvertUnitReport(package, kind,
-            readOptions: new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).SourceDeclarationIssues);
+            readOptions: new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).SourceDeclarationIssues);
         Assert.Equal("11/4", issue.FieldPath); Assert.Equal(2, issue.DeclaredValueCount);
     }
 
@@ -123,7 +123,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11,
                 Message(VarintField(1, 2), FloatField(3, float.NaN)))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -134,7 +134,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, BytesField(7,
                 Message(Enumerable.Range(3, 9).Select(field => FloatField(field, 0)).ToArray())))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 

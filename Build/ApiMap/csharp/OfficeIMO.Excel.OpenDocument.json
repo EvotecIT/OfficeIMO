@@ -1,0 +1,56 @@
+{
+  "package": "OfficeIMO.Excel.OpenDocument",
+  "summary": "Image adapter consumers use the single options type from their rendering package.",
+  "changes": [
+    {
+      "old": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, ExcelWorkbookImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "new": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "file": "OfficeIMO.Excel.OpenDocument/ExcelOpenDocumentImageExportExtensions.cs",
+      "kind": "method",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelWorkbookImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "new": "ExcelOpenDocumentImageExportExtensions.ExportImages(OdsDocument, OfficeImageExportFormat, OfficeImageExportConsumer, ExcelImageExportOptions, ExcelOpenDocumentConversionOptions, CancellationToken)",
+      "file": "OfficeIMO.Excel.OpenDocument/ExcelOpenDocumentImageExportExtensions.cs",
+      "kind": "method",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "ExcelDocument.ToOpenDocument(options) / ToOpenDocumentResult(options) : OdfConversionResult<OdsDocument>",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelDocument.ToOpenDocument(ExcelOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken) : OdsDocument; ToOpenDocumentAsync; SaveAsOpenDocument(path | stream); SaveAsOpenDocumentAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "The out report is the typed OdfConversionReport with per-feature mappings.",
+      "applied": true
+    },
+    {
+      "old": "OdsDocument.ToExcelDocument(options) / ToExcelDocumentResult(options)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OdsDocument.ToExcel(ExcelOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken); ToExcelAsync; SaveAsExcel(path | stream); SaveAsExcelAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentConversionOptions.Clone()",
+      "reason": "Both directions share every setting, so one options type stays; LossPolicy keeps its three levels instead of FailOnLoss.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

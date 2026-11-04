@@ -13,16 +13,16 @@ namespace OfficeIMO.Tests {
         public void InspectionSnapshot_AbsentCellTypesUseTheSameRawTokenForStoredAndCommentOnlyCells() {
             using MemoryStream stream = CreateWorkbook();
             using ExcelDocument document = ExcelDocument.Load(stream, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-            ExcelWorksheetSnapshot sheet = document.CreateInspectionSnapshot().Worksheets[0];
-            ExcelCellSnapshot numeric = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
-            ExcelCellSnapshot commentOnly = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
-            ExcelCellSnapshot empty = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 1);
-            ExcelCellSnapshot boolean = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 6);
+            ExcelWorksheetInfo sheet = document.Inspect().Worksheets[0];
+            ExcelCellInfo numeric = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
+            ExcelCellInfo commentOnly = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2);
+            ExcelCellInfo empty = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 1);
+            ExcelCellInfo boolean = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 6);
 
             Assert.Equal("n", numeric.StoredValueType);
             Assert.Equal(numeric.StoredValueType, commentOnly.StoredValueType);
             Assert.Equal(numeric.StoredValueType, empty.StoredValueType);
-            Assert.Equal(numeric.StoredValueType, new ExcelCellSnapshot().StoredValueType);
+            Assert.Equal(numeric.StoredValueType, new ExcelCellInfo().StoredValueType);
             Assert.True(numeric.HasStoredValue);
             Assert.Equal("7", numeric.StoredValue);
             Assert.False(commentOnly.HasStoredValue);
@@ -39,10 +39,10 @@ namespace OfficeIMO.Tests {
         public void InspectionSnapshot_VisibilityDefaultMatchesRawWorksheetStateTokens() {
             using MemoryStream stream = CreateWorkbook();
             using ExcelDocument document = ExcelDocument.Load(stream, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-            ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot();
+            ExcelWorkbookInfo snapshot = document.Inspect();
 
             Assert.Equal("visible", snapshot.Worksheets[0].VisibilityState);
-            Assert.Equal(snapshot.Worksheets[0].VisibilityState, new ExcelWorksheetSnapshot().VisibilityState);
+            Assert.Equal(snapshot.Worksheets[0].VisibilityState, new ExcelWorksheetInfo().VisibilityState);
             Assert.Equal(new[] { "visible", "visible", "hidden", "veryHidden" }, snapshot.Worksheets.Select(sheet => sheet.VisibilityState));
             Assert.Equal(new[] { false, false, true, true }, snapshot.Worksheets.Select(sheet => sheet.Hidden));
         }
@@ -51,15 +51,15 @@ namespace OfficeIMO.Tests {
         public void InspectionSnapshot_FormulaKindRequiresAFormulaAndPreservesRawFormulaTypeTokens() {
             using MemoryStream stream = CreateWorkbook();
             using ExcelDocument document = ExcelDocument.Load(stream, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-            ExcelWorksheetSnapshot sheet = document.CreateInspectionSnapshot().Worksheets[0];
+            ExcelWorksheetInfo sheet = document.Inspect().Worksheets[0];
 
             Assert.All(sheet.Cells.Where(cell => cell.Column is 1 or 2 or 6), cell => Assert.Null(cell.FormulaKind));
-            ExcelCellSnapshot normal = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3);
+            ExcelCellInfo normal = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3);
             Assert.Equal("normal", normal.FormulaKind);
             Assert.Equal("SUM(A1)", normal.StoredFormula);
             Assert.Equal("SUM(A1)", normal.Formula);
             Assert.All(sheet.Cells.Where(cell => cell.Column == 4), cell => Assert.Equal("shared", cell.FormulaKind));
-            ExcelCellSnapshot sharedFollower = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 4);
+            ExcelCellInfo sharedFollower = Assert.Single(sheet.Cells, cell => cell.Row == 2 && cell.Column == 4);
             Assert.Equal(string.Empty, sharedFollower.StoredFormula);
             Assert.Equal("SUM(A2)", sharedFollower.Formula);
             Assert.Equal("array", Assert.Single(sheet.Cells, cell => cell.Column == 5).FormulaKind);

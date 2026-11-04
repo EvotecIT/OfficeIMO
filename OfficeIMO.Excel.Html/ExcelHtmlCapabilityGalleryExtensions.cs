@@ -21,12 +21,12 @@ public static class ExcelHtmlCapabilityGalleryExtensions {
         Directory.CreateDirectory(directoryPath);
 
         string filePrefix = ToFilePrefix(options.ScenarioId);
-        string semanticHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string semanticHtml = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
             Theme = options.Theme,
             Title = options.Title
         });
-        string visualHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string visualHtml = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelVisualReview,
             Theme = options.Theme,
             Title = options.Title + " Visual Review",
@@ -97,7 +97,7 @@ public static class ExcelHtmlCapabilityGalleryExtensions {
         bool hasImages = false;
 
         foreach (ExcelSheet sheet in workbook.Sheets) {
-            hasUsedCells |= !string.Equals(sheet.UsedRangeA1, "A1", StringComparison.OrdinalIgnoreCase) || sheet.TryGetCellText(1, 1, out string text) && text.Length > 0;
+            hasUsedCells |= !string.Equals(sheet.UsedRange.Address, "A1", StringComparison.OrdinalIgnoreCase) || sheet.TryGetCellText(1, 1, out string text) && text.Length > 0;
             hasFormulas |= sheet.GetFormulaCells().Count > 0;
             hasComments |= sheet.GetComments().Count > 0;
             hasCharts |= sheet.Charts.Any();

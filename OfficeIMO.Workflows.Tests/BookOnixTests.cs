@@ -15,7 +15,7 @@ public sealed class BookOnixTests {
         project.Publication.AddIdentifier("other-isbn", new EpubIdentifierMetadata { Value = "9781861972712", Kind = EpubIdentifierKind.Isbn13 });
         byte[] before = project.ToProjectBytes();
         var result = project.ExportOnix(Options() with {
-            Subtitle = "A & B", PublicationDate = new DateOnly(2026, 10, 5),
+            Subtitle = "A & B", PublicationDate = new DateTime(2026, 10, 5),
             Contributors = [new("Author", BookOnixContributorRole.Author), new("Studio & Co", BookOnixContributorRole.Illustrator, true)]
         }, TestSchema());
         var xml = XDocument.Load(new MemoryStream(result.Bytes));

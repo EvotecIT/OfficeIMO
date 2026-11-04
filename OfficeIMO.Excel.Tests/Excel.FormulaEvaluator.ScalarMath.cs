@@ -31,10 +31,10 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(EVEN(1/0),99)", "99")]
         public void Scalar_math_replaces_stale_caches_with_typed_results(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellFormula(1, 1, "42");
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetFormula("42");
             Assert.Equal(1, document.Calculate());
-            sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
@@ -58,9 +58,9 @@ namespace OfficeIMO.Tests {
         [InlineData("EVEN(\"text\")")]
         public void Scalar_math_does_not_flatten_ranges_or_discard_arguments(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellValue(1, 1, 3d); sheet.CellValue(2, 1, 2d);
-            sheet.CellFormula(1, 2, formula);
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetValue(3d); sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetFormula(formula);
             Assert.Equal(0, document.Calculate());
             Assert.Equal(formula, sheet.GetFormulaText(1, 2));
         }
@@ -72,11 +72,11 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(MOD(#REF!,A1:A2),99)")]
         public void Scalar_math_qualifies_all_operands_before_propagating_errors(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellValue(1, 1, 3d); sheet.CellValue(2, 1, 2d);
-            sheet.CellFormula(1, 2, "42");
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetValue(3d); sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetFormula("42");
             Assert.Equal(1, document.Calculate());
-            sheet.CellFormula(1, 2, formula);
+            sheet.Cell(1, 2).SetFormula(formula);
             Assert.Equal(0, document.Calculate());
             Assert.Equal("42", Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
             Assert.Equal(formula, sheet.GetFormulaText(1, 2));
@@ -85,15 +85,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Scalar_math_retains_existing_boolean_numeric_coercion() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellValue(1, 1, true);
-            sheet.CellFormula(1, 2, "SQRT(TRUE)");
-            sheet.CellFormula(2, 2, "INT(A1)");
-            sheet.CellFormula(3, 2, "MOD(2,1=1)");
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetValue(true);
+            sheet.Cell(1, 2).SetFormula("SQRT(TRUE)");
+            sheet.Cell(2, 2).SetFormula("INT(A1)");
+            sheet.Cell(3, 2).SetFormula("MOD(2,1=1)");
             Assert.Equal(3, document.Calculate());
-            Assert.Equal(1d, sheet.CellAt(1, 2).GetValue<double>());
-            Assert.Equal(1d, sheet.CellAt(2, 2).GetValue<double>());
-            Assert.Equal(0d, sheet.CellAt(3, 2).GetValue<double>());
+            Assert.Equal(1d, sheet.Cell(1, 2).GetValue<double>());
+            Assert.Equal(1d, sheet.Cell(2, 2).GetValue<double>());
+            Assert.Equal(0d, sheet.Cell(3, 2).GetValue<double>());
         }
 
         [Theory]
@@ -105,14 +105,14 @@ namespace OfficeIMO.Tests {
         [InlineData("SQRT(ABS(A1))", 2.9832867780352594d, 1.70293863659264d)]
         public void Scalar_math_follows_edited_operands(string formula, double first, double second) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
-            sheet.CellValue(1, 1, -8.9d); sheet.CellValue(2, 1, 2d);
-            sheet.CellFormula(1, 2, formula);
+            var sheet = document.AddSheet("Math");
+            sheet.Cell(1, 1).SetValue(-8.9d); sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
-            Assert.Equal(first, sheet.CellAt(1, 2).GetValue<double>(), 12);
-            sheet.CellValue(1, 1, 2.9d);
+            Assert.Equal(first, sheet.Cell(1, 2).GetValue<double>(), 12);
+            sheet.Cell(1, 1).SetValue(2.9d);
             Assert.Equal(1, document.Calculate());
-            Assert.Equal(second, sheet.CellAt(1, 2).GetValue<double>(), 12);
+            Assert.Equal(second, sheet.Cell(1, 2).GetValue<double>(), 12);
         }
     }
 }

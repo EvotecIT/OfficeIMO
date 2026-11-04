@@ -27,7 +27,7 @@ internal static class SpreadsheetXmlMerges {
                     next = reference.Start.Column;
                 }
                 if (next <= column) throw new InvalidDataException("Worksheet cell indexes must increase.");
-                Coordinate(index, next); column = next; cell.CellReference = A1.CellReference(index, column);
+                Coordinate(index, next); column = next; cell.CellReference = ExcelA1.CellReference(index, column);
             }
             rows.Add(index, row);
         }
@@ -36,10 +36,10 @@ internal static class SpreadsheetXmlMerges {
         foreach (MergeCell merge in part.Worksheet.GetFirstChild<MergeCells>()?.Elements<MergeCell>() ?? Enumerable.Empty<MergeCell>()) {
             context.Options.CancellationToken.ThrowIfCancellationRequested();
             if (merges.Count >= context.Options.MaxCells) throw new InvalidDataException("Too many XML Spreadsheet merges.");
-            if (!A1.TryParseRange(merge.Reference?.Value ?? "", out int row, out int column, out int endRow, out int endColumn)) throw new InvalidDataException("Invalid merged-cell reference.");
+            if (!ExcelA1.TryParseRange(merge.Reference?.Value ?? "", out int row, out int column, out int endRow, out int endColumn)) throw new InvalidDataException("Invalid merged-cell reference.");
             Coordinate(row, column); Coordinate(endRow, endColumn);
             if (endRow < row || endColumn < column) throw new InvalidDataException("Invalid merged-cell order.");
-            string reference = A1.CellReference(row, column);
+            string reference = ExcelA1.CellReference(row, column);
             if (map.ContainsKey(reference)) throw new InvalidDataException("Duplicate merge anchor.");
             map.Add(reference, (endColumn - column, endRow - row));
             merges.Add((row, column, endRow, endColumn)); Anchor(reference);
@@ -77,7 +77,7 @@ internal static class SpreadsheetXmlMerges {
             if (cells.Any(cell => cell.CellReference?.Value == reference)) return;
             var before = cells.FirstOrDefault(cell => ExcelReference.Parse(cell.CellReference!.Value!).Start.Column > column);
             context.Cell();
-            target.InsertBefore(new Cell { CellReference = A1.CellReference(row, column) }, before);
+            target.InsertBefore(new Cell { CellReference = ExcelA1.CellReference(row, column) }, before);
         }
     }
 }

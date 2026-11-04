@@ -43,7 +43,7 @@ public sealed class EpubWriterFallbackContracts {
         Assert.Single(read.Landmarks);
         Assert.Equal(2, read.Chapters.Count);
         Assert.False(read.Chapters[1].IsLinear);
-        Assert.Single(book.Read(new EpubReadOptions { IncludeNonLinearSpineItems = false }).Chapters);
+        Assert.Single(book.Read(new EpubLoadOptions { IncludeNonLinearSpineItems = false }).Chapters);
         book.AddResource("other", "EPUB/other.xhtml", "application/xhtml+xml", Encoding.UTF8.GetBytes(EpubIntegrityFixtures.Xhtml("<p>Other</p>")));
         byte[] before = book.Write().Bytes;
         Assert.Throws<InvalidDataException>(() => book.SetNavigation(new[] { new EpubNavigationEntry("Other", "EPUB/other.xhtml") }));

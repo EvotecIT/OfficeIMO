@@ -9,7 +9,7 @@ public class PdfIncrementalObjectWriterTests {
         byte[] source = PdfExternalDocumentCompatibilityTests.BuildXrefStreamPdfWithTrailingStaleDuplicatePage();
         var (objects, trailer) = PdfSyntax.ParseObjects(source);
         int number = objects.Keys.Max() + 1;
-        objects[number] = new PdfIndirectObject(number, 0, PdfInfoDictionaryBuilder.BuildDictionary(new PdfMetadata { Title = "Classic revision" }));
+        objects[number] = new PdfIndirectObject(number, 0, PdfInfoDictionaryBuilder.BuildDictionary(new PdfDocumentProperties { Title = "Classic revision" }));
         byte[] classic = PdfIncrementalObjectWriter.Append(source, objects, PdfSyntax.ReadDocumentSecurityInfo(source), trailer,
             new[] { number }, infoObjectNumberOverride: number, format: PdfIncrementalXrefFormat.ClassicTable);
         Assert.True(PdfSyntax.ReadDocumentSecurityInfo(classic).HasXrefStreams);
@@ -25,14 +25,14 @@ public class PdfIncrementalObjectWriterTests {
     public void Append_XrefStreamRevisionPreservesPrefixAndReadsUpdatedObject() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Original xref-stream title")
-            .Paragraph(paragraph => paragraph.Text("Xref stream revision body"))
+            .Paragraph(paragraph => paragraph.AddText("Xref stream revision body"))
             .ToBytes();
         PdfDocumentSecurityInfo before = PdfSyntax.ReadDocumentSecurityInfo(source);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
         int infoObjectNumber = objects.Keys.Max() + 1;
         byte[] infoObject = PdfObjectBytes.WrapIndirectObject(
             infoObjectNumber,
-            PdfInfoDictionaryBuilder.Build(new PdfMetadata { Title = "Updated xref-stream title" }));
+            PdfInfoDictionaryBuilder.Build(new PdfDocumentProperties { Title = "Updated xref-stream title" }));
 
         byte[] updated = PdfIncrementalObjectWriter.Append(
             source,
@@ -55,12 +55,12 @@ public class PdfIncrementalObjectWriterTests {
     [Fact]
     public void Append_ClassicRevisionRejectsDuplicateRawObjectNumbers() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Duplicate raw object source"))
+            .Paragraph(paragraph => paragraph.AddText("Duplicate raw object source"))
             .ToBytes();
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(source);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
         int objectNumber = objects.Keys.Max() + 1;
-        byte[] raw = PdfObjectBytes.WrapIndirectObject(objectNumber, PdfInfoDictionaryBuilder.Build(new PdfMetadata()));
+        byte[] raw = PdfObjectBytes.WrapIndirectObject(objectNumber, PdfInfoDictionaryBuilder.Build(new PdfDocumentProperties()));
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => PdfIncrementalObjectWriter.Append(
             source,

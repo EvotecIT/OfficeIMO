@@ -10,7 +10,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static Result? ReadPlot(ChartPart part, C.Chart chart, A.ColorScheme? scheme, int maximumPoints,
-            out OfficeChartKind kind, out double bubbleScale, out OfficeChartBubbleSizeMode bubbleMode) {
+            out OfficeChartType kind, out double bubbleScale, out OfficeChartBubbleSizeMode bubbleMode) {
             kind = default; bubbleScale = 100; bubbleMode = OfficeChartBubbleSizeMode.Area;
             C.PlotArea? plot = chart.PlotArea;
             if (plot == null || plot.GetFirstChild<C.DataTable>() != null ||
@@ -25,9 +25,14 @@ namespace OfficeIMO.OpenXml.Internal {
             if (HasUnsupportedBubbleSourceVisibility(part, chart)) return null;
             var axisGroups = OfficeOpenXmlChartAxisGroups.Create(plot);
             if (!HasSupportedProjectionAxisGroups(layers, axisGroups)) return null;
+            var barGeometry = layers.OfType<C.BarChart>().Select(bars => (
+                Gap: bars.GetFirstChild<C.GapWidth>()?.Val?.Value ?? 150,
+                Overlap: bars.BarGrouping?.Val?.Value == null || bars.BarGrouping.Val!.Value == C.BarGroupingValues.Clustered
+                    ? bars.GetFirstChild<C.Overlap>()?.Val?.Value ?? 0 : 0)).Distinct().Take(2).Count();
+            if (barGeometry > 1) return null;
             var projectionBudget = new ProjectionBudget();
             var series = new List<Series>();
-            var stackedLayers = new HashSet<(OfficeChartKind Kind, OfficeChartAxisGroup AxisGroup)>();
+            var stackedLayers = new HashSet<(OfficeChartType Kind, OfficeChartAxisGroup AxisGroup)>();
             IReadOnlyList<string>? categories = null;
             for (int index = 0; index < layers.Count; index++) {
                 var layer = layers[index];
@@ -37,10 +42,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (!TryReadKind(layer, out var layerKind)) return null;
                 // Separate native stacked layers have independent stacks. The flat
                 // chart model groups them by kind and axis, so it cannot preserve both.
-                if (layerKind is OfficeChartKind.BarStacked or OfficeChartKind.BarStacked100 or
-                    OfficeChartKind.ColumnStacked or OfficeChartKind.ColumnStacked100 or
-                    OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
-                    OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100) {
+                if (layerKind is OfficeChartType.BarStacked or OfficeChartType.BarStacked100 or
+                    OfficeChartType.ColumnStacked or OfficeChartType.ColumnStacked100 or
+                    OfficeChartType.LineStacked or OfficeChartType.LineStacked100 or
+                    OfficeChartType.AreaStacked or OfficeChartType.AreaStacked100) {
                     if (!stackedLayers.Add((layerKind, axisGroups.Read(layer)))) return null;
                 }
                 if (HasUnsupportedLayerPresentation(layer)) return null;
@@ -80,7 +85,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Where(entry => entry.GetFirstChild<C.Delete>() is C.Delete delete && delete.Val?.Value != false)
                 .Select(entry => entry.GetFirstChild<C.Index>()?.Val?.Value)
                 .Where(value => value.HasValue).Select(value => value!.Value) ?? Enumerable.Empty<uint>());
-            bool categoryLegend = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut;
+            bool categoryLegend = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut;
             series = series.Select((item, index) => new Series(item.SourceIndex,
                 item.Data.WithLegendVisibility(legend != null && (categoryLegend ||
                     !hidden.Contains((uint)index))), item.UnsupportedAppearance, item.SourceOrder,
@@ -94,8 +99,8 @@ namespace OfficeIMO.OpenXml.Internal {
             return result;
         }
 
-        internal static bool HasSuppressedOverMaximumDataLabels(C.Chart chart, IEnumerable<OfficeChartSeries> series,
-            OfficeChartKind defaultKind) {
+        internal static bool HasSuppressedOverMaximumDataLabels(C.Chart chart, IEnumerable<OfficeSeries> series,
+            OfficeChartType defaultKind) {
             // Office suppresses labels beyond an explicit value-axis maximum when
             // showDLblsOverMax is false. The shared renderer cannot model that
             // per-point suppression, so keep the native chart unprojected.
@@ -109,7 +114,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     labels.GetFirstChild<C.ShowPercent>() is C.ShowPercent percent && percent.Val?.Value != false ||
                     labels.GetFirstChild<C.ShowBubbleSize>() is C.ShowBubbleSize bubble && bubble.Val?.Value != false))
                 return false;
-            OfficeChartSeries[] allSeries = series.ToArray();
+            OfficeSeries[] allSeries = series.ToArray();
             bool horizontalBar = plot.Descendants<C.BarChart>().Any(bar =>
                 bar.BarDirection?.Val?.Value == C.BarDirectionValues.Bar);
             bool scatter = plot.Descendants<C.ScatterChart>().Any();
@@ -132,8 +137,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 OfficeChartAxisGroup group = threshold.Key.Group;
                 bool xValues = threshold.Key.XValues;
                 double maximum = threshold.Value;
-                foreach (OfficeChartSeries item in allSeries.Where(item => item.AxisGroup == group)) {
-                    OfficeChartKind kind = item.RenderKind ?? defaultKind;
+                foreach (OfficeSeries item in allSeries.Where(item => item.AxisGroup == group)) {
+                    OfficeChartType kind = item.RenderKind ?? defaultKind;
                     if (IsStackedForLabelMaximum(kind)) continue;
                     IReadOnlyList<double>? values = xValues ? item.XValues : item.Values;
                     if (values?.Any(value => value > maximum) == true) return true;
@@ -141,20 +146,20 @@ namespace OfficeIMO.OpenXml.Internal {
                 foreach (var stack in allSeries.Where(item => item.AxisGroup == group &&
                         IsStackedForLabelMaximum(item.RenderKind ?? defaultKind))
                     .GroupBy(item => item.RenderKind ?? defaultKind)) {
-                    OfficeChartSeries[] members = stack.ToArray();
+                    OfficeSeries[] members = stack.ToArray();
                     bool percent = IsPercentStackedForLabelMaximum(stack.Key);
                     int count = members.Max(item => item.Values.Count);
                     for (int index = 0; index < count; index++) {
                         double positiveTotal = 0D, negativeTotal = 0D;
                         if (percent) {
-                            foreach (OfficeChartSeries member in members) {
+                            foreach (OfficeSeries member in members) {
                                 if (index >= member.Values.Count) continue;
                                 if (member.Values[index] > 0D) positiveTotal += member.Values[index];
                                 else if (member.Values[index] < 0D) negativeTotal -= member.Values[index];
                             }
                         }
                         double positiveCumulative = 0D, negativeCumulative = 0D;
-                        foreach (OfficeChartSeries member in members) {
+                        foreach (OfficeSeries member in members) {
                             if (index >= member.Values.Count) continue;
                             double value = member.Values[index];
                             if (value > 0D) {
@@ -171,15 +176,15 @@ namespace OfficeIMO.OpenXml.Internal {
             return false;
         }
 
-        private static bool IsStackedForLabelMaximum(OfficeChartKind kind) => kind is
-            OfficeChartKind.BarStacked or OfficeChartKind.BarStacked100 or
-            OfficeChartKind.ColumnStacked or OfficeChartKind.ColumnStacked100 or
-            OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
-            OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100;
+        private static bool IsStackedForLabelMaximum(OfficeChartType kind) => kind is
+            OfficeChartType.BarStacked or OfficeChartType.BarStacked100 or
+            OfficeChartType.ColumnStacked or OfficeChartType.ColumnStacked100 or
+            OfficeChartType.LineStacked or OfficeChartType.LineStacked100 or
+            OfficeChartType.AreaStacked or OfficeChartType.AreaStacked100;
 
-        private static bool IsPercentStackedForLabelMaximum(OfficeChartKind kind) => kind is
-            OfficeChartKind.BarStacked100 or OfficeChartKind.ColumnStacked100 or
-            OfficeChartKind.LineStacked100 or OfficeChartKind.AreaStacked100;
+        private static bool IsPercentStackedForLabelMaximum(OfficeChartType kind) => kind is
+            OfficeChartType.BarStacked100 or OfficeChartType.ColumnStacked100 or
+            OfficeChartType.LineStacked100 or OfficeChartType.AreaStacked100;
 
         private static bool HasUnsupportedLayerPresentation(OpenXmlCompositeElement layer) {
             if (layer.Descendants().Any(element => element is C.Trendline or C.ErrorBars or C.DropLines or C.UpDownBars or C.SeriesLines ||
@@ -197,10 +202,8 @@ namespace OfficeIMO.OpenXml.Internal {
             if (layer is C.BarChart bars) {
                 if (bars.Descendants().Any(element => element.LocalName == "shape" &&
                     element.GetAttributes().Any(attribute => attribute.LocalName == "val" && attribute.Value != "box"))) return true;
-                if (bars.GetFirstChild<C.GapWidth>()?.Val?.Value is ushort gap && gap != 150) return true;
-                var grouping = bars.BarGrouping?.Val?.Value;
-                int expectedOverlap = grouping == null || grouping == C.BarGroupingValues.Clustered ? 0 : 100;
-                if (bars.GetFirstChild<C.Overlap>()?.Val?.Value is sbyte overlap && overlap != expectedOverlap) return true;
+                if (bars.GetFirstChild<C.GapWidth>()?.Val?.Value is ushort gap && gap > 500) return true;
+                if (bars.GetFirstChild<C.Overlap>()?.Val?.Value is sbyte overlap && (overlap < -100 || overlap > 100)) return true;
             }
             return false;
         }

@@ -115,7 +115,7 @@ public sealed partial class HtmlResourceSession {
             manifest,
             options,
             diagnostics ?? new HtmlDiagnosticReport(),
-            HtmlConversionLimits.CreateUntrustedProfile(),
+            HtmlConversionLimits.UntrustedDefaults,
             cancellationToken);
 
     /// <summary>Resolves a manifest asynchronously using one operation-scoped session.</summary>
@@ -128,7 +128,7 @@ public sealed partial class HtmlResourceSession {
             manifest,
             options,
             diagnostics ?? new HtmlDiagnosticReport(),
-            HtmlConversionLimits.CreateUntrustedProfile(),
+            HtmlConversionLimits.UntrustedDefaults,
             cancellationToken);
 
     internal void MarkAttempted(HtmlResourceReference reference) {
@@ -802,7 +802,7 @@ internal static partial class HtmlRenderResourceLoader {
             } else {
                 diagnostics.Add(
                     ComponentName,
-                    imageResource.DiagnosticCode.Length == 0 ? "ImageResourceRejectedByPolicy" : imageResource.DiagnosticCode,
+                    imageResource.DiagnosticCode.Length == 0 ? global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy : imageResource.DiagnosticCode,
                     "A stylesheet image source was rejected by the configured URL policy.",
                     HtmlDiagnosticSeverity.Warning,
                     imageResource.Source,
@@ -833,7 +833,7 @@ internal static partial class HtmlRenderResourceLoader {
             if (!reference.IsAllowed) {
                 diagnostics.Add(
                     ComponentName,
-                    reference.DiagnosticCode.Length == 0 ? "StylesheetResourceRejectedByPolicy" : reference.DiagnosticCode,
+                    reference.DiagnosticCode.Length == 0 ? global::OfficeIMO.OfficeDiagnosticCodes.StylesheetResourceRejectedByPolicy : reference.DiagnosticCode,
                     "A stylesheet import was rejected by the configured URL policy.",
                     HtmlDiagnosticSeverity.Warning,
                     reference.Source,

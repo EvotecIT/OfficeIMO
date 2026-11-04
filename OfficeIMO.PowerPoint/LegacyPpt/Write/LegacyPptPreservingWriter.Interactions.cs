@@ -110,7 +110,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return jump != LegacyPptInteractionJump.None;
         }
 
-        private static bool TryCreateInteractionContext(PowerPointPresentation presentation,
+        private static bool TryCreateInteractionContext(PowerPointDocument presentation,
             LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog,
@@ -328,7 +328,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             private uint _nextId;
 
             internal PreservingInteractionContext(
-                PowerPointPresentation presentation,
+                PowerPointDocument presentation,
                 LegacyPptProjectionMap projectionMap, uint objectIdSeed) {
                 _nextId = objectIdSeed;
                 uint nextSlideId = projectionMap.Slides.Count == 0

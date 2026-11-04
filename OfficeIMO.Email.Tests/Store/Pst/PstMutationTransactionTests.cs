@@ -298,7 +298,7 @@ public sealed class PstMutationTransactionTests {
             byte[] original = PstTestFileBuilder.Create();
             File.WriteAllBytes(path, original);
             using var transaction = EmailStorePstMutationTransaction.Open(path,
-                new EmailStorePstMutationOptions(failOnDataLoss: false));
+                new EmailStorePstMutationOptions(failOnLoss: false));
             transaction.CreateFolder("Commit trigger");
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>

@@ -56,7 +56,8 @@ if (args.Length == 2) {
         pdfOptions: new HtmlBrowserPdfOptions(tagged: true));
     PdfDocumentConversionResult result = await renderer.CapturePdfDocumentResultAsync(request);
     byte[] pdf = result.ToBytes();
-    PdfReadDocument inspected = PdfReadDocument.Open(pdf);
+    using var pdfInput = new MemoryStream(pdf);
+    using var inspected = PdfDocument.Load(pdfInput);
     if (!inspected.HasTaggedContent ||
         inspected.ExtractText().IndexOf("JavaScript capture passed", StringComparison.Ordinal) < 0)
         throw new InvalidOperationException("Browser capture did not retain its executed JavaScript and tagged PDF structure.");

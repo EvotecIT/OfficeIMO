@@ -83,6 +83,8 @@ public sealed class HeicCompositionTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(source,new OfficeRasterDecodeOptions{ImageCodec=new SamplesCodec()},out var image,out var info),info.Diagnostic);
         Assert.Equal(width,image!.Width);Assert.Equal(height,image.Height);
         Assert.Equal((byte)first,image.GetPixel(0,0).R);
+        Assert.Equal((OfficeImageOrientation)orientation, info.SourceOrientation);
+        Assert.Equal(orientation != 1, info.OrientationNormalized);
         for(int y=0;y<height;y++) for(int x=0;x<width;x++) {
             var pixel=image.GetPixel(x,y);
             Assert.Equal(pixel.R+60,pixel.A);
@@ -102,20 +104,37 @@ public sealed class HeicCompositionTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ExcessiveBrandTablesCannotReachAnUninspectedCodec(bool brandFirst) {
-        byte[] brands=new byte[4097*4];
-        for(int p=0;p<brands.Length;p+=4) HeicTestFixture.Text("zzzz").CopyTo(brands,p);
-        HeicTestFixture.Text("heic").CopyTo(brands,brandFirst ? 0 : brands.Length-4);
-        byte[] source=HeicTestFixture.Box("ftyp",HeicTestFixture.Join(HeicTestFixture.Text("zzzz"),HeicTestFixture.U32(0),brands));
-        var codec=new SamplesCodec();
-        var scene=new OfficeDrawing(3,2);
-        scene.AddImage(source,"application/octet-stream",new OfficeImageProjection(new OfficeImagePlacement(0,0,3,2)));
-        _=OfficeDrawingRasterRenderer.Render(scene,new OfficeDrawingRasterRenderOptions {ImageCodec=codec});
-        Assert.Equal(0,codec.Calls);
-        Assert.False(OfficeSvgImageRenderer.TryDecodeRasterForSvg(source,null,codec,CancellationToken.None,out _,out _));
-        Assert.Equal(0,codec.Calls);
+    [InlineData("first-brand", false)]
+    [InlineData("first-brand", true)]
+    [InlineData("last-brand", false)]
+    [InlineData("last-brand", true)]
+    [InlineData("box-limit", false)]
+    [InlineData("box-limit", true)]
+    public void UninspectedHeicContainersNeverReachCallerCodecs(string limit, bool svg) {
+        byte[] source;
+        if (limit == "box-limit") {
+            byte[] prefix = new byte[4096 * 8];
+            byte[] free = HeicTestFixture.Box("free", Array.Empty<byte>());
+            for (int p = 0; p < prefix.Length; p += free.Length) free.CopyTo(prefix, p);
+            source = HeicTestFixture.Join(prefix, HeicTestFixture.Box("ftyp",
+                HeicTestFixture.Join(HeicTestFixture.Text("heic"), HeicTestFixture.U32(0))));
+        } else {
+            byte[] brands = new byte[4097 * 4];
+            for (int p = 0; p < brands.Length; p += 4) HeicTestFixture.Text("zzzz").CopyTo(brands, p);
+            HeicTestFixture.Text("heic").CopyTo(brands, limit == "first-brand" ? 0 : brands.Length - 4);
+            source = HeicTestFixture.Box("ftyp", HeicTestFixture.Join(
+                HeicTestFixture.Text("zzzz"), HeicTestFixture.U32(0), brands));
+        }
+        var codec = new RejectingCodec();
+        if (svg) {
+            Assert.False(OfficeSvgImageRenderer.TryDecodeRasterForSvg(source, null, codec,
+                CancellationToken.None, out _, out _));
+        } else {
+            var scene = new OfficeDrawing(3, 2);
+            scene.AddImage(source, "application/octet-stream", new OfficeImageProjection(new OfficeImagePlacement(0, 0, 3, 2)));
+            _ = OfficeDrawingRasterRenderer.Render(scene, new OfficeDrawingRasterRenderOptions { ImageCodec = codec });
+        }
+        Assert.Equal(0, codec.Calls);
     }
 
     [Fact]
@@ -210,16 +229,20 @@ public sealed class HeicCompositionTests {
     }
 
     [Theory]
-    [InlineData(false,2,3)]
-    [InlineData(true,3,2)]
-    public void ContainerOrientationTakesPrecedenceOverExif(bool hasTransform,int width,int height) {
+    [InlineData(false, true, 2, 3)]
+    [InlineData(true, true, 3, 2)]
+    [InlineData(false, false, 3, 2)]
+    [InlineData(true, false, 3, 2)]
+    public void ContainerOrientationTakesPrecedenceOverExif(bool hasTransform, bool applyExif, int width, int height) {
         var metadata=new OfficeImageMetadata();
         metadata.SetExifValue(OfficeExifTag.Orientation,(ushort)6);
         var exif=new HeicTestFixture.Item("Exif",0,0,HeicTestFixture.Join(HeicTestFixture.U32(0),metadata.ExifProfile!));
         var tile=hasTransform ? HeicTestFixture.Tile(10,3,2,HeicTestFixture.Rotation(0)) : HeicTestFixture.Tile(10);
         byte[] source=HeicTestFixture.Create(new[]{tile,exif},("cdsc",2,new[]{1}));
-        Assert.True(OfficeRasterImageDecoder.TryDecode(source,new OfficeRasterDecodeOptions{ImageCodec=new SamplesCodec()},out var image,out var info),info.Diagnostic);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(source,new OfficeRasterDecodeOptions{ImageCodec=new SamplesCodec(), ApplyExifOrientation=applyExif},out var image,out var info),info.Diagnostic);
         Assert.Equal(width,image!.Width);Assert.Equal(height,image.Height);
+        Assert.Equal((OfficeImageOrientation)6, info.SourceOrientation);
+        Assert.Equal(!hasTransform && applyExif, info.OrientationNormalized);
     }
 
     [Fact]
@@ -262,6 +285,15 @@ public sealed class HeicCompositionTests {
         byte[] bytes=File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),"OfficeIMO.TestAssets","Images","Heic",name));
         Assert.True(OfficeImageReader.TryIdentifyByContent(bytes,null,out var image));
         Assert.Equal(OfficeImageFormat.Heic,image.Format); Assert.Equal(width,image.Width);Assert.Equal(height,image.Height);
+    }
+
+    private sealed class RejectingCodec : IOfficeRasterImageCodec {
+        internal int Calls { get; private set; }
+        public bool TryDecode(byte[] bytes, string? contentType, out OfficeRasterImage? image) {
+            Calls++;
+            image = null;
+            return false;
+        }
     }
 
     private sealed class SamplesCodec : IOfficeRasterImageCodec {

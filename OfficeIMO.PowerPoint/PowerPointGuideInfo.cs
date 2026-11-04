@@ -14,15 +14,15 @@ namespace OfficeIMO.PowerPoint {
     }
 
     /// <summary>
-    ///     Represents a slide guide with orientation and position (EMUs).
+    ///     Represents a slide guide with orientation and position.
     /// </summary>
     public readonly struct PowerPointGuideInfo {
         /// <summary>
         ///     Creates a guide info entry.
         /// </summary>
-        public PowerPointGuideInfo(PowerPointGuideOrientation orientation, long positionEmus) {
+        public PowerPointGuideInfo(PowerPointGuideOrientation orientation, OfficeLength position) {
             Orientation = orientation;
-            PositionEmus = positionEmus;
+            Position = position;
         }
 
         /// <summary>
@@ -31,15 +31,15 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointGuideOrientation Orientation { get; }
 
         /// <summary>
-        ///     Guide position in EMUs.
+        ///     Guide position.
         /// </summary>
-        public long PositionEmus { get; }
+        public OfficeLength Position { get; }
 
         /// <summary>
         ///     Returns a display-friendly string.
         /// </summary>
         public override string ToString() {
-            return $"{Orientation} @ {PositionEmus}";
+            return $"{Orientation} @ {Position.ToEmus()}";
         }
     }
 }

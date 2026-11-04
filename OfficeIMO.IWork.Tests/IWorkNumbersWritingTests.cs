@@ -34,10 +34,8 @@ public sealed class IWorkNumbersWritingTests {
     public void Native_edited_source_retains_all_tables_and_matches_Apple_saved_Excel_typed_values() {
         string path = Fixture("numbers-created-edited-v14.5.numbers");
         VerifyTables(IWorkSourceDocument.Open(path).ReadNumbers(), 20.75);
-        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly }));
-        using var conversion = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
+        using var conversion = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
         Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireCompleteEditableReconstruction());
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
@@ -57,8 +55,8 @@ public sealed class IWorkNumbersWritingTests {
         output.Position = 0;
         using var reopened = ExcelDocument.Load(output);
         Assert.Equal(3, reopened.Sheets.Count);
-        Assert.Equal(20.75, reopened.Sheets[0].CellAt(2, 2).GetValue<double>());
-        Assert.Equal("=literal", reopened.Sheets[0].CellAt(3, 4).GetValue<string>());
+        Assert.Equal(20.75, reopened.Sheets[0].Cell(2, 2).GetValue<double>());
+        Assert.Equal("=literal", reopened.Sheets[0].Cell(3, 4).GetValue<string>());
         Assert.Null(reopened.Sheets[0].GetFormulaText(3, 4));
     }
 
@@ -92,11 +90,11 @@ public sealed class IWorkNumbersWritingTests {
     public void Operation_budgets_reject_before_mutating_a_stream_or_existing_file(string boundary) {
         var document = Example(); var limits = new IWorkNumbersWriteOptions();
         switch (boundary) {
-            case "sheets": limits.MaximumSheets = 1; break;
-            case "tables": limits.MaximumTables = 2; break;
-            case "cells": limits.MaximumTableCells = 25; break;
-            case "text": limits.MaximumTextCharacters = 20; break;
-            case "package": limits.MaximumPackageBytes = 200; break;
+            case "sheets": limits.MaxSheets = 1; break;
+            case "tables": limits.MaxTables = 2; break;
+            case "cells": limits.MaxTableCells = 25; break;
+            case "text": limits.MaxTextCharacters = 20; break;
+            case "package": limits.MaxPackageBytes = 200; break;
         }
         byte[] sentinel = { 9, 8, 7 }; using var stream = new MemoryStream(); stream.Write(sentinel);
         Assert.Throws<InvalidDataException>(() => document.Save(stream, limits)); Assert.Equal(sentinel, stream.ToArray());
@@ -112,9 +110,9 @@ public sealed class IWorkNumbersWritingTests {
     public void Limits_count_UTF16_names_and_strings_and_all_unset_grid_positions() {
         var document = IWorkNumbersDocument.Create();
         document.AddSheet("S😀").AddTable(IWorkTableData.Create(2, 3).SetText(1, 1, "x😀"), "T");
-        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaximumTextCharacters = 6 }));
-        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaximumTableCells = 5 }));
-        var table = IWorkSourceDocument.Open(document.SaveBytes(new() { MaximumTextCharacters = 7, MaximumTableCells = 6 }))
+        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaxTextCharacters = 6 }));
+        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaxTableCells = 5 }));
+        var table = IWorkSourceDocument.Open(document.SaveBytes(new() { MaxTextCharacters = 7, MaxTableCells = 6 }))
             .ReadNumbers().Sheets[0].Tables[0];
         Assert.Equal("x😀", Assert.Single(table.Cells).Value);
         Assert.Equal(2, table.RowCount); Assert.Equal(3, table.ColumnCount);
@@ -158,11 +156,11 @@ public sealed class IWorkNumbersWritingTests {
         Assert.Throws<ArgumentException>(() => sheet.AddTable(IWorkTableData.Create(1, 1), color: "invalid"));
         Assert.Empty(sheet.Tables);
         sheet.AddTable(IWorkTableData.Create(1, 1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumSheets = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTables = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTableCells = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTextCharacters = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumPackageBytes = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxSheets = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTables = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTableCells = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTextCharacters = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxPackageBytes = 0 }));
     }
 
     internal static IWorkNumbersDocument Example() {

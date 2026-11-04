@@ -39,7 +39,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static readonly string[] PowerShellMixedColumnNames = ["Id", "Name", "Department", "Region", "IsEnabled", "Created", "Score", "Owner", "TicketCount", "Notes"];
     private static readonly string[] PowerShellWideColumnNames;
     private static readonly string[] PowerShellMixedRegions = ["NA", "EU", "APAC", "LATAM"];
-    private static readonly ExcelTabularWriteOptions CompactTabularWriteOptions = new() {
+    private static readonly ExcelWriterOptions CompactTabularWriteOptions = new() {
         IncludeCellReferences = false,
         UseSharedStrings = false
     };
@@ -417,13 +417,6 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("LargeXlsx", "Streaming wide dictionary rows and save.", () => LargeXlsxWritePowerShellWideRows(powerShellWideRows))
         ]);
 
-        AddScenarioGroup(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Write typed rows through the fluent RowsFrom API and save.", () => OfficeImoWriteFluentRowsFrom(rows)),
-            new LibraryComparisonCase("ClosedXML", "Insert the same typed rows and save.", () => ClosedXmlWriteDataTable(salesDataTable)),
-            new LibraryComparisonCase("EPPlus", "Import the same typed rows and save.", () => EpPlusWriteDataTable(salesDataTable)),
-            new LibraryComparisonCase("MiniExcel", "Streaming typed row export and save.", () => MiniExcelWriteSalesRows(rows)),
-            new LibraryComparisonCase("LargeXlsx", "Streaming typed row export and save.", () => LargeXlsxWriteSalesRows(rows, includeAllColumns: true))
-        ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "append-plain-rows", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Append the prepared coordinate cells with the CellValues parallel policy enabled.", () => OfficeImoAppendPlainRows(plainDataCells)),
@@ -1011,13 +1004,6 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("LargeXlsx", "Streaming wide dictionary rows and save.", () => LargeXlsxWritePowerShellWideRowsBytes(powerShellWideRows))
         ]);
 
-        AddPackageProfileGroup(scenarios, scenarioFilter, "write-fluent-rowsfrom-direct", warmupIterations, measuredIterations, [
-            new PackageProfileCase("OfficeIMO.Excel", "Write typed rows through the fluent RowsFrom API and save.", () => OfficeImoWriteFluentRowsFromBytes(rows)),
-            new PackageProfileCase("ClosedXML", "Insert the same typed rows and save.", () => ClosedXmlWriteDataTableBytes(salesDataTable)),
-            new PackageProfileCase("EPPlus", "Import the same typed rows and save.", () => EpPlusWriteDataTableBytes(salesDataTable)),
-            new PackageProfileCase("MiniExcel", "Streaming typed row export and save.", () => MiniExcelWriteSalesRowsBytes(rows)),
-            new PackageProfileCase("LargeXlsx", "Streaming typed row export and save.", () => LargeXlsxWriteSalesRowsBytes(rows, includeAllColumns: true))
-        ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "append-plain-rows", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Append the prepared coordinate cells with the CellValues parallel policy enabled.", () => OfficeImoAppendPlainRowsBytes(plainDataCells)),
@@ -1559,7 +1545,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static string FindRepositoryRoot() {
         DirectoryInfo? current = new(AppContext.BaseDirectory);
         while (current != null) {
-            if (File.Exists(Path.Combine(current.FullName, "OfficeIMO.sln"))) {
+            if (File.Exists(Path.Combine(current.FullName, "OfficeIMO.slnx"))) {
                 return current.FullName;
             }
 
@@ -1568,7 +1554,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
         current = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (current != null) {
-            if (File.Exists(Path.Combine(current.FullName, "OfficeIMO.sln"))) {
+            if (File.Exists(Path.Combine(current.FullName, "OfficeIMO.slnx"))) {
                 return current.FullName;
             }
 
@@ -1617,7 +1603,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             document.Execution.SaveWorksheetAfterAutoFit = false;
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.PopulateOfficeImoWorksheet(sheet, rows);
             document.Save(stream);
         }
@@ -1672,7 +1658,9 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteDataSetDirectExportBytes(DataSet dataSet) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteDataSet(stream, dataSet);
+        using (var writer = ExcelDocument.CreateWriter(stream, leaveOpen: true)) {
+            foreach (DataTable source in dataSet.Tables) writer.WriteTable(source.TableName, source);
+        }
         return stream.ToArray();
     }
 
@@ -1682,8 +1670,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteDataTableBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertDataTable(dataTable);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(dataTable);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "DataTable comparison");
         }
@@ -1697,8 +1685,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteDataTableAsTableBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertDataTableAsTable(dataTable, tableName: "SalesData", style: ExcelTableStyle.TableStyleMedium2);
+            var sheet = document.AddSheet("Data");
+            sheet.AddTable(dataTable, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesData", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "DataTable table comparison");
         }
@@ -1713,23 +1701,29 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         if (!autoFit) {
             using var reader = dataTable.CreateDataReader();
-            ExcelDocument.WriteDataReader(
-                stream,
-                reader,
-                new ExcelTabularWriteOptions {
-                    SheetName = "Data",
-                    CreateTable = true,
-                    TableName = "SalesData",
-                    TableStyle = ExcelTableStyle.TableStyleMedium2,
-                    IncludeCellReferences = false,
-                    UseSharedStrings = false
-                });
+            var destination1 = stream;
+
+            var writeOptions1 = new ExcelWriterOptions {
+                SheetName = "Data",
+                CreateTable = true,
+                TableName = "SalesData",
+                TableStyle = ExcelTableStyle.TableStyleMedium2,
+                IncludeCellReferences = false,
+                UseSharedStrings = false
+            };
+
+            using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                workbookWriter1.WriteTable(writeOptions1.SheetName, reader);
+            }
+
+            if (destination1.CanSeek)
+                destination1.Position = 0;
             return stream.ToArray();
         }
 
         using (var document = ExcelDocument.Create(stream))
         using (var reader = dataTable.CreateDataReader()) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.InsertDataReader(reader, tableName: "SalesData", style: ExcelTableStyle.TableStyleMedium2, autoFit: autoFit);
             document.Save(stream);
         }
@@ -1744,7 +1738,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream))
         using (var reader = dataTable.CreateDataReader()) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.InsertDataReader(reader, createTable: false);
             document.Save(stream);
         }
@@ -1758,7 +1752,19 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteDataReaderDirectPackageBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using var reader = dataTable.CreateDataReader();
-        ExcelDocument.WriteDataReader(stream, reader);
+        var destination2 = stream;
+
+        var writeOptions2 = new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter2 = ExcelDocument.CreateWriter(destination2, writeOptions2, leaveOpen: true)) {
+            workbookWriter2.WriteTable(writeOptions2.SheetName, reader);
+        }
+
+        if (destination2.CanSeek)
+            destination2.Position = 0;
         return stream.ToArray();
     }
 
@@ -1768,7 +1774,19 @@ internal static partial class ExcelLibraryComparisonRunner {
     internal static byte[] OfficeImoWriteDataReaderCompactPackageBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
         using var reader = dataTable.CreateDataReader();
-        ExcelDocument.WriteDataReader(stream, reader, CompactTabularWriteOptions);
+        var destination3 = stream;
+
+        var writeOptions3 = CompactTabularWriteOptions ?? new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter3 = ExcelDocument.CreateWriter(destination3, writeOptions3, leaveOpen: true)) {
+            workbookWriter3.WriteTable(writeOptions3.SheetName, reader);
+        }
+
+        if (destination3.CanSeek)
+            destination3.Position = 0;
         return stream.ToArray();
     }
 
@@ -1778,8 +1796,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValuesRectangleBytes(IReadOnlyList<(int Row, int Column, object Value)> cells) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValues(cells);
+            var sheet = document.AddSheet("Data");
+            sheet.SetValues(cells);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "CellValues rectangle comparison");
         }
@@ -1793,8 +1811,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValuesSparseRectangleBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("SparseObjects");
-            sheet.CellValues(BuildSparseObjectCells(rowCount), ExcelExecutionMode.Parallel);
+            var sheet = document.AddSheet("SparseObjects");
+            sheet.SetValues(BuildSparseObjectCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "CellValues sparse rectangle comparison");
         }
@@ -1808,8 +1826,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValuesHeaderlessRectangleBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Headerless");
-            sheet.CellValues(BuildHeaderlessMixedCells(rowCount));
+            var sheet = document.AddSheet("Headerless");
+            sheet.SetValues(BuildHeaderlessMixedCells(rowCount));
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "CellValues headerless rectangle comparison");
         }
@@ -1823,8 +1841,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteBlogStringRowsBytes(IReadOnlyList<BlogStringRow> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(rows);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "2023 blog-style 20 string column comparison");
         }
@@ -1838,7 +1856,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteInsertObjectsBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects comparison");
@@ -1852,19 +1870,19 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteTypedRowsPackageBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteRows(
-            stream,
-            rows,
-            ExcelBenchmarkScenarioFactory.SalesColumnNames,
-            static (writer, row) => writer
-                .Write(row.Id)
-                .Write(row.Region)
-                .Write(row.Owner)
-                .Write(row.CreatedOn)
-                .Write(row.Amount)
-                .Write(row.Units)
-                .Write(row.Active)
-                .Write(row.Notes));
+        var destination4 = stream;
+
+        var writeOptions4 = new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter4 = ExcelDocument.CreateWriter(destination4, writeOptions4, leaveOpen: true)) {
+            workbookWriter4.WriteTable(writeOptions4.SheetName, rows, ExcelBenchmarkScenarioFactory.SalesColumnNames, static (writer, row) => writer.Write(row.Id).Write(row.Region).Write(row.Owner).Write(row.CreatedOn).Write(row.Amount).Write(row.Units).Write(row.Active).Write(row.Notes));
+        }
+
+        if (destination4.CanSeek)
+            destination4.Position = 0;
         return stream.ToArray();
     }
 
@@ -1873,20 +1891,19 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteTypedRowsCompactPackageBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteRows(
-            stream,
-            rows,
-            ExcelBenchmarkScenarioFactory.SalesColumnNames,
-            static (writer, row) => writer
-                .Write(row.Id)
-                .Write(row.Region)
-                .Write(row.Owner)
-                .Write(row.CreatedOn)
-                .Write(row.Amount)
-                .Write(row.Units)
-                .Write(row.Active)
-                .Write(row.Notes),
-            CompactTabularWriteOptions);
+        var destination5 = stream;
+
+        var writeOptions5 = CompactTabularWriteOptions ?? new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter5 = ExcelDocument.CreateWriter(destination5, writeOptions5, leaveOpen: true)) {
+            workbookWriter5.WriteTable(writeOptions5.SheetName, rows, ExcelBenchmarkScenarioFactory.SalesColumnNames, static (writer, row) => writer.Write(row.Id).Write(row.Region).Write(row.Owner).Write(row.CreatedOn).Write(row.Amount).Write(row.Units).Write(row.Active).Write(row.Notes));
+        }
+
+        if (destination5.CanSeek)
+            destination5.Position = 0;
         return stream.ToArray();
     }
 
@@ -1897,7 +1914,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             document.Execution.SaveWorksheetAfterAutoFit = false;
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             sheet.AutoFitColumnsFor(Enumerable.Range(1, 8));
             document.Save(stream);
@@ -1914,7 +1931,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             document.Execution.SaveWorksheetAfterAutoFit = false;
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             sheet.AutoFitColumnsFor([1, 3, 6, 8]);
             document.Save(stream);
@@ -1930,8 +1947,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteInsertDictionaryObjectsBytes<T>(IReadOnlyList<T> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(rows);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects flat dictionary comparison");
         }
@@ -1944,11 +1961,19 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteDictionaryRowsPackageBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
-        ExcelDocument.WriteRows(
-            stream,
-            rows,
-            ExcelBenchmarkScenarioFactory.SalesColumnNames,
-            static (writer, row) => WriteOfficeImoDictionaryRow(writer, row));
+        var destination6 = stream;
+
+        var writeOptions6 = new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter6 = ExcelDocument.CreateWriter(destination6, writeOptions6, leaveOpen: true)) {
+            workbookWriter6.WriteTable(writeOptions6.SheetName, rows, ExcelBenchmarkScenarioFactory.SalesColumnNames, static (writer, row) => WriteOfficeImoDictionaryRow(writer, row));
+        }
+
+        if (destination6.CanSeek)
+            destination6.Position = 0;
         return stream.ToArray();
     }
 
@@ -1969,8 +1994,8 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             document.Execution.SaveWorksheetAfterAutoFit = false;
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(rows);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows);
             sheet.AutoFitColumnsFor(Enumerable.Range(1, 8));
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects flat dictionary AutoFitColumnsFor comparison");
@@ -1985,8 +2010,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteInsertPowerShellMixedObjectsBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(rows);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects PowerShell mixed comparison");
         }
@@ -2000,8 +2025,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteInsertPowerShellObjectMixedObjectsBytes(IReadOnlyList<System.Management.Automation.PSObject> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(rows);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects PSObject mixed comparison");
         }
@@ -2015,26 +2040,10 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteInsertPowerShellObjectWideObjectsBytes(IReadOnlyList<System.Management.Automation.PSObject> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.InsertObjects(rows);
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(rows);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "InsertObjects PSObject wide comparison");
-        }
-
-        return stream.ToArray();
-    }
-
-    private static int OfficeImoWriteFluentRowsFrom(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows)
-        => ByteCount(OfficeImoWriteFluentRowsFromBytes(rows));
-
-    private static byte[] OfficeImoWriteFluentRowsFromBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
-        using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream)) {
-            document.AsFluent()
-                .Sheet("Data", sheet => sheet.RowsFrom(rows))
-                .End()
-                .Save(stream);
-            AssertOfficeImoDirectPackageWriter(document, "Fluent RowsFrom comparison");
         }
 
         return stream.ToArray();
@@ -2430,15 +2439,15 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoAppendPlainRowsBytes(IReadOnlyList<(int Row, int Column, object Value)> cells) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValues(new[] {
+            var sheet = document.AddSheet("Data");
+            sheet.SetValues(new[] {
                 (1, 1, (object)"Id"),
                 (1, 2, (object)"Region"),
                 (1, 3, (object)"Owner"),
                 (1, 4, (object)"Amount")
             }, ExcelExecutionMode.Sequential);
 
-            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
+            sheet.SetValues(cells, ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "append plain rows comparison");
         }
@@ -2677,7 +2686,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static int OfficeImoReadUsedRangeDataReader(byte[] workbookBytes) {
-        using var reader = ExcelDocument.OpenDataReader(workbookBytes, new ExcelReadOptions {
+        using var reader = ExcelDocument.OpenReader(workbookBytes, new ExcelReaderOptions {
             SheetName = "Data",
             HasHeaderRow = true,
             InferSchema = false
@@ -2780,7 +2789,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static int OfficeImoReadRangeDecimal(byte[] workbookBytes, string dataRange) {
-        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { NumericAsDecimal = true });
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReaderOptions { NumericAsDecimal = true });
         object?[,] values = reader.GetSheet("Data").ReadRange(dataRange);
         int metric = AddSalesHeadersMetric(0);
         for (int row = 1; row < values.GetLength(0); row++) {
@@ -4059,8 +4068,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteTextHeavyDefaultBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Strings");
-            sheet.CellValues(BuildTextHeavyCells(rowCount), ExcelExecutionMode.Parallel);
+            var sheet = document.AddSheet("Strings");
+            sheet.SetValues(BuildTextHeavyCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "shared string comparison");
         }
@@ -4074,11 +4083,11 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueStringsBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Strings");
+            var sheet = document.AddSheet("Strings");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, "Repeated value " + (row % 12));
-                sheet.CellValue(row, 2, "Distinct value " + row.ToString(CultureInfo.InvariantCulture));
-                sheet.CellValue(row, 3, "Long segment " + new string((char)('A' + (row % 26)), 48));
+                sheet.Cell(row, 1).SetValue("Repeated value " + (row % 12));
+                sheet.Cell(row, 2).SetValue("Distinct value " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 3).SetValue("Long segment " + new string((char)('A' + (row % 26)), 48));
             }
 
             document.Save(stream);
@@ -4093,11 +4102,11 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueRepeatedStringsBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Repeated");
+            var sheet = document.AddSheet("Repeated");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, RepeatedText(row, 0));
-                sheet.CellValue(row, 2, RepeatedText(row, 1));
-                sheet.CellValue(row, 3, RepeatedText(row, 2));
+                sheet.Cell(row, 1).SetValue(RepeatedText(row, 0));
+                sheet.Cell(row, 2).SetValue(RepeatedText(row, 1));
+                sheet.Cell(row, 3).SetValue(RepeatedText(row, 2));
             }
 
             document.Save(stream);
@@ -4112,11 +4121,11 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueDistinctStringsBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Distinct");
+            var sheet = document.AddSheet("Distinct");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, DistinctText(row, 0));
-                sheet.CellValue(row, 2, DistinctText(row, 1));
-                sheet.CellValue(row, 3, DistinctText(row, 2));
+                sheet.Cell(row, 1).SetValue(DistinctText(row, 0));
+                sheet.Cell(row, 2).SetValue(DistinctText(row, 1));
+                sheet.Cell(row, 3).SetValue(DistinctText(row, 2));
             }
 
             document.Save(stream);
@@ -4131,11 +4140,11 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueEmptyStringsBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("EmptyText");
+            var sheet = document.AddSheet("EmptyText");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, string.Empty);
-                sheet.CellValue(row, 2, row % 3 == 0 ? string.Empty : "Status " + (row % 8).ToString(CultureInfo.InvariantCulture));
-                sheet.CellValue(row, 3, row % 5 == 0 ? string.Empty : "Note " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue(string.Empty);
+                sheet.Cell(row, 2).SetValue(row % 3 == 0 ? string.Empty : "Status " + (row % 8).ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 3).SetValue(row % 5 == 0 ? string.Empty : "Note " + row.ToString(CultureInfo.InvariantCulture));
             }
 
             document.Save(stream);
@@ -4150,11 +4159,11 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueNumbersBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Numbers");
+            var sheet = document.AddSheet("Numbers");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, (double)row * 1.25d);
-                sheet.CellValue(row, 2, (double)row + 0.5d);
-                sheet.CellValue(row, 3, (double)(row % 17));
+                sheet.Cell(row, 1).SetValue((double)row * 1.25d);
+                sheet.Cell(row, 2).SetValue((double)row + 0.5d);
+                sheet.Cell(row, 3).SetValue((double)(row % 17));
             }
 
             document.Save(stream);
@@ -4169,11 +4178,11 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueScalarsBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Scalars");
+            var sheet = document.AddSheet("Scalars");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, row * 10.75m);
-                sheet.CellValue(row, 2, row % 2 == 0);
-                sheet.CellValue(row, 3, row % 3 == 0);
+                sheet.Cell(row, 1).SetValue(row * 10.75m);
+                sheet.Cell(row, 2).SetValue(row % 2 == 0);
+                sheet.Cell(row, 3).SetValue(row % 3 == 0);
             }
 
             document.Save(stream);
@@ -4188,12 +4197,12 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueTemporalBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Temporal");
+            var sheet = document.AddSheet("Temporal");
             var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, start.AddDays(row));
-                sheet.CellValue(row, 2, TimeSpan.FromMinutes(row * 7));
-                sheet.CellValue(row, 3, start.AddHours(row % 24));
+                sheet.Cell(row, 1).SetValue(start.AddDays(row));
+                sheet.Cell(row, 2).SetValue(TimeSpan.FromMinutes(row * 7));
+                sheet.Cell(row, 3).SetValue(start.AddHours(row % 24));
             }
 
             document.Save(stream);
@@ -4208,17 +4217,17 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueObjectMixedBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Objects");
+            var sheet = document.AddSheet("Objects");
             var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
             for (int row = 1; row <= rowCount; row++) {
                 object? name = "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
                 object? amount = (double)row * 1.25d;
                 object? active = row % 2 == 0;
                 object? created = start.AddDays(row);
-                sheet.CellValue(row, 1, name);
-                sheet.CellValue(row, 2, amount);
-                sheet.CellValue(row, 3, active);
-                sheet.CellValue(row, 4, created);
+                sheet.Cell(row, 1).SetValue(name);
+                sheet.Cell(row, 2).SetValue(amount);
+                sheet.Cell(row, 3).SetValue(active);
+                sheet.Cell(row, 4).SetValue(created);
             }
 
             document.Save(stream);
@@ -4233,17 +4242,17 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueObjectSparseBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("SparseObjects");
+            var sheet = document.AddSheet("SparseObjects");
             var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
             for (int row = 1; row <= rowCount; row++) {
                 object? name = row % 3 == 0 ? null : "Item " + (row % 12).ToString(CultureInfo.InvariantCulture);
                 object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
                 object? active = row % 5 == 0 ? null : row % 2 == 0;
                 object? created = row % 7 == 0 ? null : start.AddDays(row);
-                sheet.CellValue(row, 1, name);
-                sheet.CellValue(row, 2, amount);
-                sheet.CellValue(row, 3, active);
-                sheet.CellValue(row, 4, created);
+                sheet.Cell(row, 1).SetValue(name);
+                sheet.Cell(row, 2).SetValue(amount);
+                sheet.Cell(row, 3).SetValue(active);
+                sheet.Cell(row, 4).SetValue(created);
             }
 
             document.Save(stream);
@@ -4258,7 +4267,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellValueObjectSparseBatchBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("SparseObjects");
+            var sheet = document.AddSheet("SparseObjects");
             var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
             sheet.Batch(s => {
                 for (int row = 1; row <= rowCount; row++) {
@@ -4266,10 +4275,10 @@ internal static partial class ExcelLibraryComparisonRunner {
                     object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
                     object? active = row % 5 == 0 ? null : row % 2 == 0;
                     object? created = row % 7 == 0 ? null : start.AddDays(row);
-                    s.CellValue(row, 1, name);
-                    s.CellValue(row, 2, amount);
-                    s.CellValue(row, 3, active);
-                    s.CellValue(row, 4, created);
+                    s.Cell(row, 1).SetValue(name);
+                    s.Cell(row, 2).SetValue(amount);
+                    s.Cell(row, 3).SetValue(active);
+                    s.Cell(row, 4).SetValue(created);
                 }
             });
 
@@ -4285,12 +4294,12 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteCellFormulaBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Formulas");
+            var sheet = document.AddSheet("Formulas");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, (double)row);
-                sheet.CellValue(row, 2, (double)(row % 17));
-                sheet.CellValue(row, 3, (double)(row % 29));
-                sheet.CellFormula(row, 4, $"SUM(A{row}:C{row})");
+                sheet.Cell(row, 1).SetValue((double)row);
+                sheet.Cell(row, 2).SetValue((double)(row % 17));
+                sheet.Cell(row, 3).SetValue((double)(row % 29));
+                sheet.Cell(row, 4).SetFormula($"SUM(A{row}:C{row})");
             }
 
             document.Save(stream);
@@ -4778,7 +4787,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     }
 
     private static int OfficeImoReadFormulaText(byte[] workbookBytes, int rowCount) {
-        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { UseCachedFormulaResult = false });
+        using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReaderOptions { UseCachedFormulaResult = false });
         object?[,] values = reader.GetSheet("Formulas").ReadRange($"D2:D{rowCount + 1}", ExcelExecutionMode.Sequential);
         int metric = 0;
         for (int row = 0; row < values.GetLength(0); row++) {
@@ -5108,8 +5117,8 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] CreateHelloWorldWorkbookBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValues(BuildHelloWorldCells(rowCount), ExcelExecutionMode.Parallel);
+            var sheet = document.AddSheet("Data");
+            sheet.SetValues(BuildHelloWorldCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, DenseHelloWorldReadStreamScenario + " fixture generation");
         }
@@ -5131,16 +5140,16 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] CreateFormulaWorkbookBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Formulas");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(1, 3, "C");
-            sheet.CellValue(1, 4, "Total");
+            var sheet = document.AddSheet("Formulas");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(1, 3).SetValue("C");
+            sheet.Cell(1, 4).SetValue("Total");
             for (int row = 2; row <= rowCount + 1; row++) {
-                sheet.CellValue(row, 1, (double)row);
-                sheet.CellValue(row, 2, (double)(row * 2));
-                sheet.CellValue(row, 3, (double)(row * 3));
-                sheet.CellFormula(row, 4, $"SUM(A{row}:C{row})");
+                sheet.Cell(row, 1).SetValue((double)row);
+                sheet.Cell(row, 2).SetValue((double)(row * 2));
+                sheet.Cell(row, 3).SetValue((double)(row * 3));
+                sheet.Cell(row, 4).SetFormula($"SUM(A{row}:C{row})");
             }
 
             document.Save(stream);
@@ -5152,9 +5161,9 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] CreateSparseWorkbookBytes(int lastRow) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Header");
-            sheet.CellValue(lastRow, 1, "Tail");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(lastRow, 1).SetValue("Tail");
             document.Save(stream);
         }
 

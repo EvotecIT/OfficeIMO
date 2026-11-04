@@ -19,14 +19,14 @@ public partial class Word {
         W.Settings settings = document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings;
         settings.RemoveAllChildren<W.EvenAndOddHeaders>();
         settings.AddChild(new W.EvenAndOddHeaders(), true);
-        WordHeader story = document.Sections[0].Header!.Default!;
+        WordHeader story = document.Sections[0].PageSetup.Header;
         foreach (var child in story.ChildElements.ToArray()) child.Remove();
         story.AddWatermark(image ? WordWatermarkStyle.Image : WordWatermarkStyle.Text,
             image ? Path.Combine(_directoryWithImages, "Kulek.jpg") : "DEFAULTMARK");
         if (start > 0) document.Sections[1]._sectionProperties.AddChild(new W.PageNumberType { Start = start }, true);
-        Assert.Null(document.Sections[0].Header?.Even);
-        Assert.Null(document.Sections[1].Header?.Even);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        Assert.Null(document.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.Even));
+        Assert.Null(document.Sections[1].PageSetup.GetHeader(WordHeaderFooterType.Even));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(start == 5 ? 4 : 3, pdf.NumberOfPages);
         for (int page = 1; page <= pdf.NumberOfPages; page++) {
             bool expected = page == 1 || page == 3;
@@ -44,12 +44,12 @@ public partial class Word {
     [InlineData(true, 6)]
     public void SaveAsPdf_InheritedEvenRunningWatermarkUsesDisplayedNumber(bool image, int start) {
         using WordDocument document = CreateInheritedRunningStoryControl(false, "even", "next");
-        WordHeader story = document.Sections[0].Header!.Even!;
+        WordHeader story = document.Sections[0].PageSetup.EvenPageHeader;
         foreach (var child in story.ChildElements.ToArray()) child.Remove();
         story.AddWatermark(image ? WordWatermarkStyle.Image : WordWatermarkStyle.Text,
             image ? Path.Combine(_directoryWithImages, "Kulek.jpg") : "EVENMARK");
         if (start > 0) document.Sections[1]._sectionProperties.AddChild(new W.PageNumberType { Start = start }, true);
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(start == 5 ? 4 : 3, pdf.NumberOfPages);
         for (int page = 1; page <= pdf.NumberOfPages; page++) {
             bool expected = start == 5 ? page == 4 : page == 2;

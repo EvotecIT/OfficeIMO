@@ -15,28 +15,28 @@ namespace OfficeIMO.Tests {
                     bodyParagraph.AddHyperLink("placeholder", new Uri("https://officeimo.net/body-bookmark"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(bodyParagraph.Hyperlink!._hyperlink, "71", "BodyHyperlinkBookmark", "BodyMarked");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     cellParagraph.AddHyperLink("placeholder", new Uri("mailto:cell-bookmark@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(cellParagraph.Hyperlink!._hyperlink, "72", "CellHyperlinkBookmark", "CellMarked");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header ");
                     headerParagraph.AddHyperLink("placeholder", new Uri("https://officeimo.net/header-bookmark"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(headerParagraph.Hyperlink!._hyperlink, "73", "HeaderHyperlinkBookmark", "HeaderMarked");
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer ");
                     footerParagraph.AddHyperLink("placeholder", new Uri("mailto:footer-bookmark@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(footerParagraph.Hyperlink!._hyperlink, "74", "FooterHyperlinkBookmark", "FooterMarked");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody.AddHyperLink("placeholder", new Uri("https://officeimo.net/footnote-bookmark"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(footnoteBody.Hyperlink!._hyperlink, "75", "FootnoteHyperlinkBookmark", "FootnoteMarked");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody.AddHyperLink("placeholder", new Uri("mailto:endnote-bookmark@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(endnoteBody.Hyperlink!._hyperlink, "76", "EndnoteHyperlinkBookmark", "EndnoteMarked");
@@ -62,10 +62,10 @@ namespace OfficeIMO.Tests {
 
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 Assert.Contains(
-                    DistinctHyperlinks(reloadedSection.Header.Default!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    DistinctHyperlinks(reloadedSection.PageSetup.Header.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
                     link => GetHyperlinkText(link!._hyperlink) == "HeaderMarked");
                 Assert.Contains(
-                    DistinctHyperlinks(reloadedSection.Footer.Default!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    DistinctHyperlinks(reloadedSection.PageSetup.Footer.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
                     link => GetHyperlinkText(link!._hyperlink) == "FooterMarked");
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);

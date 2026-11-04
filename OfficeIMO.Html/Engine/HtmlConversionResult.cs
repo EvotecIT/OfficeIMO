@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 /// Shared result contract for HTML conversions that produce a native target artifact.
 /// </summary>
 /// <typeparam name="T">Value produced by the conversion.</typeparam>
-public abstract class HtmlConversionResult<T> : IOfficeConversionResult<T, HtmlConversionReport> where T : class {
+public abstract class HtmlConversionResult<T> : IOfficeResult<T> where T : class {
     private readonly List<HtmlDiagnostic> _diagnostics = new List<HtmlDiagnostic>();
     private readonly IReadOnlyList<HtmlDiagnostic> _readOnlyDiagnostics;
 
@@ -27,26 +27,20 @@ public abstract class HtmlConversionResult<T> : IOfficeConversionResult<T, HtmlC
     /// <summary>Whether the conversion approximated, omitted, or failed any source content.</summary>
     public bool HasLoss => Report.HasLoss;
 
+    /// <summary>Throws when the conversion report describes possible fidelity loss.</summary>
+    public void ThrowIfLoss() => Report.ThrowIfLoss();
+
     /// <summary>
     /// Returns the native artifact when conversion succeeded, or throws a structured conversion exception.
     /// </summary>
     public T RequireValue() {
         if (!Report.Succeeded) {
-            throw new HtmlConversionException(Report.Diagnostics);
+            throw new HtmlConversionException(Report.NativeDiagnostics);
         }
 
         return Value;
     }
 
-    /// <summary>
-    /// Returns the native artifact only when conversion completed successfully and without approximation,
-    /// omission, or failure diagnostics.
-    /// </summary>
-    public T RequireNoLoss() {
-        T value = RequireValue();
-        Report.RequireNoLoss();
-        return value;
-    }
 
     /// <summary>Adds one diagnostic while the result is being constructed.</summary>
     protected void AddDiagnostic(HtmlDiagnostic diagnostic) {

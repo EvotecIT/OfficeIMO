@@ -4,7 +4,10 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Confluence;
 
 /// <summary>A converted Confluence body and its ADF fidelity evidence.</summary>
-public sealed class ConfluenceContentConversionResult<T> : OfficeConversionResult<T, AdfConversionReport> where T : class {
+public sealed class ConfluenceContentConversionResult<T> : OfficeConversionResult<T> where T : class {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new AdfConversionReport Report => (AdfConversionReport)base.Report;
+
     internal ConfluenceContentConversionResult(T value, AdfConversionReport report)
         : base(value, report) { }
 }
@@ -15,7 +18,7 @@ public static class ConfluenceContentConverter {
     public static ConfluenceContentConversionResult<ConfluencePageBody> FromMarkdown(string markdown, ConfluenceBodyFormat format = ConfluenceBodyFormat.AtlasDocFormat) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         AdfConversionResult<AdfDocument> adf = AdfConverter.FromMarkdown(markdown);
-        string value = format == ConfluenceBodyFormat.AtlasDocFormat ? adf.Value.ToJson() : MarkdownReader.Parse(markdown).ToHtmlFragment();
+        string value = format == ConfluenceBodyFormat.AtlasDocFormat ? adf.Value.ToJson() : MarkdownDocument.Parse(markdown).ToHtml();
         AdfConversionReport report = format == ConfluenceBodyFormat.AtlasDocFormat
             ? adf.Report
             : new AdfConversionReport(new[] {
@@ -72,6 +75,6 @@ public static class ConfluenceContentConverter {
     }
 
     private static AdfConversionReport Combine(AdfConversionReport first, AdfConversionReport second) {
-        return new AdfConversionReport(first.Diagnostics.Concat(second.Diagnostics));
+        return new AdfConversionReport(first.NativeDiagnostics.Concat(second.NativeDiagnostics));
     }
 }

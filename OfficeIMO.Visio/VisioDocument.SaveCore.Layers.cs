@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
@@ -153,17 +153,17 @@ namespace OfficeIMO.Visio {
             if (useUnits || page.HasExplicitMargins && page.MarginUnit != VisioMeasurementUnit.Inches) {
                 VisioMeasurementUnit unit = page.HasExplicitMargins ? page.MarginUnit : page.DefaultUnit;
                 string unitCode = unit.ToVisioUnitCode();
-                WritePageCell(writer, ns, "PageLeftMargin", page.LeftMargin, unitCode);
-                WritePageCell(writer, ns, "PageRightMargin", page.RightMargin, unitCode);
-                WritePageCell(writer, ns, "PageTopMargin", page.TopMargin, unitCode);
-                WritePageCell(writer, ns, "PageBottomMargin", page.BottomMargin, unitCode);
+                WritePageCell(writer, ns, "PageLeftMargin", page.LeftMarginInches, unitCode);
+                WritePageCell(writer, ns, "PageRightMargin", page.RightMarginInches, unitCode);
+                WritePageCell(writer, ns, "PageTopMargin", page.TopMarginInches, unitCode);
+                WritePageCell(writer, ns, "PageBottomMargin", page.BottomMarginInches, unitCode);
                 return;
             }
 
-            WritePageCell(writer, ns, "PageLeftMargin", page.LeftMargin);
-            WritePageCell(writer, ns, "PageRightMargin", page.RightMargin);
-            WritePageCell(writer, ns, "PageTopMargin", page.TopMargin);
-            WritePageCell(writer, ns, "PageBottomMargin", page.BottomMargin);
+            WritePageCell(writer, ns, "PageLeftMargin", page.LeftMarginInches);
+            WritePageCell(writer, ns, "PageRightMargin", page.RightMarginInches);
+            WritePageCell(writer, ns, "PageTopMargin", page.TopMarginInches);
+            WritePageCell(writer, ns, "PageBottomMargin", page.BottomMarginInches);
         }
 
         private static void WritePageLayoutRoutingCells(XmlWriter writer, string ns, VisioPage page) {

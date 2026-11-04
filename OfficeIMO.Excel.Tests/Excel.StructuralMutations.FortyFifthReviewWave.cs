@@ -14,10 +14,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaAuthoring_InvalidatesPreviouslyEvaluatedDependents() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Calc");
-            ExcelSheet crossSheet = document.AddWorksheet("CrossSheet");
-            sheet.CellFormula(2, 1, "A1+1");
-            crossSheet.CellFormula(1, 1, "Calc!A1+1");
+            ExcelSheet sheet = document.AddSheet("Calc");
+            ExcelSheet crossSheet = document.AddSheet("CrossSheet");
+            sheet.Cell(2, 1).SetFormula("A1+1");
+            crossSheet.Cell(1, 1).SetFormula("Calc!A1+1");
             Cell dependent = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A2");
             dependent.CellValue = new CellValue("1");
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(baseline.State.HasFlag(ExcelFormulaState.Dirty));
             });
 
-            sheet.CellFormula(1, 1, "2+2");
+            sheet.Cell(1, 1).SetFormula("2+2");
 
             ExcelFormulaCellInfo authored = sheet.GetFormulaCells().Single(item => item.CellReference == "A1");
             ExcelFormulaCellInfo stale = sheet.GetFormulaCells().Single(item => item.CellReference == "A2");
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_ArrayFormulaAuthoring_ClearsOwnerAndSpillInCellImages(bool legacy) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Owner");
             sheet.SetInCellImage(1, 2, TinyPng, altText: "Spill");
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
         [InlineData("imported-cache")]
         public void Test_RejectedFormulaPrefixExpansion_PreservesExistingInCellImages(string entryPoint) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Owner");
             sheet.SetInCellImage(1, 2, TinyPng, altText: "Spill");
             string formula = "TEXTJOIN(\"\",FALSE,\"" + new string('x', 8190 - "TEXTJOIN(\"\",FALSE,\"\")".Length) + "\")";
@@ -104,8 +104,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaInspection_BoundsUnloadedCellMetadataBeforeMaterialization() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Calc");
-            sheet.CellFormula(1, 1, "1+1");
+            ExcelSheet sheet = document.AddSheet("Calc");
+            sheet.Cell(1, 1).SetFormula("1+1");
             CellMetadataPart metadataPart = document.WorkbookPartRoot.AddNewPart<CellMetadataPart>();
             using (var payload = new MemoryStream(new byte[16 * 1024 * 1024 + 1], writable: false)) {
                 metadataPart.FeedData(payload);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
         public void Test_FileBackedValidationOwner_ObservesCancellationToken() {
             string path = Path.Combine(_directoryWithFiles, "FileBackedValidationCancellation.xlsx");
             using (var document = ExcelDocument.Create()) {
-                document.AddWorksheet("Data").CellValue(1, 1, "value");
+                document.AddSheet("Data").Cell(1, 1).SetValue("value");
                 document.Save(path);
             }
             using var cancellation = new CancellationTokenSource();
@@ -136,18 +136,19 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [InlineData(false, "A1:B3")]
-        [InlineData(true, "A1:B2")]
+        // The totals row is added below the data, so the filter still covers both data rows.
+        [InlineData(true, "A1:B3")]
         public void Test_AutoFilterCriteria_UsesTableOwnershipWithoutExistingFilter(
             bool totalsRow,
             string expectedFilterRange) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "A");
-            sheet.CellValue(2, 2, 1);
-            sheet.CellValue(3, 1, "B");
-            sheet.CellValue(3, 2, 2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("A");
+            sheet.Cell(2, 2).SetValue(1);
+            sheet.Cell(3, 1).SetValue("B");
+            sheet.Cell(3, 2).SetValue(2);
             sheet.AddTable(
                 "A1:B3",
                 hasHeader: true,
@@ -172,7 +173,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_ModernChartMutations_WaitForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },
@@ -200,7 +201,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_PivotInteractionSnapshot_WaitsForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
 
             IReadOnlyList<ExcelPivotInteractionInfo> interactions = await AssertWorkbookReadWaitsForWriter(
                 document,

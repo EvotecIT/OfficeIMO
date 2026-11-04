@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>CHM help-book conversion to EPUB through the OfficeIMO HTML and EPUB engines.</Description>
-    <AssemblyName>OfficeIMO.Chm.Epub</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Chm.Epub</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -39,5 +37,9 @@
     <Using Include="System.Threading.Tasks" />
     <Using Include="System.Text" />
     <Using Include="OfficeIMO.Html" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Chm.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
   </ItemGroup>
 </Project>

@@ -15,7 +15,7 @@ internal static partial class RtfHtmlComparisonValidation {
     }
 
     internal static RtfHtmlComparisonReport Validate(string scale, string rtf) {
-        string officeHtml = RtfDocument.Read(rtf).Document.ToHtml();
+        string officeHtml = RtfDocument.ParseResult(rtf).Document.ToHtml();
         string rtfPipeHtml = global::RtfPipe.Rtf.ToHtml(rtf);
         RtfHtmlOutputEvidence office = Inspect("OfficeIMO", scale, officeHtml);
         RtfHtmlOutputEvidence rtfPipe = Inspect("RtfPipe", scale, rtfPipeHtml);

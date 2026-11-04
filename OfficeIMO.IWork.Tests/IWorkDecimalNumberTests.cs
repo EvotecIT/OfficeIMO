@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Exact_decimal_source_text_counts_toward_the_projection_text_budget() {
         using MemoryStream package = CreateNumbersPackage(new[] { new TableSpec("X", 1, 1, 0d, decimal128HighBit: true) });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 32 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 32 });
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
 

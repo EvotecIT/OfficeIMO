@@ -16,7 +16,7 @@ byte[] eml = Encoding.ASCII.GetBytes(
     "Content-Transfer-Encoding: quoted-printable\r\n\r\n" +
     "Caf=E9\r\n");
 
-EmailReadResult result = new EmailDocumentReader().Read(eml);
+EmailReadResult result = new EmailDocumentReader().ReadDocument(eml);
 if (!string.Equals(result.Document.Body.Text?.Trim(), "Café", StringComparison.Ordinal)) {
     throw new InvalidOperationException("The packed OfficeIMO.Email dependency graph could not decode Windows-1252 text.");
 }

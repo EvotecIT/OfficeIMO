@@ -31,16 +31,16 @@ namespace OfficeIMO.Word {
         /// Adds a VBA project to the document.
         /// </summary>
         /// <param name="filePath">Path to a <c>vbaProject.bin</c> file.</param>
-        public void AddMacro(string filePath) {
-            WordMacro.AddMacro(this, filePath);
+        public WordMacroProject AddMacro(string filePath) {
+            return WordMacro.AddMacro(this, filePath);
         }
 
         /// <summary>
         /// Adds a VBA project to the document from bytes.
         /// </summary>
         /// <param name="data">VBA project data.</param>
-        public void AddMacro(byte[] data) {
-            WordMacro.AddMacro(this, data);
+        public WordMacroProject AddMacro(byte[] data) {
+            return WordMacro.AddMacro(this, data);
         }
 
         /// <summary>

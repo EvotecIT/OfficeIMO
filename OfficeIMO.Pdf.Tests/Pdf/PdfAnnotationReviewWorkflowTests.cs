@@ -9,7 +9,7 @@ public class PdfAnnotationReviewWorkflowTests {
     public void AddReplyAndSetState_RoundTripTypedThreadMetadata() {
         byte[] source = PdfDocument.Create()
             .TextAnnotation("Parent note")
-            .Paragraph(paragraph => paragraph.Text("Review page"))
+            .Paragraph(paragraph => paragraph.AddText("Review page"))
             .ToBytes();
         int parentObjectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
 
@@ -45,7 +45,7 @@ public class PdfAnnotationReviewWorkflowTests {
 
     [Fact]
     public void SetState_UsesAppendOnlyMutationWhenCertificationRequiresIt() {
-        byte[] source = PdfDocument.Create().TextAnnotation("Certified note").Paragraph(paragraph => paragraph.Text("Certified page")).ToBytes();
+        byte[] source = PdfDocument.Create().TextAnnotation("Certified note").Paragraph(paragraph => paragraph.AddText("Certified page")).ToBytes();
         int objectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, new PdfExternalSignatureOptions {
             Profile = PdfSignatureProfile.Certification,
@@ -84,9 +84,9 @@ public class PdfAnnotationReviewWorkflowTests {
             OwnerPassword = "owner",
             AllowedPermissions = PdfStandardPermissions.ModifyAnnotations
         };
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .TextAnnotation("Restricted parent")
-            .Paragraph(paragraph => paragraph.Text("Restricted review page"))
+            .Paragraph(paragraph => paragraph.AddText("Restricted review page"))
             .ToBytes();
         var ownerReadOptions = new PdfLoadOptions { Password = "owner" };
         var userReadOptions = new PdfLoadOptions { Password = "open" };
@@ -225,7 +225,7 @@ public class PdfAnnotationReviewWorkflowTests {
     public void AddReply_ReservesStructuralReadLimitsForGeneratedAnnotationObjects() {
         byte[] source = PdfDocument.Create()
             .TextAnnotation("Parent note")
-            .Paragraph(paragraph => paragraph.Text("Tight review budget"))
+            .Paragraph(paragraph => paragraph.AddText("Tight review budget"))
             .ToBytes();
         int parentObjectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
         int sourceObjectCount = PdfReadDocument.Open(source).RawStructure().TotalObjectCount;

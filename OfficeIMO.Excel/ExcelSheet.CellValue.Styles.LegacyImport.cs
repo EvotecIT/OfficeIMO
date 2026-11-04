@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index.</param>
         /// <param name="column">The 1-based column index.</param>
         /// <param name="errorText">The Excel error literal, such as <c>#DIV/0!</c> or <c>#N/A</c>.</param>
-        public void CellError(int row, int column, string errorText) {
+        internal void CellError(int row, int column, string errorText) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             SetErrorCellValue(row, column, errorText);
         }
@@ -82,9 +82,9 @@ namespace OfficeIMO.Excel {
 
             WriteLockConditional(() => {
                 Cell cell = GetCell(row, column);
-                cell.CellValue = new CellValue(errorText);
+                ExcelWorksheetScan.SetValueText(cell, errorText);
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
-                cell.InlineString = null;
+                ExcelWorksheetScan.RemoveInlineString(cell);
                 CompleteCellValueMutation(row, column);
             });
         }

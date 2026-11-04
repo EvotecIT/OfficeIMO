@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Built-in dependency-free understanding stages for rotated baselines, spatial regions, multi-column reading order, and richer business-document semantics.
 /// </summary>
-public static partial class PdfAdvancedUnderstandingStages {
+internal static partial class PdfAdvancedUnderstandingStages {
     /// <summary>Parser-backed positioned text decoding.</summary>
     public static IPdfGlyphDecodingStage GlyphDecoding { get; } = new AdvancedGlyphDecodingStage();
     /// <summary>Rotation-aware word grouping.</summary>
@@ -268,7 +268,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                     string wordText = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
                         text.Substring(start, cursor - start),
                         run.GlyphSequenceProgressesLeftToRight);
-                    if (start == 0 && TryJoinKernedFragment(result, runs, runIndex, run, wordText, startX, startY, endX, endDistance - startDistance)) continue;
+                    if (start == 0 && TryJoinKernedFragment(context, result, runs, runIndex, run, wordText, startX, startY, endX, endDistance - startDistance)) continue;
                     result.Add(new PdfUnderstandingWord(
                         wordText,
                         Math.Min(startX, endX),
@@ -279,7 +279,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                         new[] { run },
                         confidence,
                         new[] { new PdfInferenceEvidence(
-                            hasResolvedCharacterAdvances ? "word.character-advance-projection" : "word.baseline-projection",
+                            hasResolvedCharacterAdvances ? "word-character-advance-projection" : "word-baseline-projection",
                             hasResolvedCharacterAdvances
                                 ? "Word geometry was projected from decoded per-character advances along a " + run.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline."
                                 : "Word geometry was projected uniformly along a " + run.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture) + " degree baseline because per-character advances were unavailable.",
@@ -297,7 +297,7 @@ public static partial class PdfAdvancedUnderstandingStages {
         // Kerning and glyph positioning split one TJ array into several spans. A fragment that
         // continues the previous span's last word on the same baseline, with no whitespace and a
         // gap well below a word space, belongs to that word.
-        private static bool TryJoinKernedFragment(List<PdfUnderstandingWord> result, IReadOnlyList<PdfTextSpan> runs, int runIndex,
+        private static bool TryJoinKernedFragment(PdfUnderstandingPageContext context, List<PdfUnderstandingWord> result, IReadOnlyList<PdfTextSpan> runs, int runIndex,
             PdfTextSpan run, string wordText, double startX, double startY, double endX, double advance) {
             if (result.Count == 0 || runIndex == 0) return false;
             PdfTextSpan previousRun = runs[runIndex - 1];
@@ -313,9 +313,13 @@ public static partial class PdfAdvancedUnderstandingStages {
             double gap = Math.Min(startX, endX) - previous.XEnd;
             double em = Math.Max(run.FontSize, 0.01D);
             if (gap < -0.3D * em || gap > 0.1D * em) return false;
+            // Joining copies the growing text and source list, then copies evidence twice.
+            // Charge that work before allocating so one word cannot hide quadratic cost.
+            context.ConsumeWork((long)previous.Text.Length + wordText.Length + previous.SourceRuns.Count +
+                (long)previous.Evidence.Count * 2L + 3L);
             var sources = new List<PdfTextSpan>(previous.SourceRuns) { run };
             var evidence = new List<PdfInferenceEvidence>(previous.Evidence) {
-                new PdfInferenceEvidence("word.kerned-fragment-join",
+                new PdfInferenceEvidence("word-kerned-fragment-join",
                     "Adjacent same-baseline glyph runs without whitespace were joined into one word.", 0.9D)
             };
             result[result.Count - 1] = new PdfUnderstandingWord(
@@ -393,9 +397,133 @@ public static partial class PdfAdvancedUnderstandingStages {
                         int baseline = right.BaselineY.CompareTo(left.BaselineY);
                         return baseline != 0 ? baseline : left.XStart.CompareTo(right.XStart);
                     });
-                AddStructuralSubregions(context, ordered, pageMedianFontSize, regions);
+                foreach (PdfUnderstandingLine[] column in SplitSideBySideColumns(context, ordered, depth: 0)) {
+                    AddStructuralSubregions(context, column, lines, pageMedianFontSize, regions);
+                }
             }
             return regions.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : regions.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Splits a connected component at a vertical gutter when it holds side-by-side text columns. Lines from
+        /// neighbouring columns share baselines and can connect through a spanning title, so ordering the component by
+        /// baseline alone would interleave the columns. Lines that cross the gutter stay as their own bands.
+        /// </summary>
+        private static IEnumerable<PdfUnderstandingLine[]> SplitSideBySideColumns(
+            PdfUnderstandingPageContext context,
+            PdfUnderstandingLine[] component,
+            int depth) {
+            const int MinimumColumnLines = 3;
+            const double GutterTolerance = 1.5D;
+            if (depth >= 8 || component.Length < MinimumColumnLines * 2 ||
+                component.Any(static line => line.SourceKind == PdfLogicalContentSourceKind.Ocr && line.SourceSequence.HasValue)) {
+                yield return component;
+                yield break;
+            }
+            double left = component.Min(static line => line.XStart);
+            double right = component.Max(static line => line.XEnd);
+            double width = right - left;
+            double[] fontSizes = component.Select(static line => Math.Max(1D, line.FontSize)).OrderBy(static size => size).ToArray();
+            double medianFont = fontSizes[fontSizes.Length / 2];
+            double minimumGutter = Math.Max(6D, medianFont * 0.8D);
+            if (width <= minimumGutter * 4D) {
+                yield return component;
+                yield break;
+            }
+            // Find the widest vertical strip crossed by only a few lines. Titles, bylines and the odd merged line may
+            // cross a real gutter; they become spanning bands below.
+            int bins = (int)Math.Ceiling(width) + 1;
+            if (bins > 20_000) {
+                yield return component;
+                yield break;
+            }
+            context.ConsumeWork(component.Length + bins);
+            var coverage = new int[bins];
+            for (int index = 0; index < component.Length; index++) {
+                int start = Math.Max(0, (int)Math.Floor(component[index].XStart - left));
+                int end = Math.Min(bins - 1, (int)Math.Ceiling(component[index].XEnd - left));
+                for (int bin = start; bin <= end; bin++) coverage[bin]++;
+            }
+            int allowance = Math.Max(1, component.Length / 10);
+            int bestStart = -1, bestLength = 0, runStart = -1;
+            for (int bin = 0; bin <= bins; bin++) {
+                bool open = bin < bins && coverage[bin] <= allowance;
+                if (open) {
+                    if (runStart < 0) runStart = bin;
+                    continue;
+                }
+                if (runStart >= 0 && runStart > 0 && bin < bins && bin - runStart > bestLength) {
+                    bestStart = runStart;
+                    bestLength = bin - runStart;
+                }
+                runStart = -1;
+            }
+            if (bestStart < 0 || bestLength < minimumGutter) {
+                yield return component;
+                yield break;
+            }
+            double gutterStart = left + bestStart;
+            double gutterEnd = left + bestStart + bestLength;
+            var leftLines = new List<PdfUnderstandingLine>();
+            var rightLines = new List<PdfUnderstandingLine>();
+            for (int index = 0; index < component.Length; index++) {
+                PdfUnderstandingLine line = component[index];
+                if (line.XEnd <= gutterStart + GutterTolerance) leftLines.Add(line);
+                else if (line.XStart >= gutterEnd - GutterTolerance) rightLines.Add(line);
+            }
+            if (!IsTextColumn(leftLines, width, medianFont) || !IsTextColumn(rightLines, width, medianFont) ||
+                !ShareVerticalExtent(leftLines, rightLines, medianFont)) {
+                yield return component;
+                yield break;
+            }
+            // Emit bands top to bottom: a spanning line closes the current column band.
+            var currentLeft = new List<PdfUnderstandingLine>();
+            var currentRight = new List<PdfUnderstandingLine>();
+            for (int index = 0; index < component.Length; index++) {
+                PdfUnderstandingLine line = component[index];
+                if (line.XEnd <= gutterStart + GutterTolerance) { currentLeft.Add(line); continue; }
+                if (line.XStart >= gutterEnd - GutterTolerance) { currentRight.Add(line); continue; }
+                // A baseline shared by both columns can join their words into one line; split it at the gutter.
+                PdfUnderstandingWord[] leftWords = line.Words.Where(word => word.XEnd <= gutterStart + GutterTolerance).ToArray();
+                PdfUnderstandingWord[] rightWords = line.Words.Where(word => word.XStart >= gutterEnd - GutterTolerance).ToArray();
+                if (leftWords.Length > 0 && rightWords.Length > 0 && leftWords.Length + rightWords.Length == line.Words.Count) {
+                    currentLeft.Add(CreateLineSubset(context, line, leftWords));
+                    currentRight.Add(CreateLineSubset(context, line, rightWords));
+                    continue;
+                }
+                foreach (PdfUnderstandingLine[] band in FlushColumns()) yield return band;
+                yield return new[] { line };
+            }
+            foreach (PdfUnderstandingLine[] band in FlushColumns()) yield return band;
+
+            IEnumerable<PdfUnderstandingLine[]> FlushColumns() {
+                var bands = new List<PdfUnderstandingLine[]>();
+                if (currentLeft.Count > 0) bands.AddRange(SplitSideBySideColumns(context, currentLeft.ToArray(), depth + 1));
+                if (currentRight.Count > 0) bands.AddRange(SplitSideBySideColumns(context, currentRight.ToArray(), depth + 1));
+                currentLeft = new List<PdfUnderstandingLine>();
+                currentRight = new List<PdfUnderstandingLine>();
+                return bands;
+            }
+        }
+
+        private static bool IsTextColumn(List<PdfUnderstandingLine> lines, double componentWidth, double medianFont) {
+            if (lines.Count < 3) return false;
+            double[] widths = lines.Select(static line => line.XEnd - line.XStart).OrderBy(static value => value).ToArray();
+            double medianWidth = widths[widths.Length / 2];
+            // Short label/value pairs are not prose columns; require lines several words wide.
+            return medianWidth >= Math.Max(medianFont * 8D, componentWidth * 0.2D);
+        }
+
+        private static bool ShareVerticalExtent(
+            List<PdfUnderstandingLine> left,
+            List<PdfUnderstandingLine> right,
+            double medianFont) {
+            double leftTop = left.Max(static line => line.BaselineY);
+            double leftBottom = left.Min(static line => line.BaselineY);
+            double rightTop = right.Max(static line => line.BaselineY);
+            double rightBottom = right.Min(static line => line.BaselineY);
+            double overlap = Math.Min(leftTop, rightTop) - Math.Max(leftBottom, rightBottom);
+            return overlap >= medianFont * 2D;
         }
 
         private static double GetLowerMedianFontSize(IEnumerable<PdfUnderstandingLine> lines) {
@@ -406,8 +534,10 @@ public static partial class PdfAdvancedUnderstandingStages {
         private static void AddStructuralSubregions(
             PdfUnderstandingPageContext context,
             PdfUnderstandingLine[] component,
+            IReadOnlyList<PdfUnderstandingLine> pageLines,
             double pageMedianFontSize,
             List<PdfUnderstandingRegion> regions) {
+            double columnWidth = GetBodyColumnWidth(context, component, pageLines, pageMedianFontSize);
             var current = new List<PdfUnderstandingLine>();
             for (int lineIndex = 0; lineIndex < component.Length; lineIndex++) {
                 context.ConsumeWork();
@@ -420,9 +550,15 @@ public static partial class PdfAdvancedUnderstandingStages {
                     bool currentIsHeading = IsTypographicallyProminent(first, pageMedianFontSize);
                     bool currentIsListItem = ContentStructureExtractor.IsListItemText(first.Text.Trim());
                     bool continuesListItem = currentIsListItem && IsWrappedListContinuation(first, previous, line);
+                    bool continuesHeading = currentIsHeading && startsHeading && !startsListItem &&
+                        IsWrappedHeadingContinuation(current, line);
+                    if (continuesHeading) {
+                        current.Add(line);
+                        continue;
+                    }
                     if (startsHeading || startsListItem || currentIsHeading ||
                         HasMaterialFontTransition(previous, line) ||
-                        (!currentIsListItem && StartsParagraphBoundary(current, line)) ||
+                        (!currentIsListItem && StartsParagraphBoundary(current, line, columnWidth)) ||
                         (currentIsListItem && !continuesListItem)) {
                         AddRegion(current, regions);
                         current = new List<PdfUnderstandingLine>();
@@ -431,6 +567,23 @@ public static partial class PdfAdvancedUnderstandingStages {
                 current.Add(line);
             }
             AddRegion(current, regions);
+        }
+
+        /// <summary>
+        /// A display title that wraps (beside a logo, or in a narrow column) continues on the next line in the same
+        /// size and margin at single line spacing; the line before does not end a sentence and is not shorter.
+        /// </summary>
+        private static bool IsWrappedHeadingContinuation(List<PdfUnderstandingLine> current, PdfUnderstandingLine line) {
+            if (current.Count >= 3) return false;
+            PdfUnderstandingLine previous = current[current.Count - 1];
+            if (Math.Abs(previous.FontSize - line.FontSize) > 0.5D) return false;
+            if (Math.Abs(previous.XStart - line.XStart) > Math.Max(2D, line.FontSize * 0.25D)) return false;
+            double gap = previous.BaselineY - line.BaselineY;
+            if (gap <= 0D || gap > line.FontSize * 1.45D) return false;
+            // Wrapping fills the first line; a short line over a longer one is a separate heading above it.
+            if (previous.XEnd - previous.XStart < (line.XEnd - line.XStart) * 0.8D) return false;
+            string text = previous.Text.Trim();
+            return text.Length > 0 && !ContentStructureExtractor.EndsWithSentenceTerminal(text);
         }
 
         private static bool IsTypographicallyProminent(PdfUnderstandingLine line, double pageMedianFontSize) =>
@@ -443,13 +596,15 @@ public static partial class PdfAdvancedUnderstandingStages {
 
         private static bool StartsParagraphBoundary(
             List<PdfUnderstandingLine> current,
-            PdfUnderstandingLine candidate) {
+            PdfUnderstandingLine candidate,
+            double columnWidth) {
             if (HasExplicitParagraphBreak(candidate)) return true;
             if (current.Count == 0) return false;
 
             PdfUnderstandingLine first = current[0];
             PdfUnderstandingLine previous = current[current.Count - 1];
             if (HasProviderHierarchyBoundary(previous, candidate)) return true;
+            if (EndsBeforeColumnWraps(previous, candidate, columnWidth)) return true;
             double verticalGap = previous.BaselineY - candidate.BaselineY;
             if (verticalGap <= 0D) return false;
             double em = Math.Max(1D, Math.Max(previous.FontSize, candidate.FontSize));
@@ -470,6 +625,56 @@ public static partial class PdfAdvancedUnderstandingStages {
             bool returnsToParagraphMargin = Math.Abs(candidate.XStart - first.XStart) <= indentation * 0.5D &&
                 Math.Abs(previous.XStart - first.XStart) >= indentation;
             return startsIndentedLine || returnsToParagraphMargin;
+        }
+
+        /// <summary>
+        /// Measures the width a block's lines could have used. A block of short lines is often its own component,
+        /// so its measure comes from body text on the same left margin unless something sits beside the block.
+        /// Prominent lines are left out, since a wide title must not make body text beneath it look short.
+        /// A neighbouring column can be staggered, so content beside counts within three lines of the block,
+        /// up to the wider margin lines above and below it. A tall block does not widen that reach.
+        /// </summary>
+        private static double GetBodyColumnWidth(
+            PdfUnderstandingPageContext context,
+            PdfUnderstandingLine[] component,
+            IReadOnlyList<PdfUnderstandingLine> pageLines,
+            double pageMedianFontSize) {
+            PdfUnderstandingLine[] body = component.Where(line => !IsTypographicallyProminent(line, pageMedianFontSize)).ToArray();
+            if (body.Length < 2) return 0D;
+            double left = body.Min(static line => line.XStart);
+            double right = body.Max(static line => line.XEnd);
+            double marginTolerance = pageMedianFontSize * 0.5D;
+            context.ConsumeWork(pageLines.Count);
+            PdfUnderstandingLine[] wider = pageLines
+                .Where(line => !IsTypographicallyProminent(line, pageMedianFontSize) && Math.Abs(line.XStart - left) <= marginTolerance && line.XEnd > right)
+                .ToArray();
+            if (wider.Length == 0) return right - left;
+            double measureRight = wider.Max(static line => line.XEnd);
+            double componentTop = body.Max(static line => line.BaselineY);
+            double componentBottom = body.Min(static line => line.BaselineY);
+            double reach = pageMedianFontSize * 3D;
+            double top = wider.Where(line => line.BaselineY > componentTop).Select(static line => line.BaselineY)
+                .DefaultIfEmpty(double.MaxValue).Min();
+            double bottom = wider.Where(line => line.BaselineY < componentBottom).Select(static line => line.BaselineY)
+                .DefaultIfEmpty(double.MinValue).Max();
+            top = Math.Min(top, componentTop + reach);
+            bottom = Math.Max(bottom, componentBottom - reach);
+            context.ConsumeWork(pageLines.Count);
+            bool hasContentBeside = pageLines.Any(line => line.XStart >= right && line.XStart < measureRight &&
+                line.BaselineY < top && line.BaselineY > bottom);
+            return (hasContentBeside ? right : measureRight) - left;
+        }
+
+        /// <summary>
+        /// Wrapping fills a line, so a line ending in the first quarter of its column with room for the next word
+        /// was broken on purpose. Narrower text can wrap within a wider component, which sets the quarter limit.
+        /// </summary>
+        private static bool EndsBeforeColumnWraps(PdfUnderstandingLine previous, PdfUnderstandingLine candidate, double columnWidth) {
+            double previousWidth = previous.XEnd - previous.XStart;
+            if (previousWidth > columnWidth * 0.25D) return false;
+            PdfUnderstandingWord nextWord = candidate.Words[0];
+            double wordSpace = candidate.FontSize * 0.25D;
+            return previousWidth + wordSpace + (nextWord.XEnd - nextWord.XStart) <= columnWidth;
         }
 
         private static bool HasProviderHierarchyBoundary(
@@ -519,7 +724,7 @@ public static partial class PdfAdvancedUnderstandingStages {
             double confidence = PdfInference.Clamp(lines.Average(static line => line.Confidence) - Math.Min(0.2D, Math.Max(0, lines.Count - 12) * 0.01D));
             regions.Add(new PdfUnderstandingRegion(lines.AsReadOnly(), confidence, new[] {
                 new PdfInferenceEvidence(
-                    "region.structural-connectivity",
+                    "region-structural-connectivity",
                     "The region is a spatially connected run bounded by typographic transitions and language-neutral list syntax.",
                     lines.Count > 1 ? 0.8D : 0.6D)
             }));
@@ -623,7 +828,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                 double confidence = PdfInference.Clamp(tableLines.Average(static line => line.Confidence));
                 regions.Add(new PdfUnderstandingRegion(tableLines, confidence, new[] {
                     new PdfInferenceEvidence(
-                        "region.canonical-table",
+                        "region-canonical-table",
                         "The page table-detection stage owns these aligned source lines.",
                         0.9D)
                 }));
@@ -657,8 +862,7 @@ public static partial class PdfAdvancedUnderstandingStages {
 
     private sealed class AdvancedSemanticClassificationStage : IPdfSemanticClassificationStage {
         public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) {
-            double[] sizes = orderedRegions.SelectMany(static region => region.Lines).Select(static line => line.FontSize).OrderBy(static size => size).ToArray();
-            double median = sizes.Length == 0 ? 0D : sizes[(sizes.Length - 1) / 2];
+            double median = GetBodyFontSize(orderedRegions);
             var result = new List<PdfUnderstandingSemanticElement>(orderedRegions.Count);
             foreach (PdfUnderstandingRegion region in orderedRegions) {
                 context.ConsumeWork();
@@ -675,14 +879,88 @@ public static partial class PdfAdvancedUnderstandingStages {
             double median) {
             string text = region.Text.Trim();
             double largest = region.Lines.Max(static line => line.FontSize);
-            if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
+            if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
             if (IsAdjacentTableCaption(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Caption, 0.78D, "semantic.table-caption-geometry", "A compact line is immediately adjacent to and aligned with a validated table.");
             if (PdfImageRegionDetectionStage.IsAdjacentImageCaption(context, region)) return (PdfUnderstandingSemanticKind.Caption, 0.8D, "semantic.figure-caption-geometry", "A compact region is immediately adjacent to and aligned with a positioned image.");
-            if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
+            if (IsNumberedHeading(region, text, largest, median)) return (PdfUnderstandingSemanticKind.Heading, 0.84D, "semantic.numbered-heading", "A single short numbered line is set materially larger than the body text.");
+            if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic-list-marker", "The region begins with a bullet or numbered marker.");
+            // Figures such as KPI values, totals and page numbers are often set large, but text without any letters
+            // cannot introduce a section.
+            if (!HasLetter(text)) return (PdfUnderstandingSemanticKind.Paragraph, 0.7D, "semantic.non-textual-prominent-value", "Large or prominent text without letters is a value, not a heading.");
             if (IsLocalTypographicLead(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.8D, "semantic.local-font-transition", "A compact line is materially larger than the nearby aligned content it introduces.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
             if (IsCenteredSpanningBand(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.76D, "semantic.centered-spanning-band", "A compact centered line forms a band above or below two separated content columns.");
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
+        }
+
+        /// <summary>
+        /// The page's reference (body) font size, taken from running text. Lines of validated tables are left out,
+        /// and every line is weighted by its length, so a dashboard whose 9 pt chart axes, legends and table cells
+        /// outnumber its 11 pt prose still measures the prose. Lines without words (axis values, KPI figures) only
+        /// count when nothing else is on the page.
+        /// </summary>
+        internal static double GetBodyFontSize(IReadOnlyList<PdfUnderstandingRegion> regions) {
+            var running = new List<PdfUnderstandingLine>();
+            var all = new List<PdfUnderstandingLine>();
+            foreach (PdfUnderstandingRegion region in regions) {
+                bool table = region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal));
+                foreach (PdfUnderstandingLine line in region.Lines) {
+                    all.Add(line);
+                    if (!table && HasLetter(line.Text)) running.Add(line);
+                }
+            }
+            return GetBodyFontSize(running.Count > 0 ? running : all);
+        }
+
+        /// <summary>
+        /// The larger of the median line size and the length-weighted median size (the size that carries half of
+        /// the text). Many short labels cannot pull the body below the prose, and one long footnote cannot pull it
+        /// below the ordinary lines. Pages with fewer than five lines use the length-weighted size alone.
+        /// </summary>
+        internal static double GetBodyFontSize(IEnumerable<PdfUnderstandingLine> lines) {
+            (double Size, int Weight)[] weighted = lines
+                .Select(static line => (line.FontSize, Math.Max(1, line.Text.Trim().Length)))
+                .OrderBy(static item => item.Item1)
+                .ToArray();
+            if (weighted.Length == 0) return 0D;
+            // On a short page a few large headings outvote the body line by line (two headings, one paragraph).
+            if (weighted.Length < 5) return GetLengthWeightedMedian(weighted);
+            double lineMedian = weighted[(weighted.Length - 1) / 2].Size;
+            return Math.Max(lineMedian, GetLengthWeightedMedian(weighted));
+        }
+
+        private static double GetLengthWeightedMedian((double Size, int Weight)[] weighted) {
+            long total = weighted.Sum(static item => (long)item.Weight);
+            long cumulative = 0;
+            foreach ((double size, int weight) in weighted) {
+                cumulative += weight;
+                if (cumulative * 2 >= total) return size;
+            }
+            return weighted[weighted.Length - 1].Size;
+        }
+
+        /// <summary>
+        /// True when the text reads as words rather than a value: "1.8 h", "94.2%" or "Q3" are figures with a unit.
+        /// </summary>
+        /// <summary>
+        /// True for a section number such as "2. Revenue by region" set in a heading size. A list item shares the
+        /// marker, but it is set in the body size or reads as a sentence.
+        /// </summary>
+        internal static bool IsNumberedHeading(PdfUnderstandingRegion region, string text, double largest, double median) {
+            if (median <= 0D || region.Lines.Count != 1 || largest < median * 1.2D) return false;
+            if (!ContentStructureExtractor.TryParseListItemText(text, out string marker, out string body, out _)) return false;
+            if (marker.Length == 0 || !char.IsDigit(marker[0]) || body.Length == 0) return false;
+            if (PdfUnicodeScalarAnalysis.CountScalars(body) > 90 || ContentStructureExtractor.EndsWithSentenceTerminal(body)) return false;
+            return HasLetter(body);
+        }
+
+        internal static bool HasLetter(string text) {
+            int letters = 0, digits = 0;
+            for (int index = 0; index < text.Length; index++) {
+                if (char.IsLetter(text[index])) letters++;
+                else if (char.IsDigit(text[index])) digits++;
+            }
+            return letters >= 3 || letters > 0 && letters > digits * 2;
         }
 
         private static bool IsAdjacentTableCaption(
@@ -699,7 +977,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                 context.ConsumeWork();
                 PdfUnderstandingRegion table = pageRegions[regionIndex];
                 if (ReferenceEquals(candidate, table) ||
-                    !table.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) continue;
+                    !table.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) continue;
 
                 PdfVisualBounds tableBounds = GetVisualBounds(context, table);
                 double tableWidth = tableBounds.Right - tableBounds.Left;
@@ -734,7 +1012,7 @@ public static partial class PdfAdvancedUnderstandingStages {
                 context.ConsumeWork();
                 PdfUnderstandingRegion region = pageRegions[regionIndex];
                 if (ReferenceEquals(candidate, region) ||
-                    region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) continue;
+                    region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region-canonical-table", StringComparison.Ordinal))) continue;
                 PdfVisualBounds bounds = GetVisualBounds(context, region);
                 double gap = bounds.Top - candidateBounds.Bottom;
                 if (gap < -1D || gap > Math.Max(18D, candidateFontSize * 4D)) continue;

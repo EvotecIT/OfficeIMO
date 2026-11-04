@@ -127,8 +127,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists,
         ref int unsupportedFontFamilies) {
+        OdpInlineLeaf[][] sourceInlineNodes = sourceParagraphs
+            .Select(paragraph => FlattenOdpInlineNodes(paragraph.InlineNodes).ToArray())
+            .ToArray();
+        // Inline nodes rebuild their paragraph's runs and breaks, so the seeded paragraph
+        // must not already hold that text: a multi-line seed writes runs and a:br of its own.
         IReadOnlyList<PowerPointParagraph> targetParagraphs =
-            setParagraphs(sourceParagraphs.Select(paragraph => paragraph.Text));
+            setParagraphs(sourceParagraphs.Select((paragraph, index) =>
+                sourceInlineNodes[index].Length > 0 ? string.Empty : paragraph.Text));
         int paragraphCount = Math.Min(sourceParagraphs.Count, targetParagraphs.Count);
         for (int index = 0; index < paragraphCount; index++) {
             OdpParagraph sourceParagraph = sourceParagraphs[index];
@@ -138,7 +144,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 targetParagraph,
                 ref unsupportedWritingModes,
                 ref approximatedParagraphAlignments);
-            OdpInlineLeaf[] inlineNodes = FlattenOdpInlineNodes(sourceParagraph.InlineNodes).ToArray();
+            OdpInlineLeaf[] inlineNodes = sourceInlineNodes[index];
             var convertedLinks = new HashSet<OdpHyperlink>();
             var linkedTargets = new HashSet<OdpHyperlink>();
             var unsupportedLinks = new HashSet<OdpHyperlink>();
@@ -196,7 +202,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             PowerPointTextRun AddInlineRun(string text) {
                 PowerPointTextRun result = useExistingRun
                     ? existingRuns[0]
-                    : targetParagraph.AddRun(string.Empty);
+                    : targetParagraph.AddText(string.Empty);
                 useExistingRun = false;
                 result.Text = text;
                 return result;
@@ -218,12 +224,15 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             }
 
             if (inlineNodes.Length == 0) {
-                PowerPointTextRun run = useExistingRun
-                    ? existingRuns[0]
-                    : targetParagraph.AddRun(string.Empty);
-                unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options,
-                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                QueueTextCaseRuns(new[] { run }, sourceParagraph.TextTransform, containsLineBreak: false);
+                // A multi-line seed is one run per line; each line carries the paragraph formatting.
+                IReadOnlyList<PowerPointTextRun> runs = useExistingRun
+                    ? existingRuns
+                    : new[] { targetParagraph.AddText(string.Empty) };
+                foreach (PowerPointTextRun run in runs) {
+                    unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, run, options,
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                }
+                QueueTextCaseRuns(runs, sourceParagraph.TextTransform, containsLineBreak: runs.Count > 1);
             } else {
                 foreach (OdpInlineLeaf leaf in inlineNodes) {
                     OdpInlineNode node = leaf.Node;
@@ -306,12 +315,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupported = ApplyOdpFontSize(fontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-        if (fontFamily != null) target.FontName = fontFamily;
+        if (fontFamily != null) target.FontFamily = fontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
+        if (color.HasValue) target.Color = global::OfficeIMO.OfficeColor.Parse(color.Value.ToString());
         OdfColor? background = source.HasTextBackgroundOverride
             ? source.BackgroundColor : paragraph.BackgroundColor;
-        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
+        if (background.HasValue) target.BackgroundColor = global::OfficeIMO.OfficeColor.Parse(background.Value.ToString());
         return unsupported;
     }
 
@@ -336,12 +345,12 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupported = ApplyOdpFontSize(fontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily ?? paragraph.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-        if (fontFamily != null) target.FontName = fontFamily;
+        if (fontFamily != null) target.FontFamily = fontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
-        if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
+        if (color.HasValue) target.Color = global::OfficeIMO.OfficeColor.Parse(color.Value.ToString());
         OdfColor? background = source.HasTextBackgroundOverride
             ? source.BackgroundColor : paragraph.BackgroundColor;
-        if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
+        if (background.HasValue) target.BackgroundColor = global::OfficeIMO.OfficeColor.Parse(background.Value.ToString());
         return unsupported;
     }
 
@@ -365,16 +374,16 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int unsupported = ApplyOdpFontSize(source.FontSize, target);
         string? fontFamily = SelectOdfFontFamily(source.FontFamily,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-        if (fontFamily != null) target.FontName = fontFamily;
-        if (source.Color.HasValue) target.Color = source.Color.Value.ToString().TrimStart('#');
-        if (source.BackgroundColor.HasValue) target.HighlightColor = source.BackgroundColor.Value.ToString().TrimStart('#');
+        if (fontFamily != null) target.FontFamily = fontFamily;
+        if (source.Color.HasValue) target.Color = global::OfficeIMO.OfficeColor.Parse(source.Color.Value.ToString());
+        if (source.BackgroundColor.HasValue) target.BackgroundColor = global::OfficeIMO.OfficeColor.Parse(source.BackgroundColor.Value.ToString());
         return unsupported;
     }
 
     private static int ApplyOdpFontSize(OdfLength? fontSize, PowerPointTextRun target) {
         if (!fontSize.HasValue) return 0;
         if (!fontSize.Value.TryToPoints(out double points)) return 1;
-        target.FontSizePoints = points;
+        target.FontSize = global::OfficeIMO.OfficeLength.Points(points);
         return 0;
     }
 

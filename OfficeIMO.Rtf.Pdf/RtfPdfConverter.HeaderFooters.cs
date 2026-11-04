@@ -21,22 +21,22 @@ internal static partial class RtfPdfConverter {
     }
 
     /// <summary>Retains the established plain-story presentation when callers explicitly configure that projection.</summary>
-    private static bool HasRunningStoryPresentationOverrides(PdfCore.PdfOptions? options, bool isFooter) => options != null &&
+    private static bool HasRunningStoryPresentationOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
-            ? options.FooterOffsetY != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
-            : options.HeaderOffsetY != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
+            ? options.PageSetup.Footer.Offset.ToPoints() != 18D || options.PageSetup.Footer.HasExplicitStandardFont || options.PageSetup.Footer.FontFamily != null ||
+                options.PageSetup.Footer.FontSize.ToPoints() != 9D || options.PageSetup.Footer.Color.HasValue || options.PageSetup.Footer.Alignment != global::OfficeIMO.OfficeAlignment.Center
+            : options.PageSetup.Header.Offset.ToPoints() != 18D || options.PageSetup.Header.HasExplicitStandardFont || options.PageSetup.Header.FontFamily != null ||
+                options.PageSetup.Header.FontSize.ToPoints() != 9D || options.PageSetup.Header.Color.HasValue || options.PageSetup.Header.Alignment != global::OfficeIMO.OfficeAlignment.Center);
 
     /// <summary>Captures rich source stories once through the same document and paragraph/image owners used by ordinary flow.</summary>
     private static void ApplyHeaderFooterContent(RtfDocument document, RtfPageSetup setup, PdfCore.PdfDocument pdf,
-        PdfCore.PdfOptions pageOptions, RtfToPdfOptions options, PdfRenderState state,
+        PdfCore.PdfCreateOptions pageOptions, RtfPdfExportOptions options, PdfRenderState state,
         IReadOnlyList<RtfHeaderFooter> declarations, Action<Action<PdfCore.PdfHeaderBuilder>> configureHeader,
         Action<Action<PdfCore.PdfFooterBuilder>> configureFooter) {
         if (!options.IncludeHeaderFooters || declarations.Count == 0) return;
 
         if (!HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: false)) {
-            double distance = GetRunningStoryDistance(setup.HeaderDistanceTwips);
+            OfficeLength distance = OfficeLength.Points(GetRunningStoryDistance(setup.HeaderDistanceTwips));
             configureHeader(header => {
                 RtfHeaderFooter? story = GetDefaultHeaderFooter(declarations, isFooter: false);
                 if (story != null) header.Content(CreateRunningStory(story), distance);
@@ -49,7 +49,7 @@ internal static partial class RtfPdfConverter {
             RecordPlainRunningImageDiagnostics(isFooter: false);
         }
         if (!HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: true)) {
-            double distance = GetRunningStoryDistance(setup.FooterDistanceTwips);
+            OfficeLength distance = OfficeLength.Points(GetRunningStoryDistance(setup.FooterDistanceTwips));
             configureFooter(footer => {
                 RtfHeaderFooter? story = GetDefaultHeaderFooter(declarations, isFooter: true);
                 if (story != null) footer.Content(CreateRunningStory(story), distance);
@@ -63,9 +63,9 @@ internal static partial class RtfPdfConverter {
         }
         // Content builders enable their variant. Source flags remain the
         // authority, including explicitly empty and absent selected stories.
-        pageOptions.DifferentFirstPageHeaderFooter = setup.DifferentFirstPageHeaderFooter;
-        pageOptions.DifferentOddAndEvenPagesHeaderFooter = document.Settings.FacingPages == true;
-        pageOptions.UsePageNumberParityForHeaderFooter = true;
+        pageOptions.PageSetup.DifferentFirstPage = setup.DifferentFirstPageHeaderFooter;
+        pageOptions.PageSetup.DifferentOddAndEvenPages = document.Settings.FacingPages == true;
+        pageOptions.PageSetup.UseVisiblePageNumberParity = true;
 
         Action<PdfCore.PdfContentBuilder> CreateRunningStory(RtfHeaderFooter story) {
             PdfRenderState runningState = state.CreateRunningStoryState(document, pageOptions);
@@ -77,7 +77,7 @@ internal static partial class RtfPdfConverter {
                     AppendParagraphRuns(document, paragraph, runs, options, runningState, collectNotes: false,
                         context: PdfInlineProjectionContext.RunningStory);
                     EnsureParagraphLineBoxStrut(document, paragraph, runs, runningState);
-                    pdf.Paragraph(builder => builder.Runs(runs),
+                    pdf.Paragraph(builder => builder.AddRuns(runs),
                         RtfPdfMapping.ToPdfAlign(document.GetParagraphFormatting(paragraph).Alignment),
                         style: RtfPdfMapping.ToPdfParagraphStyle(document, paragraph, runs, pageOptions));
                 }
@@ -104,7 +104,7 @@ internal static partial class RtfPdfConverter {
     private static double GetRunningStoryDistance(int? twips) => Math.Max(0D, (twips ?? 720) / 20D);
 
     /// <summary>Reports unsupported running controls before static capture; no warning depends on pagination replay.</summary>
-    private static void RecordRunningParagraphDiagnostics(RtfDocument document, RtfParagraph paragraph, RtfToPdfOptions options) {
+    private static void RecordRunningParagraphDiagnostics(RtfDocument document, RtfParagraph paragraph, RtfPdfExportOptions options) {
         if (!options.DiagnosedRunningParagraphs.Add(paragraph)) return;
         RecordParagraphFrameDiagnostic(document, paragraph, options, "HeaderFooter/Paragraph/Frame");
         RecordParagraphBarTabDiagnostic(document, paragraph, options);
@@ -139,7 +139,7 @@ internal static partial class RtfPdfConverter {
 
     /// <summary>Detects replaced rich destinations and edge geometry even when their flattened text is unchanged.</summary>
     private static bool RunningStoriesDiffer(RtfDocument document, RtfSection currentSection, RtfSection requestedSection,
-        RtfToPdfOptions options, bool isFooter) {
+        RtfPdfExportOptions options, bool isFooter) {
         if (!options.IncludeHeaderFooters || HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter)) return false;
         IReadOnlyList<RtfHeaderFooter> current = document.GetEffectiveHeaderFooters(currentSection);
         IReadOnlyList<RtfHeaderFooter> requested = document.GetEffectiveHeaderFooters(requestedSection);

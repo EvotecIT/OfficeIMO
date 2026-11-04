@@ -9,13 +9,13 @@ public sealed class PdfImageWatermark {
     private readonly OfficeImageInfo _info;
     private readonly PdfWriter.PdfImageStream? _preparedStream;
     private byte[] _data;
-    private double _width;
-    private double _height;
+    private global::OfficeIMO.OfficeLength _width;
+    private global::OfficeIMO.OfficeLength _height;
     private double _opacity = 0.16D;
     private double _rotationAngle;
 
     /// <summary>Creates an image watermark from raster bytes supported by OfficeIMO.Drawing.</summary>
-    public PdfImageWatermark(byte[] data, double width, double height) {
+    public PdfImageWatermark(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height) {
         Guard.NotNullOrEmpty(data, nameof(data));
         PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
         _info = prepared.Info;
@@ -26,19 +26,19 @@ public sealed class PdfImageWatermark {
     }
 
     /// <summary>Target watermark width in points.</summary>
-    public double Width {
+    public global::OfficeIMO.OfficeLength Width {
         get => _width;
         set {
-            Guard.Positive(value, nameof(Width));
+            Guard.Positive(value.ToPoints(), nameof(Width));
             _width = value;
         }
     }
 
     /// <summary>Target watermark height in points.</summary>
-    public double Height {
+    public global::OfficeIMO.OfficeLength Height {
         get => _height;
         set {
-            Guard.Positive(value, nameof(Height));
+            Guard.Positive(value.ToPoints(), nameof(Height));
             _height = value;
         }
     }

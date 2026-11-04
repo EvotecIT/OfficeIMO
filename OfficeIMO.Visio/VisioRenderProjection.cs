@@ -13,12 +13,12 @@ internal readonly struct VisioRenderProjection {
         DrawingToPhysical = page.GetEffectivePageScale().ToInches() / page.GetEffectiveDrawingScale().ToInches();
         PhysicalDensity = pixelsPerInch * supersampling;
         GeometryDensity = PhysicalDensity * DrawingToPhysical;
-        WidthInches = Math.Max(page.Width * DrawingToPhysical, 0.01D);
-        HeightInches = Math.Max(page.Height * DrawingToPhysical, 0.01D);
+        WidthInches = Math.Max(page.WidthInches * DrawingToPhysical, 0.01D);
+        HeightInches = Math.Max(page.HeightInches * DrawingToPhysical, 0.01D);
         double surfaceScale = surface.GetEffectivePageScale().ToInches() / surface.GetEffectiveDrawingScale().ToInches();
-        ContentOffsetY = (surface.Height * surfaceScale - page.Height * DrawingToPhysical) * PhysicalDensity;
+        ContentOffsetY = (surface.HeightInches * surfaceScale - page.HeightInches * DrawingToPhysical) * PhysicalDensity;
         _pageTransform = OfficeTransform.Scale(1D, -1D)
-            .Then(OfficeTransform.Translate(0D, page.Height));
+            .Then(OfficeTransform.Translate(0D, page.HeightInches));
     }
 
     internal double DrawingToPhysical { get; }

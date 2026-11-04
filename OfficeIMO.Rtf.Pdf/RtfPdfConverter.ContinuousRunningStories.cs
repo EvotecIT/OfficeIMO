@@ -4,10 +4,10 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
     private static void RenderContinuousSectionBlocks(RtfDocument document, RtfSection section, int sectionIndex,
-        PdfCore.PdfDocument pdf, RtfToPdfOptions options, PdfRenderState state, PdfCore.PdfOptions defaults,
-        bool canContinueRunningStories, ref RtfSection currentPageSection, ref PdfCore.PdfOptions currentPageOptions) {
+        PdfCore.PdfDocument pdf, RtfPdfExportOptions options, PdfRenderState state, PdfCore.PdfCreateOptions defaults,
+        bool canContinueRunningStories, ref RtfSection currentPageSection, ref PdfCore.PdfCreateOptions currentPageOptions) {
         if (canContinueRunningStories && TryPrepareContinuousRunningStoryOptions(document, section,
-            currentPageSection, currentPageOptions, defaults, options, out PdfCore.PdfOptions? nextPageOptions)) {
+            currentPageSection, currentPageOptions, defaults, options, out PdfCore.PdfCreateOptions? nextPageOptions)) {
             var page = new PdfCore.PdfPageBuilder(pdf, nextPageOptions!);
             ApplySectionHeaderFooters(document, section, page, pdf, options, state);
             // A source section can begin partway through a physical page. The
@@ -43,14 +43,14 @@ internal static partial class RtfPdfConverter {
                 inline is RtfBreak { Kind: not RtfBreakKind.Column }));
 
     private static bool TryPrepareContinuousRunningStoryOptions(RtfDocument document, RtfSection section,
-        RtfSection previousSection, PdfCore.PdfOptions previousOptions, PdfCore.PdfOptions defaults,
-        RtfToPdfOptions options, out PdfCore.PdfOptions? nextPageOptions) {
+        RtfSection previousSection, PdfCore.PdfCreateOptions previousOptions, PdfCore.PdfCreateOptions defaults,
+        RtfPdfExportOptions options, out PdfCore.PdfCreateOptions? nextPageOptions) {
         nextPageOptions = null;
         if (!options.IncludeHeaderFooters ||
             HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: false) ||
             HasRunningStoryPresentationOverrides(options.PdfOptions, isFooter: true) ||
-            options.PdfOptions?.DifferentFirstPageHeaderFooter == true ||
-            options.PdfOptions?.DifferentOddAndEvenPagesHeaderFooter == true ||
+            options.PdfOptions?.PageSetup.DifferentFirstPage == true ||
+            options.PdfOptions?.PageSetup.DifferentOddAndEvenPages == true ||
             section.PageSetup.PageNumberRestart == true ||
             (section.PageSetup.PageNumberStart.HasValue && section.PageSetup.PageNumberRestart != false)) return false;
 
@@ -72,11 +72,11 @@ internal static partial class RtfPdfConverter {
 
         // Reuse normal section setup on detached options. This neither adds
         // a PageBlock nor switches the current physical options or cursor.
-        PdfCore.PdfOptions requested = defaults.Clone();
+        PdfCore.PdfCreateOptions requested = defaults.Clone();
         ApplyPageSetup(document, section, requested, defaults);
-        if (requested.PageWidth != previousOptions.PageWidth || requested.PageHeight != previousOptions.PageHeight ||
-            requested.MarginLeft != previousOptions.MarginLeft || requested.MarginRight != previousOptions.MarginRight ||
-            requested.MarginTop != previousOptions.MarginTop || requested.MarginBottom != previousOptions.MarginBottom ||
+        if (requested.PageSetup.Size.Width != previousOptions.PageSetup.Size.Width || requested.PageSetup.Size.Height != previousOptions.PageSetup.Size.Height ||
+            requested.PageSetup.Margins.Left != previousOptions.PageSetup.Margins.Left || requested.PageSetup.Margins.Right != previousOptions.PageSetup.Margins.Right ||
+            requested.PageSetup.Margins.Top != previousOptions.PageSetup.Margins.Top || requested.PageSetup.Margins.Bottom != previousOptions.PageSetup.Margins.Bottom ||
             requested.PageNumberStyle != previousOptions.PageNumberStyle ||
             requested.PageBorder != null || previousOptions.PageBorder != null) return false;
 

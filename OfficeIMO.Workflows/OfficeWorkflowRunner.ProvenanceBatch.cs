@@ -9,7 +9,7 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeProvenanceWorkflowBatchOptions? options = null,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(requests);
+        if (requests == null) throw new ArgumentNullException(nameof(requests));
         OfficeProvenanceWorkflowBatchOptions validatedOptions = (options ?? new OfficeProvenanceWorkflowBatchOptions()).CloneAndValidate();
         OfficeProvenanceWorkflowRequest[] materialized = MaterializeBatchRequests(
             requests,
@@ -122,7 +122,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (cancellationToken.IsCancellationRequested) return prepared;
             OfficeProvenanceWorkflowRequest request = prepared[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
-                request.ConflictPolicy == OfficeWorkflowConflictPolicy.Rename) continue;
+                request.ConflictPolicy == OfficePublicationPolicy.Rename) continue;
             BatchOutputPath? output = removalOutputs[index];
             if (output is null) continue;
             EnsureBatchOutputIsUnique(output.Path, output.Identity, fixedOutputIdentities);
@@ -134,7 +134,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (cancellationToken.IsCancellationRequested) return prepared;
             OfficeProvenanceWorkflowRequest request = prepared[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
-                request.ConflictPolicy != OfficeWorkflowConflictPolicy.Rename) continue;
+                request.ConflictPolicy != OfficePublicationPolicy.Rename) continue;
             BatchOutputPath? output = removalOutputs[index];
             if (output is null) continue;
             string requestedPath = output.Path;
@@ -161,7 +161,7 @@ public sealed partial class OfficeWorkflowRunner {
             if (cancellationToken.IsCancellationRequested) return prepared;
             OfficeProvenanceWorkflowRequest request = prepared[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
-                string.IsNullOrWhiteSpace(request.OutputPath)) continue;
+                (request.OutputPath == null || string.IsNullOrWhiteSpace(request.OutputPath))) continue;
             request.BatchBlockedOutputIdentities = blockedOutputIdentities;
             request.BatchOwnReservedOutputIdentity = pathIndex.NormalizeCandidate(request.OutputPath);
         }
@@ -198,7 +198,7 @@ public sealed partial class OfficeWorkflowRunner {
         string requestedPath,
         IReadOnlyDictionary<string, List<int>> inputRequestIndexes,
         SortedSet<string> inputIdentities,
-        IReadOnlySet<string> reservedOutputIdentities,
+        ISet<string> reservedOutputIdentities,
         BatchPathIndex pathIndex,
         ref int nextSuffix,
         CancellationToken cancellationToken) {
@@ -235,7 +235,7 @@ public sealed partial class OfficeWorkflowRunner {
         Removal = CloneBatchRemovalOptions(source.Removal)!,
         Limits = source.Limits is null
             ? null!
-            : new OfficeWorkflowLimits {
+            : new OfficeOperationLimits {
                 MaximumInputBytes = source.Limits.MaximumInputBytes,
                 MaximumOutputBytes = source.Limits.MaximumOutputBytes,
                 MaximumXmlCharactersInPart = source.Limits.MaximumXmlCharactersInPart
@@ -304,9 +304,9 @@ public sealed partial class OfficeWorkflowRunner {
 
     private static string? TryResolveBatchRemovalOutput(OfficeProvenanceWorkflowRequest request) {
         try {
-            if (string.IsNullOrWhiteSpace(request.InputPath)) return null;
+            if ((request.InputPath == null || string.IsNullOrWhiteSpace(request.InputPath))) return null;
             string inputPath = Path.GetFullPath(request.InputPath);
-            return string.IsNullOrWhiteSpace(request.OutputPath)
+            return (request.OutputPath == null || string.IsNullOrWhiteSpace(request.OutputPath))
                 ? Path.Combine(
                     Path.GetDirectoryName(inputPath)!,
                     Path.GetFileNameWithoutExtension(inputPath) + ".provenance-cleaned" + Path.GetExtension(inputPath))
@@ -326,7 +326,7 @@ public sealed partial class OfficeWorkflowRunner {
         private readonly Dictionary<string, BatchDirectoryIndex> _physicalDirectories = new(StringComparer.Ordinal);
 
         internal string? TryNormalize(string? path) {
-            if (string.IsNullOrWhiteSpace(path)) return null;
+            if ((path == null || string.IsNullOrWhiteSpace(path))) return null;
             string fullPath;
             try {
                 fullPath = Path.GetFullPath(path);

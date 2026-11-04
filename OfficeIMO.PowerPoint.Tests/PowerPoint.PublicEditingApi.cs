@@ -10,13 +10,13 @@ namespace OfficeIMO.Tests {
         public void CreateEditSaveAndReopenUseConcretePresentationObjects() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide first = presentation.AddSlide();
                     first.AddTitle("Canonical title");
                     PowerPointTextBox bullets = first.AddTextBox(string.Empty);
                     bullets.AddBullet("One");
                     bullets.AddBullet("Two");
-                    first.AddTable(2, 2);
+                    first.AddTable(2,2);
                     first.Notes.Text = "Notes text";
 
                     PowerPointSlide second = presentation.AddSlide();
@@ -25,21 +25,37 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     Assert.Equal(2, presentation.Slides.Count);
                     Assert.Equal("Second slide", presentation.Slides[0].TextBoxes.First().Text);
                     Assert.Equal("Notes text", presentation.Slides[1].Notes.Text);
                     Assert.Single(presentation.Slides[1].Tables);
-                    presentation.Slides[1].ReplaceText("Canonical", "Edited");
+                    presentation.Slides[1].ReplaceAll("Canonical", "Edited");
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath,
+                using PowerPointDocument reopened = PowerPointDocument.Load(filePath,
                     new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
                 Assert.Contains(reopened.Slides[1].TextBoxes, textBox => textBox.Text == "Edited title");
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
+        }
+
+        [Fact]
+        public void ReplaceAllIgnoresCaseByDefaultAndHonoursMatchCaseAcrossTextboxesAndTables() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox box = slide.AddTextBox("Draft and DRAFT");
+            PowerPointTableCell cell = slide.AddTable(1, 1).GetCell(0, 0);
+            cell.Text = "draft";
+
+            Assert.Equal(1, presentation.ReplaceAll("draft", "Final", new PowerPointTextSearchOptions { MatchCase = true }));
+            Assert.Equal("Draft and DRAFT", box.Text);
+            Assert.Equal("Final", cell.Text);
+
+            Assert.Equal(2, presentation.ReplaceAll("draft", "Final"));
+            Assert.Equal("Final and Final", box.Text);
         }
     }
 }

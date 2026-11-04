@@ -118,8 +118,81 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlContainerQueries_ContainerUnitsResolveInStylesheetPaddingShorthand() {
+        const string html = "<style>.c{container-type:inline-size;width:200px}.p{padding:5cqw}</style><div class='c'><div class='p'>Text</div></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 220D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(10D, Assert.Single(DrawingTestTraversal.Elements(rendered.Pages[0].CreateDrawing()).OfType<OfficeDrawingText>()).X, 2);
+    }
+
+    [Theory]
+    [InlineData("shape-outside:circle(50%)", "shape-outside")]
+    [InlineData("text-emphasis:filled dot", "text-emphasis")]
+    public void HtmlRendering_UnimplementedPaintPropertyIsReportedNotSilentlyDropped(string declaration, string property) {
+        string html = "<style>.x{" + declaration + "}</style><p class='x'>Text</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions());
+
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.CssPropertyUnsupported
+            && item.Message.Contains(property, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void HtmlContainerQueries_FlexItemQueriesItsLaidOutWidthNotItsParents() {
+        const string html = "<style>.c{container-type:inline-size}.t{height:10px;background:#ff0000}"
+            + "@container (min-width:150px){.t{background:#0000ff}}.u{height:10px;width:25cqw;background:#00ff00}</style>"
+            + "<div style='display:flex;width:300px'><div class='c' style='flex:0 0 100px'><div id='narrow' class='t'></div><div id='unit' class='u'></div></div>"
+            + "<div class='c' style='flex:1'><div id='wide' class='t'></div></div></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 320D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#narrow").Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#wide").Shape.FillColor);
+        Assert.Equal(25D, FindShape(rendered, "div#unit").Shape.Width, 2);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_AutoSizedAbsoluteMarkerSitsInItsRelativeParentsPadding() {
+        const string html = "<style>li{position:relative;padding-left:20px;list-style:none}"
+            + "li::before{content:'#';position:absolute;left:0}</style><ul style='margin:0;padding:0'><li>Text</li></ul>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 200D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        OfficeDrawingText[] texts = DrawingTestTraversal.Elements(rendered.Pages[0].CreateDrawing()).OfType<OfficeDrawingText>().ToArray();
+        OfficeDrawingText marker = Assert.Single(texts, item => item.Text == "#");
+        OfficeDrawingText body = Assert.Single(texts, item => item.Text == "Text");
+        Assert.Equal(0D, marker.X, 2);
+        Assert.Equal(20D, body.X, 2);
+        Assert.Equal(body.Y, marker.Y, 2);
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
+    public void HtmlMargins_PdfKeepsBrowserBodyInsetUnlessAuthorResetsIt() {
+        static double FirstWordX(string html) {
+            var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
+            PdfCore.PdfLogicalTextBlock block = PdfCore.PdfDocumentReadResult.Load(
+                HtmlConversionDocument.Parse(html).ToPdf(options).ToBytes()).Pages[0].TextBlocks[0];
+            return block.XStart;
+        }
+
+        Assert.Equal(6D, FirstWordX("<div>Inset</div>"), 1);
+        Assert.Equal(0D, FirstWordX("<style>body{margin:0}</style><div>Inset</div>"), 1);
+    }
+
+    [Fact]
     public void HtmlMargins_AdjacentBlockMarginsCollapseWithNegativeValuesAcrossBackends() {
-        const string html = "<div id='container' style='width:50px;margin:0'>"
+        const string html = "<style>body{margin:0}</style><div id='container' style='width:50px;margin:0'>"
             + "<div id='first' style='width:20px;height:10px;margin:0 0 20px;background:#ff0000'></div>"
             + "<div id='second' style='width:20px;height:10px;margin:-5px 0 8px;background:#0000ff'></div>"
             + "<div id='third' style='width:40px;height:10px;margin:12px 0 0;background:#00ff00;font-size:6px;line-height:8px'>GapPdf</div>"
@@ -138,15 +211,15 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape third = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#third");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions {
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(55D / HtmlRenderOptions.CssPixelsPerInch, 58D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(55D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(58D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(0D, first.Y, 3);
@@ -160,6 +233,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(5, 40));
         Assert.Contains("GapPdf", pdfText, StringComparison.Ordinal);
         Assert.Single(PdfCore.PdfReadDocument.Open(pdf).Pages);
-        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 }

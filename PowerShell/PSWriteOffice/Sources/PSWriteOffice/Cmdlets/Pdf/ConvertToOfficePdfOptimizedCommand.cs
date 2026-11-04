@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -28,7 +30,8 @@ public sealed class ConvertToOfficePdfOptimizedCommand : PSCmdlet
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed modification restrictions.</summary>
     [Parameter]
@@ -81,7 +84,7 @@ public sealed class ConvertToOfficePdfOptimizedCommand : PSCmdlet
         PdfOptimizationActionResult result = PdfDocument.Load(
             inputPath,
             PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent)).Optimization.Apply(options);
-        result.ToDocument().Save(outputPath).RequireSuccess();
+        result.ToDocument().Save(outputPath);
         WriteObject(PassThruReport.IsPresent ? result : new FileInfo(outputPath));
     }
 }

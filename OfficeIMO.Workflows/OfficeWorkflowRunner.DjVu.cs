@@ -7,11 +7,11 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertDjVu(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, CancellationToken token) {
-        var document = DjVuDocument.Load(input, new DjVuReadOptions {
+        OfficeWorkflowRenderingOptions settings, CancellationToken token) {
+        var document = DjVuDocument.Load(input, new DjVuLoadOptions {
             MaxSourceBytes = Math.Min(256L * 1024 * 1024, request.Limits.MaximumInputBytes)
         }, token);
-        var options = settings.DjVu?.Clone() ?? new DjVuToPdfOptions();
+        var options = settings.DjVu?.Clone() ?? new DjVuPdfExportOptions();
         options.MaxPdfBytes = Math.Min(options.MaxPdfBytes, request.Limits.MaximumOutputBytes);
         var facts = new Dictionary<string, string> {
             ["sourceFormat"] = "DjVu", ["sourcePages"] = document.Pages.Count.ToString(CultureInfo.InvariantCulture),
@@ -19,9 +19,9 @@ public sealed partial class OfficeWorkflowRunner {
         };
         PdfDocumentConversionResult? conversion = null;
         try {
-            conversion = document.ToPdfDocumentResult(options, token);
+            conversion = document.ConvertToPdfWithEvidence(options, token);
             var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
-            if (settings.RequireNoLoss) evidence.RequireNoLoss();
+            if (settings.FailOnLoss) evidence.ThrowIfLoss();
             return (bytes, evidence);
         } catch (Exception exception) when (conversion != null && exception is not WorkflowConversionFailureException and not OperationCanceledException
             and not OutOfMemoryException and not StackOverflowException) {

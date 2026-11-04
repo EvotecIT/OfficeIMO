@@ -30,7 +30,7 @@ public class RtfCharacterFormattingTests {
     public void Read_Binds_Rich_Underline_Styles(string control, RtfUnderlineStyle expectedStyle) {
         string rtf = $@"{{\rtf1\ansi\pard {control} Text\ulnone plain\par}}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
         Assert.Contains(paragraph.Runs, run => run.Text == "Text" && run.UnderlineStyle == expectedStyle);
@@ -61,8 +61,8 @@ public class RtfCharacterFormattingTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddText("Text").SetUnderline(style);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(expectedControl + " Text", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ulnone", rtf, StringComparison.Ordinal);
@@ -78,8 +78,8 @@ public class RtfCharacterFormattingTests {
         paragraph.AddText("Styled").SetUnderline(RtfUnderlineStyle.Double).SetUnderlineColor(red);
         paragraph.AddText(" Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\uldb", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ulc1", rtf, StringComparison.Ordinal);
@@ -103,9 +103,9 @@ public class RtfCharacterFormattingTests {
         styled._run!.RunProperties!.Underline!.Color = "4472C4";
         paragraph.AddText("Plain");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfRun rtfRun = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs, run => run.Text == "Styled");
         Assert.Equal(RtfUnderlineStyle.DoubleWave, rtfRun.UnderlineStyle);
@@ -125,7 +125,7 @@ public class RtfCharacterFormattingTests {
         paragraph.AddText("Styled").SetUnderline(RtfUnderlineStyle.ThickDashDotDot).SetUnderlineColor(colorId);
         paragraph.AddText("Plain");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordParagraph styled = Assert.Single(word.Paragraphs, run => run.Text == "Styled");
         Assert.Equal(WordUnderlineStyle.DashDotDotHeavy, styled.Underline);
@@ -139,7 +139,7 @@ public class RtfCharacterFormattingTests {
     public void Read_Binds_Character_Shading_And_Border_Without_Leaking() {
         const string rtf = @"{\rtf1\ansi{\colortbl;\red230\green242\blue255;\red68\green114\blue196;}\pard \chcbpat1\chcfpat2\chshdng3750\chbgdkfdiag\chbrdr\brdrdb\brdrw12\brdrcf2 Styled\plain Plain\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -171,8 +171,8 @@ public class RtfCharacterFormattingTests {
             .SetCharacterBorder(RtfParagraphBorderStyle.Dashed, width: 14, colorIndex: foreground);
         paragraph.AddText(" Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\chcbpat1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\chcfpat2", rtf, StringComparison.Ordinal);
@@ -203,7 +203,7 @@ public class RtfCharacterFormattingTests {
     public void Read_Binds_Character_Spacing_Scale_Kerning_And_Offset() {
         const string rtf = @"{\rtf1\ansi\pard \expndtw40\charscalex80\kerning24\up6 Raised\expndtw0\charscalex100\kerning0\up0 plain \expnd-4 Condensed\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
         RtfRun raised = paragraph.Runs.Single(run => run.Text == "Raised");
@@ -234,8 +234,8 @@ public class RtfCharacterFormattingTests {
         paragraph.AddText(" Lowered").SetCharacterOffsetHalfPoints(-4);
         paragraph.AddText(" plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\expndtw40", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\charscalex80", rtf, StringComparison.Ordinal);
@@ -265,16 +265,16 @@ public class RtfCharacterFormattingTests {
     public void Word_Rtf_Bridge_Carries_Character_Spacing_Scale_Kerning_And_Offset() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
-        WordParagraph styled = paragraph.AddText("Styled").SetSpacing(40);
+        WordParagraph styled = paragraph.AddText("Styled").SetSpacing(OfficeLength.Points(2));
         styled._run!.RunProperties ??= new RunProperties();
         styled._run.RunProperties.CharacterScale = new CharacterScale { Val = 80 };
         styled._run.RunProperties.Kern = new Kern { Val = 24U };
         styled._run.RunProperties.Position = new Position { Val = "6" };
         paragraph.AddText("Plain");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfRun rtfRun = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs, run => run.Text == "Styled");
         Assert.Equal(40, rtfRun.CharacterSpacingTwips);
@@ -287,7 +287,7 @@ public class RtfCharacterFormattingTests {
         Assert.Contains(@"\up6", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripRun = Assert.Single(roundTrip.Paragraphs, run => run.Text == "Styled");
-        Assert.Equal(40, roundTripRun.Spacing);
+        Assert.Equal(OfficeLength.Emus(40L * 635), roundTripRun.Spacing);
         Assert.Equal(80, roundTripRun._run?.RunProperties?.CharacterScale?.Val?.Value);
         Assert.Equal(24U, roundTripRun._run?.RunProperties?.Kern?.Val?.Value);
         Assert.Equal("6", roundTripRun._run?.RunProperties?.Position?.Val?.Value);
@@ -309,10 +309,10 @@ public class RtfCharacterFormattingTests {
             .SetCharacterOffsetHalfPoints(-5);
         paragraph.AddText("Plain");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordParagraph styled = Assert.Single(word.Paragraphs, run => run.Text == "Styled");
-        Assert.Equal(-30, styled.Spacing);
+        Assert.Equal(OfficeLength.Emus(-30L * 635), styled.Spacing);
         Assert.Equal(120, styled._run?.RunProperties?.CharacterScale?.Val?.Value);
         Assert.Equal(18U, styled._run?.RunProperties?.Kern?.Val?.Value);
         Assert.Equal("-5", styled._run?.RunProperties?.Position?.Val?.Value);
@@ -327,7 +327,7 @@ public class RtfCharacterFormattingTests {
     public void Read_Binds_Super_And_Sub_Zero_As_Baseline_Reset() {
         const string rtf = @"{\rtf1\ansi\pard \super Raised\super0 Plain \sub Lowered\sub0 Base\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -346,8 +346,8 @@ public class RtfCharacterFormattingTests {
         paragraph.AddText("English").SetLanguage(1033);
         paragraph.AddText(" Polish");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\lang1033 English", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\lang1045  Polish", rtf, StringComparison.Ordinal);
@@ -363,7 +363,7 @@ public class RtfCharacterFormattingTests {
     public void Read_Binds_Default_And_Run_Language() {
         const string rtf = @"{\rtf1\ansi\deff0\deflang1045\pard Default \lang1033 English\lang1045 Polish\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(1045, result.Document.Settings.DefaultLanguageId);
@@ -382,9 +382,9 @@ public class RtfCharacterFormattingTests {
         polish._run.RunProperties.Languages = new Languages { Val = "pl-PL" };
         paragraph.AddText("Default");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         Assert.Equal(1033, rtfDocument.Settings.DefaultLanguageId);
         RtfRun rtfRun = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs, run => run.Text == "Polish");
@@ -405,7 +405,7 @@ public class RtfCharacterFormattingTests {
         paragraph.AddText("Default");
         paragraph.AddText(" English").SetLanguage(1033);
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         Assert.Equal("pl-PL", GetDefaultWordLanguage(word));
         WordParagraph english = Assert.Single(word.Paragraphs, run => run.Text == " English");
@@ -416,7 +416,7 @@ public class RtfCharacterFormattingTests {
     public void Read_Binds_Run_Direction_Controls_Without_Leaking() {
         const string rtf = @"{\rtf1\ansi\pard \rtlch RTL\ltrch LTR\plain Plain\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -433,8 +433,8 @@ public class RtfCharacterFormattingTests {
         paragraph.AddText("LTR").SetDirection(RtfTextDirection.LeftToRight);
         paragraph.AddText("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\rtlch RTL", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ltrch LTR", rtf, StringComparison.Ordinal);
@@ -455,9 +455,9 @@ public class RtfCharacterFormattingTests {
         rightToLeft._run.RunProperties.RightToLeftText = new RightToLeftText();
         paragraph.AddText("Plain");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal(RtfTextDirection.RightToLeft, rtfParagraph.Runs.Single(run => run.Text == "RTL").Direction);
@@ -478,7 +478,7 @@ public class RtfCharacterFormattingTests {
         paragraph.AddText("RTL").SetDirection(RtfTextDirection.RightToLeft);
         paragraph.AddText("Plain");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordParagraph rightToLeft = Assert.Single(word.Paragraphs, run => run.Text == "RTL");
         Assert.NotNull(rightToLeft._run?.RunProperties?.RightToLeftText);

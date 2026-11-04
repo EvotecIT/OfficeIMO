@@ -28,15 +28,15 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, $"CalendarAndTime{system}{converterFallback}{unsorted}.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 document.DateSystem = system;
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 string[] headers = { "Calendar", "Duration", "Time", "Numeric", "Text" };
-                for (int c = 0; c < headers.Length; c++) sheet.CellValue(1, c + 1, headers[c]);
+                for (int c = 0; c < headers.Length; c++) sheet.Cell(1, c + 1).SetValue(headers[c]);
                 for (int row = 2; row <= 3; row++) {
-                    sheet.CellValue(row, 1, row == 2 ? 1.5d : 59.5d);
-                    sheet.CellValue(row, 2, 1.5d);
-                    sheet.CellValue(row, 3, 0.5d);
-                    sheet.CellValue(row, 4, 1.5d);
-                    sheet.CellValue(row, 5, 1.5d);
+                    sheet.Cell(row, 1).SetValue(row == 2 ? 1.5d : 59.5d);
+                    sheet.Cell(row, 2).SetValue(1.5d);
+                    sheet.Cell(row, 3).SetValue(0.5d);
+                    sheet.Cell(row, 4).SetValue(1.5d);
+                    sheet.Cell(row, 5).SetValue(1.5d);
                 }
                 sheet.ColumnStyleByHeader("Calendar").NumberFormat("yyyy-mm-dd hh:mm:ss");
                 foreach (string header in new[] { "Duration", "Numeric", "Text" }) sheet.ColumnStyleByHeader(header).NumberFormat("[h]:mm");
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 data.Append(rows[0], rows[2], rows[1]);
                 part.Worksheet.Save();
             }
-            var options = new ExcelReadOptions { SheetName = "Data" };
+            var options = new ExcelReaderOptions { SheetName = "Data" };
             if (converterFallback) options.CellValueConverter = _ => ExcelCellValue.NotHandled;
             DateTime first = ExcelDateSystemConverter.FromSerial(1.5d, system);
             DateTime second = ExcelDateSystemConverter.FromSerial(59.5d, system);
@@ -71,15 +71,15 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1.5d, rows[0].Numeric);
                 Assert.Equal(duration.ToString(CultureInfo.InvariantCulture), rows[0].Text);
             }
-            using var dataReader = ExcelDocument.OpenDataReader(path, options);
+            using var dataReader = ExcelDocument.OpenReader(path, options);
             Assert.True(dataReader.Read());
             Assert.Equal(1.5d, dataReader.GetDouble(dataReader.GetOrdinal("Numeric")));
             Assert.Equal(first, dataReader["Calendar"]); Assert.Equal(duration, dataReader["Duration"]); Assert.Equal(time, dataReader["Time"]);
             Assert.True(dataReader.Read()); Assert.Equal(second, dataReader["Calendar"]);
             Assert.False(dataReader.Read());
-            using var mappedReader = ExcelDocument.OpenDataReader(path, options);
+            using var mappedReader = ExcelDocument.OpenReader(path, options);
             Assert.All(mappedReader.RowsAs<CalendarAndTimeRow>(), row => Assert.Equal(1.5d, row.Numeric));
-            using var parallelReader = ExcelDocument.OpenDataReader(path, options);
+            using var parallelReader = ExcelDocument.OpenReader(path, options);
             Assert.All(parallelReader.RowsAsParallel<CalendarAndTimeRow>(new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 2 }), row => Assert.Equal(1.5d, row.Numeric));
         }
 
@@ -91,10 +91,10 @@ namespace OfficeIMO.Tests {
             string[] formats = { "hhmmss", "hhmm", "mmss", "hh mm", "mmhh", "hhmmm", "[mm]:ss", "[ss].00" };
             using (var document = ExcelDocument.Create(path)) {
                 document.DateSystem = system;
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int c = 0; c < formats.Length; c++) {
-                    sheet.CellValue(1, c + 1, "Field" + c);
-                    sheet.CellValue(2, c + 1, 1.5d);
+                    sheet.Cell(1, c + 1).SetValue("Field" + c);
+                    sheet.Cell(2, c + 1).SetValue(1.5d);
                     sheet.ColumnStyleByHeader("Field" + c).NumberFormat(formats[c]);
                 }
                 document.Save();

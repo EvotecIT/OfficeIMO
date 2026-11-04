@@ -19,8 +19,8 @@ public sealed partial class IWorkBoundaryTests {
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages,
             new IWorkReadOptions {
-                MaximumPackageBytes = 40_002,
-                MaximumDecodedImageBytes = 1_622
+                MaxPackageBytes = 40_002,
+                MaxDecodedImageBytes = 1_622
             });
 
         Assert.Null(source.PreferredRasterPreview);
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         string malformedRecord, string diagnosticCode) {
         using MemoryStream package = CreateKeynotePackageWithMalformedGraphRecord(malformedRecord);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

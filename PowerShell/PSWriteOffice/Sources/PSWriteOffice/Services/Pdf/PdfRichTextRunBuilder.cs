@@ -9,15 +9,15 @@ namespace PSWriteOffice.Services.Pdf;
 internal static class PdfRichTextRunBuilder
 {
     internal static void ApplyText(
-        PdfParagraphBuilder builder,
+        PdfParagraph builder,
         string[] text,
         bool bold,
         bool italic,
         bool underline,
         bool strike,
         PdfTextBaseline baseline,
-        PdfColor? color,
-        PdfColor? backgroundColor,
+        global::OfficeIMO.OfficeColor? color,
+        global::OfficeIMO.OfficeColor? backgroundColor,
         double? fontSize,
         PdfStandardFont? font,
         string? linkUri,
@@ -41,7 +41,7 @@ internal static class PdfRichTextRunBuilder
         }
     }
 
-    internal static void ApplyRuns(PdfParagraphBuilder builder, object[] runs)
+    internal static void ApplyRuns(PdfParagraph builder, object[] runs)
     {
         foreach (var run in OfficeTextRunParser.ParseMany(runs))
         {
@@ -49,7 +49,7 @@ internal static class PdfRichTextRunBuilder
         }
     }
 
-    internal static void ApplyRuns(PdfParagraphBuilder builder, object? runs)
+    internal static void ApplyRuns(PdfParagraph builder, object? runs)
     {
         foreach (var run in OfficeTextRunParser.ParseMany(runs))
         {
@@ -78,17 +78,17 @@ internal static class PdfRichTextRunBuilder
     private const string CanvasLinkError =
         "PDF canvas text runs do not support links. Use flowing PdfText for clickable text or remove LinkUri/LinkDestinationName from the canvas run.";
 
-    private static void ApplyRun(PdfParagraphBuilder builder, OfficeTextRunSpec run)
+    private static void ApplyRun(PdfParagraph builder, OfficeTextRunSpec run)
     {
         if (run.IsLineBreak)
         {
-            builder.LineBreak();
+            builder.AddLineBreak();
             return;
         }
 
         if (run.IsTab)
         {
-            builder.Tab(
+            builder.AddTab(
                 GetEnum(run.TabLeader, PdfTabLeaderStyle.None),
                 GetEnum(run.TabAlignment, PdfTabAlignment.Left));
             return;
@@ -124,87 +124,87 @@ internal static class PdfRichTextRunBuilder
             color: PdfCommandUtilities.ParseColor(run.Color),
             italic: run.Italic,
             strike: run.Strike,
-            fontSize: run.FontSize,
+            fontSize: ((double?)(run.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
             baseline: baseline,
-            font: GetNullableEnum<PdfStandardFont>(run.FontName),
+            standardFont: GetNullableEnum<PdfStandardFont>(run.FontName),
             tabLeader: GetEnum(run.TabLeader, PdfTabLeaderStyle.None),
             tabAlignment: GetEnum(run.TabAlignment, PdfTabAlignment.Left),
             backgroundColor: ParseOptionalBackgroundColor(run.BackgroundColor));
     }
 
-    private static void AddText(PdfParagraphBuilder builder, string text, string? linkUri, string? linkDestinationName, string? linkContents, PdfColor? color, bool underline)
+    private static void AddText(PdfParagraph builder, string text, string? linkUri, string? linkDestinationName, string? linkContents, global::OfficeIMO.OfficeColor? color, bool underline)
     {
         if (!string.IsNullOrWhiteSpace(linkUri))
         {
-            builder.Link(text, linkUri!, color, underline, linkContents);
+            builder.AddLink(text, linkUri!, color, underline, linkContents);
             return;
         }
 
         if (!string.IsNullOrWhiteSpace(linkDestinationName))
         {
-            builder.LinkToBookmark(text, linkDestinationName!, color, underline, linkContents);
+            builder.AddBookmarkLink(text, linkDestinationName!, color, underline, linkContents);
             return;
         }
 
-        builder.Text(text);
+        builder.AddText(text);
     }
 
     private static void ApplyStyle(
-        PdfParagraphBuilder builder,
+        PdfParagraph builder,
         bool bold,
         bool italic,
         bool underline,
         bool strike,
         PdfTextBaseline baseline,
-        PdfColor? color,
-        PdfColor? backgroundColor,
+        global::OfficeIMO.OfficeColor? color,
+        global::OfficeIMO.OfficeColor? backgroundColor,
         double? fontSize,
         PdfStandardFont? font)
     {
-        builder.Bold(bold)
-            .Italic(italic)
-            .Underline(underline)
-            .Strike(strike)
-            .Baseline(baseline);
+        builder.RunDefaults.Bold = bold;
+        builder.RunDefaults.Italic = italic;
+        builder.RunDefaults.UnderlineStyle = (underline) ? global::OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : global::OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+        builder.RunDefaults.StrikeStyle = (strike) ? global::OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : global::OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+        builder.RunDefaults.Baseline = baseline;
 
         if (color.HasValue)
         {
-            builder.Color(color.Value);
+            builder.RunDefaults.Color = color.Value;
         }
         else
         {
-            builder.ResetColor();
+            builder.RunDefaults.Color = null;
         }
 
         if (backgroundColor.HasValue)
         {
-            builder.BackgroundColor(backgroundColor.Value);
+            builder.RunDefaults.BackgroundColor = backgroundColor.Value;
         }
         else
         {
-            builder.ResetBackgroundColor();
+            builder.RunDefaults.BackgroundColor = null;
         }
 
         if (fontSize.HasValue)
         {
-            builder.FontSize(fontSize.Value);
+            builder.RunDefaults.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize.Value);
         }
         else
         {
-            builder.ResetFontSize();
+            builder.RunDefaults.FontSize = null;
         }
 
         if (font.HasValue)
         {
-            builder.Font(font.Value);
+            builder.RunDefaults.StandardFont = font.Value; builder.RunDefaults.FontFamily = null;
         }
         else
         {
-            builder.ResetFont();
+            builder.RunDefaults.StandardFont = null; builder.RunDefaults.FontFamily = null;
         }
     }
 
-    private static void ResetStyle(PdfParagraphBuilder builder)
+    private static void ResetStyle(PdfParagraph builder)
     {
         ApplyStyle(builder, bold: false, italic: false, underline: false, strike: false, PdfTextBaseline.Normal, null, null, null, null);
     }
@@ -224,6 +224,6 @@ internal static class PdfRichTextRunBuilder
         return (TEnum)Enum.Parse(typeof(TEnum), value!, ignoreCase: true);
     }
 
-    private static PdfColor? ParseOptionalBackgroundColor(string? color)
+    private static global::OfficeIMO.OfficeColor? ParseOptionalBackgroundColor(string? color)
         => OfficeColorUtilities.IsNone(color) ? null : PdfCommandUtilities.ParseColor(color);
 }

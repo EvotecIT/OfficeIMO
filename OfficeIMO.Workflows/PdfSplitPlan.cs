@@ -64,7 +64,7 @@ public sealed class PdfSplitPlan {
             if (part.FirstSourcePage != next || part.PageCount < 1 ||
                 (long)part.FirstSourcePage + part.PageCount - 1 > pageCount)
                 throw new ArgumentException("Split parts must cover every source page exactly once in order.");
-            if (string.IsNullOrWhiteSpace(part.Name) || part.Name != Path.GetFileName(part.Name) || !part.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
+            if ((part.Name == null || string.IsNullOrWhiteSpace(part.Name)) || part.Name != Path.GetFileName(part.Name) || !part.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
                 part.Name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || !names.Add(part.Name))
                 throw new ArgumentException("Split part names must be unique PDF file names.");
             next = (long)part.FirstSourcePage + part.PageCount;
@@ -74,10 +74,10 @@ public sealed class PdfSplitPlan {
     }
 
     private static string SafeTitle(string? title) {
-        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
+        if ((title == null || string.IsNullOrWhiteSpace(title))) return string.Empty;
         var invalid = new HashSet<char>(Path.GetInvalidFileNameChars().Concat(['/', '\\', ':', '*', '?', '"', '<', '>', '|']));
         string cleaned = new string(title.Trim().Select(character => invalid.Contains(character) || char.IsControl(character) ? ' ' : character).ToArray());
-        cleaned = string.Join(" ", cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim('.', ' ');
+        cleaned = string.Join(" ", cleaned.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)).Trim('.', ' ');
         return OfficeIMO.Core.Internal.OfficePortableFileName.SanitizeBaseName(cleaned, 60);
     }
 }

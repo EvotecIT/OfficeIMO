@@ -13,28 +13,27 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Xlsb_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Text");
-            sheet.CellValue(1, 2, "Integer");
-            sheet.CellValue(1, 3, "Decimal");
-            sheet.CellValue(1, 4, "Boolean");
-            sheet.CellValue(2, 1, "Zażółć gęślą");
-            sheet.CellValue(2, 2, 42);
-            sheet.CellValue(2, 3, 12.5m);
-            sheet.CellValue(2, 4, true);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Text");
+            sheet.Cell(1, 2).SetValue("Integer");
+            sheet.Cell(1, 3).SetValue("Decimal");
+            sheet.Cell(1, 4).SetValue("Boolean");
+            sheet.Cell(2, 1).SetValue("Zażółć gęślą");
+            sheet.Cell(2, 2).SetValue(42);
+            sheet.Cell(2, 3).SetValue(12.5m);
+            sheet.Cell(2, 4).SetValue(true);
             for (int row = 3; row <= 256; row++) {
-                sheet.CellValue(row, 1, "Row " + row);
-                sheet.CellValue(row, 2, row);
-                sheet.CellValue(row, 3, row + 0.5m);
-                sheet.CellValue(row, 4, (row & 1) == 0);
+                sheet.Cell(row, 1).SetValue("Row " + row);
+                sheet.Cell(row, 2).SetValue(row);
+                sheet.Cell(row, 3).SetValue(row + 0.5m);
+                sheet.Cell(row, 4).SetValue((row & 1) == 0);
             }
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb,
-                new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = sharedStrings });
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal(4, reader.FieldCount);
             Assert.Equal("Text", reader.GetName(0));
             Assert.Equal("Integer", reader.GetName(1));
@@ -72,11 +71,11 @@ namespace OfficeIMO.Tests {
             document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
             Assert.True(document.HasDeferredDirectDataSetImport);
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             Assert.True(document.HasDeferredDirectDataSetImport);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal(columnCount, reader.FieldCount);
             Assert.Equal("C1", reader.GetName(0));
             Assert.Equal("C1025", reader.GetName(columnCount - 1));
@@ -90,13 +89,13 @@ namespace OfficeIMO.Tests {
         public void Xlsb_DirectTabularSave_PreservesCellValueDateSemantics() {
             DateTime expected = new DateTime(2026, 8, 10, 14, 30, 0, DateTimeKind.Unspecified);
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "When");
-            sheet.CellValue(2, 1, expected);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("When");
+            sheet.Cell(2, 1).SetValue(expected);
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetDateTime(0));
             Assert.False(reader.Read());
@@ -106,9 +105,9 @@ namespace OfficeIMO.Tests {
         public async Task Xlsb_DirectTabularSave_CoversSyncAndAsyncStreamsAndMutableFileState() {
             static ExcelDocument CreateDocument() {
                 ExcelDocument document = ExcelDocument.Create();
-                ExcelSheet sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                for (int row = 2; row <= 256; row++) sheet.CellValue(row, 1, row - 1);
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Value");
+                for (int row = 2; row <= 256; row++) sheet.Cell(row, 1).SetValue(row - 1);
                 return document;
             }
 
@@ -134,7 +133,7 @@ namespace OfficeIMO.Tests {
                 AssertWorkbookOpensViaExcelComWhenAvailable(
                     path,
                     "The directly generated XLSB workbook failed to open in desktop Excel.");
-                fileDocument.Sheets[0].CellValue(2, 1, 2);
+                fileDocument.Sheets[0].Cell(2, 1).SetValue(2);
                 fileDocument.Save();
                 AssertSingleValue(File.ReadAllBytes(path), 2);
             } finally {
@@ -145,9 +144,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Xlsb_DirectTabularSave_HonorsPreCanceledAsyncStreamWrite() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(1);
             using var destination = new MemoryStream();
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
@@ -207,10 +206,10 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetString(0));
             Assert.False(reader.Read());
@@ -283,14 +282,14 @@ namespace OfficeIMO.Tests {
             document.Save(destination, ExcelFileFormat.Xlsb);
 
             Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(destination.ToArray());
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(destination.ToArray());
             Assert.True(reader.Read());
             Assert.Equal(expected.ToString(), reader.GetString(0));
             Assert.False(reader.Read());
         }
 
         private static void AssertSingleValue(byte[] workbook, int expected) {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal("Value", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetInt32(0));

@@ -11,11 +11,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesRelativeTableFormulaOffsetsAtFirstDataRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue("Value");
-            sheet.CellAt(1, 2).SetValue("Result");
-            sheet.CellAt(2, 1).SetValue(10);
-            sheet.CellAt(3, 1).SetValue(20);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(1, 2).SetValue("Result");
+            sheet.Cell(2, 1).SetValue(10);
+            sheet.Cell(3, 1).SetValue(20);
             sheet.AddTable(
                 "A1:B3",
                 hasHeader: true,
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsNamedSheetViewFilters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Xnsv.NsvFilter filter = AddNamedSheetViewFilter(sheet, "A5:C10");
 
             sheet.InsertRows(5, 2);
@@ -57,18 +57,18 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsNamedSheetViewFilters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetValue("Keep");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Keep");
             Xnsv.NsvFilter filter = AddNamedSheetViewFilter(
                 sheet,
-                $"A{A1.MaxRows}:C{A1.MaxRows}");
+                $"A{ExcelA1.MaxRows}:C{ExcelA1.MaxRows}");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}:C{A1.MaxRows}", filter.Ref!.Value);
-            Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal($"A{ExcelA1.MaxRows}:C{ExcelA1.MaxRows}", filter.Ref!.Value);
+            Assert.Equal("Keep", sheet.Cell(1, 1).GetValue<string>());
         }
 
         [Fact]
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("header row", exception.Message);
             Assert.Equal("PivotSource", source.Name!.Value);
-            Assert.Equal("Region", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Region", sheet.Cell(1, 1).GetValue<string>());
         }
 
         private static Xnsv.NsvFilter AddNamedSheetViewFilter(

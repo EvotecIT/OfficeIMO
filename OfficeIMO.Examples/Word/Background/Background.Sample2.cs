@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
 
             using var stream = File.OpenRead(imagePath);
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Background.SetImage(stream, "BackgroundImage.png", 600, 800);
+                document.Background.SetImage(stream, "BackgroundImage.png", OfficeLength.Pixels(600), OfficeLength.Pixels(800));
                 document.AddParagraph("Advanced content");
                 document.Save();
                 if (openWord) document.OpenInApplication();

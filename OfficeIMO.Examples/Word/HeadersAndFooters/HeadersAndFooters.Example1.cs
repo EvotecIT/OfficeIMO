@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class HeadersAndFooters {
@@ -12,54 +12,20 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with Headers and Footers");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default.docx");
 
-            WordHeaders RequireHeaders(WordHeaders? headers, string description) {
-                if (headers == null) {
-                    throw new InvalidOperationException($"{description} are not available.");
-                }
-
-                return headers;
-            }
-
-            WordHeader RequireHeader(WordHeader? header, string description) {
-                if (header == null) {
-                    throw new InvalidOperationException($"{description} is not available.");
-                }
-
-                return header;
-            }
-
-            WordFooters RequireFooters(WordFooters? footers, string description) {
-                if (footers == null) {
-                    throw new InvalidOperationException($"{description} are not available.");
-                }
-
-                return footers;
-            }
-
-            WordFooter RequireFooter(WordFooter? footer, string description) {
-                if (footer == null) {
-                    throw new InvalidOperationException($"{description} is not available.");
-                }
-
-                return footer;
-            }
-
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
-                document.DifferentOddAndEvenPages = true;
-                document.DifferentFirstPage = true;
+                document.PageSetup.DifferentOddAndEvenPages = true;
+                document.PageSetup.DifferentFirstPage = true;
 
-                var headers = RequireHeaders(document.Header, "Document headers");
-                var defaultHeader = RequireHeader(headers.Default, "Default header");
-                var evenHeader = RequireHeader(headers.Even, "Even header");
-                var firstHeader = RequireHeader(headers.First, "First header");
+                var setup = document.PageSetup;
+                var defaultHeader = setup.Header;
+                var evenHeader = setup.EvenPageHeader;
+                var firstHeader = setup.FirstPageHeader;
 
                 defaultHeader.AddParagraph().SetColor(Color.Red).SetText("Test Header");
 
-                var footers = RequireFooters(document.Footer, "Document footers");
-                var defaultFooter = RequireFooter(footers.Default, "Default footer");
-                var evenFooter = RequireFooter(footers.Even, "Even footer");
-                var firstFooter = RequireFooter(footers.First, "First footer");
+                var defaultFooter = setup.Footer;
+                var evenFooter = setup.EvenPageFooter;
+                var firstFooter = setup.FirstPageFooter;
 
                 defaultFooter.AddParagraph().SetColor(Color.Blue).SetText("Test Footer");
 
@@ -79,10 +45,10 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                var headers = RequireHeaders(document.Header, "Document headers");
-                var defaultHeader = RequireHeader(headers.Default, "Default header");
-                var evenHeader = RequireHeader(headers.Even, "Even header");
-                var firstHeader = RequireHeader(headers.First, "First header");
+                var setup = document.PageSetup;
+                var defaultHeader = setup.Header;
+                var evenHeader = setup.EvenPageHeader;
+                var firstHeader = setup.FirstPageHeader;
 
                 Console.WriteLine("Header Default Count: " + defaultHeader.Paragraphs.Count);
                 Console.WriteLine("Header Even Count: " + evenHeader.Paragraphs.Count);
@@ -90,10 +56,9 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Header text: " + defaultHeader.Paragraphs[0].Text);
 
-                var footers = RequireFooters(document.Footer, "Document footers");
-                var defaultFooter = RequireFooter(footers.Default, "Default footer");
-                var evenFooter = RequireFooter(footers.Even, "Even footer");
-                var firstFooter = RequireFooter(footers.First, "First footer");
+                var defaultFooter = setup.Footer;
+                var evenFooter = setup.EvenPageFooter;
+                var firstFooter = setup.FirstPageFooter;
 
                 Console.WriteLine("Footer Default Count: " + defaultFooter.Paragraphs.Count);
                 Console.WriteLine("Footer Even Count: " + evenFooter.Paragraphs.Count);

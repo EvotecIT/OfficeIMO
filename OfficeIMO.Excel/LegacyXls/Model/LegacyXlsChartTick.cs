@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from a chart Tick record.
     /// </summary>
-    public sealed class LegacyXlsChartTick {
+    internal sealed class LegacyXlsChartTick {
         internal LegacyXlsChartTick(
             byte majorTickLocation,
             string majorTickLocationName,

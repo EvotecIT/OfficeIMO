@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_QueryInspection_BoundsUnloadedNativeConnectionMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             ConnectionsPart connectionsPart = document.WorkbookPartRoot.AddNewPart<ConnectionsPart>();
             byte[] payload = Encoding.UTF8.GetBytes(
                 "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
@@ -32,14 +32,14 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_RangeTransfer_RenumbersSourceInCellImageBeforeSnapshot(bool move) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Discarded destination");
             sheet.SetInCellImage(1, 2, TinyPng, altText: "Transferred source");
 
             if (move) {
-                sheet.MoveRange("B1", "A1");
+                sheet.Range("B1").MoveTo("A1");
             } else {
-                sheet.CopyRange("B1", "A1");
+                sheet.Range("B1").CopyTo("A1");
             }
 
             ExcelInCellImage[] images = sheet.GetInCellImages()
@@ -56,9 +56,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableAndQuerySchema_RejectInvalidXmlHeadersBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Original");
-            sheet.CellValue(2, 1, "Keep");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Original");
+            sheet.Cell(2, 1).SetValue("Keep");
             sheet.AddTable("A1:A2", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             string originalXml = table.OuterXml;
@@ -67,8 +67,8 @@ namespace OfficeIMO.Tests {
                 sheet.SetTableSchema("DataTable", new[] { "Bad\u0001Header" }));
             Assert.Equal("columnNames", tableException.ParamName);
             Assert.Equal(originalXml, table.OuterXml);
-            Assert.Equal("Original", sheet.CellAt(1, 1).GetValue<string>());
-            Assert.Equal("Keep", sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Original", sheet.Cell(1, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(2, 1).GetValue<string>());
 
             int partCount = document.WorkbookPartRoot.Parts.Count();
             ArgumentException queryException = Assert.Throws<ArgumentException>(() =>

@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains(validation.Diagnostics, finding =>
-                finding.Code == "SignatureResourceLimitExceeded" &&
+                finding.Code == "signature-resource-limit-exceeded" &&
                 finding.Message.Contains("aggregate validation-snapshot retention limit", StringComparison.OrdinalIgnoreCase));
         }
 

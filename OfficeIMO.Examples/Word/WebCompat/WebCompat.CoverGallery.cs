@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System;
 using OfficeIMO.Word;
 
@@ -15,15 +17,15 @@ namespace OfficeIMO.Examples.Word {
                 string filePath = System.IO.Path.Combine(folderPath, $"WebCompat-Cover-{tpl}.docx");
                 Console.WriteLine("[*] Generating: " + filePath);
                 using var doc = WordDocument.Create(filePath);
-                doc.BuiltinDocumentProperties.Title = $"Cover: {tpl}";
+                doc.Properties.Title = $"Cover: {tpl}";
                 doc.ApplicationProperties.Company = "OfficeIMO";
 
                 doc.AddCoverPage(tpl);
                 doc.AddPageBreak();
                 doc.AddParagraph("1. Executive Summary");
                 var t = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-                t.WidthType = WordTableWidthUnit.Pct; t.Width = 5000;
-                t.ColumnWidthType = WordTableWidthUnit.Pct; t.ColumnWidth = new() { 1500, 3500 };
+                t.Width = WordTableWidth.Percent(100);
+                t.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(30), WordTableWidth.Percent(70) };
                 t.Rows[0].Cells[0].AddParagraph("Name", true);
                 t.Rows[0].Cells[1].AddParagraph("Value", true);
                 t.Rows[1].Cells[0].AddParagraph("Example", true);
@@ -38,7 +40,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "WebCompat-Cover-Confidential.docx");
             Console.WriteLine("[*] Generating: " + filePath);
             using var doc = WordDocument.Create(filePath);
-            doc.BuiltinDocumentProperties.Title = "Confidential Report";
+            doc.Properties.Title = "Confidential Report";
             doc.AddCoverPage(WordCoverPageTemplate.IonDark);
 
             // Optional: add text watermark so we can observe how Online renders it
@@ -47,8 +49,8 @@ namespace OfficeIMO.Examples.Word {
             doc.AddPageBreak();
             doc.AddParagraph("1. Overview");
             var t = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-            t.ColumnWidthType = WordTableWidthUnit.Pct; t.ColumnWidth = new() { 500, 4500 };
-            t.WidthType = WordTableWidthUnit.Pct; t.Width = 5000;
+            t.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(10), WordTableWidth.Percent(90) };
+            t.Width = WordTableWidth.Percent(100);
             t.Rows[0].Cells[0].AddParagraph("10%", true);
             t.Rows[0].Cells[1].AddParagraph("90%", true);
             t.Rows[1].Cells[0].AddParagraph("10%", true);

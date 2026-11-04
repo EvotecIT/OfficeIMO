@@ -23,7 +23,7 @@ public static partial class OfficeVisualPlacementExtensions {
         if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
         conversion = artifact.ToOfficeVisual(options);
         if (options?.WidthPoints == null && options?.HeightPoints == null) {
-            double width = paragraph.GetContentWidthPoints();
+            double width = paragraph.GetContentWidth().ToPoints();
             if (conversion.WidthPoints > width) conversion = conversion.WithSize(width);
         }
         return paragraph.AddVisualArtifact(conversion, wrapping);
@@ -37,13 +37,7 @@ public static partial class OfficeVisualPlacementExtensions {
         if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
-        WordImage image = paragraph.InsertImage(
-            stream,
-            ResolveFileName(conversion.Id, conversion.PlacementFileExtension),
-            conversion.WidthPoints / PointsPerOfficePixel,
-            conversion.HeightPoints / PointsPerOfficePixel,
-            wrapping,
-            conversion.AlternativeText);
+        WordImage image = paragraph.AddImage(stream, ResolveFileName(conversion.Id, conversion.PlacementFileExtension), OfficeIMO.OfficeLength.Pixels(conversion.WidthPoints / PointsPerOfficePixel), OfficeIMO.OfficeLength.Pixels(conversion.HeightPoints / PointsPerOfficePixel), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, AltText = conversion.AlternativeText });
         if (!conversion.IsDecorative) image.Title = ResolveTitle(conversion);
         return image;
     }
@@ -56,10 +50,10 @@ public static partial class OfficeVisualPlacementExtensions {
         VisualArtifact artifact,
         out OfficeVisualConversionResult conversion,
         OfficeVisualConversionOptions? options = null,
-        int offsetXPixels = 0,
-        int offsetYPixels = 0) {
+        OfficeLength offsetX = default,
+        OfficeLength offsetY = default) {
         conversion = artifact.ToOfficeVisual(options);
-        return sheet.AddVisualArtifact(row, column, conversion, offsetXPixels, offsetYPixels);
+        return sheet.AddVisualArtifact(row, column, conversion, offsetX, offsetY);
     }
 
     /// <summary>Inserts a converted ChartForgeX artifact using its selected SVG or PNG payload anchored to an Excel cell.</summary>
@@ -68,28 +62,26 @@ public static partial class OfficeVisualPlacementExtensions {
         int row,
         int column,
         OfficeVisualConversionResult conversion,
-        int offsetXPixels = 0,
-        int offsetYPixels = 0) {
+        OfficeLength offsetX = default,
+        OfficeLength offsetY = default) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        ExcelImage image = sheet.AddImage(
-            row,
-            column,
-            conversion.GetPlacementBytes(),
-            conversion.PlacementMediaType,
-            ToPixels(conversion.WidthPoints),
-            ToPixels(conversion.HeightPoints),
-            offsetXPixels,
-            offsetYPixels,
-            name: null,
-            altText: conversion.AlternativeText,
-            lockAspectRatio: true);
+        ExcelImage image = sheet.AddImage(row, column, conversion.GetPlacementBytes(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = conversion.PlacementMediaType,
+            Width = OfficeLength.Points(conversion.WidthPoints),
+            Height = OfficeLength.Points(conversion.HeightPoints),
+            OffsetX = offsetX,
+            OffsetY = offsetY,
+            Name = null,
+            Description = conversion.AlternativeText,
+            LockAspectRatio = true
+        });
         if (!conversion.IsDecorative) image.Title = ResolveTitle(conversion);
         return image;
     }
 
     /// <summary>Renders and inserts a ChartForgeX artifact on a PowerPoint slide, returning its conversion and fidelity report.</summary>
-    public static PowerPointPicture AddVisualArtifact(
+    public static PowerPointImage AddVisualArtifact(
         this PowerPointSlide slide,
         VisualArtifact artifact,
         double leftPoints,
@@ -101,7 +93,7 @@ public static partial class OfficeVisualPlacementExtensions {
     }
 
     /// <summary>Inserts a converted ChartForgeX artifact using its selected SVG or PNG payload on a PowerPoint slide.</summary>
-    public static PowerPointPicture AddVisualArtifact(
+    public static PowerPointImage AddVisualArtifact(
         this PowerPointSlide slide,
         OfficeVisualConversionResult conversion,
         double leftPoints = 0D,
@@ -111,18 +103,18 @@ public static partial class OfficeVisualPlacementExtensions {
         ValidateFinite(leftPoints, nameof(leftPoints));
         ValidateFinite(topPoints, nameof(topPoints));
         using var stream = new MemoryStream(conversion.GetPlacementBytes(), writable: false);
-        PowerPointPicture picture = slide.AddPicture(
+        PowerPointImage picture = slide.AddImage(
             stream,
             conversion.PlacementFormat == OfficeVisualMediaFormat.Svg ? OfficeImageFormat.Svg : OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(leftPoints),
-            PowerPointUnits.FromPoints(topPoints),
-            PowerPointUnits.FromPoints(conversion.WidthPoints),
-            PowerPointUnits.FromPoints(conversion.HeightPoints));
+            global::OfficeIMO.OfficeLength.Points(leftPoints),
+            global::OfficeIMO.OfficeLength.Points(topPoints),
+            global::OfficeIMO.OfficeLength.Points(conversion.WidthPoints),
+            global::OfficeIMO.OfficeLength.Points(conversion.HeightPoints));
         if (conversion.IsDecorative) {
             picture.Decorative = true;
         } else {
             picture.Title = ResolveTitle(conversion);
-            picture.Description = conversion.AlternativeText;
+            picture.AltText = conversion.AlternativeText;
         }
         return picture;
     }
@@ -133,7 +125,7 @@ public static partial class OfficeVisualPlacementExtensions {
         VisualArtifact artifact,
         out OfficeVisualConversionResult conversion,
         OfficeVisualConversionOptions? options = null,
-        PdfAlign? align = null,
+        OfficeAlignment? align = null,
         double? spacingBefore = null,
         double? spacingAfter = null,
         PdfDrawingStyle? style = null,
@@ -147,7 +139,7 @@ public static partial class OfficeVisualPlacementExtensions {
     public static PdfContentBuilder AddVisualArtifact(
         this PdfContentBuilder content,
         OfficeVisualConversionResult conversion,
-        PdfAlign? align = null,
+        OfficeAlignment? align = null,
         double? spacingBefore = null,
         double? spacingAfter = null,
         PdfDrawingStyle? style = null,
@@ -159,8 +151,8 @@ public static partial class OfficeVisualPlacementExtensions {
         content.Item(item => item.Drawing(
             OfficeVisualPdfDrawingResolver.Resolve(conversion),
             align,
-            spacingBefore,
-            spacingAfter,
+            ((double?)(spacingBefore) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
+            ((double?)(spacingAfter) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
             effectiveStyle,
             linkUri,
             linkContents));
@@ -173,7 +165,7 @@ public static partial class OfficeVisualPlacementExtensions {
         VisualArtifact artifact,
         out OfficeVisualConversionResult conversion,
         OfficeVisualConversionOptions? options = null,
-        PdfAlign? align = null,
+        OfficeAlignment? align = null,
         double? spacingBefore = null,
         double? spacingAfter = null,
         PdfDrawingStyle? style = null,
@@ -187,7 +179,7 @@ public static partial class OfficeVisualPlacementExtensions {
     public static PdfDocument AddVisualArtifact(
         this PdfDocument document,
         OfficeVisualConversionResult conversion,
-        PdfAlign? align = null,
+        OfficeAlignment? align = null,
         double? spacingBefore = null,
         double? spacingAfter = null,
         PdfDrawingStyle? style = null,
@@ -199,14 +191,12 @@ public static partial class OfficeVisualPlacementExtensions {
         return document.Compose(compose => compose.Content(item => item.Drawing(
             OfficeVisualPdfDrawingResolver.Resolve(conversion),
             align,
-            spacingBefore,
-            spacingAfter,
+            ((double?)(spacingBefore) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null),
+            ((double?)(spacingAfter) is double physicalLength4 ? global::OfficeIMO.OfficeLength.Points(physicalLength4) : (global::OfficeIMO.OfficeLength?)null),
             effectiveStyle,
             linkUri,
             linkContents)));
     }
-
-    private static int ToPixels(double points) => Math.Max(1, (int)Math.Round(points / PointsPerOfficePixel, MidpointRounding.AwayFromZero));
 
     private static string ResolveTitle(OfficeVisualConversionResult conversion) =>
         string.IsNullOrWhiteSpace(conversion.Title) ? conversion.Id : conversion.Title;

@@ -11,13 +11,14 @@ Loaded diagrams use the same page, shape, connector, data, and fluent APIs as ne
 
 ```csharp
 using OfficeIMO.Drawing;
+using OfficeIMO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 VisioDocument.Load("operations.vsdx")
     .AsFluent()
-    .ExistingPage("Operations", page => page
+    .GetPage("Operations", page => page
         .ShapesWithData("Owner", "Ops", selection => selection
             .Fill(Color.LightBlue)
             .ShapeData(
@@ -43,7 +44,7 @@ var page = document.AddPage("Architecture");
 page.AddLayer("Infrastructure");
 page.AddLayer("Annotations").Print = false;
 
-var server = page.AddProcess(2, 5, 2, 1, "API server");
+var server = page.AddProcess(OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API server");
 server.SetShapeData(
     "Owner",
     "Platform",

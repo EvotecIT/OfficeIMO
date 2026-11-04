@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
@@ -8,24 +9,25 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <summary>Sets text on an existing PowerPoint text box.</summary>
 /// <para>
 /// Accepts either a <see cref="PowerPointTextBox"/> object or a <see cref="PowerPointShapeInfo"/> record
-/// returned by <c>Find-OfficePowerPointShape</c> or <c>Get-OfficePowerPointShape</c>. This is the direct
+/// returned by <c>Get-OfficePowerPointShape</c>. This is the direct
 /// object-editing counterpart to the creation DSL: locate the text box in an existing deck, replace its
 /// contents, then save or close the presentation.
 /// </para>
 /// <example>
 ///   <summary>Find a text box and replace its text.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Find-OfficePowerPointShape -Presentation $ppt -Text 'Draft' -Kind TextBox |
+///   <code>Get-OfficePowerPointShape -Document $ppt -Text 'Draft' -Kind TextBox |
 ///     Set-OfficePowerPointShapeText -Text 'Ready'</code>
-///   <para>Accepts shape metadata returned by <c>Find-OfficePowerPointShape</c> or <c>Get-OfficePowerPointShape</c>.</para>
+///   <para>Accepts shape metadata returned by <c>Get-OfficePowerPointShape</c>.</para>
 /// </example>
 /// <example>
 ///   <summary>Update a status banner in a loaded deck.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$ppt = Get-OfficePowerPoint -Path .\Release.pptx
-/// Find-OfficePowerPointShape -Presentation $ppt -Text 'Status marker' -Kind TextBox |
+///   <code>$ppt = Open-OfficePowerPoint -Path .\Release.pptx
+/// Get-OfficePowerPointShape -Document $ppt -Text 'Status marker' -Kind TextBox |
 ///     Set-OfficePowerPointShapeText -Text 'Status marker: Ready for launch'
-/// $ppt | Close-OfficePowerPoint -Save</code>
+/// Save-OfficePowerPoint -Document $ppt
+/// Close-OfficePowerPoint -Document $ppt</code>
 ///   <para>Searches the existing deck, edits the matched text box, and saves the presentation.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficePowerPointShapeText", DefaultParameterSetName = "Text")]
@@ -33,7 +35,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 public sealed class SetOfficePowerPointShapeTextCommand : PSCmdlet
 {
     private const string ParameterSetText = "Text";
-    private const string ParameterSetRun = "Run";
+    private const string ParameterSetContent = "Content";
 
     /// <summary>PowerPoint text box or shape-info record for a text box to update.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
@@ -44,10 +46,9 @@ public sealed class SetOfficePowerPointShapeTextCommand : PSCmdlet
     [AllowNull]
     public string? Text { get; set; }
 
-    /// <summary>Replacement rich text runs. Each run can be created with TextRun/PowerPointTextRun or provided as a hashtable/object.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetRun)]
-    [Alias("Runs")]
-    public object[]? Run { get; set; }
+    /// <summary>Replacement rich paragraphs and runs, using PowerPointParagraph and PowerPointText.</summary>
+    [Parameter(Mandatory = true, Position = 1, ParameterSetName = ParameterSetContent), ValidateNotNull]
+    public ScriptBlock? Content { get; set; }
 
     /// <summary>Emit the updated text box so additional OfficeIMO operations can continue.</summary>
     [Parameter]
@@ -57,9 +58,13 @@ public sealed class SetOfficePowerPointShapeTextCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var textBox = ResolveTextBox(InputObject);
-        if (ParameterSetName == ParameterSetRun)
+        if (ParameterSetName == ParameterSetContent)
         {
-            PowerPointTextRunService.ApplyRuns(textBox, Run!);
+            var document = textBox.OwnerSlide?.OwnerDocument ?? throw new PSArgumentException("The text box has no owning document.", nameof(InputObject));
+            textBox.Text = string.Empty;
+            textBox.Paragraphs[0].ClearInlineContent();
+            using (OfficeDocumentContext.Push(document))
+            using (OfficeDocumentContext.Push(new PowerPointTextScope(document, textBox))) Content!.Invoke();
         }
         else
         {

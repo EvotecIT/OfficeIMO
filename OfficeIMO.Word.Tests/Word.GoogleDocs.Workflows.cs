@@ -272,8 +272,7 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = WordDocument.Create(filePath);
                 document.AddParagraph("Replacement");
-                document.AddHeadersAndFooters();
-                document.Sections[0].Header.Default!.AddParagraph("Selected tab header");
+                document.Sections[0].PageSetup.Header.AddParagraph("Selected tab header");
                 var bodies = new List<string>();
                 const string state = "{\"documentId\":\"doc-tab-header\",\"title\":\"Tabbed\",\"revisionId\":\"revision-1\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"tab-a\",\"title\":\"One\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":0,\"endIndex\":1,\"sectionBreak\":{}},{\"startIndex\":1,\"endIndex\":5,\"paragraph\":{}}]}}},{\"tabProperties\":{\"tabId\":\"tab-b\",\"title\":\"Two\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":0,\"endIndex\":1,\"sectionBreak\":{}},{\"startIndex\":1,\"endIndex\":5,\"paragraph\":{}}]}}}]}";
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
@@ -321,8 +320,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("First section");
                 WordSection secondSection = document.AddSection();
                 secondSection.AddParagraph("Second section");
-                secondSection.AddHeadersAndFooters();
-                secondSection.Header.Default!.AddParagraph("Second section header");
+                secondSection.PageSetup.Header.AddParagraph("Second section header");
 
                 var bodies = new List<string>();
                 const string state = "{\"documentId\":\"doc-later-header\",\"title\":\"Later header\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":10,\"paragraph\":{}},{\"startIndex\":10,\"endIndex\":11,\"sectionBreak\":{}},{\"startIndex\":11,\"endIndex\":30,\"paragraph\":{}}]}}";
@@ -376,19 +374,19 @@ namespace OfficeIMO.Tests {
 
             GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync("doc-import", session, new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.Native });
             using (imported.Document) {
-                Assert.Equal("Import", imported.Document.BuiltinDocumentProperties.Title);
-                WordDocumentSnapshot snapshot = imported.Document.CreateInspectionSnapshot();
-                string[] text = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>().Select(paragraph => paragraph.Text).ToArray();
+                Assert.Equal("Import", imported.Document.Properties.Title);
+                WordDocumentInfo snapshot = imported.Document.Inspect();
+                string[] text = snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>().Select(paragraph => paragraph.Text).ToArray();
                 Assert.Contains("Tab One", text);
                 Assert.Contains("Alpha", text);
                 Assert.Contains("Tab Two", text);
                 Assert.Contains("Beta", text);
-                WordParagraphSnapshot alpha = snapshot.Sections.SelectMany(section => section.Elements)
-                    .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Alpha");
+                WordParagraphInfo alpha = snapshot.Sections.SelectMany(section => section.Elements)
+                    .OfType<WordParagraphInfo>().Single(paragraph => paragraph.Text == "Alpha");
                 Assert.Equal(nameof(WordCapsStyle.SmallCaps), Assert.Single(alpha.Runs).CapsStyle);
                 Assert.Equal(nameof(WordVerticalTextPosition.Superscript), Assert.Single(alpha.Runs).VerticalTextAlignment);
-                WordParagraphSnapshot beta = snapshot.Sections.SelectMany(section => section.Elements)
-                    .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Beta");
+                WordParagraphInfo beta = snapshot.Sections.SelectMany(section => section.Elements)
+                    .OfType<WordParagraphInfo>().Single(paragraph => paragraph.Text == "Beta");
                 Assert.Equal(nameof(WordVerticalTextPosition.Subscript), Assert.Single(beta.Runs).VerticalTextAlignment);
                 Assert.Equal("revision-7", imported.Source.RevisionId);
                 Assert.Equal(7, imported.Source.DriveVersion);
@@ -526,10 +524,10 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = WordDocument.Create(filePath);
                 WordParagraph paragraph = document.AddParagraph("Styled");
-                paragraph.IndentationBeforePoints = 12.75D;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(12.75D);
                 using var imageStream = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
-                paragraph.AddImage(imageStream, "pixel.png", 10, 10);
-                Assert.Single(document.Images).Width = 15.5D;
+                paragraph.AddImage(imageStream, "pixel.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
+                Assert.Single(document.Images).Width = OfficeIMO.OfficeLength.Pixels(15.5D);
                 CultureInfo previousCulture = CultureInfo.CurrentCulture;
                 try {
                     CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
@@ -560,7 +558,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph imageParagraph = document.AddParagraph("Image ");
                 byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
                 using (var imageStream = new MemoryStream(png)) {
-                    imageParagraph.AddImage(imageStream, "pixel.png", 10, 10);
+                    imageParagraph.AddImage(imageStream, "pixel.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
                 }
                 WordImage image = Assert.Single(document.Images);
 
@@ -579,11 +577,11 @@ namespace OfficeIMO.Tests {
                 const string replyPath = "comment/0/reply/0";
 
                 body.PageBreakBefore = true;
-                body.IndentationBeforePoints = 18;
+                body.IndentationBefore = global::OfficeIMO.OfficeLength.Points(18D);
                 GoogleDocsSyncCheckpoint layoutChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(baseline.ContentHashes[bodyPath], layoutChanged.ContentHashes[bodyPath]);
 
-                image.Width = 20;
+                image.Width = OfficeIMO.OfficeLength.Pixels(20);
                 GoogleDocsSyncCheckpoint imageChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(layoutChanged.ContentHashes[imagePath], imageChanged.ContentHashes[imagePath]);
 

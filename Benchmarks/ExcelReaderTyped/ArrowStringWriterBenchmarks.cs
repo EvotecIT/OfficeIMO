@@ -73,8 +73,9 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMOPublicRowOrchestration() {
             _output.SetLength(0);
-            ExcelDocument.WriteRows(_output, Enumerable.Range(0, Rows), _headers, WriteOfficeIMORow,
-                new ExcelTabularWriteOptions { SheetName = "Sheet1", UseSharedStrings = false });
+            using (var writer = ExcelDocument.CreateWriter(_output, new ExcelWriterOptions(), leaveOpen: true)) {
+                writer.WriteTable("Sheet1", Enumerable.Range(0, Rows), _headers, WriteOfficeIMORow);
+            }
             return _output.Length;
         }
 

@@ -148,10 +148,9 @@ public sealed class LegacySpreadsheetImportResult : IDisposable {
     /// <summary>Returns the imported workbook.</summary>
     public ExcelDocument RequireValue() => Value;
     /// <summary>Returns the imported workbook or throws when the import was lossy.</summary>
-    public ExcelDocument RequireNoLoss() {
+    public void ThrowIfLoss() {
         try {
-            Report.RequireNoLoss();
-            return Value;
+            Report.ThrowIfLoss();
         } catch {
             Value.Dispose();
             throw;

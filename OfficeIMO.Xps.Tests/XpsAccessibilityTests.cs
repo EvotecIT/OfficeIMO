@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
@@ -11,6 +12,25 @@ using static OfficeIMO.Xps.Tests.XpsLogicalStructureTests;
 namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsAccessibilityTests {
+    [Fact]
+    public void GraphicObjectNamesConsumeTheProjectionTextBudget() {
+        var doc = Described(XpsFormat.OpenXps, false);
+        var page = doc.Pages[0];
+        var xml = page.GetMarkup();
+        XElement original = xml.Elements().Single();
+        string largeName = new('n', 900_000);
+        for (int index = 0; index < 18; index++) {
+            var element = new XElement(original);
+            element.SetAttributeValue("Name", largeName);
+            element.SetAttributeValue("AutomationProperties.Name", "x");
+            element.Attribute("AutomationProperties.HelpText")?.Remove();
+            xml.Add(element);
+        }
+        page.ReplaceMarkup(xml);
+
+        Assert.Throws<InvalidDataException>(() => doc.ToOfficeDocumentModel());
+    }
+
     private const string Short = "A dog & its bowl";
     private const string Long = "A brown dog beside a <blue> bowl. 犬";
     private const string Alternative = Short + "\n" + Long;
@@ -24,13 +44,13 @@ public sealed class XpsAccessibilityTests {
         var doc = Described(format, canvas); var page = doc.Pages[0];
         page.ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, new XElement(doc.StructureNamespace + "FigureStructure",
             new XElement(doc.StructureNamespace + "NamedElement", new XAttribute("NameReference", "Graphic")))));
-        doc = XpsDocument.Load(doc.Save()); page = doc.Pages[0];
+        doc = XpsDocument.Load(doc.ToBytes()); page = doc.Pages[0];
         var native = Assert.Single(Assert.Single(doc.ReadLogicalStructure().Stories).Blocks).Children[0].Content!;
         Assert.Equal(Short, native.AccessibilityName); Assert.Equal(Long, native.AccessibilityHelpText);
         var svg = XElement.Parse(page.ToSvg().Svg); XNamespace ns = svg.Name.Namespace;
         Assert.Equal(Short, Assert.Single(svg.Descendants(ns + "title")).Value);
         Assert.Equal(Long, Assert.Single(svg.Descendants(ns + "desc")).Value);
-        var read = PdfReadDocument.Open(doc.ToPdf());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Equal(Alternative, Assert.Single(read.TaggedContent!.StructureElements, e => e.StructureType == "Figure").AlternateText);
         var model = doc.ToOfficeDocumentModel();
         var asset = Assert.Single(model.Assets);
@@ -51,7 +71,7 @@ public sealed class XpsAccessibilityTests {
         var doc = Described(format, false);
         Assert.False(doc.ReadLogicalStructure().HasNativeStructure);
         Assert.Single(doc.ToOfficeDocumentReadResult().Assets);
-        var read = PdfReadDocument.Open(doc.ToPdf());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Null(read.TaggedContent); Assert.Empty(read.Pages[0].GetTextSpans());
     }
 
@@ -64,7 +84,7 @@ public sealed class XpsAccessibilityTests {
         page.ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, new XElement(doc.StructureNamespace + "FigureStructure",
             new XElement(doc.StructureNamespace + "NamedElement", new XAttribute("NameReference", "Second")),
             new XElement(doc.StructureNamespace + "NamedElement", new XAttribute("NameReference", "Graphic")))));
-        var read = PdfReadDocument.Open(doc.ToPdf());
+        var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Equal("Second graphic\n" + Alternative, Assert.Single(read.TaggedContent!.StructureElements, e => e.StructureType == "Figure").AlternateText);
     }
 

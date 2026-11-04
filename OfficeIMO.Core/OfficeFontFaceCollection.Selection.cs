@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
@@ -16,15 +17,14 @@ public sealed partial class OfficeFontFaceCollection {
         var added = new HashSet<OfficeFontFace>();
         var families = new List<string>();
         var addedFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
+        foreach (string family in ParseFamilies(familyNames)) {
             if (addedFamilies.Add(family)) families.Add(family);
         }
         foreach (string family in _fallbackFamilies) {
             if (addedFamilies.Add(family)) families.Add(family);
         }
         foreach (string family in families) {
-            List<(OfficeFontFace Face, int RegistrationIndex)> available = ResolveFamilyCandidates(family, descriptor);
-            foreach ((OfficeFontFace face, _) in available) {
+            foreach ((OfficeFontFace face, _) in ResolveFamilyCandidates(family, descriptor)) {
                 if (added.Add(face)) result.Add(face);
             }
         }
@@ -40,7 +40,16 @@ public sealed partial class OfficeFontFaceCollection {
         return null;
     }
 
-    private List<(OfficeFontFace Face, int RegistrationIndex)> ResolveFamilyCandidates(string family, OfficeFontFaceDescriptor descriptor) {
+    private (OfficeFontFace Face, int RegistrationIndex)[] ResolveFamilyCandidates(string family, OfficeFontFaceDescriptor descriptor) {
+        OfficeBoundedCache<(string, OfficeFontFaceDescriptor), (OfficeFontFace Face, int RegistrationIndex)[]> cache = Selections.FamilyCandidates;
+        (string, OfficeFontFaceDescriptor) key = (family, descriptor);
+        if (cache.TryGetValue(key, out (OfficeFontFace Face, int RegistrationIndex)[]? resolved)) return resolved;
+        resolved = RankFamilyCandidates(family, descriptor);
+        cache.TryAdd(key, resolved);
+        return resolved;
+    }
+
+    private (OfficeFontFace Face, int RegistrationIndex)[] RankFamilyCandidates(string family, OfficeFontFaceDescriptor descriptor) {
         var available = new List<(OfficeFontFace Face, int RegistrationIndex)>();
         for (int index = _faces.Count - 1; index >= 0; index--) {
             OfficeFontFace face = _faces[index];
@@ -62,7 +71,7 @@ public sealed partial class OfficeFontFaceCollection {
             int rank = CompareFaceSelection(left.Face, right.Face, descriptor);
             return rank != 0 ? rank : right.RegistrationIndex.CompareTo(left.RegistrationIndex);
         });
-        return available;
+        return available.ToArray();
     }
 
     private static int CompareFaceSelection(

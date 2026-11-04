@@ -41,7 +41,7 @@ public sealed class ConvertToOfficeMarkdownHtmlCommand : PSCmdlet
 
     /// <summary>Markdown document to convert.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDoc Document { get; set; } = null!;
+    public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Optional output path for the HTML file.</summary>
     [Parameter]
@@ -54,15 +54,15 @@ public sealed class ConvertToOfficeMarkdownHtmlCommand : PSCmdlet
 
     /// <summary>Built-in HTML style preset.</summary>
     [Parameter]
-    public HtmlStyle Style { get; set; } = HtmlStyle.Clean;
+    public MarkdownHtmlStyle Style { get; set; } = MarkdownHtmlStyle.Clean;
 
     /// <summary>CSS delivery mode.</summary>
     [Parameter]
-    public CssDelivery CssDelivery { get; set; } = CssDelivery.Inline;
+    public MarkdownCssDelivery CssDelivery { get; set; } = MarkdownCssDelivery.Inline;
 
     /// <summary>Asset loading mode.</summary>
     [Parameter]
-    public AssetMode AssetMode { get; set; } = AssetMode.Online;
+    public MarkdownAssetMode AssetMode { get; set; } = MarkdownAssetMode.Online;
 
     /// <summary>Optional title for HTML documents.</summary>
     [Parameter]
@@ -70,11 +70,11 @@ public sealed class ConvertToOfficeMarkdownHtmlCommand : PSCmdlet
 
     /// <summary>Optional reader options when parsing Markdown.</summary>
     [Parameter]
-    public MarkdownReaderOptions? ReaderOptions { get; set; }
+    public MarkdownLoadOptions? ReaderOptions { get; set; }
 
     /// <summary>Named reader profile used when <see cref="ReaderOptions"/> is not supplied.</summary>
     [Parameter]
-    public MarkdownReaderOptions.MarkdownDialectProfile? Profile { get; set; }
+    public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
 
     /// <summary>Base URI used to resolve and restrict relative Markdown links and images.</summary>
     [Parameter]
@@ -118,7 +118,7 @@ public sealed class ConvertToOfficeMarkdownHtmlCommand : PSCmdlet
 
     /// <summary>Controls how raw HTML blocks are emitted.</summary>
     [Parameter]
-    public RawHtmlHandling? RawHtmlHandling { get; set; }
+    public MarkdownRawHtmlHandling? RawHtmlHandling { get; set; }
 
     /// <summary>Add anchor links to headings.</summary>
     [Parameter]
@@ -186,7 +186,7 @@ public sealed class ConvertToOfficeMarkdownHtmlCommand : PSCmdlet
     protected override void ProcessRecord() {
         var readerOptions = MarkdownOptionUtilities.BuildReaderOptions(this);
 
-        MarkdownDoc document;
+        MarkdownDocument document;
         if (ParameterSetName == ParameterSetDocument) {
             document = Document ?? throw new InvalidOperationException("Markdown document was not provided.");
         } else if (ParameterSetName == ParameterSetPath) {
@@ -194,13 +194,13 @@ public sealed class ConvertToOfficeMarkdownHtmlCommand : PSCmdlet
             if (!File.Exists(resolved)) {
                 throw new FileNotFoundException($"File '{resolved}' was not found.", resolved);
             }
-            document = MarkdownDoc.Load(resolved, readerOptions);
+            document = MarkdownDocument.Load(resolved, readerOptions);
         } else {
-            document = MarkdownReader.Parse(Text ?? string.Empty, readerOptions);
+            document = MarkdownDocument.Parse(Text ?? string.Empty, readerOptions);
         }
 
-        var options = new HtmlOptions {
-            Kind = DocumentMode.IsPresent ? HtmlKind.Document : HtmlKind.Fragment,
+        var options = new MarkdownHtmlExportOptions {
+            Kind = DocumentMode.IsPresent ? MarkdownHtmlKind.Document : MarkdownHtmlKind.Fragment,
             Style = Style,
             CssDelivery = CssDelivery,
             AssetMode = AssetMode
@@ -228,13 +228,11 @@ public sealed class ConvertToOfficeMarkdownHtmlCommand : PSCmdlet
                 WriteObject(new FileInfo(resolvedOutput));
             }
         } else {
-            WriteObject(options.Kind == HtmlKind.Document
-                ? document.ToHtmlDocument(options)
-                : document.ToHtmlFragment(options));
+            WriteObject(document.ToHtml(options));
         }
     }
 
-    private void ApplyHtmlOptions(HtmlOptions options) {
+    private void ApplyHtmlOptions(MarkdownHtmlExportOptions options) {
         if (Theme.HasValue) {
             options.Theme = MarkdownOptionUtilities.CreateTheme(Theme.Value);
         }

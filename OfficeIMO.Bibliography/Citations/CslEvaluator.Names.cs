@@ -185,7 +185,7 @@ internal sealed partial class CslEvaluator {
         CslText givenValue = CslText.Rich(given, false, _token);
         if (family.Length > 0 && initialize != null && expansion < 2)
             givenValue = givenValue.InitializeName(initialize, Attr(_style.Root, "initialize-with-hyphen") != "false",
-                NameOption(element, context, "initialize") != "false", _options.MaximumIntermediateCharacters, _token);
+                NameOption(element, context, "initialize") != "false", _options.MaxIntermediateCharacters, _token);
         bool demote = (Attr(_style.Root, "demote-non-dropping-particle") ?? "display-and-sort") == "display-and-sort" || context.Sorting && (Attr(_style.Root, "demote-non-dropping-particle") ?? "display-and-sort") == "sort-only";
         CslText familyText = FormatNamePart(CslText.Rich(JoinWords(inverted && demote ? string.Empty : nonDropping, family), false, _token), familyElement, context);
         CslText givenText = FormatNamePart(givenValue, givenElement, context);

@@ -86,7 +86,7 @@ public sealed class AddOfficeExcelValidationDecimalCommand : PSCmdlet
     {
         var sheet = ResolveSheet();
         string targetRange = ExcelTargetRangeResolver.Resolve(sheet, Range, HeaderName, TableName, HeaderRow, IncludeHeader.IsPresent);
-        sheet.ValidationDecimal(targetRange, Operator, Formula1, Formula2, AllowBlank, ErrorTitle, ErrorMessage);
+        sheet.Range(targetRange).Validation().Decimal(Operator, Formula1, Formula2, AllowBlank, ErrorTitle, ErrorMessage);
 
         if (PassThru.IsPresent)
         {

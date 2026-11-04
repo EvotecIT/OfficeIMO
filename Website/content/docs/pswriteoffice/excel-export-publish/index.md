@@ -16,10 +16,10 @@ Import-OfficeExcelDelimitedText -Path '.\Report.xlsx' `
     -CultureName 'en-US' -SheetName Sales
 ```
 
-The [delimited-import recipe](https://github.com/EvotecIT/OfficeIMO/blob/96b255704a914a0f372be7d1f951d38fba455be4/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ImportDelimited.ps1) imports an existing semicolon-delimited file into a named worksheet.
+The [delimited-import recipe](https://github.com/EvotecIT/OfficeIMO/blob/c1f0e5322ee8119ac229d463b8e42e1423a3c7f6/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ImportDelimited.ps1) imports an existing semicolon-delimited file into a named worksheet.
 
 ## Publish the useful part
 
-Use `Export-OfficeExcelRangeImage` for a bounded report region, `Export-OfficeExcelChartImage` for a chart, and `Export-OfficeExcelImage` for workbook-oriented image output. HTML export is useful for review without Excel. `Export-OfficeExcel` turns PowerShell objects into a new or appended workbook when the pipeline begins with objects rather than an existing file.
+Use `Export-OfficeDocumentImage` with `-Sheet` and `-Range` for a bounded report region, `-Sheet` and `-Chart` for a chart, or `-OutputDirectory` for worksheet images. Use `-OutputPath` only when the selection produces one image. HTML export is useful for review without Excel. `Export-OfficeExcel` turns PowerShell objects into a new or appended workbook when the pipeline begins with objects rather than an existing file.
 
 Choose the smallest artifact that preserves the intended experience. A range image is good for a status message; an XLSX is better when recipients must filter, inspect formulas, or continue editing.

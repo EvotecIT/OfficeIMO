@@ -27,7 +27,7 @@ public partial class Word {
             style.BasedOn = new BasedOn { Val = "Normal" };
             style.StyleRunProperties = new StyleRunProperties();
         }
-        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using var reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Styles importedStyles = reopened._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         foreach (WordParagraphStyles heading in new[] { WordParagraphStyles.Heading1, WordParagraphStyles.Heading4, WordParagraphStyles.Heading7, WordParagraphStyles.Heading9 }) {
             Style style = importedStyles.Elements<Style>().Single(style => style.StyleId == heading.ToStringStyle());
@@ -36,8 +36,8 @@ public partial class Word {
             Assert.Null(style.StyleRunProperties?.GetFirstChild<Color>());
         }
         string output = Path.Combine(_directoryWithFiles, "InheritedHeadingTypography" + sizePoints + ".pdf");
-        reopened.SaveAsPdf(output, new WordToPdfOptions { IncludePageNumbers = false });
-        PdfTextSpan[] spans = PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
+        reopened.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false });
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
         foreach (WordParagraphStyles heading in new[] { WordParagraphStyles.Heading1, WordParagraphStyles.Heading4, WordParagraphStyles.Heading7, WordParagraphStyles.Heading9 }) {
             PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("InheritedFontMarker" + heading));
             Assert.Equal((double)sizePoints, marker.FontSize);
@@ -63,8 +63,8 @@ public partial class Word {
         document.Save(source);
         using var reopened = WordDocument.Load(source);
         string output = source + ".pdf";
-        reopened.SaveAsPdf(output, new WordToPdfOptions { IncludePageNumbers = false });
-        PdfTextSpan[] spans = PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
+        reopened.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false });
+        PdfTextSpan[] spans = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Pages.SelectMany(page => page.GetTextSpans()).ToArray();
         foreach (WordParagraphStyles heading in new[] { WordParagraphStyles.Heading1, WordParagraphStyles.Heading4 }) {
             PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("SourceMarker" + heading));
             Assert.Equal(inheritedEmphasis, marker.IsBold);

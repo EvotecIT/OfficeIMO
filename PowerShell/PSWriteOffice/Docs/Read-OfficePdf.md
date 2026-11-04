@@ -11,12 +11,12 @@ Reads a PDF into OfficeIMO.Pdf's canonical structured document model.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Read-OfficePdf [-Path] <string> [-Options <PdfReadOptions>] [-Profile <PdfReadProfile>] [-PageRange <string>] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Read-OfficePdf [-Path] <string> [-Options <PdfLoadOptions>] [-Profile <PdfReadProfile>] [-PageRange <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Read-OfficePdf -Document <PdfDocument> [-Options <PdfReadOptions>] [-Profile <PdfReadProfile>] [-PageRange <string>] [<CommonParameters>]
+Read-OfficePdf -Document <PdfDocument> [-Options <PdfLoadOptions>] [-Profile <PdfReadProfile>] [-PageRange <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -38,7 +38,7 @@ Returns the canonical OfficeIMO.Pdf result, including typed pages, paragraphs, t
 ## PARAMETERS
 
 ### -Document
-An existing OfficeIMO.Pdf document, such as output from Get-OfficePdf.
+An existing OfficeIMO.Pdf document, such as output from Open-OfficePdf.
 
 ```yaml
 Type: PdfDocument
@@ -73,7 +73,7 @@ Accept wildcard characters: False
 Advanced structured-read settings. Friendly parameters override the corresponding setting when explicitly supplied.
 
 ```yaml
-Type: PdfReadOptions
+Type: PdfLoadOptions
 Parameter Sets: Path, Document
 Aliases: None
 Possible values:
@@ -105,7 +105,7 @@ Accept wildcard characters: False
 Password used to open a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Path
 Aliases: None
 Possible values:

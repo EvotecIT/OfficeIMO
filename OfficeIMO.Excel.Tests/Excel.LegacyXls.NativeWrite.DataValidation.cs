@@ -18,15 +18,15 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("MoreValidation");
-                    sheet.CellValue(1, 1, "Amount");
-                    sheet.CellValue(1, 2, "Date");
-                    sheet.CellValue(1, 3, "Code");
-                    sheet.CellValue(2, 1, 5d);
+                    ExcelSheet sheet = document.AddSheet("MoreValidation");
+                    sheet.Cell(1, 1).SetValue("Amount");
+                    sheet.Cell(1, 2).SetValue("Date");
+                    sheet.Cell(1, 3).SetValue("Code");
+                    sheet.Cell(2, 1).SetValue(5d);
 
-                    sheet.ValidationDate("B2:B5", ExcelDataValidationOperator.Between, minimumDate, maximumDate, errorTitle: "Invalid date", errorMessage: "Use a date in 2024.");
-                    sheet.ValidationTextLength("C2:C5", ExcelDataValidationOperator.LessThanOrEqual, 12, errorTitle: "Invalid code", errorMessage: "Use at most 12 characters.");
-                    sheet.ValidationCustomFormula("A2:A5", "A2>0", errorTitle: "Invalid amount", errorMessage: "Use a positive amount.");
+                    sheet.Range("B2:B5").Validation().Date(ExcelDataValidationOperator.Between, minimumDate, maximumDate, errorTitle: "Invalid date", errorMessage: "Use a date in 2024.");
+                    sheet.Range("C2:C5").Validation().TextLength(ExcelDataValidationOperator.LessThanOrEqual, 12, errorTitle: "Invalid code", errorMessage: "Use at most 12 characters.");
+                    sheet.Range("A2:A5").Validation().CustomFormula("A2>0", errorTitle: "Invalid amount", errorMessage: "Use a positive amount.");
 
                     document.Save(xlsOutputPath);
                 }
@@ -85,17 +85,17 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet options = document.AddWorksheet("Options");
-                    ExcelSheet input = document.AddWorksheet("Input");
+                    ExcelSheet options = document.AddSheet("Options");
+                    ExcelSheet input = document.AddSheet("Input");
 
-                    options.CellValue(1, 1, "Open");
-                    options.CellValue(2, 1, "Closed");
-                    options.CellValue(3, 1, "Pending");
-                    options.ValidationListRange("B1:B3", "A1:A3");
+                    options.Cell(1, 1).SetValue("Open");
+                    options.Cell(2, 1).SetValue("Closed");
+                    options.Cell(3, 1).SetValue("Pending");
+                    options.Range("B1:B3").Validation().ListRange("A1:A3");
 
                     document.SetNamedRange("StatusOptions", "'Options'!A1:A3", save: false);
-                    input.ValidationListRange("B2:B5", "A1:A3", "Options");
-                    input.ValidationListNamedRange("C2:C5", "StatusOptions");
+                    input.Range("B2:B5").Validation().ListRange("A1:A3", "Options");
+                    input.Range("C2:C5").Validation().ListNamedRange("StatusOptions");
 
                     document.Save(xlsOutputPath);
                 }
@@ -148,11 +148,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Validation");
-                    sheet.CellValue(1, 1, "Open");
-                    sheet.CellValue(2, 1, "Closed");
-                    sheet.CellValue(3, 1, "Pending");
-                    sheet.ValidationListRange("B1:B10", "A1:A3");
+                    ExcelSheet sheet = document.AddSheet("Validation");
+                    sheet.Cell(1, 1).SetValue("Open");
+                    sheet.Cell(2, 1).SetValue("Closed");
+                    sheet.Cell(3, 1).SetValue("Pending");
+                    sheet.Range("B1:B10").Validation().ListRange("A1:A3");
 
                     document.Save(xlsOutputPath);
                 }
@@ -188,9 +188,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("SingleDv");
-                    sheet.CellValue(1, 1, 3d);
-                    sheet.ValidationWholeNumber("A1", ExcelDataValidationOperator.Between, 1, 5);
+                    ExcelSheet sheet = document.AddSheet("SingleDv");
+                    sheet.Cell(1, 1).SetValue(3d);
+                    sheet.Range("A1").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 5);
 
                     document.Save(xlsOutputPath);
                 }
@@ -215,16 +215,16 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet input = document.AddWorksheet("Input");
-                    ExcelSheet firstRegion = document.AddWorksheet("Region 1");
-                    ExcelSheet secondRegion = document.AddWorksheet("Region 2");
+                    ExcelSheet input = document.AddSheet("Input");
+                    ExcelSheet firstRegion = document.AddSheet("Region 1");
+                    ExcelSheet secondRegion = document.AddSheet("Region 2");
 
-                    firstRegion.CellValue(1, 1, "North");
-                    firstRegion.CellValue(2, 1, "East");
-                    secondRegion.CellValue(1, 1, "South");
-                    secondRegion.CellValue(2, 1, "West");
+                    firstRegion.Cell(1, 1).SetValue("North");
+                    firstRegion.Cell(2, 1).SetValue("East");
+                    secondRegion.Cell(1, 1).SetValue("South");
+                    secondRegion.Cell(2, 1).SetValue("West");
 
-                    input.ValidationListRange("A1:A5", "$A$1:$A$2", "Region 1:Region 2");
+                    input.Range("A1:A5").Validation().ListRange("$A$1:$A$2", "Region 1:Region 2");
 
                     document.Save(xlsOutputPath);
                 }
@@ -257,9 +257,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalDv");
-                    sheet.CellValue(1, 1, "Amount");
-                    sheet.CellValue(2, 1, 5d);
+                    ExcelSheet sheet = document.AddSheet("ExternalDv");
+                    sheet.Cell(1, 1).SetValue("Amount");
+                    sheet.Cell(2, 1).SetValue(5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new DocumentFormat.OpenXml.Spreadsheet.DataValidations(
                         new DocumentFormat.OpenXml.Spreadsheet.DataValidation(
@@ -298,9 +298,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalDvName");
-                    sheet.CellValue(1, 1, "Amount");
-                    sheet.CellValue(2, 1, 5d);
+                    ExcelSheet sheet = document.AddSheet("ExternalDvName");
+                    sheet.Cell(1, 1).SetValue("Amount");
+                    sheet.Cell(2, 1).SetValue(5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new DocumentFormat.OpenXml.Spreadsheet.DataValidations(
                         new DocumentFormat.OpenXml.Spreadsheet.DataValidation(
@@ -339,9 +339,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalDvName");
-                    sheet.CellValue(1, 1, "Amount");
-                    sheet.CellValue(2, 1, 5d);
+                    ExcelSheet sheet = document.AddSheet("ExternalDvName");
+                    sheet.Cell(1, 1).SetValue("Amount");
+                    sheet.Cell(2, 1).SetValue(5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new DocumentFormat.OpenXml.Spreadsheet.DataValidations(
                         new DocumentFormat.OpenXml.Spreadsheet.DataValidation(
@@ -378,7 +378,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedDataValidationFormulaPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation formula token payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Validated");
+                sheet.Cell(1, 1).SetValue("Validated");
                 string longLiteral = "\"" + new string('A', 255) + "\"";
                 string formula = string.Join("&", Enumerable.Repeat(longLiteral, 260));
 
@@ -395,8 +395,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedDataValidationTextPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation text payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Validated");
-                sheet.ValidationCustomFormula("A1:A1", "A1<>\"\"", errorMessage: new string('A', 33000));
+                sheet.Cell(1, 1).SetValue("Validated");
+                sheet.Range("A1:A1").Validation().CustomFormula("A1<>\"\"", errorMessage: new string('A', 33000));
             });
         }
     }

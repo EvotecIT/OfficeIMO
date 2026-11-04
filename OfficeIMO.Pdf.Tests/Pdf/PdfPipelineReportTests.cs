@@ -8,9 +8,9 @@ public sealed class PdfPipelineReportTests {
     public void TryToBytes_ReportsExactGeneratedArtifact() {
         PdfDocument document = PdfDocument.Create()
             .Meta(title: "Pipeline")
-            .Paragraph(paragraph => paragraph.Text("Generated artifact"));
+            .Paragraph(paragraph => paragraph.AddText("Generated artifact"));
 
-        PdfBytesResult result = document.ToBytesResult();
+        PdfBytesResult result = document.SerializeWithEvidence();
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Collection(
@@ -34,10 +34,10 @@ public sealed class PdfPipelineReportTests {
         using var stream = new MemoryStream();
 
         PdfSaveResult result = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First page"))
+            .Paragraph(paragraph => paragraph.AddText("First page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page"))
-            .Save(stream);
+            .Paragraph(paragraph => paragraph.AddText("Second page"))
+            .SaveWithEvidence(stream);
 
         Assert.True(result.Succeeded);
         Assert.Equal(2, result.Pipeline.Output?.PageCount);
@@ -48,9 +48,9 @@ public sealed class PdfPipelineReportTests {
 
     [Fact]
     public void GeneratedEncryptedBytes_ReportReadablePageCountWithWriterCredentials() {
-        PdfBytesResult result = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted pipeline evidence"))
-            .ToBytesResult();
+        PdfBytesResult result = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted pipeline evidence"))
+            .SerializeWithEvidence();
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.Equal(1, result.Pipeline.Output?.PageCount);
@@ -61,14 +61,14 @@ public sealed class PdfPipelineReportTests {
 
     [Fact]
     public void ArtifactSnapshot_UsesCanonicalReadForPageCountAndRetainsIdentityOnReadFailure() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Snapshot page"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.AddText("Snapshot page"))
             .ToBytes();
 
-        PdfArtifactSnapshot readable = PdfArtifactSnapshot.Capture(
+        PdfArtifactInfo readable = PdfArtifactInfo.Capture(
             encrypted,
             new PdfLoadOptions { Password = "open" });
-        PdfArtifactSnapshot unreadable = PdfArtifactSnapshot.Capture(encrypted);
+        PdfArtifactInfo unreadable = PdfArtifactInfo.Capture(encrypted);
 
         Assert.Equal(1, readable.PageCount);
         Assert.Null(unreadable.PageCount);
@@ -80,13 +80,13 @@ public sealed class PdfPipelineReportTests {
     public void OpenMutationAndSave_PreserveArtifactChainAndDecision() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Before")
-            .Paragraph(paragraph => paragraph.Text("Pipeline mutation"))
+            .Paragraph(paragraph => paragraph.AddText("Pipeline mutation"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Load(source).UpdateMetadata(title: "After");
+        PdfDocument updated = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateProperties(title: "After");
         using var stream = new MemoryStream();
 
-        PdfSaveResult result = updated.Save(stream);
+        PdfSaveResult result = updated.SaveWithEvidence(stream);
 
         Assert.True(result.Succeeded);
         Assert.Equal(3, result.Pipeline.Steps.Count);
@@ -109,10 +109,10 @@ public sealed class PdfPipelineReportTests {
     public void AppendRevision_ReportsAppendOnlyMutation() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Before")
-            .Paragraph(paragraph => paragraph.Text("Append-only pipeline"))
+            .Paragraph(paragraph => paragraph.AddText("Append-only pipeline"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Load(source)
+        PdfDocument updated = PdfDocument.Load(new System.IO.MemoryStream(source))
             .AppendMetadataRevision(title: "After");
 
         PdfPipelineStep mutation = Assert.Single(
@@ -129,8 +129,8 @@ public sealed class PdfPipelineReportTests {
         using var stream = new MemoryStream(new byte[16], writable: false);
 
         PdfSaveResult result = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Failure evidence"))
-            .SaveResult(stream);
+            .Paragraph(paragraph => paragraph.AddText("Failure evidence"))
+            .TrySaveWithEvidence(stream);
 
         Assert.False(result.Succeeded);
         Assert.True(result.Pipeline.HasFailures);
@@ -159,7 +159,7 @@ public sealed class PdfPipelineReportTests {
     [Fact]
     public void GeneratedAppendMutation_ReportsTheExactConsumedInputArtifact() {
         PdfDocument updated = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Generated mutation input"))
+            .Paragraph(paragraph => paragraph.AddText("Generated mutation input"))
             .AppendMetadataRevision(title: "After");
 
         PdfPipelineStep mutation = Assert.Single(
@@ -179,10 +179,10 @@ public sealed class PdfPipelineReportTests {
     [Fact]
     public void PageImportAndCropMutations_PreserveOperationClassification() {
         byte[] importedPage = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Imported"))
+            .Paragraph(paragraph => paragraph.AddText("Imported"))
             .ToBytes();
         PdfDocument appended = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Target"))
+            .Paragraph(paragraph => paragraph.AddText("Target"))
             .Pages.Append(importedPage);
         PdfDocument cropped = appended.Pages.CropAndTranslate(0, 0, 300, 300, 1);
 
@@ -200,13 +200,13 @@ public sealed class PdfPipelineReportTests {
     [Fact]
     public void PageSplitOutputs_PreserveSourceLineageAndExtractionClassification() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First"))
+            .Paragraph(paragraph => paragraph.AddText("First"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second"))
+            .Paragraph(paragraph => paragraph.AddText("Second"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Third"))
+            .Paragraph(paragraph => paragraph.AddText("Third"))
             .ToBytes();
-        PdfDocument opened = PdfDocument.Load(source);
+        PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
 
         IReadOnlyList<PdfDocument> pages = opened.Pages.Split();
         PdfDocument range = Assert.Single(opened.Pages.Split(new[] { PdfPageRange.From(1, 2) }));
@@ -220,15 +220,15 @@ public sealed class PdfPipelineReportTests {
     [Fact]
     public void GeneratedPageSplitOutputs_ReuseOneCapturedInputArtifact() {
         PdfDocument generated = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("First"))
+            .Paragraph(paragraph => paragraph.AddText("First"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second"))
+            .Paragraph(paragraph => paragraph.AddText("Second"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Third"));
+            .Paragraph(paragraph => paragraph.AddText("Third"));
 
         IReadOnlyList<PdfDocument> pages = generated.Pages.Split();
 
-        PdfArtifactSnapshot input = Assert.IsType<PdfArtifactSnapshot>(pages[0].Pipeline.Steps[1].Input);
+        PdfArtifactInfo input = Assert.IsType<PdfArtifactInfo>(pages[0].Pipeline.Steps[1].Input);
         Assert.All(
             pages,
             page => Assert.Same(input, page.Pipeline.Steps[1].Input));

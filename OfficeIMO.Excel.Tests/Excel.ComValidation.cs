@@ -7,11 +7,14 @@ using System.Runtime.Versioning;
 #endif
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeIMO.Excel.Reports;
+using OfficeColor = OfficeIMO.OfficeColor;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         private static readonly TimeSpan ExcelComOpenTimeout = TimeSpan.FromMinutes(2);
         private static readonly TimeSpan ExcelComLockTimeout = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan ExcelComWorkerTimeout = ExcelComLockTimeout + ExcelComOpenTimeout;
@@ -220,46 +223,44 @@ namespace OfficeIMO.Tests {
 
         private static string CreateDesktopExcelValuesWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Values");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "Alpha");
-            sheet.CellValue(2, 2, 10d);
-            sheet.CellValue(3, 1, "Beta");
-            sheet.CellValue(3, 2, 20.5d);
-            sheet.CellFormula(4, 2, "SUM(B2:B3)");
-            sheet.Range("A1:B1").HeaderStyle();
+            ExcelSheet sheet = document.AddSheet("Values");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("Alpha");
+            sheet.Cell(2, 2).SetValue(10d);
+            sheet.Cell(3, 1).SetValue("Beta");
+            sheet.Cell(3, 2).SetValue(20.5d);
+            sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
+            sheet.Range("A1:B1").SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
             document.Save();
             return filePath;
         }
 
         private static string CreateDesktopExcelTableWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Score");
-            sheet.CellValue(2, 1, "North");
-            sheet.CellValue(2, 2, 80d);
-            sheet.CellValue(3, 1, "South");
-            sheet.CellValue(3, 2, 95d);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Score");
+            sheet.Cell(2, 1).SetValue("North");
+            sheet.Cell(2, 2).SetValue(80d);
+            sheet.Cell(3, 1).SetValue("South");
+            sheet.Cell(3, 2).SetValue(95d);
             sheet.AddTable("A1:B3", true, "ScoresTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
-            sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
-                { 0, new[] { "North", "South" } }
-            });
-            sheet.Freeze(topRows: 1, leftCols: 1);
+            sheet.Range("A1:B3").AutoFilter().Column(0).Equals(new[] { "North", "South" });
+            sheet.View.Freeze(topRows: 1, leftColumns: 1);
             document.Save();
             return filePath;
         }
 
         private static string CreateDesktopExcelFormattingWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Formatting");
-            sheet.CellValue(1, 1, "Score");
-            sheet.CellValue(2, 1, 42d);
-            sheet.CellValue(3, 1, 87d);
-            sheet.AddConditionalColorScale("A2:A3", OfficeColor.Red, OfficeColor.Lime);
-            sheet.AddConditionalDataBar("A2:A3", OfficeColor.Blue);
-            sheet.AddConditionalRule("A2:A3", ExcelConditionalFormattingOperator.GreaterThan, "50");
+            ExcelSheet sheet = document.AddSheet("Formatting");
+            sheet.Cell(1, 1).SetValue("Score");
+            sheet.Cell(2, 1).SetValue(42d);
+            sheet.Cell(3, 1).SetValue(87d);
+            sheet.Range("A2:A3").ConditionalFormat().ColorScale(OfficeColor.Red, OfficeColor.Lime);
+            sheet.Range("A2:A3").ConditionalFormat().DataBar(OfficeColor.Blue);
+            sheet.Range("A2:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "50");
             document.Save();
             return filePath;
         }
@@ -267,17 +268,16 @@ namespace OfficeIMO.Tests {
         private static string CreateDesktopExcelChartWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
             document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-            ExcelSheet sheet = document.AddWorksheet("Summary");
+            ExcelSheet sheet = document.AddSheet("Summary");
 
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3", "Q4" },
                 new[] {
-                    new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
-                    new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                    new ExcelChartSeries("Sales", new[] { 10d, 20d, 25d, 30d }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
 
-            ExcelChart chart = sheet.AddChart(data, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
-                type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+            ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Sales vs Trend" });
             chart.SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top)
                  .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd);
 
@@ -285,38 +285,33 @@ namespace OfficeIMO.Tests {
             return filePath;
         }
 
-        private static string CreateDesktopExcelRecipeChartWorkbook(string filePath) {
+        private static string CreateDesktopExcelRecipeChartWorkbook(string filePath)
+        {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Revenue");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 10d);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 16d);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 13d);
+            ExcelSheet sheet = document.AddSheet("Dashboard");
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Revenue");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(10d);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(16d);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(13d);
             sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
-
             sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
             sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");
             sheet.AddVarianceColumnChart("A1:B4", row: 35, column: 5, title: "Revenue Variance");
             sheet.AddKpiScorecardChart("A1:B4", row: 52, column: 5, title: "Revenue KPI");
             sheet.AddContributionChart("A1:B4", row: 69, column: 5, title: "Revenue Mix");
-            sheet.ChartFromTable("RevenueData")
-                .StatusBreakdown("Revenue Mix")
-                .At(86, 5);
-            sheet.ChartFromTable("RevenueData")
-                .VarianceWaterfall("Revenue Bridge")
-                .At(103, 5);
-
+            sheet.AddStatusBreakdownChart(sheet.GetTableRange("RevenueData")!, row: 86, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(320), title: "Revenue Mix", includeCachedData: true, hasHeaders: true);
+            sheet.AddVarianceWaterfallChart(sheet.GetTableRange("RevenueData")!, row: 103, column: 5, width: OfficeLength.Pixels(720), height: OfficeLength.Pixels(360), title: "Revenue Bridge", includeCachedData: true, hasHeaders: true);
             document.Save();
             return filePath;
         }
 
         private static string CreateDesktopExcelModernChartWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             sheet.AddHistogramChart(new[] { 1d, 2d, 2d, 3d, 5d, 8d }, row: 1, column: 1, binCount: 3);
             sheet.AddParetoChart(new[] { "Returns", "Delays", "Damage" }, new[] { 8d, 13d, 3d }, row: 1, column: 10);
             sheet.AddFunnelChart(new[] { "Leads", "Qualified", "Won" }, new[] { 120d, 70d, 25d }, row: 20, column: 1);
@@ -325,18 +320,13 @@ namespace OfficeIMO.Tests {
             return filePath;
         }
 
-        private static string CreateDesktopExcelPivotInteractionWorkbook(string filePath) {
+        private static string CreateDesktopExcelPivotInteractionWorkbook(string filePath)
+        {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet source = document.AddWorksheet("Source");
+            ExcelSheet source = document.AddSheet("Source");
             WriteDesktopPivotSource(source, 3);
-            source.AddPivotTable(
-                sourceRange: "A1:C4",
-                destinationCell: "E2",
-                name: "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") });
-
-            ExcelSheet expanded = document.AddWorksheet("Expanded");
+            source.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
+            ExcelSheet expanded = document.AddSheet("Expanded");
             WriteDesktopPivotSource(expanded, 4);
             source.UpdatePivotTableSource("SalesPivot", expanded, "$A$1:$C$5");
             document.AddPivotSlicerCache("SalesPivot", "Region");
@@ -346,13 +336,13 @@ namespace OfficeIMO.Tests {
         }
 
         private static void WriteDesktopPivotSource(ExcelSheet sheet, int dataRows) {
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Date");
-            sheet.CellValue(1, 3, "Sales");
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Date");
+            sheet.Cell(1, 3).SetValue("Sales");
             for (int index = 0; index < dataRows; index++) {
-                sheet.CellValue(index + 2, 1, index % 2 == 0 ? "East" : "West");
-                sheet.CellValue(index + 2, 2, new DateTime(2026, index + 1, 1));
-                sheet.CellValue(index + 2, 3, (index + 1) * 100d);
+                sheet.Cell(index + 2, 1).SetValue(index % 2 == 0 ? "East" : "West");
+                sheet.Cell(index + 2, 2).SetValue(new DateTime(2026, index + 1, 1));
+                sheet.Cell(index + 2, 3).SetValue((index + 1) * 100d);
             }
         }
     }

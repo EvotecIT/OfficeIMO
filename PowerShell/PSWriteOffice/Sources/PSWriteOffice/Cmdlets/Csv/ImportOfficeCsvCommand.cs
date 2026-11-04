@@ -317,7 +317,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     /// <summary>Maximum row count inspected when schema inference is enabled.</summary>
     [Parameter]
     [ValidateRange(1, int.MaxValue)]
-    public int SchemaSampleSize { get; set; } = 1000;
+    public int SchemaSampleRows { get; set; } = 1000;
 
     /// <summary>Explicit column types used when emitting DataTable or IDataReader output.</summary>
     [Parameter]
@@ -376,7 +376,6 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         if (document == null)
         {
             ApplyCultureDelimiter();
-            var options = CreateLoadOptions();
 
             foreach (var resolved in ResolveInputPaths())
             {
@@ -389,6 +388,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
                 {
                     _rowWriter.Reset();
                     _parseErrors.Clear();
+                    var options = CreateReaderInputOptions();
                     if (_asDataReader)
                     {
                         WriteDataReader(resolved, options);
@@ -399,7 +399,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
                     }
                     else
                     {
-                        using var reader = CsvDocument.OpenDataReader(resolved, options);
+                        using var reader = CsvDocument.OpenReader(resolved, options: options);
                         _rowWriter.WriteDataReaderRows(reader, _asHashtable, this);
                     }
 
@@ -409,7 +409,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
                 }
 
                 _parseErrors.Clear();
-                document = CsvDocument.Load(resolved, options);
+                document = CsvDocument.Load(resolved, CreateLoadOptions());
                 _rowWriter.Reset();
                 WriteDocumentRows(document, System.IO.Path.GetFileNameWithoutExtension(resolved));
                 WriteCollectedParseErrors(resolved);
@@ -444,9 +444,9 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         WriteObject(PSObject.AsPSObject(document.ToDataTable(CreateDataTableOptions(tableName))), enumerateCollection: false);
     }
 
-    private void WriteDataTable(string path, CsvLoadOptions options, string? tableName)
+    private void WriteDataTable(string path, CsvReaderOptions options, string? tableName)
     {
-        using var reader = CsvDocument.OpenDataReader(path, options, CreateDataReaderOptions());
+        using var reader = CsvDocument.OpenReader(path, ConfigureReaderOptions(options));
         var table = new DataTable(tableName ?? string.Empty);
         table.Load(reader);
         WriteObject(PSObject.AsPSObject(table), enumerateCollection: false);
@@ -457,9 +457,9 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         WriteObject(PSObject.AsPSObject(document.CreateDataReader(CreateDataReaderOptions())), enumerateCollection: false);
     }
 
-    private void WriteDataReader(string path, CsvLoadOptions options)
+    private void WriteDataReader(string path, CsvReaderOptions options)
     {
-        WriteObject(PSObject.AsPSObject(CsvDocument.OpenDataReader(path, options, CreateDataReaderOptions())), enumerateCollection: false);
+        WriteObject(PSObject.AsPSObject(CsvDocument.OpenReader(path, ConfigureReaderOptions(options))), enumerateCollection: false);
     }
 
     /// <inheritdoc />
@@ -577,22 +577,78 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         return options;
     }
 
+    private CsvReaderOptions CreateReaderInputOptions()
+    {
+        var options = new CsvReaderOptions
+        {
+            HasHeaderRow = Header is null && !NoHeader.IsPresent,
+            Header = Header,
+            SkipInitialRecords = SkipRows,
+            Delimiter = Delimiter,
+            DelimiterText = DelimiterText,
+            DetectDelimiter = DetectDelimiter.IsPresent,
+            DelimiterCandidates = DelimiterCandidates,
+            TrimWhitespace = TrimWhitespace,
+            AllowEmptyLines = AllowEmptyLines.IsPresent,
+            SkipCommentRowsBeforeHeader = SkipCommentRowsBeforeHeader,
+            SkipCommentRows = SkipCommentRows.IsPresent,
+            CommentCharacter = CommentCharacter,
+            RecognizeW3CFieldsHeader = RecognizeW3CFieldsHeader,
+            ColumnCountMismatchPolicy = ColumnCountMismatchPolicy,
+            CancellationToken = _cancellation.Token,
+            ProgressReportInterval = ProgressInterval ?? 0,
+            ProgressCallback = ProgressInterval.HasValue ? WriteCsvProgress : null,
+            ParseErrorAction = ParseErrorAction,
+            CollectParseErrors = CollectParseErrors.IsPresent,
+            MaxParseErrors = MaxParseErrors,
+            ParseErrors = _parseErrors,
+            MaxFieldLength = MaxFieldLength,
+            MaxQuotedFieldLength = MaxQuotedFieldLength,
+            NormalizeQuotes = NormalizeQuotes.IsPresent,
+            InternStrings = InternStrings.IsPresent
+        };
+
+        CsvPowerShellOptionBuilder.ApplyLoadOptions(
+            options,
+            DuplicateHeaderBehavior,
+            NullValue,
+            DateTimeFormats,
+            QuoteParsingMode,
+            StaticColumns,
+            CompressionType,
+            MaxDecompressedBytes);
+
+        if (Culture != null)
+        {
+            options.Culture = Culture;
+        }
+
+        if (Encoding != null)
+        {
+            options.Encoding = Encoding;
+        }
+
+        return options;
+    }
+
     private CsvDataTableOptions CreateDataTableOptions(string? tableName) =>
         new()
         {
             TableName = tableName,
             Schema = CreateExplicitSchema(),
             InferSchema = InferSchema.IsPresent,
-            SchemaSampleSize = SchemaSampleSize
+            SchemaSampleRows = SchemaSampleRows
         };
 
-    private CsvDataReaderOptions CreateDataReaderOptions() =>
-        new()
-        {
-            Schema = CreateExplicitSchema(),
-            InferSchema = InferSchema.IsPresent,
-            SchemaSampleSize = SchemaSampleSize
-        };
+    private CsvReaderOptions CreateDataReaderOptions() => ConfigureReaderOptions(new CsvReaderOptions());
+
+    private CsvReaderOptions ConfigureReaderOptions(CsvReaderOptions options)
+    {
+        options.Schema = CreateExplicitSchema();
+        options.InferSchema = InferSchema.IsPresent;
+        options.SchemaSampleRows = SchemaSampleRows;
+        return options;
+    }
 
     private CsvSchema? CreateExplicitSchema()
     {

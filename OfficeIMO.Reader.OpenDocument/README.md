@@ -11,7 +11,7 @@ using OfficeIMO.Reader.OpenDocument;
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddOpenDocumentHandler()
     .Build();
-IReadOnlyList<ReaderChunk> chunks = reader.Read("report.odt").ToList();
+IReadOnlyList<ReaderChunk> chunks = reader.Enumerate("report.odt").ToList();
 ```
 
 The handler emits:

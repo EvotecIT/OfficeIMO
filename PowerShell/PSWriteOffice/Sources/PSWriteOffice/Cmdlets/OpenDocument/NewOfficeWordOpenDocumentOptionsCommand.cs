@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 ///   <code>$options = New-OfficeWordOpenDocumentOptions -IncludeImages -IncludeHeadersAndFooters
 /// ConvertTo-OfficeOpenDocument -Path .\Report.docx -OutputPath .\Report.odt -WordOptions $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeWordOpenDocumentOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeWordOpenDocumentOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordOpenDocumentConversionOptions))]
 public sealed class NewOfficeWordOpenDocumentOptionsCommand : PSCmdlet {
     /// <summary>Whether conversion loss is reported or rejected.</summary>

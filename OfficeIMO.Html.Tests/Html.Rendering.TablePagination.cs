@@ -62,11 +62,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(repeatedHeaderCells.Select(group => group.StructureElementKey).Where(key => key != null).Distinct());
 
         PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(
-            PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
-                PageSize = new OfficePageSize(180D / HtmlRenderOptions.CssPixelsPerInch, 80D / HtmlRenderOptions.CssPixelsPerInch),
+            PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
+                PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(80D / HtmlRenderOptions.CssPixelsPerInch)),
                 Margins = HtmlRenderMargins.All(0D),
                 HonorCssPageRules = true
-            })).TaggedContent);
+            })).ToBytes()).TaggedContent);
         Assert.Equal(4, tagged.StructureElements.Count(element => element.StructureType == "TH"));
     }
 
@@ -125,11 +125,11 @@ public sealed partial class HtmlRenderingTests {
             }
         }
 
-        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
-            PageSize = new OfficePageSize(220D / HtmlRenderOptions.CssPixelsPerInch, 65D / HtmlRenderOptions.CssPixelsPerInch),
+        string pdfText = PdfCore.PdfReadDocument.Open((HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(220D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(65D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = true
-        })).ExtractText();
+        })).ToBytes()).ExtractText();
         Assert.Contains("ShortFooter", pdfText, StringComparison.Ordinal);
         Assert.Contains("LongFooter", pdfText, StringComparison.Ordinal);
     }
@@ -218,10 +218,10 @@ public sealed partial class HtmlRenderingTests {
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
 
         HtmlRenderResult svgResult = HtmlRenderEngine.Execute(document,
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlPdfExportOptions.ForImageExport(options)));
         HtmlRenderArchiveResult svgArchive = svgResult.ExportArchive();
         HtmlRenderResult pngResult = HtmlRenderEngine.Execute(document,
-            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options));
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(options)));
         HtmlRenderArchiveResult pngArchive = pngResult.ExportArchive();
         using var svgZip = new ZipArchive(new MemoryStream(svgArchive.Bytes), ZipArchiveMode.Read);
         using var pngZip = new ZipArchive(new MemoryStream(pngArchive.Bytes), ZipArchiveMode.Read);
@@ -230,7 +230,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(rendered.Pages.Count, pngArchive.Manifest.Pages.Count);
         Assert.Equal(rendered.Pages.Count, svgZip.Entries.Count(entry => entry.FullName.EndsWith(".svg", StringComparison.Ordinal)));
         Assert.Equal(rendered.Pages.Count, pngZip.Entries.Count(entry => entry.FullName.EndsWith(".png", StringComparison.Ordinal)));
-        string pdfText = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions(options))).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlPdfExportOptions(options))).ToBytes()).ExtractText();
         Assert.Contains("A1", pdfText, StringComparison.Ordinal);
         Assert.Contains("A6", pdfText, StringComparison.Ordinal);
         Assert.Contains("B1", pdfText, StringComparison.Ordinal);
@@ -254,7 +254,7 @@ public sealed partial class HtmlRenderingTests {
         const string avoidedHtml = "<style>@page{size:160px 45px;margin:0}table{margin:0}td{font-size:8px;line-height:14px;padding:2px}</style>"
             + "<table id='oversized'><tr style='break-inside:avoid'><td>A1<br>A2<br>A3<br>A4</td><td>B1<br>B2<br>B3<br>B4</td></tr></table>";
         HtmlRenderDocument avoided = HtmlRenderTestDriver.Render(avoidedHtml, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
-        HtmlDiagnostic diagnostic = Assert.Single(avoided.Diagnostics,
+        HtmlDiagnostic diagnostic = Assert.Single(avoided.NativeDiagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
 
         Assert.Equal("table#oversized", diagnostic.Source);

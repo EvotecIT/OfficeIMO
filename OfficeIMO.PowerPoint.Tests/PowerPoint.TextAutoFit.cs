@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void CanSetTextAutoFitOptions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box = slide.AddTextBox("Auto-fit me");
                 box.SetTextAutoFit(PowerPointTextAutoFit.Normal,
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(10000, normal.LineSpaceReduction!.Value);
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTextBox box = presentation.Slides.First().TextBoxes.First();
                 Assert.Equal(PowerPointTextAutoFit.Normal, box.TextAutoFit);
                 PowerPointTextAutoFitOptions? options = box.TextAutoFitOptions;

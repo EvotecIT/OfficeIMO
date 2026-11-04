@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph -Text 'Appendix reference' { Add-OfficeWordEndnote -Text 'Full calculation appears in the appendix.' }</code>
 ///   <para>Creates an endnote reference on the current paragraph.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordEndnote")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordEndnote", DefaultParameterSetName = "Default")]
 [Alias("WordEndnote")]
 [OutputType(typeof(WordParagraph))]
 public sealed class AddOfficeWordEndnoteCommand : PSCmdlet
@@ -38,7 +38,7 @@ public sealed class AddOfficeWordEndnoteCommand : PSCmdlet
         }
 
         var paragraph = ResolveParagraph();
-        var note = paragraph.AddEndNote(Text.Trim());
+        var note = paragraph.AddEndNote(Text.Trim()).Paragraph;
 
         if (PassThru.IsPresent)
         {

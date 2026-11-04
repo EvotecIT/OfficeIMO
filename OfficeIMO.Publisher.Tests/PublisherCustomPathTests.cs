@@ -18,7 +18,7 @@ public sealed class PublisherCustomPathTests {
         Assert.Equal(new OfficePoint(shape.Width, 0), shape.PathCommands.Last().Point);
         Assert.Equal(curve ? OfficePathCommandKind.CubicBezierTo : OfficePathCommandKind.LineTo,
             shape.PathCommands[1].Kind);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics,
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics,
             item => item.Code == "PUB_SHAPE_GEOMETRY_APPROXIMATED" || item.Code == "PUB_CUSTOM_PATH_INVALID");
     }
 
@@ -44,8 +44,8 @@ public sealed class PublisherCustomPathTests {
             Assert.Equal(noFill, shape.FillGradient == null);
             Assert.Equal(noLine, shape.StrokeColor == null);
         }
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED");
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => noFill && item.Code.StartsWith("PUB_GRADIENT_"));
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED");
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => noFill && item.Code.StartsWith("PUB_GRADIENT_"));
     }
 
     [Theory]
@@ -82,7 +82,7 @@ public sealed class PublisherCustomPathTests {
         Assert.Equal(pathKind < 2 ? OfficePathCommandKind.LineTo : OfficePathCommandKind.CubicBezierTo,
             shape.PathCommands[1].Kind);
         Assert.Equal((pathKind & 1) != 0, shape.PathCommands.Last().Kind == OfficePathCommandKind.Close);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics,
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics,
             item => item.Code == "PUB_SHAPE_GEOMETRY_APPROXIMATED");
     }
 
@@ -122,13 +122,13 @@ public sealed class PublisherCustomPathTests {
         Assert.Equal(0.5D, shape.FillGradient!.StartX);
         Assert.Equal(1D, shape.FillGradient.StartY);
         var svg = publication.ToSvgResult();
-        Assert.Contains(svg.Report.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
+        Assert.Contains(svg.Report.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
             && item.Location == "Contents/object/293");
         Assert.Contains("linearGradient", svg.Value);
-        var pdf = publication.ToPdfDocumentResult();
-        Assert.Contains(publication.ReadReport, pdf.SourceConversionReports);
-        Assert.Equal(publication.Pages.Count, PdfReadDocument.Open(pdf.ToBytes()).Pages.Count);
-        Assert.Throws<OfficeConversionException>(() => svg.RequireNoLoss());
+        var pdf = publication.ToPdf(null, out OfficeConversionReport pdfReport);
+        Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
+        Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
+        Assert.Throws<OfficeConversionException>(() => svg.ThrowIfLoss());
     }
 
     [Theory]
@@ -139,17 +139,17 @@ public sealed class PublisherCustomPathTests {
         PublisherDocument publication = Load(4, new[] { (10, -20), (110, -20), (10, 80) },
             new ushort[] { 0x4000, word, 0x8000 });
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == code
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == code
             && item.LossKind == OfficeConversionLossKind.Approximation && item.Location == "Contents/object/293");
     }
 
     [Fact]
     public void Missing_geometry_guides_and_separate_paint_groups_are_not_guessed() {
         PublisherDocument guide = Load(1, new[] { (unchecked((int)0x8000007F), 5), (85, 5), (35, 55) });
-        Assert.Contains(guide.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_INVALID");
+        Assert.Contains(guide.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_INVALID");
         PublisherDocument groups = Load(4, new[] { (10, -20), (110, -20), (10, 80), (110, 80) },
             new ushort[] { 0x4000, 0x0001, 0x8000, 0x4000, 0x0001, 0x8000 });
-        Assert.Contains(groups.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_PAINT_GROUPS_UNSUPPORTED");
+        Assert.Contains(groups.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_PAINT_GROUPS_UNSUPPORTED");
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(groups).Kind);
     }
 
@@ -157,12 +157,12 @@ public sealed class PublisherCustomPathTests {
     public void Invalid_geometry_space_and_truncated_vertices_keep_recoverable_text() {
         byte[] input = Input(1, new[] { (35, 5), (85, 5), (35, 55) }, extra: new() { [0x142] = 10 });
         PublisherDocument publication = PublisherDocument.Load(input);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
         Assert.NotEmpty(publication.TextStories);
         byte[] malformed = Vertices(new[] { (10, -20), (110, 80) });
         malformed[0] = malformed[2] = 3;
         publication = PublisherDocument.Load(PublisherDrawingFixture.Mutate(new(), 0, new() { [0x145] = malformed }));
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
         Assert.NotEmpty(publication.TextStories);
     }
 
@@ -170,7 +170,7 @@ public sealed class PublisherCustomPathTests {
     public void Native_path_expansion_obeys_cumulative_item_work_limits() {
         byte[] input = Input(1, Enumerable.Range(0, 80).Select(index => (index + 10, index - 20)).ToArray());
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } }));
+            new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } }));
         Assert.Contains("custom path item work limit", error.Message);
     }
 
@@ -186,7 +186,7 @@ public sealed class PublisherCustomPathTests {
         PublisherDocument publication = PublisherDocument.Load(input);
         Assert.Equal(OfficeShapeKind.Path, Artwork(publication).Kind);
         Assert.Equal(4, Artwork(publication).PathCommands.Count);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public sealed class PublisherCustomPathTests {
             .Append(OfficePathCommand.Close()).ToArray();
         var inner = new OfficeDrawing(100, 100).AddShape(OfficeShape.Path(100, 100, commands), 0, 0);
         var drawing = new OfficeDrawing(100, 100).AddClippedDrawing(inner, 0, 0, OfficeClipPath.Path(100, 100, commands));
-        var context = new PublisherParseContext(new PublisherReadOptions {
+        var context = new PublisherParseContext(new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 30 }
         }, default);
         context.AccountProjection(drawing);

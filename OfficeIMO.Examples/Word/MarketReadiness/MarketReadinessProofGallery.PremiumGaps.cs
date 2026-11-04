@@ -25,8 +25,8 @@ namespace OfficeIMO.Examples.Word {
         private static void CreateFeaturePreflightProof(string scenarioPath) {
             string featurePath = Path.Combine(scenarioPath, "unknown-document-preflight.docx");
             using (WordDocument document = WordDocument.Create(featurePath)) {
-                document.BuiltinDocumentProperties.Title = "Unknown Contract Package";
-                document.CustomDocumentProperties["Client"] = new WordCustomProperty("Northwind Traders");
+                document.Properties.Title = "Unknown Contract Package";
+                document.CustomProperties["Client"] = new WordCustomProperty("Northwind Traders");
 
                 document.AddParagraph("Unknown Contract Package").Style = WordParagraphStyles.Heading1;
                 document.AddParagraph("External policy reference: ")
@@ -82,10 +82,10 @@ namespace OfficeIMO.Examples.Word {
         private static void CreateComparisonReportProof(string scenarioPath) {
             string sourcePath = Path.Combine(scenarioPath, "comparison-source.docx");
             using (WordDocument source = WordDocument.Create(sourcePath)) {
-                source.BuiltinDocumentProperties.Title = "Agreement Draft";
+                source.Properties.Title = "Agreement Draft";
                 source.AddParagraph("Agreement Draft").Style = WordParagraphStyles.Heading1;
-                source.HeaderDefaultOrCreate.AddParagraph("Classification: Internal");
-                source.FooterDefaultOrCreate.AddParagraph("Agreement pack: Draft");
+                source.PageSetup.Header.AddParagraph("Classification: Internal");
+                source.PageSetup.Footer.AddParagraph("Agreement pack: Draft");
                 source.AddParagraph("Payment is due within 30 days.");
                 source.AddParagraph("Service credits are capped at one month of fees.");
                 WordTable table = source.AddTable(2, 2);
@@ -96,17 +96,17 @@ namespace OfficeIMO.Examples.Word {
                 source.AddParagraph("Disclosure footnote").AddFootNote("Source disclosure note.");
                 source.AddParagraph("Retention endnote").AddEndNote("Source retention note.");
                 source.AddParagraph("Client: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Client\"" });
-                source.CustomDocumentProperties["Client"] = new WordCustomProperty("Northwind Traders");
+                source.CustomProperties["Client"] = new WordCustomProperty("Northwind Traders");
                 source.UpdateFields();
                 source.Save();
             }
 
             string targetPath = Path.Combine(scenarioPath, "comparison-target.docx");
             using (WordDocument target = WordDocument.Create(targetPath)) {
-                target.BuiltinDocumentProperties.Title = "Agreement Draft";
+                target.Properties.Title = "Agreement Draft";
                 target.AddParagraph("Agreement Draft").Style = WordParagraphStyles.Heading1;
-                target.HeaderDefaultOrCreate.AddParagraph("Classification: Customer");
-                target.FooterDefaultOrCreate.AddParagraph("Agreement pack: Approved");
+                target.PageSetup.Header.AddParagraph("Classification: Customer");
+                target.PageSetup.Footer.AddParagraph("Agreement pack: Approved");
                 target.AddParagraph("Payment is due within 14 days.");
                 target.AddParagraph("Service credits are capped at two months of fees.");
                 target.AddParagraph("Escalation contacts must be reviewed quarterly.");
@@ -123,7 +123,7 @@ namespace OfficeIMO.Examples.Word {
                 target.AddParagraph("Disclosure footnote").AddFootNote("Target disclosure note.");
                 target.AddParagraph("Retention endnote").AddEndNote("Target retention note.");
                 target.AddParagraph("Client: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Client\"" });
-                target.CustomDocumentProperties["Client"] = new WordCustomProperty("Contoso Legal");
+                target.CustomProperties["Client"] = new WordCustomProperty("Contoso Legal");
                 target.UpdateFields();
                 target.Save();
             }
@@ -175,9 +175,9 @@ namespace OfficeIMO.Examples.Word {
         private static void CreateFieldRefreshReportProof(string scenarioPath) {
             string fieldPath = Path.Combine(scenarioPath, "field-refresh-report.docx");
             using (WordDocument document = WordDocument.Create(fieldPath)) {
-                document.BuiltinDocumentProperties.Creator = "OfficeIMO";
-                document.BuiltinDocumentProperties.Title = "Quarterly Controls Report";
-                document.CustomDocumentProperties["Client"] = new WordCustomProperty("Northwind Traders");
+                document.Properties.Creator = "OfficeIMO";
+                document.Properties.Title = "Quarterly Controls Report";
+                document.CustomProperties["Client"] = new WordCustomProperty("Northwind Traders");
 
                 document.AddParagraph("Quarterly Controls Report").Style = WordParagraphStyles.Heading1;
                 document.AddParagraph("Executive Summary").AddBookmark("ExecutiveSummary");

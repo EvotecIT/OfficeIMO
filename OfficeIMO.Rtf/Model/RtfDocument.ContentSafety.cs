@@ -9,7 +9,7 @@ public sealed partial class RtfDocument {
     public static OfficeContentSafetyReport InspectContentSafety(
         byte[] rtf,
         OfficeContentSafetyOptions? options = null,
-        RtfReadOptions? readOptions = null) {
+        RtfLoadOptions? readOptions = null) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(rtf);
 #else
@@ -25,7 +25,7 @@ public sealed partial class RtfDocument {
     public static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null,
-        RtfReadOptions? readOptions = null) {
+        RtfLoadOptions? readOptions = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective), effective, readOptions);
@@ -36,8 +36,8 @@ public sealed partial class RtfDocument {
         byte[] rtf,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
-        RtfReadOptions? readOptions = null,
-        RtfWriteOptions? writeOptions = null) {
+        RtfLoadOptions? readOptions = null,
+        RtfSaveOptions? writeOptions = null) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(rtf);
         ArgumentNullException.ThrowIfNull(selection);
@@ -71,8 +71,8 @@ public sealed partial class RtfDocument {
         string outputPath,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
-        RtfReadOptions? readOptions = null,
-        RtfWriteOptions? writeOptions = null) {
+        RtfLoadOptions? readOptions = null,
+        RtfSaveOptions? writeOptions = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeContentCleanupOptions();
@@ -230,7 +230,7 @@ public sealed partial class RtfDocument {
         } else if (run.RevisionKind == RtfRevisionKind.Deleted) {
             kind = OfficeContentConcealmentKind.HiddenByProperty;
             evidence = "The RTF run is retained as deleted revision content rather than ordinary current text.";
-        } else if (effective.FontSize.HasValue && effective.FontSize.Value <= builder.Options.MaximumTinyFontSizePoints) {
+        } else if (effective.FontSize.HasValue && effective.FontSize.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
             kind = OfficeContentConcealmentKind.TinyText;
             evidence = "The effective RTF font size is " + effective.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
         } else if (run.CharacterScalePercent.HasValue && run.CharacterScalePercent.Value <= 1) {

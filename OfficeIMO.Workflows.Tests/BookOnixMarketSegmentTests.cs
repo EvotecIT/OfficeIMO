@@ -16,7 +16,7 @@ public sealed class BookOnixMarketSegmentTests {
     };
     private static BookOnixExportResult Export(BookOnixSupply supply, BookProject? project = null) =>
         (project ?? BookOnixTests.Project()).ExportOnix(Options(supply), BookOnixTests.TestSchema(),
-            new OfficeIMO.Epub.EpubWriteOptions { ModifiedAt = BookOnixTests.Options().SentAt });
+            new OfficeIMO.Epub.EpubSaveOptions { ModifiedAt = BookOnixTests.Options().SentAt });
     private static BookOnixExportOptions Options(BookOnixSupply supply) => BookOnixTests.Options() with {
         Commercial = new() { PublishingStatus = BookOnixPublishingStatus.Active,
             SalesRights = [new(BookOnixSalesRightsKind.Exclusive, Us)], Supplies = [supply] }

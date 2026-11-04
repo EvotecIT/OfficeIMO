@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Sheet1");
+                document.AddSheet("Sheet1");
                 await document.SaveAsync();
             }
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Sheet1");
+                document.AddSheet("Sheet1");
                 await document.SaveAsync();
             }
 
@@ -56,14 +56,14 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Sheet1");
-                sheet.CellValue(1, 1, "Original");
+                var sheet = document.AddSheet("Sheet1");
+                sheet.Cell(1, 1).SetValue("Original");
                 await document.SaveAsync();
             }
 
             await using (var document = await ExcelDocument.LoadAsync(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.Sheets[0];
-                sheet.CellValue(1, 1, "Updated");
+                sheet.Cell(1, 1).SetValue("Updated");
             }
 
             await using (var document = await ExcelDocument.LoadAsync(filePath)) {

@@ -51,9 +51,9 @@ public class HtmlFidelityScoreV2 {
     public void FidelityV2_UsesHtmlExportedAfterActualDocxReload() {
         const string html = "<h1>Reload proof</h1><p>Plain <strong>bold</strong> <a href='https://example.com'>link</a></p><ul><li>One</li><li>Two</li></ul>";
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-        using WordDocument document = source.ToWordDocumentResult().RequireValue();
+        using WordDocument document = source.ConvertToWordWithEvidence().RequireValue();
         string initialExport = document.ToHtml();
-        using MemoryStream artifact = document.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(document.ToBytes());
         using WordDocument reloaded = WordDocument.Load(
             new MemoryStream(artifact.ToArray()),
             new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
@@ -86,9 +86,9 @@ public class HtmlFidelityScoreV2 {
     public void FidelityV2_UsesHtmlExportedAfterActualXlsxReload() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<table><caption>Data</caption><tr><th>Name</th><th>Value</th></tr><tr><td>Total</td><td>42</td></tr></table>");
-        using ExcelDocument workbook = source.ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+        using ExcelDocument workbook = source.ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         string initialExport = workbook.ToHtml();
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(artifact.ToArray()),
             new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
@@ -105,11 +105,11 @@ public class HtmlFidelityScoreV2 {
     public void FidelityV2_UsesHtmlExportedAfterActualPptxReload() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<section><h1>Reload</h1><p>Plain <strong>bold</strong></p></section>");
-        using PowerPointPresentation presentation = source.ToPowerPointPresentationResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+        using PowerPointDocument presentation = source.ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         string initialExport = presentation.ToHtml();
-        using MemoryStream artifact = presentation.ToStream();
-        using PowerPointPresentation reloaded = PowerPointPresentation.Load(
+        using MemoryStream artifact = new System.IO.MemoryStream(presentation.ToBytes());
+        using PowerPointDocument reloaded = PowerPointDocument.Load(
             new MemoryStream(artifact.ToArray()),
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 

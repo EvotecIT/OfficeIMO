@@ -124,8 +124,10 @@ public sealed class PdfDrawingParagraphOverflowTests {
     }
 
     private static byte[] Render(OfficeDrawing drawing, bool embedded) {
-        var options = new PdfOptions { PageWidth = drawing.Width, PageHeight = drawing.Height,
-            MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D, CompressContentStreams = false };
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+        }, CompressContentStreams = false };
         if (embedded) options.UseRenderingProfile(new OfficeRenderingProfile("overflow", drawing.Fonts));
         return PdfDocument.Create(options).Compose(canvas => canvas.Page(page =>
             page.Content(content => content.Drawing(drawing)))).ToBytes();

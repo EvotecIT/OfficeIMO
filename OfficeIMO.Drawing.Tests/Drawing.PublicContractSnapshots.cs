@@ -71,11 +71,5 @@ public sealed class DrawingPublicContractSnapshotTests {
         Assert.False(copy.ShowBorder);
     }
 
-    [Fact]
-    public void ChartAppearanceRetainsCompiledConstructorSignatures() {
-        Assert.Contains(typeof(OfficeChartPointStyle).GetConstructors(), ctor => ctor.GetParameters().Length == 7);
-        Assert.Contains(typeof(OfficeChartStyle).GetConstructors(), ctor => ctor.GetParameters().Length == 53);
-        Assert.Contains(typeof(OfficeChartStyle).GetConstructors(), ctor => ctor.GetParameters().Length == 54 &&
-            ctor.GetParameters()[0].ParameterType == typeof(bool));
-    }
+
 }

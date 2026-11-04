@@ -15,12 +15,16 @@ internal static partial class PdfAnnotationFlattener {
     }
 
     /// <summary>Flattens only supported visual annotations matching the supplied selector.</summary>
-    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options) =>
-        FlattenVisualAnnotations(pdf, options, readOptions: null);
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return FlattenVisualAnnotations(pdf, options, readOptions: null, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Flattens matching supported visual annotations using explicit read limits or credentials.</summary>
-    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfLoadOptions? readOptions) =>
-        FlattenVisualAnnotations(pdf, options, readOptions, out _);
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return FlattenVisualAnnotations(pdf, options, readOptions, out _);
+    }
 
     internal static byte[] FlattenVisualAnnotations(
         byte[] pdf,

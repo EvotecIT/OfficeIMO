@@ -37,8 +37,8 @@ public sealed class HtmlCssProviderDeclarationQueryTests {
         Assert.Equal("3px", style.GetValue("padding-bottom"));
         Assert.Equal("4px", style.GetValue("padding-left"));
         Assert.Equal("2px", style.GetValue("border-top-width"));
-        Assert.True(OfficeIMO.Drawing.OfficeColor.TryParseCss(style.GetValue("border-top-color"), out var borderColor));
-        Assert.Equal(OfficeIMO.Drawing.OfficeColor.Red, borderColor);
+        Assert.True(OfficeIMO.OfficeColor.TryParseCss(style.GetValue("border-top-color"), out var borderColor));
+        Assert.Equal(OfficeIMO.OfficeColor.Red, borderColor);
         Assert.Equal("italic", style.GetValue("font-style"));
         Assert.Equal("bold", style.GetValue("font-weight"));
         Assert.Equal("12px", style.GetValue("font-size"));

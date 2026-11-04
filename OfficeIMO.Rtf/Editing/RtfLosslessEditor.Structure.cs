@@ -111,7 +111,7 @@ public sealed partial class RtfLosslessEditor {
         generated.CropTopTwips = image.CropTopTwips;
         generated.CropRightTwips = image.CropRightTwips;
         generated.CropBottomTwips = image.CropBottomTwips;
-        RtfSyntaxTree syntax = RtfSyntaxTree.Parse(temporary.ToRtf(new RtfWriteOptions { IncludeGenerator = false }));
+        RtfSyntaxTree syntax = RtfSyntaxTree.Parse(temporary.ToRtf(new RtfSaveOptions { IncludeGenerator = false }));
         return FindDestinationGroup(syntax.Root, "pict") ?? throw new InvalidOperationException("Picture fragment could not be generated.");
     }
 

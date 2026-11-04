@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>A four-corner selection or hit-test region in visual top-left page coordinates.</summary>
+/// <remarks>Visual coordinates are numeric physical points (1/72 inch), with a top-left origin after crop, rotation and /UserUnit scaling. Use the page coordinate mapping methods when calling native read/edit APIs.</remarks>
 public sealed class PdfSelectionQuad {
     internal PdfSelectionQuad(PdfSelectionPoint topLeft, PdfSelectionPoint topRight, PdfSelectionPoint bottomRight, PdfSelectionPoint bottomLeft) {
         TopLeft = topLeft;

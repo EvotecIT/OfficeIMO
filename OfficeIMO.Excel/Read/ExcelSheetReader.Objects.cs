@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
         /// Header cells are matched to public writable properties on T by name (case-insensitive).
         /// </summary>
         public IEnumerable<T> ReadObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) where T : new() {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 
             int rows = r2 - r1 + 1;
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellCount > _opt.MaxRangeCells) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxRangeCells), _opt.MaxRangeCells,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxRangeCells), _opt.MaxRangeCells,
                     $"Range '{a1Range}' contains {cellCount.ToString(CultureInfo.InvariantCulture)} cells, exceeding the configured limit of {_opt.MaxRangeCells.ToString(CultureInfo.InvariantCulture)}.");
             }
 
@@ -209,7 +209,7 @@ namespace OfficeIMO.Excel {
             out List<T> result) where T : new() {
             result = [];
             if (_opt.CellValueConverter != null || _opt.TypeConverter != null) return false;
-            var (firstRow, _, lastRow, _) = A1.ParseRange(a1Range);
+            var (firstRow, _, lastRow, _) = ExcelA1.ParseRange(a1Range);
             if (lastRow - firstRow + 1 <= BufferedRangeStreamRowLimit) return false;
             int chunkRows = Math.Min(2048, _opt.MaxDataReaderChunkRows);
             if (chunkRows <= 0) return false;

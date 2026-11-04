@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Xml;
+using OfficeIMO;
 using OfficeIMO.Html;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Rtf;
@@ -46,24 +47,23 @@ static async Task<object[]> VerifyRtfAsync(JsonElement manifest, HttpClient clie
             Require(header.Contains(fragment.GetString()!, StringComparison.Ordinal), id + " header evidence changed");
         }
 
-        RtfReadResult read = RtfDocument.LoadResult(bytes, RtfReadOptions.CreateUntrustedProfile());
-        RtfToHtmlResult html = read.Document.ToHtmlResult(RtfToHtmlOptions.CreateWebSafeProfile());
-        RtfConversionResult<string> markdown = read.Document.ToMarkdownResult();
-        RtfConversionResult<OfficeIMO.Word.WordDocument> word = read.ToWordDocumentResult(sourceUrl);
-        using (word.Value) {
-            Require(!string.IsNullOrWhiteSpace(html.Value), id + " produced empty safe HTML");
-            Require(!string.IsNullOrWhiteSpace(markdown.Value), id + " produced empty Markdown");
-            Require(word.Succeeded, id + " failed the Word bridge");
+        RtfReadResult read = RtfDocument.LoadResult(bytes, RtfLoadOptions.UntrustedDefaults);
+        string html = read.Document.ToHtml(RtfHtmlExportOptions.CreateWebSafeProfile());
+        string markdown = read.Document.ToMarkdown().ToMarkdown();
+        using (OfficeIMO.Word.WordDocument word = read.ToWord(new RtfWordExportOptions { SourcePath = sourceUrl }, out OfficeConversionReport wordReport)) {
+            Require(!string.IsNullOrWhiteSpace(html), id + " produced empty safe HTML");
+            Require(!string.IsNullOrWhiteSpace(markdown), id + " produced empty Markdown");
+            Require(!wordReport.Diagnostics.Any(item => item.Severity == OfficeDiagnosticSeverity.Error), id + " failed the Word bridge");
             output.Add(new {
                 id,
                 producer = artifact.GetProperty("producer").GetString(),
                 bytes = bytes.Length,
                 sha256 = Hash(bytes),
                 readDiagnostics = read.Diagnostics.Count,
-                safeHtmlCharacters = html.Value.Length,
-                markdownCharacters = markdown.Value.Length,
-                wordBridgeDiagnostics = word.Report.Diagnostics.Count,
-                productPaths = new[] { "RtfDocument.LoadResult(untrusted)", "ToHtmlResult(web-safe)", "ToMarkdownResult", "RtfReadResult.ToWordDocumentResult" }
+                safeHtmlCharacters = html.Length,
+                markdownCharacters = markdown.Length,
+                wordBridgeDiagnostics = wordReport.Diagnostics.Count,
+                productPaths = new[] { "RtfDocument.LoadResult(untrusted)", "ToHtml(web-safe)", "ToMarkdown", "RtfReadResult.ToWord" }
             });
         }
     }
@@ -97,7 +97,9 @@ static async Task<object[]> VerifyOdfAsync(JsonElement manifest, HttpClient clie
         Require(document.Validate().IsValid, id + " failed OfficeIMO validation");
         using var savedStream = new MemoryStream();
         OdfSaveResult saved = document.Save(savedStream);
-        byte[] savedBytes = saved.RequireNoLoss();
+        var savedBytesResult = saved;
+        savedBytesResult.ThrowIfLoss();
+        byte[] savedBytes = savedBytesResult.Value;
         using var reopenedStream = new MemoryStream(savedBytes, writable: false);
         OdfDocument reopened = OdfDocument.Load(reopenedStream, loadOptions);
         Require(reopened.Validate().IsValid, id + " failed OfficeIMO save/reopen validation");
@@ -113,7 +115,7 @@ static async Task<object[]> VerifyOdfAsync(JsonElement manifest, HttpClient clie
             semanticTextSha256 = semanticHash,
             savedBytes = savedBytes.Length,
             savedWithoutLoss = !saved.HasLoss,
-            productPaths = new[] { "OdfDocument.Load(bounded)", "Validate", "Save(RequireNoLoss)", "Load(saved)" }
+            productPaths = new[] { "OdfDocument.Load(bounded)", "Validate", "Save(ThrowIfLoss)", "Load(saved)" }
         });
     }
     return output.ToArray();

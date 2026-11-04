@@ -16,8 +16,8 @@ public sealed partial class IWorkEverydayNativeExportTests {
         foreach (var scenario in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             string name = scenario.GetProperty("case").GetString()!;
             foreach (string producer in new[] { "pages", "keynote", "composed" }) {
-                string text = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(
-                    Corpus("native-exports/list-counter-" + name + "-v15.4-" + producer + ".pdf"))).ExtractText();
+                string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(
+                    Corpus("native-exports/list-counter-" + name + "-v15.4-" + producer + ".pdf")))).ExtractText();
                 // Native PDF glyph positioning can add extraction whitespace
                 // inside words. Check the complete ordered character sequence.
                 text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", string.Empty);
@@ -42,9 +42,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     public void Native_decimal_levels_and_continuation_preserve_source_counters_and_DOCX_measurements(
         string fixture, bool reimported) {
         VerifyManifest(fixture + ".json");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(
-            Corpus("native-exports/" + fixture + ".pages"),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(Corpus("native-exports/" + fixture + ".pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Assert.True(result.Projection.Body.IsFormattingComplete);
         Assert.Empty(result.Projection.SourceDeclarationIssues);

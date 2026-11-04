@@ -12,8 +12,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Single_cell_cross_table_binding_preserves_flags_forward_names_and_numeric_caches(bool rowAbsolute, bool columnAbsolute) {
         byte[] formula = SingleCellFormula(SingleCellReference(rowAbsolute, columnAbsolute));
         using MemoryStream package = CrossBindingPackage(formulaPayload: formula);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback);
         IWorkTableCell cell = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.True(cell.FormulaIsComplete);
@@ -22,10 +21,10 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("'" + target + "'!" + address, reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED");
-        reopened.Sheets[1].CellValue(1, 1, 29d); reopened.Calculate();
-        Assert.Equal(29d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        reopened.Sheets[1].Cell(1, 1).SetValue(29d); reopened.Calculate();
+        Assert.Equal(29d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -34,11 +33,10 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(3)]
     public void Single_cell_missing_ambiguous_or_inactive_identities_retain_cache_without_local_formula(int defect) {
         using MemoryStream package = CrossBindingPackage(defect, formulaPayload: SingleCellFormula(SingleCellReference()));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -56,11 +54,10 @@ public sealed partial class IWorkBoundaryTests {
             _ => VarintField(1, (ulong)int.MaxValue * 2 + 2)
         };
         using MemoryStream package = CrossBindingPackage(formulaPayload: SingleCellFormula(SingleCellReference(rowCoordinate: coordinate)));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -81,14 +78,13 @@ public sealed partial class IWorkBoundaryTests {
         nodes.Add(Message(VarintField(1, 16), VarintField(2, 168), VarintField(3, 1)));
         byte[] formula = SingleCellFormula(nodes.ToArray());
         using MemoryStream package = CrossBindingPackage(formulaPayload: formula);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.Equal(complete, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         if (complete) {
             string target = result.WorksheetMappings[1].DestinationName.Replace("'", "''");
             Assert.Equal("SUM('" + target + "'!" + (variant == 3 ? "$A$1 : $B$2" : "$A$1:$B$2") + ")", result.Value.Sheets[0].GetFormulaText(1, 1));
         } else Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -101,8 +97,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] node = Message(VarintField(1, (ulong)nodeType), BytesField(26, VarintField(1, 0)),
             BytesField(27, VarintField(1, 0)), SingleCellIdentity());
         using MemoryStream package = CrossBindingPackage(formulaPayload: SingleCellFormula(node));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
     }

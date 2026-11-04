@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Tests.Pdf;
 using Xunit;
 
@@ -22,8 +23,8 @@ public sealed partial class HtmlRenderingTests {
             + "' style='display:block;width:40px;height:90px'></body></html>");
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(40D / HtmlRenderOptions.CssPixelsPerInch,
-                40D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch),
+                global::OfficeIMO.OfficeLength.Inches(40D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             MaximumDegreeOfParallelism = 2
@@ -36,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
         options.MaximumTotalEncodedBytes = limit;
 
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, encoder, options).WithPageSet(HtmlRenderPageSet.All());
+            HtmlRenderIntentProfile.PrintPaged, encoder, HtmlPdfExportOptions.ForImageExport(options)).WithPageSet(HtmlRenderPageSet.All());
         OfficeImageExportBatchLimitException legacy = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
             document.ExportImages(format, options));
         OfficeImageExportBatchLimitException explicitRequest = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
@@ -70,7 +71,7 @@ public sealed partial class HtmlRenderingTests {
 
         options.MaximumRasterPixels = 15_000L;
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, options);
+            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(options));
         OfficeImageExportLimitException legacy = Assert.Throws<OfficeImageExportLimitException>(() =>
             document.ExportImage(OfficeImageExportFormat.Png, options));
         OfficeImageExportLimitException explicitRequest = Assert.Throws<OfficeImageExportLimitException>(() =>
@@ -86,6 +87,45 @@ public sealed partial class HtmlRenderingTests {
             Assert.True(failure.RequestedPixels > 15_000L);
             Assert.Equal(legacy.RequestedPixels, failure.RequestedPixels);
             Assert.Equal(15_000L, failure.MaximumPixels);
+        }
+    }
+
+    [Fact]
+    public async Task HtmlImages_SourcePixelsAreBoundedBeforePdfImagePreparation() {
+        string source = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(40, 40));
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<body style='margin:0'><img src='data:image/png;base64," + source +
+            "' style='display:block;width:10px;height:10px'></body>");
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 10D,
+            ViewportHeight = 10D,
+            Margins = HtmlRenderMargins.All(0D),
+            MaximumRasterPixels = 1600L,
+            Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
+        };
+
+        var pdfOptions = new HtmlPdfExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 10D,
+            ViewportHeight = 10D,
+            Margins = HtmlRenderMargins.All(0D),
+            MaximumRasterPixels = 1600L
+        };
+        Assert.DoesNotContain(document.ConvertToPdfWithEvidence(pdfOptions).Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted);
+        pdfOptions.MaximumRasterPixels = 1599L;
+        Assert.Contains(document.ConvertToPdfWithEvidence(pdfOptions).Report.Warnings,
+            warning => warning.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted);
+        options.MaximumRasterPixels = 1599L;
+        OfficeImageExportPolicyException synchronous = Assert.Throws<OfficeImageExportPolicyException>(() =>
+            document.ExportImage(OfficeImageExportFormat.Png, options));
+        OfficeImageExportPolicyException asynchronous = await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() =>
+            document.ExportImageAsync(OfficeImageExportFormat.Png, options));
+        foreach (OfficeImageExportPolicyException failure in new[] { synchronous, asynchronous }) {
+            Assert.Contains(failure.Diagnostics, diagnostic =>
+                diagnostic.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
     }
 

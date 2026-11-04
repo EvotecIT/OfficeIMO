@@ -1,8 +1,8 @@
 namespace OfficeIMO.Visio;
 
 /// <summary>Source-qualified fidelity diagnostics for one Visio diagram-page projection.</summary>
-public sealed class VisioDrawingConversionReport : IOfficeConversionReport {
-    private readonly List<OfficeConversionFidelityDiagnostic> _diagnostics = new();
+public sealed class VisioDrawingConversionReport : OfficeConversionReport {
+    private readonly List<OfficeDiagnostic> _diagnostics = new();
 
     internal VisioDrawingConversionReport(string? sourceName) { SourceName = sourceName; }
 
@@ -10,16 +10,15 @@ public sealed class VisioDrawingConversionReport : IOfficeConversionReport {
     public string? SourceName { get; }
 
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _diagnostics.AsReadOnly();
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _diagnostics.AsReadOnly();
 
     /// <inheritdoc />
-    public bool HasLoss => _diagnostics.Any(item => item.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => _diagnostics.Any(item => item.LossKind != OfficeConversionLossKind.None);
 
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new OfficeConversionException("Visio diagram-page projection reported fidelity loss.", this);
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Visio diagram-page projection reported fidelity loss.", this);
 
     internal void Add(string code, string message, OfficeConversionLossKind kind, string location) =>
-        _diagnostics.Add(new OfficeConversionFidelityDiagnostic(code, message, kind, "OfficeIMO.Visio.Drawing", location));
+        _diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(code, kind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, message, location, "OfficeIMO.Visio.Drawing", kind));
 }

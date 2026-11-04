@@ -51,14 +51,12 @@ namespace OfficeIMO.Odbc {
             using FileStream input = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
             const int maxInputBytes = 64 * 1024 * 1024;
             if (input.Length > maxInputBytes) throw new InvalidDataException("Workbook exceeds the 64 MiB input limit.");
-            byte[] bytes = new byte[checked((int)input.Length)];
-            input.ReadExactlyAsync(bytes, cancellationToken).AsTask().GetAwaiter().GetResult();
-            ExcelReadOptions options = new ExcelReadOptions {
+            ExcelReaderOptions options = new ExcelReaderOptions {
                 MaxInputBytes = maxInputBytes, MaxWorksheets = 64, CancellationToken = cancellationToken,
                 HasHeaderRow = true, InferSchema = false, MaxDataReaderColumns = 256,
                 MaxSharedStringCharacters = 32L * 1024 * 1024, MaxSharedStringItemCharacters = 32_767
             };
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(bytes, options);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(input, options);
             List<SnapshotTable> tables = new List<SnapshotTable>();
             HashSet<string> names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             long cells = 0, characters = 0;

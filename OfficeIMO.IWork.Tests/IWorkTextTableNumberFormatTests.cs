@@ -68,23 +68,23 @@ public sealed partial class IWorkBoundaryTests {
         IWorkTableCell cell;
         IWorkConversionReport report;
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = source.ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
             cell = Assert.Single(Assert.Single(result.Projection.Tables).Cells); report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var paragraph = Assert.Single(reopened.Tables).Rows[0].Cells[0].Paragraphs[0];
             Assert.Equal(expectedText, paragraph.Text);
-            if (expectedColor.Length > 0) Assert.Equal(expectedColor, paragraph.ColorHex);
+            if (expectedColor.Length > 0) Assert.Equal(OfficeIMO.OfficeColor.Parse(expectedColor), paragraph.Color);
         } else {
-            using var result = source.ToPowerPointPresentationResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = source.ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
             cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells); report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0);
             Assert.Equal(expectedText, target.Text);
-            if (expectedColor.Length > 0) Assert.Equal(expectedColor, target.Paragraphs[0].Runs[0].Color);
+            if (expectedColor.Length > 0) Assert.Equal(OfficeIMO.OfficeColor.Parse(expectedColor), target.Paragraphs[0].Runs[0].Color);
             Assert.Empty(reopened.ValidateDocument());
         }
         Assert.Equal(value, cell.Value);

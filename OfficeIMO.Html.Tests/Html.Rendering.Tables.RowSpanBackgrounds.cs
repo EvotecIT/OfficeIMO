@@ -116,11 +116,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(rendered.Pages.Count > 1);
         AssertRowSpanBackgroundLabels(rendered, "HEADER", "FOOTER", "SPAN-1", "FIRST-1", "SECOND-1", "SPAN-2", "FIRST-2", "SECOND-2");
         foreach (string code in new[] { HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed, HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed }) {
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == code
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == code
                 && diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true
                 && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         }
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         if (ancestorStyle.StartsWith("opacity", StringComparison.Ordinal)) {
             OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing(), 1D, OfficeColor.White);
             Assert.True(first.GetPixel(250, 30).R > 120); // No opaque navy repeated header can escape the owner.
@@ -136,10 +136,10 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTables_PathClipRetainsSourceTextOnceAndReportsUnsharedRepetition() {
         HtmlRenderDocument rendered = RenderRowSpanBackgrounds("collapse", repeated: true, ancestorStyle: "clip-path:inset(0)");
         Assert.True(rendered.Pages.Count > 1);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
             && diagnostic.Detail?.StartsWith("effect-table-repetition;", StringComparison.Ordinal) == true);
         AssertRowSpanBackgroundLabels(rendered, "HEADER", "FOOTER", "SPAN-1", "FIRST-1", "SECOND-1", "SPAN-2", "FIRST-2", "SECOND-2");
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     private static HtmlRenderSemanticGroup RowSpanBackgroundCell(HtmlRenderDocument rendered, string source) =>

@@ -31,13 +31,12 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         var report = ConvertUnitReport(package, kind, visual: false);
         Assert.True(report.IsPartialEditableReconstruction);
-        Assert.Contains(report.FidelityDiagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
+        Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
             && d.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Contains(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 12
             && d.Kind == IWorkSourceDeclarationIssueKind.UnsupportedField);
         if (kind != IWorkDocumentKind.Numbers) return;
         package.Position = 0;
-        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
     }
 }

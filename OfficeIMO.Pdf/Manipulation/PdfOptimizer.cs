@@ -7,8 +7,10 @@ namespace OfficeIMO.Pdf;
 /// <summary>Applies dependency-free, lossless PDF optimization actions.</summary>
 internal static partial class PdfOptimizer {
     /// <summary>Optimizes a PDF byte array with lossless actions.</summary>
-    public static PdfOptimizationActionResult Optimize(byte[] pdf, PdfOptimizationOptions? options = null) =>
-        Optimize(pdf, options, readOptions: null);
+    public static PdfOptimizationActionResult Optimize(byte[] pdf, PdfOptimizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Optimize(pdf, options, readOptions: null);
+    }
 
     internal static PdfOptimizationActionResult Optimize(
         byte[] pdf,
@@ -203,8 +205,10 @@ internal static partial class PdfOptimizer {
         Optimize(pdf, PdfOptimizationOptions.Create(profile), readOptions);
 
     /// <summary>Optimizes a PDF file with lossless actions.</summary>
-    public static PdfOptimizationActionResult Optimize(string path, PdfOptimizationOptions? options = null) =>
-        Optimize(path, options, readOptions: null);
+    public static PdfOptimizationActionResult Optimize(string path, PdfOptimizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Optimize(path, options, readOptions: null);
+    }
 
     /// <summary>Optimizes a bounded file snapshot using caller-selected read limits and credentials.</summary>
     internal static PdfOptimizationActionResult Optimize(string path, PdfOptimizationOptions? options, PdfLoadOptions? readOptions) {
@@ -214,8 +218,10 @@ internal static partial class PdfOptimizer {
     }
 
     /// <summary>Optimizes a readable PDF stream from its current position with lossless actions.</summary>
-    public static PdfOptimizationActionResult Optimize(Stream stream, PdfOptimizationOptions? options = null) =>
-        Optimize(stream, options, readOptions: null);
+    public static PdfOptimizationActionResult Optimize(Stream stream, PdfOptimizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Optimize(stream, options, readOptions: null);
+    }
 
     /// <summary>Optimizes remaining stream content with caller-selected limits, without closing the caller stream.</summary>
     internal static PdfOptimizationActionResult Optimize(Stream stream, PdfOptimizationOptions? options, PdfLoadOptions? readOptions) {
@@ -224,8 +230,10 @@ internal static partial class PdfOptimizer {
     }
 
     /// <summary>Optimizes a PDF file and writes the result to another file.</summary>
-    public static PdfOptimizationActionResult Optimize(string inputPath, string outputPath, PdfOptimizationOptions? options = null) =>
-        Optimize(inputPath, outputPath, options, readOptions: null);
+    public static PdfOptimizationActionResult Optimize(string inputPath, string outputPath, PdfOptimizationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Optimize(inputPath, outputPath, options, readOptions: null);
+    }
 
     /// <summary>Optimizes bounded file input and observes cancellation during staged output before atomic publication.</summary>
     internal static PdfOptimizationActionResult Optimize(string inputPath, string outputPath, PdfOptimizationOptions? options, PdfLoadOptions? readOptions) {

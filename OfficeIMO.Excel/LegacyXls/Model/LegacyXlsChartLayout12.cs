@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only CrtLayout12 chart layout metadata.
     /// </summary>
-    public sealed class LegacyXlsChartLayout12 {
+    internal sealed class LegacyXlsChartLayout12 {
         internal LegacyXlsChartLayout12(
             uint checksum,
             byte automaticLayoutType,

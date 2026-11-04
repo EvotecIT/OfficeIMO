@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PageLayoutImageExportMatchesApprovedBaselines() {
             using ExcelBaselineFixture fixture = CreatePageLayoutBaselineWorkbook();
-            ExcelWorksheetImageExportOptions options = CreatePageLayoutBaselineOptions();
+            ExcelImageExportOptions options = CreatePageLayoutBaselineOptions();
 
             IReadOnlyList<OfficeImageExportResult> pngResults = fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options);
             IReadOnlyList<OfficeImageExportResult> svgResults = fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             string svgPath = Path.Combine(BaselineDirectory, PageLayoutBaselineName + ".svg");
             if (UpdateBaselines) {
                 using ExcelBaselineFixture fixture = CreatePageLayoutBaselineWorkbook();
-                ExcelWorksheetImageExportOptions options = CreatePageLayoutBaselineOptions();
+                ExcelImageExportOptions options = CreatePageLayoutBaselineOptions();
                 AssertRasterBaseline(PageLayoutBaselineName + ".png", fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1].Bytes);
                 AssertTextBaseline(PageLayoutBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1].Bytes));
             }
@@ -92,14 +92,14 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreatePageLayoutBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelPageLayoutBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("PageLayout");
+            ExcelSheet sheet = document.AddSheet("PageLayout");
 
             string[] headers = { "Region", "Owner", "Status", "Score" };
             for (int column = 1; column <= headers.Length; column++) {
-                sheet.CellValue(1, column, headers[column - 1]);
-                sheet.CellAt(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(12D);
-                sheet.CellAlign(1, column, ExcelHorizontalAlignment.Center);
-                sheet.CellVerticalAlign(1, column, ExcelVerticalAlignment.Center);
+                sheet.Cell(1, column).SetValue(headers[column - 1]);
+                sheet.Cell(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+                sheet.Cell(1, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+                sheet.Cell(1, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             }
 
             AddPageLayoutRow(sheet, 2, "North", "Avery", "Ready", 0.94D, "E7F6E7", "226B22");
@@ -110,45 +110,46 @@ namespace OfficeIMO.Tests {
             AddPageLayoutRow(sheet, 7, "Global", "Devon", "Ready", 0.91D, "E7F6E7", "226B22");
             AddPageLayoutRow(sheet, 8, "Partner", "Emery", "Risk", 0.64D, "FCE4E4", "9C0006");
 
-            sheet.SetColumnWidth(1, 42D);
-            sheet.SetColumnWidth(2, 38D);
-            sheet.SetColumnWidth(3, 30D);
-            sheet.SetColumnWidth(4, 26D);
-            sheet.SetRowHeight(1, 32D);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(42D));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(38D));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(30D));
+            sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(26D));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32D)));
             for (int row = 2; row <= 8; row++) {
-                sheet.SetRowHeight(row, 50D);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(50D)));
             }
 
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(12D);
-                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+                    sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(0.35D, 0.35D, 0.35D, 0.35D);
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
-            sheet.SetHeaderFooter(headerCenter: "&BPage &P / &N - &A", footerRight: "&IReviewed");
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D));
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.Header.Center.Text = "&BPage &P / &N - &A";
+            sheet.PageSetup.Footer.Right.Text = "&IReviewed";
             sheet.AddManualRowPageBreak(2, save: false);
             return new ExcelBaselineFixture(document, sheet);
         }
 
         private static void AddPageLayoutRow(ExcelSheet sheet, int row, string region, string owner, string status, double score, string statusFill, string statusText) {
-            sheet.CellValue(row, 1, region);
-            sheet.CellValue(row, 2, owner);
-            sheet.CellValue(row, 3, status);
-            sheet.CellValue(row, 4, score);
+            sheet.Cell(row, 1).SetValue(region);
+            sheet.Cell(row, 2).SetValue(owner);
+            sheet.Cell(row, 3).SetValue(status);
+            sheet.Cell(row, 4).SetValue(score);
             sheet.Range("A" + row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":D" + row.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .SetFillColor(row == 2 ? "F8FAFC" : "FFFFFF");
-            sheet.CellAt(row, 3).SetFillColor(statusFill).SetFontColor(statusText).SetBold().SetFontSize(12D);
-            sheet.CellAt(row, 4).Percent(0).SetBold().SetFontSize(12D);
-            sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Right);
+            sheet.Cell(row, 3).SetFillColor(statusFill).SetFontColor(statusText).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+            sheet.Cell(row, 4).SetNumberFormat("0%").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+            sheet.Cell(row, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
         }
 
-        private static ExcelWorksheetImageExportOptions CreatePageLayoutBaselineOptions() =>
-            new ExcelWorksheetImageExportOptions {
+        private static ExcelImageExportOptions CreatePageLayoutBaselineOptions() =>
+            new ExcelImageExportOptions {
                 Fonts = OfficeIMO.TestAssets.PortableVisualFontAssets.CreateSpreadsheetFonts(),
                 Range = "A1:D8",
                 SplitByManualPageBreaks = true,

@@ -14,10 +14,10 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlDirectionalProvider_EmptyGlyphsKeepTextAndLinksInsideAPathClip(bool linked) {
         const string text = "אבג";
         const string uri = "https://example.test/empty-glyphs";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             TextShapingProvider = new ManagedTextShapingTestAssets.RecordingProvider()
         };
         options.Fonts.Add("Empty Glyphs", ManagedTextShapingTestAssets.CreateFontWithEmptyGlyphs(
@@ -28,16 +28,16 @@ public sealed partial class HtmlRenderingTests {
             + "a{text-decoration:none}</style><p dir='rtl'>"
             + (linked ? "<a href='" + uri + "'>" + text + "</a>" : text) + "</p>");
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         Assert.Equal(text, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
         if (linked) Assert.NotEmpty(PdfCore.PdfDocumentReadResult.Load(bytes).GetLinksByUri(uri));
     }
 
     [Fact]
     public void HtmlDirectionalProvider_EmptySpaceContoursRetainLogicalTextWithoutPdfLoss() {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             AllowSystemFontFallback = false,
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss,
@@ -54,11 +54,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotNull(space.PreparedShaping);
         Assert.True(space.TextAdvanceWidth > 0D);
         Assert.Empty(space.PreparedShaping!.GetContours(0D, 0D, 20D, 1000, default));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         Assert.Equal("אבג 123", PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(

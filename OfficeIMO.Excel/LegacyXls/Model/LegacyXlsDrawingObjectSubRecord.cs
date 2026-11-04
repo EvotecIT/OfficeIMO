@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a subrecord discovered inside a BIFF OBJ drawing record.
     /// </summary>
-    public sealed class LegacyXlsDrawingObjectSubRecord {
+    internal sealed class LegacyXlsDrawingObjectSubRecord {
         /// <summary>
         /// Creates OBJ subrecord metadata.
         /// </summary>

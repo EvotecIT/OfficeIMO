@@ -11,48 +11,48 @@ internal sealed partial class OfficeMarkupExcelExporter {
         var fontColor = GetAttribute(attributes,
             "color", "font-color", "fontColor", "text-color", "textColor", "textcolor");
         if (!string.IsNullOrWhiteSpace(fontColor)) {
-            sheet.CellFontColor(row, column, fontColor!);
+            sheet.Cell(row, column).SetFontColor(fontColor!);
         }
 
         var fontName = GetAttribute(attributes, "font", "font-name", "fontName", "font-family", "fontFamily");
         if (!string.IsNullOrWhiteSpace(fontName)) {
-            sheet.CellFontName(row, column, fontName!);
+            sheet.Cell(row, column).SetFontName(fontName!);
         }
 
         var fontSize = GetAttribute(attributes, "font-size", "fontSize", "fontsize", "size");
         if (double.TryParse((fontSize ?? string.Empty).Replace("pt", string.Empty), NumberStyles.Float,
             CultureInfo.InvariantCulture, out double parsedFontSize) && parsedFontSize > 0D) {
-            sheet.CellFontSize(row, column, parsedFontSize);
+            sheet.Cell(row, column).SetFontSize(global::OfficeIMO.OfficeLength.Points(parsedFontSize));
         }
 
         var bold = GetAttribute(attributes, "bold");
         if (TryParseBoolean(bold, out bool parsedBold)) {
-            sheet.CellBold(row, column, parsedBold);
+            sheet.Cell(row, column).SetBold(parsedBold);
         }
 
         var italic = GetAttribute(attributes, "italic");
         if (TryParseBoolean(italic, out bool parsedItalic)) {
-            sheet.CellItalic(row, column, parsedItalic);
+            sheet.Cell(row, column).SetItalic(parsedItalic);
         }
 
         var underline = GetAttribute(attributes, "underline", "underline-style", "underlineStyle");
         if (TryParseUnderline(underline, out ExcelUnderlineStyle underlineStyle)) {
-            sheet.CellUnderline(row, column, underlineStyle);
+            sheet.Cell(row, column).SetUnderline(underlineStyle);
         }
 
         var strike = GetAttribute(attributes, "strike", "strikethrough", "strike-through");
         if (TryParseBoolean(strike, out bool parsedStrike)) {
-            sheet.CellStrikethrough(row, column, parsedStrike);
+            sheet.Cell(row, column).SetStrikethrough(parsedStrike);
         }
 
         var baseline = GetAttribute(attributes, "baseline", "script");
         if (TryParseTextBaseline(baseline, out ExcelVerticalTextAlignment textBaseline)) {
-            sheet.CellVerticalTextAlignment(row, column, textBaseline);
+            sheet.Cell(row, column).SetVerticalTextAlignment(textBaseline);
         }
 
         var textCase = GetAttribute(attributes, "text-case", "textCase", "case");
         if (TryParseTextCase(textCase, out OfficeTextCase parsedTextCase)) {
-            sheet.TransformCellTextCase(row, column, parsedTextCase, CultureInfo.InvariantCulture);
+            sheet.Cell(row, column).TransformTextCase(parsedTextCase, CultureInfo.InvariantCulture);
         }
     }
 

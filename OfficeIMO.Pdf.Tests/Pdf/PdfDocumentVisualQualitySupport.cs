@@ -13,13 +13,13 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
-    private static byte[] CreateTableCellSpacingProbe(PdfOptions options, double cellSpacing, bool useRowColumnFlow) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTableCellSpacingProbe(PdfCreateOptions options, double cellSpacing, bool useRowColumnFlow) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 1;
-        style.CellPaddingY = 1;
-        style.CellSpacing = cellSpacing;
-        style.ColumnWidthPoints = new List<double?> { 90, 90 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(1);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(1);
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(cellSpacing);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(90) };
 
         var rows = new[] {
             new[] { "SpacingA1", "SpacingB1" },
@@ -32,7 +32,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.AddTable(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -41,17 +41,17 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTablePaddingProbe(PdfOptions options, bool useRowColumnFlow, bool useSidePadding) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTablePaddingProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useSidePadding) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.ColumnWidthPoints = new List<double?> { 90 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(90) };
         if (useSidePadding) {
-            style.CellPaddingLeft = 18;
-            style.CellPaddingRight = 3;
-            style.CellPaddingTop = 16;
-            style.CellPaddingBottom = 4;
+            style.CellPaddingLeft = global::OfficeIMO.OfficeLength.Points(18);
+            style.CellPaddingRight = global::OfficeIMO.OfficeLength.Points(3);
+            style.CellPaddingTop = global::OfficeIMO.OfficeLength.Points(16);
+            style.CellPaddingBottom = global::OfficeIMO.OfficeLength.Points(4);
         }
 
         var rows = new[] {
@@ -64,7 +64,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.AddTable(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -73,19 +73,19 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTablePerCellPaddingProbe(PdfOptions options, bool useRowColumnFlow, bool useCellPadding) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTablePerCellPaddingProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useCellPadding) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 0;
-        style.CellPaddingY = 0;
-        style.ColumnWidthPoints = new List<double?> { 110 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(0);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110) };
         if (useCellPadding) {
             style.CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
                 [(0, 0)] = new PdfCellPadding {
-                    Left = 22,
-                    Right = 3,
-                    Top = 16,
-                    Bottom = 4
+                    Left = global::OfficeIMO.OfficeLength.Points(22),
+                    Right = global::OfficeIMO.OfficeLength.Points(3),
+                    Top = global::OfficeIMO.OfficeLength.Points(16),
+                    Bottom = global::OfficeIMO.OfficeLength.Points(4)
                 }
             };
         }
@@ -100,7 +100,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.AddTable(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -109,16 +109,16 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTablePerCellAlignmentProbe(PdfOptions options, bool useRowColumnFlow, bool useCellAlignment) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTablePerCellAlignmentProbe(PdfCreateOptions options, bool useRowColumnFlow, bool useCellAlignment) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.CellPaddingX = 2;
-        style.CellPaddingY = 2;
-        style.MinRowHeight = 72;
-        style.ColumnWidthPoints = new List<double?> { 130 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(72);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(130) };
         if (useCellAlignment) {
-            style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-                [(0, 0)] = PdfColumnAlign.Right
+            style.CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+                [(0, 0)] = OfficeAlignment.Right
             };
             style.CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
                 [(0, 0)] = PdfCellVerticalAlign.Bottom
@@ -135,7 +135,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.AddTable(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -144,12 +144,12 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTableLineHeightProbe(PdfOptions options, double? lineHeight, bool useRowColumnFlow) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTableLineHeightProbe(PdfCreateOptions options, double? lineHeight, bool useRowColumnFlow) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.FontSize = 10;
+        style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         style.LineHeight = lineHeight;
-        style.ColumnWidthPoints = new List<double?> { 72 };
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(72) };
 
         var rows = new[] {
             new[] { "FirstLine SecondLine" }
@@ -161,7 +161,7 @@ public partial class PdfDocumentVisualQualityTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row =>
-                                row.PercentColumn(100, column => column.Table(rows, style: style))))))
+                                row.PercentColumn(100, column => column.AddTable(rows, style: style))))))
                 .ToBytes();
         }
 
@@ -170,47 +170,45 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
     }
 
-    private static byte[] CreateTableSpacingProbe(PdfOptions options, double spacingBefore, double spacingAfter) {
-        var style = TableStyles.Minimal();
+    private static byte[] CreateTableSpacingProbe(PdfCreateOptions options, double spacingBefore, double spacingAfter) {
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.SpacingBefore = spacingBefore;
-        style.SpacingAfter = spacingAfter;
+        style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore);
+        style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
 
         return PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"))
+            .Paragraph(p => p.AddText("BeforeMarker"))
             .Table(new[] {
                 new[] { "Alpha", "Ready" },
                 new[] { "Beta", "Ready" }
             }, style: style)
-            .Paragraph(p => p.Text("AfterMarker"))
+            .Paragraph(p => p.AddText("AfterMarker"))
             .ToBytes();
     }
 
-    private static byte[] CreateLightTableRhythmProbe(PdfOptions options, PdfTableStyle? style) {
+    private static byte[] CreateLightTableRhythmProbe(PdfCreateOptions options, PdfTableStyle? style) {
         return PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"))
+            .Paragraph(p => p.AddText("BeforeMarker"))
             .Table(new[] {
                 new[] { "Alpha", "Ready" },
                 new[] { "Beta", "Ready" }
             }, style: style)
-            .Paragraph(p => p.Text("AfterMarker"))
+            .Paragraph(p => p.AddText("AfterMarker"))
             .ToBytes();
     }
 
     private static byte[] CreateCompressionProbe(bool compressContentStreams) {
-        PdfDocument doc = PdfDocument.Create(new PdfOptions {
-            PageWidth = 420,
-            PageHeight = 1200,
-            MarginLeft = 42,
-            MarginRight = 42,
-            MarginTop = 42,
-            MarginBottom = 42,
+        PdfDocument doc = PdfDocument.Create(new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(1200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(42), Right = global::OfficeIMO.OfficeLength.Points(42), Top = global::OfficeIMO.OfficeLength.Points(42), Bottom = global::OfficeIMO.OfficeLength.Points(42) }
+            },
             CompressContentStreams = compressContentStreams
         })
             .H1("CompressionProbe");
 
         for (int i = 0; i < 18; i++) {
-            doc.Paragraph(p => p.Text("CompressionProbe repeated body repeated body repeated body repeated body repeated body " + i.ToString(CultureInfo.InvariantCulture)));
+            doc.Paragraph(p => p.AddText("CompressionProbe repeated body repeated body repeated body repeated body repeated body " + i.ToString(CultureInfo.InvariantCulture)));
         }
 
         return doc.ToBytes();
@@ -251,13 +249,11 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static string RenderTableStyleContent(PdfTableStyle style) {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                }
             })
             .Table(new[] {
                 new[] { "Metric", "Status" },
@@ -333,76 +329,77 @@ public partial class PdfDocumentVisualQualityTests {
         return segments;
     }
 
-    private static byte[] CreateParagraphSpacingProbe(PdfOptions options, PdfParagraphStyle? style) {
+    private static byte[] CreateParagraphSpacingProbe(PdfCreateOptions options, PdfParagraphStyle? style) {
         return PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"))
-            .Paragraph(p => p.Text("TargetMarker"), style: style)
-            .Paragraph(p => p.Text("AfterMarker"))
+            .Paragraph(p => p.AddText("BeforeMarker"))
+            .Paragraph(p => p.AddText("TargetMarker"), style: style)
+            .Paragraph(p => p.AddText("AfterMarker"))
             .ToBytes();
     }
 
-    private static byte[] CreatePanelSpacingProbe(PdfOptions options, PdfPanelStyle style) {
+    private static byte[] CreatePanelSpacingProbe(PdfCreateOptions options, PdfPanelStyle style) {
         return PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 0
+            .Paragraph(p => p.AddText("BeforeMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
-            .PanelParagraph(p => p.Text("PanelMarker"), style)
-            .Paragraph(p => p.Text("AfterMarker"))
+            .PanelParagraph(p => p.AddText("PanelMarker"), style)
+            .Paragraph(p => p.AddText("AfterMarker"))
             .ToBytes();
     }
 
-    private static byte[] CreateParagraphLineHeightProbe(PdfOptions options, PdfParagraphStyle? style) {
+    private static byte[] CreateParagraphLineHeightProbe(PdfCreateOptions options, PdfParagraphStyle? style) {
         return PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("FirstLine")
-                .LineBreak()
-                .Text("SecondLine")
-                .LineBreak()
-                .Text("ThirdLine"), style: style)
+            .Paragraph(p => {
+                p.AddText("FirstLine");
+                p.AddLineBreak();
+                p.AddText("SecondLine");
+                p.AddLineBreak();
+                p.AddText("ThirdLine");
+            }, style: style)
             .ToBytes();
     }
 
-    private static byte[] CreateParagraphIndentProbe(PdfOptions options, PdfParagraphStyle? style) {
+    private static byte[] CreateParagraphIndentProbe(PdfCreateOptions options, PdfParagraphStyle? style) {
         return PdfDocument.Create(options)
-            .Paragraph(p => p.Text("IndentedMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau."), style: style)
+            .Paragraph(p => p.AddText("IndentedMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau."), style: style)
             .ToBytes();
     }
 
     private static byte[] CreateTopLevelFlowSpacingBeforeProbe(string blockKind, double spacingBefore) {
         var options = CreateFlowSpacingProbeOptions();
-        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         var doc = PdfDocument.Create(options);
 
         switch (blockKind) {
             case "bullet-list":
-                doc.Bullets(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                doc.Bullets(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0) });
                 break;
             case "numbered-list":
-                doc.Numbered(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                doc.Numbered(new[] { "ListTopMarker" }, style: new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0) });
                 break;
             case "panel":
-                doc.PanelParagraph(p => p.Text("PanelTopMarker"), new PdfPanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
+                doc.PanelParagraph(p => p.AddText("PanelTopMarker"), new PdfPanelStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), PaddingX = global::OfficeIMO.OfficeLength.Points(4), PaddingY = global::OfficeIMO.OfficeLength.Points(4) });
                 break;
             case "horizontal-rule":
-                doc.HR(style: new PdfHorizontalRuleStyle { Thickness = 2, SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
+                doc.HR(style: new PdfHorizontalRuleStyle { Thickness = global::OfficeIMO.OfficeLength.Points(2), SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .Paragraph(p => p.AddText("AfterFixedMarker"), style: paragraphStyle);
                 break;
             case "image":
-                doc.Image(CreateMinimalRgbPng(), 24, 12, style: new PdfImageStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
+                doc.Image(CreateMinimalRgbPng(), 24, 12, style: new PdfImageStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .Paragraph(p => p.AddText("AfterFixedMarker"), style: paragraphStyle);
                 break;
             case "shape":
-                doc.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
+                doc.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .Paragraph(p => p.AddText("AfterFixedMarker"), style: paragraphStyle);
                 break;
             case "drawing":
-                doc.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Paragraph(p => p.Text("AfterFixedMarker"), style: paragraphStyle);
+                doc.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .Paragraph(p => p.AddText("AfterFixedMarker"), style: paragraphStyle);
                 break;
             case "row":
                 doc.Compose(document => document.Page(page => page.Content(content => content.Row(row => row
-                    .Style(new PdfRowStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .PercentColumn(100, column => column.Paragraph(p => p.Text("RowTopMarker"), style: paragraphStyle))))));
+                    .Style(new PdfRowStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .PercentColumn(100, column => column.AddParagraph(p => p.AddText("RowTopMarker"), style: paragraphStyle))))));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(blockKind), blockKind, "Unknown flow block kind.");
@@ -420,49 +417,47 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static void AddColumnFlowSpacingBeforeProbe(PdfContentBuilder column, string blockKind, double spacingBefore) {
-        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
 
         switch (blockKind) {
             case "bullet-list":
-                column.Bullets(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                column.AddList(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0) });
                 break;
             case "numbered-list":
-                column.Numbered(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, ItemSpacing = 0 });
+                column.AddNumberedList(new[] { "ColumnListMarker" }, style: new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ItemSpacing = global::OfficeIMO.OfficeLength.Points(0) });
                 break;
             case "panel":
-                column.PanelParagraph(p => p.Text("ColumnPanelMarker"), new PdfPanelStyle { SpacingBefore = spacingBefore, SpacingAfter = 0, PaddingX = 4, PaddingY = 4 });
+                column.AddPanelParagraph(p => p.AddText("ColumnPanelMarker"), new PdfPanelStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), PaddingX = global::OfficeIMO.OfficeLength.Points(4), PaddingY = global::OfficeIMO.OfficeLength.Points(4) });
                 break;
             case "horizontal-rule":
-                column.HR(style: new PdfHorizontalRuleStyle { Thickness = 2, SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
+                column.HR(style: new PdfHorizontalRuleStyle { Thickness = global::OfficeIMO.OfficeLength.Points(2), SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .AddParagraph(p => p.AddText("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             case "image":
-                column.Image(CreateMinimalRgbPng(), 24, 12, style: new PdfImageStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
+                column.AddImage(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), style: new PdfImageStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .AddParagraph(p => p.AddText("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             case "shape":
-                column.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
+                column.Shape(OfficeShape.Rectangle(24, 12), style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .AddParagraph(p => p.AddText("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             case "drawing":
-                column.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
-                    .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
+                column.Drawing(new OfficeDrawing(24, 12).AddShape(OfficeShape.Rectangle(24, 12), 0, 0), style: new PdfDrawingStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(spacingBefore), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
+                    .AddParagraph(p => p.AddText("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(blockKind), blockKind, "Unknown flow block kind.");
         }
     }
 
-    private static PdfOptions CreateFlowSpacingProbeOptions() {
-        return new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+    private static PdfCreateOptions CreateFlowSpacingProbeOptions() {
+        return new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
     }
 

@@ -186,7 +186,7 @@ public interface IOfficeProvenanceSigner {
 }
 
 /// <summary>Maps normalized source declarations to current IPTC Digital Source Type URIs.</summary>
-public static class OfficeProvenanceDigitalSourceTypes {
+internal static class OfficeProvenanceDigitalSourceTypes {
     private const string Prefix = "http://cv.iptc.org/newscodes/digitalsourcetype/";
 
     /// <summary>Returns the standard URI when the normalized kind has one unambiguous mapping.</summary>

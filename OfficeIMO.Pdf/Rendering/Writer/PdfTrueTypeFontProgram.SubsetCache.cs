@@ -89,6 +89,16 @@ internal sealed partial class PdfTrueTypeFontProgram {
             _part3 = BitConverter.ToUInt64(hash, 24);
         }
 
+        /// <summary>The SHA-256 bytes this fingerprint was built from.</summary>
+        internal byte[] ToHashBytes() {
+            var hash = new byte[32];
+            Buffer.BlockCopy(BitConverter.GetBytes(_part0), 0, hash, 0, 8);
+            Buffer.BlockCopy(BitConverter.GetBytes(_part1), 0, hash, 8, 8);
+            Buffer.BlockCopy(BitConverter.GetBytes(_part2), 0, hash, 16, 8);
+            Buffer.BlockCopy(BitConverter.GetBytes(_part3), 0, hash, 24, 8);
+            return hash;
+        }
+
         internal static SubsetFontFingerprint Create(byte[] fontData) {
 #if NET5_0_OR_GREATER
             return new SubsetFontFingerprint(System.Security.Cryptography.SHA256.HashData(fontData));

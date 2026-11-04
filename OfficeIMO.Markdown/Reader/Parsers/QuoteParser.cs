@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     internal sealed class QuoteParser : IMarkdownBlockParser {
-        public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+        public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             var t = lines[i];
             // Exclude callouts (handled earlier): they start with "> [!"
             if (CountLeadingIndentColumns(t) > 3) return false;
@@ -146,7 +146,7 @@ public static partial class MarkdownReader {
 
         private static bool CanParseSemanticQuoteAsSingleParagraph(
             IReadOnlyList<string> lines,
-            MarkdownReaderOptions options,
+            MarkdownLoadOptions options,
             MarkdownReaderState state) {
             if (state.CaptureSyntaxTree
                 || options.GenericAttributes
@@ -215,7 +215,7 @@ public static partial class MarkdownReader {
         return column;
     }
 
-    private static bool LooksLikeParagraphLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options) {
+    private static bool LooksLikeParagraphLine(IReadOnlyList<string>? lines, int index, MarkdownLoadOptions options) {
         if (lines == null || index < 0 || index >= lines.Count) return false;
         var line = lines[index] ?? string.Empty;
         if (string.IsNullOrWhiteSpace(line)) return false;
@@ -237,7 +237,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool LooksLikeQuoteLazyContinuationPredecessor(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options) {
+    private static bool LooksLikeQuoteLazyContinuationPredecessor(IReadOnlyList<string>? lines, int index, MarkdownLoadOptions options) {
         if (LooksLikeParagraphLine(lines, index, options)) return true;
         if (lines == null || index < 0 || index >= lines.Count) return false;
 
@@ -248,7 +248,7 @@ public static partial class MarkdownReader {
         return LooksLikeTableRow(line.TrimStart());
     }
 
-    private static bool TryNormalizeQuotedNestedQuoteContinuation(string? previousLine, string? currentLine, MarkdownReaderOptions options, out string normalized) {
+    private static bool TryNormalizeQuotedNestedQuoteContinuation(string? previousLine, string? currentLine, MarkdownLoadOptions options, out string normalized) {
         normalized = currentLine ?? string.Empty;
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
 
@@ -269,7 +269,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryNormalizeQuoteLazyContinuationLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options, out string normalized) {
+    private static bool TryNormalizeQuoteLazyContinuationLine(IReadOnlyList<string>? lines, int index, MarkdownLoadOptions options, out string normalized) {
         var source = lines != null && index >= 0 && index < lines.Count ? (lines[index] ?? string.Empty) : string.Empty;
         normalized = source;
         if (string.IsNullOrWhiteSpace(source)) return false;
@@ -303,7 +303,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryNormalizeQuoteLazyContinuationAfterListItem(string? previousLine, IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options, out string normalized) {
+    private static bool TryNormalizeQuoteLazyContinuationAfterListItem(string? previousLine, IReadOnlyList<string>? lines, int index, MarkdownLoadOptions options, out string normalized) {
         normalized = string.Empty;
         if (string.IsNullOrWhiteSpace(previousLine)) return false;
         if (!TryNormalizeQuoteLazyContinuationLine(lines, index, options, out var normalizedLazyLine)) return false;
@@ -319,7 +319,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryNormalizeQuotedListContinuationLine(string? previousLine, string? currentLine, MarkdownReaderOptions options, out string normalized) {
+    private static bool TryNormalizeQuotedListContinuationLine(string? previousLine, string? currentLine, MarkdownLoadOptions options, out string normalized) {
         normalized = currentLine ?? string.Empty;
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
 
@@ -357,7 +357,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryNormalizeQuotedIndentedParagraphContinuation(string? previousLine, string? currentLine, MarkdownReaderOptions options, out string normalized) {
+    private static bool TryNormalizeQuotedIndentedParagraphContinuation(string? previousLine, string? currentLine, MarkdownLoadOptions options, out string normalized) {
         normalized = currentLine ?? string.Empty;
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
 

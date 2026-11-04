@@ -67,9 +67,10 @@ internal static class PdfInvoiceEvidenceRunner {
         string path = Path.Combine(output, engine + ".pdf");
         File.WriteAllBytes(path, pdf);
 
-        PdfDocument document = PdfDocument.Load(pdf);
+        using var documentStream = new MemoryStream(pdf, writable: false);
+        using PdfDocument document = PdfDocument.Load(documentStream);
         IReadOnlyList<PdfPageRenderResult> rendered = document.Render.Pages("1-2", new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Dpi = 120,
             MaxPages = 2,
             ContinueOnError = false
@@ -121,7 +122,7 @@ internal static class PdfInvoiceEvidenceRunner {
         foreach (string seed in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() }) {
             string? current = Path.GetFullPath(seed);
             while (!string.IsNullOrWhiteSpace(current)) {
-                if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) return current;
+                if (File.Exists(Path.Combine(current, "OfficeIMO.slnx"))) return current;
                 current = Directory.GetParent(current)?.FullName;
             }
         }

@@ -81,7 +81,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             if (!TryReadOlePreview(slidePart, shape,
-                    out PowerPointPicture? preview, out _, out _,
+                    out PowerPointImage? preview, out _, out _,
                     out reason)) {
                 return false;
             }
@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryReadOlePreview(SlidePart slidePart,
-            PowerPointOleObject shape, out PowerPointPicture? preview,
+            PowerPointOleObject shape, out PowerPointImage? preview,
             out byte[] imageBytes, out string? contentType,
             out string? reason) {
             preview = null;
@@ -144,9 +144,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             }
 
-            preview = new PowerPointPicture(source, slidePart);
-            if (preview.Left != shape.Left || preview.Top != shape.Top
-                || preview.Width != shape.Width || preview.Height != shape.Height
+            preview = new PowerPointImage(source, slidePart);
+            if (preview.Left.ToEmus() != shape.Left.ToEmus() || preview.Top.ToEmus() != shape.Top.ToEmus()
+                || preview.Width.ToEmus() != shape.Width.ToEmus() || preview.Height.ToEmus() != shape.Height.ToEmus()
                 || preview.Rotation != shape.Rotation
                 || preview.HorizontalFlip != shape.HorizontalFlip
                 || preview.VerticalFlip != shape.VerticalFlip) {
@@ -157,9 +157,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if ((!string.IsNullOrEmpty(preview.Name)
                     && !string.Equals(preview.Name, shape.Name,
                         StringComparison.Ordinal))
-                || (!string.IsNullOrEmpty(preview.Description)
-                    && !string.Equals(preview.Description,
-                        shape.Description, StringComparison.Ordinal))
+                || (!string.IsNullOrEmpty(preview.AltText)
+                    && !string.Equals(preview.AltText,
+                        shape.AltText, StringComparison.Ordinal))
                 || !TryReadShapeMetadataForWrite(preview, out _, out reason)) {
                 preview = null;
                 reason ??= "The OLE preview carries independent accessibility metadata that one binary OfficeArt object shape cannot preserve.";
@@ -282,7 +282,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal LegacyPptWriterOleObject(uint id, uint drawAspect,
                 uint subType, uint colorFollow, string? name,
                 string progId, byte[] storageBytes,
-                PowerPointPicture? preview) {
+                PowerPointImage? preview) {
                 Id = id;
                 DrawAspect = drawAspect;
                 SubType = subType;
@@ -301,7 +301,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal string? Name { get; }
             internal string ProgId { get; }
             internal byte[] StorageBytes { get; }
-            internal PowerPointPicture? Preview { get; }
+            internal PowerPointImage? Preview { get; }
         }
     }
 }

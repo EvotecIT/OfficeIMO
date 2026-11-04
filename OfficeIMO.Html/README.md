@@ -1,6 +1,8 @@
 # OfficeIMO.Html
 
-`OfficeIMO.Html` contains the shared HTML parser, resource policy, layout scene, and direct PNG/JPEG/TIFF/SVG/WebP rendering APIs used by OfficeIMO converters.
+`OfficeIMO.Html` contains the shared HTML parser, resource policy and provider-neutral layout scene used by OfficeIMO converters. It does not reference `OfficeIMO.Pdf`. PNG, JPEG, TIFF, SVG and WebP export and HTML-to-PDF conversion paint that scene through the PDF engine and live in [OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md); the image examples below need that package and `using OfficeIMO.Html.Pdf;`.
+
+For selected image batches, set `HtmlRenderOptions.PageSelection = new[] { 3, 1, 3 }`. The selection uses one-based positions within the retained surfaces, preserves caller order and repeats, and applies image-count limits to the selected outputs. Image results keep the original page names. HTML layout, PDF output, archives and single-image exports keep their existing page-selection behavior.
 
 It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Office, image, and PDF workflows:
 
@@ -16,13 +18,13 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - structured Presentation MathML routed through the shared OfficeIMO.Core expression and vector-rendering model
 - bounded CSS length math, caller stylesheets, deterministic media preferences, running strings and elements, and Unicode-range-aware font fallback packs
 - first-party TrueType/WOFF 1, .NET 8+ single-face WOFF 2, CFF/CFF2, and variable-font programs, with bounded managed Arabic/Hebrew/Latin shaping and an optional complete OpenType provider
-- direct PNG, JPEG, TIFF, SVG, and lossless WebP export over `OfficeIMO.Drawing`
+- the render scene and display list that `OfficeIMO.Html.Pdf` paints into PDF and PNG, JPEG, TIFF, SVG and lossless WebP images
 - one typed semantic document projection shared by Excel, PowerPoint, and OneNote importers
 - executable target capability contracts, preflight analysis, and source-to-target diagnostic provenance
 - one operation-scoped resource session for policy, resolution, MIME checks, caching, deduplication, budgets, timeouts, and digests
 - fidelity scoring across structure, text, styles, resources, annotations, formulas, charts, geometry, and reopened native artifacts
 
-Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDoc` through `OfficeIMO.Markdown.Html`.
+Markdown, Word, Excel, PowerPoint, RTF, Email, MHTML, and PDF models remain in their owning packages. Those projections are explicit: for example, HTML becomes a `WordDocument` through `OfficeIMO.Word.Html` and a `MarkdownDocument` through `OfficeIMO.Markdown.Html`.
 
 To save a source HTML copy in another directory while retaining its relative resource paths:
 
@@ -50,10 +52,10 @@ HtmlSiteBundle bundle = await HtmlSiteBundle.LoadAsync(source,
 HtmlRenderRequest request = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
     HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg));
 HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request);
-rendered.RequireNoLoss();
+rendered.ThrowIfLoss();
 int pageNumber = 1;
 foreach (var page in rendered.ExportImages()) {
-    page.CreateReport().RequireNoLoss();
+    page.CreateReport().ThrowIfLoss();
     File.WriteAllBytes($"report-{pageNumber++:D3}.svg", page.Bytes);
 }
 ```
@@ -70,7 +72,7 @@ from snapshots. An explicitly supplied render resolver remains the fallback;
 missing resources produce the existing conversion diagnostics. Resource requests
 still use the renderer's URL, byte, count and timeout limits.
 
-For PDF output use the [HTML site-bundle conversion API](PDF.md#zip-site-bundles),
+For PDF output use the [HTML site-bundle conversion API](../OfficeIMO.Html.Pdf/PDF.md#zip-site-bundles),
 which also enforces the PDF embedded-package resource policy. MHTML uses the
 separate [OfficeIMO.Mhtml](../OfficeIMO.Mhtml/README.md) MIME reader and CID resolver.
 
@@ -92,7 +94,8 @@ HtmlDocument edited = source.Edit(document => {
     targetRow.AppendChild(document.ImportNode(cells));
 });
 HtmlConversionDocument conversion = HtmlConversionDocument.FromDocument(edited);
-string markdown = conversion.ToMarkdown();
+using var markdownDocument = conversion.ToMarkdown();
+string markdown = markdownDocument.ToMarkdown();
 byte[] preview = conversion.ToPng();
 ```
 
@@ -284,6 +287,7 @@ responsive selection.
 ## Direct HTML rendering
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 
@@ -307,14 +311,13 @@ string svg = source.ToSvg(options);
 byte[] webp = source.ToWebp(options);
 
 OfficeImageExportResult pngSave = source.SaveAsPng("status.png", options);
-IReadOnlyList<OfficeImageExportResult> webpPages = source
-    .ToImages(options)
-    .Paged()
-    .AsWebp()
-    .Save("status-pages");
+var imageOptions1 = options.Clone();
+imageOptions1.Mode = HtmlRenderMode.Paged;
+imageOptions1.Format = OfficeImageExportFormat.Webp;
+OfficeConversionReport webpPages = source.SaveAsImages("status-pages", imageOptions1);
 ```
 
-HTML image export uses the PDF page scenes. SVG keeps proven PDF glyph contours and the logical source as accessibility labels, including admitted finite zero-advance text. See the [PDF image-export contract](../OfficeIMO.Pdf/README.md#export-pdf-pages-as-images) for the supported spans and text-fallback limits.
+HTML image export uses the PDF page scenes. SVG keeps proven PDF glyph contours and the logical source as accessibility labels, including admitted finite zero-advance text. See the [PDF image-export contract](../Docs/officeimo.pdf-guide.md#export-pdf-pages-as-images) for the supported spans and text-fallback limits.
 
 The default style mode keeps OfficeIMO's established document layout: an
 uninset body and Arial fallback. Select the bounded browser user-agent defaults
@@ -437,7 +440,7 @@ Set `FidelityPolicy` when diagnosed fallback is not acceptable. The renderer col
 ```csharp
 var strict = new HtmlRenderOptions {
     ViewportWidth = 720,
-    FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+    FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
 };
 
 OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, strict);
@@ -527,11 +530,11 @@ Auto layout considers styled cell text and generated content, block line boundar
 
 Column sets outside the ordinary auto-fill and terminal spanning-set subsets described below retain their source column arrangement across physical pages. Text and paragraph constraints survive page cuts, but per-page inter-column reflow is not qualified for those sets; content placement and page counts can differ from browser print output.
 
-Generated content on table, row and row-group boxes is omitted with `HtmlRenderTableValueUnsupported`; cells and captions retain generated content. CSS-only column boxes, `display: contents` within a table boundary and orphan internal table boxes inside inline flow receive an approximation diagnostic. Additional captions receive an omission diagnostic. `RequireNoLoss` rejects these losses.
+Generated content on table, row and row-group boxes is omitted with `HtmlRenderTableValueUnsupported`; cells and captions retain generated content. CSS-only column boxes, `display: contents` within a table boundary and orphan internal table boxes inside inline flow receive an approximation diagnostic. Additional captions receive an omission diagnostic. `ThrowIfLoss` rejects these losses.
 
 Floated tables retain row breaks and repetition metadata through anonymous, inline and list wrappers. In one horizontal nowrap flex row or one ordinary auto grid row, top-aligned, auto-height items paginate their tables independently. Each item reserves space for its own repeated header and footer; the shorter flow stops repeating when it ends, and following content stays after its final row. PDF, PNG and SVG consume the same paged scene.
 
-This parallel subset requires constant page geometry and reserved body space. Nested parallel regions, wrapped/reversed or cross-aligned flex rows, multi-row/spanning grids, bounded heights, transformed/clipped items and internal forced page breaks retain their existing fragmentation limits. Changing page geometry retains source layout with `HtmlRenderPagePseudoGeometryPending`. Outside the subset, source groups may remain unrepeated. Detached table groups retain their source occurrences when repetition cannot preserve ancestor opacity, transforms or paint clipping. Fragmentation reports the same repetition-suppression diagnostics as shared-offset conflicts: `HtmlRenderTableHeaderRepeatSuppressed` or `HtmlRenderTableFooterRepeatSuppressed`. `RequireNoLoss` rejects those approximations.
+This parallel subset requires constant page geometry and reserved body space. Nested parallel regions, wrapped/reversed or cross-aligned flex rows, multi-row/spanning grids, bounded heights, transformed/clipped items and internal forced page breaks retain their existing fragmentation limits. Changing page geometry retains source layout with `HtmlRenderPagePseudoGeometryPending`. Outside the subset, source groups may remain unrepeated. Detached table groups retain their source occurrences when repetition cannot preserve ancestor opacity, transforms or paint clipping. Fragmentation reports the same repetition-suppression diagnostics as shared-offset conflicts: `HtmlRenderTableHeaderRepeatSuppressed` or `HtmlRenderTableFooterRepeatSuppressed`. `ThrowIfLoss` rejects those approximations.
 
 Collapsed tables resolve competing cell, row, row-group, column, column-group and table edges before measurement. Cells use half of each winning border for intrinsic widths, heights, content placement and percentage bases; the table reserves the outside halves. Table padding is ignored in this model. Column width hints exclude column padding and borders, and row or column rules do not cross a spanning cell's interior. Repeated headers and footers reserve the outside half borders and paint shared rules over cell backgrounds.
 
@@ -543,9 +546,9 @@ Plain opaque, auto-height rectangular block backgrounds and solid side borders a
 
 Authored table widths honor `box-sizing` and horizontal auto margins. Native HTML tables default to border-box sizing in both style modes; flex and grid allocations apply padding, borders and maximum widths once. Absolute table, row, and cell heights are minimums. Extra table height is distributed evenly among rows and retained when pagination reflows a continuation. Cell `vertical-align: top`, `middle`, and `bottom` uses the final row or rowspan height. Browser style mode supplies middle alignment inherited through row groups and rows; authored values and CSS-wide resets override those defaults. RTL tables place the first logical column on the right while preserving source text and tagged-PDF order. Authored zero padding overrides the cell defaults.
 
-With a definite table height, percentage row and single-row cell heights allocate shares of the height available to rows after table padding, borders and spacing. The larger row or cell request applies, while content and absolute height minimums remain intact. Cell padding and borders fit inside the percentage share. Auto rows receive the remaining height; when every row has a specified share, the shares scale to fill the grid. For example, a 200px table with 25% and 75% rows allocates 50px and 150px. If the first row needs 80px for its content, the rows receive 80px and 120px. A table whose height resolves to auto keeps auto sizing. Width and height calculations mixing percentages with nonzero lengths on internal table boxes behave as auto; pure calculated percentages and calculations whose length terms cancel to zero retain their percentage shares. Percentage rowspans and percentage row shares whose sum exceeds the available grid use an approximation reported as `HtmlRenderTableValueUnsupported`; `RequireNoLoss` rejects that fallback.
+With a definite table height, percentage row and single-row cell heights allocate shares of the height available to rows after table padding, borders and spacing. The larger row or cell request applies, while content and absolute height minimums remain intact. Cell padding and borders fit inside the percentage share. Auto rows receive the remaining height; when every row has a specified share, the shares scale to fill the grid. For example, a 200px table with 25% and 75% rows allocates 50px and 150px. If the first row needs 80px for its content, the rows receive 80px and 120px. A table whose height resolves to auto keeps auto sizing. Width and height calculations mixing percentages with nonzero lengths on internal table boxes behave as auto; pure calculated percentages and calculations whose length terms cancel to zero retain their percentage shares. Percentage rowspans and percentage row shares whose sum exceeds the available grid use an approximation reported as `HtmlRenderTableValueUnsupported`; `ThrowIfLoss` rejects that fallback.
 
-Ordinary horizontal block and inline-block descendants in non-anonymous single-row cells resolve percentage `height`, `min-height` and `max-height` against the final cell content height when the table or cell has a definite height. Nested percentage-height chains, inline and `display:contents` wrappers, ordinary generated text boxes, CSS variables, calculated lengths and logical block-size aliases use the same basis. Non-replaced inline and `display:contents` wrappers preserve the containing-height basis during initial cell layout too, including image sizing against an absolute cell height. Their authored heights do not make an auto-height cell definite; an actual inline-block retains its independent height basis. Content and absolute minima are measured before this final sizing pass; padding and borders are deducted once. A `height:100%` status block therefore fills its final cell without expanding the row for the percentage alone. Consequential percentage content in rowspans, anonymous cells or specialized formatting contexts uses a source/property approximation reported as `HtmlRenderTableValueUnsupported`. Effective nonzero percentage row-group heights in a definite table receive the same diagnostic because group height allocation is not implemented. Auto or invalid values, internal-table calculations that compute to auto, and genuinely indefinite percentages retain auto sizing. `RequireNoLoss` rejects the diagnosed approximations. General browser-relative row compression and mixed-font baselines remain outside this qualified subset.
+Ordinary horizontal block and inline-block descendants in non-anonymous single-row cells resolve percentage `height`, `min-height` and `max-height` against the final cell content height when the table or cell has a definite height. Nested percentage-height chains, inline and `display:contents` wrappers, ordinary generated text boxes, CSS variables, calculated lengths and logical block-size aliases use the same basis. Non-replaced inline and `display:contents` wrappers preserve the containing-height basis during initial cell layout too, including image sizing against an absolute cell height. Their authored heights do not make an auto-height cell definite; an actual inline-block retains its independent height basis. Content and absolute minima are measured before this final sizing pass; padding and borders are deducted once. A `height:100%` status block therefore fills its final cell without expanding the row for the percentage alone. Consequential percentage content in rowspans, anonymous cells or specialized formatting contexts uses a source/property approximation reported as `HtmlRenderTableValueUnsupported`. Effective nonzero percentage row-group heights in a definite table receive the same diagnostic because group height allocation is not implemented. Auto or invalid values, internal-table calculations that compute to auto, and genuinely indefinite percentages retain auto sizing. `ThrowIfLoss` rejects the diagnosed approximations. General browser-relative row compression and mixed-font baselines remain outside this qualified subset.
 
 Continuous, ordinary horizontal `column-fill:auto` regions fill sequentially at the measured column width. An indefinite region uses the height of its longest authored forced run; without forced boundaries, its content stays in the first column. A maximum height can advance content into additional columns. Minimum height and content-box or border-box insets retain their normal sizing rules. Balanced filling keeps its separate content distribution.
 
@@ -563,19 +566,19 @@ An authored height limits the final physical band. Additional columns overflow i
 
 In physical page bands, column rules extend through that band's allocated column height and appear between adjacent occupied columns. Extra inline columns in the final band do not add rules to earlier pages, and a single-column continuation has no rule.
 
-Balanced spanning sets that overflow the requested columns across physical pages retain an approximation for overflowing paint and following flow. For example, a short maximum-height owner can finish in normal flow before its overflow finishes painting. This combination reports `HtmlRenderMultiColumnValueUnsupported`; `RequireNoLoss` rejects it.
+Balanced spanning sets that overflow the requested columns across physical pages retain an approximation for overflowing paint and following flow. For example, a short maximum-height owner can finish in normal flow before its overflow finishes painting. This combination reports `HtmlRenderMultiColumnValueUnsupported`; `ThrowIfLoss` rejects it.
 
 Ordinary horizontal column content honors `break-before:column` and `break-after:column` at sibling boundaries, including propagation through ordinary decorated wrappers. A boundary authored on both sides advances once; distinct empty siblings retain distinct boundaries. A first-child before value or last-child after value alone does not add an empty column. Balanced filling respects forced runs even when they require more columns than requested.
 
 `avoid-column` keeps fitting content together in columns; `avoid-page` does not impose a column keep, while `avoid` applies to both fragmentation types. Boundary keeps carry the preceding paragraph's final substantive fragment with the following content. An oversized column keep starts in a fresh column before relaxing to make progress. Forced column boundaries override keeps. Column break values outside a column context do not create page breaks or mask authored table-row page breaks.
 
-Short fixed-height sets retain inline overflow columns; physical page bounds can clip that overflow. Changing page geometry or reserved body space, and vertical alignment that can move a region as its height changes, retain source layout with `HtmlRenderPagePseudoGeometryPending`. Authored page breaks inside ordinary column content, page controls on ineligible spanner hosts, block `box-decoration-break:clone` across column/page boundaries, and column-break constraints in specialized, nested-column or floating contexts retain an approximation reported as `HtmlRenderMultiColumnValueUnsupported`; `RequireNoLoss` rejects it. Full ancestor `clip-path` composition across extracted column/page fragments is unsupported: a clipped source ancestor retains its original flow with the same diagnostic and strict-loss rejection. Nested column regions, atomic or floating hosts, tall column notes and figures, and broader flex/grid intrinsic block sizing remain outside this qualification.
+Short fixed-height sets retain inline overflow columns; physical page bounds can clip that overflow. Changing page geometry or reserved body space, and vertical alignment that can move a region as its height changes, retain source layout with `HtmlRenderPagePseudoGeometryPending`. Authored page breaks inside ordinary column content, page controls on ineligible spanner hosts, block `box-decoration-break:clone` across column/page boundaries, and column-break constraints in specialized, nested-column or floating contexts retain an approximation reported as `HtmlRenderMultiColumnValueUnsupported`; `ThrowIfLoss` rejects it. Full ancestor `clip-path` composition across extracted column/page fragments is unsupported: a clipped source ancestor retains its original flow with the same diagnostic and strict-loss rejection. Nested column regions, atomic or floating hosts, tall column notes and figures, and broader flex/grid intrinsic block sizing remain outside this qualification.
 
 Horizontal, normal-flow block and inline-block boxes support `min-content`, `max-content`, `fit-content` and `fit-content(<length>)` for `width`, `min-width` and `max-width`, including logical inline-size aliases. Measurements preserve styled text, atomic inline content and nested ordinary-box constraints. A cyclic descendant percentage is indefinite during intrinsic measurement; definite minimum and maximum constraints still apply. Cyclic margin and padding percentages resolve against zero while retaining absolute terms, including negative margins. Keyword widths measure content-box edges regardless of `box-sizing`; the argument of `fit-content()` follows the authored box sizing. Minimum widths take precedence over conflicting maximum widths, and auto margins use the resolved width.
 
 In ordinary horizontal flow, non-replaced inline and `display:contents` wrappers preserve the enclosing block's content-height basis. Their authored heights do not establish a new containing block. Percentage-height images use that basis during intrinsic measurement and final layout, so a shrink-to-fit wrapper and its following content agree with the image's used width. An actual block or inline-block, including a blockified flex/grid item, retains its own height basis; an indefinite height stays indefinite.
 
-The configured default font is retained before measurement when installed-font fallback is permitted. Regular, bold and italic requests select their physical faces; caller-supplied faces keep ownership. Raw display-list, PDF and paged image routes can therefore share the same font programs and advances. To make output independent of installed fonts, disable `AllowSystemFontFallback` and register complete font bytes. A visible raw run measured without a selected program reports `HtmlRenderFontMetricsEstimated`; `RequireNoLoss` rejects that approximation. Generated markers and missing-image alternative text follow the same default discovery, and later iframe fonts cannot erase an earlier estimate.
+The configured default font is retained before measurement when installed-font fallback is permitted. Regular, bold and italic requests select their physical faces; caller-supplied faces keep ownership. Raw display-list, PDF and paged image routes can therefore share the same font programs and advances. To make output independent of installed fonts, disable `AllowSystemFontFallback` and register complete font bytes. A visible raw run measured without a selected program reports `HtmlRenderFontMetricsEstimated`; `ThrowIfLoss` rejects that approximation. Generated markers and missing-image alternative text follow the same default discovery, and later iframe fonts cannot erase an earlier estimate.
 
 For ordinary horizontal text, missing CSS line height and `line-height: normal` use the selected face's ascent, descent and line gap. Mixed sizes and empty inline struts contribute to the same line box, including inside table cells. Authored numeric, length and percentage line heights keep their own CSS rules. Explicitly set `DefaultLineHeight` to retain a fixed fallback multiplier; leaving it unset uses font metrics when available and the 1.2 multiplier otherwise. Browser style mode gives tables no default outer margin; document style mode retains its spacing defaults.
 
@@ -611,7 +614,7 @@ Within this ordinary subset, internal `break-before:page` and `break-after:page`
 
 A before and after declaration at the same sibling boundary advance once. At the start of a constrained source, adjacent empty blocks share one page advance before the first content. Distinct empty siblings after real content retain separate boundaries and can produce blank pages. A first-child before declaration alone does not add an empty page. The [forced-break evidence](../Build/Project/Evidence/2026-09-30/html-master-convergence/constrained-forced-break-fragmentation-20261019.json) records the qualified source and output boundaries.
 
-Specialized formatting contexts, positioned or transformed sources, internal `left`/`right` or named-page transitions, forced fragments of unsplittable content, repeated groups and changing page bands retain their existing fragmentation limits. Leading page-side controls retain the outer paginator's initial-page policy; they do not establish browser-equivalent initial-page parity. Unqualified independent overflow pagination reports `HtmlRenderConstrainedOverflowPaginationPending`; `RequireNoLoss` rejects that approximation. Authored `overflow:hidden` and `clip` retain their clipping; hidden content does not create extra pages. Oversized clipped owners and exact browser appearance of clipped fragments remain outside this qualification.
+Specialized formatting contexts, positioned or transformed sources, internal `left`/`right` or named-page transitions, forced fragments of unsplittable content, repeated groups and changing page bands retain their existing fragmentation limits. Leading page-side controls retain the outer paginator's initial-page policy; they do not establish browser-equivalent initial-page parity. Unqualified independent overflow pagination reports `HtmlRenderConstrainedOverflowPaginationPending`; `ThrowIfLoss` rejects that approximation. Authored `overflow:hidden` and `clip` retain their clipping; hidden content does not create extra pages. Oversized clipped owners and exact browser appearance of clipped fragments remain outside this qualification.
 
 Ordinary horizontal LTR inline margins, padding and borders participate in intrinsic contributions and line placement. Signed margins affect the advance without producing negative paint widths. Token fitting includes opening and closing edges; wrapping, emergency breaks, tabs and ellipsis use the same advances. With `box-decoration-break:slice`, only the first and last fragments consume the outer edges. With `clone`, each fragment consumes its own padding and borders. Empty decorated spans retain their box advances.
 
@@ -623,7 +626,7 @@ Horizontal lines containing ordinary same-face empty inline-blocks retain the su
 
 Backgrounds and borders on ordinary same-face horizontal LTR inline text and empty boxes follow the selected font box and its text or strut baseline, including lines shorter than the font size. A tall empty inline-block inside a span retains its own height without stretching the span's decoration to that height. Visible ancestor decoration remains when descendants hide their text or atomic content, and when a leader has no drawable width; each owner follows its own visibility. Generated leaders, mixed faces, bidi, vertical writing, displaced text and replaced elements retain their specialized paint routes and qualification limits. Font metrics and rasterizer edge coverage can differ from browser output.
 
-Intrinsic heights, percentage `fit-content()` arguments, and widths on replaced, table, flex/grid, positioned, floated, pseudo, root, vertical, column or containment boxes remain outside this subset. Ordinary boxes with replaced elements, specialized formatting descendants, percentage inline insets or decorated RTL descendants retain the fallback. Applicable dimensions report `HtmlRenderIntrinsicSizeUnsupported` when they fall back to auto sizing or omit a minimum or maximum constraint. `RequireNoLoss` rejects that approximation. These declarations do not size ordinary non-replaced inline or `display:contents` boxes and do not report this loss. Intrinsic grid-track sizing has a separate supported contract. Broader inline font-box and atomic-baseline appearance requires separate qualification.
+Intrinsic heights, percentage `fit-content()` arguments, and widths on replaced, table, flex/grid, positioned, floated, pseudo, root, vertical, column or containment boxes remain outside this subset. Ordinary boxes with replaced elements, specialized formatting descendants, percentage inline insets or decorated RTL descendants retain the fallback. Applicable dimensions report `HtmlRenderIntrinsicSizeUnsupported` when they fall back to auto sizing or omit a minimum or maximum constraint. `ThrowIfLoss` rejects that approximation. These declarations do not size ordinary non-replaced inline or `display:contents` boxes and do not report this loss. Intrinsic grid-track sizing has a separate supported contract. Broader inline font-box and atomic-baseline appearance requires separate qualification.
 
 The body inherits the document element's computed typography and custom properties, including during page continuations. Authored body overrides retain their CSS meaning. Explicit body margins, padding, and borders participate in layout and painting. A body background propagated to the canvas is painted once; when the HTML element supplies the canvas background, the body retains its own background box. Overflow propagated from the body clips at the viewport; body-local clipping remains active when the HTML element owns viewport overflow.
 
@@ -682,7 +685,7 @@ does not repeat the visible glyphs alongside their replacement. Page image expor
 retain the same scene geometry and page count; font rasterization can differ between
 viewers.
 `OfficeImageExportOptions.MaximumRasterPixels` limits HTML raster export,
-including intermediate effect surfaces. `HtmlToPdfOptions.MaximumRasterPixels`
+including intermediate effect surfaces. `HtmlPdfExportOptions.MaximumRasterPixels`
 also applies to managed raster fallback during PDF conversion. Encoded-byte
 limits remain separate.
 
@@ -700,7 +703,7 @@ font-source, decoded-byte and cancellation limits. SVG foreign-object viewports 
 the parent operation's resource-byte and resource-count budgets, including decoded
 fonts, without invoking external resolvers. Installed families vary by host;
 an unavailable face produces a diagnostic and follows the font fallback path.
-HTML-to-PDF also applies `HtmlToPdfOptions.ResourcePolicy`: the balanced PDF policy
+HTML-to-PDF also applies `HtmlPdfExportOptions.ResourcePolicy`: the balanced PDF policy
 permits renderer-selected mathematical families while blocking document-named host
 fonts. Portable deterministic policy disables installed-font discovery; explicitly
 supplied mathematical faces remain available.
@@ -772,22 +775,23 @@ metadata survives page fragmentation without repeating its text label. A float c
 ## Dependency footprint
 
 - **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing; System.Text.Encoding.CodePages for legacy web encodings.
-- **OfficeIMO:** `OfficeIMO.Core`, `OfficeIMO.Html.Core`, `OfficeIMO.Html.AngleSharp` and `OfficeIMO.Pdf`. Resource policy, layout, PDF generation, image replay and diagnostics are first-party.
+- **OfficeIMO:** `OfficeIMO.Core`, `OfficeIMO.Html.Core` and `OfficeIMO.Html.AngleSharp`. Resource policy, layout and diagnostics are first-party. PDF generation and image replay come from `OfficeIMO.Html.Pdf`, which adds `OfficeIMO.Pdf`.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
-`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. Format-specific save methods and the shared `ToImage()` / `ToImages()` fluent builders write to files or caller-owned streams and return the same structured evidence.
+`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. `ToImage(options)` returns encoded bytes; its `out report` overload and `ToImageAsync(options)` also return fidelity evidence. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`. Options select the format, zero-based page, layout, resource policy and output limits; caller-owned streams remain open.
 
-HTML-to-PDF generation is included in `OfficeIMO.Html`. The public types retain the `OfficeIMO.Html.Pdf` namespace. `HtmlToPdfOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
+HTML-to-PDF generation is in `OfficeIMO.Html.Pdf`. `HtmlPdfExportOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](../OfficeIMO.Html.Pdf/PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
 
 ```csharp
 using OfficeIMO.Html.Pdf;
 
-var options = new HtmlToPdfOptions {
+var options = new HtmlPdfExportOptions {
     Margins = HtmlRenderMargins.All(32)
 };
 
-byte[] pdf = source.ToPdfBytes(options);
+using var pdfDocument = source.ToPdf(options);
+byte[] pdf = pdfDocument.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 byte[] png = source.ToPng(options);
 string svg = source.ToSvg(options);
 ```
@@ -830,7 +834,7 @@ Uri? baseUri = document.BaseUri;
 ## Trust and conversion limits
 
 ```csharp
-var options = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+var options = HtmlConversionDocumentOptions.UntrustedDefaults;
 options.Limits.MaxInputCharacters = 2_000_000;
 options.Limits.MaxHtmlNodes = 50_000;
 options.Limits.MaxSelectorEvaluations = 1_000_000;
@@ -846,8 +850,8 @@ The untrusted profile is the default. It rejects local-file navigation, does not
 
 Renderer diagnostics carry `OfficeConversionLossKind` independently of severity.
 Unsupported transforms and failed image resources remain loss-bearing even when
-reported at informational severity. Both `FidelityPolicy.RequireNoLoss` and image
-export `Policy.RequireNoLoss` reject these cases. Harmless informational diagnostics
+reported at informational severity. Both `FidelityPolicy.ThrowIfLoss` and image
+export `Policy.ThrowIfLoss` reject these cases. Harmless informational diagnostics
 remain accepted.
 
 Gallery JSON uses schema version `1.1`. Artifact `evidence` records observed page
@@ -874,7 +878,7 @@ Native adapters use `HtmlConversionResult<TArtifact>` when callers need conversi
 ## Conversion Document And Normalized HTML
 
 ```csharp
-var conversion = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+var conversion = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
     Profile = HtmlConversionProfile.Document,
     Trust = HtmlInputTrust.Untrusted,
     BaseUri = new Uri("https://example.com/reports/"),
@@ -999,6 +1003,8 @@ already belongs to the body, `TitleHeading` is null; read it from `Blocks`.
 Current OfficeIMO semantic exports identify schema `2` and public-safe restoration metadata. Public-safe envelopes can be imported from untrusted input. A target-specific envelope marked `trusted-target` restores private target metadata only when the prepared input is trusted; otherwise the adapter uses the shared generic semantic path and reports the boundary. Schema `1` remains readable.
 
 ```csharp
+using OfficeIMO.Word.Html;
+
 HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(sourceHtml, exportedHtml);
 Console.WriteLine(score.Dimensions["structure"]);
 Console.WriteLine(score.Dimensions["styles"]);
@@ -1068,7 +1074,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 2 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
 | Remove | 1 | 0 | 0 | 0 | 0 | 0 |
-| Convert | 1 | 0 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

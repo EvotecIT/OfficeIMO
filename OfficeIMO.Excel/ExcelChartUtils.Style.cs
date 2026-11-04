@@ -18,7 +18,11 @@ namespace OfficeIMO.Excel {
         private static StringReference CreateStringReference(string formula, IReadOnlyList<string>? values) {
             var reference = new StringReference(new Formula { Text = formula });
             if (values == null) return reference;
+            reference.Append(CreateStringCache(values));
+            return reference;
+        }
 
+        private static StringCache CreateStringCache(IReadOnlyList<string> values) {
             StringCache cache = new();
             cache.Append(new PointCount { Val = (uint)values.Count });
             for (int i = 0; i < values.Count; i++) {
@@ -27,8 +31,7 @@ namespace OfficeIMO.Excel {
                     NumericValue = new NumericValue { Text = values[i] ?? string.Empty }
                 });
             }
-            reference.Append(cache);
-            return reference;
+            return cache;
         }
 
         private static StringReference CreateSingleStringReference(string formula, string? value) {

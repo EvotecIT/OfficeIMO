@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel {
             Exception? persistenceFailure = null;
 
             try {
+                ReleaseReadSnapshot();
                 if (this._spreadSheetDocument != null) {
                     try {
                         if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
@@ -41,7 +42,7 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
-                        this._spreadSheetDocument.Dispose();
+                        ReleasePackage();
                     } catch (Exception ex) {
                         persistenceFailure = ex;
                     } finally {
@@ -75,6 +76,22 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Closes the package, except one that still sits on the private copy-on-write stream. Closing that package
+        /// would only recompress every part the session opened into a stream nothing reads again; it holds managed
+        /// memory only, so it is left to the collector.
+        /// </summary>
+        private void ReleasePackage() {
+            _packageCopyOnWriteStream?.Abandon();
+            if (_packageCopyOnWriteStream != null
+                && ReferenceEquals(_spreadSheetDocument, _packageOnCopyOnWriteStream)
+                && !_openXmlDocumentExposed) {
+                return;
+            }
+
+            _spreadSheetDocument.Dispose();
+        }
+
+        /// <summary>
         /// Asynchronously releases resources used by the document.
         /// </summary>
         public async ValueTask DisposeAsync() {
@@ -97,7 +114,7 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
-                        this._spreadSheetDocument.Dispose();
+                        ReleasePackage();
                     } catch (Exception ex) {
                         persistenceFailure = ex;
                     } finally {

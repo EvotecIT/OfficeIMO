@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>$workbook | Set-OfficeExcelDateSystem -DateSystem 1904 -PassThru | Save-OfficeExcel</code>
 ///   <para>Marks the workbook to use Excel's 1904 date system before saving.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelDateSystem")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelDateSystem", DefaultParameterSetName = "Default")]
 [Alias("ExcelDateSystem")]
 [OutputType(typeof(ExcelDocument))]
 public sealed class SetOfficeExcelDateSystemCommand : PSCmdlet

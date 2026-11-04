@@ -27,8 +27,8 @@ public sealed class StudioCommandCatalogTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-command-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "editable.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800)
-            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Command transaction")))))).Save(path);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800))
+            .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Command transaction")))))).Save(path);
         try {
             using var session = TestAppBuilder.StartSession();
             await session.Dispatch(async () => {

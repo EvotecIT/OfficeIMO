@@ -37,8 +37,8 @@ public sealed partial class HtmlRenderingTests {
                 }
             }
         }
-        paged.RequireNoLoss();
-        continuous.RequireNoLoss();
+        paged.ThrowIfLoss();
+        continuous.ThrowIfLoss();
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed partial class HtmlRenderingTests {
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
             Assert.NotEqual(OfficeColor.White, raster.GetPixel(80, 35));
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Blue, second.GetPixel(20, 85));
         Assert.Equal(OfficeColor.White, second.GetPixel(55, 85));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static string GradientImageFragmentSource(string content, string rules) =>
@@ -113,7 +113,7 @@ public sealed partial class HtmlRenderingTests {
         string family = ManagedTextShapingTestAssets.FamilyName;
         var options = new HtmlRenderOptions {
             Mode = mode,
-            PageSize = new OfficePageSize(200D / HtmlRenderOptions.CssPixelsPerInch, 120D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(200D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(10D),
             HonorCssPageRules = false,
             ViewportWidth = 200D,

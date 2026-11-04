@@ -15,9 +15,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.InvalidPngImage.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.CellValue(1, 1, "Image");
-                sheet.AddImage(2, 1, CreatePngWithInvalidCrc(), "image/png", widthPixels: 12, heightPixels: 12, name: "InvalidPng");
+                ExcelSheet sheet = document.AddSheet("Images");
+                sheet.Cell(1, 1).SetValue("Image");
+                sheet.AddImage(2, 1, CreatePngWithInvalidCrc(), new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(12),
+                    Name = "InvalidPng"
+                });
                 document.Save();
             }
 
@@ -38,8 +43,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.InvalidImageDimensions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, CreatePngWithLargeNonIhdrFirstChunk(), "image/png", widthPixels: 12, heightPixels: 12, name: "InvalidDimensions");
+                ExcelSheet sheet = document.AddSheet("Images");
+                sheet.AddImage(1, 1, CreatePngWithLargeNonIhdrFirstChunk(), new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(12),
+                    Name = "InvalidDimensions"
+                });
                 document.Save();
             }
 
@@ -68,9 +78,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.MixedHeaderFormatting.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Headers");
-                sheet.CellValue(1, 1, "Report");
-                sheet.SetHeaderFooter(headerLeft: "&BTotal", headerCenter: "Page &P");
+                ExcelSheet sheet = document.AddSheet("Headers");
+                sheet.Cell(1, 1).SetValue("Report");
+                sheet.PageSetup.Header.Left.Text = "&BTotal";
+                sheet.PageSetup.Header.Center.Text = "Page &P";
                 document.Save();
             }
 
@@ -91,9 +102,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedHeaderFont.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Headers");
-                sheet.CellValue(1, 1, "Report");
-                sheet.SetHeaderFooter(headerCenter: "&\"UnmappedFont\"Report");
+                ExcelSheet sheet = document.AddSheet("Headers");
+                sheet.Cell(1, 1).SetValue("Report");
+                sheet.PageSetup.Header.Center.Text = "&\"UnmappedFont\"Report";
                 document.Save();
             }
 
@@ -114,13 +125,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.FormulaOutsidePrintArea.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellFormula(5, 4, "B2+1");
-                document.SetPrintArea(sheet, "A1:B2", save: false);
+                ExcelSheet sheet = document.AddSheet("Report");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(5, 4).SetFormula("B2+1");
+                sheet.PageSetup.PrintArea = "A1:B2";
                 document.Save();
             }
 
@@ -140,9 +151,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.HiddenRowFormulaCache.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
-                sheet.CellValue(1, 1, "Ready");
-                sheet.CellFormula(5, 1, "A1+1");
+                ExcelSheet sheet = document.AddSheet("Report");
+                sheet.Cell(1, 1).SetValue("Ready");
+                sheet.Cell(5, 1).SetFormula("A1+1");
                 sheet.SetRowHidden(5, true);
                 document.Save();
             }
@@ -163,12 +174,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PrintTitleColumns.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10d);
-                document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1, save: false);
+                ExcelSheet sheet = document.AddSheet("Report");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.PageSetup.SetPrintTitles(firstRow: null, lastRow: null, firstColumn: 1, lastColumn: 1);
                 document.Save();
             }
 

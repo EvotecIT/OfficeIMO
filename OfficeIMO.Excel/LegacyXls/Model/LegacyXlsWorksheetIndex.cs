@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents row-block lookup metadata decoded from a BIFF Index record.
     /// </summary>
-    public sealed class LegacyXlsWorksheetIndex {
+    internal sealed class LegacyXlsWorksheetIndex {
         /// <summary>
         /// Creates row-block lookup metadata.
         /// </summary>

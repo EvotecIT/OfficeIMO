@@ -99,9 +99,9 @@ public sealed class PdfInlineFormTests {
             new PdfTableCell(new[] { PdfTextRun.Normal(cached) })
         } };
         byte[] source = PdfDocument.Create(Options(400, 160)).Table(rows, style: new PdfTableStyle {
-            HeaderRowCount = 0, HeaderBold = false, FontSize = 12, LineHeight = 1.2D,
-            CellPaddingX = 0, CellPaddingY = 0, BorderColor = null,
-            ColumnWidthPoints = new List<double?> { 110, 110, 110 }, MaxWidth = 330, PreserveWidth = true
+            HeaderRowCount = 0, HeaderBold = false, FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1.2D,
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), BorderColor = null,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(110) }, MaxWidth = global::OfficeIMO.OfficeLength.Points(330), PreserveWidth = true
         }).ToBytes();
         PdfDocumentInfo info = PdfInspector.Inspect(source);
         Assert.Equal(2, info.FormFields.Count);
@@ -129,7 +129,7 @@ public sealed class PdfInlineFormTests {
         if (inline) {
             PdfInlineFormField first = CreateDescriptor("Duplicate", false, "ONE", "ONE");
             PdfInlineFormField second = CreateDescriptor("Duplicate", false, "TWO", "TWO");
-            document.Paragraph(paragraph => paragraph.Runs(new[] {
+            document.Paragraph(paragraph => paragraph.AddRuns(new[] {
                 PdfTextRun.Normal("ONE ").WithFormField(first), PdfTextRun.Normal("TWO").WithFormField(second)
             }));
         } else {
@@ -140,7 +140,7 @@ public sealed class PdfInlineFormTests {
 
     private static PdfInlineFormField CreateDescriptor(string name, bool choice, string value, string cached) {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = null, BorderColor = null, BorderWidth = 0, TextColor = PdfColor.Black
+            BackgroundColor = null, BorderColor = null, BorderWidth = global::OfficeIMO.OfficeLength.Points(0), TextColor = global::OfficeIMO.OfficeColor.Black
         };
         PdfCanvasFormFieldItem item = choice
             ? PdfCanvasFormFieldItem.Choice(name, new[] {
@@ -157,17 +157,19 @@ public sealed class PdfInlineFormTests {
         else split++;
         // Styled runs share one descriptor, just as one Word SDT can contain
         // multiple runs and wrap across independently editable line widgets.
-        return PdfDocument.Create(Options(pageWidth, pageHeight)).Paragraph(paragraph => paragraph.Runs(new[] {
+        return PdfDocument.Create(Options(pageWidth, pageHeight)).Paragraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("LEAD "),
             PdfTextRun.Normal(cached.Substring(0, split)).WithFormField(descriptor),
             new PdfTextRun(cached.Substring(split), bold: true).WithFormField(descriptor),
             PdfTextRun.Normal(" TAIL")
-        }), style: new PdfParagraphStyle { SpacingAfter = 0, LineHeight = 1.2D });
+        }), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineHeight = 1.2D });
     }
 
-    private static PdfOptions Options(double width, double height) => new() {
-        PageWidth = width, PageHeight = height, MarginLeft = 18, MarginRight = 18,
-        MarginTop = 18, MarginBottom = 18, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12
+    private static PdfCreateOptions Options(double width, double height) => new() {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(18), Right = global::OfficeIMO.OfficeLength.Points(18), Top = global::OfficeIMO.OfficeLength.Points(18), Bottom = global::OfficeIMO.OfficeLength.Points(18) }
+        }, DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
     };
 
     private static (int? Page, double X1, double Y1, double X2, double Y2)[] WidgetGeometry(PdfFormField field) =>

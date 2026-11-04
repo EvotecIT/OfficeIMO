@@ -16,11 +16,9 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
     public void ConstantExcelDateAndTimeFormulaBoundsConvertWithoutLoss() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            ExcelSheet sheet = authored.AddWorksheet("Data");
-            sheet.ValidationDate("A1", ExcelDataValidationOperator.Between,
-                new DateTime(2024, 2, 29), new DateTime(2024, 12, 31));
-            sheet.ValidationTime("B1", ExcelDataValidationOperator.Between,
-                new TimeSpan(8, 30, 0), new TimeSpan(17, 0, 0));
+            ExcelSheet sheet = authored.AddSheet("Data");
+            sheet.Range("A1").Validation().Date(ExcelDataValidationOperator.Between, new DateTime(2024, 2, 29), new DateTime(2024, 12, 31));
+            sheet.Range("B1").Validation().Time(ExcelDataValidationOperator.Between, new TimeSpan(8, 30, 0), new TimeSpan(17, 0, 0));
             package = authored.ToBytes();
         }
 
@@ -47,7 +45,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         }
 
         using ExcelDocument source = ExcelDocument.Load(new MemoryStream(package));
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument ods = OdsDocument.Load(new MemoryStream(conversion.Value.ToBytes()));
         Assert.Equal(2, ods.Validations.Count);
         Assert.Contains(ods.Validations, validation => validation.ParsedCondition?.ValueKind == OdsValidationValueKind.Date
@@ -64,9 +62,9 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
     public void DynamicAndFractionalExcelDateTimeFormulasReportUnsupported() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            ExcelSheet sheet = authored.AddWorksheet("Data");
-            sheet.ValidationDate("A1", ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
-            sheet.ValidationTime("B1", ExcelDataValidationOperator.Equal, new TimeSpan(8, 30, 0));
+            ExcelSheet sheet = authored.AddSheet("Data");
+            sheet.Range("A1").Validation().Date(ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
+            sheet.Range("B1").Validation().Time(ExcelDataValidationOperator.Equal, new TimeSpan(8, 30, 0));
             package = authored.ToBytes();
         }
 
@@ -88,7 +86,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         }
 
         using ExcelDocument source = ExcelDocument.Load(new MemoryStream(package));
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(conversion.Value.Validations);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
@@ -98,12 +96,11 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
     public void EarlyOutOfRangeAndFractionalExcelDatesReportUnsupported() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            ExcelSheet sheet = authored.AddWorksheet("Data");
+            ExcelSheet sheet = authored.AddSheet("Data");
             for (int index = 0; index < 3; index++) {
-                sheet.ValidationDate(((char)('A' + index)).ToString() + "1",
-                    ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
+                sheet.Range(((char)('A' + index)).ToString() + "1").Validation().Date(ExcelDataValidationOperator.Equal, new DateTime(2024, 1, 1));
             }
-            sheet.ValidationDate("D1", ExcelDataValidationOperator.Equal, new DateTime(9957, 1, 1));
+            sheet.Range("D1").Validation().Date(ExcelDataValidationOperator.Equal, new DateTime(9957, 1, 1));
             package = authored.ToBytes();
         }
 
@@ -124,7 +121,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         }
 
         using ExcelDocument source = ExcelDocument.Load(new MemoryStream(package));
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(conversion.Value.Validations);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 4);
@@ -141,7 +138,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
             sheet.Cell(0, index).ValidationName = validation.Name;
         }
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         Assert.Empty(target.Sheets.Single().GetDataValidations());
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
@@ -158,12 +155,11 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         var time = new TimeSpan(9, 30, 15);
         using ExcelDocument source = ExcelDocument.Create();
         source.DateSystem = dateSystem;
-        ExcelSheet sheet = source.AddWorksheet("Data");
-        sheet.ValidationDate("A1:A3", ExcelDataValidationOperator.Between,
-            firstDate, secondDate, allowBlank: false);
-        sheet.ValidationTime("B1:B3", ExcelDataValidationOperator.Equal, time);
+        ExcelSheet sheet = source.AddSheet("Data");
+        sheet.Range("A1:A3").Validation().Date(ExcelDataValidationOperator.Between, firstDate, secondDate, allowBlank: false);
+        sheet.Range("B1:B3").Validation().Time(ExcelDataValidationOperator.Equal, time);
 
-        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> toOds = source.ConvertToOpenDocumentWithEvidence();
         Assert.DoesNotContain(toOds.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
         OdsDocument ods = OdsDocument.Load(new MemoryStream(toOds.Value.ToBytes()));
@@ -175,7 +171,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         Assert.Contains(ods.Validations, validation => validation.ParsedCondition?.ValueKind == OdsValidationValueKind.Time
             && validation.ParsedCondition.FirstOperand == "TIME(9;30;15)");
 
-        OdfConversionResult<ExcelDocument> toExcel = ods.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> toExcel = ods.ConvertToExcelWithEvidence();
         using ExcelDocument converted = toExcel.Value;
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(converted.ToBytes()));
         var validations = reopened.Sheets.Single().GetDataValidations();
@@ -208,7 +204,7 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         sheet.Cell(0, 1).ValidationName = time.Name;
 
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(source.ToBytes()));
-        OdfConversionResult<ExcelDocument> conversion = reopened.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = reopened.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         var validations = target.Sheets.Single().GetDataValidations();
         Assert.Equal(2, validations.Count);
@@ -226,16 +222,15 @@ public sealed class SpreadsheetTemporalValidationConversionTests {
         OdsValidation date = ods.AddValidation("DynamicDate", OdsValidationConditionSyntax.Create(
             OdsValidationValueKind.Date, OdsValidationComparison.GreaterThan, "TODAY()"));
         ods.AddSheet("Data").Cell(0, 0).ValidationName = date.Name;
-        OdfConversionResult<ExcelDocument> toExcel = ods.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> toExcel = ods.ConvertToExcelWithEvidence();
         using ExcelDocument target = toExcel.Value;
         Assert.Empty(target.Sheets.Single().GetDataValidations());
         Assert.Contains(toExcel.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
 
         using ExcelDocument excel = ExcelDocument.Create();
-        excel.AddWorksheet("Data").ValidationTime("A1", ExcelDataValidationOperator.Equal,
-            TimeSpan.FromMilliseconds(500));
-        OdfConversionResult<OdsDocument> toOds = excel.ToOpenDocumentResult();
+        excel.AddSheet("Data").Range("A1").Validation().Time(ExcelDataValidationOperator.Equal, TimeSpan.FromMilliseconds(500));
+        OdfConversionResult<OdsDocument> toOds = excel.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(toOds.Value.Validations);
         Assert.Contains(toOds.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);

@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordDropDownList -Items 'Low','Medium','High' -Alias 'Priority' }</code>
 ///   <para>Creates a dropdown list control with the supplied items.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordDropDownList")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordDropDownList", DefaultParameterSetName = "Default")]
 [Alias("WordDropDownList")]
 [OutputType(typeof(WordDropDownList))]
 public sealed class AddOfficeWordDropDownListCommand : PSCmdlet

@@ -26,7 +26,7 @@ public sealed class PdfControlDiagnosticCompletenessTests {
         // sanitized PDF resource name against the configured display name.
         var raw = cff ? PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, ot!, source, fontName)
             : PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, tt!, source, fontName);
-        PdfOptions options = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, fontName);
+        PdfCreateOptions options = new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, fontName);
         PdfTextShapingOptions descriptor = PdfTextDiagnostics.ForEncodingDiagnostics(options, fontName, source);
         var complete = cff ? PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, ot!, source, fontName, shapingOptions: descriptor)
             : PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, tt!, source, fontName, shapingOptions: descriptor);

@@ -28,7 +28,7 @@ public partial class Word {
         byte[] expected = ConvertHeadingPictureDocument(reference, $"image-Normal-{content}");
 
         AssertHeadingPictureFramesMatch(bytes, expected, content == "anchor" ? 2 : 1);
-        Assert.Empty(PdfCore.PdfReadDocument.Open(bytes).Outlines);
+        Assert.Empty(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Outlines);
         Assert.Empty(PdfCore.PdfInspector.Inspect(bytes).FormFields);
     }
 
@@ -40,7 +40,7 @@ public partial class Word {
         using WordDocument reference = CreateHeadingPictureDocument("Normal", "inline", atDocumentStart: true);
         byte[] bytes = ConvertHeadingPictureDocument(source, $"initial-{style}");
         AssertHeadingPictureFramesMatch(bytes, ConvertHeadingPictureDocument(reference, "initial-Normal"), 1);
-        Assert.Empty(PdfCore.PdfReadDocument.Open(bytes).Outlines);
+        Assert.Empty(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Outlines);
     }
 
     [Theory]
@@ -85,11 +85,15 @@ public partial class Word {
         WordDocument document = WordDocument.Create();
         SetObjectMarkNormalStyle(document);
         if (!atDocumentStart) document.AddParagraph("BEFORE");
-        if (style == "Title")
-            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+        if (style == "Title") {
+            // Replace the theme's Title with a plain one based on Normal.
+            W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            foreach (W.Style existing in styles.Elements<W.Style>().Where(item => item.StyleId?.Value == "Title").ToList()) existing.Remove();
+            styles.Append(
                 new W.Style(new W.StyleName { Val = "Title" }, new W.BasedOn { Val = "Normal" }) {
                     StyleId = "Title", Type = W.StyleValues.Paragraph
                 });
+        }
         WordParagraph paragraph = document.AddParagraph().SetStyleId(style);
         W.ParagraphStyleId styleId = (W.ParagraphStyleId)paragraph._paragraph.ParagraphProperties!.ParagraphStyleId!.CloneNode(true);
         paragraph._paragraph.ParagraphProperties = new W.ParagraphProperties(styleId,
@@ -100,7 +104,7 @@ public partial class Word {
         if (content == "whitespace") paragraph.AddText(" \t ");
         byte[] picture = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(64, 32, OfficeColor.Green), OfficeImageExportFormat.Png);
         using (var image = new MemoryStream(picture)) {
-            WordImage inserted = paragraph.InsertImage(image, "heading-picture.png", 64, 32);
+            WordImage inserted = paragraph.AddImage(image, "heading-picture.png", OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32));
             if (content == "picture-control") {
                 // Exercise the separately owned picture-SDT path with the same
                 // valid inline image, without a temporary filesystem asset.
@@ -114,11 +118,11 @@ public partial class Word {
         if (content == "anchor") {
             byte[] pictureBytes = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(16, 16, OfficeColor.Blue), OfficeImageExportFormat.Png);
             using var image = new MemoryStream(pictureBytes);
-            WordImage anchored = paragraph.InsertImage(image, "heading-anchor.png", 16, 16, WordImageTextWrapping.InFrontOfText);
+            WordImage anchored = paragraph.AddImage(image, "heading-anchor.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InFrontOfText });
             anchored.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             anchored.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            anchored.HorizontalPositionOffset = 240 * 12700;
-            anchored.VerticalPositionOffset = 160 * 12700;
+            anchored.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(240 * 12700);
+            anchored.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(160 * 12700);
         }
         if (content == "date-control") {
             WordDatePicker date = paragraph.AddDatePicker(new DateTime(2026, 10, 20), tag: "HeadingPictureDate");
@@ -139,9 +143,9 @@ public partial class Word {
             Assert.True(errors.Length == 0, string.Join("\n", errors.Select(error => error.Description + " @ " + error.Path?.XPath)));
         }
         using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
-        byte[] pdf = loaded.ToPdfBytes(new WordToPdfOptions {
+        byte[] pdf = loaded.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
-        });
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_HEADING_PICTURE_OUTPUT");
         if (!string.IsNullOrWhiteSpace(output)) {
             Directory.CreateDirectory(output);

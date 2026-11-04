@@ -63,7 +63,7 @@ internal static partial class PdfWriter {
     private static System.Collections.Generic.List<string> WrapSimpleText(string text, double widthPts, PdfStandardFont font, double fontSize) =>
         WrapSimpleTextForOptions(text, widthPts, font, fontSize, options: null);
 
-    private static System.Collections.Generic.List<string> WrapSimpleTextForOptions(string text, double widthPts, PdfStandardFont font, double fontSize, PdfOptions? options) {
+    private static System.Collections.Generic.List<string> WrapSimpleTextForOptions(string text, double widthPts, PdfStandardFont font, double fontSize, PdfCreateOptions? options) {
         var hardLines = (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split(HardLineSplitChars, StringSplitOptions.None);
         var lines = new System.Collections.Generic.List<string>();
         double maxWidth = Math.Max(1D, widthPts);

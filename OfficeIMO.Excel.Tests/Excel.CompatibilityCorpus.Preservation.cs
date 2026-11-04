@@ -15,17 +15,17 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorksheet("Imported");
-                    sheet.CellValue(1, 1, "Resource");
-                    sheet.CellValue(1, 2, "Amount");
+                    var sheet = document.AddSheet("Imported");
+                    sheet.Cell(1, 1).SetValue("Resource");
+                    sheet.Cell(1, 2).SetValue("Amount");
                     sheet.SetHyperlink(2, 1, "https://example.org/external-system/invoice/INV-2026-001", display: "Invoice");
-                    sheet.CellValue(2, 2, 1250d);
+                    sheet.Cell(2, 2).SetValue(1250d);
                 });
 
                 AddPreserveOnlyPackageParts(filePath, customXmlBytes, connectionBytes, queryTableBytes);
 
                 using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                    document["Imported"].CellValue(3, 2, 1400d);
+                    document["Imported"].Cell(3, 2).SetValue(1400d);
                     document.Save();
                 }
 
@@ -68,15 +68,15 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorksheet("Controls");
-                    sheet.CellValue(1, 1, "Status");
-                    sheet.CellValue(2, 1, "Before");
+                    var sheet = document.AddSheet("Controls");
+                    sheet.Cell(1, 1).SetValue("Status");
+                    sheet.Cell(2, 1).SetValue("Before");
                 });
 
                 AddAdvancedPackageParts(filePath, vbaBytes, embeddedBytes);
 
                 using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                    document["Controls"].CellValue(3, 1, "After");
+                    document["Controls"].Cell(3, 1).SetValue("After");
                     document.Save();
                 }
 

@@ -8,25 +8,25 @@ namespace OfficeIMO.Tests;
 public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_DefaultSemanticExportLimitsAreBounded() {
-        var options = new ExcelHtmlSaveOptions();
+        var options = new ExcelHtmlExportOptions();
 
-        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxRowsPerSheet, options.MaxRowsPerSheet);
-        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxColumnsPerSheet, options.MaxColumnsPerSheet);
-        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxCellsPerSheet, options.MaxCellsPerSheet);
-        Assert.Equal(ExcelHtmlSaveOptions.DefaultMaxMergedRangesPerSheet, options.MaxMergedRangesPerSheet);
+        Assert.Equal(ExcelHtmlExportOptions.DefaultMaxRowsPerSheet, options.MaxRowsPerSheet);
+        Assert.Equal(ExcelHtmlExportOptions.DefaultMaxColumnsPerSheet, options.MaxColumnsPerSheet);
+        Assert.Equal(ExcelHtmlExportOptions.DefaultMaxCellsPerSheet, options.MaxCellsPerSheet);
+        Assert.Equal(ExcelHtmlExportOptions.DefaultMaxMergedRangesPerSheet, options.MaxMergedRangesPerSheet);
     }
 
     [Fact]
     public void ExcelHtml_RoundTripsMergedCellsWithoutDuplicatingCoveredCells() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Merged");
-        sheet.CellValue(1, 1, "Quarterly result");
-        sheet.CellValue(1, 4, "Status");
-        sheet.CellValue(4, 2, "Approved");
-        sheet.MergeRange("A1:C2");
-        sheet.MergeRange("B4:C4");
+        ExcelSheet sheet = workbook.AddSheet("Merged");
+        sheet.Cell(1, 1).SetValue("Quarterly result");
+        sheet.Cell(1, 4).SetValue("Status");
+        sheet.Cell(4, 2).SetValue("Approved");
+        sheet.Range("A1:C2").Merge();
+        sheet.Range("B4:C4").Merge();
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
 
@@ -35,16 +35,16 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         Assert.DoesNotContain("data-officeimo-cell=\"B1\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-officeimo-cell=\"A2\"", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
         string[] mergedRanges = importedSheet.GetMergedRanges().Select(merge => merge.A1Range).OrderBy(range => range).ToArray();
 
         Assert.Equal(2, result.MergedRanges);
         Assert.Equal(new[] { "A1:C2", "B4:C4" }, mergedRanges);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? title));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? title));
         Assert.Equal("Quarterly result", title!.Text);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelCellValueSnapshot? approval));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelNativeCellValueInfo? approval));
         Assert.Equal("Approved", approval!.Text);
     }
 
@@ -62,15 +62,15 @@ public class HtmlOfficeAdaptersExcelMergedCells {
             </main>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
         Assert.Equal(2, result.MergedRanges);
         Assert.Equal(new[] { "B2:C3", "C4:D4" }, sheet.GetMergedRanges().Select(merge => merge.A1Range).OrderBy(range => range).ToArray());
-        Assert.True(sheet.TryGetCellValueSnapshot(2, 4, out ExcelCellValueSnapshot? q1));
+        Assert.True(sheet.TryGetCellValueSnapshot(2, 4, out ExcelNativeCellValueInfo? q1));
         Assert.Equal("Q1", q1!.Text);
-        Assert.True(sheet.TryGetCellValueSnapshot(3, 4, out ExcelCellValueSnapshot? ten));
+        Assert.True(sheet.TryGetCellValueSnapshot(3, 4, out ExcelNativeCellValueInfo? ten));
         Assert.Equal("10", ten!.Text);
     }
 
@@ -79,9 +79,9 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         const string html = "<table><tr><td><strong>Bold</strong> <em>italic</em> <u>under</u> <s>strike</s> <sup>2</sup><sub>3</sub></td></tr></table>";
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
-        IReadOnlyList<ExcelRichTextRun> runs = Assert.Single(workbook.Sheets).CellAt(1, 1).GetRichText();
+        IReadOnlyList<ExcelRichTextRun> runs = Assert.Single(workbook.Sheets).Cell(1, 1).GetRichText();
 
         Assert.True(Assert.Single(runs, run => run.Text == "Bold").Bold);
         Assert.True(Assert.Single(runs, run => run.Text == "italic").Italic);
@@ -96,15 +96,15 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_RoundTripsQuotedFontFamiliesContainingSemicolons() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Fonts").CellAt(1, 1).SetRichText(
+        workbook.AddSheet("Fonts").Cell(1, 1).SetRichText(
             new ExcelRichTextRun("Styled") { FontName = "A;B", Bold = true });
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.RequireValue();
-        ExcelRichTextRun run = Assert.Single(Assert.Single(imported.Sheets).CellAt(1, 1).GetRichText());
+        ExcelRichTextRun run = Assert.Single(Assert.Single(imported.Sheets).Cell(1, 1).GetRichText());
 
         Assert.Contains("A;B", html, StringComparison.Ordinal);
         Assert.Equal("A;B", run.FontName);
@@ -114,15 +114,15 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_TruncationClipsMergedRangeToExportedRows() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Clipped");
-        sheet.CellValue(1, 1, "Visible");
-        sheet.MergeRange("A1:B3");
+        ExcelSheet sheet = workbook.AddSheet("Clipped");
+        sheet.Cell(1, 1).SetValue("Visible");
+        sheet.Range("A1:B3").Merge();
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
             MaxRowsPerSheet = 2
         });
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.Value;
 
         Assert.Contains("data-officeimo-merge=\"A1:B2\"", html, StringComparison.Ordinal);
@@ -132,11 +132,11 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_HugeMergeIsClippedBeforeCellMaterialization() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Bounded");
-        sheet.CellValue(1, 1, "Visible");
-        sheet.MergeRange("A1:XFD1048576");
+        ExcelSheet sheet = workbook.AddSheet("Bounded");
+        sheet.Cell(1, 1).SetValue("Visible");
+        sheet.Range("A1:XFD1048576").Merge();
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             MaxRowsPerSheet = 2,
             MaxColumnsPerSheet = 3,
             MaxCellsPerSheet = 6
@@ -150,11 +150,11 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_Reports_Column_Truncation_In_Semantic_Exports() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Columns");
-        sheet.CellValue(1, 1, "Visible");
-        sheet.CellValue(1, 4, "Truncated");
+        ExcelSheet sheet = workbook.AddSheet("Columns");
+        sheet.Cell(1, 1).SetValue("Visible");
+        sheet.Cell(1, 4).SetValue("Truncated");
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
             MaxColumnsPerSheet = 2
         });
@@ -166,10 +166,10 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_EmptyHugeMergeUsesTheBoundedProbeWindow() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("EmptyBounded");
-        sheet.MergeRange("A1:XFD1048576");
+        ExcelSheet sheet = workbook.AddSheet("EmptyBounded");
+        sheet.Range("A1:XFD1048576").Merge();
 
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions {
             MaxRowsPerSheet = 2,
             MaxColumnsPerSheet = 3,
             MaxCellsPerSheet = 4
@@ -182,11 +182,11 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_RejectsMergeMetadataBeyondTheConfiguredLimit() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("MergeBounded");
-        sheet.MergeRange("A1:B1");
-        sheet.MergeRange("A2:B2");
+        ExcelSheet sheet = workbook.AddSheet("MergeBounded");
+        sheet.Range("A1:B1").Merge();
+        sheet.Range("A2:B2").Merge();
 
-        Assert.Throws<InvalidOperationException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions {
+        Assert.Throws<InvalidOperationException>(() => workbook.ToHtml(new ExcelHtmlExportOptions {
             MaxMergedRangesPerSheet = 1
         }));
     }

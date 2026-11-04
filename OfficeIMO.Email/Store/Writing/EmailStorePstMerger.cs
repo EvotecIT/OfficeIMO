@@ -45,7 +45,7 @@ internal sealed class EmailStorePstMerger {
         var writerOptions = new EmailStorePstWriterOptions(
             _options.DisplayName,
             _options.OverwriteExisting,
-            failOnDataLoss: false,
+            failOnLoss: false,
             _options.MaxFolderCount,
             _options.MaxItems,
             _options.MaxNestedMessageDepth,
@@ -65,7 +65,7 @@ internal sealed class EmailStorePstMerger {
 
         ReportProgress(EmailStoreMergeStage.Finalizing, Math.Max(0, _sources.Length - 1));
         EmailStorePstWriteReport writeReport = writer.Complete(_cancellationToken);
-        foreach (EmailStoreDiagnostic diagnostic in writeReport.Diagnostics) AddDiagnostic(diagnostic);
+        foreach (EmailStoreDiagnostic diagnostic in writeReport.NativeDiagnostics) AddDiagnostic(diagnostic);
         ReportProgress(EmailStoreMergeStage.Completed, Math.Max(0, _sources.Length - 1));
         return new EmailStorePstMergeReport(writeReport, _sourceReports.AsReadOnly(),
             _inspected, _written, _duplicates, _skipped, _retries,

@@ -8,26 +8,26 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void CatalogUriBase_CanBeEmittedClonedProbedAndPreservedOnExtraction() {
-        var options = new PdfOptions().SetCatalogUriBase("https://evotec.xyz/docs/");
+        var options = new PdfCreateOptions().SetCatalogUriBase("https://evotec.xyz/docs/");
 
         byte[] bytes = PdfDocument.Create(options)
             .CatalogUriBase("https://officeimo.net/pdf/")
-            .Paragraph(p => p.Text("Catalog URI base proof."))
+            .Paragraph(p => p.AddText("Catalog URI base proof."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page."))
+            .Paragraph(p => p.AddText("Second page."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Contains("/URI << /Base (https://officeimo.net/pdf/) >>", raw, StringComparison.Ordinal);
         Assert.True(info.HasCatalogUri);
         Assert.True(preflight.Probe.HasCatalogUri);
         Assert.True(preflight.CanRewrite);
         Assert.Equal("https://evotec.xyz/docs/", clone.CatalogUriBase);
-        Assert.NotNull(typeof(PdfOptions).GetMethod("SetCatalogUriBase", new[] { typeof(string) }));
+        Assert.NotNull(typeof(PdfCreateOptions).GetMethod("SetCatalogUriBase", new[] { typeof(string) }));
         Assert.Null(typeof(PdfDocument).GetMethod("CatalogUriBase", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance));
 
         byte[] extracted = PdfPageExtractor.ExtractPages(bytes, 1);
@@ -35,9 +35,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/URI << /Base (https://officeimo.net/pdf/) >>", extractedRaw, StringComparison.Ordinal);
         Assert.True(PdfInspector.Probe(extracted).HasCatalogUri);
 
-        Assert.Null(new PdfOptions().SetCatalogUriBase("https://evotec.xyz/").ClearCatalogUriBase().CatalogUriBase);
-        Assert.Throws<ArgumentException>(() => new PdfOptions().SetCatalogUriBase(""));
-        Assert.Throws<ArgumentException>(() => new PdfOptions().SetCatalogUriBase("relative/path"));
+        Assert.Null(new PdfCreateOptions().SetCatalogUriBase("https://evotec.xyz/").ClearCatalogUriBase().CatalogUriBase);
+        Assert.Throws<ArgumentException>(() => new PdfCreateOptions().SetCatalogUriBase(""));
+        Assert.Throws<ArgumentException>(() => new PdfCreateOptions().SetCatalogUriBase("relative/path"));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().CatalogUriBase("bad\u0001uri"));
     }
 
@@ -47,16 +47,12 @@ public partial class PdfDocumentVisualQualityTests {
         const string headingTarget = "appendix/index.html";
         const string tableTarget = "tables/detail.html";
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions().SetCatalogUriBase("https://officeimo.net/docs/"))
-            .Paragraph(p => p.Link("relative paragraph", paragraphTarget, contents: "Relative paragraph"))
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetCatalogUriBase("https://officeimo.net/docs/"))
+            .Paragraph(p => p.AddLink("relative paragraph", paragraphTarget, contents: "Relative paragraph"))
             .H2("relative heading", linkUri: headingTarget, linkContents: "Relative heading")
-            .TableWithLinks(
-                new[] {
-                    new[] { "Cell", "Value" }
-                },
-                new() {
-                    [(0, 1)] = tableTarget
-                })
+            .Table(new[] {
+                new[] { PdfTableCell.TextCell("Cell"), PdfTableCell.TextCell("Value", tableTarget) }
+            })
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -85,7 +81,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RelativeUriActionsRequireCatalogUriBaseWhenRendering() {
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.Link("relative paragraph", "assets/report.html"))
+                .Paragraph(p => p.AddLink("relative paragraph", "assets/report.html"))
                 .ToBytes());
 
         Assert.Contains("Relative PDF URI link targets require PdfOptions.CatalogUriBase.", exception.Message, StringComparison.Ordinal);

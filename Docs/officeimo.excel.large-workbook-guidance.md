@@ -9,16 +9,16 @@ This guide describes the current safe path for large workbook generation, readin
 | DataSet or DataTable export | `InsertDataSet(...)`, `InsertDataTable(...)`, then `Save(...)` | Fast package writers are selected automatically when the workbook shape is eligible. Use `ExcelSaveOptions.DisableFastPackageWriter` only for troubleshooting or comparative validation. |
 | Object reports | `InsertObjects(...)`, table helpers, and one document-boundary save | Keep layout, AutoFit, tables, and formulas in one document session so shared strings, styles, and package finalization are batched. |
 | Wide reports with AutoFit | `Execution.SaveWorksheetAfterAutoFit = false`, then `Save(...)` | Defers worksheet-part writes until the document boundary. This is the recommended report-export mode for large generated sheets. |
-| Reports formatted cell by cell | Row heights, column widths, page setup and view options set per row or column; per-cell styling inside `sheet.Batch(...)` | Layout and report metadata setters write the worksheet part at the document save, so per-row `SetRowHeight` stays proportional to the rows. `Batch` resolves repeated cell formats once and saves the stylesheet once; `WrapCells` and range style setters batch themselves. Pass `save: false` for repeated outline calls. |
+| Reports formatted cell by cell | Row heights, column widths, page setup and view options set per row or column; per-cell styling inside `sheet.Batch(...)` | Layout and report metadata setters write the worksheet part at the document save, so per-row `SetRowHeight` stays proportional to the rows. `Batch` resolves repeated cell formats once and saves the stylesheet once; range style setters such as `SetWrapText` batch themselves. Pass `save: false` for repeated outline calls. |
 | Formula-backed reports | `doc.Calculate()` or `ExcelSaveOptions.EvaluateFormulasBeforeSave` | Only supported formula shapes are evaluated. Pair unsupported formulas with `ForceFullCalculationOnOpen` when the spreadsheet app should finish calculation. |
 
 ## Recommended Read Paths
 
 | Workload | Preferred API | Notes |
 | --- | --- | --- |
-| Forward-only Excel reads | `ExcelDocument.OpenDataReader(...)` | The package-owned `DbDataReader` contract covers XLSX, XLSM, XLSB, and BIFF8 XLS and discovers used ranges automatically. |
-| Forward-only CSV reads | `CsvDocument.OpenDataReader(...)` | The parallel API remains in `OfficeIMO.CSV`, with CSV-specific delimiter, encoding, compression, and schema options. |
-| Multiple worksheets | `DbDataReader.NextResult()` | Results stay in workbook order. Set `ExcelReadOptions.SheetName` when only one worksheet should be opened. |
+| Forward-only Excel reads | `ExcelDocument.OpenReader(...)` | The package-owned `DbDataReader` contract covers XLSX, XLSM, XLSB, and BIFF8 XLS and discovers used ranges automatically. |
+| Forward-only CSV reads | `CsvDocument.OpenReader(...)` | The parallel API remains in `OfficeIMO.CSV`, with CSV-specific delimiter, encoding, compression, and schema options. |
+| Multiple worksheets | `DbDataReader.NextResult()` | Results stay in workbook order. Set `ExcelReaderOptions.SheetName` when only one worksheet should be opened. |
 | Unknown workbook edit intake | `ExcelDocument.Load(...)`, `InspectFeatures()`, and `InspectFormulas()` | Use the editable document model only when the workbook will be inspected, mutated, converted, or saved again. Treat preserve-only and unsupported findings as a preflight signal. |
 | Large Open XML edit intake | `ExcelDocument.OpenFileBacked(...)` | Stages the editable package in an owner-only temporary file, enforces `MaxInputBytes`, honors Open XML part limits, and observes cancellation while copying. XLS/XLSB projection continues through `Load`. |
 
@@ -27,7 +27,7 @@ Example:
 ```csharp
 using OfficeIMO.Excel;
 
-using var reader = ExcelDocument.OpenDataReader("sales.xlsx");
+using var reader = ExcelDocument.OpenReader("sales.xlsx");
 int revenue = reader.GetOrdinal("Revenue");
 while (reader.Read()) {
     Console.WriteLine(reader.GetDecimal(revenue));

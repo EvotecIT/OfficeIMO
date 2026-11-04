@@ -27,7 +27,7 @@ public sealed partial class XpsDocument {
         if (string.IsNullOrWhiteSpace(contentType)) throw new ArgumentException("A MIME content type is required.", nameof(contentType));
         string name = XpsPackage.PartName(partName);
         if (name == "[Content_Types].xml" || name.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) || OfficeOpcPieceAssembler.HasPieceSuffix(name)) throw new ArgumentException("Reserved package part.", nameof(partName));
-        if (bytes.Length > _limits.MaximumPartBytes || _parts.Count >= _limits.MaximumParts) throw new InvalidOperationException("XPS resource limit exceeded.");
+        if (bytes.Length > _limits.MaxPartBytes || _parts.Count >= _limits.MaxParts) throw new InvalidOperationException("XPS resource limit exceeded.");
         if (_parts.ContainsKey(name)) throw new ArgumentException("The resource already exists.", nameof(partName));
         byte[] copy = (byte[])bytes.Clone();
         _ = PrepareOutput(default, new Dictionary<string, byte[]> { [name] = copy }, new Dictionary<string, string> { [name] = contentType }, validateResources: false);
@@ -46,7 +46,7 @@ public sealed partial class XpsDocument {
         if (type == XpsPackage.Type("fixedpage") || type == XpsPackage.Type("fixeddocument") || type == XpsPackage.Type("fixeddocumentsequence") ||
             type == XpsPackage.Type("documentstructure") || type == XpsPackage.Type("storyfragments"))
             throw new ArgumentException("Use the owning API to edit structural package parts.", nameof(partName));
-        if (bytes.Length > _limits.MaximumPartBytes)
+        if (bytes.Length > _limits.MaxPartBytes)
             throw new InvalidOperationException("XPS resource limit exceeded.");
         byte[] copy = (byte[])bytes.Clone();
         _ = PrepareOutput(default, new Dictionary<string, byte[]> { [name] = copy }, validateResources: false);
@@ -55,11 +55,18 @@ public sealed partial class XpsDocument {
     /// <summary>Returns a copy of a retained package resource.</summary>
     public byte[] GetPartBytes(string partName) => (byte[])Part(XpsPackage.PartName(partName)).Clone();
     /// <summary>Serializes the same dialect. Unknown native parts are retained; signed packages cannot be rewritten.</summary>
-    public byte[] Save(CancellationToken cancellationToken = default) {
+    public byte[] ToBytes(CancellationToken cancellationToken = default) {
         using var stream = new MemoryStream(); Save(stream, cancellationToken); return stream.ToArray();
     }
     /// <summary>Atomically replaces a file only after successful serialization.</summary>
-    public void Save(string path, CancellationToken cancellationToken = default) => OfficeFileCommit.WriteAtomically(path, s => Save(s, cancellationToken), cancellationToken);
+    public void Save(string path, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
+        OfficeFileCommit.WriteAtomically(fullPath, s => Save(s, cancellationToken), cancellationToken);
+        _filePath = fullPath;
+    }
+    /// <summary>Saves to the associated path, failing when no destination is associated.</summary>
+    public void Save(CancellationToken cancellationToken = default) =>
+        Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."), cancellationToken);
     /// <summary>Writes a ZIP package to a writable stream, leaving it open. Use a fresh/empty stream.</summary>
     public void Save(Stream stream, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -84,6 +91,8 @@ public sealed partial class XpsDocument {
         if (replacements != null) foreach (var replacement in replacements) output[replacement.Key] = replacement.Value;
         IEnumerable<XpsPage> pages = _pageCache.Values;
         if (pending != null) pages = pages.Concat(new[] { pending });
+        var dictionaryReferences = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        int resourceReferences = 0;
         foreach (XpsPage page in pages) {
             cancellationToken.ThrowIfCancellationRequested();
             XElement? markup = null;
@@ -93,9 +102,14 @@ public sealed partial class XpsDocument {
             XElement rels = output.TryGetValue(relName, out var relBytes) ? XpsPackage.Xml(relBytes, _limits, cancellationToken) : new XElement(XpsPackage.Relationships + "Relationships");
             foreach (string resource in page.ResourceReferences(markup, name => {
                 string resourceType = replacementTypes != null && replacementTypes.TryGetValue(name, out var replacementType) ? replacementType : (_types.TryGetValue(name, out var storedType) ? storedType : "");
-                return resourceType == XpsPackage.Type("resourcedictionary") && output.TryGetValue(name, out var dictionaryBytes)
-                    ? XpsPackage.Xml(dictionaryBytes, _limits, cancellationToken) : null;
+                if (resourceType != XpsPackage.Type("resourcedictionary") || !output.TryGetValue(name, out var dictionaryBytes)) return null;
+                if (dictionaryReferences.TryGetValue(name, out IReadOnlyList<string>? cached)) return cached;
+                IReadOnlyList<string> references = XpsResourceSyntax.References(XpsPackage.Xml(dictionaryBytes, _limits, cancellationToken))
+                    .Select(uri => XpsPackage.Resolve(name, uri)).ToArray();
+                dictionaryReferences.Add(name, references);
+                return references;
             })) {
+                if (++resourceReferences > 1_000_000) throw new InvalidDataException("XPS output resource reference budget exceeded.");
                 if (validateResources && !output.ContainsKey(resource)) throw new InvalidDataException("Missing XPS part: " + resource);
                 string type = XpsPackage.Namespace(Format) + "/required-resource";
                 if (!rels.Elements().Any(r => (string?)r.Attribute("Type") == type && XpsPackage.Resolve(page.PartName, (string?)r.Attribute("Target") ?? "") == resource))
@@ -107,7 +121,7 @@ public sealed partial class XpsDocument {
         foreach (string name in output.Keys.Where(n => n != "[Content_Types].xml" && !n.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)).OrderBy(n => n, StringComparer.Ordinal))
             types.Add(new XElement(XpsPackage.ContentTypes + "Override", new XAttribute("PartName", "/" + name), new XAttribute("ContentType", replacementTypes != null && replacementTypes.TryGetValue(name, out var type) ? type : ContentType(name))));
         output["[Content_Types].xml"] = XpsPackage.Serialize(types);
-        if (output.Count > _limits.MaximumParts || output.Values.Any(b => b.Length > _limits.MaximumPartBytes) || output.Values.Sum(b => (long)b.Length) > _limits.MaximumExpandedBytes) throw new InvalidOperationException("XPS output limits exceeded.");
+        if (output.Count > _limits.MaxParts || output.Values.Any(b => b.Length > _limits.MaxPartBytes) || output.Values.Sum(b => (long)b.Length) > _limits.MaxExpandedBytes) throw new InvalidOperationException("XPS output limits exceeded.");
         return output;
     }
     private static string NextRelationshipId(XElement relationships) {

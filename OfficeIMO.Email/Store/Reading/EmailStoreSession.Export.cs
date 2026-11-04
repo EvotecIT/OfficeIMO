@@ -67,7 +67,7 @@ public sealed partial class EmailStoreSession {
                 Diagnostics.Concat(reportDiagnostics).ToArray();
             var candidateReport = new EmailStoreMboxExportReport(
                 destination, truncated, entries, candidateDiagnostics);
-            if (effective.FidelityPolicy == EmailStoreMboxExportFidelityPolicy.RequireNoLoss &&
+            if (effective.FidelityPolicy == EmailStoreMboxExportFidelityPolicy.FailOnLoss &&
                 candidateReport.HasLoss) {
                 reportDiagnostics.Add(new EmailStoreDiagnostic(
                     "EMAIL_STORE_MBOX_STRICT_REJECTED",

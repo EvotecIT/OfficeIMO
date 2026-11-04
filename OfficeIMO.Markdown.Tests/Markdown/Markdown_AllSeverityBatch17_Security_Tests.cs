@@ -10,12 +10,15 @@ public sealed class MarkdownAllSeverityBatch17SecurityTests {
     [InlineData("shell:Downloads")]
     [InlineData("smb://server/share")]
     public void HtmlRendererRejectsUnlistedLinkSchemes(string target) {
-        MarkdownDoc document = MarkdownReader.Parse($"[open]({target})");
+        MarkdownDocument document = MarkdownDocument.Parse($"[open]({target})");
 
-        string html = document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        string html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.DoesNotContain("<a ", html, StringComparison.OrdinalIgnoreCase);
@@ -28,12 +31,15 @@ public sealed class MarkdownAllSeverityBatch17SecurityTests {
     [InlineData("mailto:security@example.test")]
     [InlineData("tel:+12025550123")]
     public void HtmlRendererRetainsExplicitlyAllowedLinkSchemes(string target) {
-        MarkdownDoc document = MarkdownReader.Parse($"[open]({target})");
+        MarkdownDocument document = MarkdownDocument.Parse($"[open]({target})");
 
-        string html = document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        string html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains("<a ", html, StringComparison.OrdinalIgnoreCase);
@@ -42,35 +48,40 @@ public sealed class MarkdownAllSeverityBatch17SecurityTests {
 
     [Fact]
     public void HtmlRendererAllowsAdditionalSchemesOnlyWhenExplicitlyConfigured() {
-        MarkdownDoc document = MarkdownReader.Parse("[open](acme-safe:resource)");
-        var defaultOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        MarkdownDocument document = MarkdownDocument.Parse("[open](acme-safe:resource)");
+        var defaultOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
 
-        string defaultHtml = document.ToHtmlFragment(defaultOptions);
+        string defaultHtml = document.ToHtml(defaultOptions);
         Assert.DoesNotContain("href=", defaultHtml, StringComparison.OrdinalIgnoreCase);
 
-        var configuredOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var configuredOptions = new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null
         };
         configuredOptions.AdditionalAllowedLinkSchemes.Add("acme-safe");
 
-        string configuredHtml = document.ToHtmlFragment(configuredOptions);
+        string configuredHtml = document.ToHtml(configuredOptions);
         Assert.Contains("href=\"acme-safe:resource\"", configuredHtml, StringComparison.Ordinal);
     }
 
     [Fact]
     public void HtmlRendererKeepsColonContainingRelativeTargetsThatCannotNameAProtocol() {
-        MarkdownDoc document = MarkdownReader.Parse("[link](foo\\)\\:)");
+        MarkdownDocument document = MarkdownDocument.Parse("[link](foo\\)\\:)");
 
-        string html = document.ToHtmlFragment(new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
-            BodyClass = null
+        string html = document.ToHtml(new MarkdownHtmlExportOptions
+        {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
+            BodyClass = null,
+
+            Kind = global::OfficeIMO.Markdown.MarkdownHtmlKind.Fragment
         });
 
         Assert.Contains("href=\"foo):\"", html, StringComparison.Ordinal);

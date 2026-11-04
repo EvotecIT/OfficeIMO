@@ -35,7 +35,7 @@ public sealed class LatexDependencyGuardrailTests {
     private static string GetRepositoryRoot() {
         DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) return directory.FullName;
+            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.slnx"))) return directory.FullName;
             directory = directory.Parent;
         }
         throw new DirectoryNotFoundException("Unable to locate repository root.");

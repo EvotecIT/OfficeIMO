@@ -1,5 +1,3 @@
-#nullable enable
-
 namespace OfficeIMO.CSV;
 
 internal sealed partial class CsvLineReader

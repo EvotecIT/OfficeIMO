@@ -2,27 +2,29 @@ using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Fluent;
 
-namespace OfficeIMO.Examples.Word {
-    internal partial class Sections {
-
-        internal static void Example_Word_Fluent_Sections_PageSetup_Defaults(string folderPath, bool openWord) {
+namespace OfficeIMO.Examples.Word
+{
+    internal partial class Sections
+    {
+        internal static void Example_Word_Fluent_Sections_PageSetup_Defaults(string folderPath, bool openWord)
+        {
             Console.WriteLine("[*] Creating document with document-wide page setup defaults via fluent API");
             string filePath = Path.Combine(folderPath, "Fluent_Sections_PageSetup_Defaults.docx");
-
-            using (var document = WordDocument.Create(filePath)) {
-                document.AsFluent()
-                    .PageSetup(ps => ps
-                        .Orientation(OfficePageOrientation.Landscape)
-                        .Size(WordPageSize.A4)
-                        .Margins(WordMargin.Normal)
-                        .DifferentFirstPage()
-                        .DifferentOddAndEvenPages())
-                    .End()
-                    .Save();
+            using (var document = WordDocument.Create(filePath))
+            {
+                {
+                    document.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                    document.PageSetup.Size.PageSize = WordPageSize.A4;
+                    document.Sections[0].PageSetup.Margins.Type = WordMargin.Normal;
+                    document.PageSetup.DifferentFirstPage = true;
+                    document.PageSetup.DifferentOddAndEvenPages = true;
+                    document.Save();
+                }
             }
-            if (openWord) ExampleFileLauncher.Open(filePath);
+
+            if (openWord)
+                ExampleFileLauncher.Open(filePath);
         }
     }
 }

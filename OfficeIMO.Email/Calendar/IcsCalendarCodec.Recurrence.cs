@@ -77,8 +77,11 @@ internal static partial class IcsCalendarCodec {
             : IcsRecurrenceRule.Parse(master.GetFirstProperty("RRULE")!.Value).GetValue("UNTIL");
         if (until != null && IsUtcTemporal(new ContentLineProperty("UNTIL", until))) return true;
         foreach (ContentLineProperty property in master.GetProperties("EXDATE")) {
+            if (!IcsTemporalValue.TryGetTemporalParameters(property, out string? valueType,
+                out string? timeZoneId)) continue;
             foreach (string raw in property.Value.Split(',')) {
-                if (IsUtcTemporal(CloneTemporalProperty(property, raw))) return true;
+                if (IcsTemporalValue.TryParseValue(raw, valueType, timeZoneId, out IcsTemporalValue value) &&
+                    value.Kind == IcsTemporalValueKind.UtcDateTime) return true;
             }
         }
         string? masterUid = master.GetFirstProperty("UID")?.Value;
@@ -114,9 +117,11 @@ internal static partial class IcsCalendarCodec {
     private static void AddExcludedDates(ContentLineComponent master, OutlookRecurrenceIcsImportOptions options,
         IList<EmailDiagnostic> diagnostics, string location, EmailDocument document) {
         foreach (ContentLineProperty property in master.GetProperties("EXDATE")) {
+            bool validParameters = IcsTemporalValue.TryGetTemporalParameters(property,
+                out string? valueType, out string? timeZoneId);
             foreach (string raw in property.Value.Split(',')) {
-                ContentLineProperty valueProperty = CloneTemporalProperty(property, raw);
-                if (IcsTemporalValue.TryParse(valueProperty, out IcsTemporalValue parsed)) {
+                if (validParameters && IcsTemporalValue.TryParseValue(raw, valueType, timeZoneId,
+                    out IcsTemporalValue parsed)) {
                     options.ExcludedDates.Add(parsed);
                 } else {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_EXDATE_INVALID",
@@ -186,13 +191,6 @@ internal static partial class IcsCalendarCodec {
                 IsAllDay = start.Value.Kind == IcsTemporalValueKind.Date
             });
         }
-    }
-
-    private static ContentLineProperty CloneTemporalProperty(ContentLineProperty source, string value) {
-        var result = new ContentLineProperty(source.Name, value);
-        foreach (ContentLineParameter parameter in source.Parameters)
-            result.Parameters.Add(new ContentLineParameter(parameter.Name, parameter.Values.ToArray()));
-        return result;
     }
 
     private static IcsTemporalValue CreateMatchingTemporal(IcsTemporalValue template, DateTime value) {

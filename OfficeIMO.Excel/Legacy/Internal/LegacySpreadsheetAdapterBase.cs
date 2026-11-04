@@ -63,7 +63,7 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
             model.Metadata["TruncatedSalvageCellCount"] = truncatedCellCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
             AddCellTextTruncationFinding(model);
         }
-        model.Findings.Add(Loss("LEGACY_SHEET_SALVAGE", "Structure", limitation));
+        model.Findings.Add(Loss("legacy-sheet-salvage", "Structure", limitation));
         return model;
     }
 
@@ -108,5 +108,5 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
     }
 
     protected static void AddCellTextTruncationFinding(LegacySpreadsheetModel model) =>
-        model.Findings.Add(Loss("LEGACY_SHEET_CELL_TEXT_TRUNCATED", "Cell", "One or more recovered text cells exceeded the Excel cell-text limit and were truncated to 32,767 characters; the total is available in metadata."));
+        model.Findings.Add(Loss("legacy-sheet-cell-text-truncated", "Cell", "One or more recovered text cells exceeded the Excel cell-text limit and were truncated to 32,767 characters; the total is available in metadata."));
 }

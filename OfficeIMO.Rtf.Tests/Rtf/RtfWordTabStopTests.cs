@@ -25,7 +25,7 @@ public class RtfWordTabStopTests {
         AssertRtfTab(Assert.Single(source.ResolveParagraphFormatting(paragraph).TabStops),
             activePosition, RtfTabAlignment.Left, RtfTabLeader.None);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         Paragraph projected = Assert.Single(word.OpenXmlDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>());
         TabStop[] stops = projected.ParagraphProperties!.Tabs!.Elements<TabStop>().ToArray();
 
@@ -42,15 +42,15 @@ public class RtfWordTabStopTests {
     public void DirectTabListKeepsLaterDefaultTabGeometryThroughWordConversion() {
         RtfDocument source = CreateDirectTabSource(out RtfParagraph paragraph, "body");
         paragraph.AddText("A\tB\tC").SetFontSize(12);
-        using PdfPigDocument direct = PdfPigDocument.Open(source.ToPdfBytes(new RtfToPdfOptions {
+        using PdfPigDocument direct = PdfPigDocument.Open((source.ToPdf(new RtfPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }));
-        using WordDocument word = source.ToWordDocument();
-        using PdfPigDocument composed = PdfPigDocument.Open(word.ToPdfBytes(new WordToPdfOptions {
+        })).ToBytes());
+        using WordDocument word = source.ToWord();
+        using PdfPigDocument composed = PdfPigDocument.Open((word.ToPdf(new WordPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }));
+        })).ToBytes());
         var directLetters = direct.GetPage(1).Letters;
         var composedLetters = composed.GetPage(1).Letters;
         double DirectX(string text) => Assert.Single(directLetters, item => item.Value == text).StartBaseLine.X;
@@ -78,7 +78,7 @@ public class RtfWordTabStopTests {
         AssertRtfTab(Assert.Single(source.ResolveParagraphFormatting(paragraph).TabStops),
             2880, RtfTabAlignment.Left, RtfTabLeader.None);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         var main = word.OpenXmlDocument.MainDocumentPart!;
         var roots = new List<DocumentFormat.OpenXml.OpenXmlElement> { main.Document! };
         if (main.FootnotesPart?.Footnotes is { } footnotes) roots.Add(footnotes);
@@ -108,7 +108,7 @@ public class RtfWordTabStopTests {
         note.AddParagraph("Styled\tNote").SetStyle(8);
         source.AddParagraph("Anchor").AddText("F").SetNote(note);
 
-        using WordDocument word = source.ToWordDocument();
+        using WordDocument word = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(word.ToBytes()));
         var main = reopened._wordprocessingDocument.MainDocumentPart!;
         Document mainDocument = Assert.IsType<Document>(main.Document);
@@ -126,7 +126,7 @@ public class RtfWordTabStopTests {
         AssertWordTab(Assert.Single(cell.ParagraphProperties!.Tabs!.Elements<TabStop>()), 4320, TabStopValues.Right, TabStopLeaderCharValues.Dot);
         AssertWordTab(Assert.Single(noteBody.ParagraphProperties!.Tabs!.Elements<TabStop>()), 4320, TabStopValues.Right, TabStopLeaderCharValues.Dot);
 
-        RtfDocument returned = RtfDocument.Read(reopened.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false })).Document;
         RtfStyle returnedParent = Assert.Single(returned.Styles, item => item.Name == "RtfP7");
         AssertRtfTab(Assert.Single(returnedParent.TabStops), 4320, RtfTabAlignment.Right, RtfTabLeader.Dots);
         RtfParagraph returnedBody = Assert.Single(returned.Paragraphs, item => item.ToPlainText() == "Styled\tBody");
@@ -146,19 +146,19 @@ public class RtfWordTabStopTests {
             new TabStop { Position = 1440, Val = TabStopValues.Clear }));
         word._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         WordParagraph paragraph = word.AddParagraph("Direct\tTab");
-        paragraph.AddTabStop(2880, WordTabAlignment.Decimal, WordTabLeader.Hyphen);
-        paragraph.AddTabStop(720, WordTabAlignment.Clear);
+        paragraph.AddTabStop(OfficeLength.Emus(2880L * 635), WordTabAlignment.Decimal, WordTabLeader.Hyphen);
+        paragraph.AddTabStop(OfficeLength.Emus(720L * 635), WordTabAlignment.Clear);
         string before = word._document.OuterXml;
         string styleBefore = style.OuterXml;
 
-        RtfDocument returned = word.ToRtfDocument();
+        RtfDocument returned = word.ToRtf();
 
         AssertRtfTab(Assert.Single(Assert.Single(returned.Styles, item => item.Name == "Tabs").TabStops),
             4320, RtfTabAlignment.Right, RtfTabLeader.Dots);
         AssertRtfTab(Assert.Single(Assert.Single(returned.Paragraphs).TabStops), 2880, RtfTabAlignment.Decimal, RtfTabLeader.Hyphen);
         Assert.Equal(before, word._document.OuterXml);
         Assert.Equal(styleBefore, style.OuterXml);
-        using WordDocument roundTrip = returned.ToWordDocument();
+        using WordDocument roundTrip = returned.ToWord();
         Paragraph roundTripParagraph = Assert.Single(roundTrip._document.Body!.Elements<Paragraph>());
         AssertWordTab(Assert.Single(roundTripParagraph.ParagraphProperties!.Tabs!.Elements<TabStop>()),
             2880, TabStopValues.Decimal, TabStopLeaderCharValues.Hyphen);

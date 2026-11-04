@@ -3,7 +3,7 @@ namespace OfficeIMO.Excel {
     /// Utility helpers for parsing and converting Excel A1 references. Public so examples and
     /// consumers can reuse consistent logic without re-implementing regexes or math.
     /// </summary>
-    public static partial class A1 {
+    public static partial class ExcelA1 {
         /// <summary>Maximum row index supported by the Excel worksheet grid.</summary>
         public const int MaxRows = 1048576;
 
@@ -21,6 +21,20 @@ namespace OfficeIMO.Excel {
         /// <returns>Tuple of row and column (1-based). Returns (0,0) if invalid.</returns>
         public static (int Row, int Col) ParseCellRef(string cellRef) {
             return TryParseCellRef(cellRef, 0, cellRef?.Length ?? 0, out int row, out int col) ? (row, col) : (0, 0);
+        }
+
+        /// <summary>True when Excel would read <paramref name="name"/> as a cell in A1 or R1C1 notation, which includes bare R and C.</summary>
+        internal static bool IsCellReferenceName(string name) {
+            if (ParseCellRef(name).Row > 0) return true;
+            int index = 0;
+            if (index < name.Length && name[index] is 'R' or 'r') index = SkipDigits(name, index + 1);
+            if (index < name.Length && name[index] is 'C' or 'c') index = SkipDigits(name, index + 1);
+            return index > 0 && index == name.Length;
+        }
+
+        private static int SkipDigits(string text, int index) {
+            while (index < text.Length && text[index] is >= '0' and <= '9') index++;
+            return index;
         }
 
         /// <summary>
@@ -174,7 +188,7 @@ namespace OfficeIMO.Excel {
         /// <returns>(r1, c1, r2, c2) 1-based coordinates.</returns>
         /// <exception cref="ArgumentException">Thrown when the input is not a valid A1 range.</exception>
         /// <example>
-        /// var (r1, c1, r2, c2) = A1.ParseRange("B2:D10");
+        /// var (r1, c1, r2, c2) = ExcelA1.ParseRange("B2:D10");
         /// // r1=2, c1=2, r2=10, c2=4
         /// </example>
         public static (int r1, int c1, int r2, int c2) ParseRange(string a1Range) {
@@ -422,8 +436,8 @@ namespace OfficeIMO.Excel {
         /// <param name="index">1-based column index.</param>
         /// <returns>Excel column letters; returns "A" for non-positive inputs.</returns>
         /// <example>
-        /// string col = A1.ColumnIndexToLetters(28); // "AB"
-        /// int idx = A1.ColumnLettersToIndex("AB"); // 28
+        /// string col = ExcelA1.ColumnIndexToLetters(28); // "AB"
+        /// int idx = ExcelA1.ColumnLettersToIndex("AB"); // 28
         /// </example>
         public static string ColumnIndexToLetters(int index) {
             if (index <= 0) return "A";

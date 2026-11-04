@@ -1,147 +1,68 @@
 using System;
+using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Excel;
-using PSWriteOffice.Services;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
-using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Saves an Excel workbook without disposing it.</summary>
-/// <example>
-///   <summary>Save a workbook in-place.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$workbook | Save-OfficeExcel</code>
-///   <para>Writes pending changes to disk and keeps the workbook open.</para>
-/// </example>
-[Cmdlet(VerbsData.Save, "OfficeExcel", SupportsShouldProcess = true)]
-[OutputType(typeof(ExcelDocument))]
-public sealed class SaveOfficeExcelCommand : PSCmdlet {
-    /// <summary>Workbook to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+/// <summary>Saves a live Excel workbook without closing it.</summary>
+/// <para>Omitted Password preserves loaded encryption; an explicit null removes it. SaveOptions accepts native options or a hashtable. PassThru returns the saved FileInfo. The workbook must use explicit persistence.</para>
+/// <example><summary>Save pending edits and then close the workbook.</summary>
+/// <code>Save-OfficeExcel -Document $workbook -Path ./Reviewed.xlsx -SaveOptions @{ Preflight = $true; ValidateOpenXml = $true } -PassThru
+/// Close-OfficeExcel -Document $workbook</code></example>
+[Cmdlet(VerbsData.Save, "OfficeExcel", SupportsShouldProcess = true, DefaultParameterSetName = "Default")]
+[OutputType(typeof(FileInfo))]
+public sealed class SaveOfficeExcelCommand : OfficeCmdlet {
+    /// <summary>Live workbook to save.</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0), ValidateNotNull]
     public ExcelDocument Document { get; set; } = null!;
 
-    /// <summary>Optional save-as path.</summary>
-    [Parameter]
+    /// <summary>Optional new destination; omission uses the associated path.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
     public string? Path { get; set; }
 
-    /// <summary>Open the workbook after saving.</summary>
-    [Parameter]
-    [Alias("Show")]
-    public SwitchParameter Open { get; set; }
+    /// <summary>Override the output password; omission retains loaded encryption.</summary>
+    [Parameter, OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
-    /// <summary>Password used to save the workbook as an encrypted package.</summary>
-    [Parameter]
-    public string? Password { get; set; }
+    /// <summary>Native save settings, or a hashtable using the save-option factory's names.</summary>
+    [Parameter, OfficeExcelSaveOptionsTransformation, ValidateNotNull]
+    public ExcelSaveOptions? SaveOptions { get; set; }
 
-    /// <summary>Run OfficeIMO worksheet preflight cleanup before saving.</summary>
+    /// <summary>Explicitly accept reported native-save reductions; overrides SaveOptions when supplied.</summary>
     [Parameter]
-    public SwitchParameter SafePreflight { get; set; }
+    public SwitchParameter AllowLoss { get; set; }
 
-    /// <summary>Repair common defined-name issues before saving.</summary>
+    /// <summary>Open the saved file in its registered default application.</summary>
     [Parameter]
-    public SwitchParameter SafeRepairDefinedNames { get; set; }
+    public SwitchParameter Show { get; set; }
 
-    /// <summary>Validate the saved package with OpenXmlValidator and throw on errors.</summary>
-    [Parameter]
-    public SwitchParameter ValidateOpenXml { get; set; }
-
-    /// <summary>Disable OfficeIMO fast package writers for this save.</summary>
-    [Parameter]
-    public SwitchParameter DisableFastPackageWriter { get; set; }
-
-    /// <summary>Evaluate supported formulas and write cached values before saving.</summary>
-    [Parameter]
-    public SwitchParameter EvaluateFormulas { get; set; }
-
-    /// <summary>Remove cached formula results before saving.</summary>
-    [Parameter]
-    public SwitchParameter ClearCachedFormulaResults { get; set; }
-
-    /// <summary>Mark formula cells dirty before saving.</summary>
-    [Parameter]
-    public SwitchParameter MarkFormulasDirty { get; set; }
-
-    /// <summary>Request a full workbook recalculation when opened in Excel-compatible applications.</summary>
-    [Parameter]
-    public SwitchParameter ForceFullCalculationOnOpen { get; set; }
-
-    /// <summary>Workbook date system for Excel date serials.</summary>
-    [Parameter]
-    [ValidateSet("1900", "1904", "NineteenHundred", "NineteenFour")]
-    public string? DateSystem { get; set; }
-
-    /// <summary>Emit the workbook for further processing.</summary>
+    /// <summary>Return the saved FileInfo.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (Document == null) {
+        ExcelDocumentService.EnsureExplicitPersistence(Document);
+        string? destination = Path ?? ExcelDocumentService.GetAssociatedPath(Document);
+        if (string.IsNullOrWhiteSpace(destination)) {
+            InvalidArgument(new PSArgumentException("Supply Path when the workbook has no associated destination."), Document);
             return;
         }
-
-        var associatedPath = ExcelDocumentService.GetAssociatedPath(Document);
-        if (string.IsNullOrWhiteSpace(Path) && string.IsNullOrWhiteSpace(associatedPath)) {
-            throw new PSInvalidOperationException("No file path provided. Use -Path or open the workbook from disk.");
-        }
-
-        var saveOptions = ExcelDocumentService.CreateSaveOptions(
-            SafePreflight.IsPresent,
-            SafeRepairDefinedNames.IsPresent,
-            ValidateOpenXml.IsPresent,
-            DisableFastPackageWriter.IsPresent,
-            EvaluateFormulas.IsPresent,
-            ClearCachedFormulaResults.IsPresent,
-            MarkFormulasDirty.IsPresent,
-            ForceFullCalculationOnOpen.IsPresent);
-
-        string savedPath;
-        if (!string.IsNullOrWhiteSpace(Path)) {
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-            if (!PdfCommandUtilities.ShouldWrite(this, resolvedPath, "Save Excel workbook")) {
-                return;
-            }
-
-            if (string.IsNullOrEmpty(Password) &&
-                ExcelDocumentService.IsEncryptedSource(Document) &&
-                string.Equals(System.IO.Path.GetFullPath(resolvedPath), System.IO.Path.GetFullPath(associatedPath!), StringComparison.OrdinalIgnoreCase)) {
-                throw new PSInvalidOperationException("Provide -Password when saving a workbook loaded from an encrypted package.");
-            }
-
-            ExcelDateSystemService.ApplyIfSpecified(Document, DateSystem, nameof(DateSystem));
-            if (!string.IsNullOrEmpty(Password)) {
-                OfficeEncryptedPackageService.SaveExcel(Document, resolvedPath, Password!, false, saveOptions);
-            } else {
-                Document.Save(resolvedPath, saveOptions);
-            }
-            savedPath = resolvedPath;
-        } else {
-            if (!PdfCommandUtilities.ShouldWrite(this, associatedPath!, "Save Excel workbook")) {
-                return;
-            }
-
-            ExcelDateSystemService.ApplyIfSpecified(Document, DateSystem, nameof(DateSystem));
-            if (!string.IsNullOrEmpty(Password)) {
-                OfficeEncryptedPackageService.SaveExcel(Document, associatedPath!, Password!, false, saveOptions);
-            } else {
-                if (ExcelDocumentService.IsEncryptedSource(Document)) {
-                    throw new PSInvalidOperationException("Provide -Password when saving a workbook loaded from an encrypted package.");
-                }
-
-                Document.Save(associatedPath!, saveOptions);
-            }
-            savedPath = associatedPath!;
-        }
-
-        ExcelDocumentService.UpdateSaveAssociation(Document, savedPath, !string.IsNullOrEmpty(Password));
-        if (Open.IsPresent) {
-            FileOpenService.Open(savedPath);
-        }
-
-        if (PassThru.IsPresent) {
-            WriteObject(Document);
-        }
+        destination = ResolveOutputPath(destination!);
+        if (!ShouldProcess(destination, "Save Excel workbook")) return;
+        try {
+            var options = ExcelDocumentService.NativeSaveOptions(SaveOptions,
+                MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss)) ? AllowLoss.IsPresent : (bool?)null,
+                Password, MyInvocation.BoundParameters.ContainsKey(nameof(Password)));
+            Document.Save(destination, options);
+            ExcelDocumentService.UpdateSaveAssociation(Document, destination);
+            if (Show) OfficeShow.Open(destination);
+            if (PassThru) WriteObject(new FileInfo(destination));
+        } catch (PipelineStoppedException) { throw; }
+        catch (Exception error) { ItemError(error, "native-save-failed", destination); }
     }
-
 }

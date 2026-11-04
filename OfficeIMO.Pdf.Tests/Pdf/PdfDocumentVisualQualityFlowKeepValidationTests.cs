@@ -17,35 +17,35 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Paragraph_ExactLineRejectsAdvanceTallerThanContentArea(bool columns) {
-        var options = new PdfOptions {
-            PageWidth = 300, PageHeight = 300,
-            MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(72), Right = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(72), Bottom = global::OfficeIMO.OfficeLength.Points(72) }
+            }
         };
         var document = PdfDocument.Create(options);
-        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(200) };
-        if (columns) document.Columns(flow => flow.Paragraph(p => p.Text("A"), style: style));
-        else document.Paragraph(p => p.Text("A"), style: style);
+        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(200)) };
+        if (columns) document.Columns(flow => flow.AddParagraph(p => p.AddText("A"), style: style));
+        else document.Paragraph(p => p.AddText("A"), style: style);
         var exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
         Assert.Contains("Paragraph line height exceeds the available page content height.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Paragraph_KeepTogetherRejectsContentTallerThanContentArea() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 170,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 9
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         string longText = string.Join(" ", Enumerable.Range(1, 180).Select(i => "paragraph" + i.ToString("000")));
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(options)
-                .Paragraph(p => p.Text(longText), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText(longText), style: new PdfParagraphStyle {
                     KeepTogether = true
                 })
                 .ToBytes());
@@ -55,15 +55,13 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void List_KeepTogetherRejectsContentTallerThanContentArea() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 170,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         var exception = Assert.Throws<ArgumentException>(() =>
@@ -78,22 +76,20 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PanelParagraph_SplitsContentTallerThanContentAreaWhenAllowed() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 170,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 9
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         };
         string longText = string.Join(" ", Enumerable.Range(1, 180).Select(i => "panel" + i.ToString("000")));
 
         byte[] bytes = PdfDocument.Create(options)
-            .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
+            .PanelParagraph(p => p.AddText(longText), new PdfPanelStyle {
                 KeepTogether = false,
-                PaddingY = 8
+                PaddingY = global::OfficeIMO.OfficeLength.Points(8)
             })
             .ToBytes();
 

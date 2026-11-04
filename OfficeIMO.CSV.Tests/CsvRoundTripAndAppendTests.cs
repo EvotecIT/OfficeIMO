@@ -131,7 +131,7 @@ public class CsvRoundTripAndAppendTests
         Assert.Equal(text, Encoding.UTF8.GetString(document.ToBytes()));
         using var reader = document.CreateDataReader();
         Assert.Equal(effectiveDelimiter, Assert.IsAssignableFrom<ICsvDataReaderDialectMetadata>(reader).DelimiterText);
-        using var textReader = CsvDocument.OpenTextDataReader(text, new CsvLoadOptions { DelimiterText = delimiter });
+        using var textReader = CsvDocument.OpenReader(new System.IO.StringReader(text), options: new CsvReaderOptions { DelimiterText = delimiter });
         Assert.Equal(effectiveDelimiter, Assert.IsAssignableFrom<ICsvDataReaderDialectMetadata>(textReader).DelimiterText);
         Assert.True(reader.Read());
         Assert.Equal("4", reader.GetString(1));

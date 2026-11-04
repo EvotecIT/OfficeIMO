@@ -37,7 +37,12 @@ namespace OfficeIMO.Excel {
                 limits.MaxInCellImageBytes,
                 limits.MaxTotalInCellImageBytes);
             sourceSheet.PreflightInCellImages(inCellImageContext);
-            return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
+            PreflightReferencedDefinedNamesFromSource(this, new[] { sourceSheet },
+                new DefinedNameCopyBudget(limits.MaxDefinedNames, limits.MaxDefinedNameCharacters));
+            WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
+            var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
+            CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+            return result.Sheet;
         }
 
         private WorksheetPackageCopyResult CopyWorksheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode) {
@@ -48,11 +53,16 @@ namespace OfficeIMO.Excel {
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 string validatedName = ValidateOrSanitizeSheetName(newSheetName, validationMode, currentSheetName: null);
+                MaterializeDeferredDataSetImport();
                 WorksheetPart sourcePart = sourceSheet.WorksheetPart;
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
-                RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
+                CopyRelationshipBackedWorksheetFeatures(this, sourceSheet, copiedPart);
+                RemoveUnsupportedRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 Dictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart, rewriteCopiedTableReferences: true);
+                RewriteCopiedChartReferences(copiedPart, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                    [sourceSheet.Name] = validatedName
+                }, tableNameMap, targetSheetName: validatedName);
                 copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
@@ -99,7 +109,12 @@ namespace OfficeIMO.Excel {
                     options.MaxInCellImageBytes,
                     options.MaxTotalInCellImageBytes);
                 sourceSheet.PreflightInCellImages(inCellImageContext);
-                return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
+                PreflightReferencedDefinedNamesFromSource(this, new[] { sourceSheet },
+                    new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters));
+                WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
+                var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
+                CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+                return result.Sheet;
             }
 
             return options.CopyMode == ExcelWorksheetCopyMode.Values
@@ -136,8 +151,7 @@ namespace OfficeIMO.Excel {
                     throw new ArgumentOutOfRangeException(nameof(targetIndex), $"Index {targetIndex.ToString(CultureInfo.InvariantCulture)} is out of range (0..{(orderedSheets.Count - 1).ToString(CultureInfo.InvariantCulture)}).");
                 }
 
-                Sheet? target = orderedSheets.FirstOrDefault(s => ReferenceEquals(s, sheet.SheetElement)
-                    || string.Equals(s.Name?.Value, sheet.Name, StringComparison.Ordinal));
+                Sheet? target = orderedSheets.FirstOrDefault(s => ReferenceEquals(s, sheet.SheetElement));
                 if (target == null) {
                     throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
                 }
@@ -167,11 +181,16 @@ namespace OfficeIMO.Excel {
             if (!ReferenceEquals(targetSheet.Document, this)) {
                 throw new ArgumentException("Target worksheet must belong to this workbook.", nameof(targetSheet));
             }
+            if (sourceSheet.Document.WorkbookRoot.Sheets == null ||
+                !sourceSheet.Document.WorkbookRoot.Sheets.Elements<Sheet>()
+                    .Any(sheet => ReferenceEquals(sheet, sourceSheet.SheetElement))) {
+                throw new ArgumentException("Source worksheet no longer belongs to its workbook.", nameof(sourceSheet));
+            }
 
             options ??= new ExcelWorksheetMergeOptions();
             if (options.BlankRowsBefore < 0) throw new ArgumentOutOfRangeException(nameof(options.BlankRowsBefore));
 
-            string sourceRange = string.IsNullOrWhiteSpace(options.SourceRange) ? sourceSheet.UsedRangeA1 : options.SourceRange!;
+            string sourceRange = string.IsNullOrWhiteSpace(options.SourceRange) ? sourceSheet.GetUsedRangeA1() : options.SourceRange!;
             var sourceBounds = ParseRangeOrCell(sourceRange);
             sourceRange = ToRange(sourceBounds);
             object?[,] values;
@@ -204,7 +223,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (cells.Count > 0) {
-                        targetSheet.CellValues(cells);
+                        targetSheet.SetValues(cells);
                     }
 
                     string targetRange = BuildMergeTargetRange(targetStartRow, targetStartColumn, rowsToCopy, columnsToCopy);
@@ -226,7 +245,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelRangeDifference> CompareWorksheets(ExcelSheet leftSheet, ExcelSheet rightSheet, ExcelRangeCompareOptions? options = null) {
             if (leftSheet == null) throw new ArgumentNullException(nameof(leftSheet));
             if (rightSheet == null) throw new ArgumentNullException(nameof(rightSheet));
-            return CompareRanges(leftSheet, leftSheet.UsedRangeA1, rightSheet, rightSheet.UsedRangeA1, options);
+            return CompareRanges(leftSheet, leftSheet.GetUsedRangeA1(), rightSheet, rightSheet.GetUsedRangeA1(), options);
         }
 
         /// <summary>
@@ -283,8 +302,8 @@ namespace OfficeIMO.Excel {
                         leftColumn,
                         rightRow,
                         rightColumn,
-                        A1.CellReference(leftRow, leftColumn),
-                        A1.CellReference(rightRow, rightColumn),
+                        ExcelA1.CellReference(leftRow, leftColumn),
+                        ExcelA1.CellReference(rightRow, rightColumn),
                         leftValue,
                         rightValue));
                 }
@@ -310,14 +329,15 @@ namespace OfficeIMO.Excel {
             return sheet;
         }
 
-        private static void RemoveRelationshipBackedWorksheetFeatures(Worksheet worksheet) {
-            worksheet.RemoveAllChildren<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
-            worksheet.RemoveAllChildren<LegacyDrawing>();
-            worksheet.RemoveAllChildren<LegacyDrawingHeaderFooter>();
+        /// <summary>
+        /// Removes worksheet references to parts that worksheet copies do not carry. Drawings, comments,
+        /// header/footer VML, background pictures and hyperlinks are cloned by
+        /// <see cref="CopyRelationshipBackedWorksheetFeatures"/>; tables are re-created by <see cref="CopyWorksheetTables"/>.
+        /// </summary>
+        private static void RemoveUnsupportedRelationshipBackedWorksheetFeatures(Worksheet worksheet) {
             worksheet.RemoveAllChildren<TableParts>();
             worksheet.RemoveAllChildren<OleObjects>();
             worksheet.RemoveAllChildren<Controls>();
-            worksheet.RemoveAllChildren<Picture>();
 
             PageSetup? pageSetup = worksheet.GetFirstChild<PageSetup>();
             if (pageSetup != null) {
@@ -329,16 +349,6 @@ namespace OfficeIMO.Excel {
             RemoveElementsByLocalName(worksheet, "queryTableParts");
             RemoveElementsByLocalName(worksheet, "customProperties");
             RemoveWorksheetExtensionsContainingLocalNames(worksheet, "slicerList", "slicerRef", "timelineRefs", "timelineRef");
-
-            foreach (Hyperlinks hyperlinks in worksheet.Elements<Hyperlinks>().ToList()) {
-                foreach (Hyperlink hyperlink in hyperlinks.Elements<Hyperlink>().Where(h => h.Id != null).ToList()) {
-                    hyperlink.Remove();
-                }
-
-                if (!hyperlinks.Elements<Hyperlink>().Any()) {
-                    hyperlinks.Remove();
-                }
-            }
         }
 
         private static void RemoveWorksheetExtensionsContainingLocalNames(Worksheet worksheet, params string[] localNames) {
@@ -484,7 +494,7 @@ namespace OfficeIMO.Excel {
 
         private string CreateUniqueCopiedTableName(string? requestedName) {
             const int maxLength = 255;
-            string baseName = SanitizeCopiedTableName(requestedName, maxLength);
+            string baseName = DirectDataSetWorkbookModel.SanitizeTableName(string.IsNullOrWhiteSpace(requestedName) ? "Table" : requestedName!);
             HashSet<string> used = GetOrInitTableNameCache();
             if (!used.Contains(baseName)) {
                 return baseName;
@@ -496,34 +506,13 @@ namespace OfficeIMO.Excel {
                 int maxBaseLength = Math.Max(1, maxLength - suffixText.Length);
                 string trimmedBase = baseName.Length > maxBaseLength ? baseName.Substring(0, maxBaseLength) : baseName;
                 string candidate = trimmedBase + suffixText;
+                if (ExcelA1.IsCellReferenceName(candidate)) candidate = "_" + candidate;
                 if (!used.Contains(candidate)) {
                     return candidate;
                 }
 
                 suffix++;
             }
-        }
-
-        private static string SanitizeCopiedTableName(string? requestedName, int maxLength) {
-            string source = string.IsNullOrWhiteSpace(requestedName) ? "Table" : requestedName!;
-            var sanitized = new System.Text.StringBuilder(source.Length);
-            foreach (char ch in source) {
-                sanitized.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');
-            }
-
-            if (sanitized.Length == 0) {
-                sanitized.Append("Table");
-            }
-
-            if (char.IsDigit(sanitized[0])) {
-                sanitized.Insert(0, '_');
-            }
-
-            if (sanitized.Length > maxLength) {
-                sanitized.Length = maxLength;
-            }
-
-            return sanitized.ToString();
         }
 
         private static TableParts EnsureTableParts(Worksheet worksheet) {
@@ -567,6 +556,8 @@ namespace OfficeIMO.Excel {
             foreach (OfficeFormula formula in worksheetPart.Worksheet!.Descendants<OfficeFormula>()) {
                 formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
             }
+
+            RewriteCopiedChartReferences(worksheetPart, externalReferenceMap: externalReferenceMap);
 
             foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                 if (tablePart.Table == null) {
@@ -688,6 +679,9 @@ namespace OfficeIMO.Excel {
             var existing = new HashSet<string>(
                 worksheetPart.Parts.Select(part => part.RelationshipId ?? string.Empty),
                 StringComparer.Ordinal);
+            existing.UnionWith(worksheetPart.HyperlinkRelationships.Select(_ => _.Id ?? string.Empty));
+            existing.UnionWith(worksheetPart.ExternalRelationships.Select(_ => _.Id ?? string.Empty));
+            existing.UnionWith(worksheetPart.DataPartReferenceRelationships.Select(_ => _.Id ?? string.Empty));
             int index = 1;
             string relationshipId;
             do {
@@ -700,11 +694,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static (int r1, int c1, int r2, int c2) ParseRangeOrCell(string a1) {
-            if (A1.TryParseRange(a1, out int r1, out int c1, out int r2, out int c2)) {
+            if (ExcelA1.TryParseRange(a1, out int r1, out int c1, out int r2, out int c2)) {
                 return (r1, c1, r2, c2);
             }
 
-            (int row, int column) = A1.ParseCellRef(a1);
+            (int row, int column) = ExcelA1.ParseCellRef(a1);
             if (row > 0 && column > 0) {
                 return (row, column, row, column);
             }
@@ -713,14 +707,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static string ToRange((int r1, int c1, int r2, int c2) range) {
-            return A1.CellReference(range.r1, range.c1) + ":" + A1.CellReference(range.r2, range.c2);
+            return ExcelA1.CellReference(range.r1, range.c1) + ":" + ExcelA1.CellReference(range.r2, range.c2);
         }
 
         private static string BuildMergeTargetRange(int startRow, int startColumn, int rowCount, int columnCount) {
             int effectiveRows = Math.Max(1, rowCount);
             int effectiveColumns = Math.Max(1, columnCount);
-            return A1.CellReference(startRow, startColumn) + ":" +
-                A1.CellReference(startRow + effectiveRows - 1, startColumn + effectiveColumns - 1);
+            return ExcelA1.CellReference(startRow, startColumn) + ":" +
+                ExcelA1.CellReference(startRow + effectiveRows - 1, startColumn + effectiveColumns - 1);
         }
 
         private static void EnsureMergeTargetCanWrite(
@@ -744,7 +738,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    cellsToWrite.Add(A1.CellReference(targetStartRow + rowOffset, targetStartColumn + columnOffset));
+                    cellsToWrite.Add(ExcelA1.CellReference(targetStartRow + rowOffset, targetStartColumn + columnOffset));
                 }
             }
 
@@ -818,8 +812,8 @@ namespace OfficeIMO.Excel {
 
             int targetStartColumn = GetMergeTargetStartColumn(targetSheet, sourceBounds, options);
             int targetHeaderRow = GetMergeTargetHeaderRow(targetSheet, options);
-            string targetHeaderRange = A1.CellReference(targetHeaderRow, targetStartColumn) + ":" +
-                A1.CellReference(targetHeaderRow, targetStartColumn + sourceColumnCount - 1);
+            string targetHeaderRange = ExcelA1.CellReference(targetHeaderRow, targetStartColumn) + ":" +
+                ExcelA1.CellReference(targetHeaderRow, targetStartColumn + sourceColumnCount - 1);
             object?[,] targetHeaders;
             using (var targetReader = targetSheet.Document.CreateReader()) {
                 targetHeaders = targetReader.GetSheet(targetSheet.Name).ReadRange(targetHeaderRange);
@@ -844,7 +838,7 @@ namespace OfficeIMO.Excel {
             for (int column = 0; column < sourceColumnCount; column++) {
                 string targetHeader = NormalizeHeaderText(targetHeaders[0, column]);
                 if (targetHeader.Length == 0) {
-                    throw new ArgumentException($"Target header at {A1.CellReference(targetHeaderRow, targetStartColumn + column)} is empty.", nameof(options));
+                    throw new ArgumentException($"Target header at {ExcelA1.CellReference(targetHeaderRow, targetStartColumn + column)} is empty.", nameof(options));
                 }
 
                 if (!sourceColumns.TryGetValue(targetHeader, out int sourceColumn)) {
@@ -870,7 +864,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (options.MatchColumnsByHeader) {
-                var targetBounds = ParseRangeOrCell(targetSheet.UsedRangeA1);
+                var targetBounds = ParseRangeOrCell(targetSheet.GetUsedRangeA1());
                 return targetBounds.c1;
             }
 
@@ -891,7 +885,7 @@ namespace OfficeIMO.Excel {
                 return options.TargetStartRow.Value - 1;
             }
 
-            var targetBounds = ParseRangeOrCell(targetSheet.UsedRangeA1);
+            var targetBounds = ParseRangeOrCell(targetSheet.GetUsedRangeA1());
             return targetBounds.r1;
         }
 
@@ -900,8 +894,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static int GetAppendStartRow(ExcelSheet targetSheet, int blankRowsBefore) {
-            string usedRange = targetSheet.UsedRangeA1;
-            var (_, _, endRow, _) = A1.ParseRange(usedRange);
+            string usedRange = targetSheet.GetUsedRangeA1();
+            var (_, _, endRow, _) = ExcelA1.ParseRange(usedRange);
             if (IsWorksheetEffectivelyEmpty(targetSheet, usedRange)) {
                 return 1 + blankRowsBefore;
             }

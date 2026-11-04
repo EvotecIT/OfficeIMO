@@ -4,10 +4,10 @@ namespace OfficeIMO.Latex.Markdown;
 internal static class MarkdownToLatexConverter {
     /// <summary>Converts a Markdown semantic document and reparses generated LaTeX losslessly.</summary>
     internal static MarkdownToLatexResult Convert(
-        MarkdownDoc document,
-        MarkdownToLatexOptions? options = null) {
+        MarkdownDocument document,
+        MarkdownLatexExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        options ??= new MarkdownToLatexOptions();
+        options ??= new MarkdownLatexExportOptions();
         Validate(options);
         var diagnostics = new List<LatexMarkdownConversionDiagnostic>();
         var state = new ConversionState(options, document.Blocks.OfType<FootnoteDefinitionBlock>());
@@ -64,7 +64,7 @@ internal static class MarkdownToLatexConverter {
 
     private static string ConvertBlock(
         IMarkdownBlock block,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         switch (block) {
@@ -130,7 +130,7 @@ internal static class MarkdownToLatexConverter {
     private static string ConvertList(
         string environment,
         IReadOnlyList<ListItem> items,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         var output = new StringBuilder();
@@ -158,7 +158,7 @@ internal static class MarkdownToLatexConverter {
 
     private static string ConvertDefinitions(
         DefinitionListBlock source,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         var output = new StringBuilder("\\begin{description}").Append(options.LineEnding);
@@ -176,7 +176,7 @@ internal static class MarkdownToLatexConverter {
 
     private static string ConvertTable(
         TableBlock source,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         TableRow[] rows = source.EnumerateRows().ToArray();
@@ -196,8 +196,8 @@ internal static class MarkdownToLatexConverter {
         }
         output.Append("\\begin{tabular}{");
         for (int column = 0; column < columns; column++) {
-            ColumnAlignment alignment = column < source.Alignments.Count ? source.Alignments[column] : ColumnAlignment.None;
-            output.Append(alignment == ColumnAlignment.Center ? 'c' : alignment == ColumnAlignment.Right ? 'r' : 'l');
+            MarkdownColumnAlignment alignment = column < source.Alignments.Count ? source.Alignments[column] : MarkdownColumnAlignment.None;
+            output.Append(alignment == MarkdownColumnAlignment.Center ? 'c' : alignment == MarkdownColumnAlignment.Right ? 'r' : 'l');
         }
         output.Append('}').Append(options.LineEnding);
         for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
@@ -207,10 +207,10 @@ internal static class MarkdownToLatexConverter {
                 TableCell cell = rows[rowIndex].Cells[cellIndex];
                 string content = ConvertCell(cell, options, state, diagnostics);
                 if (cell.RowSpan > 1) { state.Packages.Add("multirow"); content = "\\multirow{" + cell.RowSpan + "}{*}{" + content + "}"; }
-                if (cell.ColumnSpan > 1 || cell.Alignment != ColumnAlignment.None) {
-                    ColumnAlignment alignment = cell.Alignment != ColumnAlignment.None ? cell.Alignment
-                        : logicalColumn < source.Alignments.Count ? source.Alignments[logicalColumn] : ColumnAlignment.None;
-                    char specifier = alignment == ColumnAlignment.Center ? 'c' : alignment == ColumnAlignment.Right ? 'r' : 'l';
+                if (cell.ColumnSpan > 1 || cell.Alignment != MarkdownColumnAlignment.None) {
+                    MarkdownColumnAlignment alignment = cell.Alignment != MarkdownColumnAlignment.None ? cell.Alignment
+                        : logicalColumn < source.Alignments.Count ? source.Alignments[logicalColumn] : MarkdownColumnAlignment.None;
+                    char specifier = alignment == MarkdownColumnAlignment.Center ? 'c' : alignment == MarkdownColumnAlignment.Right ? 'r' : 'l';
                     content = "\\multicolumn{" + cell.ColumnSpan + "}{" + specifier + "}{" + content + "}";
                 }
                 output.Append(content);
@@ -226,7 +226,7 @@ internal static class MarkdownToLatexConverter {
 
     private static string ConvertCell(
         TableCell cell,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         if (cell.ChildBlocks.Count == 1 && cell.ChildBlocks[0] is ParagraphBlock paragraph) {
@@ -240,7 +240,7 @@ internal static class MarkdownToLatexConverter {
 
     private static string ConvertImage(
         ImageBlock source,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         state.Packages.Add("graphicx");
@@ -260,7 +260,7 @@ internal static class MarkdownToLatexConverter {
 
     private static string ConvertCallout(
         CalloutBlock source,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         string theoremKind = source.Kind.ToLowerInvariant();
@@ -289,7 +289,7 @@ internal static class MarkdownToLatexConverter {
 
     private static string ConvertQuote(
         QuoteBlock source,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         var body = new List<string>();
@@ -322,7 +322,7 @@ internal static class MarkdownToLatexConverter {
 
     private static string ConvertUnsupported(
         IMarkdownBlock source,
-        MarkdownToLatexOptions options,
+        MarkdownLatexExportOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         MarkdownObject? owner = source as MarkdownObject;
         diagnostics.Add(new LatexMarkdownConversionDiagnostic(
@@ -362,7 +362,7 @@ internal static class MarkdownToLatexConverter {
         return "\\label{" + normalized + "}";
     }
 
-    private static string? GetFrontMatter(MarkdownDoc document, string key) => document.DocumentHeader?.FindEntry(key)?.Value?.ToString();
+    private static string? GetFrontMatter(MarkdownDocument document, string key) => document.DocumentHeader?.FindEntry(key)?.Value?.ToString();
 
     private static bool IsTheorem(string kind) =>
         kind == "theorem" || kind == "lemma" || kind == "proposition" || kind == "corollary" ||
@@ -375,7 +375,7 @@ internal static class MarkdownToLatexConverter {
     private static string Ending(string value, string lineEnding) =>
         value.EndsWith("\n", StringComparison.Ordinal) || value.EndsWith("\r", StringComparison.Ordinal) || value.Length == 0 ? string.Empty : lineEnding;
 
-    private static void Validate(MarkdownToLatexOptions options) {
+    private static void Validate(MarkdownLatexExportOptions options) {
         if (options.LineEnding != "\n" && options.LineEnding != "\r" && options.LineEnding != "\r\n") throw new ArgumentException("LineEnding must be LF, CR, or CRLF.");
         if (string.IsNullOrWhiteSpace(options.DocumentClass) || options.DocumentClass.Any(static character => !char.IsLetter(character))) {
             throw new ArgumentException("DocumentClass must be a simple alphabetic class name.");
@@ -385,10 +385,10 @@ internal static class MarkdownToLatexConverter {
 
 public static partial class LatexMarkdownConverterExtensions {
     /// <summary>Converts Markdown to canonical bounded-profile LaTeX.</summary>
-    public static MarkdownToLatexResult ToLatexDocumentResult(this MarkdownDoc document, MarkdownToLatexOptions? options = null) =>
+    public static MarkdownToLatexResult ToLatexDocumentResult(this MarkdownDocument document, MarkdownLatexExportOptions? options = null) =>
         MarkdownToLatexConverter.Convert(document, options);
 
     /// <summary>Converts a Markdown document to a parsed canonical LaTeX document.</summary>
-    public static LatexDocument ToLatexDocument(this MarkdownDoc document, MarkdownToLatexOptions? options = null) =>
+    public static LatexDocument ToLatexDocument(this MarkdownDocument document, MarkdownLatexExportOptions? options = null) =>
         document.ToLatexDocumentResult(options).Value;
 }

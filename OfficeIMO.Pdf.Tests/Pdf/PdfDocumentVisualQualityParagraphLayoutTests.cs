@@ -15,13 +15,13 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Paragraph_RendersExplicitLineBreaksInsideRichText() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 12
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Bold("Finding").LineBreak().Text("No critical issues detected."))
+            .Paragraph(p => { p.AddText("Finding").SetBold(); p.AddLineBreak(); p.AddText("No critical issues detected."); })
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -35,21 +35,19 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredSpacingBeforeAndAfter() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 260,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(260)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] defaultBytes = CreateParagraphSpacingProbe(options, null);
         byte[] spacedBytes = CreateParagraphSpacingProbe(options, new PdfParagraphStyle {
-            SpacingBefore = 12,
-            SpacingAfter = 18
+            SpacingBefore = global::OfficeIMO.OfficeLength.Points(12),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(18)
         });
 
         using var defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
@@ -68,24 +66,22 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_SuppressesSpacingBeforeAtPageTop() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("TopMarker"))
+            .Paragraph(p => p.AddText("TopMarker"))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("TopMarker"), style: new PdfParagraphStyle {
-                SpacingBefore = 28,
-                SpacingAfter = 0
+            .Paragraph(p => p.AddText("TopMarker"), style: new PdfParagraphStyle {
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(28),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
 
@@ -100,26 +96,24 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_SuppressesSpacingBeforeAtRowColumnTop() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] defaultBytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
-                .Paragraph(p => p.Text("ColumnTopMarker")))))))
+                .AddParagraph(p => p.AddText("ColumnTopMarker")))))))
             .ToBytes();
         byte[] spacedBytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
-                .Paragraph(p => p.Text("ColumnTopMarker"), style: new PdfParagraphStyle {
-                    SpacingBefore = 28,
-                    SpacingAfter = 0
+                .AddParagraph(p => p.AddText("ColumnTopMarker"), style: new PdfParagraphStyle {
+                    SpacingBefore = global::OfficeIMO.OfficeLength.Points(28),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 }))))))
             .ToBytes();
 
@@ -134,22 +128,20 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Spacer_AddsInvisibleVerticalSpaceWithoutExtractedText() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 260,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(260)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
-        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("BeforeMarker"), style: paragraphStyle)
+            .Paragraph(p => p.AddText("BeforeMarker"), style: paragraphStyle)
             .Spacer(24)
-            .Paragraph(p => p.Text("AfterMarker"), style: paragraphStyle)
+            .Paragraph(p => p.AddText("AfterMarker"), style: paragraphStyle)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -166,23 +158,21 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Spacer_WorksInsideRowColumnFlow() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 260,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(260)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
-        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 0 };
+        var paragraphStyle = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
-                .Paragraph(p => p.Text("TopMarker"), style: paragraphStyle)
-                .Spacer(20)
-                .Paragraph(p => p.Text("BottomMarker"), style: paragraphStyle))))))
+                .AddParagraph(p => p.AddText("TopMarker"), style: paragraphStyle)
+                .Spacer(global::OfficeIMO.OfficeLength.Points(20))
+                .AddParagraph(p => p.AddText("BottomMarker"), style: paragraphStyle))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -204,21 +194,19 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredLineHeight() {
-        var options = new PdfOptions {
-            PageWidth = 320,
-            PageHeight = 260,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(260)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] defaultBytes = CreateParagraphLineHeightProbe(options, null);
         byte[] looseBytes = CreateParagraphLineHeightProbe(options, new PdfParagraphStyle {
             LineHeight = 2.0,
-            SpacingAfter = 0
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         });
 
         using var defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
@@ -244,22 +232,20 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredHorizontalIndents() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 280,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(280)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] defaultBytes = CreateParagraphIndentProbe(options, null);
         byte[] indentedBytes = CreateParagraphIndentProbe(options, new PdfParagraphStyle {
-            LeftIndent = 24,
-            RightIndent = 90,
-            SpacingAfter = 0
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(24),
+            RightIndent = global::OfficeIMO.OfficeLength.Points(90),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         });
 
         using var defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
@@ -278,22 +264,20 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_NegativeIndentsExtendTextIntoMargins() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 280,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(280)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] defaultBytes = CreateParagraphIndentProbe(options, null);
         byte[] extendedBytes = CreateParagraphIndentProbe(options, new PdfParagraphStyle {
-            LeftIndent = -18,
-            RightIndent = -30,
-            SpacingAfter = 0
+            LeftIndent = global::OfficeIMO.OfficeLength.Points(-18),
+            RightIndent = global::OfficeIMO.OfficeLength.Points(-30),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         });
 
         using var defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
@@ -312,24 +296,23 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesConfiguredFirstLineIndent() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("FirstIndentMarker")
-                .LineBreak()
-                .Text("SecondIndentMarker"), style: new PdfParagraphStyle {
-                    FirstLineIndent = 24,
-                    SpacingAfter = 0
+            .Paragraph(p => {
+                p.AddText("FirstIndentMarker");
+                p.AddLineBreak();
+                p.AddText("SecondIndentMarker");
+            }, style: new PdfParagraphStyle {
+                    FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
             .ToBytes();
 
@@ -344,26 +327,25 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_UsesDefaultParagraphStyleWhenStyleIsNotProvided() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             DefaultParagraphStyle = new PdfParagraphStyle {
-                FirstLineIndent = 24,
-                SpacingAfter = 0
+                FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             }
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("DefaultFirstIndent")
-                .LineBreak()
-                .Text("DefaultSecondIndent"))
+            .Paragraph(p => {
+                p.AddText("DefaultFirstIndent");
+                p.AddLineBreak();
+                p.AddText("DefaultSecondIndent");
+            })
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -377,30 +359,29 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void PdfDocument_DefaultParagraphStyleAppliesToFollowingParagraphsAndSnapshotsInput() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var style = new PdfParagraphStyle {
-            FirstLineIndent = 24,
-            SpacingAfter = 0
+            FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+            SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
 
         byte[] bytes = PdfDocument.Create(options)
             .DefaultParagraphStyle(style)
-            .Paragraph(p => p
-                .Text("FluentDefaultFirst")
-                .LineBreak()
-                .Text("FluentDefaultSecond"))
+            .Paragraph(p => {
+                p.AddText("FluentDefaultFirst");
+                p.AddLineBreak();
+                p.AddText("FluentDefaultSecond");
+            })
             .ToBytes();
 
-        style.FirstLineIndent = 0;
+        style.FirstLineIndent = global::OfficeIMO.OfficeLength.Points(0);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -418,24 +399,22 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Paragraph_ExplicitStyleOverridesDefaultParagraphStyle() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             DefaultParagraphStyle = new PdfParagraphStyle {
-                LeftIndent = 40,
-                SpacingAfter = 0
+                LeftIndent = global::OfficeIMO.OfficeLength.Points(40),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             }
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("ExplicitMarker"), style: new PdfParagraphStyle {
-                SpacingAfter = 0
+            .Paragraph(p => p.AddText("ExplicitMarker"), style: new PdfParagraphStyle {
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             })
             .ToBytes();
 
@@ -444,30 +423,29 @@ public partial class PdfDocumentVisualQualityTests {
 
         double markerX = FindWordStartX(page, "ExplicitMarker");
 
-        Assert.InRange(markerX, options.MarginLeft - 1, options.MarginLeft + 3);
+        Assert.InRange(markerX, options.PageSetup.Margins.Left.ToPoints() - 1, options.PageSetup.Margins.Left.ToPoints() + 3);
     }
 
     [Fact]
     public void Paragraph_UsesConfiguredHangingIndent() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p
-                .Text("HangingFirst")
-                .LineBreak()
-                .Text("HangingSecond"), style: new PdfParagraphStyle {
-                    LeftIndent = 24,
-                    FirstLineIndent = -24,
-                    SpacingAfter = 0
+            .Paragraph(p => {
+                p.AddText("HangingFirst");
+                p.AddLineBreak();
+                p.AddText("HangingSecond");
+            }, style: new PdfParagraphStyle {
+                    LeftIndent = global::OfficeIMO.OfficeLength.Points(24),
+                    FirstLineIndent = global::OfficeIMO.OfficeLength.Points(-24),
+                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                 })
             .ToBytes();
 
@@ -482,15 +460,13 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnParagraph_UsesConfiguredFirstLineIndent() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -499,12 +475,13 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p
-                                    .Text("ColumnFirstIndent")
-                                    .LineBreak()
-                                    .Text("ColumnSecondIndent"), style: new PdfParagraphStyle {
-                                        FirstLineIndent = 24,
-                                        SpacingAfter = 0
+                                .AddParagraph(p => {
+                                    p.AddText("ColumnFirstIndent");
+                                    p.AddLineBreak();
+                                    p.AddText("ColumnSecondIndent");
+                                }, style: new PdfParagraphStyle {
+                                        FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+                                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
                                     }))))))
             .ToBytes();
 
@@ -519,18 +496,16 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnParagraph_UsesDefaultParagraphStyleWhenStyleIsNotProvided() {
-        var options = new PdfOptions {
-            PageWidth = 300,
-            PageHeight = 220,
-            MarginLeft = 30,
-            MarginRight = 30,
-            MarginTop = 30,
-            MarginBottom = 30,
+        var options = new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             DefaultParagraphStyle = new PdfParagraphStyle {
-                FirstLineIndent = 24,
-                SpacingAfter = 0
+                FirstLineIndent = global::OfficeIMO.OfficeLength.Points(24),
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
             }
         };
 
@@ -540,10 +515,11 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Paragraph(p => p
-                                    .Text("ColumnDefaultFirst")
-                                    .LineBreak()
-                                    .Text("ColumnDefaultSecond")))))))
+                                .AddParagraph(p => {
+                                    p.AddText("ColumnDefaultFirst");
+                                    p.AddLineBreak();
+                                    p.AddText("ColumnDefaultSecond");
+                                }))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

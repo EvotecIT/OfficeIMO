@@ -18,9 +18,9 @@ public partial class WordRtfConverterTests {
         paragraph.AddText(" at ");
         paragraph.AddHyperLink("OfficeIMO", new Uri("https://github.com/EvotecIT/OfficeIMO"), addStyle: true);
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("Hello RTF at OfficeIMO", rtfParagraph.ToPlainText());
@@ -42,9 +42,9 @@ public partial class WordRtfConverterTests {
         paragraph.AddInsertedText("Added", "Alice", new DateTime(2026, 1, 1));
         paragraph.AddDeletedText("Removed", "Bob", new DateTime(2026, 1, 2));
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         Assert.Collection(rtfDocument.RevisionAuthors,
             author => Assert.Equal("Alice", author.Name),
@@ -65,9 +65,9 @@ public partial class WordRtfConverterTests {
         WordParagraph paragraph = word.AddParagraph("Comment target");
         paragraph.AddComment("Alice Reviewer", "AR", "Review note");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfRun run = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs);
         Assert.NotNull(run.Note);
@@ -96,7 +96,7 @@ public partial class WordRtfConverterTests {
             new Paragraph(
                 new Run(new RunProperties(new Italic()), new Text("Second"))));
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
+        RtfDocument rtfDocument = word.ToRtf();
 
         RtfNote note = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs).Note!;
         Assert.Equal(RtfNoteKind.Annotation, note.Kind);
@@ -127,7 +127,7 @@ public partial class WordRtfConverterTests {
         second.AddText("Second").SetItalic();
         run.SetNote(note);
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         WordComment wordComment = Assert.Single(word.Comments);
         Assert.Equal("Alice Reviewer", wordComment.Author);
@@ -148,13 +148,13 @@ public partial class WordRtfConverterTests {
     public void Word_Rtf_Bridge_Carries_Tab_Stops_And_Tab_Text() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("Name");
-        paragraph.AddTabStop(1440);
-        paragraph.AddTabStop(2880, WordTabAlignment.Right, WordTabLeader.Dot);
+        paragraph.AddTabStop(OfficeLength.Emus(1440L * 635));
+        paragraph.AddTabStop(OfficeLength.Emus(2880L * 635), WordTabAlignment.Right, WordTabLeader.Dot);
         paragraph.AddText("\tAmount");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("Name\tAmount", rtfParagraph.ToPlainText());
@@ -175,7 +175,7 @@ public partial class WordRtfConverterTests {
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs.GroupBy(item => item._paragraph).Select(group => group.First()));
         Assert.Equal(2, roundTripParagraph.TabStops.Count);
-        Assert.Equal(1440, roundTripParagraph.TabStops[0].Position);
+        Assert.Equal(OfficeLength.Points(72), roundTripParagraph.TabStops[0].Position);
         Assert.Equal(WordTabAlignment.Right, roundTripParagraph.TabStops[1].Alignment);
         Assert.Equal(WordTabLeader.Dot, roundTripParagraph.TabStops[1].Leader);
     }
@@ -191,9 +191,9 @@ public partial class WordRtfConverterTests {
         paragraph.AddBreak(WordBreakType.Column);
         paragraph.AddText("Column");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Contains(rtfParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Line });
@@ -216,7 +216,7 @@ public partial class WordRtfConverterTests {
         paragraph.AddSoftPageBreak();
         paragraph.AddText("SoftPage");
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         List<WordBreak> breaks = word.Breaks;
         Assert.Contains(breaks, item => item.BreakType == null);

@@ -9,19 +9,18 @@ namespace OfficeIMO.Excel {
         /// Asynchronously loads an Excel workbook from a remote URI.
         /// </summary>
         /// <param name="uri">HTTP or HTTPS URI of the workbook.</param>
-        /// <param name="httpOptions">Optional HTTP loading options.</param>
         /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static async Task<ExcelDocument> LoadAsync(Uri uri, ExcelHttpLoadOptions? httpOptions = null, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
-            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+        public static async Task<ExcelDocument> LoadAsync(Uri uri, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
+            ExcelLoadOptions resolved = (options ?? new ExcelLoadOptions()).Snapshot();
             ValidateRemoteLoadLifecycle(resolved);
             long? inputLimit = ResolveInputLimit(resolved);
             bool inputLimitIsPackageSize = resolved.PackageSecurity != null
                 && inputLimit == resolved.PackageSecurity.MaxPackageBytes;
             byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(
                 uri,
-                httpOptions,
+                resolved,
                 cancellationToken,
                 inputLimit,
                 sourceLimitIsPackageSize: inputLimitIsPackageSize).ConfigureAwait(false);

@@ -5,24 +5,15 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
-        /// Adds a derived manual text grouping field to a pivot that uses the source field on one axis.
-        /// Named groups contain distinct source item captions; other items remain individual groups.
-        /// Optionally hides named or ungrouped items on the derived field.
-        /// Materialize or refresh the pivot to populate its displayed values.
-        /// </summary>
-        public void AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName,
-            IReadOnlyDictionary<string, string[]> groups) =>
-            AddPivotManualGrouping(pivotTableName, sourceFieldName, groupFieldName, groups, null);
-
-        /// <summary>
         /// Adds a derived manual text grouping field and hides selected group labels.
         /// </summary>
-        public void AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName,
-            IReadOnlyDictionary<string, string[]> groups, IReadOnlyCollection<string>? hiddenGroupItems) {
+        public ExcelPivotGroupingInfo AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName,
+            IReadOnlyDictionary<string, string[]> groups, IReadOnlyCollection<string>? hiddenGroupItems = null) {
             if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot name is required.", nameof(pivotTableName));
             if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("A source field is required.", nameof(sourceFieldName));
             if (string.IsNullOrWhiteSpace(groupFieldName)) throw new ArgumentException("A group field name is required.", nameof(groupFieldName));
             if (groups == null || groups.Count == 0) throw new ArgumentException("At least one group is required.", nameof(groups));
+            ExcelPivotGroupingInfo? createdGrouping = null;
             WriteLockWorksheetPreparationOnly(() => {
                 PivotTablePart part = _worksheetPart.PivotTableParts.FirstOrDefault(p =>
                     string.Equals(p.PivotTableDefinition?.Name?.Value, pivotTableName, StringComparison.OrdinalIgnoreCase))
@@ -111,7 +102,10 @@ namespace OfficeIMO.Excel {
                 axis.InsertBefore(new Field { Index = derived }, baseAxis);
                 if (onRow) definition.RowFields!.Count = (uint)axis.ChildElements.Count;
                 else definition.ColumnFields!.Count = (uint)axis.ChildElements.Count;
+                createdGrouping = new ExcelPivotGroupingInfo(groupFieldName, null, null, null, null, null, null, null, null,
+                    labels.Select(label => label.Text ?? string.Empty).ToArray(), baseFieldIndex: (uint)source);
             });
+            return createdGrouping!;
         }
 
         private sealed class PivotManualGrouping {

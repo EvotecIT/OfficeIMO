@@ -20,7 +20,7 @@ public partial class Word {
     [InlineData(true, "empty-first")]
     public void SaveAsPdf_ContinuousRunningStoryPreservesSectionPageCounts(bool footer, string boundary) {
         using WordDocument source = WordDocument.Create();
-        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? source.PageSetup.Footer : source.PageSetup.Header;
         WordParagraph field = story.AddParagraph("COUNT ");
         SetInheritedRunningControlStyle(field);
         field.AddField(WordFieldType.SectionPages);
@@ -37,7 +37,7 @@ public partial class Word {
         }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(boundary is "shared" or "empty-first" ? 2 : 3, pdf.NumberOfPages);
         Assert.Contains(boundary == "empty-first" ? "COUNT 1" : "COUNT 2", pdf.GetPage(1).Text);
         Assert.Contains("COUNT 2", pdf.GetPage(2).Text);
@@ -54,7 +54,7 @@ public partial class Word {
     [InlineData(true, true)]
     public void SaveAsPdf_ContinuousRunningStoryCountsBlankBodyFlow(bool footer, bool explicitBreak) {
         using WordDocument source = WordDocument.Create();
-        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? source.PageSetup.Footer : source.PageSetup.Header;
         WordParagraph field = story.AddParagraph("COUNT ");
         SetInheritedRunningControlStyle(field);
         field.AddField(WordFieldType.SectionPages);
@@ -67,7 +67,7 @@ public partial class Word {
 
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("S1A", pdf.GetPage(1).Text);
         Assert.Contains("COUNT 1", pdf.GetPage(1).Text);

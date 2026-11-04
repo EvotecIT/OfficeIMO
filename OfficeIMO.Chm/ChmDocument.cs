@@ -5,13 +5,13 @@ namespace OfficeIMO.Chm;
 
 /// <summary>An immutable, cross-platform snapshot of a compiled HTML help book. Loading executes no help content.</summary>
 public sealed partial class ChmDocument {
-    private readonly ChmReadOptions _options;
+    private readonly ChmLoadOptions _options;
     private readonly Dictionary<string, ChmEntry> _entries;
     private readonly List<ChmDiagnostic> _diagnostics = new List<ChmDiagnostic>();
     private Encoding _encoding = Encoding.UTF8;
     private string? _contentsPath;
     private string? _indexPath;
-    internal ChmDocument(IReadOnlyList<ChmEntry> entries, ChmReadOptions options, uint version, uint locale, CancellationToken token) {
+    internal ChmDocument(IReadOnlyList<ChmEntry> entries, ChmLoadOptions options, uint version, uint locale, CancellationToken token) {
         _options = options; Version = version; LocaleId = locale; Entries = entries;
         _entries = entries.ToDictionary(entry => entry.Path, StringComparer.OrdinalIgnoreCase);
         Resources = Array.AsReadOnly(entries.Where(entry => !entry.IsSystem && !entry.IsDirectory).ToArray());
@@ -44,14 +44,14 @@ public sealed partial class ChmDocument {
     }
 
     /// <summary>Loads a file into a bounded independent snapshot.</summary>
-    public static ChmDocument Load(string path, ChmReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static ChmDocument Load(string path, ChmLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("CHM path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return Load(stream, options, cancellationToken);
     }
     /// <summary>Loads caller-owned input. Seekable input is rewound and its original position restored; forward-only input is read from its current position.</summary>
-    public static ChmDocument Load(Stream stream, ChmReadOptions? options = null, CancellationToken cancellationToken = default) {
-        ChmReadOptions configured = Configure(options);
+    public static ChmDocument Load(Stream stream, ChmLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        ChmLoadOptions configured = Configure(options);
         byte[] bytes;
         try { bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, configured.MaxInputBytes); }
         catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
@@ -60,22 +60,22 @@ public sealed partial class ChmDocument {
         return ChmArchiveReader.Read(bytes, configured, cancellationToken);
     }
     /// <summary>Loads an independent snapshot of the supplied archive bytes.</summary>
-    public static ChmDocument Load(byte[] bytes, ChmReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static ChmDocument Load(byte[] bytes, ChmLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        ChmReadOptions configured = Configure(options);
+        ChmLoadOptions configured = Configure(options);
         cancellationToken.ThrowIfCancellationRequested();
         if (bytes.LongLength > configured.MaxInputBytes) throw ChmBinary.Error("INPUT_LIMIT", "The CHM archive exceeds MaxInputBytes.");
         return ChmArchiveReader.Read((byte[])bytes.Clone(), configured, cancellationToken);
     }
     /// <summary>Asynchronously snapshots a file and parses it with cooperative cancellation.</summary>
-    public static async Task<ChmDocument> LoadAsync(string path, ChmReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static async Task<ChmDocument> LoadAsync(string path, ChmLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("CHM path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
         return await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
     }
     /// <summary>Asynchronously snapshots caller-owned input; parsing and LZX decoding observe the same cancellation token.</summary>
-    public static async Task<ChmDocument> LoadAsync(Stream stream, ChmReadOptions? options = null, CancellationToken cancellationToken = default) {
-        ChmReadOptions configured = Configure(options);
+    public static async Task<ChmDocument> LoadAsync(Stream stream, ChmLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        ChmLoadOptions configured = Configure(options);
         byte[] bytes;
         try { bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, configured.MaxInputBytes).ConfigureAwait(false); }
         catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
@@ -149,7 +149,7 @@ public sealed partial class ChmDocument {
     internal void Diagnostic(string code, string message, string? path = null) => _diagnostics.Add(new ChmDiagnostic(code, message, path));
     internal static bool IsTopic(ChmEntry entry) => !entry.IsSystem &&
         (entry.Path.EndsWith(".htm", StringComparison.OrdinalIgnoreCase) || entry.Path.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || entry.Path.EndsWith(".xhtml", StringComparison.OrdinalIgnoreCase));
-    private static ChmReadOptions Configure(ChmReadOptions? options) { ChmReadOptions configured = options?.Clone() ?? new ChmReadOptions(); configured.Validate(); return configured; }
+    private static ChmLoadOptions Configure(ChmLoadOptions? options) { ChmLoadOptions configured = options?.Clone() ?? new ChmLoadOptions(); configured.Validate(); return configured; }
     internal static IEnumerable<ChmNavigationItem> EnumerateNavigation(IReadOnlyList<ChmNavigationItem> roots) {
         var stack = new Stack<ChmNavigationItem>(roots.Reverse());
         while (stack.Count != 0) { ChmNavigationItem item = stack.Pop(); yield return item; for (int i = item.Children.Count - 1; i >= 0; i--) stack.Push(item.Children[i]); }

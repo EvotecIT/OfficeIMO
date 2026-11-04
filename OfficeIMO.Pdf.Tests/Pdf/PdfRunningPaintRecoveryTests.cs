@@ -24,7 +24,7 @@ public sealed class PdfRunningPaintRecoveryTests {
         shape.Transform = OfficeTransform.Translate(0, -30);
         var report = new PdfConversionReport();
         Assert.NotEmpty(Running(shape, report));
-        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.Contains(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class PdfRunningPaintRecoveryTests {
         shape.Transform = OfficeTransform.Translate(80.75, 0);
         var report = new PdfConversionReport();
         Assert.NotEmpty(Running(shape, report));
-        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.Contains(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
     }
 
     [Fact]
@@ -47,8 +47,10 @@ public sealed class PdfRunningPaintRecoveryTests {
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 2;
         shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 30, 20);
         shape.Transform = OfficeTransform.Translate(100, 0);
-        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 200, PageHeight = 100,
-            MarginLeft = 10, MarginRight = 10, MarginTop = 20, MarginBottom = 20 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(10), Right = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+        } })
             .Compose(c => c.Page(p => p.Content(b => b.Shape(shape, linkUri: "https://example.com/shape")))).ToBytes();
         Match match = Regex.Match(Encoding.ASCII.GetString(bytes), @"/Rect\s*\[([^\]]+)\]");
         Assert.True(match.Success);
@@ -67,7 +69,7 @@ public sealed class PdfRunningPaintRecoveryTests {
         shape.Transform = OfficeTransform.Translate(-30, 0);
         var report = new PdfConversionReport();
         Assert.NotEmpty(Running(shape, report));
-        Assert.DoesNotContain(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.DoesNotContain(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
     }
 
     [Fact]
@@ -80,7 +82,7 @@ public sealed class PdfRunningPaintRecoveryTests {
         shape.Transform = new OfficeTransform(50, 0, 0, 1, 100.1 - 10 - 50D * 4D / 3D, 0);
         var report = new PdfConversionReport();
         Assert.NotEmpty(Running(shape, report));
-        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.Contains(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
     }
 
     [Fact]
@@ -91,8 +93,8 @@ public sealed class PdfRunningPaintRecoveryTests {
         var report = new PdfConversionReport();
         byte[] bytes = Running(shape, report);
         Assert.NotEmpty(bytes);
-        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPaintBoundsUnmeasured");
-        Assert.DoesNotContain(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.Contains(report.Warnings, w => w.Code == "header-footer-paint-bounds-unmeasured");
+        Assert.DoesNotContain(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
     }
 
     [Fact]
@@ -100,9 +102,11 @@ public sealed class PdfRunningPaintRecoveryTests {
         var shape = OfficeShape.Line(0, 0, 60, 0);
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 2;
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 30, 20);
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false,
-            PageWidth = 200, PageHeight = 200, MarginLeft = 30, MarginRight = 30,
-            MarginTop = 50, MarginBottom = 30 }).Compose(c => c.Page(p => p.Content(b =>
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false,
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(200)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(50), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            } }).Compose(c => c.Page(p => p.Content(b =>
                 b.Shape(shape, linkUri: "https://example.com/shape")))).ToBytes();
         Match match = Regex.Match(Encoding.ASCII.GetString(bytes), @"/Rect\s*\[([^\]]+)\]");
         Assert.True(match.Success);
@@ -125,14 +129,17 @@ public sealed class PdfRunningPaintRecoveryTests {
         shape.Transform = OfficeTransform.Translate(0, -30);
         var report = new PdfConversionReport();
         Assert.NotEmpty(Running(shape, report));
-        Assert.DoesNotContain(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+        Assert.DoesNotContain(report.Warnings, w => w.Code == "header-footer-page-bounds-clipped");
         Assert.False(report.HasLoss);
     }
 
     private static byte[] Running(OfficeShape shape, PdfConversionReport report) =>
-        PdfDocument.Create(new PdfOptions { PageWidth = 100, PageHeight = 100,
-            MarginLeft = 10, MarginRight = 10, MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0 }
+        PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(10), Right = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) },
+            Header = { Offset = global::OfficeIMO.OfficeLength.Points(0) }
+        } }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")).Compose(c => c.Page(p => {
-                p.Header(b => b.Shape(shape)); p.Content(b => b.Spacer(10));
-            })).ToBytes();
+                p.Header(b => b.Shape(shape)); p.Content(b => b.Spacer(global::OfficeIMO.OfficeLength.Points(10)));
+            })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 }

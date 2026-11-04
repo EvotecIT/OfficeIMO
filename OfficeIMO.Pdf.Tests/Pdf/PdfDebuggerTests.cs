@@ -8,7 +8,7 @@ public class PdfDebuggerTests {
     public void Dump_ProjectsObjectsRevisionsResourcesOperatorsAndReachability() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "Debugger original")
-            .Paragraph(paragraph => paragraph.Text("Debugger body"))
+            .Paragraph(paragraph => paragraph.AddText("Debugger body"))
             .ToBytes();
         byte[] updated = PdfIncrementalUpdater.UpdateMetadata(source, title: "Debugger updated");
 
@@ -38,8 +38,8 @@ public class PdfDebuggerTests {
 
     [Fact]
     public void Dump_BoundsOperatorsAndReadsEncryptedDocumentsWithExplicitOptions() {
-        byte[] encrypted = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted debugger"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted debugger"))
             .ToBytes();
 
         PdfDebuggerReport report = PdfDebugger.Dump(
@@ -56,7 +56,7 @@ public class PdfDebuggerTests {
 
     [Fact]
     public void Dump_PathAndStreamEnforceParserInputBudgetBeforeBuffering() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Bounded debugger")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Bounded debugger")).ToBytes();
         var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxInputBytes = source.Length - 1L }
         };
@@ -80,7 +80,7 @@ public class PdfDebuggerTests {
     [Fact]
     public void Dump_StreamReadsFromCurrentPosition() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Current-position debugger"))
+            .Paragraph(paragraph => paragraph.AddText("Current-position debugger"))
             .ToBytes();
         byte[] prefixed = new byte[source.Length + 5];
         for (int index = 0; index < 5; index++) {

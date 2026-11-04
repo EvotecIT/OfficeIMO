@@ -1,4 +1,3 @@
-#nullable enable
 using System.Text;
 
 namespace OfficeIMO.CSV;
@@ -23,11 +22,18 @@ public static class CsvProfiles
     /// failures. Spreadsheet detects delimiters and BOM encodings, keeps strict quoting and
     /// counts, and repairs missing or duplicate headers. Compatibility retains existing defaults.
     /// </summary>
-    public static CsvLoadOptions CreateLoadOptions(CsvProfile profile)
+    public static CsvLoadOptions CreateLoadOptions(CsvProfile profile) =>
+        new CsvLoadOptions { Parsing = CreateParsingSettings(profile) };
+
+    /// <summary>Creates forward-only reader options with the same parsing policy as the selected load profile.</summary>
+    public static CsvReaderOptions CreateReaderOptions(CsvProfile profile) =>
+        new CsvReaderOptions { Parsing = CreateParsingSettings(profile) };
+
+    private static CsvParsingSettings CreateParsingSettings(CsvProfile profile)
     {
         Validate(profile);
-        if (profile == CsvProfile.Compatibility) return new CsvLoadOptions();
-        return new CsvLoadOptions
+        if (profile == CsvProfile.Compatibility) return new CsvParsingSettings();
+        return new CsvParsingSettings
         {
             QuoteParsingMode = CsvQuoteParsingMode.Strict,
             ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict,

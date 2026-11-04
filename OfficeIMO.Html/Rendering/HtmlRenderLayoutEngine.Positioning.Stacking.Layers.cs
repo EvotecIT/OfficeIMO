@@ -70,7 +70,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<HtmlRenderVisual>? children = visual switch {
             HtmlRenderClipGroup clip => clip.Visuals,
             HtmlRenderPathClipGroup clip => clip.Visuals,
-            HtmlRenderSemanticGroup semantic => semantic.Visuals,
+            HtmlRenderSemanticGroup semantic => semantic.InvariantVisuals,
             HtmlRenderLayoutRegion region => region.Visuals,
             HtmlRenderLogicalTextGroup text => text.Visuals,
             _ => null

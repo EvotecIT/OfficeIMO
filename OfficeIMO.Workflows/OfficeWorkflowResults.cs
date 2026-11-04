@@ -73,7 +73,7 @@ public sealed class PdfHealthReport {
         After = after;
         Summary = summary;
         Verified = verified;
-        Metrics = new Dictionary<string, string>(metrics ?? new Dictionary<string, string>(), StringComparer.Ordinal);
+        Metrics = (metrics ?? new Dictionary<string, string>()).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
     }
 
     /// <summary>Health operation.</summary>

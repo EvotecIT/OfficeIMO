@@ -13,6 +13,10 @@ namespace OfficeIMO.Opml;
 
 /// <summary>A source-preserving OPML 1.0/2.0 document with typed editing helpers.</summary>
 public sealed partial class OpmlDocument {
+    private string? _filePath;
+    /// <summary>Gets the associated path, or null for an in-memory document.</summary>
+    public string? FilePath => _filePath;
+
     private readonly XDocument _xml;
     private readonly byte[]? _originalBytes;
     private readonly string? _originalText;
@@ -64,9 +68,9 @@ public sealed partial class OpmlDocument {
     }
 
     /// <summary>Parses OPML text with secure, bounded XML settings.</summary>
-    public static OpmlDocument Parse(string text, OpmlReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static OpmlDocument Parse(string text, OpmlLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (text == null) throw new ArgumentNullException(nameof(text));
-        options ??= new OpmlReadOptions();
+        options ??= new OpmlLoadOptions();
         options.Validate();
         if (text.Length > options.MaxCharacters) throw new InvalidDataException("OPML input exceeds MaxCharacters.");
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,23 +80,26 @@ public sealed partial class OpmlDocument {
     }
 
     /// <summary>Loads an OPML file.</summary>
-    public static OpmlDocument Load(string path, OpmlReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static OpmlDocument Load(string path, OpmlLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        using var stream = File.OpenRead(path);
-        return Load(stream, options, cancellationToken);
+        string fullPath = Path.GetFullPath(path);
+        using var stream = File.OpenRead(fullPath);
+        var document = Load(stream, options, cancellationToken);
+        document._filePath = fullPath;
+        return document;
     }
 
     /// <summary>Loads OPML from a caller-owned stream without changing a seekable stream's position.</summary>
-    public static OpmlDocument Load(Stream stream, OpmlReadOptions? options = null, CancellationToken cancellationToken = default) {
-        options ??= new OpmlReadOptions();
+    public static OpmlDocument Load(Stream stream, OpmlLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        options ??= new OpmlLoadOptions();
         options.Validate();
         byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes);
         return ParseBytes(bytes, options, cancellationToken);
     }
 
     /// <summary>Loads OPML asynchronously from a caller-owned stream.</summary>
-    public static async Task<OpmlDocument> LoadAsync(Stream stream, OpmlReadOptions? options = null, CancellationToken cancellationToken = default) {
-        options ??= new OpmlReadOptions();
+    public static async Task<OpmlDocument> LoadAsync(Stream stream, OpmlLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        options ??= new OpmlLoadOptions();
         options.Validate();
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, options.MaxInputBytes).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
@@ -232,8 +239,8 @@ public sealed partial class OpmlDocument {
     }
 
     /// <summary>Returns OPML text, preserving the exact input while unchanged by default.</summary>
-    public string ToOpml(OpmlWriteOptions? options = null) {
-        options ??= new OpmlWriteOptions();
+    public string ToOpml(OpmlSaveOptions? options = null) {
+        options ??= new OpmlSaveOptions();
         if (!HasChanges && options.PreserveUnchangedSource) {
             if (_originalText != null) return _originalText;
             if (_originalBytes != null) return OfficeXmlTextEncoding.Decode(_originalBytes, _xml.Declaration?.Encoding);
@@ -242,32 +249,49 @@ public sealed partial class OpmlDocument {
     }
 
     /// <summary>Writes OPML to a caller-owned stream and rewinds a seekable destination.</summary>
-    public void Write(Stream destination, OpmlWriteOptions? options = null) =>
-        OfficeStreamWriter.WriteAllBytes(destination, GetBytes(options));
+    public void Save(Stream destination, OpmlSaveOptions? options = null) =>
+        OfficeStreamWriter.WriteAllBytes(destination, ToBytes(options));
 
     /// <summary>Writes OPML asynchronously to a caller-owned stream.</summary>
-    public Task WriteAsync(Stream destination, OpmlWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        OfficeStreamWriter.WriteAllBytesAsync(destination, GetBytes(options), cancellationToken);
+    public Task SaveAsync(Stream destination, OpmlSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeStreamWriter.WriteAllBytesAsync(destination, ToBytes(options), cancellationToken);
 
-    /// <summary>Saves OPML through an atomic same-directory file commit.</summary>
-    public void Save(string path, OpmlWriteOptions? options = null) => OfficeFileCommit.WriteAllBytes(path, GetBytes(options));
+    /// <summary>Saves to the associated path, failing when no destination is associated.</summary>
+    public void Save(OpmlSaveOptions? options = null) =>
+        Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options);
 
-    /// <summary>Saves OPML asynchronously through an atomic same-directory file commit.</summary>
-    public Task SaveAsync(string path, OpmlWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        OfficeFileCommit.WriteAllBytesAsync(path, GetBytes(options), cancellationToken: cancellationToken);
+    /// <summary>Atomically saves native output and associates the successfully written path.</summary>
+    public void Save(string path, OpmlSaveOptions? options = null) {
+        string fullPath = Path.GetFullPath(path);
+        OfficeFileCommit.WriteAllBytes(fullPath, ToBytes(options));
+        _filePath = fullPath;
+    }
+
+    /// <summary>Asynchronously saves to the associated path.</summary>
+    public Task SaveAsync(OpmlSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        SaveAsync(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options, cancellationToken);
+
+    /// <summary>Atomically saves native output asynchronously and associates the successfully written path.</summary>
+    public async Task SaveAsync(string path, OpmlSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, ToBytes(options), cancellationToken: cancellationToken).ConfigureAwait(false);
+        _filePath = fullPath;
+    }
 
     internal void MarkModified() => _modified = true;
 
     internal IEnumerable<OpmlOutline> Descendants() =>
         BodyElement.Descendants("outline").Select(e => new OpmlOutline(this, e));
 
-    private byte[] GetBytes(OpmlWriteOptions? options) {
-        options ??= new OpmlWriteOptions();
+    /// <summary>Serializes native bytes, preserving an unchanged source when requested.</summary>
+    public byte[] ToBytes(OpmlSaveOptions? options = null) {
+        options ??= new OpmlSaveOptions();
         if (!HasChanges && options.PreserveUnchangedSource && _originalBytes != null) return (byte[])_originalBytes.Clone();
         return Serialize(options);
     }
 
-    private byte[] Serialize(OpmlWriteOptions options) {
+    private byte[] Serialize(OpmlSaveOptions options) {
         using var output = new MemoryStream();
         var settings = new XmlWriterSettings {
             Encoding = new UTF8Encoding(false),
@@ -279,7 +303,7 @@ public sealed partial class OpmlDocument {
         return output.ToArray();
     }
 
-    private static OpmlDocument ParseBytes(byte[] bytes, OpmlReadOptions options, CancellationToken cancellationToken) {
+    private static OpmlDocument ParseBytes(byte[] bytes, OpmlLoadOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using var memory = new MemoryStream(bytes, writable: false);
         using var reader = CreateLimitingReader(XmlReader.Create(memory, CreateSettings(options)), options, cancellationToken);
@@ -289,14 +313,14 @@ public sealed partial class OpmlDocument {
         return new OpmlDocument(xml, (byte[])bytes.Clone(), null);
     }
 
-    private static XDocument ParseXml(TextReader source, OpmlReadOptions options, CancellationToken cancellationToken) {
+    private static XDocument ParseXml(TextReader source, OpmlLoadOptions options, CancellationToken cancellationToken) {
         using var reader = CreateLimitingReader(XmlReader.Create(source, CreateSettings(options)), options, cancellationToken);
         XDocument result = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
         cancellationToken.ThrowIfCancellationRequested();
         return result;
     }
 
-    private static XmlReaderSettings CreateSettings(OpmlReadOptions options) => new XmlReaderSettings {
+    private static XmlReaderSettings CreateSettings(OpmlLoadOptions options) => new XmlReaderSettings {
         DtdProcessing = DtdProcessing.Prohibit,
         XmlResolver = null,
         MaxCharactersInDocument = options.MaxCharacters,
@@ -305,11 +329,11 @@ public sealed partial class OpmlDocument {
         IgnoreProcessingInstructions = false
     };
 
-    private static XmlReader CreateLimitingReader(XmlReader reader, OpmlReadOptions options, CancellationToken cancellationToken) =>
+    private static XmlReader CreateLimitingReader(XmlReader reader, OpmlLoadOptions options, CancellationToken cancellationToken) =>
         new OfficeXmlLimitingReader(reader, "OPML", options.MaxDepth, options.MaxElements, options.MaxAttributes,
             cancellationToken, "outline", string.Empty, options.MaxOutlines, "MaxOutlines");
 
-    private static void ValidateShapeAndLimits(XDocument xml, OpmlReadOptions options, CancellationToken cancellationToken) {
+    private static void ValidateShapeAndLimits(XDocument xml, OpmlLoadOptions options, CancellationToken cancellationToken) {
         XElement? root = xml.Root;
         if (root == null || root.Name != "opml") throw new InvalidDataException("The document root must be opml in no namespace.");
         if (root.Elements("head").Count() != 1 || root.Elements("body").Count() != 1) {

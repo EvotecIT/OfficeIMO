@@ -18,7 +18,7 @@ public sealed class PdfOptionalBreakEncodingDiagnosticsTests {
         string? path = cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont();
         Assert.NotNull(path);
         byte[] font = File.ReadAllBytes(path!);
-        var options = new PdfOptions();
+        var options = new PdfCreateOptions();
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("OffsetFont", font));
         else options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "OffsetFont");
         Type writer = typeof(PdfDocument).Assembly.GetType("OfficeIMO.Pdf.PdfWriter", throwOnError: true)!;
@@ -69,13 +69,13 @@ public sealed class PdfOptionalBreakEncodingDiagnosticsTests {
 
     [Fact]
     public void RunningHeaderDiagnostic_PreservesFallbackDetailsAndPageLocation() {
-        var options = new PdfOptions { ShowHeader = true, HeaderFormat = "AV\uFFFF" };
+        var options = new PdfCreateOptions { PageSetup = { Header = { Show = true, Format = "AV\uFFFF" } } };
         options.RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(new[] {
             new PdfEmbeddedFontFallbackCandidate("Identifier fallback",
                 OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'V'))
         }));
 
-        var diagnostic = Assert.Single(PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("AV")).AnalyzeTextEncoding());
+        var diagnostic = Assert.Single(PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("AV")).AnalyzeTextEncoding());
 
         Assert.Equal("missing-embedded-font-fallback-glyph", diagnostic.Code);
         Assert.Contains("Identifier fallback", diagnostic.Message);

@@ -13,9 +13,9 @@ public sealed class HtmlGenericFormTextFallbackTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<main><form><h2>Was this page helpful?</h2><label><input type='radio' name='answer'>Yes</label></form></main>");
 
-        HtmlToExcelResult excel = source.ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult excel = source.ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using (ExcelDocument workbook = excel.RequireValue()) {
-            using var artifact = workbook.ToStream();
+            using var artifact = new System.IO.MemoryStream(workbook.ToBytes());
             using ExcelDocument reopened = ExcelDocument.Load(artifact);
             Assert.Contains("Was this page helpful?", reopened.ToHtml());
         }
@@ -23,11 +23,11 @@ public sealed class HtmlGenericFormTextFallbackTests {
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
-        HtmlToPowerPointResult slides = source.ToPowerPointPresentationResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using (PowerPointPresentation presentation = slides.RequireValue()) {
-            using var artifact = presentation.ToStream();
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(artifact);
+        HtmlToPowerPointResult slides = source.ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+        using (PowerPointDocument presentation = slides.RequireValue()) {
+            using var artifact = new System.IO.MemoryStream(presentation.ToBytes());
+            using PowerPointDocument reopened = PowerPointDocument.Load(artifact);
             Assert.Contains("Was this page helpful?", reopened.ToHtml());
         }
         Assert.Contains(slides.Report.Diagnostics, diagnostic =>

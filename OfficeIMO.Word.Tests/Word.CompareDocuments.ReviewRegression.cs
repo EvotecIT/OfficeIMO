@@ -76,8 +76,7 @@ namespace OfficeIMO.Tests {
         public void CompareStructureKeepsUnrelatedBookmarkChangesAcrossPartsSeparate() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_bookmark_cross_part_delete_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph("Header bookmark").AddBookmark("HeaderOnly");
+                document.PageSetup.Header.AddParagraph("Header bookmark").AddBookmark("HeaderOnly");
                 document.Save();
             }
 
@@ -171,7 +170,7 @@ namespace OfficeIMO.Tests {
         public void CompareStructureHonorsRevisionTextAndLocationIgnoreOptionsWhenMatching() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_revision_ignore_location_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 document.Sections[0].AddHeaderParagraph("Tracked header", removeExistingParagraphs: true)
                     .AddInsertedText("Header revision", "OfficeIMO Tests", new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
                 document.Save();
@@ -258,14 +257,14 @@ namespace OfficeIMO.Tests {
         public void CompareStructureInPlaceRedlineSkipsImageOnlyParagraphIndexes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.AddParagraph("Stable text");
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_image_only_paragraph_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 document.AddParagraph("Changed text");
                 document.Save();
             }
@@ -434,15 +433,15 @@ namespace OfficeIMO.Tests {
             string secondImage = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string stableImage = Path.Combine(_directoryWithImages, "snail.bmp");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(firstImage, 40, 40);
-                document.AddParagraph().AddImage(secondImage, 40, 40);
-                document.AddParagraph().AddImage(stableImage, 40, 40);
+                document.AddParagraph().AddImage(firstImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
+                document.AddParagraph().AddImage(secondImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
+                document.AddParagraph().AddImage(stableImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_order_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddParagraph().AddImage(stableImage, 40, 40);
+                document.AddParagraph().AddImage(stableImage, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -469,7 +468,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_sectpr_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(imagePath, 40, 40);
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -501,16 +500,14 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph().AddImage(imagePath, 40, 40);
+                document.PageSetup.Header.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph("Header remains");
-                document.AddParagraph().AddImage(imagePath, 40, 40);
+                document.PageSetup.Header.AddParagraph("Header remains");
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -534,7 +531,7 @@ namespace OfficeIMO.Tests {
         public void CompareStructureInPlaceInsertsDeletedParagraphWhenTargetPartHasNoParagraphEntries() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 header.RemoveAllChildren();
                 header.Append(new Paragraph(new Run(new Text("Deleted header paragraph") { Space = SpaceProcessingModeValues.Preserve })));
@@ -543,7 +540,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 header.RemoveAllChildren();
                 header.Append(CreateSingleCellTable("Header table remains"));
@@ -669,15 +666,13 @@ namespace OfficeIMO.Tests {
         public void CompareStructureInPlaceInsertsDeletedContentControlsIntoOriginalPart() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph().AddStructuredDocumentTag("Header deleted", "Header", "HeaderTag");
+                document.PageSetup.Header.AddParagraph().AddStructuredDocumentTag("Header deleted", "Header", "HeaderTag");
                 document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddHeadersAndFooters();
-                document.Header.Default!.AddParagraph("Header remains");
+                document.PageSetup.Header.AddParagraph("Header remains");
                 document.Save();
             }
 
@@ -737,8 +732,8 @@ namespace OfficeIMO.Tests {
             string stableImagePath = Path.Combine(_directoryWithImages, "snail.bmp");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
-                document.AddParagraph().AddImage(imagePath, 80, 40);
-                document.AddParagraph().AddImage(stableImagePath, 40, 40);
+                document.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
+                document.AddParagraph().AddImage(stableImagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -746,7 +741,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
-                document.AddParagraph().AddImage(stableImagePath, 40, 40);
+                document.AddParagraph().AddImage(stableImagePath, OfficeIMO.OfficeLength.Pixels(40), OfficeIMO.OfficeLength.Pixels(40));
                 document.Save();
             }
 
@@ -1334,7 +1329,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.EmptyComplexField.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "Current title";
+                document.Properties.Title = "Current title";
                 document._document.Body!.Append(new Paragraph(
                     new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
                     new Run(new FieldCode(" TITLE ") { Space = SpaceProcessingModeValues.Preserve }),
@@ -1360,7 +1355,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(filePath);
             WordTableOfContent list = document.AddTableOfContent();
             AddGeneratedCaptionParagraph(document, "_BodyCaptionUnique", "Figure", "1", "Body deployment view");
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
             Footer footer = document._wordprocessingDocument.MainDocumentPart!.FooterParts.Single().Footer!;
@@ -1876,7 +1871,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.LockedSimpleField.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "Updated title";
+                document.Properties.Title = "Updated title";
                 document._document.Body!.Append(new Paragraph(
                     new Run(new Text("Title: ") { Space = SpaceProcessingModeValues.Preserve }),
                     new SimpleField(new Run(new Text("Locked title") { Space = SpaceProcessingModeValues.Preserve })) {

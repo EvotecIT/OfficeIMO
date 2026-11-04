@@ -12,14 +12,14 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "first.png", 16, 16, description: "First run image");
+            paragraph.AddImage(stream, "first.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "First run image" });
         }
         var secondRun = new WordParagraph(word, paragraph._paragraph, newRun: true);
         using (var stream = new MemoryStream(png, writable: false)) {
-            secondRun.AddImage(stream, "second.png", 16, 16, description: "Second run image");
+            secondRun.AddImage(stream, "second.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Second run image" });
         }
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         Assert.Collection(
             conversion.Value.Blocks,
@@ -27,7 +27,8 @@ public partial class WordRtfConverterTests {
             block => Assert.Equal("Second run image", Assert.IsType<RtfImage>(block).Description));
         Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "WordRtfImagesOmitted");
-        Assert.Same(conversion.Value, conversion.RequireNoLoss());
+        conversion.ThrowIfLoss();
+        Assert.Same(conversion.Value, conversion.Value);
     }
 
     [Fact]
@@ -36,17 +37,18 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         using (var stream = new MemoryStream(png, writable: false)) {
-            paragraph.AddImage(stream, "inline.png", 16, 16, description: "Inline image");
+            paragraph.AddImage(stream, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), options: new OfficeIMO.Word.WordImageOptions { AltText = "Inline image" });
         }
         new WordParagraph(word, paragraph._paragraph, newRun: true).AddText("After image");
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
 
         RtfParagraph converted = Assert.Single(conversion.Value.Paragraphs);
         Assert.Collection(
             converted.Inlines,
             inline => Assert.Equal("Inline image", Assert.IsType<RtfImage>(inline).Description),
             inline => Assert.Equal("After image", Assert.IsType<RtfRun>(inline).Text));
-        Assert.Same(conversion.Value, conversion.RequireNoLoss());
+        conversion.ThrowIfLoss();
+        Assert.Same(conversion.Value, conversion.Value);
     }
 }

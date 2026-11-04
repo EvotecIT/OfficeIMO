@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Spreadsheet;
 using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
@@ -8,14 +9,35 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
-        /// Returns a lightweight object wrapper for a single cell.
+        /// Returns the cell at a 1-based row and column. The handle is a view over the worksheet and stores no cell
+        /// state, so creating one allocates nothing and does not create the cell until a value or style is written.
         /// </summary>
-        public ExcelCell CellAt(int row, int column) => new ExcelCell(this, row, column);
+        /// <exception cref="ArgumentOutOfRangeException">The row or column is outside the worksheet.</exception>
+        public ExcelCell Cell(int row, int column) {
+            if (row < 1 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row));
+            if (column < 1 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column));
+            return new ExcelCell(this, row, column);
+        }
+
+        /// <summary>Returns the cell at an A1 reference on this worksheet, such as <c>B7</c> or <c>$B$7</c>.</summary>
+        /// <exception cref="ArgumentException">The reference is not one cell on this worksheet.</exception>
+        public ExcelCell Cell(string reference) {
+            if (string.IsNullOrWhiteSpace(reference)) throw new ArgumentNullException(nameof(reference));
+            var syntax = SpreadsheetRangeReference.Parse(reference, SpreadsheetAddressDialect.ExcelA1);
+            if (syntax.End != null || !syntax.Start.IsCell || syntax.Start.SheetName != null)
+                throw new ArgumentException("Cell reference must identify one cell on the current worksheet.", nameof(reference));
+            return Cell(checked((int)syntax.Start.Row!.Value), syntax.Start.Column!.Value);
+        }
 
         /// <summary>
-        /// Returns a lightweight object wrapper for an A1 range.
+        /// Returns a range by A1 address, such as <c>A1:V1</c>. A single cell reference returns a one-cell range.
         /// </summary>
         public ExcelRange Range(string a1Range) => new ExcelRange(this, a1Range);
+
+        /// <summary>Returns the range between two 1-based corner cells.</summary>
+        /// <exception cref="ArgumentOutOfRangeException">A corner is outside the worksheet or the corners are reversed.</exception>
+        public ExcelRange Range(int firstRow, int firstColumn, int lastRow, int lastColumn) =>
+            new ExcelRange(this, firstRow, firstColumn, lastRow, lastColumn);
 
         /// <summary>
         /// Returns a lightweight object wrapper for a table by name, display name, or range.
@@ -24,8 +46,8 @@ namespace OfficeIMO.Excel {
 
         internal ExcelCellData GetCellValueSnapshot(int row, int column) {
             MaterializeDeferredDataSetImportIfNeeded();
-            var cell = TryGetExistingCell(row, column);
-            return GetCellValueSnapshot(cell);
+            Cell? cell = ProbeCell(row, column, out ExcelStoredRow? storedRow, out int storedIndex);
+            return storedRow != null ? GetStoredCellValueSnapshot(storedRow.CellAt(storedIndex)) : GetCellValueSnapshot(cell);
         }
 
         private ExcelCellData GetCellValueSnapshot(Cell? cell) {
@@ -33,9 +55,9 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
-            string? cached = ResolveRichValueError(cell, cell.CellValue?.Text);
+            string? cached = ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.Text);
             var type = cell.DataType?.Value;
-            if (cell.CellFormula != null) {
+            if (ExcelWorksheetScan.FindFormula(cell) != null) {
                 object? formulaValue = cached;
                 if (cached != null) {
                     if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
@@ -49,10 +71,10 @@ namespace OfficeIMO.Excel {
                         formulaValue = cachedNumber;
                     }
                 }
-                return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, cell.CellFormula.Text, cached);
+                return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, ExcelWorksheetScan.FindFormula(cell)!.Text, cached);
             }
 
-            if (cell.CellValue == null && cell.InlineString == null) {
+            if (ExcelWorksheetScan.FindValue(cell) == null && ExcelWorksheetScan.FindInlineString(cell) == null) {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
@@ -89,11 +111,8 @@ namespace OfficeIMO.Excel {
             return Convert.ToString(value.Value, provider as CultureInfo ?? CultureInfo.CurrentCulture) ?? value.CachedText ?? string.Empty;
         }
 
-        /// <summary>
-        /// Applies a number format to every cell in the range.
-        /// </summary>
-        public void FormatRange(string a1Range, string numberFormat) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+        internal void FormatRange(string a1Range, string numberFormat) {
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -102,12 +121,9 @@ namespace OfficeIMO.Excel {
             WriteLock(() => FormatRangeCore(r1, c1, r2, c2, numberFormat));
         }
 
-        /// <summary>
-        /// Applies a solid fill to every cell in the range.
-        /// </summary>
-        public void FillRange(string a1Range, string hexColor) {
+        internal void FillRange(string a1Range, string hexColor) {
             if (string.IsNullOrWhiteSpace(hexColor)) return;
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -116,11 +132,8 @@ namespace OfficeIMO.Excel {
             WriteLock(() => FillRangeCore(r1, c1, r2, c2, hexColor));
         }
 
-        /// <summary>
-        /// Clears selected parts of every cell and attached worksheet metadata in the range.
-        /// </summary>
-        public void ClearRange(string a1Range, ExcelClearOptions options = ExcelClearOptions.All) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+        internal void ClearRange(string a1Range, ExcelClearOptions options = ExcelClearOptions.All) {
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (options == ExcelClearOptions.None) {
                 return;
             }
@@ -197,7 +210,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (clearValues && (cell.CellValue != null
+                if (clearValues && (ExcelWorksheetScan.FindValue(cell) != null
                     || cell.DataType != null
                     || cell.InlineString != null
                     || HasCellValueMetadata(cell))) {
@@ -208,7 +221,7 @@ namespace OfficeIMO.Excel {
                     changed = true;
                 }
 
-                if (clearFormulas && cell.CellFormula != null) {
+                if (clearFormulas && ExcelWorksheetScan.FindFormula(cell) != null) {
                     cell.CellFormula = null;
                     changed = true;
                 }

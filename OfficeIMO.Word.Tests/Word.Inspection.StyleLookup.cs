@@ -24,9 +24,9 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("First").SetStyleId("inspectioncustom");
             document.AddParagraph("Second").SetStyleId("InspectionCustom");
 
-            WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
-            WordParagraphSnapshot[] paragraphs = snapshot.Sections
-                .SelectMany(section => section.Elements.OfType<WordParagraphSnapshot>())
+            WordDocumentInfo snapshot = document.Inspect();
+            WordParagraphInfo[] paragraphs = snapshot.Sections
+                .SelectMany(section => section.Elements.OfType<WordParagraphInfo>())
                 .ToArray();
 
             Assert.Equal(2, paragraphs.Length);

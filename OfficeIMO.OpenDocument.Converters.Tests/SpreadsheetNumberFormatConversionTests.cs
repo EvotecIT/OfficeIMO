@@ -18,11 +18,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     public void WholeNumberValidationWithNonIntegerLexicalOperandIsReportedUnsupported() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            authored.AddWorksheet("Data").ValidationWholeNumber(
-                "A1",
-                ExcelDataValidationOperator.GreaterThan,
-                1,
-                allowBlank: true);
+            authored.AddSheet("Data").Range("A1").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 1, allowBlank: true);
             package = authored.ToBytes();
         }
         using (var stream = new MemoryStream(package)) {
@@ -40,7 +36,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         }
         using ExcelDocument source = ExcelDocument.Load(new MemoryStream(package));
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Empty(conversion.Value.Validations);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "validations"
@@ -57,7 +53,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         cell.SetString("Last, First");
         cell.ValidationName = validation.Name;
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.Empty(target.Sheets.Single().GetDataValidations());
@@ -68,8 +64,8 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void ScalarAndListValidationsRoundTripThroughTypedOdfConditions() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
-        sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 10, allowBlank: false);
+        ExcelSheet sheet = source.AddSheet("Data");
+        sheet.Range("B2:B3").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10, allowBlank: false);
         sheet.SetDataValidationMessages("B2:B3", new ExcelDataValidationMessageOptions {
             PromptTitle = "Allowed values",
             Prompt = "Enter 1 through 10.",
@@ -80,9 +76,9 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             ErrorStyle = ExcelDataValidationErrorStyle.Warning,
             PreserveShowMessageFlags = true
         });
-        sheet.ValidationList("C2:C3", new[] { "New", "On \"Hold\"", "Done" });
+        sheet.Range("C2:C3").Validation().List(new[] { "New", "On \"Hold\"", "Done" });
 
-        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> toOds = source.ConvertToOpenDocumentWithEvidence();
         Assert.Equal(2, toOds.Value.Validations.Count);
         Assert.Contains(toOds.Value.Validations, validation =>
             validation.ParsedCondition?.ValueKind == OdsValidationValueKind.WholeNumber
@@ -100,7 +96,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         Assert.Contains(toOds.Report.Mappings, mapping =>
             mapping.Feature == "validations" && mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 2);
 
-        using ExcelDocument roundTrip = toOds.Value.ToExcelDocumentResult().Value;
+        using ExcelDocument roundTrip = toOds.Value.ConvertToExcelWithEvidence().Value;
         IReadOnlyList<ExcelDataValidationInfo> validations = roundTrip.Sheets.Single().GetDataValidations();
         Assert.Equal(2, validations.Count);
         Assert.Contains(validations, validation => validation.Type == "whole"
@@ -114,8 +110,8 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void EmptyValidationMessagesPreserveDisplayFlagsAndErrorStyle() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
-        sheet.ValidationWholeNumber("A1", ExcelDataValidationOperator.GreaterThan, 0);
+        ExcelSheet sheet = source.AddSheet("Data");
+        sheet.Range("A1").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 0);
         sheet.SetDataValidationMessages("A1", new ExcelDataValidationMessageOptions {
             ShowInputMessage = true,
             ShowErrorMessage = false,
@@ -123,7 +119,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             PreserveShowMessageFlags = true
         });
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdsValidation validation = Assert.Single(conversion.Value.Validations);
         Assert.True(validation.HasHelpMessage);
         Assert.True(validation.ShowHelpMessage);
@@ -133,7 +129,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
 
         OdsDocument persisted = OdsDocument.Load(new MemoryStream(conversion.Value.ToBytes()));
         Assert.True(persisted.Validate().IsValid);
-        using ExcelDocument roundTrip = persisted.ToExcelDocumentResult().Value;
+        using ExcelDocument roundTrip = persisted.ConvertToExcelWithEvidence().Value;
         ExcelDataValidationInfo actual = Assert.Single(roundTrip.Sheets.Single().GetDataValidations());
         Assert.True(actual.ShowInputMessage);
         Assert.False(actual.ShowErrorMessage);
@@ -147,11 +143,11 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void OverlappingExcelValidationsRetainLaterRuleAndReportTheConflict() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
-        sheet.ValidationWholeNumber("A1:A2", ExcelDataValidationOperator.GreaterThan, 0);
-        sheet.ValidationDecimal("A2:A3", ExcelDataValidationOperator.LessThan, 10);
+        ExcelSheet sheet = source.AddSheet("Data");
+        sheet.Range("A1:A2").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 0);
+        sheet.Range("A2:A3").Validation().Decimal(ExcelDataValidationOperator.LessThan, 10);
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdsSheet converted = conversion.Value.Sheets.Single();
 
         Assert.NotEqual(converted.Cell(0, 0).ValidationName, converted.Cell(1, 0).ValidationName);
@@ -160,7 +156,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             mapping.Feature == "validation-overlaps"
             && mapping.Status == OdfConversionMappingStatus.Unsupported
             && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
@@ -176,7 +172,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             .Descendants(OdfNamespaces.Table + "content-validation").Single();
         validationElement.SetAttributeValue(OdfNamespaces.Table + "allow-empty-cell", "0");
 
-        using ExcelDocument target = source.ToExcelDocumentResult().Value;
+        using ExcelDocument target = source.ConvertToExcelWithEvidence().Value;
         ExcelDataValidationInfo projected = Assert.Single(target.Sheets.Single().GetDataValidations());
 
         Assert.False(projected.AllowBlank);
@@ -185,17 +181,17 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void LegacyExcelCommentsRoundTripThroughOdsAnnotations() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.SetComment("C4", "Review  this\tvalue\nbefore release", "Alice");
 
-        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> toOds = source.ConvertToOpenDocumentWithEvidence();
         OdsAnnotation annotation = Assert.Single(toOds.Value.GetSheet("Data")!.Cell(3, 2).Annotations);
         Assert.Equal("Alice", annotation.Creator);
         Assert.Equal("Review  this\tvalue\nbefore release", annotation.Text);
         Assert.Contains(toOds.Report.Mappings, mapping =>
             mapping.Feature == "comments" && mapping.Status == OdfConversionMappingStatus.Converted);
 
-        using ExcelDocument roundTrip = toOds.Value.ToExcelDocumentResult().Value;
+        using ExcelDocument roundTrip = toOds.Value.ConvertToExcelWithEvidence().Value;
         ExcelCommentInfo comment = Assert.Single(roundTrip.Sheets.Single().GetComments());
         Assert.Equal("C4", comment.CellReference);
         Assert.Equal("Alice", comment.Author);
@@ -208,7 +204,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         DateTimeOffset timestamp = new DateTimeOffset(2026, 8, 9, 9, 15, 0, TimeSpan.Zero);
         source.AddSheet("Data").Cell(0, 0).AddAnnotation("Review", "Alice", timestamp, "note-17");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         ExcelCommentInfo comment = Assert.Single(target.Sheets.Single().GetComments());
 
@@ -218,14 +214,14 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         Assert.Contains("Review", comment.Text, StringComparison.Ordinal);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "comments" && mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
     [Fact]
     public void ThreadedExcelCommentsBecomeExplicitlyApproximatedOdsAnnotations() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         DateTime timestamp = new DateTime(2026, 8, 9, 8, 30, 0, DateTimeKind.Utc);
         ExcelThreadedCommentResult root = sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
             Address = "A1",
@@ -242,7 +238,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             Date = timestamp.AddMinutes(5)
         });
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdsAnnotation annotation = Assert.Single(conversion.Value.GetSheet("Data")!.Cell(0, 0).Annotations);
 
         Assert.Equal("Alice", annotation.Creator);
@@ -259,7 +255,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void ThreadedRootMergedWithLegacyCommentRetainsItsMetadataTranscript() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.SetComment("A1", "Legacy note", "Legacy Author");
         DateTime timestamp = new DateTime(2026, 8, 9, 9, 15, 0, DateTimeKind.Utc);
         ExcelThreadedCommentResult root = sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
@@ -269,7 +265,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             Date = timestamp
         });
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdsAnnotation annotation = Assert.Single(conversion.Value.GetSheet("Data")!.Cell(0, 0).Annotations);
 
         Assert.Contains("Legacy note", annotation.Text, StringComparison.Ordinal);
@@ -282,11 +278,11 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void Conversion_Loss_Policy_Distinguishes_Approximation_From_Skipped_Or_Unsupported_Content() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
-        sheet.CellAt(1, 1).SetValue(1D);
-        sheet.CellAt(1, 2).SetFormula("A1+1");
+        ExcelSheet sheet = source.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue(1D);
+        sheet.Cell(1, 2).SetFormula("A1+1");
 
-        OdfConversionResult<OdsDocument> accepted = source.ToOpenDocumentResult(
+        OdfConversionResult<OdsDocument> accepted = source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             });
@@ -295,7 +291,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         Assert.False(accepted.Report.HasSkippedOrUnsupported);
 
         OdfConversionLossException exception = Assert.Throws<OdfConversionLossException>(() =>
-            source.ToOpenDocumentResult(new ExcelOpenDocumentConversionOptions {
+            source.ConvertToOpenDocumentWithEvidence(new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
             }));
         Assert.Contains(exception.Report.Mappings, mapping =>
@@ -305,11 +301,11 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void Quoted_Percent_Is_Not_Converted_To_Percentage_Scaling() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").Cell(1, 1);
         cell.SetValue(0.5D);
         cell.SetNumberFormat("0.00\"%\"");
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdsDataStyle style = Assert.Single(conversion.Value.DataStyles);
 
         Assert.Equal(OdsDataStyleKind.Number, style.Kind);
@@ -321,17 +317,17 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void Excel_Thousands_Scaling_Comma_Is_Not_Misreported_As_Grouping() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").Cell(1, 1);
         cell.SetValue(12000D);
         cell.SetNumberFormat("#,##0,");
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "cell-format-details"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.Throws<OdfConversionLossException>(() =>
-            source.ToOpenDocumentResult(new ExcelOpenDocumentConversionOptions {
+            source.ConvertToOpenDocumentWithEvidence(new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
     }
@@ -344,8 +340,8 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         cell.SetPercentage(0.125M);
         cell.NumberFormatName = style.Name;
 
-        using ExcelDocument target = source.ToExcelDocumentResult().Value;
-        ExcelCellSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        using ExcelDocument target = source.ConvertToExcelWithEvidence().Value;
+        ExcelCellInfo converted = Assert.Single(target.Inspect().Worksheets.Single().Cells);
 
         Assert.Equal("#,##0.000%", converted.Style!.NumberFormatCode);
     }
@@ -358,8 +354,8 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         cell.SetCurrency(12.5M, "EUR");
         cell.NumberFormatName = style.Name;
 
-        using ExcelDocument target = source.ToExcelDocumentResult().Value;
-        ExcelCellSnapshot converted = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
+        using ExcelDocument target = source.ConvertToExcelWithEvidence().Value;
+        ExcelCellInfo converted = Assert.Single(target.Inspect().Worksheets.Single().Cells);
 
         Assert.Equal("\"EUR\" #,##0.0", converted.Style!.NumberFormatCode);
     }
@@ -412,13 +408,13 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         Assert.False(style.TryGetExcelNumberFormatCode(out _));
         Assert.Throws<InvalidOperationException>(() => style.ToExcelNumberFormatCode());
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "cell-format-details"
             && mapping.Status == OdfConversionMappingStatus.Unsupported
             && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 
@@ -440,14 +436,14 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         stream.Position = 0;
         OdsDocument localized = OdsDocument.LoadFlatXml(stream);
 
-        OdfConversionResult<ExcelDocument> conversion = localized.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = localized.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "cell-format-details"
             && mapping.Status == OdfConversionMappingStatus.Unsupported
             && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => localized.ToExcelDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => localized.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 
@@ -460,16 +456,16 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [InlineData("[$-409]0.00")]
     public void ExcelFormatsFlattenedByOdfProjectionAreReportedUnsupported(string numberFormat) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").Cell(1, 1);
         cell.SetValue(12345D);
         cell.SetNumberFormat(numberFormat);
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "cell-format-details" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
@@ -478,17 +474,17 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void UnprojectedExcelTextLayoutAndDecorationAreReportedUnsupported() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
-        ExcelCell cell = sheet.CellAt(1, 1).SetValue("Formatted").SetShrinkToFit();
-        sheet.CellStrikethrough(1, 1);
-        sheet.CellWrapText(1, 1);
+        ExcelSheet sheet = source.AddSheet("Data");
+        ExcelCell cell = sheet.Cell(1, 1).SetValue("Formatted").SetShrinkToFit();
+        sheet.Cell(1, 1).SetStrikethrough();
+        sheet.Cell(1, 1).SetWrapText();
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
 
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "cell-format-details" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToOpenDocumentWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
@@ -500,9 +496,9 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         var timestamp = new DateTimeOffset(2026, 8, 10, 10, 0, 0, TimeSpan.FromHours(5));
         source.AddSheet("Data").Cell(0, 0).SetDateTime(timestamp);
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
-        object? projected = target.Sheets.Single().CellAt(1, 1).GetValue().Value;
+        object? projected = target.Sheets.Single().Cell(1, 1).GetValue().Value;
         double serial = projected is DateTime dateTime
             ? dateTime.ToOADate()
             : Convert.ToDouble(projected, CultureInfo.InvariantCulture);
@@ -512,7 +508,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
             mapping.Feature == "date-time-offsets" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported &&
             mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => source.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
@@ -534,13 +530,13 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         OdsDocument loaded = OdsDocument.LoadFlatXml(stream);
 
         Assert.False(Assert.Single(loaded.DataStyles).TryGetExcelNumberFormatCode(out _));
-        OdfConversionResult<ExcelDocument> conversion = loaded.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = loaded.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "cell-format-details"
             && mapping.Status == OdfConversionMappingStatus.Unsupported
             && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => loaded.ToExcelDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => loaded.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
     }
 
@@ -560,13 +556,13 @@ public sealed class SpreadsheetNumberFormatConversionTests {
         OdsDocument loaded = OdsDocument.LoadFlatXml(stream);
 
         Assert.False(Assert.Single(loaded.DataStyles).TryGetExcelNumberFormatCode(out _));
-        OdfConversionResult<ExcelDocument> conversion = loaded.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = loaded.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "cell-format-details"
             && mapping.Status == OdfConversionMappingStatus.Unsupported
             && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => loaded.ToExcelDocumentResult(
+        Assert.Throws<OdfConversionLossException>(() => loaded.ConvertToExcelWithEvidence(
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));

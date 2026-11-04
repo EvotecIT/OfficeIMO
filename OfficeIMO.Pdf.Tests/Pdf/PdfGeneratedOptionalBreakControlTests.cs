@@ -17,11 +17,11 @@ public sealed class PdfGeneratedOptionalBreakControlTests {
         byte[] data = cff ? File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!)
             : ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, 'A');
         var options = named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Mixed controls", data))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Mixed controls");
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Mixed controls", data))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Mixed controls");
         PdfDocument Document(string text) => PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily("Mixed controls");
-            paragraph.Text(text);
+            if (named) { paragraph.RunDefaults.FontFamily = "Mixed controls"; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText(text);
         });
 
         PdfDocument valid = Document("A\u200B\u200EA");
@@ -59,11 +59,11 @@ public sealed class PdfGeneratedOptionalBreakControlTests {
         // ZWSP is a layout rule; it cannot waive the LRM blank-glyph proof.
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(32, 'A');
         var options = named
-            ? new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Unsafe mixed", data))
-            : new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Unsafe mixed");
+            ? new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Unsafe mixed", data))
+            : new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Unsafe mixed");
         PdfDocument document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (named) paragraph.FontFamily("Unsafe mixed");
-            paragraph.Text("A\u200B\u200EA");
+            if (named) { paragraph.RunDefaults.FontFamily = "Unsafe mixed"; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText("A\u200B\u200EA");
         });
 
         PdfTextEncodingDiagnostic diagnostic = Assert.Single(document.AnalyzeTextEncoding());

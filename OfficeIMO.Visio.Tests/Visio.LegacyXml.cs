@@ -15,7 +15,7 @@ public class VisioLegacyXmlTests {
         var imported = VisioDocument.LoadLegacyXml(path);
         VisioPage page = Assert.Single(imported.Value.Pages);
         Assert.Equal(19, page.Shapes.Count + page.Connectors.Count);
-        Assert.DoesNotContain(imported.Report.FidelityDiagnostics, item => item.Code == "VDX_CONNECTOR_PROFILE" && item.Location == "34");
+        Assert.DoesNotContain(imported.Report.Diagnostics, item => item.Code == "VDX_CONNECTOR_PROFILE" && item.Location == "34");
         VisioConnector connected = Assert.Single(page.Connectors, connector => connector.Id == "28");
         Assert.Equal("4", connected.From?.Id); Assert.Equal("11", connected.To?.Id);
         Assert.Contains(page.Shapes, shape => !string.IsNullOrWhiteSpace(shape.Text));
@@ -42,7 +42,7 @@ public class VisioLegacyXmlTests {
 
     [Fact]
     public void ReportsOmissionsAndLeavesDestinationUntouchedUntilExplicitlyAccepted() {
-        VisioDocument document = VisioDocument.Create(); document.AddPage("Page", 10, 7);
+        VisioDocument document = VisioDocument.Create(); document.AddPage("Page", OfficeLength.Inches(10), OfficeLength.Inches(7));
         using var target = new MemoryStream(new byte[100], writable: true);
         byte[] before = target.ToArray();
         Assert.Throws<OfficeConversionException>(() => document.SaveLegacyXml(target));
@@ -55,16 +55,16 @@ public class VisioLegacyXmlTests {
     [InlineData(VisioPackageType.Stencil)]
     public void CreatesEditsAndConvertsLegacyFamilies(VisioPackageType family) {
         VisioDocument document = VisioDocument.Create(family);
-        if (family == VisioPackageType.Stencil) document.RegisterMaster("Box", new VisioShape("1", 2, 2, 2, 1, "Reusable"));
+        if (family == VisioPackageType.Stencil) document.RegisterMaster("Box", new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Reusable"));
         else {
-            VisioPage page = document.AddPage("Workflow", 10, 7);
-            var start = new VisioShape("1", 2, 2, 2, 1, "Start");
-            var end = new VisioShape("2", 6, 2, 2, 1, "End");
+            VisioPage page = document.AddPage("Workflow", OfficeLength.Inches(10), OfficeLength.Inches(7));
+            var start = new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start");
+            var end = new VisioShape("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "End");
             page.Shapes.Add(start); page.Shapes.Add(end);
             page.Connectors.Add(new VisioConnector(start, end));
         }
         var exported = document.ToLegacyXmlResult();
-        Assert.DoesNotContain(exported.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "VDX_GEOMETRY" || diagnostic.Code == "VDX_SECTION");
+        Assert.DoesNotContain(exported.Report.Diagnostics, diagnostic => diagnostic.Code == "VDX_GEOMETRY" || diagnostic.Code == "VDX_SECTION");
         XDocument xml = XDocument.Load(new MemoryStream(exported.Value));
         Assert.Equal("http://schemas.microsoft.com/visio/2003/core", xml.Root!.Name.NamespaceName);
         Assert.DoesNotContain(xml.Descendants(), element => element.Name.LocalName == "Cell");
@@ -119,6 +119,6 @@ public class VisioLegacyXmlTests {
         using var wrong = new MemoryStream(Encoding.UTF8.GetBytes("<VisioDocument/>"));
         Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(wrong));
         using var deep = new MemoryStream(Encoding.UTF8.GetBytes("<VisioDocument xmlns='http://schemas.microsoft.com/visio/2003/core'><Pages><Page><Shapes/></Page></Pages></VisioDocument>"));
-        Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(deep, options: new VisioLoadOptions { MaxLegacyXmlDepth = 2 }));
+        Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(deep, options: new VisioLoadOptions { Limits = { MaxLegacyXmlDepth = 2 } }));
     }
 }

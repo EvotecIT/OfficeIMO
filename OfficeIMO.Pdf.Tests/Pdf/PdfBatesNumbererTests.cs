@@ -98,7 +98,7 @@ public class PdfBatesNumbererTests {
 
         InvalidOperationException heightError = Assert.Throws<InvalidOperationException>(() => PdfBatesNumberer.Apply(
             new[] { new PdfBatesDocument(source) },
-            new PdfBatesNumberingOptions { Height = 5D, FontSize = 10D }));
+            new PdfBatesNumberingOptions { Height = OfficeIMO.OfficeLength.Points(5D), FontSize = OfficeIMO.OfficeLength.Points(10D) }));
         Assert.Contains("does not fit", heightError.Message, StringComparison.Ordinal);
     }
 

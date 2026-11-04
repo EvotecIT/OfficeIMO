@@ -16,7 +16,7 @@ public class RtfHtmlDocumentReferenceTests {
         document.AddXmlNamespace(1, "http://schemas.example.test/word");
         document.AddParagraph("Body");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true,
             FragmentOnly = false,
@@ -26,7 +26,7 @@ public class RtfHtmlDocumentReferenceTests {
         Assert.Contains("<meta name=\"officeimo-rtf-file-references\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("<meta name=\"officeimo-rtf-xml-namespaces\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
 
         Assert.Collection(roundTrip.FileReferences,
             file => {
@@ -54,7 +54,7 @@ public class RtfHtmlDocumentReferenceTests {
                 Assert.Equal("http://schemas.example.test/word", xmlNamespace.Uri);
             });
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\*\filetbl{\file\fid0\frelative18\fvalidntfs C:\\Private\\Resume\\Edu\\File2.docx}{\file\fid1\fosnum42\fvalidntfs\fnetwork \\\\Server\\Share\\Linked.docx}}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\xmlnstbl{\xmlns1 http://schemas.example.test/word;}{\xmlns2 urn:contoso:custom;}}", rtf, StringComparison.Ordinal);
     }

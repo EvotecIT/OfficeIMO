@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -16,6 +15,11 @@ namespace OfficeIMO.Word {
         private static readonly Lazy<byte[]> DefaultTemplatePackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.Template));
         private static readonly Lazy<byte[]> DefaultMacroDocumentPackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.MacroEnabledDocument));
         private static readonly Lazy<byte[]> DefaultMacroTemplatePackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.MacroEnabledTemplate));
+        // Packages with the default creation theme already applied. Valid only while no runtime style registrations exist.
+        private static readonly Lazy<byte[]> DefaultThemedDocumentPackage = new(() => CreateDefaultThemedPackageBytes(WordprocessingDocumentType.Document));
+        private static readonly Lazy<byte[]> DefaultThemedTemplatePackage = new(() => CreateDefaultThemedPackageBytes(WordprocessingDocumentType.Template));
+        private static readonly Lazy<byte[]> DefaultThemedMacroDocumentPackage = new(() => CreateDefaultThemedPackageBytes(WordprocessingDocumentType.MacroEnabledDocument));
+        private static readonly Lazy<byte[]> DefaultThemedMacroTemplatePackage = new(() => CreateDefaultThemedPackageBytes(WordprocessingDocumentType.MacroEnabledTemplate));
 
         private static string GetUniqueFilePath(string filePath) {
             if (File.Exists(filePath)) {
@@ -91,7 +95,12 @@ namespace OfficeIMO.Word {
             if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose) {
                 throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(options));
             }
-            return CreateInternal(filePath: null, stream: null, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode);
+            if (resolved.Template != null) {
+                WordDocument copied = CreateFromTemplate(resolved.Template);
+                copied._persistenceMode = resolved.PersistenceMode;
+                return ApplyTemplateCreationTheme(copied, resolved.Theme);
+            }
+            return CreateInternal(filePath: null, stream: null, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
         }
 
         /// <summary>Creates a Word document associated with a path that is written on explicit save.</summary>
@@ -100,15 +109,21 @@ namespace OfficeIMO.Word {
         public static WordDocument Create(string filePath, WordCreateOptions? options = null) {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             WordCreateOptions resolved = options ?? new WordCreateOptions();
+            if (resolved.Template != null) {
+                WordDocument copied = CreateFromTemplate(resolved.Template);
+                copied.FilePath = filePath;
+                copied._persistenceMode = resolved.PersistenceMode;
+                return ApplyTemplateCreationTheme(copied, resolved.Theme);
+            }
             var documentType = GetDocumentType(filePath);
-            var word = CreateInternal(filePath, null, documentType, resolved.PersistenceMode);
+            var word = CreateInternal(filePath, null, documentType, resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
             return word;
         }
 
         /// <summary>Creates an editable detached document from a template without writing or associating the source.</summary>
         /// <param name="templatePath">Existing Word package to copy into memory.</param>
         /// <returns>A document that requires an explicit destination when saved.</returns>
-        public static WordDocument CreateFromTemplate(string templatePath) {
+        internal static WordDocument CreateFromTemplate(string templatePath) {
             if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
             using var source = File.OpenRead(templatePath);
             return Load(source, new WordLoadOptions {
@@ -154,8 +169,17 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode) {
-            byte[] templateBytes = GetDefaultPackageBytes(documentType);
+        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme) {
+            // The default theme projection is deterministic, so reuse a package that already carries it instead of
+            // parsing, cloning and reserializing the style catalog and theme part for every new document.
+            bool themeApplied = ReferenceEquals(theme, OfficeTheme.Default) && !WordParagraphStyle.HasRuntimeStyleRegistrations;
+            return CreateInternal(filePath, stream, documentType, persistenceMode, theme,
+                themeApplied ? GetDefaultThemedPackageBytes(documentType) : GetDefaultPackageBytes(documentType),
+                themeApplied, applyStyleRegistrations: true);
+        }
+
+        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme,
+            byte[] templateBytes, bool themeApplied, bool applyStyleRegistrations) {
             var packageStream = new MemoryStream(templateBytes.Length + 4096);
             packageStream.Write(templateBytes, 0, templateBytes.Length);
             packageStream.Position = 0;
@@ -184,9 +208,16 @@ namespace OfficeIMO.Word {
                 _tableNormalizationRequired = false
             };
             word.InitializeSdtIdState();
-            ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
+            if (applyStyleRegistrations && !themeApplied) ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
             InitializeNewDocumentFacade(word);
-            return word;
+            try {
+                if (themeApplied) word._creationTheme = theme;
+                else if (theme != null) word.ApplyCreationTheme(theme);
+                return word;
+            } catch {
+                word.Dispose();
+                throw;
+            }
         }
 
         private static byte[] GetDefaultPackageBytes(WordprocessingDocumentType documentType) => documentType switch {
@@ -196,6 +227,26 @@ namespace OfficeIMO.Word {
             WordprocessingDocumentType.MacroEnabledTemplate => DefaultMacroTemplatePackage.Value,
             _ => throw new ArgumentOutOfRangeException(nameof(documentType), documentType, "Unsupported Word document type.")
         };
+
+        private static byte[] GetDefaultThemedPackageBytes(WordprocessingDocumentType documentType) => documentType switch {
+            WordprocessingDocumentType.Document => DefaultThemedDocumentPackage.Value,
+            WordprocessingDocumentType.Template => DefaultThemedTemplatePackage.Value,
+            WordprocessingDocumentType.MacroEnabledDocument => DefaultThemedMacroDocumentPackage.Value,
+            WordprocessingDocumentType.MacroEnabledTemplate => DefaultThemedMacroTemplatePackage.Value,
+            _ => throw new ArgumentOutOfRangeException(nameof(documentType), documentType, "Unsupported Word document type.")
+        };
+
+        private static byte[] CreateDefaultThemedPackageBytes(WordprocessingDocumentType documentType) {
+            using WordDocument document = CreateInternal(filePath: null, stream: null, documentType, DocumentPersistenceMode.Explicit,
+                OfficeTheme.Default, GetDefaultPackageBytes(documentType), themeApplied: false, applyStyleRegistrations: false);
+            using var packageStream = new MemoryStream();
+            using (document._wordprocessingDocument.Clone(packageStream, true)) {
+            }
+
+            packageStream.Position = 0;
+            WordPackageCompatibility.NormalizeOpenOfficeRelationships(packageStream);
+            return packageStream.ToArray();
+        }
 
         private static byte[] CreateDefaultPackageBytes(WordprocessingDocumentType documentType) {
             using WordDocument document = CreateUncached(
@@ -319,7 +370,13 @@ namespace OfficeIMO.Word {
         public static WordDocument Create(Stream stream, WordCreateOptions? options = null) {
             OfficeDocumentLifecycle.EnsureAssociatedDestination(stream, nameof(stream));
             WordCreateOptions resolved = options ?? new WordCreateOptions();
-            var word = CreateInternal(null, stream, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode);
+            if (resolved.Template != null) {
+                WordDocument copied = CreateFromTemplate(resolved.Template);
+                copied.OriginalStream = stream;
+                copied._persistenceMode = resolved.PersistenceMode;
+                return ApplyTemplateCreationTheme(copied, resolved.Theme);
+            }
+            var word = CreateInternal(null, stream, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
             return word;
         }
 
@@ -338,7 +395,15 @@ namespace OfficeIMO.Word {
             new WordBackground(this);
             new WordDocumentStatistics(this);
             new WordCompatibilitySettings(this);
-            //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
+            //CustomProperties customDocumentProperties = new CustomProperties(this);
+            LoadSections();
+        }
+
+        /// <summary>
+        /// Builds the section model from the section properties in the document body.
+        /// </summary>
+        private void LoadSections() {
+            Sections.Clear();
             // add a section that's assigned to top of the document
             var wordSection = new WordSection(this, null!, null!);
 
@@ -373,8 +438,8 @@ namespace OfficeIMO.Word {
         private void RearrangeSectionsAfterLoad() {
             if (Sections.Count > 0) {
                 //var firstElement = Sections[0];
-                var firstElementHeader = Sections[0].Header;
-                var firstElementFooter = Sections[0].Footer;
+                var firstElementHeader = Sections[0].Headers;
+                var firstElementFooter = Sections[0].Footers;
                 var firstElementSection = Sections[0]._sectionProperties;
 
                 for (int i = 0; i < Sections.Count; i++) {
@@ -384,16 +449,16 @@ namespace OfficeIMO.Word {
                     //var tempSectionProp = element._sectionProperties;
 
                     if (i + 1 < Sections.Count) {
-                        Sections[i].Footer = Sections[i + 1].Footer;
-                        Sections[i].Header = Sections[i + 1].Header;
+                        Sections[i].Footers = Sections[i + 1].Footers;
+                        Sections[i].Headers = Sections[i + 1].Headers;
                         Sections[i]._sectionProperties = Sections[i + 1]._sectionProperties;
 
-                        Sections[i + 1].Footer = element.Footer;
-                        Sections[i + 1].Header = element.Header;
+                        Sections[i + 1].Footers = element.Footers;
+                        Sections[i + 1].Headers = element.Headers;
                         Sections[i + 1]._sectionProperties = element._sectionProperties;
                     } else {
-                        Sections[i].Footer = firstElementFooter;
-                        Sections[i].Header = firstElementHeader;
+                        Sections[i].Footers = firstElementFooter;
+                        Sections[i].Headers = firstElementHeader;
                         Sections[i]._sectionProperties = firstElementSection;
                     }
                 }
@@ -408,6 +473,8 @@ namespace OfficeIMO.Word {
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
         public static WordDocument Load(string filePath, WordLoadOptions? options = null) {
+            if (options?.Password is string password)
+                return AssociateEncryptedDocument(LoadEncrypted(filePath, password, options), filePath, password, options: options);
             if (filePath is null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -430,7 +497,7 @@ namespace OfficeIMO.Word {
 
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
                     if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
-                    return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
+                    return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions()), sourceBytes, resolved);
                 }
 
                 MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -476,13 +543,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
-        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
+        /// <param name="options">Access and load options for the decrypted package.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadEncrypted(string filePath, string password, WordLoadOptions? options = null) {
+        internal static WordDocument LoadEncrypted(string filePath, string password, WordLoadOptions? options = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             WordLoadOptions resolved = options ?? new WordLoadOptions();
-            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
+            OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
+            resolved = resolved.Snapshot();
+            resolved.PersistenceMode = DocumentPersistenceMode.Explicit;
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -502,14 +571,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="stream">Readable stream containing the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
-        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
+        /// <param name="options">Access and load options for the decrypted package.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions? options = null) {
+        internal static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
             WordLoadOptions resolved = options ?? new WordLoadOptions();
-            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
+            OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
+            resolved = resolved.Snapshot();
+            resolved.PersistenceMode = DocumentPersistenceMode.Explicit;
 
             byte[] encryptedBytes = ReadSourceBytes(stream, resolved);
             ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
@@ -518,11 +589,6 @@ namespace OfficeIMO.Word {
             return WithSourcePackageInspection(LoadFromStream(decryptedSource, resolved, captureSourcePackageSecurity: false), encryptedBytes, resolved, "encrypted-source-container");
         }
 
-        private static void EnsureEncryptedLoadUsesExplicitPersistence(WordLoadOptions options) {
-            if (options.PersistenceMode != DocumentPersistenceMode.Explicit) {
-                throw new NotSupportedException("SaveOnDispose is not supported for encrypted Word sources. Use SaveEncrypted to persist encrypted changes.");
-            }
-        }
 
         /// <summary>
         /// Asynchronously loads a <see cref="WordDocument"/> from the given file.
@@ -533,6 +599,14 @@ namespace OfficeIMO.Word {
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
         public static async Task<WordDocument> LoadAsync(string filePath, WordLoadOptions? options = null, CancellationToken cancellationToken = default) {
+            if (options?.Password is string password) {
+                return await Task.Run(() => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    WordDocument loaded = AssociateEncryptedDocument(LoadEncrypted(filePath, password, options), filePath, password, options: options);
+                    if (cancellationToken.IsCancellationRequested) { loaded.Dispose(); cancellationToken.ThrowIfCancellationRequested(); }
+                    return loaded;
+                }, cancellationToken).ConfigureAwait(false);
+            }
             if (filePath is null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -553,7 +627,7 @@ namespace OfficeIMO.Word {
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
                     if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
-                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly), sourceBytes, resolved);
+                return WithSourcePackageInspection(LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions()), sourceBytes, resolved);
             }
 
             MemoryStream memoryStream = CreateLegacyValidationPackageStream(
@@ -631,7 +705,9 @@ namespace OfficeIMO.Word {
         /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <returns></returns>
         public static WordDocument Load(Stream stream, WordLoadOptions? options = null) =>
-            LoadFromStream(stream, options, captureSourcePackageSecurity: true);
+            options?.Password is string password
+                ? AssociateEncryptedDocument(LoadEncrypted(stream, password, options), null, password, options?.AccessMode == DocumentAccessMode.ReadOnly ? null : stream, options)
+                : LoadFromStream(stream, options, captureSourcePackageSecurity: true);
 
         private static WordDocument LoadFromStream(Stream stream, WordLoadOptions? options,
             bool captureSourcePackageSecurity) {
@@ -653,7 +729,7 @@ namespace OfficeIMO.Word {
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
                     if (!resolved.AllowLegacyProjection) throw new NotSupportedException("This load profile accepts Open XML documents only; binary DOC projection is disabled.");
-                WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
+                WordDocument document = LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly, resolved.CreateLegacyDocOptions());
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(document, sourceBytes, resolved) : document;
             }
 

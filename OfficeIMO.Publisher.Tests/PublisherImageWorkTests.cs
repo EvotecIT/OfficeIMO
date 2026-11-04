@@ -6,7 +6,7 @@ public sealed class PublisherImageWorkTests {
     [Fact]
     public void Repeated_unrecoverable_delayed_images_consume_a_bounded_processing_budget() {
         byte[] input = WithRepeatedDelayedImages(256, 1024);
-        var error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input, new PublisherReadOptions {
+        var error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input, new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxInputBytes = input.Length }
         }));
         Assert.Contains("image processing byte limit", error.Message);
@@ -15,7 +15,7 @@ public sealed class PublisherImageWorkTests {
     [Fact]
     public void Unrecoverable_image_store_entries_still_obey_the_item_limit() {
         byte[] input = WithRepeatedDelayedImages(256, 32);
-        var error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input, new PublisherReadOptions {
+        var error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input, new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 128 }
         }));
         Assert.Contains("image store entry limit", error.Message);

@@ -21,11 +21,11 @@ public sealed class PdfSplitWorkflowRequest {
     /// <summary>Optional input password.</summary>
     public string? PdfPassword { get; set; }
     /// <summary>Conflict policy for the local output folder or provider children.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+    public OfficePublicationPolicy ConflictPolicy { get; set; } = OfficePublicationPolicy.Rename;
     /// <summary>Host authorization checked before publication.</summary>
-    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+    public IOfficePublicationGuard? PublicationGuard { get; set; }
     /// <summary>Input and aggregate output byte limits.</summary>
-    public OfficeWorkflowLimits Limits { get; set; } = new();
+    public OfficeOperationLimits Limits { get; set; } = new();
 }
 
 /// <summary>One verified split output and its source page range.</summary>

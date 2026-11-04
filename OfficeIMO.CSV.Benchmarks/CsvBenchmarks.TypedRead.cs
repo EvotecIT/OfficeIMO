@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Data.Common;
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
@@ -56,7 +54,7 @@ public partial class CsvBenchmarks
     [Benchmark]
     public int OfficeIMO_ReadTypedRowsForwardOnly()
     {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(_csvText);
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(_csvText));
         var checksum = 17;
         foreach (CsvBenchmarkRow row in reader.RowsAs<CsvBenchmarkRow>())
         {
@@ -98,7 +96,12 @@ public partial class CsvBenchmarks
     {
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
         var checksum = 17;
-        foreach (CsvBenchmarkRow row in _excelReaderParser.Parse(reader))
+#if NET10_0_OR_GREATER
+        var records = _excelReaderParser.Parse(reader.FirstSheet);
+#else
+        var records = _excelReaderParser.Parse(reader);
+#endif
+        foreach (CsvBenchmarkRow row in records)
         {
             checksum = AddTypedRowChecksum(checksum, row);
         }

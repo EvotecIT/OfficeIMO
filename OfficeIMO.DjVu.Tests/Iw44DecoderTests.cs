@@ -8,7 +8,7 @@ public sealed class Iw44DecoderTests {
         string folder = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Authored");
         var document = DjVuDocument.Load(Path.Combine(folder, "gradient.djvu"));
         var page = Assert.Single(document.Pages);
-        var decoder = new Iw44Decoder(new DjVuReadBudget(new DjVuReadOptions(), default));
+        var decoder = new Iw44Decoder(new DjVuReadBudget(new DjVuLoadOptions(), default));
         var chunks = document.PageChunks(page.Component, default).Where(c => c.Id == "BG44").ToArray();
         Assert.True(chunks.Length > 1);
         foreach (var chunk in chunks) decoder.Read(chunk);

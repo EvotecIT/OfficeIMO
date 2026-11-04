@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationSnapshot_RestoresDeletedCommentPartRelationships() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment("A1", "Legacy", "Tester");
             ExcelThreadedCommentResult threaded = sheet.AddThreadedComment("B1", "Threaded", "Tester");
             WorksheetCommentsPart legacyPart = sheet.WorksheetPart.WorksheetCommentsPart!;
@@ -44,12 +44,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterCriteria_RejectQualifiedRangesWithoutReplacingLocalState() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
-            sheet.AutoFilterBlanks("A1:C3", 1);
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
+            sheet.Range("A1:C3").AutoFilter().Column(1).Blanks();
 
-            Assert.Throws<ArgumentException>(() => sheet.AutoFilterBlanks("Other!A1:C3", 1));
-            Assert.Throws<ArgumentException>(() => sheet.AutoFilterTopBottom("Data!A1:C3", 2, 5));
+            Assert.Throws<ArgumentException>(() => sheet.Range("Other!A1:C3").AutoFilter().Column(1).Blanks());
+            Assert.Throws<ArgumentException>(() => sheet.Range("Data!A1:C3").AutoFilter().Column(2).TopBottom(5));
 
             ExcelAutoFilterInfo filter = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", filter.Range);
@@ -59,10 +59,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_RejectsMergedCellIntersectionBeforeMutation() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(3, 1, 2);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
             sheet.AddTable("A1:A3", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             sheet.Range("B2:C2").Merge();
 
@@ -75,10 +75,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RejectsEmptyBoundaryColumnDefinition() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var columns = new Columns(new Column {
-                Min = (uint)A1.MaxColumns,
-                Max = (uint)A1.MaxColumns,
+                Min = (uint)ExcelA1.MaxColumns,
+                Max = (uint)ExcelA1.MaxColumns,
                 Width = 12D,
                 CustomWidth = true,
             });
@@ -87,13 +87,13 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() => sheet.PlanInsertColumns(1));
 
             Column column = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Column>());
-            Assert.Equal((uint)A1.MaxColumns, column.Max!.Value);
+            Assert.Equal((uint)ExcelA1.MaxColumns, column.Max!.Value);
         }
 
         [Fact]
         public void Test_SparklineType_LineDefaultDoesNotSplitImportedGroup() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AddSparklines("A1:C2", "D1:D2");
             X14.SparklineGroup group = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<X14.SparklineGroup>());
             group.Type = null;
@@ -106,17 +106,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemapsWorksheetFilterCriteria() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.AutoFilterBlanks("A1:C3", 1);
-            sheet.AutoFilterTopBottom("A1:C3", 2, 5);
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Range("A1:C3").AutoFilter().Column(1).Blanks();
+            sheet.Range("A1:C3").AutoFilter().Column(2).TopBottom(5);
 
-            sheet.InsertColumns(2);
+            sheet.InsertColumnsTransactional(2);
 
             ExcelAutoFilterInfo inserted = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:D3", inserted.Range);
             Assert.Equal(new uint[] { 2U, 3U }, inserted.Columns.Select(column => column.ColumnOffset).OrderBy(value => value));
 
-            sheet.DeleteColumns(3);
+            sheet.DeleteColumnsTransactional(3);
 
             ExcelAutoFilterInfo deleted = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", deleted.Range);
@@ -126,14 +126,14 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemapsManualColumnPageBreaks() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AddManualColumnPageBreak(2);
             sheet.AddManualColumnPageBreak(4);
 
-            sheet.InsertColumns(2);
+            sheet.InsertColumnsTransactional(2);
             Assert.Equal(new[] { 3, 5 }, sheet.GetManualColumnPageBreaks());
 
-            sheet.DeleteColumns(3);
+            sheet.DeleteColumnsTransactional(3);
             Assert.Equal(new[] { 4 }, sheet.GetManualColumnPageBreaks());
             ColumnBreaks columnBreaks = sheet.WorksheetPart.Worksheet.GetFirstChild<ColumnBreaks>()!;
             Assert.Equal(1U, columnBreaks.Count!.Value);

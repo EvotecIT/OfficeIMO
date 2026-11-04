@@ -6,49 +6,50 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class WorkforceRota {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-            var sheet = document.AddWorksheet("Rota");
-            sheet.SetColumnWidth(1, 29);
-            for (int column = 2; column <= 7; column++) sheet.SetColumnWidth(column, 22);
-            sheet.MergeRange("A1:G1"); sheet.Cell(1, 1, "Weekly support rota");
-            sheet.CellFontSize(1, 1, 22); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
-            sheet.MergeRange("A2:G2"); sheet.Cell(2, 1, "One assigned shift per day / D = desk / R = remote / - = off");
+            var sheet = document.AddSheet("Rota");
+            // Day columns hold one letter; narrow widths keep the rota on one page at full size.
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(9));
+            sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(12));
+            sheet.Range("A1:G1").Merge(); sheet.Cell(1, 1).SetValue("Weekly support rota");
+            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetFontColor("17365D");
+            sheet.Range("A2:G2").Merge(); sheet.Cell(2, 1).SetValue("One assigned shift per day / D = desk / R = remote / - = off");
             string[] headers = { "Team member", "Mon", "Tue", "Wed", "Thu", "Fri", "Desk days" };
-            for (int column = 1; column <= 7; column++) sheet.Cell(4, column, headers[column - 1]);
+            for (int column = 1; column <= 7; column++) sheet.Cell(4, column).SetValue(headers[column - 1]);
             string[] names = { "Maya", "Leon", "Sofia", "Amir" };
             string[][] shifts = { new[] { "D", "D", "R", "-", "R" }, new[] { "R", "-", "D", "D", "R" }, new[] { "D", "R", "-", "R", "D" }, new[] { "-", "D", "R", "D", "D" } };
             for (int index = 0; index < names.Length; index++) {
-                int row = index + 5; sheet.Cell(row, 1, names[index]);
+                int row = index + 5; sheet.Cell(row, 1).SetValue(names[index]);
                 for (int column = 2; column <= 6; column++) {
-                    string shift = shifts[index][column - 2]; sheet.Cell(row, column, shift);
+                    string shift = shifts[index][column - 2]; sheet.Cell(row, column).SetValue(shift);
                 }
-                sheet.CellFormula(row, 7, $"COUNTIF(B{row}:F{row},\"D\")");
+                sheet.Cell(row, 7).SetFormula($"COUNTIF(B{row}:F{row},\"D\")");
             }
             sheet.AddTable("A4:G8", true, "SupportRota", ExcelTableStyle.TableStyleMedium2);
             // Rules follow edited shifts in Excel and in the native range preview.
-            sheet.Range("B5:F8").Validation.List(new[] { "D", "R", "-" }, allowBlank: false);
-            sheet.Range("B5:F8").ConditionalFormatting.ContainsText("D", "DCFCE7");
-            sheet.Range("B5:F8").ConditionalFormatting.ContainsText("R", "DBEAFE");
-            sheet.Range("B5:F8").ConditionalFormatting.ContainsText("-", "F1F5F9");
-            sheet.Cell(10, 1, "Desk coverage");
+            sheet.Range("B5:F8").Validation().List(new[] { "D", "R", "-" }, allowBlank: false);
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "D", "DCFCE7");
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "R", "DBEAFE");
+            sheet.Range("B5:F8").ConditionalFormat().Text(ExcelConditionalFormatType.ContainsText, "-", "F1F5F9");
+            sheet.Cell(10, 1).SetValue("Desk coverage");
             for (int column = 2; column <= 6; column++) {
                 string letter = ((char)('A' + column - 1)).ToString();
-                sheet.CellFormula(10, column, $"COUNTIF({letter}5:{letter}8,\"D\")"); sheet.CellBold(10, column, true);
+                sheet.Cell(10, column).SetFormula($"COUNTIF({letter}5:{letter}8,\"D\")"); sheet.Cell(10, column).SetBold(true);
             }
-            sheet.MergeRange("A12:G12"); sheet.Cell(12, 1, "Review coverage before sharing. Names and shifts are synthetic.");
-            sheet.MergeRange("A13:G13"); sheet.Cell(13, 1, "This records a rota; it does not check working-time rules or approve leave.");
-            sheet.SetGridlinesVisible(false);
+            sheet.Range("A12:G12").Merge(); sheet.Cell(12, 1).SetValue("Review coverage before sharing. Names and shifts are synthetic.");
+            sheet.Range("A13:G13").Merge(); sheet.Cell(13, 1).SetValue("This records a rota; it does not check working-time rules or approve leave.");
+            sheet.View.ShowGridlines = false;
             for (int row = 1; row <= 16; row++) {
-                sheet.SetRowHeight(row, row == 1 ? 34 : row == 3 ? 12 : 25);
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(row == 1 ? 34 : row == 3 ? 12 : 25)));
                 for (int column = 1; column <= 7; column++) {
-                    sheet.CellFontName(row, column, "Carlito");
-                    if (row > 1) sheet.CellFontSize(row, column, 11);
+                    if (row > 1) sheet.Cell(row, column).SetFontSize(OfficeLength.Points(11));
                 }
             }
-            sheet.SetRowHeight(4, 30);
+            sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 7; column++) {
-                sheet.CellFontColor(4, column, "FFFFFF");
-                sheet.CellBold(4, column, true);
-                sheet.CellBackground(4, column, "17365D");
+                sheet.Cell(4, column).SetFontColor("FFFFFF");
+                sheet.Cell(4, column).SetBold(true);
+                sheet.Cell(4, column).SetFillColor("17365D");
             }
             document.Calculate();
             document.InspectFormulas().EnsureAllSupported().EnsureAllHaveCachedResults().EnsureNoDependencyIssues();

@@ -17,7 +17,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
 
         Assert.Equal(120D, Shape(rendered, "span#fill").Y, 6);
         Assert.Equal(360D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -36,7 +36,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         Assert.Equal(240D + StrutDescent(options.Fonts, 20D), Shape(rendered, "span#second").Y, 6);
         Assert.Equal(480D + StrutDescent(options.Fonts, 20D) + StrutDescent(options.Fonts, 100D),
             Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -53,7 +53,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
         Assert.Single(rendered.Pages.SelectMany(page => Enumerate(page.Scene)).OfType<HtmlRenderNamedDestination>(),
             destination => destination.Name == "anchor");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -85,7 +85,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
             + "</span><span id='fill' style='display:inline-block;width:40px;height:240px;background:lime'></span></div>" + Following), options);
 
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
 
         Assert.Equal(expectedTop, Shape(rendered, "span#fill").Y, 6);
         Assert.Equal(expectedTop + 240D + StrutDescent(options.Fonts, lineHeight), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -124,7 +124,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
 
         Assert.Equal(240D, Shape(rendered, "span#fill").Height, 6);
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         HtmlRenderDocument rendered = Render(html, options);
 
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -150,7 +150,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         HtmlRenderDocument rendered = Render(html, options);
 
         Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "span#second").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -192,7 +192,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         Assert.Equal(240D, Shape(rendered, "div#fill").Height, 6);
         Assert.Equal(0D, Shape(rendered, "div#fill").Y, 6);
         Assert.Equal(240D + (alignment == "baseline" ? descent : 0D), Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
 
         Assert.Equal(0D, Shape(rendered, "span#first").Y, 6);
         Assert.Equal(240D + descent, Shape(rendered, "span#second").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -224,7 +224,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
     [InlineData("Pinned")]
     [InlineData("Missing Document Font,Pinned")]
     public void PdfEmptyStrutUsesTheFirstAvailableRegisteredFace(string families) {
-        var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
+        var options = new HtmlPdfExportOptions { Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false };
         options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily("Pinned", FontBytes()));
         // The pinned hhea uses A1950/D550 at2048 units/em. Centering that
         // raw face in20px leading leaves4.53125px below the atomic baseline.
@@ -235,7 +235,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
         Assert.Equal(240D, Shape(result.RenderResult!.Document, "span#fill").Height, 6);
         Assert.Equal(240D + descent, Shape(result.RenderResult.Document, "div#following").Y, 6);
         Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(result.Document.ToBytes(), 0, 4));
-        result.RenderResult.Document.RequireNoLoss();
+        result.RenderResult.Document.ThrowIfLoss();
     }
 
     private const string Following = "<div id='following' style='height:10px;background:blue'></div>";
@@ -246,7 +246,7 @@ public sealed class HtmlEmptyInlineBlockBaselineTests {
     private static byte[] FontBytes() => File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
     private static HtmlRenderOptions Options() {
         var options = new HtmlRenderOptions { ViewportWidth = 600D, ViewportHeight = 900D,
-            PageSize = new OfficePageSize(600D / 96D, 900D / 96D), Margins = HtmlRenderMargins.All(0D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(900D / 96D)), Margins = HtmlRenderMargins.All(0D),
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false };
         options.Fonts.Add("Pinned", FontBytes());
         return options;

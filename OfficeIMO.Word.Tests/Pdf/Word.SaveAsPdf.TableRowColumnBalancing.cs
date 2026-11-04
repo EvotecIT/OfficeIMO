@@ -25,9 +25,9 @@ public partial class Word {
                 Enumerable.Range(1, lines).Select(index => $"Cell{index:D3}"));
             document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
             WordParagraph after = document.AddParagraph("AfterContinuous");
-            after.FontFamily = "Arial"; after.FontSize = 12;
-            after.LineSpacing = 400; after.LineSpacingRule = WordLineSpacingRule.Exact;
-            after.LineSpacingBeforePoints = 0; after.LineSpacingAfterPoints = 0;
+            after.FontFamily = "Arial"; after.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            after.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
+            after.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             after.KeepLinesTogetherOverride = false; after.KeepWithNextOverride = false;
             after.AvoidWidowAndOrphanOverride = false;
             source = document.ToBytes(format);

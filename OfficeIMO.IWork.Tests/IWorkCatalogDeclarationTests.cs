@@ -134,7 +134,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CatalogTestPackage(kind, field,
             BytesField(3, Message(Enumerable.Range(0, 9).Select(_ => VarintField(1, 0)).ToArray())));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -146,7 +146,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CatalogTestPackage(IWorkDocumentKind.Numbers, field,
             Message(BytesField(3, new byte[] { 0x80 }), BytesField(3, new byte[] { 0x80 })));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 });
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 });
         Assert.Contains("catalog limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, IWorkDocumentKind.Numbers)).Message);
     }
 
@@ -157,9 +157,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Catalog_evidence_budget_is_cumulative_and_snapshotted(int field) {
         using MemoryStream package = CatalogTestPackage(IWorkDocumentKind.Numbers, field,
             Message(BytesField(3, new byte[] { 0x80 }), BytesField(3, new byte[] { 0x80 })));
-        var options = new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
-        options.MaximumSourceDeclarationIssues = 10;
+        options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, IWorkDocumentKind.Numbers)).Message);
     }
 
@@ -168,7 +168,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = SelectedCatalogPackage(IWorkDocumentKind.Numbers, 4,
             BytesField(3, Message(VarintField(1, 1), BytesField(3, new byte[] { 0xFF }))), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
     }
@@ -192,7 +192,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(1, issue.DeclaredValueCount);
         });
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED");
+        Assert.Contains(report.Diagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED");
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] entry = BytesField(3, Message(VarintField(1, 1), StringField(3, new string('X', 40))));
         using MemoryStream package = SelectedCatalogPackage(IWorkDocumentKind.Numbers, 4, Message(entry, entry));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 50 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 50 });
         Assert.Contains("Text character count", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, IWorkDocumentKind.Numbers)).Message);
     }
 
@@ -221,29 +221,29 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         string expected = field == 4 ? "First" : "42";
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options);
+            using var partial = source.ToWordResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using WordDocument reopened = WordDocument.Load(saved);
             Assert.Equal(expected, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.Equal(field == 4, automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options);
+            using var partial = source.ToExcelResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            if (field == 4) Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-            else Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+            if (field == 4) Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+            else Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.Equal(field == 4, automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options);
+            using var partial = source.ToPowerPointResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             Assert.Equal(expected, reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
         }
     }

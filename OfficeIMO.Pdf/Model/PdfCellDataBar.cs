@@ -8,7 +8,7 @@ public sealed class PdfCellDataBar {
     private double _startRatio;
 
     /// <summary>Fill color used for the data bar.</summary>
-    public PdfColor Color { get; set; } = PdfColor.LightGray;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D);
 
     /// <summary>Filled width as a 0..1 fraction of the cell content width.</summary>
     public double Ratio {

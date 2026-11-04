@@ -55,12 +55,12 @@ public sealed class XpsStyleTests {
                 new XElement(ns + "LinearGradientBrush.GradientStops", new XElement(ns + "GradientStop", new XAttribute("Offset", "0"), new XAttribute("Color", "#80FF0000")),
                     new XElement(ns + "GradientStop", new XAttribute("Offset", "1"), new XAttribute("Color", "#80FF0000"))))));
         }
-        page.ReplaceMarkup(xml); byte[] bytes = XpsDocument.Load(doc.Save()).Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
+        page.ReplaceMarkup(xml); byte[] bytes = XpsDocument.Load(doc.ToBytes()).Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(bytes, out var raster));
         byte minimum = 255;
         for (int y = 0; y < raster!.Height; y++) for (int x = 0; x < raster.Width; x++) minimum = Math.Min(minimum, raster.GetPixel(x, y).G);
         Assert.InRange(minimum, (byte)126, (byte)129);
-        Assert.NotEmpty(doc.ToPdf());
+        Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class XpsStyleTests {
         var page = doc.AddPage(816, 1056);
         for (int i = 0; i < 30; i++) page.AddText("Heading", font, 14, 30, 30 + i * 25);
         var xml = page.GetMarkup(); foreach (var glyph in xml.Elements()) glyph.SetAttributeValue("StyleSimulations", "BoldSimulation"); page.ReplaceMarkup(xml);
-        Assert.NotNull(page.ToDrawing()); Assert.NotEmpty(doc.ToPdf());
+        Assert.NotNull(page.ToDrawing()); Assert.NotEmpty(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     private static XpsDocument Create(string simulation, bool sideways = false, bool rtl = false, XpsFormat format = XpsFormat.OpenXps) {

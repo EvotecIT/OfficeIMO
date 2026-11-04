@@ -24,7 +24,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
             Assert.Equal(paragraph.ListLevel == 0 ? 0 : 18, paragraph.ListLayout.MarkerIndentPoints);
         });
         Assert.Null(projection.Body.Paragraphs.Last().ListNumber);
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray())))
@@ -75,7 +75,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
         Assert.Equal(baseline, document.SaveBytes()); Assert.Single(list.Items);
         Assert.Single(document.Paragraphs); Assert.Single(document.BodyBlocks);
         Assert.Equal(8, list.AddItem("After").ListNumber);
-        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.Equal(new int?[] { 7, 8 }, result.Projection.Body.Paragraphs
             .Where(paragraph => paragraph.ListNumber.HasValue).Select(paragraph => paragraph.ListNumber));
@@ -90,7 +90,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
         Assert.Throws<InvalidOperationException>(() => list.AddItem("Child overflow", 1)); Assert.Equal(2, list.Items.Count);
         Assert.Equal(4, list.AddItem("Parent restart", restartAt: 4).ListNumber);
         Assert.Equal(1, list.AddItem("Reset child", 1).ListNumber);
-        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.Equal(new int?[] { int.MaxValue, int.MaxValue, 4, 1 }, result.Projection.Body.Paragraphs
             .Where(paragraph => paragraph.ListNumber.HasValue).Select(paragraph => paragraph.ListNumber));
@@ -103,13 +103,13 @@ public sealed class IWorkPagesNumberedListWritingTests {
         Assert.Equal(baseline, document.SaveBytes());
         document.NumberedLists[2].AddItem("First"); document.NumberedLists[4].AddItem("Other");
         using var stream = new MemoryStream(); stream.WriteByte(9);
-        var options = new IWorkPagesWriteOptions { MaximumNumberedLists = 1 };
+        var options = new IWorkPagesWriteOptions { MaxNumberedLists = 1 };
         Assert.Throws<InvalidDataException>(() => document.Save(stream, options)); Assert.Equal(new byte[] { 9 }, stream.ToArray());
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumNumberedLists = 0 }));
-        options.MaximumNumberedLists = 2; Assert.NotEmpty(document.SaveBytes(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxNumberedLists = 0 }));
+        options.MaxNumberedLists = 2; Assert.NotEmpty(document.SaveBytes(options));
         string path = Path.Combine(Path.GetTempPath(), "iwork-list-bound-" + Guid.NewGuid().ToString("N") + ".pages");
         try {
-            File.WriteAllBytes(path, new byte[] { 37 }); options.MaximumNumberedLists = 1;
+            File.WriteAllBytes(path, new byte[] { 37 }); options.MaxNumberedLists = 1;
             Assert.Throws<InvalidDataException>(() => document.Save(path, overwrite: true, options: options)); Assert.Equal(new byte[] { 37 }, File.ReadAllBytes(path));
         } finally { File.Delete(path); }
     }

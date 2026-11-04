@@ -362,7 +362,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new InvalidOperationException("An architecture diagram requires at least one component.");
             }
 
-            VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
             page.ReserveAutomaticObjectId(_titleId);
             foreach (CalloutItem callout in _callouts) {
                 page.ReserveAutomaticObjectId(callout.Id);
@@ -381,7 +381,7 @@ namespace OfficeIMO.Visio.Diagrams {
             if (!string.IsNullOrWhiteSpace(_titleText)) {
                 double titleY = _pageHeight - _topMargin - (_titleHeight / 2D);
                 double width = Math.Max(1D, _pageWidth - 1.6D);
-                VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, titleY, width, _titleHeight, _titleText, _unit);
+                VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, titleY, width, _titleHeight, _titleText, _unit);
                 title.TextStyle = CreateTitleTextStyle();
                 VisioSemanticUserCells.MarkGeneratedAdornment(title);
             }
@@ -397,7 +397,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private VisioTextStyle CreateTitleTextStyle() => VisioDiagramTitleStyles.Create(_theme);
 
         private void AddLegendItem(VisioPage page, double x, double y, string label, VisioConnectorStyle connectorStyle) {
-            VisioShape sample = page.AddRectangle(x + 0.32D, y, 0.64D, 0.08D, string.Empty, _unit);
+            VisioShape sample = page.AddRectangleInches(x + 0.32D, y, 0.64D, 0.08D, string.Empty, _unit);
             sample.NameU = "Rectangle";
             sample.FillPattern = 0;
             sample.LineColor = connectorStyle.LineColor;
@@ -405,7 +405,7 @@ namespace OfficeIMO.Visio.Diagrams {
             sample.LineWeight = Math.Max(0.018D, connectorStyle.LineWeight);
             VisioSemanticUserCells.MarkGeneratedAdornment(sample);
 
-            VisioShape text = page.AddTextBox(x + 1.55D, y, 1.65D, _legendHeight, label, _unit);
+            VisioShape text = page.AddTextBoxInches(x + 1.55D, y, 1.65D, _legendHeight, label, _unit);
             text.TextStyle = CreateLegendTextStyle(connectorStyle);
             VisioSemanticUserCells.MarkGeneratedAdornment(text);
         }
@@ -414,7 +414,7 @@ namespace OfficeIMO.Visio.Diagrams {
             VisioTextStyle style = connectorStyle.TextStyle?.Clone() ?? _theme.DataConnector.TextStyle?.Clone() ?? new VisioTextStyle();
             style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos" : style.FontFamily;
             style.Size = Math.Max(style.Size ?? 0D, 9D);
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.HorizontalAlignment = OfficeAlignment.Left;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
             return style;
         }
@@ -446,7 +446,7 @@ namespace OfficeIMO.Visio.Diagrams {
             foreach (ComponentItem component in _components) {
                 GetComponentShape(component.Kind, out string masterNameU, out double width, out double height);
                 string stencilId = GetComponentStencilId(component.Kind);
-                VisioShape shape = page.AddStencilShape(
+                VisioShape shape = page.AddStencilShapeInches(
                     VisioStencils.Architecture,
                     stencilId,
                     component.Id,
@@ -491,9 +491,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (callout.UsePlacement) {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
                 } else {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
             }
         }
@@ -723,8 +723,8 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static void ResolveSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {
-            double dx = to.PinX - from.PinX;
-            double dy = to.PinY - from.PinY;
+            double dx = to.PinXInches - from.PinXInches;
+            double dy = to.PinYInches - from.PinYInches;
             if (Math.Abs(dx) > Math.Abs(dy)) {
                 if (dx >= 0) {
                     fromSide = VisioSide.Right;

@@ -9,7 +9,49 @@ import VisionKit
 enum ScanSources {
     static var isCameraAvailable: Bool { VNDocumentCameraViewController.isSupported }
 
-    /// A new searchable PDF from the document camera, for the launch screen's Scan Document.
+    private enum Source {
+        case combine, camera, photos, sample, blank
+    }
+
+    /// A new PDF from the source chosen on the launch screen's Create PDF.
+    static func newDocumentFromChoice() async throws -> URL? {
+        switch await chooseSource() {
+        case .combine: try await ConversionSources.newDocumentFromFiles()
+        case .camera: try await newDocumentFromCamera()
+        case .photos: try await newDocumentFromPhotos()
+        case .sample: SampleDocument.url
+        case .blank: try newBlankDocument()
+        case nil: nil
+        }
+    }
+
+    private static func chooseSource() async -> Source? {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Source?, Never>) in
+            // An action sheet on an iPad needs an anchor in a view, and the launch screen offers none.
+            let style: UIAlertController.Style = UIDevice.current.userInterfaceIdiom == .pad ? .alert : .actionSheet
+            let choice = UIAlertController(title: nil, message: nil, preferredStyle: style)
+            @MainActor func add(_ title: String.LocalizationValue, _ action: UIAlertAction.Style = .default, _ source: Source?) {
+                choice.addAction(UIAlertAction(title: String(localized: title), style: action) { _ in continuation.resume(returning: source) })
+            }
+            add("Combine Files…", .default, .combine)
+            if isCameraAvailable { add("Scan Document", .default, .camera) }
+            add("PDF from Photos", .default, .photos)
+            add("Try a Sample PDF", .default, .sample)
+            add("New Blank PDF", .default, .blank)
+            add("Cancel", .cancel, nil)
+            Task { if !(await present(choice)) { continuation.resume(returning: nil) } }
+        }
+    }
+
+    private static func newBlankDocument() throws -> URL {
+        let output = StudioTemporaryFiles.root.appending(path: "Scans/\(UUID().uuidString)/\(String(localized: "Untitled")).pdf")
+        try FileManager.default.createDirectory(at: output.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try StudioDocument.blankPDF().write(to: output)
+        StudioTemporaryFiles.markReturnedOutput(output)
+        return output
+    }
+
+    /// A new searchable PDF from the document camera.
     static func newDocumentFromCamera() async throws -> URL? {
         guard let scan = try await CameraSession().run(), scan.pageCount > 0 else { return nil }
         let output = try await ScanBuilder.makePDF(pageCount: scan.pageCount, named: ScanBuilder.newName) { index in

@@ -41,7 +41,7 @@ internal static class ReaderTestReaders {
             })
             .Build();
 
-    internal static OfficeDocumentReader Markdown(OfficeIMO.Markdown.MarkdownReaderOptions parserOptions) =>
+    internal static OfficeDocumentReader Markdown(OfficeIMO.Markdown.MarkdownLoadOptions parserOptions) =>
         new OfficeDocumentReaderBuilder()
             .AddMarkdownHandler(new ReaderMarkdownOptions { ParserOptions = parserOptions })
             .Build();

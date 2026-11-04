@@ -82,9 +82,9 @@ public sealed class PdfOptimizerConformanceTests {
     [InlineData(PdfOptimizationProfile.Web)]
     [InlineData(PdfOptimizationProfile.Archival)]
     public void Optimize_PdfA4GroundworkDoesNotCreateInfo(PdfOptimizationProfile profile) {
-        byte[] source = PdfDocument.Create(new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4))
             .Meta(title: "XMP-only archival title", author: "OfficeIMO")
-            .Paragraph(p => p.Text("PDF/A-4 metadata preservation"))
+            .Paragraph(p => p.AddText("PDF/A-4 metadata preservation"))
             .ToBytes();
         Assert.Null(PdfInspector.Inspect(source).Security.InfoObjectNumber);
 
@@ -207,7 +207,7 @@ public sealed class PdfOptimizerConformanceTests {
         using X509Certificate2 certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
         using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
         PdfExternalSignaturePreparation preparation = PdfDocument.Create()
-            .Paragraph(p => p.Text("Signed optimizer input"))
+            .Paragraph(p => p.AddText("Signed optimizer input"))
             .Security.PrepareExternalSignature(new PdfExternalSignatureOptions { ReservedSignatureContentsBytes = 8192 });
         byte[] signed = preparation.Complete(signer.Sign(new PdfExternalSignatureRequest(preparation))).ToBytes();
         var verification = new CmsVerificationOptions();
@@ -279,9 +279,9 @@ public sealed class PdfOptimizerConformanceTests {
     }
 
     private static byte[] BuildPdfA1Groundwork() {
-        var options = new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA2B);
+        var options = new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA2B);
         options.FileVersion = PdfFileVersion.Pdf14;
-        byte[] source = PdfDocument.Create(options).Paragraph(p => p.Text("PDF/A-1 groundwork")).ToBytes();
+        byte[] source = PdfDocument.Create(options).Paragraph(p => p.AddText("PDF/A-1 groundwork")).ToBytes();
         var objects = PdfSyntax.ParseObjects(source).Map;
         PdfReference reference = Assert.IsType<PdfReference>(Catalog(objects).Items["Metadata"]);
         PdfStream metadata = Resolve<PdfStream>(objects, reference);

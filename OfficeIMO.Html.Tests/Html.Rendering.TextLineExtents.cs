@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Pdf;
 using System.Globalization;
 using OfficeIMO.Html;
 using Xunit;

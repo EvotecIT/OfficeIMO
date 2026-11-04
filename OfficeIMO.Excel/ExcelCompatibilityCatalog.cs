@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Excel;
 
 /// <summary>Versioned capability contracts for BIFF8 XLS and BIFF12 XLSB interoperability.</summary>
-public static class ExcelCompatibilityCatalog {
+internal static class ExcelCompatibilityCatalog {
     private const string XlsFormatId = "Excel.Xls";
     private const string XlsbFormatId = "Excel.Xlsb";
 

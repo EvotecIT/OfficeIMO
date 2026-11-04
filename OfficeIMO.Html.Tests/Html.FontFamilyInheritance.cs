@@ -50,8 +50,8 @@ public sealed class HtmlFontFamilyInheritanceTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
         switch (target) {
             case "excel": {
-                using ExcelDocument workbook = source.ToExcelDocumentResult(
-                    new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+                using ExcelDocument workbook = source.ConvertToExcelWithEvidence(
+                    new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
                 string? imported = ExcelFont(workbook);
                 using var artifact = new MemoryStream();
                 workbook.Save(artifact);
@@ -59,7 +59,7 @@ public sealed class HtmlFontFamilyInheritanceTests {
                 return (new[] { imported }, new[] { ExcelFont(reopened) });
             }
             case "onenote": {
-                OneNoteSection section = source.ToOneNoteSectionResult().RequireValue();
+                OneNoteSection section = source.ConvertToOneNoteSectionWithEvidence().RequireValue();
                 string? imported = OneNoteFont(section);
                 using var artifact = new MemoryStream(OneNoteSectionWriter.Write(section));
                 OneNoteSection reopened = OneNoteSectionReader.Read(artifact);
@@ -73,9 +73,9 @@ public sealed class HtmlFontFamilyInheritanceTests {
     private static string? ExcelFont(ExcelDocument workbook) {
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         int row = Assert.Single(Enumerable.Range(1, 4), index =>
-            sheet.CellAt(index, 1).GetValue<string>() == Marker);
-        var runs = sheet.CellAt(row, 1).GetRichText();
-        string? cellFont = sheet.GetCellStyle(row, 1).FontName;
+            sheet.Cell(index, 1).GetValue<string>() == Marker);
+        var runs = sheet.Cell(row, 1).GetRichText();
+        string? cellFont = sheet.Cell(row, 1).GetStyle().FontName;
         return runs.Count == 0 ? cellFont
             : Assert.Single(runs, run => run.Text == Marker).FontName ?? cellFont;
     }

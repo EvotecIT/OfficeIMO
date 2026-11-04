@@ -23,7 +23,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>Inspection result for imported chart content.</summary>
     public sealed class PowerPointImportedChartReport {
         internal PowerPointImportedChartReport(string family,
-            PowerPointImportedChartSupport support, OfficeChartKind? projection,
+            PowerPointImportedChartSupport support, OfficeChartType? projection,
             IEnumerable<string> diagnostics) {
             Family = family;
             Support = support;
@@ -35,22 +35,22 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Typed edit/export support.</summary>
         public PowerPointImportedChartSupport Support { get; }
         /// <summary>Semantic image/PDF projection when exact rendering is unavailable.</summary>
-        public OfficeChartKind? ExportProjection { get; }
+        public OfficeChartType? ExportProjection { get; }
         /// <summary>Actionable preservation or fidelity diagnostics.</summary>
         public IReadOnlyList<string> Diagnostics { get; }
     }
 
     public partial class PowerPointChart {
-        private static readonly IReadOnlyDictionary<string, OfficeChartKind>
-            AdvancedChartProjections = new Dictionary<string, OfficeChartKind>(StringComparer.Ordinal) {
-                ["bar3DChart"] = OfficeChartKind.ColumnClustered,
-                ["line3DChart"] = OfficeChartKind.Line,
-                ["area3DChart"] = OfficeChartKind.Area,
-                ["pie3DChart"] = OfficeChartKind.Pie,
-                ["ofPieChart"] = OfficeChartKind.Pie,
-                ["stockChart"] = OfficeChartKind.Line,
-                ["surfaceChart"] = OfficeChartKind.Line,
-                ["surface3DChart"] = OfficeChartKind.Line
+        private static readonly IReadOnlyDictionary<string, OfficeChartType>
+            AdvancedChartProjections = new Dictionary<string, OfficeChartType>(StringComparer.Ordinal) {
+                ["bar3DChart"] = OfficeChartType.ColumnClustered,
+                ["line3DChart"] = OfficeChartType.Line,
+                ["area3DChart"] = OfficeChartType.Area,
+                ["pie3DChart"] = OfficeChartType.Pie,
+                ["ofPieChart"] = OfficeChartType.Pie,
+                ["stockChart"] = OfficeChartType.Line,
+                ["surfaceChart"] = OfficeChartType.Line,
+                ["surface3DChart"] = OfficeChartType.Line
             };
 
         /// <summary>Inspects native family, typed-edit support, and export fidelity.</summary>
@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint {
             }
             string family = groups[0].LocalName;
             if (AdvancedChartProjections.ContainsKey(family)) {
-                OfficeChartKind projection = GetAdvancedProjection(groups[0]);
+                OfficeChartType projection = GetAdvancedProjection(groups[0]);
                 string? editBlocker = DescribeAdvancedEditBlocker(groups[0]);
                 if (editBlocker != null) {
                     return new PowerPointImportedChartReport(family,
@@ -115,26 +115,26 @@ namespace OfficeIMO.PowerPoint {
                 : null;
         }
 
-        internal static OfficeChartKind GetAdvancedProjection(OpenXmlElement group) {
+        internal static OfficeChartType GetAdvancedProjection(OpenXmlElement group) {
             if (group is C.Bar3DChart bar) {
                 bool horizontal = bar.GetFirstChild<C.BarDirection>()?.Val?.Value == C.BarDirectionValues.Bar;
                 C.BarGroupingValues grouping = bar.GetFirstChild<C.BarGrouping>()?.Val?.Value ??
                     C.BarGroupingValues.Clustered;
                 if (grouping == C.BarGroupingValues.Stacked)
-                    return horizontal ? OfficeChartKind.BarStacked : OfficeChartKind.ColumnStacked;
+                    return horizontal ? OfficeChartType.BarStacked : OfficeChartType.ColumnStacked;
                 if (grouping == C.BarGroupingValues.PercentStacked)
-                    return horizontal ? OfficeChartKind.BarStacked100 : OfficeChartKind.ColumnStacked100;
-                return horizontal ? OfficeChartKind.BarClustered : OfficeChartKind.ColumnClustered;
+                    return horizontal ? OfficeChartType.BarStacked100 : OfficeChartType.ColumnStacked100;
+                return horizontal ? OfficeChartType.BarClustered : OfficeChartType.ColumnClustered;
             }
             if (group is C.Line3DChart line) {
                 C.GroupingValues grouping = line.GetFirstChild<C.Grouping>()?.Val?.Value ?? C.GroupingValues.Standard;
-                return grouping == C.GroupingValues.Stacked ? OfficeChartKind.LineStacked :
-                    grouping == C.GroupingValues.PercentStacked ? OfficeChartKind.LineStacked100 : OfficeChartKind.Line;
+                return grouping == C.GroupingValues.Stacked ? OfficeChartType.LineStacked :
+                    grouping == C.GroupingValues.PercentStacked ? OfficeChartType.LineStacked100 : OfficeChartType.Line;
             }
             if (group is C.Area3DChart area) {
                 C.GroupingValues grouping = area.GetFirstChild<C.Grouping>()?.Val?.Value ?? C.GroupingValues.Standard;
-                return grouping == C.GroupingValues.Stacked ? OfficeChartKind.AreaStacked :
-                    grouping == C.GroupingValues.PercentStacked ? OfficeChartKind.AreaStacked100 : OfficeChartKind.Area;
+                return grouping == C.GroupingValues.Stacked ? OfficeChartType.AreaStacked :
+                    grouping == C.GroupingValues.PercentStacked ? OfficeChartType.AreaStacked100 : OfficeChartType.Area;
             }
             return AdvancedChartProjections[group.LocalName];
         }
@@ -184,7 +184,7 @@ namespace OfficeIMO.PowerPoint {
             try {
                 int lastRow = data.Categories.Count + 1;
                 for (int index = 0; index < series.Count; index++) {
-                    OfficeChartSeries item = data.Series[index];
+                    OfficeSeries item = data.Series[index];
                     string column = GetExcelColumn(index + 2);
                     UpdateStringReference(series[index]
                             .GetFirstChild<C.SeriesText>()!,
@@ -236,7 +236,7 @@ namespace OfficeIMO.PowerPoint {
                 diagnostic = "has no single referenced embedded workbook that can be updated consistently; package markup is preserved unchanged.";
                 return false;
             }
-            if (!PowerPointPresentation.IsSafeChartWorkbookPart(chartPart,
+            if (!PowerPointDocument.IsSafeChartWorkbookPart(chartPart,
                     embedded)) {
                 workbook = null;
                 diagnostic = "uses a richer or producer-specific workbook; editing is rejected so sheets, formulas, formatting, macros, and related package content remain unchanged.";

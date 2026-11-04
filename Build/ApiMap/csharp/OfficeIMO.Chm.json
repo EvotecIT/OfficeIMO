@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Chm",
+  "changes": [
+    {
+      "old": "OfficeIMO.Chm.ChmReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Chm.ChmLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

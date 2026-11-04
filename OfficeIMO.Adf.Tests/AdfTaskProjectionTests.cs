@@ -10,7 +10,8 @@ public sealed class AdfTaskProjectionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ConversionDoesNotRenderUnsupportedMarkdownToCreateTaskIds(bool withTask) {
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnrenderableBlock());
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(new UnrenderableBlock());
         if (withTask) markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: true) } });
 
         AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(markdown);
@@ -45,8 +46,9 @@ public sealed class AdfTaskProjectionTests {
             current = child;
         }
         current.Items.Add(ListItem.Text("Deep content"));
-        MarkdownDoc markdown = MarkdownDoc.Create().Add(outer)
-            .Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: false) } });
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(outer);
+        markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: false) } });
 
         Assert.Throws<System.IO.InvalidDataException>(() => AdfConverter.FromMarkdown(markdown));
         var limits = new AdfConversionOptions { MaxDepth = 128 };
@@ -60,9 +62,12 @@ public sealed class AdfTaskProjectionTests {
 
     [Fact]
     public void TaskIdentitiesDoNotChangeWhenUnrelatedContentChanges() {
-        AdfDocument Convert(string text) => AdfConverter.FromMarkdown(MarkdownDoc.Create()
-            .Add(new ParagraphBlock(new InlineSequence().Text(text)))
-            .Add(new UnorderedListBlock { Items = { ListItem.Task("Ready") } })).Value;
+        AdfDocument Convert(string text) {
+            using var markdown = MarkdownDocument.Create();
+            markdown.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Ready") } });
+            return AdfConverter.FromMarkdown(markdown).Value;
+        }
 
         AdfNode first = Convert("Before").Content[1];
         AdfNode second = Convert("After").Content[1];
@@ -80,7 +85,9 @@ public sealed class AdfTaskProjectionTests {
             current = child;
         }
         var limits = new AdfConversionOptions { MaxNodes = 64 };
-        AdfDocument document = AdfConverter.FromMarkdown(MarkdownDoc.Create().Add(outer), limits).Value;
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(outer);
+        AdfDocument document = AdfConverter.FromMarkdown(addedDocument, limits).Value;
         Assert.True(document.Validate(new AdfValidationOptions { Profile = AdfValidationProfile.FullSchema, MaxNodes = 64 }).IsValid);
         Assert.False(string.IsNullOrWhiteSpace(document.Content[0].GetStringAttribute("localId")));
         Assert.Contains("taskList", document.ToJson(limits));
@@ -93,7 +100,8 @@ public sealed class AdfTaskProjectionTests {
             MaxTextCharacters = 1,
             LocalIdFactory = path => { calls++; return path; }
         };
-        var markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { ListItem.Task("Oversized") } });
+        var markdown = MarkdownDocument.Create();
+        markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Oversized") } });
         Assert.Throws<System.IO.InvalidDataException>(() => AdfConverter.FromMarkdown(markdown, options));
         Assert.Equal(0, calls);
     }
@@ -121,13 +129,13 @@ public sealed class AdfTaskProjectionTests {
         Assert.Equal("- [x] Ready", markdown.Value.Replace("\r\n", "\n"));
         Assert.False(markdown.Report.IsLossless);
         AdfConversionDiagnostic diagnostic = Assert.Single(
-            markdown.Report.Diagnostics,
+            markdown.Report.NativeDiagnostics,
             item => item.Code == "ADF_TASK_LOCAL_IDS_REGENERATED");
         Assert.Equal("$.content[0]", diagnostic.Path);
-        OfficeConversionFidelityDiagnostic fidelity = Assert.Single(markdown.Report.FidelityDiagnostics,
+        OfficeDiagnostic fidelity = Assert.Single(markdown.Report.Diagnostics,
             item => item.Code == diagnostic.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, fidelity.LossKind);
-        Assert.Throws<InvalidOperationException>(markdown.Report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(markdown.Report.ThrowIfLoss);
         AdfNode projectedList = Assert.Single(roundTrip.Value.Content);
         AdfNode projectedItem = Assert.Single(projectedList.Content);
         Assert.NotEqual("list-1", projectedList.GetStringAttribute("localId"));

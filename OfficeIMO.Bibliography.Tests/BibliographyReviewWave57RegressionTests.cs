@@ -31,9 +31,9 @@ public sealed class BibliographyReviewWave57RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV244" && diagnostic.Field == "contributors");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV244" && diagnostic.Field == "contributors");
     }
 
     [Theory]
@@ -53,7 +53,7 @@ public sealed class BibliographyReviewWave57RegressionTests {
         Assert.DoesNotContain(document.Items[0].NativeFields,
             field => field.Format == format && (field.Name == "DO" || field.Name == "SN" || field.Name == "AN" || field.Name == "IS" || field.Name == "LID" || field.Name == "AID"));
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyIdentifier reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Identifiers,
             candidate => string.Equals(candidate.Scheme, scheme, StringComparison.OrdinalIgnoreCase) && candidate.Value == value);
         Assert.Equal(value, reopened.Value);
@@ -63,7 +63,7 @@ public sealed class BibliographyReviewWave57RegressionTests {
     public void EndNote_primary_parsing_observes_cancellation_inside_large_attribute_tokens() {
         string value = new string('x', 64 * 1024 * 1024);
         string source = "\uFEFF<xml><records metadata=\"" + value + "\"/></xml>";
-        var options = new BibliographyReadOptions { MaximumInputCharacters = source.Length + 1, MaximumValueLength = source.Length + 1 };
+        var options = new BibliographyReadOptions { MaxInputCharacters = source.Length + 1, MaxValueLength = source.Length + 1 };
 
         BibliographyCancellationTest.AssertObserved(token =>
             BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options, token));

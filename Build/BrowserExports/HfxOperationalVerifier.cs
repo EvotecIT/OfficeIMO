@@ -105,7 +105,7 @@ internal static class HfxOperationalVerifier {
     }
 
     private static object VerifyPdf(string path, JsonElement expected) {
-        var document = PdfReadDocument.Open(path);
+        using var document = PdfDocument.Load(path);
         Require(!document.RepairReport.HasRepairs, "PDF required reader repairs.");
         string text = string.Concat(document.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text));
         JsonElement[] rows = expected.GetProperty("rows").EnumerateArray().ToArray();

@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Read a table of contents before updating it.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $toc = $doc | Get-OfficeWordTableOfContents
 /// if ($toc) {
 ///     $toc | Set-OfficeWordTableOfContents -Text 'Contents' -TextNoContent 'No entries' -PassThru

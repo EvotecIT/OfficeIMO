@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfDocumentViewingTests {
     [Fact]
     public void DefaultLoadOptionsRemainSourceCompatibleWithViewingInspection() {
-        var document = PdfDocument.Load(PdfDocument.Create().Paragraph(p => p.Text("Viewing contract")).ToBytes());
+        var document = PdfDocument.Load(PdfDocument.Create().Paragraph(p => p.AddText("Viewing contract")).ToBytes());
         Assert.NotNull(document.InspectForViewing(default).LogicalContent);
         Assert.NotNull(document.InspectForViewing(default, default).LogicalContent);
         Func<PdfLoadOptions?, CancellationToken, PdfDocumentViewInfo> inspect = document.InspectForViewing;
@@ -39,7 +39,7 @@ public sealed class PdfDocumentViewingTests {
         Assert.Equal("Private metadata", authorized.LogicalContent.Metadata.Title);
         Assert.Equal(authorized.Pages[0].Width, view.Pages[0].Width);
         PdfPageRenderResult raster = restricted.Render.DisplayPage(1);
-        Assert.True(raster.Succeeded); Assert.Equal(PdfPageRenderFormat.Png, raster.Format);
+        Assert.True(raster.Succeeded); Assert.Equal(global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, raster.Format);
         Assert.Equal(owner.Render.DisplayPage(1).Bytes, raster.Bytes);
         string? capture = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VIEWING_CAPTURE_DIR");
         if (!string.IsNullOrEmpty(capture)) {
@@ -66,19 +66,19 @@ public sealed class PdfDocumentViewingTests {
     public void CancellationDuringGeneratedSerializationStopsFurtherComposition(string route) {
         using var cancellation = new CancellationTokenSource();
         int callbacks = 0;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             TextLineBreakCallback = text => {
                 callbacks++; cancellation.Cancel(); return new[] { text.Length / 2 };
             }
         };
         var document = PdfDocument.Create(options);
-        for (int index = 0; index < 30; index++) document.Paragraph(paragraph => paragraph.Text(new string('W', 600)));
+        for (int index = 0; index < 30; index++) document.Paragraph(paragraph => paragraph.AddText(new string('W', 600)));
         Assert.ThrowsAny<OperationCanceledException>(() => {
             switch (route) {
                 case "display": document.Render.DisplayPage(1, cancellationToken: cancellation.Token); break;
                 case "ranges": document.Render.Pages("1", cancellationToken: cancellation.Token); break;
                 case "selection": document.Render.Pages(PdfPageSelection.Parse("1"), cancellationToken: cancellation.Token); break;
-                case "images": document.Render.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, cancellationToken: cancellation.Token); break;
+                case "images": document.ExportImages(cancellationToken: cancellation.Token); break;
             }
         });
         Assert.InRange(callbacks, 1, 2);
@@ -116,9 +116,9 @@ public sealed class PdfDocumentViewingTests {
     }
 
     private static byte[] CreatePdf(PdfStandardPermissions permissions) =>
-        PdfDocument.Create(new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+        PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
             OwnerPassword = "owner", AllowedPermissions = permissions
         })).Meta(title: "Private metadata")
-          .Paragraph(paragraph => paragraph.Text("Visible content with restricted extraction"))
-          .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 20D, 20D, 40D, 40D)).ToBytes();
+          .Paragraph(paragraph => paragraph.AddText("Visible content with restricted extraction"))
+          .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D))).ToBytes();
 }

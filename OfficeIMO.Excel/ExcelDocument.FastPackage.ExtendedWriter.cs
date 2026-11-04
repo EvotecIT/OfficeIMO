@@ -41,11 +41,12 @@ namespace OfficeIMO.Excel {
                 WriteTextEntry(archive, "docProps/app.xml", model.AppPropertiesXml);
                 ReportTiming("Save.ExtendedPackage.WriteFixedEntries");
 
+                bool keepsWorkbookStyles = model.DirectDataSetModel?.WorkbookStyles != null;
                 bool wroteDirectStyles = false;
                 bool wroteDirectSharedStrings = false;
                 foreach (var part in model.Parts) {
                     ct.ThrowIfCancellationRequested();
-                    if (directWritePlan != null && part.Part is WorkbookStylesPart) {
+                    if (directWritePlan != null && !keepsWorkbookStyles && part.Part is WorkbookStylesPart) {
                         DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
                         wroteDirectStyles = true;
                         ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
@@ -77,7 +78,7 @@ namespace OfficeIMO.Excel {
                         var hyperlinkRelationships = worksheetPart.HyperlinkRelationships
                             .Select(static relationship => new FastHyperlinkRelationshipModel(
                                 relationship.Id,
-                                relationship.Uri.ToString(),
+                                relationship.Uri.OriginalString,
                                 relationship.IsExternal))
                             .ToList();
                         var worksheetModel = new FastWorksheetPackageModel(
@@ -105,7 +106,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (directWritePlan != null && !wroteDirectStyles) {
+                if (directWritePlan != null && !wroteDirectStyles && !keepsWorkbookStyles) {
                     DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
                     ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
                 }
@@ -176,7 +177,7 @@ namespace OfficeIMO.Excel {
                     relationships.Add(new ExtendedRelationshipModel(
                         hyperlink.Id,
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
-                        hyperlink.Uri.ToString(),
+                        hyperlink.Uri.OriginalString,
                         hyperlink.IsExternal));
                 }
 
@@ -184,7 +185,7 @@ namespace OfficeIMO.Excel {
                     relationships.Add(new ExtendedRelationshipModel(
                         external.Id,
                         external.RelationshipType,
-                        external.Uri.ToString(),
+                        external.Uri.OriginalString,
                         isExternal: true));
                 }
 

@@ -6,7 +6,7 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.PowerPoint.Html;
 
 public static partial class PowerPointHtmlConverterExtensions {
-    private static void AppendMasterInventory(StringBuilder body, PptCore.PowerPointPresentation presentation,
+    private static void AppendMasterInventory(StringBuilder body, PptCore.PowerPointDocument presentation,
         IList<HtmlDiagnostic> diagnostics) {
         try {
             PptCore.PowerPointTemplateInventory inventory = PptCore.PowerPointTemplate.Inspect(presentation);
@@ -59,7 +59,7 @@ public static partial class PowerPointHtmlConverterExtensions {
     }
 
     private static void AppendAdvancedReviewInventory(StringBuilder body, PptCore.PowerPointSlide slide,
-        PowerPointHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
+        PowerPointHtmlExportOptions options, IList<HtmlDiagnostic> diagnostics) {
         if (options.IncludeSmartArt) {
             IEnumerable<PptCore.PowerPointSmartArt> smartArts = options.IncludeHiddenShapes
                 ? slide.SmartArts
@@ -175,7 +175,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append("</figcaption></figure>");
     }
 
-    private static void AppendPictureEffectAttributes(StringBuilder body, PptCore.PowerPointPicture picture) {
+    private static void AppendPictureEffectAttributes(StringBuilder body, PptCore.PowerPointImage picture) {
         AppendOptionalAttribute(body, "data-officeimo-brightness", picture.LuminanceBrightness);
         AppendOptionalAttribute(body, "data-officeimo-contrast", picture.LuminanceContrast);
         AppendDataAttribute(body, "data-officeimo-grayscale", picture.GrayScale);
@@ -196,7 +196,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             .Append(value.Value.ToString(CultureInfo.InvariantCulture)).Append('"');
     }
 
-    private static void AddPictureEffectDiagnostic(PptCore.PowerPointPicture picture,
+    private static void AddPictureEffectDiagnostic(PptCore.PowerPointImage picture,
         IList<HtmlDiagnostic> diagnostics) {
         if (!HasReviewEffect(picture)) return;
         diagnostics.Add(new HtmlDiagnostic(
@@ -208,7 +208,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             lossKind: OfficeConversionLossKind.Approximation));
     }
 
-    private static bool HasReviewEffect(PptCore.PowerPointPicture picture) =>
+    private static bool HasReviewEffect(PptCore.PowerPointImage picture) =>
         picture.LuminanceBrightness.HasValue ||
         picture.LuminanceContrast.HasValue ||
         picture.GrayScale ||

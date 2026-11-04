@@ -41,12 +41,12 @@ public sealed class ReaderOcrIndependentLayoutTests {
             }
             return Task.FromResult(result);
         }, new OcrEngineCapabilities { SupportedMediaTypes = new[] { "image/png" }, SupportsWordSpans = true });
-        AssertLayout(PdfDocument.Load(native).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }));
+        AssertLayout(PdfDocument.Load(native).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }));
         PdfDocument source = PdfDocument.Load(scan);
         PdfSearchableOcrResult searchable = await source.MakeSearchableAsync(engine,
             new PdfOcrMergeOptions { Dpi = 150, MinimumConfidence = 0, ReconstructLayout = true });
         AssertLayout(searchable.Ocr.Document);
-        AssertLayout(PdfDocument.Load(searchable.Document.ToBytes()).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }));
+        AssertLayout(PdfDocument.Load(searchable.Document.ToBytes()).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }));
         Assert.Equal(scan, source.ToBytes());
 
         byte[] ReadVerified(string suffix) {

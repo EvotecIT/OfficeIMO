@@ -180,10 +180,10 @@ internal sealed partial class PstStoreWriterCore : IDisposable {
                 throw new InvalidDataException("The PST item spool contained an unmapped folder row.");
             }
         }
-        if (_options.FailOnDataLoss && (_diagnosticsTruncated || _diagnostics.Any(item =>
+        if (_options.FailOnLoss && (_diagnosticsTruncated || _diagnostics.Any(item =>
             item.Severity != EmailStoreDiagnosticSeverity.Information))) {
             throw new InvalidOperationException(
-                "PST creation produced fidelity diagnostics and FailOnDataLoss is enabled.");
+                "PST creation produced fidelity diagnostics and FailOnLoss is enabled.");
         }
         PstWriterTreeRoot nbt = _file.WriteNodeTree(
             _nodes.ReadSorted(_options.MaxIndexRecordsInMemory), _nodes.Count);

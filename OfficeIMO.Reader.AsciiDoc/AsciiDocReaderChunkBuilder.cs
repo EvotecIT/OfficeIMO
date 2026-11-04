@@ -35,7 +35,7 @@ internal static class AsciiDocReaderChunkBuilder {
             if (parts.Count == 0) parts = new[] { string.Empty };
             for (int partIndex = 0; partIndex < parts.Count; partIndex++) {
                 IReadOnlyList<string>? warnings = options.IncludeDiagnostics
-                    ? BuildWarnings(result.Diagnostics, markdownResult.Report.Diagnostics, block, parts.Count > 1)
+                    ? BuildWarnings(result.Diagnostics, markdownResult.Report.NativeDiagnostics, block, parts.Count > 1)
                     : null;
                 yield return new ReaderChunk {
                     Id = BuildId(sourceIndex, partIndex, parts.Count),
@@ -97,7 +97,7 @@ internal static class AsciiDocReaderChunkBuilder {
                 Markdown = parts.Count == 1 ? markdown : parts[partIndex],
                 Diagnostics = new ReaderChunkDiagnostics { SourceKind = "asciidoc" },
                 Warnings = options.IncludeDiagnostics
-                    ? BuildWarnings(result.Diagnostics, conversion.Report.Diagnostics, null, parts.Count > 1)
+                    ? BuildWarnings(result.Diagnostics, conversion.Report.NativeDiagnostics, null, parts.Count > 1)
                     : null
             };
         }

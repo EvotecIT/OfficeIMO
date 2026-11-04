@@ -67,10 +67,19 @@ public class ExcelNumericXmlReadBenchmarks {
         _expected = _readRowCount * (_readRowCount + 1L) / 2L + 125L * _readRowCount * (_readRowCount - 1L) / 2L;
         try {
             using (Stream output = File.Create(_path)) {
-                ExcelDocument.WriteRows(output,
-                    ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), Headers,
-                    static (writer, row) => writer.Write(row.Id).Write(row.Amount),
-                    new ExcelTabularWriteOptions { IncludeCellReferences = Coordinates != "ImplicitRowsAndCells", UseSharedStrings = false });
+                var destination1 = output;
+
+                var writeOptions1 = new ExcelWriterOptions {
+                    IncludeCellReferences = Coordinates != "ImplicitRowsAndCells",
+                    UseSharedStrings = false
+                };
+
+                using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+                    workbookWriter1.WriteTable(writeOptions1.SheetName, ExcelGeneratedRowStreamingBenchmarks.GenerateRows(RowCount), Headers, static (writer, row) => writer.Write(row.Id).Write(row.Amount));
+                }
+
+                if (destination1.CanSeek)
+                    destination1.Position = 0;
             }
             using (var package = ZipFile.Open(_path, ZipArchiveMode.Update)) {
                 const string name = "xl/worksheets/sheet1.xml";
@@ -88,7 +97,8 @@ public class ExcelNumericXmlReadBenchmarks {
                 writer.Write(Utf16 ? xml.Replace("utf-8", "utf-16").Replace("UTF-8", "utf-16") : xml);
             }
             Check(ReadCore(validate: true));
-        } catch {
+        }
+        catch {
             Cleanup();
             throw;
         }
@@ -103,7 +113,7 @@ public class ExcelNumericXmlReadBenchmarks {
     }
 
     private long ReadCore(bool validate) {
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             NumericAsDecimal = NumericAsDecimal,
             InferDataTableColumnTypes = InferDataTableColumnTypes,
             EnableWorksheetPrefetch = EnableWorksheetPrefetch
@@ -113,7 +123,7 @@ public class ExcelNumericXmlReadBenchmarks {
         if (Api == "DataReader" || Api == "TypedDataReader") {
             if (_readRowCount != RowCount)
                 throw new InvalidOperationException("DataReader benchmarks select every data row.");
-            using var reader = ExcelDocument.OpenDataReader(_path, options);
+            using var reader = ExcelDocument.OpenReader(_path, options);
             if (reader.FieldCount != 2 || reader.GetName(0) != Headers[0] || reader.GetName(1) != Headers[1]) {
                 throw new InvalidDataException("Reader headers differ.");
             }

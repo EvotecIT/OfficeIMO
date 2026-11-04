@@ -16,7 +16,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="title">Title to assign.</param>
         public InfoBuilder Title(string title) {
-            _fluent.Document.Title = title;
+            _fluent.Document.Properties.Title = title;
             return this;
         }
 
@@ -25,7 +25,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// </summary>
         /// <param name="author">Author name.</param>
         public InfoBuilder Author(string author) {
-            _fluent.Document.Author = author;
+            _fluent.Document.Properties.Author = author;
             return this;
         }
     }

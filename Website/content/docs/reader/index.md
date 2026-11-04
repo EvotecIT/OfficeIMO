@@ -28,7 +28,7 @@ over their owning OfficeIMO engines.
 
 ## Choose the result you need
 
-Use `Read(...)` for indexing-friendly chunks:
+Use `Enumerate(...)` for indexing-friendly chunks:
 
 ```csharp
 using OfficeIMO.Reader;
@@ -38,7 +38,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddWordHandler()
     .Build();
 
-foreach (ReaderChunk chunk in reader.Read("proposal.docx")) {
+foreach (ReaderChunk chunk in reader.Enumerate("proposal.docx")) {
     Console.WriteLine(chunk.Location.HeadingPath ?? chunk.Location.Path);
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -113,9 +113,8 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
         OfficeDocumentProcessorFailureBehavior.ContinueWithDiagnostic)
     .Build();
 
-OfficeDocumentStructuredExtractionResult extracted = reader.ReadStructured(
-    "contract.docx",
-    structuredOptions: new OfficeDocumentStructuredExtractionOptions {
+OfficeDocumentStructuredExtractionResult extracted = reader.ReadDocument("contract.docx").ExtractStructured(
+    options: new OfficeDocumentStructuredExtractionOptions {
         MaxRecords = 5_000,
         MaxSections = 500,
         MaxTables = 250

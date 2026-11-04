@@ -15,8 +15,7 @@ namespace OfficeIMO.Tests {
                 body.Append(new Paragraph(
                     new Run(new RunProperties(new Bold()), new Text("Hello {{Customer")),
                     new Run(new RunProperties(new Italic()), new Text(".Name}}!"))));
-                document.AddHeadersAndFooters();
-                document.Header!.Default!.AddParagraph("Order {{Order.Id}}");
+                document.PageSetup.Header.AddParagraph("Order {{Order.Id}}");
 
                 var values = new Dictionary<string, object?> {
                     ["Customer"] = new Dictionary<string, object?> { ["Name"] = "Ada" },
@@ -28,7 +27,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, result.PlaceholderCount);
                 Assert.Equal(2, result.ReplacedPlaceholderCount);
                 Assert.Contains("Hello Ada!", body.InnerText, StringComparison.Ordinal);
-                Assert.Contains("Order 42", document.Header.Default.Paragraphs.Single().Text, StringComparison.Ordinal);
+                Assert.Contains("Order 42", document.PageSetup.Header.Paragraphs.Single().Text, StringComparison.Ordinal);
                 Assert.True(body.Descendants<Run>().First().RunProperties?.Bold != null);
                 Assert.True(body.Descendants<Run>().Skip(1).First().RunProperties?.Italic != null);
                 document.Save();
@@ -77,26 +76,35 @@ namespace OfficeIMO.Tests {
         public void WordTemplate_EmbedsImagesAndCreatesHyperlinksAtInlinePlaceholders() {
             string filePath = Path.Combine(_directoryWithFiles, "WordTemplateRichValues.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Logo {{Logo}} and {{Portal}}.");
+                document.AddParagraph("Logo {{Logo}}, automatic {{AutoLogo}}, intrinsic {{NaturalLogo}} and {{Portal}}.");
                 byte[] png = OfficeIMO.Drawing.OfficePngWriter.Encode(
-                    new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.Drawing.OfficeColor.White));
+                    new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.OfficeColor.White));
                 var values = new Dictionary<string, object?> {
-                    ["Logo"] = new WordTemplateImage(png, "logo.png", width: 12, height: 12, description: "Company logo"),
+                    ["Logo"] = new WordTemplateImage(png, "logo.png", width: global::OfficeIMO.OfficeLength.Inches(1),
+                        height: global::OfficeIMO.OfficeLength.Millimeters(12.7), altText: "Company logo"),
+                    ["AutoLogo"] = new WordTemplateImage(png, "auto.png", width: global::OfficeIMO.OfficeLength.Centimeters(2.54)),
+                    ["NaturalLogo"] = new WordTemplateImage(png, "natural.png"),
                     ["Portal"] = new WordTemplateHyperlink("customer portal", new Uri("https://example.com/customer"))
                 };
 
                 WordTemplateResult result = WordTemplate.Apply(document, values).EnsureComplete();
                 Paragraph paragraph = document._document.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single();
 
-                Assert.Equal(2, result.ReplacedPlaceholderCount);
-                Assert.Single(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+                Assert.Equal(4, result.ReplacedPlaceholderCount);
+                Assert.Equal(3, paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Count());
                 Assert.Equal("customer portal", Assert.Single(paragraph.Descendants<Hyperlink>()).InnerText);
                 Assert.DoesNotContain("{{", paragraph.InnerText, StringComparison.Ordinal);
                 document.Save();
             }
 
             using WordDocument reopened = WordDocument.Load(filePath);
-            Assert.Single(reopened.Images);
+            Assert.Equal(3, reopened.Images.Count);
+            var extents = reopened._document.MainDocumentPart!.Document.Descendants<DW.Inline>().Select(inline => inline.Extent!).ToArray();
+            Assert.Equal(new long[] { 914400, 914400, 9525 }, extents.Select(extent => extent.Cx!.Value));
+            Assert.Equal(new long[] { 457200, 914400, 9525 }, extents.Select(extent => extent.Cy!.Value));
+            Assert.Equal(new long[] { 914400, 914400, 9525 }, reopened.Images.Select(image => image.Width!.Value.ToEmus()));
+            Assert.Equal(new long[] { 457200, 914400, 9525 }, reopened.Images.Select(image => image.Height!.Value.ToEmus()));
+            Assert.Equal("Company logo", reopened.Images[0].AltText);
             Assert.Equal(new Uri("https://example.com/customer"), Assert.Single(reopened.HyperLinks).Uri);
             Assert.Empty(new OpenXmlValidator().Validate(reopened._wordprocessingDocument));
         }
@@ -166,9 +174,9 @@ namespace OfficeIMO.Tests {
                 else repeated._paragraph.PrependChild(bookmarkStart);
                 repeated._paragraph.Append(new BookmarkEnd { Id = "5" });
                 byte[] png = OfficeIMO.Drawing.OfficePngWriter.Encode(
-                    new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.Drawing.OfficeColor.White));
+                    new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.OfficeColor.White));
                 using (var image = new MemoryStream(png, writable: false)) {
-                    repeated.AddImage(image, "marker.png", 8, 8);
+                    repeated.AddImage(image, "marker.png", OfficeIMO.OfficeLength.Pixels(8), OfficeIMO.OfficeLength.Pixels(8));
                 }
                 document.AddParagraph("{{/each Items}}");
                 WordParagraph externalLink = document.AddParagraph("Jump to ");

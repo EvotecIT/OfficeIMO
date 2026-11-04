@@ -1,13 +1,35 @@
 using OfficeIMO.Invoicing;
+#if NET8_0_OR_GREATER
 using OfficeIMO.Invoicing.Validation;
+#endif
 
 namespace OfficeIMO.Workflows;
 
 public static partial class OfficeInvoiceBufferWorkflow {
+    /// <summary>Executes a bounded invoice batch without a standards provider.</summary>
+    public static Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options = null, CancellationToken cancellationToken = default) =>
+        RunBatchCoreAsync(requests, options,
+#if NET8_0_OR_GREATER
+            null,
+#endif
+            cancellationToken);
+
+#if NET8_0_OR_GREATER
+    /// <summary>Executes a bounded invoice batch with an explicit standards provider.</summary>
+    public static Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options, InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunBatchCoreAsync(requests, options, validator, cancellationToken);
+#endif
+
     /// <summary>Preflights bounded immutable requests, then processes in input order. No item is executed when preflight exceeds a batch limit.</summary>
-    public static async Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests,
-        OfficeInvoiceWorkflowBatchOptions? options = null, InvoiceValidator? validator = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(requests);
+    private static async Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> RunBatchCoreAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests,
+        OfficeInvoiceWorkflowBatchOptions? options,
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
+#endif
+        CancellationToken cancellationToken = default) {
+        if (requests == null) throw new ArgumentNullException(nameof(requests));
         OfficeInvoiceWorkflowBatchOptions limits = (options ?? new OfficeInvoiceWorkflowBatchOptions()).Snapshot();
         cancellationToken.ThrowIfCancellationRequested();
         var captured = new List<OfficeInvoiceWorkflowRequest>();
@@ -24,13 +46,21 @@ public static partial class OfficeInvoiceBufferWorkflow {
         long outputBytes = 0;
         foreach (OfficeInvoiceWorkflowRequest request in captured) {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeInvoiceWorkflowResult result = await RunAsync(request, validator, cancellationToken).ConfigureAwait(false);
+            OfficeInvoiceWorkflowResult result = await RunAsync(request,
+#if NET8_0_OR_GREATER
+            validator,
+#endif
+            cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             if (result.RetainedOutputBytes > limits.MaximumOutputBytes - outputBytes) {
                 var diagnostics = new OperationDiagnostics();
                 diagnostics.AddRange(result.Diagnostics);
                 diagnostics.Add(new InvoiceDiagnostic("INV-WORKFLOW-BATCH-OUTPUT", "This artifact would exceed the batch's combined output-byte limit; no bytes from this item are returned.", "Output"));
-                result = new OfficeInvoiceWorkflowResult(request, result.InputSha256, false, result.Source, result.ModelValidation, diagnostics.ToList(), result.StandardsValidation);
+                result = new OfficeInvoiceWorkflowResult(request, result.InputSha256, false, result.Source, result.ModelValidation, diagnostics.ToList()
+#if NET8_0_OR_GREATER
+                    , result.StandardsValidation
+#endif
+                );
             } else outputBytes += result.RetainedOutputBytes;
             results.Add(result);
             if (!result.Succeeded && !limits.ContinueOnFailure) break;

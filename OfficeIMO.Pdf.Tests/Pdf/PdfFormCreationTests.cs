@@ -11,8 +11,8 @@ public class PdfFormCreationTests {
     public void TextField_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
             .Meta(title: "Generated form")
-            .Paragraph(p => p.Text("Generated field:"))
-            .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace", spacingAfter: 12)
+            .Paragraph(p => p.AddText("Generated field:"))
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada Lovelace", spacingAfter: global::OfficeIMO.OfficeLength.Points(12))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -40,7 +40,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void TextField_CanBeFilledAndFlattened() {
         byte[] pdf = PdfDocument.Create()
-            .TextField("Person.Name", width: 180, height: 24, value: "Original")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Original")
             .ToBytes();
 
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, string> {
@@ -57,8 +57,8 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void TaggedTextField_CanBeFlattenedWithoutDanglingStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions().EnableTaggedPdfCatalogMarkers())
-            .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace")
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().EnableTaggedPdfCatalogMarkers())
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada Lovelace")
             .ToBytes();
 
         byte[] flattened = PdfFormFiller.FlattenFields(pdf);
@@ -73,11 +73,11 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void AcroFormDefaultTextAlignment_RoundTripsThroughCatalogAndFields() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Center
             })
             .AcroFormDefaultTextAlignment(PdfFormFieldTextAlignment.Right)
-            .TextField("Person.Name", width: 180, height: 24, value: "Ada")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada")
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -102,7 +102,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void CheckBox_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Generated checkbox:"))
+            .Paragraph(p => p.AddText("Generated checkbox:"))
             .CheckBox("AcceptTerms", isChecked: true, size: 16, spacingAfter: 12)
             .ToBytes();
 
@@ -138,9 +138,9 @@ public class PdfFormCreationTests {
                 new[] {
                     PdfTableCell.WithCheckBoxes(
                         "Table approval",
-                        new[] { new PdfTableCellCheckBox("Table.Approved", isChecked: true, size: 12) })
+                        new[] { new PdfTableCellCheckBox("Table.Approved", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(12)) })
                 }
-            }, style: TableStyles.Light())
+            }, style: PdfTableStyles.Light())
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -165,18 +165,20 @@ public class PdfFormCreationTests {
     [InlineData(5D)]
     public void TableCellCheckBox_RendersInlineWithSingleLineText(double spacingBefore) {
         var runs = new[] { new PdfTextRun("Table approval") };
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageSize = new PageSize(300, 180),
-                Margins = PageMargins.Uniform(24)
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(180)),
+                    Margins = { Left = OfficeIMO.OfficeLength.Points(24), Top = OfficeIMO.OfficeLength.Points(24), Right = OfficeIMO.OfficeLength.Points(24), Bottom = OfficeIMO.OfficeLength.Points(24) }
+                }
             })
             .Table(new[] {
                 new[] {
                     new PdfTableCell(
                         runs,
-                        new[] { new PdfTableCellParagraph(runs, spacingBefore: spacingBefore) },
-                        checkBoxes: new[] { new PdfTableCellCheckBox("Table.InlineApproved", isChecked: true, size: 12) })
+                        new[] { new PdfTableCellParagraph(runs, spacingBefore: global::OfficeIMO.OfficeLength.Points(spacingBefore)) },
+                        checkBoxes: new[] { new PdfTableCellCheckBox("Table.InlineApproved", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(12)) })
                 }
-            }, style: TableStyles.Light())
+            }, style: PdfTableStyles.Light())
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
@@ -200,11 +202,11 @@ public class PdfFormCreationTests {
                     PdfTableCell.WithFormFields(
                         "Table form fields",
                         new[] {
-                            PdfTableCellFormField.TextField("Table.DueDate", "2026-05-31", width: 140, height: 18),
-                            PdfTableCellFormField.ChoiceField("Table.Country", new[] { "Poland", "Germany" }, value: "Germany", width: 140, height: 18)
+                            PdfTableCellFormField.TextField("Table.DueDate", "2026-05-31", width: global::OfficeIMO.OfficeLength.Points(140), height: global::OfficeIMO.OfficeLength.Points(18)),
+                            PdfTableCellFormField.ChoiceField("Table.Country", new[] { "Poland", "Germany" }, value: "Germany", width: global::OfficeIMO.OfficeLength.Points(140), height: global::OfficeIMO.OfficeLength.Points(18))
                         })
                 }
-            }, style: TableStyles.Light())
+            }, style: PdfTableStyles.Light())
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -255,7 +257,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void RadioButtonGroup_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Generated radio buttons:"))
+            .Paragraph(p => p.AddText("Generated radio buttons:"))
             .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Cash", size: 16, gap: 5, spacingAfter: 12)
             .ToBytes();
 
@@ -333,13 +335,13 @@ public class PdfFormCreationTests {
     [Fact]
     public void GeneratedFields_CanStyleAppearances() {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = PdfColor.FromRgb(238, 242, 255),
-            BorderColor = PdfColor.FromRgb(30, 64, 175),
-            BorderWidth = 2,
-            CornerRadius = 5,
-            BorderDashPattern = new[] { 6D, 2D },
-            TextColor = PdfColor.FromRgb(127, 29, 29),
-            MarkColor = PdfColor.FromRgb(22, 101, 52),
+            BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(2),
+            CornerRadius = global::OfficeIMO.OfficeLength.Points(5),
+            BorderDashPattern = new[] { 6D, 2D }.Select(global::OfficeIMO.OfficeLength.Points).ToArray(),
+            TextColor = global::OfficeIMO.OfficeColor.FromRgb(127, 29, 29),
+            MarkColor = global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52),
             TextAlignment = PdfFormFieldTextAlignment.Center
         };
 
@@ -376,18 +378,18 @@ public class PdfFormCreationTests {
         Assert.Contains("0.498 0.114 0.114 rg", filledRaw, StringComparison.Ordinal);
 
         PdfFormFieldStyle clone = style.Clone();
-        style.CornerRadius = 0;
-        Assert.Equal(5, clone.CornerRadius);
+        style.CornerRadius = global::OfficeIMO.OfficeLength.Points(0);
+        Assert.Equal(5, clone.CornerRadius.ToPoints());
     }
 
     [Fact]
     public void GeneratedFields_CanUseUnderlineBorderStyle() {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = PdfColor.White,
-            BorderColor = PdfColor.FromRgb(30, 64, 175),
-            BorderWidth = 2,
+            BackgroundColor = global::OfficeIMO.OfficeColor.White,
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(2),
             BorderStyle = PdfFormFieldBorderStyle.Underline,
-            TextColor = PdfColor.Black
+            TextColor = global::OfficeIMO.OfficeColor.Black
         };
 
         byte[] pdf = PdfDocument.Create()
@@ -404,11 +406,11 @@ public class PdfFormCreationTests {
     [Fact]
     public void GeneratedFields_CanUseBeveledBorderStyle() {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = PdfColor.White,
-            BorderColor = PdfColor.Black,
-            BorderWidth = 2,
+            BackgroundColor = global::OfficeIMO.OfficeColor.White,
+            BorderColor = global::OfficeIMO.OfficeColor.Black,
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(2),
             BorderStyle = PdfFormFieldBorderStyle.Beveled,
-            TextColor = PdfColor.Black
+            TextColor = global::OfficeIMO.OfficeColor.Black
         };
 
         byte[] pdf = PdfDocument.Create()
@@ -430,11 +432,11 @@ public class PdfFormCreationTests {
             return;
         }
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Form Body Font", fontPath)
-            .Paragraph(paragraph => paragraph.Text("Embedded body font"))
+            .Paragraph(paragraph => paragraph.AddText("Embedded body font"))
             .TextField("Styled.Name", value: "Ada")
             .ChoiceField("Styled.Country", new[] { "Poland", "Germany" }, value: "Poland")
             .ToBytes();
@@ -549,10 +551,10 @@ public class PdfFormCreationTests {
             MaxLength = 4
         };
 
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .TextField("Comb.Code", value: "AB12", width: 80, height: 22, style: style)
+            .TextField("Comb.Code", value: "AB12", width: global::OfficeIMO.OfficeLength.Points(80), height: global::OfficeIMO.OfficeLength.Points(22), style: style)
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -579,7 +581,7 @@ public class PdfFormCreationTests {
         };
 
         byte[] pdf = PdfDocument.Create()
-            .TextField("TextFlags.Secret", value: "Ada", height: 36, style: style)
+            .TextField("TextFlags.Secret", value: "Ada", height: global::OfficeIMO.OfficeLength.Points(36), style: style)
             .ChoiceField("TextFlags.Country", new[] { "Poland", "Germany" }, value: "Poland", style: style)
             .CheckBox("TextFlags.Accept", isChecked: true, style: style)
             .ToBytes();
@@ -619,14 +621,14 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void GeneratedMultilineTextField_SoftWrapsInitialAppearanceToWidgetWidth() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TextField(
                 "Notes",
                 value: "Alpha Beta",
-                width: 50,
-                height: 48,
+                width: global::OfficeIMO.OfficeLength.Points(50),
+                height: global::OfficeIMO.OfficeLength.Points(48),
                 style: new PdfFormFieldStyle { IsMultiline = true })
             .ToBytes();
 
@@ -773,7 +775,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void ChoiceField_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Generated choice:"))
+            .Paragraph(p => p.AddText("Generated choice:"))
             .ChoiceField("Country", new[] { "Poland", "Germany", "United States" }, value: "Germany", width: 180, height: 24, spacingAfter: 12)
             .ToBytes();
 
@@ -832,7 +834,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void MultiSelectChoiceField_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(p => p.Text("Generated multi-select choice:"))
+            .Paragraph(p => p.AddText("Generated multi-select choice:"))
             .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Poland", "United States" }, width: 190, height: 72)
             .ToBytes();
 
@@ -917,30 +919,28 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void ComposeRowsAndItems_CanPlaceGeneratedFormFields() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(320)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
             .Compose(document => document.Page(page => page.Content(content => {
                 content.Item(item => item
-                    .TextField("Item.Name", width: 120, height: 20, value: "Ada", spacingAfter: 8)
-                    .Element(element => element.Content(nested => nested.CheckBox("Element.Accept", isChecked: true, size: 14, spacingAfter: 10))));
+                    .TextField("Item.Name", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "Ada", spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
+                    .Element(element => element.Content(nested => nested.CheckBox("Element.Accept", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(14), spacingAfter: global::OfficeIMO.OfficeLength.Points(10)))));
 
                 content.Row(row => row
-                    .Gap(24)
+                    .Gap(global::OfficeIMO.OfficeLength.Points(24))
                     .PercentColumn(50, column => column
-                        .Paragraph(p => p.Text("Left column"))
-                        .TextField("Left.Email", width: 120, height: 20, value: "left@example.com", spacingAfter: 8)
-                        .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: 120, height: 20))
+                        .AddParagraph(p => p.AddText("Left column"))
+                        .TextField("Left.Email", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "left@example.com", spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
+                        .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20)))
                     .PercentColumn(50, column => column
-                        .Paragraph(p => p.Text("Right column"))
-                        .CheckBox("Right.Enabled", isChecked: true, size: 14, align: PdfAlign.Center, spacingAfter: 8)
-                        .MultiSelectChoiceField("Right.Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Germany" }, width: 120, height: 44)
-                        .RadioButtonGroup("Right.Contact", new[] { "Email", "Phone" }, value: "Phone", size: 12, gap: 4)));
+                        .AddParagraph(p => p.AddText("Right column"))
+                        .CheckBox("Right.Enabled", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(14), align: OfficeAlignment.Center, spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
+                        .MultiSelectChoiceField("Right.Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Germany" }, width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(44))
+                        .RadioButtonGroup("Right.Contact", new[] { "Email", "Phone" }, value: "Phone", size: global::OfficeIMO.OfficeLength.Points(12), gap: global::OfficeIMO.OfficeLength.Points(4))));
             })))
             .ToBytes();
 
@@ -983,12 +983,12 @@ public class PdfFormCreationTests {
     [Fact]
     public void GeneratedFields_ValidateFlowGeometry() {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField(" "));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", width: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", height: -1));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField("Name", align: PdfAlign.Justify));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", width: global::OfficeIMO.OfficeLength.Points(0)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", height: global::OfficeIMO.OfficeLength.Points(-1)));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField("Name", align: OfficeAlignment.Justify));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox(" "));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().CheckBox("AcceptTerms", size: 0));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", align: OfficeAlignment.Justify));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", checkedValueName: " "));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", checkedValueName: "Off"));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField(" ", new[] { "One" }));
@@ -999,7 +999,7 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, value: "Two"));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, width: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, height: -1));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, align: OfficeAlignment.Justify));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", Array.Empty<string>()));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: Array.Empty<string>()));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "Two" }));
@@ -1015,13 +1015,13 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "Y\u2713" }));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, size: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = -1 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = -1 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = double.NaN });
-        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = Array.Empty<double>() });
-        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { 0D, 0D } });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { -1D } });
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: OfficeAlignment.Justify));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = global::OfficeIMO.OfficeLength.Points(-1) });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = global::OfficeIMO.OfficeLength.Points(-1) });
+
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = Array.Empty<double>().Select(global::OfficeIMO.OfficeLength.Points).ToArray() });
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { 0D, 0D }.Select(global::OfficeIMO.OfficeLength.Points).ToArray() });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { -1D }.Select(global::OfficeIMO.OfficeLength.Points).ToArray() });
         Assert.Equal(PdfFormFieldBorderStyle.Beveled, new PdfFormFieldStyle { BorderStyle = PdfFormFieldBorderStyle.Beveled }.BorderStyle);
         Assert.Equal(PdfFormFieldBorderStyle.Inset, new PdfFormFieldStyle { BorderStyle = PdfFormFieldBorderStyle.Inset }.BorderStyle);
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderStyle = (PdfFormFieldBorderStyle)999 });
@@ -1029,7 +1029,7 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { MappingName = " " });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { TextAlignment = PdfFormFieldTextAlignment.Unknown });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { MaxLength = 0 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions { AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Unknown });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCreateOptions { AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Unknown });
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().AcroFormDefaultTextAlignment((PdfFormFieldTextAlignment)999));
 
         Assert.Throws<ArgumentException>(() => PdfDocument.Create()

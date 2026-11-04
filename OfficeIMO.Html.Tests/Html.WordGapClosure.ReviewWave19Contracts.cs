@@ -31,11 +31,11 @@ public partial class HtmlWordGapClosure {
         Assert.Null(trailing.ParagraphProperties?.GetFirstChild<Shading>());
 
         WordTableCell nestedCell = Assert.Single(Assert.Single(cell.DirectNestedTables).Rows).Cells[0];
-        Assert.Equal("ABCDEF", nestedCell.ShadingFillColorHex);
-        Assert.Equal("123456", nestedCell.Borders.LeftColorHex);
-        Assert.Equal("123456", nestedCell.Borders.RightColorHex);
-        Assert.Equal("123456", nestedCell.Borders.TopColorHex);
-        Assert.Equal("123456", nestedCell.Borders.BottomColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), nestedCell.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("123456"), nestedCell.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("123456"), nestedCell.Borders.RightColor);
+        Assert.Equal(OfficeColor.Parse("123456"), nestedCell.Borders.TopColor);
+        Assert.Equal(OfficeColor.Parse("123456"), nestedCell.Borders.BottomColor);
     }
 
     [Fact]
@@ -49,9 +49,9 @@ public partial class HtmlWordGapClosure {
         WordParagraph shadedParagraph = document.AddParagraph();
         shadedParagraph.AddHyperLink("Shaded", new Uri("https://example.test/shading"));
         WordParagraph shadedRun = Assert.Single(shadedParagraph.GetRuns());
-        shadedRun.RunShadingFillColorHex = "ABCDEF";
+        shadedRun.BackgroundColor = OfficeColor.Parse("ABCDEF");
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains("background-color:#ffff00", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("background-color:#abcdef", html, StringComparison.OrdinalIgnoreCase);

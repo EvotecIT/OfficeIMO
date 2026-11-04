@@ -11,7 +11,6 @@ namespace OfficeIMO.Excel {
             // Multi-cell OFFSET is a reference argument, not a scalar or a dynamic spill in this subset.
             if (r1 != r2 || c1 != c2) return false;
             result = ResolveFormulaDependency(sheet, r1, c1);
-            if (!result.HasValue && !result.IsUnresolvedFormula) result = new FormulaArgumentValue(0d, "0");
             return !result.IsUnresolvedFormula;
         }
 
@@ -35,7 +34,7 @@ namespace OfficeIMO.Excel {
                 double[] parameters = { 0d, 0d, (double)baseEndRow - baseRow + 1d, (double)baseEndColumn - baseColumn + 1d };
                 for (int index = 1; index < tokens.Count; index++) {
                     if (index >= 3 && string.IsNullOrWhiteSpace(tokens[index])) continue;
-                    if (!TryResolveFormulaArgument(tokens[index], out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
+                    if (!TryResolveFormulaValueArgument(tokens[index], out FormulaArgumentValue value)) return false;
                     if (value.IsError) { if (!error.IsError) error = value; continue; }
                     if (!IsFiniteFormulaNumber(value)) return false;
                     parameters[index - 1] = Math.Truncate(value.Number!.Value);
@@ -44,7 +43,7 @@ namespace OfficeIMO.Excel {
                 double top = baseRow + parameters[0], left = baseColumn + parameters[1];
                 double bottom = top + parameters[2] - 1d, right = left + parameters[3] - 1d;
                 if (parameters[2] <= 0d || parameters[3] <= 0d || top < 1d || left < 1d
-                    || top > A1.MaxRows || left > A1.MaxColumns || bottom > A1.MaxRows || right > A1.MaxColumns) {
+                    || top > ExcelA1.MaxRows || left > ExcelA1.MaxColumns || bottom > ExcelA1.MaxRows || right > ExcelA1.MaxColumns) {
                     error = FormulaArgumentValue.Error("#REF!");
                     return true;
                 }

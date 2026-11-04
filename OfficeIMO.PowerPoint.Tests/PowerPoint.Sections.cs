@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public void CanAddAndRenameSections() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 presentation.AddSlide();
                 presentation.AddSlide();
                 presentation.AddSlide();
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
         public void SectionsStayConsistentAfterDuplicateAndRemove() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide().AddTextBox("Intro 1");
                     presentation.AddSlide().AddTextBox("Intro 2");
                     presentation.AddSlide().AddTextBox("Results 1");
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                 using PresentationDocument document = PresentationDocument.Open(filePath, false);
                 AssertSectionIdsMatchSlides(document);
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(filePath);
                 PowerPointSectionInfo[] sections = reopened.GetSections().ToArray();
                 Assert.Equal(new[] { "Intro", "Results" }, sections.Select(section => section.Name).ToArray());
                 Assert.Equal(new[] { 2, 3 }, sections.Single(section => section.Name == "Results").SlideIndices.ToArray());
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
         public void RemovingFinalSlideClearsSectionMetadata() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide();
                     presentation.AddSection("Intro", startSlideIndex: 0);
 
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
         public void MovingSlideReordersSectionsByCurrentSlideOrder() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide().AddTextBox("Intro");
                     presentation.AddSlide().AddTextBox("Middle");
                     presentation.AddSlide().AddTextBox("Results");
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
                 using PresentationDocument document = PresentationDocument.Open(filePath, false);
                 AssertSectionIdsMatchSlides(document);
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
+                using PowerPointDocument reopened = PowerPointDocument.Load(filePath);
                 PowerPointSectionInfo[] sections = reopened.GetSections().ToArray();
                 Assert.Equal(new[] { "Results", "Intro" }, sections.Select(section => section.Name).ToArray());
                 Assert.Equal(new[] { 0 }, sections[0].SlideIndices.ToArray());
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
         public void Sections_SaveAsSchemaValidAndKeepPowerPointSectionIds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     presentation.AddSlide().AddTextBox("Intro");
                     presentation.AddSlide().AddTextBox("Results");
                     presentation.AddSection("Intro", startSlideIndex: 0);

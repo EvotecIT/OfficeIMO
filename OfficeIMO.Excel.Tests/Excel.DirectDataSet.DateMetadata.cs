@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = CreateDirectDateDocument(rows, dateSystem, dataTable: true);
             Assert.True(document.HasDeferredDirectDataSetImport);
             byte[] bytes = document.ToBytes(format);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(bytes);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes);
             Assert.True(reader.Read());
             Assert.Equal(rows[0].Name, reader.GetString(0));
             Assert.Equal(rows[0].When, reader.GetDateTime(1));

@@ -5,7 +5,7 @@ public static class OneNoteMarkdownProjection {
     /// <summary>Projects one semantic element and its descendants to plain text.</summary>
     public static string ToText(OneNoteElement element) {
         if (element == null) throw new ArgumentNullException(nameof(element));
-        OneNoteMarkdownModelValidator.ValidateElement(element, new OneNoteMarkdownOptions().CloneValidated());
+        OneNoteMarkdownModelValidator.ValidateElement(element, new OneNoteMarkdownExportOptions().CloneValidated());
         var builder = new StringBuilder();
         AppendText(builder, element);
         return builder.ToString().Trim();
@@ -14,7 +14,7 @@ public static class OneNoteMarkdownProjection {
     /// <summary>Projects one table cell to plain text.</summary>
     public static string ToText(OneNoteTableCell cell) {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
-        OneNoteMarkdownModelValidator.ValidateCell(cell, new OneNoteMarkdownOptions().CloneValidated());
+        OneNoteMarkdownModelValidator.ValidateCell(cell, new OneNoteMarkdownExportOptions().CloneValidated());
         var builder = new StringBuilder();
         foreach (OneNoteElement element in cell.Content) AppendText(builder, element);
         return builder.ToString().Trim();
@@ -25,7 +25,7 @@ public static class OneNoteMarkdownProjection {
         OneNoteElement element,
         Func<OneNoteBinaryElement, string?>? assetUriResolver = null) {
         if (element == null) throw new ArgumentNullException(nameof(element));
-        OneNoteMarkdownOptions operation = new OneNoteMarkdownOptions { AssetUriResolver = assetUriResolver }.CloneValidated();
+        OneNoteMarkdownExportOptions operation = new OneNoteMarkdownExportOptions { AssetUriResolver = assetUriResolver }.CloneValidated();
         OneNoteMarkdownModelValidator.ValidateElement(element, operation);
         var builder = new StringBuilder();
         AppendMarkdown(builder, element, operation.AssetUriResolver);
@@ -35,7 +35,7 @@ public static class OneNoteMarkdownProjection {
     /// <summary>Projects one page to plain text.</summary>
     public static string ToText(OneNotePage page) {
         if (page == null) throw new ArgumentNullException(nameof(page));
-        OneNoteMarkdownModelValidator.ValidatePageContent(page, new OneNoteMarkdownOptions().CloneValidated());
+        OneNoteMarkdownModelValidator.ValidatePageContent(page, new OneNoteMarkdownExportOptions().CloneValidated());
         var builder = new StringBuilder();
         builder.AppendLine(PageTitle(page));
         foreach (OneNoteElement element in PageRoots(page)) AppendText(builder, element);
@@ -48,7 +48,7 @@ public static class OneNoteMarkdownProjection {
         int headingLevel = 1,
         Func<OneNoteBinaryElement, string?>? assetUriResolver = null) {
         if (page == null) throw new ArgumentNullException(nameof(page));
-        OneNoteMarkdownOptions operation = new OneNoteMarkdownOptions {
+        OneNoteMarkdownExportOptions operation = new OneNoteMarkdownExportOptions {
             HeadingLevel = headingLevel,
             AssetUriResolver = assetUriResolver
         }.CloneValidated();
@@ -59,9 +59,9 @@ public static class OneNoteMarkdownProjection {
     }
 
     /// <summary>Projects a section, optionally including conflict and historical pages.</summary>
-    public static string ToMarkdown(OneNoteSection section, OneNoteMarkdownOptions? options = null) {
+    public static string ToMarkdown(OneNoteSection section, OneNoteMarkdownExportOptions? options = null) {
         if (section == null) throw new ArgumentNullException(nameof(section));
-        OneNoteMarkdownOptions operation = (options ?? new OneNoteMarkdownOptions()).CloneValidated();
+        OneNoteMarkdownExportOptions operation = (options ?? new OneNoteMarkdownExportOptions()).CloneValidated();
         OneNoteMarkdownModelValidator.ValidateSection(section, operation);
         var builder = new StringBuilder();
         AppendHeading(builder, operation.HeadingLevel, string.IsNullOrWhiteSpace(section.Name) ? "OneNote section" : section.Name);
@@ -72,9 +72,9 @@ public static class OneNoteMarkdownProjection {
     }
 
     /// <summary>Projects a notebook and its section-group hierarchy.</summary>
-    public static string ToMarkdown(OneNoteNotebook notebook, OneNoteMarkdownOptions? options = null) {
+    public static string ToMarkdown(OneNoteNotebook notebook, OneNoteMarkdownExportOptions? options = null) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        OneNoteMarkdownOptions operation = (options ?? new OneNoteMarkdownOptions()).CloneValidated();
+        OneNoteMarkdownExportOptions operation = (options ?? new OneNoteMarkdownExportOptions()).CloneValidated();
         OneNoteMarkdownModelValidator.ValidateNotebook(notebook, operation);
         var builder = new StringBuilder();
         AppendHeading(builder, operation.HeadingLevel, string.IsNullOrWhiteSpace(notebook.Name) ? "OneNote notebook" : notebook.Name);
@@ -82,7 +82,7 @@ public static class OneNoteMarkdownProjection {
         return builder.ToString().TrimEnd();
     }
 
-    private static void AppendGroup(StringBuilder builder, OneNoteSectionGroup group, int headingLevel, OneNoteMarkdownOptions options) {
+    private static void AppendGroup(StringBuilder builder, OneNoteSectionGroup group, int headingLevel, OneNoteMarkdownExportOptions options) {
         AppendHeading(builder, headingLevel, string.IsNullOrWhiteSpace(group.Name) ? "Section group" : group.Name);
         AppendHierarchy(builder, group.Sections, group.SectionGroups, Math.Min(6, headingLevel + 1), options);
     }
@@ -92,7 +92,7 @@ public static class OneNoteMarkdownProjection {
         IList<OneNoteSection> sections,
         IList<OneNoteSectionGroup> groups,
         int headingLevel,
-        OneNoteMarkdownOptions options) {
+        OneNoteMarkdownExportOptions options) {
         foreach (OneNoteNotebookHierarchyItem item in OneNoteNotebookHierarchy.Order(sections, groups)) {
             if (item.Section != null) {
                 AppendSection(builder, item.Section, headingLevel, options);
@@ -102,12 +102,12 @@ public static class OneNoteMarkdownProjection {
         }
     }
 
-    private static void AppendSection(StringBuilder builder, OneNoteSection section, int headingLevel, OneNoteMarkdownOptions options) {
+    private static void AppendSection(StringBuilder builder, OneNoteSection section, int headingLevel, OneNoteMarkdownExportOptions options) {
         AppendHeading(builder, headingLevel, string.IsNullOrWhiteSpace(section.Name) ? "OneNote section" : section.Name);
         foreach (OneNotePage page in section.Pages) AppendPageWithRelated(builder, page, Math.Min(6, headingLevel + 1), options);
     }
 
-    private static void AppendPageWithRelated(StringBuilder builder, OneNotePage page, int headingLevel, OneNoteMarkdownOptions options) {
+    private static void AppendPageWithRelated(StringBuilder builder, OneNotePage page, int headingLevel, OneNoteMarkdownExportOptions options) {
         AppendPageWithRelated(builder, page, headingLevel, null, options);
     }
 
@@ -116,7 +116,7 @@ public static class OneNoteMarkdownProjection {
         OneNotePage page,
         int headingLevel,
         string? prefix,
-        OneNoteMarkdownOptions options) {
+        OneNoteMarkdownExportOptions options) {
         AppendPage(builder, page, headingLevel, prefix, options.AssetUriResolver);
         int relatedHeadingLevel = Math.Min(6, headingLevel + 1);
         if (options.IncludeConflictPages) {

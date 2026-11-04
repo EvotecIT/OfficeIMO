@@ -13,13 +13,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  DOTNET_VERSION: |
-    8.0.426
-    10.0.113
   MSBUILDDISABLENODEREUSE: '1'
   DOTNET_CLI_USE_MSBUILD_SERVER: '0'
   BUILD_CONFIGURATION: 'Release'
@@ -27,7 +24,11 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   changes:
+    needs: coverage
     name: Select affected contracts
     runs-on: ubuntu-latest
     outputs:
@@ -59,7 +60,11 @@ jobs:
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+          if [ "${{ needs.coverage.outputs.build }}" = false ]; then
+            python3 Build/Ci/select.py --files --output ci-selection.json
+          elif [ "${{ needs.coverage.outputs.force_full }}" = true ]; then
+            python3 Build/Ci/select.py --full --output ci-selection.json
+          elif [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             python3 Build/Ci/select.py --base "$PR_BASE" --output ci-selection.json
           else
             python3 Build/Ci/select.py --full --output ci-selection.json
@@ -100,7 +105,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest","macos-latest","windows-latest"]') }}
         framework: ${{ fromJSON(needs.changes.outputs.full == 'true' && '["net8.0","net10.0"]' || '["net10.0"]') }}
         include:
           - os: windows-latest
@@ -111,7 +116,8 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Test bounded Cabinet and passive MSI extraction
         run: dotnet test OfficeIMO.Archives.Tests/OfficeIMO.Archives.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --artifacts-path "${{ runner.temp }}/officeimo-archives/artifacts" -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=archives.trx' --results-directory "${{ runner.temp }}/officeimo-archives/results"
@@ -156,13 +162,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest","macos-latest","windows-latest"]') }}
         framework: ${{ fromJSON(needs.changes.outputs.full == 'true' && '["net8.0","net10.0"]' || '["net10.0"]') }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Test compiled archives, conversions, and rich Reader projection
         run: dotnet test OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=chm.trx' --results-directory TestResults/Chm
@@ -190,7 +197,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Test bounded legacy import and conversion contracts
         shell: pwsh
@@ -215,7 +223,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Cache HtmlTinkerX browser installations
         uses: actions/cache@v6
@@ -300,7 +309,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Test shared workflows and registered Apple routes
         shell: pwsh
@@ -333,7 +343,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Test document AI
         shell: pwsh
@@ -352,19 +363,22 @@ jobs:
 
   studio-contracts:
     needs: changes
-    name: 'Studio workflows and accessibility / ${{ matrix.os }}'
+    name: 'Studio workflows and accessibility / ${{ matrix.os }} / ${{ matrix.slice }}'
     if: fromJSON(needs.changes.outputs.suites)['studio-contracts']
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # A cold Windows engine build can consume 15 minutes before the workflow tests start.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        slice: [visual, workflows]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Check Studio translations
         shell: pwsh
@@ -376,9 +390,15 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter 'Category!=Performance' --logger 'trx;LogFileName=studio-core.trx' --results-directory TestResults/Studio
-          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --logger 'trx;LogFileName=studio.trx' --results-directory TestResults/Studio
+          if ('${{ matrix.slice }}' -eq 'visual') {
+            dotnet test OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter 'Category!=Performance' --logger 'trx;LogFileName=studio-core.trx' --results-directory TestResults/Studio
+            $filter = 'FullyQualifiedName~Visual|FullyQualifiedName~Render|FullyQualifiedName~Layout|FullyQualifiedName~Screenshot'
+          } else {
+            $filter = 'FullyQualifiedName!~Visual&FullyQualifiedName!~Render&FullyQualifiedName!~Layout&FullyQualifiedName!~Screenshot'
+          }
+          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter $filter --logger 'trx;LogFileName=studio-${{ matrix.slice }}.trx' --results-directory TestResults/Studio
       - name: Test Store channel availability
+        if: matrix.slice == 'visual'
         shell: pwsh
         env:
           OFFICEIMO_STUDIO_VISUAL_OUTPUT: ${{ github.workspace }}/TestResults/Studio/StoreVisual
@@ -390,15 +410,15 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: studio-tests-${{ matrix.os }}
+          name: studio-tests-${{ matrix.os }}-${{ matrix.slice }}
           path: TestResults/Studio
           if-no-files-found: ignore
           retention-days: 7
 
-  studio-locked-restore:
+  studio-release-restore:
     needs: changes
-    name: 'Studio locked restore (${{ matrix.os }})'
-    if: fromJSON(needs.changes.outputs.suites)['studio-locked-restore']
+    name: 'Studio release restore (${{ matrix.os }})'
+    if: fromJSON(needs.changes.outputs.suites)['studio-release-restore']
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -408,7 +428,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Validate the Studio release restore graph
         shell: pwsh
@@ -417,8 +437,8 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           $config = Get-Content Build/Studio/powerforge.dotnetpublish.json -Raw | ConvertFrom-Json
           $runtimeProperty = '-p:RuntimeIdentifiers="' + $config.DotNet.MsBuildProperties.RuntimeIdentifiers + '"'
-          dotnet restore $config.Targets[0].ProjectPath --locked-mode -p:OfficeIMOStudioLockedRestore=true -p:SelfContained=true -p:PublishSingleFile=true $runtimeProperty
-          git diff --exit-code -- '**/packages*.lock.json'
+          dotnet restore $config.Targets[0].ProjectPath -p:SelfContained=true -p:PublishSingleFile=true $runtimeProperty
+          git diff --exit-code
 
   invoice-standards:
     needs: changes
@@ -430,7 +450,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - uses: actions/setup-java@v6
         with:
@@ -446,8 +467,9 @@ jobs:
     if: fromJSON(needs.changes.outputs.suites)['build-matrix']
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: ${{ fromJSON(needs.changes.outputs.full == 'true' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest"]') }}
+        os: ${{ fromJSON(needs.changes.outputs.full == 'true' && (github.event_name != 'pull_request' && '["ubuntu-latest","macos-latest","windows-latest"]' || '["ubuntu-latest","windows-latest"]') || '["ubuntu-latest"]') }}
     timeout-minutes: 45
     steps:
       - name: Checkout code
@@ -460,17 +482,18 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
       - name: Restore dependencies
         if: needs.changes.outputs.full == 'true'
-        run: dotnet restore OfficeIMO.sln
+        run: dotnet restore OfficeIMO.slnx
 
       - name: Build solution
         if: needs.changes.outputs.full == 'true'
-        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        run: dotnet build OfficeIMO.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Build affected PR libraries and executable contracts
         if: needs.changes.outputs.full != 'true'
@@ -480,6 +503,7 @@ jobs:
         run: ./Build/Ci/Invoke-PrBuild.ps1 -ProjectsJson $env:OFFICEIMO_CI_PROJECTS
 
       - name: Test optional C2PA process adapter
+        if: runner.os != 'macOS'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -491,6 +515,7 @@ jobs:
           }
 
       - name: Test electronic invoice contracts
+        if: runner.os != 'macOS'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -502,6 +527,7 @@ jobs:
           }
 
       - name: Test optional invoice PDF adapter
+        if: runner.os != 'macOS'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -513,7 +539,7 @@ jobs:
           }
 
       - name: Build public examples
-        if: needs.changes.outputs.full == 'true'
+        if: needs.changes.outputs.full == 'true' && runner.os != 'macOS'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -535,12 +561,16 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Pack and test HTML API consumers
         shell: pwsh
         run: ./Build/Test-HtmlPackages.ps1
+
+      - name: Test the HTML PDF workbench
+        run: dotnet test Tools/OfficeIMO.Html.Pdf.Workbench.Tests/OfficeIMO.Html.Pdf.Workbench.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 -m:2 --logger trx
 
   typography-package-consumers:
     needs: changes
@@ -559,7 +589,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
@@ -585,7 +616,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Pack and test clean package consumers
@@ -602,7 +634,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path $feed | Out-Null
           $projects = @(
             'OfficeIMO.Core/OfficeIMO.Core.csproj',
-            'OfficeIMO.Pdf/OfficeIMO.Pdf.csproj',
             'OfficeIMO.Markdown/OfficeIMO.Markdown.csproj',
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
@@ -637,7 +668,6 @@ jobs:
           $readerEmailVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Email'
           $readerImageVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Image'
           $coreVersion = Get-PackedPackageVersion 'OfficeIMO.Core'
-          $pdfVersion = Get-PackedPackageVersion 'OfficeIMO.Pdf'
           $markdownVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
           $htmlCoreVersion = Get-PackedPackageVersion 'OfficeIMO.Html.Core'
@@ -673,7 +703,6 @@ jobs:
           $localMapping.SetAttribute('key', 'OfficeIMOLocal')
           foreach ($packageId in @(
             'OfficeIMO.Core',
-            'OfficeIMO.Pdf',
             'OfficeIMO.Markdown',
             'OfficeIMO.Rtf',
             'OfficeIMO.Email',
@@ -708,7 +737,6 @@ jobs:
             @{ Id = 'officeimo.reader.email'; Version = $readerEmailVersion },
             @{ Id = 'officeimo.reader.image'; Version = $readerImageVersion },
             @{ Id = 'officeimo.core'; Version = $coreVersion },
-            @{ Id = 'officeimo.pdf'; Version = $pdfVersion },
             @{ Id = 'officeimo.markdown'; Version = $markdownVersion },
             @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
             @{ Id = 'officeimo.html.core'; Version = $htmlCoreVersion },
@@ -748,7 +776,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Pack and test clean package consumers
@@ -768,7 +797,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Pack and test clean package consumers
@@ -905,7 +935,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install schema and OpenDocument interoperability tools
@@ -950,7 +981,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install LibreOffice Impress
@@ -992,7 +1024,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install LibreOffice Writer, Calc, and Impress
@@ -1029,7 +1062,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
@@ -1101,7 +1135,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Restore security tests
@@ -1244,7 +1279,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Cache pinned PDF rasterizer
@@ -1368,6 +1404,8 @@ jobs:
             if ci_project_selected "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"; then dotnet restore OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"; then dotnet restore OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"; then dotnet restore OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj; fi
+            if ci_project_selected "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"; then dotnet restore OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj; fi
+            if ci_project_selected "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"; then dotnet restore OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj"; then dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"; then dotnet restore OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj"; then dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj; fi
@@ -1381,6 +1419,7 @@ jobs:
             if ci_project_selected "OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj"; then dotnet restore OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj"; then dotnet restore OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet restore OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj; fi
+            if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet restore OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"; then dotnet restore OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj; fi
             if ci_project_selected "OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj"; then dotnet restore OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj; fi
             if ci_project_selected "OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj"; then dotnet restore OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj; fi
@@ -1424,6 +1463,8 @@ jobs:
             if ci_project_selected "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"; then dotnet build OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"; then dotnet build OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"; then dotnet build OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
+            if ci_project_selected "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"; then dotnet build OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
+            if ci_project_selected "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"; then dotnet build OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj"; then dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"; then dotnet build OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj"; then dotnet build OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
@@ -1437,6 +1478,7 @@ jobs:
             if ci_project_selected "OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj"; then dotnet build OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj"; then dotnet build OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet build OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
+            if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet build OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"; then dotnet build OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj"; then dotnet build OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
             if ci_project_selected "OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj"; then dotnet build OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore; fi
@@ -1452,24 +1494,15 @@ jobs:
         env:
           OFFICEIMO_TEST_FRAMEWORK: ${{ matrix.framework }}
           OFFICEIMO_TEST_PARTITION: ${{ matrix.partition }}
-          OFFICEIMO_COLLECT_COVERAGE: ${{ matrix.collectCoverage }}
         run: |
           # Keep the heavy Excel image visual gate on its dedicated script path; run test projects
           # explicitly so Ubuntu does not spend the job budget walking every solution project.
           test_filter='Category!=ExcelImageVisualGate&Category!=Performance'
           run_shared_tests() {
             local name="$1"
-            local collect_coverage="${2:-false}"
-            local coverage_args=()
-            # Keep PR test partitions focused on contract proof. Coverage collection is
-            # intentionally disabled for the matrix because it turns data-heavy Markdown
-            # and PDF slices into long-running hosted-runner jobs.
-            if [ "${OFFICEIMO_COLLECT_COVERAGE}" = "true" ] && [ "${collect_coverage}" = "true" ]; then
-              coverage_args=(--collect "XPlat Code Coverage")
-            fi
             echo ""
             echo "== OfficeIMO.Shared.Tests: ${name} =="
-            if ci_project_selected "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"; then dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx "${coverage_args[@]}"; fi
+            if ci_project_selected "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"; then dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
           }
 
           run_excel_tests() {
@@ -1603,6 +1636,7 @@ jobs:
               "OfficeIMO.Tests.MarkdownAllSeverityBatch12SecurityTests",
               "OfficeIMO.Tests.MarkdownAllSeverityBatch15SecurityTests",
               "OfficeIMO.Tests.MarkdownAllSeverityBatch21Tests",
+              "OfficeIMO.Markdown.Tests.WordMarkdownOutputAcceptanceTests",
           )
 
           unassigned = [name for name in discovered if not any(partition in name for partition in markdown_partitions)]
@@ -1628,7 +1662,7 @@ jobs:
               ;;
             markdown-suite)
               run_markdown_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
-              run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlApiContracts|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch11SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch12SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch15SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch21Tests'
+              run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlApiContracts|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch11SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch12SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch15SecurityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownAllSeverityBatch21Tests|FullyQualifiedName~OfficeIMO.Markdown.Tests.WordMarkdownOutputAcceptanceTests'
               ;;
             pdf-visual-inspector)
               export OFFICEIMO_REQUIRE_PDF_RASTERIZER=1
@@ -1669,6 +1703,8 @@ jobs:
               if ci_project_selected "OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj"; then dotnet test OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj"; then dotnet test OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj"; then dotnet test OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
+              if ci_project_selected "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"; then dotnet test OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "Category!=Performance" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
+              if ci_project_selected "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"; then dotnet test OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "Category!=Performance" --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               run_drawing_tests
               if ci_project_selected "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"; then dotnet test OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               run_googleworkspace_tests
@@ -1684,6 +1720,7 @@ jobs:
               run_publisher_tests
               run_reader_tests
               if ci_project_selected "OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj"; then dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
+              if ci_project_selected "OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj"; then dotnet test OfficeIMO.Opml.Tests/OfficeIMO.Opml.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               run_shared_tests "shared-contracts"
               if ci_project_selected "OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj"; then dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
               if ci_project_selected "OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj"; then dotnet test OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
@@ -1747,13 +1784,6 @@ jobs:
             **/*.trx
             TestResults/visual-baselines/**
           retention-days: 7
-      - name: Upload coverage to Codecov
-        if: ${{ matrix.collectCoverage }}
-        uses: codecov/codecov-action@v7
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
-        continue-on-error: true
 
   officeimo-tool-package-gate:
     needs: changes
@@ -1768,7 +1798,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Pack and install the .NET tool
@@ -1808,7 +1839,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
@@ -1839,7 +1871,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
@@ -1919,15 +1952,15 @@ jobs:
   test-macos-matrix:
     needs: changes
     name: 'macOS platform smoke'
-    if: needs.changes.outputs.managed == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.managed == 'true'
     runs-on: macos-latest
     # Linux covers the full net8.0/net10.0 solution test contract. Hosted macOS
     # runners are scarce for the organization, so keep this lane to one focused
     # platform smoke that proves macOS restore/build/test execution still works.
-    # PRs build only the projects below; full runs retain macOS solution compilation.
+    # Full runs compile the whole macOS solution in build-matrix. Keep this
+    # job's execution window for the platform tests and native Keychain proof.
     env:
       OFFICEIMO_SMOKE_FRAMEWORK: ${{ matrix.framework }}
-      OFFICEIMO_CI_FULL: ${{ needs.changes.outputs.full }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -1941,7 +1974,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
@@ -1950,14 +1984,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          if ($env:OFFICEIMO_CI_FULL -eq 'true') {
-            dotnet restore OfficeIMO.sln
-          } else {
-            $projects = 'Word', 'Html', 'Pdf', 'Markdown', 'CSV', 'Email', 'Security', 'IWork', 'VerifyTests'
-            foreach ($name in $projects) {
-              $project = if ($name -eq 'VerifyTests') { 'OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj' } else { "OfficeIMO.$name.Tests/OfficeIMO.$name.Tests.csproj" }
-              dotnet restore $project
-            }
+          $projects = 'Word', 'Html', 'Pdf', 'Markdown', 'CSV', 'Email', 'Security', 'IWork', 'VerifyTests'
+          foreach ($name in $projects) {
+            $project = if ($name -eq 'VerifyTests') { 'OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj' } else { "OfficeIMO.$name.Tests/OfficeIMO.$name.Tests.csproj" }
+            dotnet restore $project
           }
 
       - name: Build solution
@@ -1965,14 +1995,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          if ($env:OFFICEIMO_CI_FULL -eq 'true') {
-            dotnet build OfficeIMO.sln -c $env:BUILD_CONFIGURATION --no-restore
-          } else {
-            $projects = 'Word', 'Html', 'Pdf', 'Markdown', 'CSV', 'Email', 'Security', 'IWork', 'VerifyTests'
-            foreach ($name in $projects) {
-              $project = if ($name -eq 'VerifyTests') { 'OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj' } else { "OfficeIMO.$name.Tests/OfficeIMO.$name.Tests.csproj" }
-              dotnet build $project -c $env:BUILD_CONFIGURATION -f $env:OFFICEIMO_SMOKE_FRAMEWORK --no-restore -m:1
-            }
+          $projects = 'Word', 'Html', 'Pdf', 'Markdown', 'CSV', 'Email', 'Security', 'IWork', 'VerifyTests'
+          foreach ($name in $projects) {
+            $project = if ($name -eq 'VerifyTests') { 'OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj' } else { "OfficeIMO.$name.Tests/OfficeIMO.$name.Tests.csproj" }
+            dotnet build $project -c $env:BUILD_CONFIGURATION -f $env:OFFICEIMO_SMOKE_FRAMEWORK --no-restore -m:1
           }
 
       - name: Run tests
@@ -2040,11 +2066,15 @@ jobs:
   test-macos:
     name: 'macOS'
     runs-on: ubuntu-latest
-    needs: [changes, test-macos-matrix]
+    needs: [changes, build-matrix, test-macos-matrix]
     if: always() && needs.changes.result == 'success'
     steps:
       - name: Check macOS test matrix
         run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] && [ "${{ needs.changes.outputs.full }}" = "true" ] && [ "${{ needs.build-matrix.result }}" != "success" ]; then
+            echo "Full macOS solution build matrix result: ${{ needs.build-matrix.result }}"
+            exit 1
+          fi
           if [ "${{ needs.test-macos-matrix.result }}" != "success" ] && [ "${{ needs.test-macos-matrix.result }}" != "skipped" ]; then
             echo "macOS test matrix result: ${{ needs.test-macos-matrix.result }}"
             exit 1
@@ -2064,26 +2094,27 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
       - name: Restore dependencies
-        run: dotnet restore OfficeIMO.sln
+        run: dotnet restore OfficeIMO.slnx
 
       - name: Run AOT/Trim analyzers (net8.0)
         shell: pwsh
         run: |
           # Studio and the AI projects target net10 only. Preserve
           # the existing net8 analyzer lane for every compatible solution project.
-          $projects = dotnet sln OfficeIMO.sln list | Where-Object {
+          $projects = dotnet sln OfficeIMO.slnx list | Where-Object {
             $_ -match '\.csproj$' -and $_ -notmatch '(^|[\\/])OfficeIMO\.(Studio(\.Core|\.Native)?(\.Tests)?|AI(\.IntelligenceX|\.Tests|\.Example)?)[\\/]'
           } | ForEach-Object {
             (Resolve-Path -LiteralPath $_).Path
           }
 
-          $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.sln'
-          dotnet new sln --name OfficeIMO.Aot --output $env:RUNNER_TEMP --format sln
+          $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.slnx'
+          dotnet new sln --name OfficeIMO.Aot --output $env:RUNNER_TEMP --format slnx
           dotnet sln $analyzerSolution add @($projects)
           dotnet restore $analyzerSolution -p:TargetFramework=net8.0
           dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
@@ -2094,22 +2125,34 @@ jobs:
           # The preceding net8 restore replaces shared project.assets.json files.
           # Restore the complete graph, then use the filtered solution to avoid
           # concurrent Avalonia generation through Studio and Studio.Tests.
-          dotnet restore OfficeIMO.sln
-          $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.sln'
+          dotnet restore OfficeIMO.slnx
+          $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.slnx'
           dotnet sln $analyzerSolution add OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj OfficeIMO.AI/OfficeIMO.AI.csproj OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj
           dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
           dotnet build OfficeIMO.Studio/OfficeIMO.Studio.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
 
   aot-linux-scenarios:
     needs: changes
-    name: 'NativeAOT Linux / ${{ matrix.group }}'
+    name: 'NativeAOT Linux / ${{ matrix.label }}'
     if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        group: [libraries, iwork, surfaces]
+        include:
+          - group: libraries
+            label: libraries
+            framework: ''
+          - group: iwork
+            label: iwork / net8.0
+            framework: net8.0
+          - group: iwork
+            label: iwork / net10.0
+            framework: net10.0
+          - group: surfaces
+            label: surfaces
+            framework: ''
     env:
       DOTNET_PROCESSOR_COUNT: 2
       MSBUILDDISABLENODEREUSE: 1
@@ -2121,7 +2164,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
@@ -2148,7 +2192,7 @@ jobs:
       - name: Publish and run supported NativeAOT scenarios
         shell: bash
         run: |
-          # Each group starts on a fresh runner, separate from managed analysis.
+          # Each lane starts on a fresh runner; iWork frameworks keep separate native build budgets.
           sample_resources() {
             local sample_sleep_pid=''
             trap 'if [ -n "$sample_sleep_pid" ]; then kill "$sample_sleep_pid" 2>/dev/null || true; wait "$sample_sleep_pid" 2>/dev/null || true; fi; exit 0' TERM
@@ -2164,7 +2208,7 @@ jobs:
           sample_resources & native_sampler_pid=$!
           trap 'kill "$native_sampler_pid" 2>/dev/null || true; wait "$native_sampler_pid" 2>/dev/null || true' EXIT
           pwsh -NoProfile -File ./Build/Test-AotProjectCoverage.ps1 -JsonOutputPath ./artifacts/aot/project-matrix.json
-          pwsh -NoProfile -File ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration '${{ env.BUILD_CONFIGURATION }}' -ScenarioGroup '${{ matrix.group }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}.json'
+          pwsh -NoProfile -File ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier linux-x64 -Configuration '${{ env.BUILD_CONFIGURATION }}' -ScenarioGroup '${{ matrix.group }}' -TargetFramework '${{ matrix.framework }}' -JsonOutputPath './artifacts/aot/linux-x64-${{ matrix.group }}${{ matrix.framework }}.json'
 
       - name: Report final Linux native build resources
         if: always()
@@ -2201,7 +2245,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nativeaot-linux-x64-${{ matrix.group }}
+          name: nativeaot-linux-x64-${{ matrix.group }}${{ matrix.framework }}
           path: artifacts/aot/*.json
 
   aot-trim-analyzers:
@@ -2236,7 +2280,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
 
@@ -2286,7 +2331,8 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
       - name: Read independent DBF fixtures and reopen CSV/XLSX output
         shell: pwsh
@@ -2307,7 +2353,7 @@ jobs:
     name: PR validation
     if: always()
     runs-on: ubuntu-latest
-    needs: ["changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-locked-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts"]
+    needs: ["coverage", "changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-release-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts"]
     steps:
       - name: Require selection and every selected contract
         env:
@@ -2317,6 +2363,8 @@ jobs:
           import json, os, sys
           results = json.loads(os.environ['RESULTS'])
           failed = [name for name, job in results.items() if job['result'] not in ('success', 'skipped')]
+          if results['coverage']['result'] != 'success':
+              failed.append('coverage')
           if results['changes']['result'] != 'success':
               failed.append('changes')
           print(json.dumps({name: job['result'] for name, job in results.items()}, indent=2))

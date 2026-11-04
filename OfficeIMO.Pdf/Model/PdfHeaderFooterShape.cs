@@ -9,21 +9,21 @@ public sealed class PdfHeaderFooterShape {
     private readonly ShapeBlock _block;
 
     /// <summary>Creates a header/footer shape.</summary>
-    public PdfHeaderFooterShape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
+    public PdfHeaderFooterShape(OfficeShape shape, OfficeAlignment align = OfficeAlignment.Left) {
         Guard.NotNull(shape, nameof(shape));
-        Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer shape");
+        align = Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer shape");
 
         _block = PdfDocument.CreateShapeBlock(shape, align, 0D, 0D);
     }
 
     /// <summary>Shape width in PDF points.</summary>
-    public double Width => _block.Shape.Width;
+    public global::OfficeIMO.OfficeLength Width => global::OfficeIMO.OfficeLength.Points(_block.Shape.Width);
 
     /// <summary>Shape height in PDF points.</summary>
-    public double Height => _block.Shape.Height;
+    public global::OfficeIMO.OfficeLength Height => global::OfficeIMO.OfficeLength.Points(_block.Shape.Height);
 
     /// <summary>Horizontal placement inside the page content width.</summary>
-    public PdfAlign Align => _block.Align;
+    public OfficeAlignment Align => _block.Align;
 
     /// <summary>Returns a copy of the shape payload.</summary>
     public OfficeShape Shape => _block.Shape.Clone();

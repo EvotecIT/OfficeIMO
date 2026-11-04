@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordSection { Add-OfficeWordFooter { Add-OfficeWordPageNumber -IncludeTotalPages } }</code>
 ///   <para>Inserts a footer displaying “Page X of Y”.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordFooter")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordFooter", DefaultParameterSetName = "Default")]
 [Alias("WordFooter")]
 public sealed class AddOfficeWordFooterCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>The footer kind (Default/First/Even).</summary>
@@ -27,7 +27,12 @@ public sealed class AddOfficeWordFooterCommand : PSWriteOffice.Cmdlets.OfficeMut
     protected override void ProcessRecord() {
         var context = WordDslContext.Require(this);
         var section = context.RequireSection();
-        var footer = section.GetOrCreateFooter(Type);
+        var setup = section.PageSetup;
+        var footer = Type switch {
+            WordHeaderFooterType.First => setup.FirstPageFooter,
+            WordHeaderFooterType.Even => setup.EvenPageFooter,
+            _ => setup.Footer
+        };
 
         using (context.Push(footer)) {
             Content?.InvokeReturnAsIs();

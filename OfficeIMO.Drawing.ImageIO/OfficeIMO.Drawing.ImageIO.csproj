@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Optional Apple system ImageIO raster codec for OfficeIMO.Drawing.</Description>
-    <AssemblyName>OfficeIMO.Drawing.ImageIO</AssemblyName>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

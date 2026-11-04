@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Lists {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Number of lists - all: " + document.Lists.Count);
 
                 document.AddSection();
-                document.Sections[1].PageSettings.Orientation = OfficePageOrientation.Landscape;
+                document.Sections[1].PageSetup.Size.Orientation = OfficePageOrientation.Landscape;
 
 
                 Console.WriteLine("Number of lists - section 1: " + document.Sections[1].Lists.Count);

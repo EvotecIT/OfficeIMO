@@ -2,7 +2,7 @@
 
 Opt-in benchmark verification runner for OfficeIMO.Excel and NPOI.
 
-This project is not included in `OfficeIMO.sln`, so normal solution restore and
+This project is not included in `OfficeIMO.slnx`, so normal solution restore and
 build do not pull NPOI. Run it explicitly when external benchmark verification
 evidence is wanted. The project sets NPOI's OSMF EULA acceptance property for
 this runner.

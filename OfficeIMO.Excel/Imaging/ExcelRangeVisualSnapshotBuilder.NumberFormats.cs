@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeVisualSnapshotBuilder {
-        private static void ApplyNumericFormatColor(ExcelCellStyleSnapshot style, ExcelCellData data) {
+        private static void ApplyNumericFormatColor(ExcelCellStyleInfo style, ExcelCellData data) {
             if (data.Kind is not ExcelCellDataKind.Number and not ExcelCellDataKind.Formula
                 || data.Value is not double value) return;
             string? color = ExcelNumberFormatDisplay.GetNumericFormatColor(value,

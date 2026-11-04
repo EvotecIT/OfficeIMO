@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     public void New_pages_header_footer_text_is_charged_once() {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants();
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextItems = 14 });
+            new IWorkReadOptions { MaxProjectedTextItems = 14 });
 
         IWorkPagesProjection projection = source.ReadPages();
 
@@ -25,19 +25,19 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_text_boxes_normalize_iwork_break_controls(char separator) {
         using MemoryStream package = CreateNumbersPackageWithTextBox("Before" + separator + "After");
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Before\nAfter", Assert.Single(Assert.Single(
             result.Projection.Sheets).TextBoxes));
         Assert.Equal("Before\nAfter", Assert.Single(result.Value.Sheets)
-            .CellAt(1, 1).GetValue<string>());
+            .Cell(1, 1).GetValue<string>());
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         Assert.Equal("Before\nAfter", Assert.Single(reopened.Sheets)
-            .CellAt(1, 1).GetValue<string>());
+            .Cell(1, 1).GetValue<string>());
     }
 
     [Fact]

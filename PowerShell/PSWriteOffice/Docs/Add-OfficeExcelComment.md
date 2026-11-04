@@ -29,7 +29,7 @@ Adds or replaces a comment (note) on a worksheet cell.
 PS> ExcelSheet 'Data' { Add-OfficeExcelComment -Address 'A1' -Text 'Review this cell' }
 ```
 
-Creates a cell comment at A1.
+Creates a cell comment at ExcelA1.
 
 ## PARAMETERS
 

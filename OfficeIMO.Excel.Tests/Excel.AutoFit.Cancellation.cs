@@ -20,9 +20,9 @@ public sealed class ExcelAutoFitCancellationTests {
     public void PreCanceledAutoFitPreservesDeferredValuesAndWidths(string route, bool alreadyFit) {
         using var source = new MemoryStream();
         using var document = ExcelDocument.Create(source);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using DataTable table = CreateTable();
-        sheet.InsertDataTableAsTable(table);
+        sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
         if (alreadyFit) sheet.AutoFitColumns();
         // Inspect a separate workbook: inspecting this sheet would materialize its deferred source.
         var widths = ExpectedTableWidths(alreadyFit);
@@ -44,7 +44,7 @@ public sealed class ExcelAutoFitCancellationTests {
     [InlineData("except")]
     public void PreCanceledAutoFitObservesCancellationWhenThereAreNoColumnsToFit(string route) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -67,9 +67,9 @@ public sealed class ExcelAutoFitCancellationTests {
     public void CancellationWhileEnumeratingColumnsDoesNotBecomeNoWorkSuccess(bool except) {
         using var source = new MemoryStream();
         using var document = ExcelDocument.Create(source);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using DataTable table = CreateTable();
-        sheet.InsertDataTableAsTable(table);
+        sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
         var widths = Array.Empty<(int Start, int End, double? Width, bool Custom)>();
         using var cancellation = new CancellationTokenSource();
         IEnumerable<int> Columns() {
@@ -101,14 +101,14 @@ public sealed class ExcelAutoFitCancellationTests {
         using var source = new MemoryStream();
         using var document = ExcelDocument.Create(source);
         document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using var table = new DataTable("Data");
         table.Columns.Add("Description", typeof(string));
         table.Columns.Add("When", typeof(DateTimeOffset));
         var date = new DateTimeOffset(2026, 10, 11, 8, 30, 0, TimeSpan.Zero);
         table.Rows.Add("Retained source", date);
         if (hasLaterRow) table.Rows.Add("Retained later row", date.AddDays(1));
-        sheet.InsertDataTableAsTable(table);
+        sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
         var widths = Array.Empty<(int Start, int End, double? Width, bool Custom)>();
         using var cancellation = new CancellationTokenSource();
         bool measuredDate = false;
@@ -130,19 +130,19 @@ public sealed class ExcelAutoFitCancellationTests {
         Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(widths, ColumnState(reopened.Sheets[0]));
-        Assert.Equal("Retained source", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal(date.UtcDateTime.ToOADate(), reopened.Sheets[0].CellAt(2, 2).GetValue<double>());
+        Assert.Equal("Retained source", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal(date.UtcDateTime.ToOADate(), reopened.Sheets[0].Cell(2, 2).GetValue<double>());
         if (hasLaterRow) {
-            Assert.Equal("Retained later row", reopened.Sheets[0].CellAt(3, 1).GetValue<string>());
-            Assert.Equal(date.AddDays(1).UtcDateTime.ToOADate(), reopened.Sheets[0].CellAt(3, 2).GetValue<double>());
+            Assert.Equal("Retained later row", reopened.Sheets[0].Cell(3, 1).GetValue<string>());
+            Assert.Equal(date.AddDays(1).UtcDateTime.ToOADate(), reopened.Sheets[0].Cell(3, 2).GetValue<double>());
         }
     }
 
     [Fact]
     public void SequentialAutoFitDoesNotApplyWidthsWhenMeasurementCompletionCancels() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "A long ordinary cell value requiring a wider column");
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("A long ordinary cell value requiring a wider column");
         var widths = ColumnState(sheet);
         using var cancellation = new CancellationTokenSource();
         document.Execution.OnTiming = (operation, _) => {
@@ -157,7 +157,7 @@ public sealed class ExcelAutoFitCancellationTests {
         document.Save(saved);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(widths, ColumnState(reopened.Sheets[0]));
-        Assert.Equal("A long ordinary cell value requiring a wider column", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("A long ordinary cell value requiring a wider column", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     private static void FitColumns(ExcelSheet sheet, string route, CancellationToken cancellationToken) {
@@ -177,14 +177,14 @@ public sealed class ExcelAutoFitCancellationTests {
 
     private static (int Start, int End, double? Width, bool Custom)[] ColumnState(ExcelSheet sheet) =>
         sheet.GetColumnDefinitions().Select(column =>
-            (column.StartIndex, column.EndIndex, column.Width, column.CustomWidth)).ToArray();
+            (column.StartIndex, column.EndIndex, (column.Width?.CharacterCount), column.CustomWidth)).ToArray();
 
     private static (int Start, int End, double? Width, bool Custom)[] ExpectedTableWidths(bool alreadyFit) {
         using var source = new MemoryStream();
         using var document = ExcelDocument.Create(source);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using DataTable table = CreateTable();
-        sheet.InsertDataTableAsTable(table);
+        sheet.InsertDataTableAsTable(table, startRow: 1, startColumn: 1);
         if (alreadyFit) sheet.AutoFitColumns();
         using var saved = new MemoryStream();
         document.Save(saved);
@@ -199,7 +199,7 @@ public sealed class ExcelAutoFitCancellationTests {
         Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(widths, ColumnState(reopened.Sheets[0]));
-        Assert.Equal("An extended description that needs a wider column", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal(42D, reopened.Sheets[0].CellAt(2, 2).GetValue<double>());
+        Assert.Equal("An extended description that needs a wider column", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal(42D, reopened.Sheets[0].Cell(2, 2).GetValue<double>());
     }
 }

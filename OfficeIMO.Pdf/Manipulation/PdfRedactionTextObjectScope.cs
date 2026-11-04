@@ -14,6 +14,7 @@ internal sealed class PdfRedactionTextObjectScope {
 
         var sourceGlyphs = new List<PdfRedactionTextGlyphIdentity>();
         var expectedSurvivors = new List<PdfRedactionTextGlyphIdentity>();
+        var reviewedSpans = new List<PdfTextSpan>();
         bool reviewedIntersection = false;
         bool requiresWholeObjectFallback = false;
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
@@ -24,9 +25,10 @@ internal sealed class PdfRedactionTextObjectScope {
                     span,
                     spanPaintOrderContext);
                 sourceGlyphs.Add(aggregate);
-                if (reviewedAreas != null && IntersectsAny(reviewedAreas, aggregate.PreciseBounds)) {
+                if (reviewedAreas != null && TargetsAny(reviewedAreas, aggregate.PreciseBounds, double.NaN, double.NaN, null)) {
                     reviewedIntersection = true;
                     requiresWholeObjectFallback = true;
+                    reviewedSpans.Add(span);
                 } else {
                     expectedSurvivors.Add(aggregate);
                 }
@@ -34,17 +36,22 @@ internal sealed class PdfRedactionTextObjectScope {
             }
 
             sourceGlyphs.AddRange(glyphs);
+            bool spanReviewed = false;
             for (int glyphIndex = 0; glyphIndex < glyphs.Length; glyphIndex++) {
                 PdfRedactionTextGlyphIdentity glyph = glyphs[glyphIndex];
-                if (reviewedAreas != null && IntersectsAny(reviewedAreas, glyph.PreciseBounds)) {
+                if (reviewedAreas != null && TargetsAny(reviewedAreas, glyph.PreciseBounds, glyph.OriginX, glyph.OriginY, glyph.EncodedBytes)) {
                     reviewedIntersection = true;
+                    spanReviewed = true;
                 } else {
                     expectedSurvivors.Add(glyph);
                 }
             }
+            if (spanReviewed) reviewedSpans.Add(span);
         }
 
         SourceGlyphs = sourceGlyphs.ToArray();
+        // An unmapped span removes its whole text object, so every span in it is reviewed content.
+        ReviewedSpans = requiresWholeObjectFallback ? spans : reviewedSpans.ToArray();
         ExpectedSurvivors = requiresWholeObjectFallback
             ? Array.Empty<PdfRedactionTextGlyphIdentity>()
             : expectedSurvivors.ToArray();
@@ -53,6 +60,8 @@ internal sealed class PdfRedactionTextObjectScope {
 
     internal PdfContentOrderKey Key { get; }
     internal PdfTextSpan[] Spans { get; }
+    /// <summary>The spans the reviewed areas remove; the rest of the text object stays on the page.</summary>
+    internal PdfTextSpan[] ReviewedSpans { get; }
     internal int? ContentStreamObjectNumber { get; }
     internal PdfRedactionTextGlyphIdentity[] SourceGlyphs { get; }
     internal PdfRedactionTextGlyphIdentity[] ExpectedSurvivors { get; }
@@ -114,17 +123,17 @@ internal sealed class PdfRedactionTextObjectScope {
                     ? span.GlyphBytes[index]
                     : null,
                 TranslateTextTransform(span, glyphOffset),
-                paintOrderContext, PdfTextSpanGeometry.GetRedactionGlyphBounds(span, glyphOffset, glyphAdvance));
+                paintOrderContext, PdfTextSpanGeometry.GetRedactionGlyphBounds(span, glyphOffset, glyphAdvance),
+                PdfTextSpanGeometry.GetGlyphOrigin(span, start));
             characterOffset += characterLength;
         }
         return true;
     }
 
-    private static bool IntersectsAny(IReadOnlyList<PdfRedactionArea> areas, PdfTextSpanBounds preciseBounds) {
+    private static bool TargetsAny(IReadOnlyList<PdfRedactionArea> areas, PdfTextSpanBounds preciseBounds,
+        double originX, double originY, byte[]? encodedBytes) {
         for (int index = 0; index < areas.Count; index++) {
-            PdfRedactionArea area = areas[index];
-            PdfTextSpanBounds tested = preciseBounds;
-            if (area.IntersectsRectangle(tested.Left, tested.Bottom, tested.Width, tested.Height)) return true;
+            if (areas[index].TargetsGlyph(preciseBounds, originX, originY, encodedBytes)) return true;
         }
         return false;
     }
@@ -218,8 +227,11 @@ internal sealed class PdfRedactionTextGlyphIdentity {
         PdfTextSpanBounds bounds,
         byte[]? encodedBytes,
         Matrix2D? textToPageTransform,
-        PdfRedactionPaintOrderContext paintOrderContext, PdfTextSpanBounds? preciseBounds = null) {
+        PdfRedactionPaintOrderContext paintOrderContext, PdfTextSpanBounds? preciseBounds = null,
+        (double X, double Y)? origin = null) {
         Text = text;
+        OriginX = origin?.X ?? double.NaN;
+        OriginY = origin?.Y ?? double.NaN;
         Bounds = bounds;
         PreciseBounds = preciseBounds ?? bounds;
         FontResource = span.FontResource;
@@ -238,6 +250,8 @@ internal sealed class PdfRedactionTextGlyphIdentity {
     }
 
     internal string Text { get; }
+    internal double OriginX { get; }
+    internal double OriginY { get; }
     internal PdfTextSpanBounds Bounds { get; }
     internal PdfTextSpanBounds PreciseBounds { get; }
     internal string FontResource { get; }
@@ -246,7 +260,7 @@ internal sealed class PdfRedactionTextGlyphIdentity {
     internal double RotationDegrees { get; }
     internal bool IsVisible { get; }
     internal int TextRenderingMode { get; }
-    internal OfficeIMO.Drawing.OfficeColor? Color { get; }
+    internal OfficeIMO.OfficeColor? Color { get; }
     internal string? VisualPaintIdentity { get; }
     internal int? MarkedContentId { get; }
     internal PdfPageClipPath? ClipPath { get; }
@@ -260,8 +274,9 @@ internal sealed class PdfRedactionTextGlyphIdentity {
         PdfTextSpanBounds bounds,
         byte[]? encodedBytes,
         Matrix2D? textToPageTransform,
-        PdfRedactionPaintOrderContext paintOrderContext, PdfTextSpanBounds? preciseBounds = null) =>
-        new PdfRedactionTextGlyphIdentity(span, text, bounds, encodedBytes, textToPageTransform, paintOrderContext, preciseBounds);
+        PdfRedactionPaintOrderContext paintOrderContext, PdfTextSpanBounds? preciseBounds = null,
+        (double X, double Y)? origin = null) =>
+        new PdfRedactionTextGlyphIdentity(span, text, bounds, encodedBytes, textToPageTransform, paintOrderContext, preciseBounds, origin);
 
     internal static PdfRedactionTextGlyphIdentity FromSpan(
         PdfTextSpan span,

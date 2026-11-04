@@ -9,8 +9,8 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfEncryptedSignatureTests {
     [Fact]
     public void EncryptedSigningHonorsOutputBudgetAndCancellationBeforeCallingSigner() {
-        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Protected signing content"))),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" })).ToBytes();
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.AddParagraph(p => p.AddText("Protected signing content"))),
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" })).ToBytes();
         PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });
         var signer = new UnexpectedSigner();
         Assert.Throws<InvalidDataException>(() => document.Security.SignExternal(signer,
@@ -18,7 +18,7 @@ public class PdfEncryptedSignatureTests {
         using var cancellation = new System.Threading.CancellationTokenSource();
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => document.Security.SignExternal(signer,
-            new PdfExternalSignatureOptions { CancellationToken = cancellation.Token }));
+            new PdfExternalSignatureOptions(), cancellationToken: cancellation.Token));
         Assert.Equal(0, signer.Calls);
         Assert.Equal(source, document.ToBytes());
     }
@@ -28,8 +28,8 @@ public class PdfEncryptedSignatureTests {
     [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
     public void EncryptedApprovalAndCountersignaturePreserveEncryptionAndVerifyDigests(PdfStandardEncryptionAlgorithm algorithm) {
-        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.Paragraph(p => p.Text("Protected signing content"))),
-            new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(c => c.AddParagraph(p => p.AddText("Protected signing content"))),
+            new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", Algorithm = algorithm,
                 AllowedPermissions = PdfStandardPermissions.Print
             })).ToBytes();

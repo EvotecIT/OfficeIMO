@@ -9,9 +9,17 @@ public static partial class MarkdownPdfConverterExtensions {
         private readonly HashSet<string> _known = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _registered = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _missing = new HashSet<string>(StringComparer.Ordinal);
-        private readonly MarkdownToPdfOptions _options;
+        private readonly MarkdownPdfExportOptions _options;
 
-        internal AnchorContext(MarkdownDoc document, IReadOnlyList<IMarkdownBlock> blocks, MarkdownToPdfOptions options) {
+        /// <summary>Export options of the conversion this context belongs to.</summary>
+        internal MarkdownPdfExportOptions Options => _options;
+
+        /// <summary>Reports an image that sits inside running text and is written as its alternative text.</summary>
+        internal void ReportInlineImageAsText(string source) =>
+            AddWarning(_options, "InlineImageAsText", source,
+                "An image inside a line of text is written as its alternative text because it could not be loaded or images are turned off.");
+
+        internal AnchorContext(MarkdownDocument document, IReadOnlyList<IMarkdownBlock> blocks, MarkdownPdfExportOptions options) {
             _options = options;
             foreach (IMarkdownBlock block in blocks) {
                 if (!(block is MarkdownObject root)) continue;

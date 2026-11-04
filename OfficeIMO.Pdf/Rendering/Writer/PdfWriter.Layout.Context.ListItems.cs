@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private PdfListNumbering ResolveListNumbering(PdfListBlock block) {
-            bool custom = block.RichItems.Any(item => item.Marker != null);
+            bool custom = block.HasCustomMarkers;
             if (!custom) return block.IsNumbered ? PdfListNumbering.DecimalNumbers : PdfListNumbering.Disc;
             if (currentOpts.FileVersion < PdfFileVersion.Pdf20) return PdfListNumbering.None;
             return block.IsNumbered ? PdfListNumbering.Ordered : PdfListNumbering.Unordered;
@@ -25,15 +25,15 @@ internal static partial class PdfWriter {
             PdfStandardFont markerFont = prepared.MarkerFont;
             PdfNamedFontFace? markerNamedFont = prepared.MarkerNamedFont;
             double markerSize = prepared.MarkerSize;
-            PdfColor? color = prepared.Block.Color ?? prepared.Style?.Color;
-            PdfColor? markerColor = prepared.Style?.MarkerColor ?? color;
+            global::OfficeIMO.OfficeColor? color = prepared.Block.Color ?? prepared.Style?.Color;
+            global::OfficeIMO.OfficeColor? markerColor = prepared.Style?.MarkerColor ?? color;
             var markerPlacement = GetListMarkerPlacement(prepared, preparedItem);
-            double markerX = currentOpts.MarginLeft + markerPlacement.X;
+            double markerX = currentOpts.MarginLeft.ToPoints() + markerPlacement.X;
             double markerWidth = markerPlacement.Width;
-            PdfAlign markerAlign = markerPlacement.Align;
-            double textX = currentOpts.MarginLeft + prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap;
+            OfficeAlignment markerAlign = markerPlacement.Align;
+            double textX = currentOpts.MarginLeft.ToPoints() + prepared.ListLeftIndent + prepared.MarkerWidth + prepared.MarkerGap;
             double textWidth = prepared.AlignmentWidth;
-            PdfAlign textAlign = prepared.Block.Align;
+            OfficeAlignment textAlign = prepared.Block.Align;
             double size = prepared.Size;
             double leading = prepared.Leading;
             double spacingBefore = itemIndex == 0 ? prepared.SpacingBefore : 0D;
@@ -41,8 +41,8 @@ internal static partial class PdfWriter {
             string? bookmarkName = item.BookmarkName;
             PdfLineSpacing? lineSpacing = prepared.Style?.LineSpacing;
 
-            double markerOffset = markerX - currentOpts.MarginLeft;
-            double textOffset = textX - currentOpts.MarginLeft;
+            double markerOffset = markerX - currentOpts.MarginLeft.ToPoints();
+            double textOffset = textX - currentOpts.MarginLeft.ToPoints();
             double rightInset = width - textOffset - textWidth;
             double wrappedWidth = width;
             int lineIndex = 0;
@@ -50,9 +50,11 @@ internal static partial class PdfWriter {
             var listFont = ChooseNormal(currentOpts.DefaultFont);
             bool splitKeptItemAcrossPages = prepared.Style?.KeepTogether == true &&
                 prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages &&
-                MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D;
-            double ClosingPadding() => GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter,
-                closesContainer: itemIndex == prepared.Items.Count - 1);
+                MeasureParagraphFirstLinesFrameFitHeight(lines, lineHeights, leading, lines.Count,
+                    itemIndex == prepared.Items.Count - 1 ? GetClosingContainerSpace() : default, spacingAfter) >
+                GetMaximumBlockContinuationHeight() + .001D;
+            bool closesList = itemIndex == prepared.Items.Count - 1;
+            double ClosingPadding() => GetFootnoteClosingTextPadding(lines, lineIndex, spacingAfter, closesContainer: closesList);
             void NewListFrame(bool preserveEmptyPage = false) {
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     QueueColumnBalanceRemainder(MeasureListColumnBalanceUnits(prepared, itemIndex, lineIndex, lineHeights,
@@ -63,7 +65,7 @@ internal static partial class PdfWriter {
                     textWidth = width - textOffset - rightInset;
                     var remainingRuns = firstSegment ? runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
                     (lines, lineHeights) = WrapRichRunsWithSpacing(remainingRuns, textWidth, size, listFont, leading, null,
-                        DefaultParagraphTabStopWidth, currentOpts, lineSpacing);
+                        DefaultParagraphTabStopWidth, currentOpts, lineSpacing, cancellationToken: cancellationToken);
                     lineIndex = 0;
                     wrappedWidth = width;
                 }
@@ -87,7 +89,7 @@ internal static partial class PdfWriter {
                 while (true) {
                     available = y - FootnoteBodyBottom;
                     closingPadding = ClosingPadding();
-                    firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
+                    firstLineHeight = GetTextLineFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading), closesList && lineIndex == lines.Count - 1) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
                     if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         if (TryAdvanceForRunningContent(ref runningAdmission, firstLineHeight,
                             preserve => NewListFrame(preserveEmptyPage: preserve))) continue;
@@ -103,7 +105,7 @@ internal static partial class PdfWriter {
                 double heightSum = 0;
                 for (int k = lineIndex; k < lines.Count; k++) {
                     double lineHeight = GetRichLineHeight(lineHeights, k, leading);
-                    if (heightSum + GetRichLineFrameFitHeight(lines[k], lineHeight) + (k == lines.Count - 1 ? closingPadding : 0D) > available) {
+                    if (heightSum + GetTextLineFitHeight(lines[k], lineHeight, closesList && k == lines.Count - 1) + (k == lines.Count - 1 ? closingPadding : 0D) > available) {
                         break;
                     }
 
@@ -115,6 +117,8 @@ internal static partial class PdfWriter {
                 if (!noteSliceFits && !HasCurrentPageBodyContent())
                     throw new ArgumentException("The list reference and first footnote fragment exceed the available page body height.");
                 if (!noteSliceFits) { NewListFrame(); continue; }
+                if (take == 0 && !ShouldAdvanceForBlockHeight(firstLineHeight))
+                    throw new ArgumentException("List line height exceeds the available page content height.");
                 ReserveBalancedKeepNextTail(lineHeights, lineIndex, lines.Count, spacingAfter, available, blockList, blockIndex,
                     itemIndex == prepared.Items.Count - 1 && prepared.Style?.KeepWithNext == true, 1, ref take, ref heightSum);
                 if (take == 0) {
@@ -143,10 +147,11 @@ internal static partial class PdfWriter {
                     if (!string.IsNullOrEmpty(bookmarkName)) {
                         AddNamedDestinationName(bookmarkName!, y, listItemElement);
                     }
+                    foreach (string alias in item.BookmarkAliases) AddNamedDestinationName(alias, y, listItemElement);
 
                     var markerLines = new System.Collections.Generic.List<string>(1) { marker };
                     int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
-                    if (!WriteListMarkerFallback(preparedItem.MarkerFallback, currentOpts.MarginLeft + markerOffset,
+                    if (!WriteListMarkerFallback(preparedItem.MarkerFallback, currentOpts.MarginLeft.ToPoints() + markerOffset,
                             markerWidth, AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size),
                             markerSize, leading, markerAlign, markerColor ?? color, labelMarkedContentId)) {
                         if (markerNamedFont.HasValue) {
@@ -159,7 +164,7 @@ internal static partial class PdfWriter {
                             GetFontResourceName(markerFont, markerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
                             markerSize,
                             leading,
-                            currentOpts.MarginLeft + markerOffset,
+                            currentOpts.MarginLeft.ToPoints() + markerOffset,
                             markerWidth,
                             AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size) +
                                 ResolveFontLineAlignmentRise(markerFont, markerNamedFont, markerSize, currentOpts, lineSpacing),
@@ -179,8 +184,8 @@ internal static partial class PdfWriter {
                 int? bodyMarkedContentId = firstSegment || listItemElement == null
                     ? RegisterTextStructureElement("LBody", listItemElementIndex)
                     : RegisterTextStructureElement("LBody", listItemElement);
-                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
-                    hasFollowingParagraphLines: lineIndex + take < lines.Count);
+                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft.ToPoints() + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
+                    hasFollowingParagraphLines: lineIndex + take < lines.Count, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                 MarkRichFonts(runs);
                 y -= heightSum;
                 lineIndex += take;

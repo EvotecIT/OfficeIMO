@@ -170,15 +170,15 @@ public class PdfBoundedObjectBufferTests {
 
     [Fact]
     public void Save_WithForcedSpill_WritesReadablePdfToDestinationStream() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ObjectBufferMemoryLimitBytes = 0,
             PageContentMemoryLimitBytes = 0
         };
         using var output = new MemoryStream();
 
         PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Bounded object output"))
-            .Save(output);
+            .Paragraph(paragraph => paragraph.AddText("Bounded object output"))
+            .SaveWithEvidence(output);
 
         byte[] bytes = output.ToArray();
         Assert.StartsWith("%PDF-", PdfEncoding.Latin1GetString(bytes), StringComparison.Ordinal);
@@ -188,18 +188,18 @@ public class PdfBoundedObjectBufferTests {
     [Fact]
     public void Save_WithForcedPageAndObjectSpill_WritesEveryPage() {
         const int pageCount = 24;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ObjectBufferMemoryLimitBytes = 0,
             PageContentMemoryLimitBytes = 0
         };
         PdfDocument document = PdfDocument.Create(options);
         for (int page = 1; page <= pageCount; page++) {
-            document.Paragraph(paragraph => paragraph.Text("Bounded page " + page));
+            document.Paragraph(paragraph => paragraph.AddText("Bounded page " + page));
             if (page < pageCount) document.PageBreak();
         }
         using var output = new MemoryStream();
 
-        document.Save(output);
+        document.SaveWithEvidence(output);
 
         byte[] bytes = output.ToArray();
         Assert.Equal(pageCount, PdfInspector.Inspect(bytes).PageCount);
@@ -214,12 +214,12 @@ public class PdfBoundedObjectBufferTests {
             OwnerPassword = "owner",
             Algorithm = PdfStandardEncryptionAlgorithm.Aes128
         };
-        var options = new PdfOptions { ObjectBufferMemoryLimitBytes = 0 }.SetEncryption(encryption);
+        var options = new PdfCreateOptions { ObjectBufferMemoryLimitBytes = 0 }.SetEncryption(encryption);
         using var output = new MemoryStream();
 
         PdfSaveResult result = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Bounded encrypted output"))
-            .Save(output);
+            .Paragraph(paragraph => paragraph.AddText("Bounded encrypted output"))
+            .SaveWithEvidence(output);
 
         PdfSerializationReport serialization = Assert.IsType<PdfSerializationReport>(result.Serialization);
         Assert.True(serialization.ObjectBufferSpilled);
@@ -233,7 +233,7 @@ public class PdfBoundedObjectBufferTests {
 
     [Fact]
     public void BufferLimits_ValidateAndClone() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ObjectBufferMemoryLimitBytes = 1234,
             PageContentMemoryLimitBytes = 5678
         };

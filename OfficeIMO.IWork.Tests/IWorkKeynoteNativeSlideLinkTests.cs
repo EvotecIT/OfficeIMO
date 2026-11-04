@@ -25,15 +25,14 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(target, Assert.Single(Assert.Single(sourceSlide.PresenterNoteContent.Paragraphs).Runs).Hyperlink);
 
         package.Position = 0;
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            conversionOptions: new IWorkConversionOptions {
+        using var conversion = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = missingPredecessor
             });
         AssertInternalLinks(conversion.Value);
         using var saved = new MemoryStream();
         conversion.Value.Save(saved); saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         AssertInternalLinks(reopened);
         Assert.Empty(reopened.ValidateDocument());
     }
@@ -56,8 +55,7 @@ public sealed partial class IWorkBoundaryTests {
             issue => issue.Kind == IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
         package.Position = 0;
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-                conversionOptions: new IWorkConversionOptions {
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions {
                     Mode = IWorkConversionMode.EditableOnly,
                     AllowPartialEditableReconstruction = true
                 }));
@@ -69,8 +67,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNativeSlideLinkPackage(NativeSecondSlideLink, mapCount: 70);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Keynote, new IWorkReadOptions {
-                MaximumProjectedTables = 1, MaximumProjectedImages = 1,
-                MaximumProjectedTextItems = 64
+                MaxProjectedTables = 1, MaxProjectedImages = 1,
+                MaxProjectedTextItems = 64
             });
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
         Assert.Contains("combined projection limit of 66", exception.Message, StringComparison.Ordinal);

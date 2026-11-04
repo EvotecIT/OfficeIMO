@@ -10,25 +10,25 @@ public static class RtfSyntaxParser {
     /// Parses RTF text into a syntax tree.
     /// </summary>
     public static RtfSyntaxTree Parse(string rtf) {
-        return Parse(rtf, RtfReadOptions.CreateOfficeIMOProfile(), CancellationToken.None);
+        return Parse(rtf, new RtfLoadOptions(), CancellationToken.None);
     }
 
     /// <summary>
     /// Parses RTF text into a syntax tree while limiting nested group depth.
     /// </summary>
     public static RtfSyntaxTree Parse(string rtf, int maxDepth) {
-        return Parse(rtf, new RtfReadOptions { MaxDepth = maxDepth }, CancellationToken.None);
+        return Parse(rtf, new RtfLoadOptions { Limits = { MaxDepth = maxDepth }}, CancellationToken.None);
     }
 
     /// <summary>
     /// Parses RTF text using the configured resource limits and cancellation token.
     /// </summary>
-    public static RtfSyntaxTree Parse(string rtf, RtfReadOptions? options, CancellationToken cancellationToken = default) {
+    public static RtfSyntaxTree Parse(string rtf, RtfLoadOptions? options, CancellationToken cancellationToken = default) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         RtfTokenizeResult tokenized = RtfTokenizer.Tokenize(rtf, readOptions, cancellationToken);
         var diagnostics = new List<RtfDiagnostic>(tokenized.Diagnostics);
-        var parser = new Parser(rtf, tokenized.Tokens, diagnostics, readOptions.MaxDepth, cancellationToken);
+        var parser = new Parser(rtf, tokenized.Tokens, diagnostics, readOptions.Limits.MaxDepth, cancellationToken);
         return parser.Parse();
     }
 

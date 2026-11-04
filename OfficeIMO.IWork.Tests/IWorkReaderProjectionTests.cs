@@ -146,8 +146,8 @@ public sealed partial class IWorkBoundaryTests {
         var result = new OfficeDocumentReadResult { Kind = ReaderInputKind.IWork };
         var projection = new IWorkReadProjection(result, "sparse.numbers",
             new ReaderOptions { MaxTableRows = 1 }, new ReaderIWorkOptions {
-                MaximumTableColumns = 1,
-                MaximumProjectedTableCells = 1
+                MaxTableColumns = 1,
+                MaxProjectedTableCells = 1
             }, CancellationToken.None);
 
         projection.AddNumbers(numbers);

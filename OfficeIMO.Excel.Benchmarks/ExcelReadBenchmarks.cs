@@ -42,7 +42,7 @@ public class ExcelReadBenchmarks {
     [Benchmark(Baseline = true), BenchmarkCategory("DataTable")]
     public DataTable OfficeIMO_Read_DataTable() {
         using var stream = new MemoryStream(_workbookBytes, writable: false);
-        using var reader = ExcelDocumentReader.Open(stream, new ExcelReadOptions { InferDataTableColumnTypes = false });
+        using var reader = ExcelDocumentReader.Open(stream, new ExcelReaderOptions { InferDataTableColumnTypes = false });
         return reader.GetSheet("Data").ReadRangeAsDataTable(_range, headersInFirstRow: true);
     }
 

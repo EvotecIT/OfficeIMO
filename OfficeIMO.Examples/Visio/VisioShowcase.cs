@@ -161,7 +161,7 @@ namespace OfficeIMO.Examples.Visio {
                 string stencilProfilePath = Path.Combine(proofPath, prefix + ".stencil-profile.txt");
                 string visualQualityPath = Path.Combine(proofPath, prefix + ".visual-quality.txt");
 
-                VisioInspectionSnapshot inspection = document.CreateInspectionSnapshot();
+                VisioInspectionSnapshot inspection = document.Inspect();
                 File.WriteAllText(inspectionPath, inspection.ToText(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
                 File.WriteAllText(stencilProfilePath, inspection.CreateStencilProfile().ToText(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
                 File.WriteAllText(visualQualityPath, document.GetVisualQualityReport().ToText(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));

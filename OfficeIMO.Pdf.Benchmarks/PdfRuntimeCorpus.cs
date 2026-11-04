@@ -30,8 +30,8 @@ internal static class PdfRuntimeCorpus {
     };
 
     internal static PdfDocument Create(int pages, PdfObjectSerializationMode mode, bool textOnly = false) {
-        var options = new PdfOptions {
-            DefaultFontSize = 12,
+        var options = new PdfCreateOptions {
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             CompressContentStreams = true,
             FileVersion = mode == PdfObjectSerializationMode.ForwardOnly ? PdfFileVersion.Pdf17 : PdfFileVersion.Pdf14,
             ObjectSerializationMode = mode
@@ -40,18 +40,18 @@ internal static class PdfRuntimeCorpus {
         return PdfDocument.Create(compose => {
             for (int page = 1; page <= pages; page++) {
                 int number = page;
-                compose.Page(layout => layout.Size(PageWidth, PageHeight).Content(content => {
-                    content.Paragraph(text => text.Text(Title(number)))
-                        .Paragraph(text => text.Text(Neighbor(number)))
-                        .Paragraph(text => text.Text(Target(number)));
-                    if (!textOnly) content.Table(new[] {
+                compose.Page(layout => layout.Size(global::OfficeIMO.OfficeLength.Points(PageWidth), global::OfficeIMO.OfficeLength.Points(PageHeight)).Content(content => {
+                    content.AddParagraph(text => text.AddText(Title(number)))
+                        .AddParagraph(text => text.AddText(Neighbor(number)))
+                        .AddParagraph(text => text.AddText(Target(number)));
+                    if (!textOnly) content.AddTable(new[] {
                         new[] { "Metric", "Value", "Status" },
                         new[] { "Documents", (number * 37).ToString(CultureInfo.InvariantCulture), "Healthy" },
                         new[] { "Amount", (number * 101.25D).ToString("0.00", CultureInfo.InvariantCulture), "Reviewed" }
                     });
-                    content.Paragraph(text => text.Text("Validated page " + Number(number)));
-                    if (!textOnly) content.Rectangle(180, 24, fillColor: PdfColor.FromRgb(220, 240, 252))
-                        .Image(Image, 32, 32, alternativeText: "Deterministic runtime measurement image");
+                    content.AddParagraph(text => text.AddText("Validated page " + Number(number)));
+                    if (!textOnly) content.Rectangle(global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(24), fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 240, 252))
+                        .AddImage(Image, global::OfficeIMO.OfficeLength.Points(32), global::OfficeIMO.OfficeLength.Points(32), altText: "Deterministic runtime measurement image");
                 }));
             }
         }, options).Meta(title: "OfficeIMO PDF runtime corpus");

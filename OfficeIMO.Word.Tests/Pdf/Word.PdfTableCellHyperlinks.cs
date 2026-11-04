@@ -25,7 +25,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
             using var pdf = PdfPigDocument.Open(bytes);

@@ -22,7 +22,8 @@ public sealed partial class OfficeDocumentReader {
         ReaderHandlerRegistrySnapshot handlers,
         int maxConcurrentReads,
         OfficeDocumentProcessorPipeline processorPipeline,
-        OfficeDocumentProcessingOptions processingOptions) {
+        OfficeDocumentProcessingOptions processingOptions, ReaderOptions? defaultReadOptions = null) {
+        _defaultReadOptions = DocumentReaderEngine.NormalizeOptions(defaultReadOptions, inheritProjection: false);
         _handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
         ProcessorPipeline = processorPipeline ?? throw new ArgumentNullException(nameof(processorPipeline));
         _processingOptions = processingOptions ?? throw new ArgumentNullException(nameof(processingOptions));
@@ -71,116 +72,13 @@ public sealed partial class OfficeDocumentReader {
     }
 
     /// <summary>
-    /// Reads a supported file using this reader's frozen handler configuration.
-    /// </summary>
-    public IEnumerable<ReaderChunk> Read(
-        string path,
-        ReaderOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
-        if (ProcessorPipeline.Count == 0) {
-            using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
-                return DocumentReaderEngine.Read(path, options, cancellationToken);
-            }
-        }
-        return ReadDocument(path, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
-    }
-
-    /// <summary>
-    /// Reads a supported stream using this reader's frozen handler configuration.
-    /// </summary>
-    public IEnumerable<ReaderChunk> Read(
-        Stream stream,
-        string? sourceName = null,
-        ReaderOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
-        if (ProcessorPipeline.Count == 0) {
-            using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
-                return DocumentReaderEngine.Read(stream, sourceName, options, cancellationToken);
-            }
-        }
-        return ReadDocument(stream, sourceName, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
-    }
-
-    /// <summary>
-    /// Reads supported bytes using this reader's frozen handler configuration.
-    /// </summary>
-    public IEnumerable<ReaderChunk> Read(
-        byte[] bytes,
-        string? sourceName = null,
-        ReaderOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
-        if (ProcessorPipeline.Count == 0) {
-            using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
-                return DocumentReaderEngine.Read(bytes, sourceName, options, cancellationToken);
-            }
-        }
-        return ReadDocument(bytes, sourceName, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
-    }
-
-    /// <summary>
-    /// Asynchronously reads a file into normalized chunks.
-    /// </summary>
-    public Task<IReadOnlyList<ReaderChunk>> ReadAsync(
-        string path,
-        ReaderOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
-        if (ProcessorPipeline.Count == 0) {
-            return ExecuteAsync(() => DocumentReaderEngine.ReadAsync(path, options, cancellationToken), cancellationToken);
-        }
-        return ExecuteProcessedChunksAsync(
-            () => DocumentReaderEngine.ReadDocumentAsync(path, options, cancellationToken),
-            options?.ComputeHashes ?? true,
-            cancellationToken, options);
-    }
-
-    /// <summary>
-    /// Asynchronously reads a stream into normalized chunks. The caller retains ownership of the stream.
-    /// </summary>
-    public Task<IReadOnlyList<ReaderChunk>> ReadAsync(
-        Stream stream,
-        string? sourceName = null,
-        ReaderOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
-        if (ProcessorPipeline.Count == 0) {
-            return ExecuteAsync(() => DocumentReaderEngine.ReadAsync(stream, sourceName, options, cancellationToken), cancellationToken);
-        }
-        return ExecuteProcessedChunksAsync(
-            () => DocumentReaderEngine.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
-            options?.ComputeHashes ?? true,
-            cancellationToken, options);
-    }
-
-    /// <summary>
-    /// Asynchronously reads bytes into normalized chunks.
-    /// </summary>
-    public Task<IReadOnlyList<ReaderChunk>> ReadAsync(
-        byte[] bytes,
-        string? sourceName = null,
-        ReaderOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
-        if (ProcessorPipeline.Count == 0) {
-            return ExecuteAsync(() => DocumentReaderEngine.ReadAsync(bytes, sourceName, options, cancellationToken), cancellationToken);
-        }
-        return ExecuteProcessedChunksAsync(
-            () => DocumentReaderEngine.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
-            options?.ComputeHashes ?? true,
-            cancellationToken, options);
-    }
-
-    /// <summary>
     /// Reads a file into the shared rich document envelope.
     /// </summary>
     public OfficeDocumentReadResult ReadDocument(
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             using var readScope = ReaderReadScope.Enter(options);
             return ReaderReadScope.Complete(ProcessDocumentResult(
@@ -198,7 +96,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             using var readScope = ReaderReadScope.Enter(options);
             return ReaderReadScope.Complete(ProcessDocumentResult(
@@ -216,7 +114,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             using var readScope = ReaderReadScope.Enter(options);
             return ReaderReadScope.Complete(ProcessDocumentResult(
@@ -233,7 +131,7 @@ public sealed partial class OfficeDocumentReader {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         return ExecuteProcessedDocumentAsync(
             () => DocumentReaderEngine.ReadDocumentAsync(path, options, cancellationToken),
             options?.ComputeHashes ?? true,
@@ -248,7 +146,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         return ExecuteProcessedDocumentAsync(
             () => DocumentReaderEngine.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
             options?.ComputeHashes ?? true,
@@ -263,7 +161,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         return ExecuteProcessedDocumentAsync(
             () => DocumentReaderEngine.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
             options?.ComputeHashes ?? true,
@@ -278,14 +176,15 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         ReaderBatchOptions? batchOptions = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         using var readScope = ReaderReadScope.Enter(options);
+        var policy = new ReaderBatchReadPolicy(options, batchOptions);
         return await ReaderBatchExecutor.ExecuteAsync(
             paths,
-            batchOptions,
+            policy.BatchOptions,
             MaxConcurrentReads,
             MaxConcurrentReads,
-            (index, path, token) => ReadDocumentAsync(path, options, token),
+            (index, path, token) => policy.ReadAsync(path, ReadDocumentAsync, token),
             onCompleted: null,
             cancellationToken).ConfigureAwait(false);
     }
@@ -332,26 +231,28 @@ public sealed partial class OfficeDocumentReader {
     /// <summary>
     /// Enumerates a folder using this reader's registered extensions and handlers.
     /// </summary>
-    public IEnumerable<ReaderChunk> ReadFolder(
+    public IEnumerable<ReaderChunk> EnumerateFolder(
         string folderPath,
         ReaderFolderOptions? folderOptions = null,
         ReaderOptions? options = null,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
+        folderOptions ??= options.FolderOptions;
         return Scope(DocumentReaderEngine.ReadFolder(folderPath, folderOptions, options, onProgress, cancellationToken, ReadDocument), options);
     }
 
     /// <summary>
     /// Enumerates a folder as one source-level payload per file.
     /// </summary>
-    public IEnumerable<ReaderSourceDocument> ReadFolderDocuments(
+    public IEnumerable<ReaderSourceDocument> EnumerateFolderDocuments(
         string folderPath,
         ReaderFolderOptions? folderOptions = null,
         ReaderOptions? options = null,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
+        folderOptions ??= options.FolderOptions;
         return Scope(DocumentReaderEngine.ReadFolderDocuments(folderPath, folderOptions, options, onProgress, cancellationToken, ReadDocument), options);
     }
 
@@ -365,7 +266,8 @@ public sealed partial class OfficeDocumentReader {
         bool includeChunks = true,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
+        folderOptions ??= options.FolderOptions;
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             using var readScope = ReaderReadScope.Enter(options);
             return DocumentReaderEngine.ReadFolderDetailed(folderPath, folderOptions, options, includeChunks, onProgress, cancellationToken, ReadDocument);
@@ -383,7 +285,8 @@ public sealed partial class OfficeDocumentReader {
         int? maxReturnedChunks = null,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
+        folderOptions ??= options.FolderOptions;
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             using var readScope = ReaderReadScope.Enter(options);
             return DocumentReaderEngine.ReadPathDocumentsDetailed(

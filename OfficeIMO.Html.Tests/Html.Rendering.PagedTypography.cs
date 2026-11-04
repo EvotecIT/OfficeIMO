@@ -15,11 +15,11 @@ public sealed partial class HtmlRenderingTests {
         string html = "<p style='font:20px/30px Helvetica;margin:0'>NORMAL " +
             "<sup><sup>NESTED</sup></sup> <span style='vertical-align:" + offset + "px'>RAISED</span></p>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         HtmlRenderText nested = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "NESTED");
         Assert.Equal(20D / 1.2D / 1.2D, nested.Font.Size, 6);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(options));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(options)).ToBytes());
         // Logical extraction carriers may use an invisible, independently fitted font.
         // Only painted glyph operators establish visible typography.
         var visible = pdf.GetPage(1).Letters.Where(letter =>
@@ -54,7 +54,7 @@ public sealed partial class HtmlRenderingTests {
             <p dir="rtl">שלום 123 ABC</p>
             <table><thead><tr><th>Record</th><th>Description</th></tr></thead><tbody>
             """ + rows + "</tbody></table><section class='summary'><p>SummaryStart</p><p>SummaryEnd</p></section>";
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         Assert.True(rendered.Pages.Count >= 3);
@@ -70,7 +70,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Typography packet");
             Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Page " + page.PageNumber);
         });
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         Assert.Equal(rendered.Pages.Count, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("Zażółć", extracted, StringComparison.Ordinal);

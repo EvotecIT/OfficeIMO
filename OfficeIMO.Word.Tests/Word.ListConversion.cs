@@ -14,10 +14,10 @@ namespace OfficeIMO.Tests {
                 var list = document.AddList(WordListStyle.Bulleted);
                 list.AddItem("One");
                 list.AddItem("Two");
-                indent = list.Numbering.Levels.First().IndentationLeft;
+                indent = checked((int)(list.Numbering.Levels.First().IndentationLeft.ToTwips()));
                 list.ConvertToNumbered();
                 Assert.Equal(NumberFormatValues.Decimal, list.Numbering!.Levels.First().OpenXmlElement.NumberingFormat!.Val!.Value);
-                Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
+                Assert.Equal(indent, checked((int)(list.Numbering.Levels.First().IndentationLeft.ToTwips())));
                 document.Save();
             }
 
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "One", "Two" }, list.ListItems.Select(i => i.Text).ToArray());
                 Assert.NotNull(list.Numbering);
                 Assert.Equal(NumberFormatValues.Decimal, list.Numbering!.Levels.First().OpenXmlElement.NumberingFormat!.Val!.Value);
-                Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
+                Assert.Equal(indent, checked((int)(list.Numbering.Levels.First().IndentationLeft.ToTwips())));
             }
         }
 
@@ -40,10 +40,10 @@ namespace OfficeIMO.Tests {
                 var list = document.AddList(WordListStyle.Numbered);
                 list.AddItem("One");
                 list.AddItem("Two");
-                indent = list.Numbering.Levels.First().IndentationLeft;
+                indent = checked((int)(list.Numbering.Levels.First().IndentationLeft.ToTwips()));
                 list.ConvertToBulleted();
                 Assert.Equal(NumberFormatValues.Bullet, list.Numbering.Levels.First().OpenXmlElement.NumberingFormat!.Val!.Value);
-                Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
+                Assert.Equal(indent, checked((int)(list.Numbering.Levels.First().IndentationLeft.ToTwips())));
                 document.Save();
             }
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "One", "Two" }, list.ListItems.Select(i => i.Text).ToArray());
                 Assert.NotNull(list.Numbering);
                 Assert.Equal(NumberFormatValues.Bullet, list.Numbering!.Levels.First().OpenXmlElement.NumberingFormat!.Val!.Value);
-                Assert.Equal(indent, list.Numbering.Levels.First().IndentationLeft);
+                Assert.Equal(indent, checked((int)(list.Numbering.Levels.First().IndentationLeft.ToTwips())));
             }
         }
     }

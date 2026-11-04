@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests;
 public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_DefaultFontPolicyRetainsLibrarySelectionAndCallerOverrides() {
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         Assert.True(options.ResourcePolicy.AllowSystemFontEmbedding);
         Assert.False(options.ResourcePolicy.AllowDocumentFontEmbedding);
         Assert.False(options.ResourcePolicy.AllowLocalFileAccess);
@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
 
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         Assert.True(options.ClonePdf().ResourcePolicy.AllowDocumentFontEmbedding);
-        Assert.False(new HtmlToPdfOptions().ResourcePolicy.AllowDocumentFontEmbedding);
+        Assert.False(new HtmlPdfExportOptions().ResourcePolicy.AllowDocumentFontEmbedding);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
             .Select(index => "@page p" + index + "{margin-top:60px}"))
             + "@page{@top-center{content:'ł';font:16px Arial}}body{margin:0}</style><div>Body</div>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlToPdfOptions { MaxLayoutOperations = 10_000 };
+        var options = new HtmlPdfExportOptions { MaxLayoutOperations = 10_000 };
         options.ResourcePolicy.AllowDocumentFontEmbedding = false;
 
         HtmlDomLimitException error = Assert.Throws<HtmlDomLimitException>(() =>
@@ -38,5 +38,20 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("page-margin font", error.Message, StringComparison.Ordinal);
         options.MaxLayoutOperations = 100_000;
         Assert.Single(HtmlPdfRenderedConverter.Convert(document, options).RenderResult!.Document.Pages);
+    }
+
+    [Fact]
+    public void HtmlPdf_RunningStringFontHashingSharesTheLayoutOperationLimit() {
+        string family = new string('F', 5000);
+        string html = "<style>@page{@top-center{content:string(h);font-family:'" + family +
+            "'}}span{string-set:h 'A'}</style><div>" +
+            string.Concat(Enumerable.Repeat("<span>Text</span>", 50)) + "</div>";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        var options = new HtmlPdfExportOptions { MaxLayoutOperations = 100_000 };
+
+        HtmlDomLimitException error = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlPdfRenderedConverter.Convert(document, options));
+        Assert.Equal(HtmlRenderDiagnosticCodes.LayoutOperationLimitExceeded, error.Code);
+        Assert.Contains("page-margin font family hashing", error.Message, StringComparison.Ordinal);
     }
 }

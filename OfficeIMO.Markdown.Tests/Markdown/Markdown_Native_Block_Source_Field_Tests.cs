@@ -9,7 +9,7 @@ public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
     public void CodeFence_SourceFields_Expose_Fence_Token_Values() {
         const string markdown = "~~~~csharp {#code .wide}\nConsole.WriteLine(1);\n~~~~\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -69,7 +69,7 @@ public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
     public void GenericAttributes_Block_SourceField_Is_Source_Addressable() {
         const string markdown = "Alpha paragraph {#intro .lead}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -106,7 +106,7 @@ public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
     public void GenericAttributes_Heading_SourceField_Is_Source_Addressable() {
         const string markdown = "# Heading {#title .hero}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -133,7 +133,7 @@ public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
     public void GenericAttributes_Table_SourceField_Is_Source_Addressable() {
         const string markdown = "| A {#tbl .wide title=\"Quarterly\"} |\n|---|\n| B |\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true,
             Tables = true
@@ -172,7 +172,7 @@ public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
     public void GenericAttributes_Table_SourceField_Uses_TabExpanded_Columns() {
         const string markdown = "| AB\t{#tbl} |\n|---|\n| B |\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true,
             Tables = true
@@ -194,7 +194,7 @@ public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
     public void GenericAttributes_ListItem_SourceField_Is_Source_Addressable() {
         const string markdown = "- item {#li .selected}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true
         };
@@ -810,7 +810,7 @@ x < y
     [Fact]
     public void CustomContainer_SourceFields_Expose_Fences_Info_Body_And_SourceEdits() {
         const string markdown = ":::: note wide\nhello\n::::\n";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.CustomContainers = true;
         options.PreserveTrivia = true;
 
@@ -908,7 +908,7 @@ x < y
     [Fact]
     public void CustomContainer_Info_SourceField_Uses_TabExpanded_Columns() {
         const string markdown = ":::\tnote\twide\nbody\n:::\n";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.CustomContainers = true;
         options.PreserveTrivia = true;
 
@@ -1172,7 +1172,7 @@ Lazy body
 11) Next
 """;
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
         var unordered = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[0]);
         var ordered = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[1]);
 
@@ -1250,7 +1250,7 @@ Lazy body
     [Fact]
     public void ListExtras_SourceFields_Roundtrip_Container_Marker_Edits() {
         const string markdown = "> a. quote alpha\r\n> b. quote beta\r\n\r\n- parent\r\n  iv. child four\r\n  v. child five\r\n";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.ListExtras = true;
         options.PreserveTrivia = true;
 
@@ -1289,7 +1289,7 @@ Lazy body
         Assert.Empty(roundtrip.Diagnostics);
         Assert.Equal("> a. quote alpha\r\n> c. quote beta\r\n\r\n- parent\r\n  vi. child four\r\n  v. child five\r\n", roundtrip.Markdown);
 
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip.Markdown, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(roundtrip.Markdown, options);
         var quote = Assert.IsType<QuoteBlock>(reparsed.Blocks[0]);
         var quoteList = Assert.IsType<OrderedListBlock>(Assert.Single(quote.ChildBlocks));
         Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, quoteList.MarkerStyle);
@@ -1305,7 +1305,7 @@ Lazy body
     [Fact]
     public void ListExtras_SourceFields_Roundtrip_Blockquote_Nested_Marker_Edits() {
         const string markdown = "> - parent\r\n>   iv. child four\r\n>   v. child five\r\n";
-        var options = MarkdownReaderOptions.CreatePortableProfile();
+        var options = MarkdownLoadOptions.CreatePortableProfile();
         options.ListExtras = true;
         options.PreserveTrivia = true;
 
@@ -1335,7 +1335,7 @@ Lazy body
         Assert.Empty(roundtrip.Diagnostics);
         Assert.Equal("> - parent\r\n>   iv. child four\r\n>   vi. child five\r\n", roundtrip.Markdown);
 
-        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip.Markdown, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownDocument.Parse(roundtrip.Markdown, options);
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(reparsed.Blocks));
         var parentList = Assert.IsType<UnorderedListBlock>(Assert.Single(quote.ChildBlocks));
         var nestedRoman = Assert.IsType<OrderedListBlock>(Assert.Single(parentList.Items[0].NestedBlocks));
@@ -1348,7 +1348,7 @@ Lazy body
     public void ThematicBreak_SourceFields_Use_Exact_Marker_Token_Spans() {
         const string markdown = "  * * *  \n\nAfter";
 
-        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownLoadOptions.CreateCommonMarkProfile());
         var thematicBreak = Assert.IsType<MarkdownNativeThematicBreakBlock>(native.Blocks[0]);
 
         Assert.Equal("---", thematicBreak.Marker);
@@ -1420,7 +1420,7 @@ Lazy body
     [Fact]
     public void Image_GenericAttributes_SourceField_Is_Source_Addressable_After_RenderedMarkdown_Reparse() {
         const string markdown = "![Alt](img.png){#hero\t.wide}\n";
-        var options = new MarkdownReaderOptions {
+        var options = new MarkdownLoadOptions {
             GenericAttributes = true,
             PreserveTrivia = true,
             StandaloneImageBlocks = true
@@ -1468,7 +1468,7 @@ Lazy body
     [Fact]
     public void DefinitionTerm_GenericAttributes_SourceField_Uses_TabExpanded_Columns() {
         const string markdown = "Term\t{#id}\n:   definition\n";
-        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        var options = MarkdownLoadOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
@@ -1726,7 +1726,7 @@ Console.WriteLine();
         Assert.Contains(allFields, field => field.Name == "source" && field.Value == "https://example.com/image.png");
     }
 
-    private static IEnumerable<MarkdownNativeBlockSnapshot> Flatten(IReadOnlyList<MarkdownNativeBlockSnapshot> blocks) {
+    private static IEnumerable<MarkdownNativeBlockInfo> Flatten(IReadOnlyList<MarkdownNativeBlockInfo> blocks) {
         for (var i = 0; i < blocks.Count; i++) {
             yield return blocks[i];
 

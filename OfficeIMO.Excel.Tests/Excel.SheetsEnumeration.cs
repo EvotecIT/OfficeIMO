@@ -10,9 +10,9 @@ namespace OfficeIMO.Tests {
         public async Task Test_SheetsEnumerationConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "SheetsEnum.xlsx");
             using var document = ExcelDocument.Create(filePath);
-            document.AddWorksheet("S1");
-            document.AddWorksheet("S2");
-            document.AddWorksheet("S3");
+            document.AddSheet("S1");
+            document.AddSheet("S2");
+            document.AddSheet("S3");
 
             var tasks = Enumerable.Range(0, 10)
                 .Select(_ => Task.Run(() => {

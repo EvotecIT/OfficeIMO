@@ -8,7 +8,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_text_boxes_follow_recovered_z_order() {
         using MemoryStream package = CreatePagesPackageWithRestackedTextBoxes();
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
 
         Assert.True(result.Projection.HasEditableContent,
             string.Join("; ", result.Projection.Diagnostics.Select(diagnostic =>

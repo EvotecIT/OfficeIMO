@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests.Pdf {
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb, OfficeSoftMaskMode.Luminosity);
             OfficeDrawing drawing = new OfficeDrawing(20, 20).AddEffectDrawing(content,
                 OfficeTransform.Identity, OfficeBlendMode.Normal, mask);
-            PdfOptions options = PrintOptions(20, 20);
+            PdfCreateOptions options = PrintOptions(20, 20);
 
             byte[] bytes = Write(drawing, options);
             PdfStream[] groups = PdfReadDocument.Open(bytes).Objects.Values.Select(item => item.Value)
@@ -105,16 +105,18 @@ namespace OfficeIMO.Tests.Pdf {
             return shape;
         }
 
-        private static PdfOptions PrintOptions(double width, double height) => Options(width, height)
+        private static PdfCreateOptions PrintOptions(double width, double height) => Options(width, height)
             .ConfigurePdfXGroundwork(PdfComplianceProfile.PdfX4,
                 IccMabTestProfiles.CreateCmykLab8Bidirectional(), "Managed test CMYK", PdfTrappingStatus.False);
 
-        private static PdfOptions Options(double width, double height) => new PdfOptions {
-            PageWidth = width, PageHeight = height, CompressContentStreams = false,
-            MarginLeft = 0, MarginTop = 0, MarginRight = 0, MarginBottom = 0
+        private static PdfCreateOptions Options(double width, double height) => new PdfCreateOptions { BackgroundColor = null,
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0), Top = global::OfficeIMO.OfficeLength.Points(0), Right = global::OfficeIMO.OfficeLength.Points(0), Bottom = global::OfficeIMO.OfficeLength.Points(0) }
+            }, CompressContentStreams = false
         };
 
-        private static byte[] Write(OfficeDrawing drawing, PdfOptions? options = null) =>
+        private static byte[] Write(OfficeDrawing drawing, PdfCreateOptions? options = null) =>
             PdfDocument.Create(options ?? Options(drawing.Width, drawing.Height)).Drawing(drawing).ToBytes();
     }
 }

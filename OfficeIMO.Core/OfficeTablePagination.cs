@@ -5,7 +5,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 /// <summary>A contiguous set of table rows and its measured height, including the repeated header.</summary>
-public sealed class OfficeTablePage {
+internal sealed class OfficeTablePage {
     internal OfficeTablePage(int offset, int count, double height) { RowOffset = offset; RowCount = count; Height = height; }
     /// <summary>Zero-based first source row.</summary>
     public int RowOffset { get; }
@@ -16,7 +16,7 @@ public sealed class OfficeTablePage {
 }
 
 /// <summary>Shared measured-row pagination for drawing and native document tables.</summary>
-public static class OfficeTablePagination {
+internal static class OfficeTablePagination {
     /// <summary>
     /// Packs consecutive measured rows without splitting or dropping them. Every page includes headerHeight.
     /// Invalid dimensions, an unfit row, or an exceeded page budget fail before a partial result is returned.

@@ -62,7 +62,7 @@ public sealed class XpsSidewaysTests {
             Assert.Equal(points[i] + 60, points[i + count], 3);
             Assert.Equal(points[i + 1] - 4.8, points[i + count + 1], 3);
         }
-        Assert.Equal("fiA", XpsDocument.Load(doc.Save()).Pages[0].ExtractText());
+        Assert.Equal("fiA", XpsDocument.Load(doc.ToBytes()).Pages[0].ExtractText());
     }
 
     [Theory]
@@ -88,10 +88,10 @@ public sealed class XpsSidewaysTests {
     [InlineData("hhea")]
     [InlineData("vertical")]
     public void RotatedClippedSidewaysRunsSurviveNativeAndPdfConversion(string metrics) {
-        var doc = XpsDocument.Load(XpsSidewaysFixtures.Create(metrics, positioned: true).Save());
+        var doc = XpsDocument.Load(XpsSidewaysFixtures.Create(metrics, positioned: true).ToBytes());
         byte[] png = doc.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(png, out var raster));
-        var pdf = OfficeIMO.Pdf.PdfDocument.Load(doc.ToPdf());
+        var pdf = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         var pdfRaster = OfficeDrawingRasterRenderer.Render(pdf.Render.Drawing(1), 96D / 72D);
         int dark = 0;
         for (int y = 0; y < 160; y++) for (int x = 0; x < 260; x++) {

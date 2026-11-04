@@ -19,9 +19,9 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("2").SetSubScript();
         paragraph.AddText("O");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("2nd H2O", rtfParagraph.ToPlainText());
@@ -44,9 +44,9 @@ public class WordRtfCharacterFormattingTests {
         hidden._run.RunProperties.Vanish = new Vanish();
         paragraph.AddText(" shown");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Hidden" && run.Hidden);
@@ -63,9 +63,9 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("Small").SetSmallCaps();
         paragraph.AddText("Plain");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Double" && run.DoubleStrike);
@@ -90,7 +90,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("Small").SetCapsStyle(RtfCapsStyle.SmallCaps);
         paragraph.AddText("Plain");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         Assert.Contains(word.Paragraphs, run => run.Text == "Double" && run.DoubleStrike);
         Assert.Contains(word.Paragraphs, run => run.Text == "Caps" && run.CapsStyle == WordCapsStyle.Caps);
@@ -110,9 +110,9 @@ public class WordRtfCharacterFormattingTests {
         imprint._run.RunProperties.Imprint = new Imprint();
         paragraph.AddText("Plain");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Outline" && run.Outline);
@@ -141,7 +141,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("Imprint").SetImprint();
         paragraph.AddText("Plain");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         Assert.Contains(word.Paragraphs, run => run.Text == "Outline" && run.Outline);
         Assert.Contains(word.Paragraphs, run => run.Text == "Shadow" && run.Shadow);
@@ -158,9 +158,9 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("Marked").SetHighlight(WordHighlightColor.Yellow);
         paragraph.AddText(" done");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         RtfRun marked = Assert.Single(rtfParagraph.Runs, run => run.Text == "Marked");
@@ -177,7 +177,7 @@ public class WordRtfCharacterFormattingTests {
         paragraph.AddText("Marked").SetHighlightColor(yellow);
         paragraph.AddText(" done");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
         Assert.Contains(word.Paragraphs, run => run.Text == "Marked" && run.Highlight == WordHighlightColor.Yellow);
     }
@@ -187,21 +187,22 @@ public class WordRtfCharacterFormattingTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddText("Normal ");
-        paragraph.AddText("Styled").SetFontFamily("Consolas").SetColorHex("4472C4");
+        paragraph.AddText("Styled").SetFontFamily("Consolas").SetColor(OfficeColor.Parse("4472C4"));
         paragraph.AddText(" done");
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
-        Assert.Contains(rtfDocument.Fonts, font => font.Id == 1 && font.Name == "Consolas");
+        RtfFont consolasFont = Assert.Single(rtfDocument.Fonts, font => font.Name == "Consolas");
         Assert.Contains(rtfDocument.Colors, color => color.Red == 0x44 && color.Green == 0x72 && color.Blue == 0xC4);
         RtfRun styledRun = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs, run => run.Text == "Styled");
-        Assert.Equal(1, styledRun.FontId);
+        Assert.Equal(consolasFont.Id, styledRun.FontId);
         Assert.Equal("#4472C4", rtfDocument.GetColor(styledRun.ForegroundColorIndex!.Value)!.ToString());
-        Assert.Contains(@"{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}", rtf, StringComparison.Ordinal);
-        Assert.Contains($@"\f1 \cf{styledRun.ForegroundColorIndex} Styled", rtf, StringComparison.Ordinal);
-        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.ColorHex == "4472C4");
+        Assert.Contains(@"{\fonttbl", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"{{\f{consolasFont.Id} Consolas;}}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\f{consolasFont.Id} \cf{styledRun.ForegroundColorIndex} Styled", rtf, StringComparison.Ordinal);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.Color == OfficeColor.Parse("4472C4"));
     }
 
     [Fact]
@@ -215,8 +216,8 @@ public class WordRtfCharacterFormattingTests {
         styled.ForegroundColorIndex = colorId;
         paragraph.AddText(" done");
 
-        using WordDocument word = rtfDocument.ToWordDocument();
+        using WordDocument word = rtfDocument.ToWord();
 
-        Assert.Contains(word.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.ColorHex == "4472C4");
+        Assert.Contains(word.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.Color == OfficeColor.Parse("4472C4"));
     }
 }

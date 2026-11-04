@@ -1,3 +1,4 @@
+using OfficeIMO.Word.Pdf;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -15,6 +16,7 @@ namespace OfficeIMO.Examples.Word {
             string mergedPath = Path.Combine(outDir, "MergedDocument.docx");
 
             using (var destination = WordDocument.Create(destinationPath)) {
+                destination.AddTableOfContent();
                 var heading = destination.AddParagraph("Quarterly Report");
                 heading.Style = WordParagraphStyles.Heading1;
                 destination.AddParagraph("This file acts as the destination document.");
@@ -42,7 +44,12 @@ namespace OfficeIMO.Examples.Word {
 
             using (var destination = WordDocument.Load(destinationPath))
             using (var source = WordDocument.Load(sourcePath)) {
-                destination.AppendDocument(source);
+                destination.AppendDocument(source, new WordDocumentMergeOptions {
+                    StyleMode = WordMergeStyleMode.KeepDifferentStyles
+                });
+                destination.UpdateFields(new WordFieldUpdateOptions {
+                    UpdateTablesOfContents = true
+                }.WithPdfLayoutPagination());
                 destination.SaveCopy(mergedPath);
                 if (openWord) destination.OpenInApplication(mergedPath);
             }

@@ -1,7 +1,10 @@
+using OfficeIMO.Pdf.PowerPoint;
 using System;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.PowerPoint.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
 
@@ -33,7 +36,8 @@ public sealed class ConvertToOfficePdfPowerPointCommand : PSCmdlet
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
     [Parameter]
@@ -41,7 +45,7 @@ public sealed class ConvertToOfficePdfPowerPointCommand : PSCmdlet
 
     /// <summary>Advanced OfficeIMO PDF-to-PowerPoint reconstruction options.</summary>
     [Parameter]
-    public PdfToPowerPointOptions? Options { get; set; }
+    public PdfPowerPointExportOptions? Options { get; set; }
 
     /// <summary>Overwrite an existing output file.</summary>
     [Parameter]
@@ -76,9 +80,7 @@ public sealed class ConvertToOfficePdfPowerPointCommand : PSCmdlet
                 PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent));
             outputOperation = true;
             PdfCommandUtilities.EnsureDirectory(outputPath);
-            var outputResult = document.SaveAsPowerPoint(outputPath, Options).RequireSuccess();
-            var report = outputResult.Report
-                ?? throw new InvalidOperationException("PDF-to-PowerPoint conversion completed without a conversion report.");
+            var report = document.SaveAsPowerPoint(outputPath, Options);
             if (Open.IsPresent)
             {
                 FileOpenService.Open(outputPath);

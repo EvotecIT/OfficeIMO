@@ -103,13 +103,14 @@ internal sealed partial class OfficeHeifImageComposer {
                 int swap = width; width = height; height = swap;
             }
         }
+        int sourceExif = item.IsPrimary ? ReadExifOrientation() : 1;
         int exif = 1;
         if (item.IsPrimary && !HasOrientation(item) && _options.ApplyExifOrientation) {
-            exif = ReadExifOrientation();
+            exif = sourceExif;
             if (exif >= 5) { int swap = width; width = height; height = swap; }
         }
         visiting.Remove(item.ItemId);
-        return new Layout(item, storedWidth, storedHeight, width, height, rows, columns, tiles, exif);
+        return new Layout(item, storedWidth, storedHeight, width, height, rows, columns, tiles, exif, sourceExif);
     }
 
     private void ValidateProperties(OfficeHeifItemInfo item) {
@@ -180,9 +181,9 @@ internal sealed partial class OfficeHeifImageComposer {
     private static uint U32(byte[] bytes, int p) => (uint)bytes[p] << 24 | (uint)bytes[p + 1] << 16 | (uint)bytes[p + 2] << 8 | bytes[p + 3];
 
     private sealed class Layout {
-        internal Layout(OfficeHeifItemInfo item, int storedWidth, int storedHeight, int width, int height, int rows, int columns, OfficeHeifItemInfo[] tiles, int exif) {
+        internal Layout(OfficeHeifItemInfo item, int storedWidth, int storedHeight, int width, int height, int rows, int columns, OfficeHeifItemInfo[] tiles, int exif, int sourceExif) {
             Item = item; StoredWidth = storedWidth; StoredHeight = storedHeight; Width = width; Height = height;
-            Rows = rows; Columns = columns; Tiles = tiles; Exif = exif;
+            Rows = rows; Columns = columns; Tiles = tiles; Exif = exif; SourceExif = sourceExif;
         }
         internal OfficeHeifItemInfo Item { get; }
         internal int StoredWidth { get; }
@@ -193,5 +194,6 @@ internal sealed partial class OfficeHeifImageComposer {
         internal int Columns { get; }
         internal OfficeHeifItemInfo[] Tiles { get; }
         internal int Exif { get; }
+        internal int SourceExif { get; }
     }
 }

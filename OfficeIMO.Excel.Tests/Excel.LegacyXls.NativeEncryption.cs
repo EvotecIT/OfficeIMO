@@ -16,15 +16,15 @@ public sealed class ExcelLegacyNativeEncryptionTests {
     public void Native_readbacks_retain_edited_values_recalculated_formulas_properties_and_embedding(string filename, string? password) {
         string path = Path.Combine(Corpus, filename);
         using var document = password != null ? ExcelDocument.LoadEncrypted(path, password) : ExcelDocument.Load(path);
-        Assert.Equal("Edited native embedding", document.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal(42, document.Sheets[0].CellAt(1, 2).GetValue<double>());
-        Assert.Equal(50, document.Sheets[0].CellAt(3, 2).GetValue<double>());
-        Assert.Equal("Native encrypted auxiliary control", document.BuiltinDocumentProperties.Title);
-        Assert.Equal("Native encrypted nested storage", document.BuiltinDocumentProperties.Subject);
-        var compound = ReadCompound(document.ToBytes(ExcelFileFormat.Xls));
+        Assert.Equal("Edited native embedding", document.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal(42, document.Sheets[0].Cell(1, 2).GetValue<double>());
+        Assert.Equal(50, document.Sheets[0].Cell(3, 2).GetValue<double>());
+        Assert.Equal("Native encrypted auxiliary control", document.Properties.Title);
+        Assert.Equal("Native encrypted nested storage", document.Properties.Subject);
+        var compound = ReadCompound(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
         using var embedded = ExcelDocument.Load(new MemoryStream(compound.Streams[EmbeddingName(compound) + "/Package"]));
-        Assert.Equal("Owned embedded native control", embedded.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal(42, embedded.Sheets[0].CellAt(1, 2).GetValue<double>());
+        Assert.Equal("Owned embedded native control", embedded.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.Equal(42, embedded.Sheets[0].Cell(1, 2).GetValue<double>());
     }
 
     [Theory]
@@ -38,24 +38,24 @@ public sealed class ExcelLegacyNativeEncryptionTests {
         byte[] expectedPackage = nativePlain.Streams[EmbeddingName(nativePlain) + "/Package"];
         Assert.Equal(expectedPackage, raw.Streams[storageName + "/Package"]);
         using (var embedded = ExcelDocument.Load(new MemoryStream(expectedPackage))) {
-            Assert.Equal("Owned embedded native control", embedded.Sheets[0].CellAt(1, 1).GetValue<string>());
-            Assert.Equal(42, embedded.Sheets[0].CellAt(1, 2).GetValue<double>());
+            Assert.Equal("Owned embedded native control", embedded.Sheets[0].Cell(1, 1).GetValue<string>());
+            Assert.Equal(42, embedded.Sheets[0].Cell(1, 2).GetValue<double>());
         }
         if (removeClearMirror) bytes = OfficeCompoundFileWriter.Rewrite(raw, new Dictionary<string, byte[]>(), removedPaths: new[] { storageName });
 
         using var document = ExcelDocument.LoadEncrypted(new MemoryStream(bytes), "test-password");
-        Assert.Equal("Native encrypted auxiliary control", document.BuiltinDocumentProperties.Title);
-        Assert.Equal("Native encrypted nested storage", document.BuiltinDocumentProperties.Subject);
-        Assert.Equal(50, document.Sheets[0].CellAt(3, 2).GetValue<double>());
-        document.Sheets[0].CellValue(2, 1, "Edited native embedding");
-        document.Sheets[0].CellFormula(1, 2, "40+2");
-        OfficeCompoundFile plain = ReadCompound(document.ToBytes(ExcelFileFormat.Xls));
+        Assert.Equal("Native encrypted auxiliary control", document.Properties.Title);
+        Assert.Equal("Native encrypted nested storage", document.Properties.Subject);
+        Assert.Equal(50, document.Sheets[0].Cell(3, 2).GetValue<double>());
+        document.Sheets[0].Cell(2, 1).SetValue("Edited native embedding");
+        document.Sheets[0].Cell(1, 2).SetFormula("40+2");
+        OfficeCompoundFile plain = ReadCompound(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
         Assert.Equal(expectedPackage, plain.Streams[storageName + "/Package"]);
         Assert.Equal(new Guid("00020830-0000-0000-c000-000000000046"),
             Assert.Single(plain.Entries, entry => entry.Path == storageName).ClassId);
         Assert.False(plain.Streams.ContainsKey("encryption"));
         var nativeBefore = LegacyXlsWorkbook.Load(File.ReadAllBytes(Path.Combine(Corpus, "excel-native-embedding.plain.xls")));
-        var nativeAfter = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+        var nativeAfter = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
         Assert.Equal(nativeBefore.Worksheets[0].Cells.Single(cell => cell.Row == 1 && cell.Column == 2).StyleIndex,
             nativeAfter.Worksheets[0].Cells.Single(cell => cell.Row == 1 && cell.Column == 2).StyleIndex);
         Assert.Equal("40+2", nativeAfter.Worksheets[0].Cells.Single(cell => cell.Row == 1 && cell.Column == 2).FormulaText);
@@ -70,15 +70,15 @@ public sealed class ExcelLegacyNativeEncryptionTests {
         Assert.Equal(storageName, protectedStorage.Name);
         Assert.Equal(expectedPackage, ReadCompound(protectedStorage.Bytes).Streams["Package"]);
         using var reloaded = ExcelDocument.LoadEncrypted(rotated, "new-password");
-        Assert.Equal("Edited native embedding", reloaded.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal("Native encrypted auxiliary control", reloaded.BuiltinDocumentProperties.Title);
-        Assert.Equal(expectedPackage, ReadCompound(reloaded.ToBytes(ExcelFileFormat.Xls)).Streams[storageName + "/Package"]);
-        reloaded.Sheets[0].CellValue(2, 1, "Second protected save");
+        Assert.Equal("Edited native embedding", reloaded.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal("Native encrypted auxiliary control", reloaded.Properties.Title);
+        Assert.Equal(expectedPackage, ReadCompound(reloaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })).Streams[storageName + "/Package"]);
+        reloaded.Sheets[0].Cell(2, 1).SetValue("Second protected save");
         using var second = new MemoryStream();
         reloaded.SaveEncrypted(second, "third-password", ExcelFileFormat.Xls);
         Assert.DoesNotContain(ReadCompound(second.ToArray()).Streams.Keys, name => name.StartsWith(storageName + "/", StringComparison.OrdinalIgnoreCase));
         using var secondRead = ExcelDocument.LoadEncrypted(second, "third-password");
-        Assert.Equal("Second protected save", secondRead.Sheets[0].CellAt(2, 1).GetValue<string>());
+        Assert.Equal("Second protected save", secondRead.Sheets[0].Cell(2, 1).GetValue<string>());
     }
 
     [Fact]

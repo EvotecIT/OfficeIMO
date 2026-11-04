@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("14", issue.FieldPath);
         Assert.Equal(1, issue.DeclaredValueCount);
         Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, issue.Kind);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_VISIBILITY_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_VISIBILITY_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -79,14 +79,14 @@ public sealed partial class IWorkBoundaryTests {
     public void Visibility_evidence_deduplicates_shared_models_and_uses_the_captured_declaration_budget() {
         using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, VarintField(14, 1), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
         using MemoryStream overBudget = VisibilityCountPackage(IWorkDocumentKind.Numbers,
             Message(VarintField(14, 1), VarintField(41, 1)));
-        var options = new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(overBudget, options);
-        options.MaximumSourceDeclarationIssues = 10;
+        options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -94,13 +94,13 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_visibility_output_preserves_values_and_reader_warns_that_visibility_is_unassessed() {
         using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, VarintField(14, 1));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
-        using var partial = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var partial = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(partial.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         package.Position = 0;
         var reader = new OfficeIMO.Reader.OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
         var result = reader.ReadDocument(package, "visibility.numbers");

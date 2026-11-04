@@ -1,7 +1,7 @@
 namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectLegacyLifecycleRegressionTests {
-    private static ProjectSaveOptions Options(ProjectFileFormat format) => new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
+    private static ProjectSaveOptions Options(ProjectFileFormat format) => new ProjectSaveOptions { Format = format, AllowLoss = true };
 
     [Fact]
     public void AmbiguousInputDependenciesRemainOpaqueUntilExplicitSafeConversion() {

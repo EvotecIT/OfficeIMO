@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
         "Performance",
         "CA1859:Use concrete types when possible",
         Justification = "Callers expose read-only run collections and should not depend on the mutable implementation.")]
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs, PdfStandardFont baseFont, PdfCreateOptions? options) {
         Guard.NotNull(runs, nameof(runs));
         // The overwhelmingly common case is that every run renders with the selected font and no run
         // needs fallback expansion, so the result equals the input. Allocate the copy only when a run
@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
             PdfTextRun sourceRun = source[index];
             bool effectiveBold = bold;
             bool effectiveItalic = italic;
-            if (sourceRun.Font is PdfStandardFont selectedFont) {
+            if (sourceRun.StandardFont is PdfStandardFont selectedFont) {
                 PdfStandardFont selectedNormal = ChooseNormal(selectedFont);
                 effectiveBold = selectedFont == ChooseBold(selectedNormal) || selectedFont == ChooseBoldItalic(selectedNormal);
                 effectiveItalic = selectedFont == ChooseItalic(selectedNormal) || selectedFont == ChooseBoldItalic(selectedNormal);
@@ -93,7 +93,7 @@ internal static partial class PdfWriter {
 
     // Returns null when the run is kept as-is (no fallback needed); otherwise the expanded runs.
     // Mirrors the original branch order exactly so output is unchanged.
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun>? ResolveRunFallbackExpansion(PdfTextRun run, PdfStandardFont baseFont, PdfOptions? options) {
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun>? ResolveRunFallbackExpansion(PdfTextRun run, PdfStandardFont baseFont, PdfCreateOptions? options) {
         if (run.InlineElement != null) {
             return null;
         }
@@ -151,7 +151,7 @@ internal static partial class PdfWriter {
     private static bool TryPlanFallbackRunsPreservingSelectedFont(
         PdfTextRun run,
         PdfStandardFont baseFont,
-        PdfOptions? options,
+        PdfCreateOptions? options,
         PdfEmbeddedFontFallbackSet fallbackSet,
         out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns) {
         plannedRuns = Array.Empty<PdfTextRun>();
@@ -191,7 +191,7 @@ internal static partial class PdfWriter {
 
             string segment = text.Substring(segmentStart, index - segmentStart);
             if (selectedFontCanWrite) {
-                runs.Add(CreateStyledTextRun(segment, run, run.Font));
+                runs.Add(CreateStyledTextRun(segment, run, run.StandardFont));
                 continue;
             }
 
@@ -212,7 +212,7 @@ internal static partial class PdfWriter {
         PdfEmbeddedFontFallbackSet fallbackSet,
         string? text,
         PdfTextRun styleTemplate,
-        PdfOptions? options,
+        PdfCreateOptions? options,
         PdfStandardFont selectedFont,
         out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns) {
         plannedRuns = Array.Empty<PdfTextRun>();
@@ -248,7 +248,7 @@ internal static partial class PdfWriter {
         PdfEmbeddedFontFallbackSet fallbackSet,
         PdfTextFallbackPlan plan,
         PdfStandardFont selectedFont,
-        PdfOptions? options,
+        PdfCreateOptions? options,
         out System.Collections.Generic.IReadOnlyDictionary<int, PdfStandardFont> fontSlots) {
         PdfStandardFont selectedFamily = PdfStandardFontMapper.GetFontFamily(selectedFont);
         var resolved = new System.Collections.Generic.Dictionary<int, PdfStandardFont>();
@@ -297,7 +297,7 @@ internal static partial class PdfWriter {
         PdfStandardFont selectedFamily,
         System.Collections.Generic.HashSet<PdfStandardFont> used,
         System.Collections.Generic.HashSet<PdfStandardFont> reservedDocumentSlots,
-        PdfOptions? options) {
+        PdfCreateOptions? options) {
         PdfStandardFont normalized = PdfStandardFontMapper.GetFontFamily(family);
         return normalized != selectedFamily &&
                !used.Contains(normalized) &&
@@ -305,22 +305,22 @@ internal static partial class PdfWriter {
                FontFamilySlotIsEmptyOrCandidate(normalized, candidate, fallbackSet, plannedCandidateIndexes, options);
     }
 
-    private static System.Collections.Generic.HashSet<PdfStandardFont> CreateReservedDocumentFontSlots(PdfOptions? options) {
+    private static System.Collections.Generic.HashSet<PdfStandardFont> CreateReservedDocumentFontSlots(PdfCreateOptions? options) {
         var reserved = new System.Collections.Generic.HashSet<PdfStandardFont>();
         if (options == null) {
             return reserved;
         }
 
-        PdfOptions.AddRegisteredFontFamilySlot(reserved, options.DefaultFont);
-        PdfOptions.AddRegisteredFontFamilySlot(reserved, options.HeaderFont);
-        PdfOptions.AddRegisteredFontFamilySlot(reserved, options.FooterFont);
+        PdfCreateOptions.AddRegisteredFontFamilySlot(reserved, options.DefaultFont);
+        PdfCreateOptions.AddRegisteredFontFamilySlot(reserved, options.HeaderFont);
+        PdfCreateOptions.AddRegisteredFontFamilySlot(reserved, options.FooterFont);
         return reserved;
     }
 
     internal static bool IsFallbackLayoutSeparator(char ch) =>
         ch == '\n' || ch == '\r' || ch == '\t';
 
-    private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, PdfTextRun run, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
+    private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, PdfTextRun run, PdfStandardFont fontForRun, PdfCreateOptions? options, out int length) {
         if (text[index] == '\u200B') {
             length = 1;
             return true;
@@ -380,7 +380,7 @@ internal static partial class PdfWriter {
         PdfEmbeddedFontFallbackCandidate candidate,
         PdfEmbeddedFontFallbackSet fallbackSet,
         System.Collections.Generic.HashSet<int> plannedCandidateIndexes,
-        PdfOptions? options) {
+        PdfCreateOptions? options) {
         if (options == null) {
             return true;
         }

@@ -43,22 +43,16 @@ public sealed class OpenDocumentPdfStrictFailureSiblingTests {
         using var output = new MemoryStream(original.ToArray(), writable: true);
         try {
             if (path) File.WriteAllBytes(outputPath, original);
-            PdfSaveResult result = path
-                ? useAsync ? await saves.PathAsync(outputPath) : saves.Path(outputPath)
-                : useAsync ? await saves.StreamAsync(output) : saves.Stream(output);
+            OfficeConversionException exception = path
+                ? useAsync ? await Assert.ThrowsAnyAsync<OfficeConversionException>(() => saves.PathAsync(outputPath)) : Assert.ThrowsAny<OfficeConversionException>(() => saves.Path(outputPath))
+                : useAsync ? await Assert.ThrowsAnyAsync<OfficeConversionException>(() => saves.StreamAsync(output)) : Assert.ThrowsAny<OfficeConversionException>(() => saves.Stream(output));
 
-            Assert.False(result.Succeeded);
-            OdfConversionLossException loss = Assert.IsType<OdfConversionLossException>(result.Exception);
-            Assert.True(result.HasLoss);
-            Assert.Collection(result.ConversionReports,
-                report => Assert.Equal(loss.Report.FidelityDiagnostics.Select(d => (d.Code, d.LossKind, d.Source, d.Location)),
-                    Assert.IsType<OdfConversionReport>(report).FidelityDiagnostics.Select(d => (d.Code, d.LossKind, d.Source, d.Location))),
-                report => Assert.Same(result.Report, Assert.IsType<PdfConversionReport>(report)));
+            OdfConversionLossException loss = Assert.IsType<OdfConversionLossException>(exception);
+            Assert.True(loss.Report.HasLoss);
             Assert.Contains(loss.Report.Mappings, mapping => mapping.Feature == expectedFeature &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic => diagnostic.Location == expectedFeature &&
+            Assert.Contains(loss.Report.Diagnostics, diagnostic => diagnostic.Location == expectedFeature &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Equal(0L, result.BytesWritten);
             Assert.Equal(original, path ? File.ReadAllBytes(outputPath) : output.ToArray());
             Assert.True(output.CanWrite);
         } finally {
@@ -67,10 +61,10 @@ public sealed class OpenDocumentPdfStrictFailureSiblingTests {
     }
 
     private static (
-        Func<string, PdfSaveResult> Path,
-        Func<Stream, PdfSaveResult> Stream,
-        Func<string, Task<PdfSaveResult>> PathAsync,
-        Func<Stream, Task<PdfSaveResult>> StreamAsync) CreateSavers(string format) {
+        Func<string, OfficeConversionReport> Path,
+        Func<Stream, OfficeConversionReport> Stream,
+        Func<string, Task<OfficeConversionReport>> PathAsync,
+        Func<Stream, Task<OfficeConversionReport>> StreamAsync) CreateSavers(string format) {
         switch (format) {
             case "odt": {
                 // Existing fixture: UnsupportedOdtWritingModesAreReportedAndEnforced.
@@ -80,10 +74,10 @@ public sealed class OpenDocumentPdfStrictFailureSiblingTests {
                     LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
                 };
                 return (
-                    path => source.SaveAsPdfResult(path, options),
-                    stream => source.SaveAsPdfResult(stream, options),
-                    path => source.SaveAsPdfResultAsync(path, options),
-                    stream => source.SaveAsPdfResultAsync(stream, options));
+                    path => source.SaveAsPdf(path, Export(options)),
+                    stream => source.SaveAsPdf(stream, Export(options)),
+                    path => source.SaveAsPdfAsync(path, Export(options)),
+                    stream => source.SaveAsPdfAsync(stream, Export(options)));
             }
             case "ods": {
                 // Existing fixture: OversizedInlineOdsValidationIsReportedInsteadOfWritingAnInvalidExcelFormula.
@@ -95,10 +89,10 @@ public sealed class OpenDocumentPdfStrictFailureSiblingTests {
                     LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
                 };
                 return (
-                    path => source.SaveAsPdfResult(path, options),
-                    stream => source.SaveAsPdfResult(stream, options),
-                    path => source.SaveAsPdfResultAsync(path, options),
-                    stream => source.SaveAsPdfResultAsync(stream, options));
+                    path => source.SaveAsPdf(path, Export(options)),
+                    stream => source.SaveAsPdf(stream, Export(options)),
+                    path => source.SaveAsPdfAsync(path, Export(options)),
+                    stream => source.SaveAsPdfAsync(stream, Export(options)));
             }
             case "odp": {
                 // Existing fixture: OdpHyperlinkTargetBehaviorIsReportedWhileTheTargetIsPreserved.
@@ -115,13 +109,17 @@ public sealed class OpenDocumentPdfStrictFailureSiblingTests {
                     LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
                 };
                 return (
-                    path => persisted.SaveAsPdfResult(path, options),
-                    stream => persisted.SaveAsPdfResult(stream, options),
-                    path => persisted.SaveAsPdfResultAsync(path, options),
-                    stream => persisted.SaveAsPdfResultAsync(stream, options));
+                    path => persisted.SaveAsPdf(path, Export(options)),
+                    stream => persisted.SaveAsPdf(stream, Export(options)),
+                    path => persisted.SaveAsPdfAsync(path, Export(options)),
+                    stream => persisted.SaveAsPdfAsync(stream, Export(options)));
             }
             default:
                 throw new ArgumentOutOfRangeException(nameof(format));
         }
     }
+
+    private static OdtPdfExportOptions Export(WordOpenDocumentConversionOptions options) => new() { ConversionOptions = options };
+    private static OdsPdfExportOptions Export(ExcelOpenDocumentConversionOptions options) => new() { ConversionOptions = options };
+    private static OdpPdfExportOptions Export(PowerPointOpenDocumentConversionOptions options) => new() { ConversionOptions = options };
 }

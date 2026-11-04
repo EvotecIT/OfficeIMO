@@ -12,7 +12,7 @@ public abstract class MarkdownObject {
     public MarkdownObject? Parent { get; private set; }
 
     /// <summary>Containing document for this node when attached to a tree.</summary>
-    public MarkdownDoc? Document => this as MarkdownDoc ?? Parent?.Document;
+    public MarkdownDocument? Document => this as MarkdownDocument ?? Parent?.Document;
 
     /// <summary>Root node for this object's tree.</summary>
     public MarkdownObject Root => Parent?.Root ?? this;

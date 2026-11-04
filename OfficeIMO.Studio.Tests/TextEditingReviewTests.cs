@@ -97,7 +97,7 @@ public sealed class TextEditingReviewTests {
             [0], new PdfTextEditOptions(), [1], default);
         await workspace.ReplaceAllTextAsync("Account", "Entry", false, false, default);
         await Assert.ThrowsAsync<InvalidOperationException>(() => workspace.ApplyPreparedTextEditAsync(prepared, default));
-        Assert.Equal(3, PdfDocument.Load(workspace.CopyBytes()).Text.Find("Entry").Count);
+        Assert.Equal(3, PdfDocument.Load(new System.IO.MemoryStream(workspace.CopyBytes())).Text.Find("Entry").Count);
     }
 
     [Theory]
@@ -286,8 +286,8 @@ public sealed class TextEditingReviewTests {
     }
 
     internal static PdfDocument CreateDocument() => PdfDocument.Create(compose => {
-        compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Account alpha Account beta")))));
-        compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Account gamma")))));
+        compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Account alpha Account beta")))));
+        compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Account gamma")))));
     });
 
     internal static PdfEditorSelection Selection(PdfTextMatch match) => new(PdfEditorSelectionKind.Text, match.PageNumber,

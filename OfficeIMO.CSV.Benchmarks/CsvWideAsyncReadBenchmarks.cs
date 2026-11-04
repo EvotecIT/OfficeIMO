@@ -97,7 +97,7 @@ public class CsvWideAsyncReadBenchmarks
     [Benchmark]
     public async Task<ReadChecksum> OfficeIMO_Incremental()
     {
-        using var reader = await CsvDocument.OpenDataReaderAsync(_path).ConfigureAwait(false);
+        using var reader = await CsvDocument.OpenReaderAsync(_path).ConfigureAwait(false);
         return await ConsumeAsync(reader).ConfigureAwait(false);
     }
 
@@ -123,7 +123,7 @@ public class CsvWideAsyncReadBenchmarks
     private async Task ValidateAsync(bool incremental)
     {
         using var reader = incremental
-            ? await CsvDocument.OpenDataReaderAsync(_path).ConfigureAwait(false)
+            ? await CsvDocument.OpenReaderAsync(_path).ConfigureAwait(false)
             : (await CsvDocument.LoadAsync(_path).ConfigureAwait(false)).CreateDataReader();
         int rows = 0;
         while (await reader.ReadAsync().ConfigureAwait(false))

@@ -5,18 +5,18 @@ internal static partial class LatexToMarkdownConverter {
     /// <summary>Converts recognized semantics and diagnoses source fallbacks.</summary>
     internal static LatexToMarkdownResult Convert(
         LatexDocument document,
-        LatexToMarkdownOptions? options = null) {
+        LatexMarkdownExportOptions? options = null) {
         return Project(document, options).Result;
     }
 
-    internal static LatexMarkdownProjection Project(LatexDocument document, LatexToMarkdownOptions? options = null,
+    internal static LatexMarkdownProjection Project(LatexDocument document, LatexMarkdownExportOptions? options = null,
         System.Threading.CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         document = document.GetCurrentView(cancellationToken);
         var context = new LatexProjectionContext(document, cancellationToken);
-        options ??= new LatexToMarkdownOptions();
-        var target = MarkdownDoc.Create();
+        options ??= new LatexMarkdownExportOptions();
+        var target = MarkdownDocument.Create();
         var diagnostics = new List<LatexMarkdownConversionDiagnostic>();
         var blocks = new List<LatexProjectedBlock>();
         var globalDiagnostics = new List<LatexMarkdownConversionDiagnostic>();
@@ -27,7 +27,8 @@ internal static partial class LatexToMarkdownConverter {
         LatexArgument? title = titleCommand?.GetRequiredArgument(0);
         if (title != null && document.Profile != LatexDocumentProfile.PreserveOnly && document.Body != null) {
             var titleDiagnostics = new List<LatexMarkdownConversionDiagnostic>();
-            var titleDoc = MarkdownDoc.Create().Add(new HeadingBlock(1, LatexInlineToMarkdownConverter.Convert(context, title.ContentSpan, titleDiagnostics)));
+            var titleDoc = MarkdownDocument.Create();
+            titleDoc.Add(new HeadingBlock(1, LatexInlineToMarkdownConverter.Convert(context, title.ContentSpan, titleDiagnostics)));
             diagnostics.AddRange(titleDiagnostics);
             aggregateBlocks.AddRange(titleDoc.Blocks);
             blocks.Add(new LatexProjectedBlock(titleCommand!.Syntax.Span, "title", titleDoc, titleDiagnostics));
@@ -39,7 +40,7 @@ internal static partial class LatexToMarkdownConverter {
         foreach (BlockCandidate candidate in candidates) {
             cancellationToken.ThrowIfCancellationRequested();
             if (candidate.Span.Start.Offset < consumedUntil) continue;
-            var projected = MarkdownDoc.Create();
+            var projected = MarkdownDocument.Create();
             var blockDiagnostics = new List<LatexMarkdownConversionDiagnostic>();
             AddCandidate(context, projected, candidate, options, blockDiagnostics);
             aggregateBlocks.AddRange(projected.Blocks);
@@ -52,7 +53,8 @@ internal static partial class LatexToMarkdownConverter {
             var footnoteDiagnostics = new List<LatexMarkdownConversionDiagnostic>();
             var definition = new FootnoteDefinitionBlock(footnote.Label, ConvertContent(context,
                 footnote.Body.ContentSpan, options, footnoteDiagnostics));
-            var footnoteDoc = MarkdownDoc.Create().Add(definition);
+            var footnoteDoc = MarkdownDocument.Create();
+            footnoteDoc.Add(definition);
             aggregateBlocks.Add(definition);
             diagnostics.AddRange(footnoteDiagnostics);
             blocks.Add(new LatexProjectedBlock(footnote.Command.Syntax.Span, "footnote", footnoteDoc, footnoteDiagnostics));
@@ -130,9 +132,9 @@ internal static partial class LatexToMarkdownConverter {
 
     private static void AddCandidate(
         LatexProjectionContext context,
-        MarkdownDoc target,
+        MarkdownDocument target,
         BlockCandidate candidate,
-        LatexToMarkdownOptions options,
+        LatexMarkdownExportOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         context.CheckCancellation();
         switch (candidate.Value) {
@@ -202,7 +204,7 @@ internal static partial class LatexToMarkdownConverter {
 
     private static void AddVerbatimBlock(
         LatexProjectionContext context,
-        MarkdownDoc target,
+        MarkdownDocument target,
         LatexSyntaxNode syntax,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         if (string.Equals(syntax.Value, "comment", StringComparison.Ordinal)) {
@@ -228,9 +230,9 @@ internal static partial class LatexToMarkdownConverter {
 
     private static void AddList(
         LatexProjectionContext context,
-        MarkdownDoc target,
+        MarkdownDocument target,
         LatexList source,
-        LatexToMarkdownOptions options,
+        LatexMarkdownExportOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         IReadOnlyList<LatexListItem> items = DirectListItems(context, source);
         AddResidualSource(context, target, source.Environment,
@@ -288,9 +290,9 @@ internal static partial class LatexToMarkdownConverter {
 
     private static void AddFigure(
         LatexProjectionContext context,
-        MarkdownDoc target,
+        MarkdownDocument target,
         LatexFigure source,
-        LatexToMarkdownOptions options,
+        LatexMarkdownExportOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         LatexCommand? captionCommand = context.FindDirectCommand(source.Environment, "caption");
         LatexCommand? labelCommand = context.FindDirectCommand(source.Environment, "label");
@@ -324,7 +326,7 @@ internal static partial class LatexToMarkdownConverter {
 
     private static void AddTheorem(
         LatexProjectionContext context,
-        MarkdownDoc target,
+        MarkdownDocument target,
         LatexTheorem source,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         LatexCommand? labelCommand = context.FindTheoremLabel(source.Environment);
@@ -344,9 +346,9 @@ internal static partial class LatexToMarkdownConverter {
 
     private static void AddEnvironmentFallback(
         LatexProjectionContext context,
-        MarkdownDoc target,
+        MarkdownDocument target,
         LatexEnvironment source,
-        LatexToMarkdownOptions options,
+        LatexMarkdownExportOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         if (string.Equals(source.Name, "quote", StringComparison.Ordinal) || string.Equals(source.Name, "quotation", StringComparison.Ordinal)) {
             var quote = new QuoteBlock();
@@ -374,10 +376,10 @@ internal static partial class LatexToMarkdownConverter {
 
     private static void AddResidualSource(
         LatexProjectionContext context,
-        MarkdownDoc target,
+        MarkdownDocument target,
         LatexEnvironment environment,
         IEnumerable<LatexSourceSpan> representedSpans,
-        LatexToMarkdownOptions options,
+        LatexMarkdownExportOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics,
         string feature) {
         LatexSyntaxNode[] comments = context.Comments(environment.Syntax.Span).Where(static item => item.OpaqueSyntax != null).Select(static item => item.OpaqueSyntax!).ToArray();
@@ -415,7 +417,7 @@ internal static partial class LatexToMarkdownConverter {
         return context.ExtractResidual(span, comments.Select(static item => item.Span));
     }
 
-    private static void AddFrontMatter(LatexProjectionContext source, MarkdownDoc target, LatexToMarkdownOptions options,
+    private static void AddFrontMatter(LatexProjectionContext source, MarkdownDocument target, LatexMarkdownExportOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         if (!options.IncludePreambleAsFrontMatter) return;
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -439,8 +441,8 @@ internal static partial class LatexToMarkdownConverter {
         if (label != null) target.SetAttributes(MarkdownAttributeSet.Create(LatexInlineToMarkdownConverter.ReadArgumentSource(context, label.Command.GetRequiredArgument(0), diagnostics)));
     }
 
-    private static void AddSourceFallback(LatexProjectionContext context, MarkdownDoc target, LatexSourceSpan span,
-        LatexToMarkdownOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics, string feature = "unprojected-source") {
+    private static void AddSourceFallback(LatexProjectionContext context, MarkdownDocument target, LatexSourceSpan span,
+        LatexMarkdownExportOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics, string feature = "unprojected-source") {
         LatexSyntaxNode[] comments = context.Comments(span).Where(static item => item.OpaqueSyntax != null).Select(static item => item.OpaqueSyntax!).ToArray();
         string visible = context.ExtractResidual(span, context.Comments(span).Select(static item => item.Span));
         ReportOmittedComments(context, comments.Where(item => IsInside(item.Span, span.Start.Offset, span.End.Offset)), diagnostics);
@@ -495,14 +497,14 @@ internal static partial class LatexToMarkdownConverter {
 /// <summary>Conversion extensions.</summary>
 public static partial class LatexMarkdownConverterExtensions {
     /// <summary>Converts a native LaTeX document to Markdown.</summary>
-    public static LatexToMarkdownResult ToMarkdownDocumentResult(this LatexDocument document, LatexToMarkdownOptions? options = null) =>
+    public static LatexToMarkdownResult ToMarkdownDocumentResult(this LatexDocument document, LatexMarkdownExportOptions? options = null) =>
         LatexToMarkdownConverter.Convert(document, options);
 
     /// <summary>Converts the current document with cooperative cancellation, rebinding edited source before projection.</summary>
-    public static LatexToMarkdownResult ToMarkdownDocumentResult(this LatexDocument document, LatexToMarkdownOptions? options,
+    public static LatexToMarkdownResult ToMarkdownDocumentResult(this LatexDocument document, LatexMarkdownExportOptions? options,
         System.Threading.CancellationToken cancellationToken) => LatexToMarkdownConverter.Project(document, options, cancellationToken).Result;
 
     /// <summary>Converts a LaTeX document to a typed Markdown document.</summary>
-    public static MarkdownDoc ToMarkdownDocument(this LatexDocument document, LatexToMarkdownOptions? options = null) =>
+    public static MarkdownDocument ToMarkdownDocument(this LatexDocument document, LatexMarkdownExportOptions? options = null) =>
         document.ToMarkdownDocumentResult(options).Value;
 }

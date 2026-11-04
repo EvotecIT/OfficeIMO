@@ -31,7 +31,7 @@ public sealed class MarkdownIntelligenceXLegacyToolHeadingTransform : IMarkdownD
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -214,7 +214,7 @@ public sealed class MarkdownIntelligenceXLegacyToolHeadingTransform : IMarkdownD
 
     private static bool TryResolveTrailingHeadingCandidate(
         IMarkdownBlock block,
-        MarkdownReaderOptions? readerOptions,
+        MarkdownLoadOptions? readerOptions,
         out HeadingBlock heading,
         out bool consumedOriginalBlock) {
         if (block is HeadingBlock headingBlock) {
@@ -251,7 +251,7 @@ public sealed class MarkdownIntelligenceXLegacyToolHeadingTransform : IMarkdownD
 
     private static bool TryCreateHeadingBlock(
         string headingMarkdown,
-        MarkdownReaderOptions? readerOptions,
+        MarkdownLoadOptions? readerOptions,
         out HeadingBlock heading) {
         heading = null!;
         var match = MarkdownHeadingRegex.Match((headingMarkdown ?? string.Empty).Trim());

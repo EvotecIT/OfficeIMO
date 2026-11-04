@@ -127,7 +127,7 @@ internal static class HtmlStaticBudgetWorker {
         ref long outputBytes,
         ref int outputCount) {
         foreach (HtmlRenderEncoder encoder in new[] { HtmlRenderEncoder.Png, HtmlRenderEncoder.Svg }) {
-            HtmlRenderResult result = HtmlRenderEngine.Execute(source, HtmlRenderRequest.Create(profile, encoder, options));
+            HtmlRenderResult result = HtmlRenderEngine.Execute(source, HtmlRenderRequest.Create(profile, encoder, new HtmlPdfExportOptions(options)));
             ValidateDocument(result.Document, scenario, profile == HtmlRenderIntentProfile.PrintPaged ? scenario.Manifest.ExpectedPrintPageCount : null);
             IReadOnlyList<OfficeImageExportResult> images = result.ExportImages();
             if (images.Count != result.Document.Pages.Count) {
@@ -144,7 +144,7 @@ internal static class HtmlStaticBudgetWorker {
         if (expectedPages.HasValue && document.Pages.Count != expectedPages.Value) {
             throw new InvalidDataException($"{scenario.Id} rendered {document.Pages.Count} pages; expected {expectedPages.Value}.");
         }
-        if (document.Diagnostics.Any(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
+        if (document.NativeDiagnostics.Any(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)) {
             throw new InvalidDataException(scenario.Id + " produced an error diagnostic.");
         }
         string text = string.Join(" ", document.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
@@ -181,14 +181,14 @@ internal static class HtmlStaticBudgetWorker {
 
     private static HtmlRenderOptions CreatePrintOptions() => new() {
         Mode = HtmlRenderMode.Paged, ViewportWidth = 768D, ViewportHeight = 900D,
-        PageSize = new OfficePageSize(8.27D, 11.69D), Margins = HtmlRenderMargins.All(40D),
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8.27D), global::OfficeIMO.OfficeLength.Inches(11.69D)), Margins = HtmlRenderMargins.All(40D),
         Scale = 1D, BackgroundColor = OfficeColor.White, UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
         FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
     };
 
     private static HtmlRenderOptions CreateSnapshotOptions() => new() {
         Mode = HtmlRenderMode.Continuous, ViewportWidth = 768D, ViewportHeight = 900D,
-        PageSize = new OfficePageSize(8D, 9.375D), Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false,
+        PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(8D), global::OfficeIMO.OfficeLength.Inches(9.375D)), Margins = HtmlRenderMargins.All(0D), HonorCssPageRules = false,
         Scale = 1D, BackgroundColor = OfficeColor.White, UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
         FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss
     };

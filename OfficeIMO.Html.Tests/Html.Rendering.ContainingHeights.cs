@@ -19,7 +19,7 @@ public sealed class HtmlContainingHeightTests {
 
         Assert.Equal(expectedHeight, Shape(rendered, "div#fill").Height, 6);
         Assert.Equal(expectedFollowing, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -33,7 +33,7 @@ public sealed class HtmlContainingHeightTests {
 
         Assert.Equal(120D, Shape(rendered, "div#fill").Height, 6);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -49,7 +49,7 @@ public sealed class HtmlContainingHeightTests {
 
         Assert.Equal(expectedHeight, Shape(rendered, "div#fill").Height, 6);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -67,7 +67,7 @@ public sealed class HtmlContainingHeightTests {
         Assert.Equal(expectedHeight, fill.Height, 6);
         Assert.Equal(12D, fill.Y, 6);
         Assert.Equal(expectedFollowing, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class HtmlContainingHeightTests {
 
         Assert.Equal(20D, Assert.Single(Visuals(rendered).OfType<HtmlRenderImage>()).Height, 6);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -155,7 +155,7 @@ public sealed class HtmlContainingHeightTests {
         Assert.Equal(expectedSize, image.Height, 6);
         Assert.Equal(expectedOuterWidth, Shape(rendered, "span#outer").Width, 6);
         Assert.Equal(expectedOuterWidth, Shape(rendered, "span#after").X, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static string ShrinkToFit(string constraints, string content) =>
@@ -170,7 +170,7 @@ public sealed class HtmlContainingHeightTests {
 
     private static HtmlRenderDocument Render(string content) {
         var options = new HtmlRenderOptions { ViewportWidth = 600D, ViewportHeight = 900D,
-            PageSize = new OfficePageSize(600D / 96D, 900D / 96D), Margins = HtmlRenderMargins.All(0D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / 96D), global::OfficeIMO.OfficeLength.Inches(900D / 96D)), Margins = HtmlRenderMargins.All(0D),
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false };
         options.Fonts.Add("Pinned", File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf")));
         string html = "<!doctype html><style>html,body{margin:0;padding:0;font:16px/20px Pinned}</style>" + content;

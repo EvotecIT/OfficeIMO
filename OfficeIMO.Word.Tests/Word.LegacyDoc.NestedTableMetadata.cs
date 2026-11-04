@@ -18,7 +18,7 @@ public partial class Word {
         }
         WordTable outer = source.AddTable(1, 1, WordTableStyle.TableNormal);
         outer.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Paragraphs[0].Text = "NESTED";
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
 
         for (int cycle = 0; cycle < 2; cycle++) {
             byte[] fib = ReadCompoundStream(bytes, "WordDocument");
@@ -54,7 +54,7 @@ public partial class Word {
             Assert.Equal(threadingOffset + threadingLength, cursor);
             using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
             Assert.Equal("NESTED", Assert.Single(Assert.Single(restored.Tables).Rows[0].Cells[0].NestedTables).Rows[0].Cells[0].Paragraphs[0].Text);
-            bytes = restored.ToBytes(WordFileFormat.Doc);
+            bytes = restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         }
     }
 }

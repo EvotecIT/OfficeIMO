@@ -29,16 +29,21 @@ internal static class PdfContentStreamTextRewriter {
             fontWidthProviders,
             transforms,
             initialTextState,
-            extGStateFonts);
+            extGStateFonts,
+            limits);
         if (spansByTransform.Count != transforms.Count) return false;
 
         PdfTextStateSnapshot currentTextState = initialTextState;
         var textStateStack = new Stack<PdfTextStateSnapshot>();
         int previousOperatorEnd = 0;
         bool sawTextShowOperator = false;
+        bool stateOnly = true;
+        var stateProgram = new StringBuilder();
         bool removedAnyGlyph = false;
         bool safe = true;
         var edits = new List<TextShowEdit>();
+        var markedContent = new Stack<(int Index, int Length, bool ActualText)>();
+        var clearedActualText = new HashSet<int>();
 
         PdfContentStreamInterpreter.InterpretUntil(
             textObject,
@@ -46,8 +51,22 @@ internal static class PdfContentStreamTextRewriter {
             operation => {
                 int operationStart = FindOperationStart(textObject, previousOperatorEnd, operation.OperatorOffset);
                 previousOperatorEnd = Math.Min(textObject.Length, operation.OperatorOffset + operation.Name.Length);
+                bool stateOperator = IsStateOnlyTextObjectOperator(operation.Name);
+                stateOnly &= stateOperator || operation.Name is "BMC" or "EMC";
+                if (!sawTextShowOperator && stateOperator)
+                    stateProgram.Append(textObject, operationStart, previousOperatorEnd - operationStart).Append(' ');
 
                 switch (operation.Name) {
+                    case "BDC":
+                    case "BMC":
+                        markedContent.Push((operationStart, previousOperatorEnd - operationStart,
+                            operation.Name == "BDC" && operation.Operands.Count > 0 &&
+                            operation.Operands[operation.Operands.Count - 1] is PdfContentDictionary properties &&
+                            properties.Items.ContainsKey("ActualText")));
+                        break;
+                    case "EMC" when markedContent.Count > 0:
+                        markedContent.Pop();
+                        break;
                     case "Tf" when operation.Operands.Count >= 2:
                         currentTextState = currentTextState.WithFont(
                             operation.Operands[operation.Operands.Count - 2] as string ?? currentTextState.FontResource,
@@ -136,6 +155,12 @@ internal static class PdfContentStreamTextRewriter {
                 if (changed) {
                     removedAnyGlyph = true;
                     edits.Add(new TextShowEdit(operationStart, previousOperatorEnd - operationStart, replacement));
+                    foreach (var scope in markedContent.Where(static item => item.ActualText)) {
+                        // The rewritten show proved that this closed scope repeats the decoded paint.
+                        // Retained glyphs now supply the remaining text, so its old replacement must go.
+                        if (clearedActualText.Add(scope.Index))
+                            edits.Add(new TextShowEdit(scope.Index, scope.Length, "/Span BMC"));
+                    }
                 }
                 return true;
             },
@@ -144,10 +169,12 @@ internal static class PdfContentStreamTextRewriter {
             dispatchInvalidOperations: true);
 
         if (!safe) return false;
-        // Producers may emit state-only BT/ET objects before real text. With no
-        // text-show operator there are no encoded glyphs to redact; retain the
-        // object because its font and spacing state can affect later objects.
-        if (!sawTextShowOperator) return true;
+        // Preserve persistent state even when uncertain marked-content payload
+        // must be discarded from a selected object with no encoded glyphs.
+        if (!sawTextShowOperator) {
+            if (!stateOnly) rewritten = stateProgram.ToString();
+            return true;
+        }
         rewritten = removedAnyGlyph ? ApplyEdits(textObject, edits) : textObject;
         return true;
     }
@@ -158,7 +185,8 @@ internal static class PdfContentStreamTextRewriter {
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         IReadOnlyList<Matrix2D> transforms,
         PdfTextStateSnapshot initialTextState,
-        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts) {
+        IReadOnlyDictionary<string, PdfExtGStateFontSelection>? extGStateFonts,
+        PdfReadLimits limits) {
         var result = new List<Dictionary<int, List<PdfTextSpan>>>(transforms.Count);
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = extGStateFonts?.ToDictionary(
             static entry => entry.Key,
@@ -181,6 +209,7 @@ internal static class PdfContentStreamTextRewriter {
                     ? provider(bytes)
                     : bytes.Length * 500D,
                 initialTextState: initialTextState,
+                maxNestingDepth: limits.MaxContentNestingDepth,
                 graphicsStates: graphicsStates,
                 // Rewrites map one span to each encoded string of a TJ array.
                 mergeKernedTextArrays: false);
@@ -252,7 +281,7 @@ internal static class PdfContentStreamTextRewriter {
                 continue;
             }
 
-            if (transformSpans.Any(static span => span.HasActualText)) return false;
+            if (transformSpans.Any(static span => span.HasActualText && !span.HasExactActualTextGlyphMapping)) return false;
 
             if (!TryRewriteByteString(
                     bytes,
@@ -293,7 +322,7 @@ internal static class PdfContentStreamTextRewriter {
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionBounds(spans[spanIndex]);
             for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
-                if (targets[targetIndex].Intersects(bounds, spans[spanIndex].TextRenderingMode)) return true;
+                if (targets[targetIndex].TargetsSpan(bounds, spans[spanIndex].TextRenderingMode)) return true;
             }
         }
         return false;
@@ -354,9 +383,10 @@ internal static class PdfContentStreamTextRewriter {
                         span.TextToPageTransform.Value.B * span.TextToPageTransform.Value.B)
                     : 1D;
                 double advance = Math.Abs(glyph.Width1000 / 1000D * fontSize * horizontalScaling * baselineScale);
+                (double originX, double originY) = PdfTextSpanGeometry.GetGlyphOrigin(span, offset);
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
                     PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, offset, advance);
-                    if (targets[targetIndex].Intersects(bounds, span.TextRenderingMode)) {
+                    if (targets[targetIndex].TargetsGlyph(bounds, span.TextRenderingMode, originX, originY, glyph.Bytes)) {
                         remove = true;
                         break;
                     }
@@ -522,7 +552,7 @@ internal static class PdfContentStreamTextRewriter {
         return builder.ToString();
     }
 
-    private static int FindOperationStart(string content, int previousOperatorEnd, int operatorOffset) {
+    internal static int FindOperationStart(string content, int previousOperatorEnd, int operatorOffset) {
         int index = Math.Max(0, previousOperatorEnd);
         while (index < operatorOffset) {
             if (char.IsWhiteSpace(content[index])) {
@@ -549,6 +579,12 @@ internal static class PdfContentStreamTextRewriter {
         transform.F);
 
     private static bool IsTextShowOperator(string name) => name is "Tj" or "TJ" or "'" or "\"";
+
+    private static bool IsStateOnlyTextObjectOperator(string name) => name is
+        "BT" or "ET" or "q" or "Q" or "cm" or "gs" or
+        "Tf" or "Tc" or "Tw" or "Tz" or "TL" or "Tr" or "Ts" or "Td" or "TD" or "Tm" or "T*" or
+        "w" or "J" or "j" or "M" or "d" or "ri" or "i" or
+        "CS" or "cs" or "SC" or "sc" or "SCN" or "scn" or "G" or "g" or "RG" or "rg" or "K" or "k";
 
     private static double NumberAt(IReadOnlyList<object> values, int index, double fallback) =>
         index >= 0 && index < values.Count && values[index] is double value ? value : fallback;
@@ -616,7 +652,9 @@ internal readonly struct PdfContentStreamTextRewriteTarget {
     internal bool MatchesRenderingMode(int textRenderingMode) =>
         !TextRenderingMode.HasValue || TextRenderingMode.Value == textRenderingMode;
 
-    internal bool Intersects(PdfTextSpanBounds bounds, int textRenderingMode) =>
-        MatchesRenderingMode(textRenderingMode) &&
-        Area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+    internal bool TargetsSpan(PdfTextSpanBounds bounds, int textRenderingMode) =>
+        MatchesRenderingMode(textRenderingMode) && Area.TargetsSpan(bounds);
+
+    internal bool TargetsGlyph(PdfTextSpanBounds bounds, int textRenderingMode, double originX, double originY, byte[] encodedBytes) =>
+        MatchesRenderingMode(textRenderingMode) && Area.TargetsGlyph(bounds, originX, originY, encodedBytes);
 }

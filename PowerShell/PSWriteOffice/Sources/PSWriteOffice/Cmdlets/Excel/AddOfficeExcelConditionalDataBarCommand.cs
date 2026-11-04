@@ -77,7 +77,7 @@ public sealed class AddOfficeExcelConditionalDataBarCommand : PSCmdlet
         var sheet = ResolveSheet();
         string targetRange = ExcelTargetRangeResolver.Resolve(sheet, Range, HeaderName, TableName, HeaderRow, IncludeHeader.IsPresent, PivotTableName, !PivotWholeTable.IsPresent);
 
-        sheet.AddConditionalDataBar(targetRange, OfficeColorUtilities.ToExcelArgbHex(Color)!);
+        sheet.Range(targetRange).ConditionalFormat().DataBar(OfficeColorUtilities.ToExcelArgbHex(Color)!);
 
         if (PassThru.IsPresent)
         {

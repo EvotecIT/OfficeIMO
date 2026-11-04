@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf;
 
 internal sealed class RtfReadLimitGuard {
-    private readonly RtfReadOptions _options;
+    private readonly RtfLoadOptions _options;
     private readonly CancellationToken _cancellationToken;
     private long _tokenCount;
     private long _groupCount;
@@ -14,56 +14,57 @@ internal sealed class RtfReadLimitGuard {
     private long _semanticBlockCount;
     private int _operationCount;
 
-    public RtfReadLimitGuard(RtfReadOptions options, CancellationToken cancellationToken) {
+    public RtfReadLimitGuard(RtfLoadOptions options, CancellationToken cancellationToken) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        if (options.Limits == null) throw new ArgumentNullException(nameof(options), "RTF read limits are required.");
         _cancellationToken = cancellationToken;
     }
     internal bool DeferBinaryPayloads => _options.DeferBinaryPayloads;
 
-    public void CheckInputCharacters(long actual) => Check("RtfInputCharacterLimitExceeded", nameof(RtfReadOptions.MaxInputCharacters), actual, _options.MaxInputCharacters, -1);
+    public void CheckInputCharacters(long actual) => Check("RtfInputCharacterLimitExceeded", nameof(RtfReadLimits.MaxInputCharacters), actual, _options.Limits.MaxInputCharacters, -1);
 
-    public void CheckInputBytes(long actual) => Check("RtfInputByteLimitExceeded", nameof(RtfReadOptions.MaxInputBytes), actual, _options.MaxInputBytes, -1);
+    public void CheckInputBytes(long actual) => Check("RtfInputByteLimitExceeded", nameof(RtfReadLimits.MaxInputBytes), actual, _options.Limits.MaxInputBytes, -1);
 
     public void AddToken(int position) {
-        Check("RtfTokenLimitExceeded", nameof(RtfReadOptions.MaxTokenCount), ++_tokenCount, _options.MaxTokenCount, position);
+        Check("RtfTokenLimitExceeded", nameof(RtfReadLimits.MaxTokens), ++_tokenCount, _options.Limits.MaxTokens, position);
         CheckCancellation();
     }
 
-    public void AddGroup(int position) => Check("RtfGroupLimitExceeded", nameof(RtfReadOptions.MaxGroupCount), ++_groupCount, _options.MaxGroupCount, position);
+    public void AddGroup(int position) => Check("RtfGroupLimitExceeded", nameof(RtfReadLimits.MaxGroups), ++_groupCount, _options.Limits.MaxGroups, position);
 
     public void AddTextCharacters(int count, int position) {
         if (count <= 0) return;
         _textCharacters += count;
-        Check("RtfTextCharacterLimitExceeded", nameof(RtfReadOptions.MaxTextCharacters), _textCharacters, _options.MaxTextCharacters, position);
+        Check("RtfTextCharacterLimitExceeded", nameof(RtfReadLimits.MaxTextCharacters), _textCharacters, _options.Limits.MaxTextCharacters, position);
     }
 
     public void AddBinaryPayload(int count, int position) {
-        Check("RtfBinaryPayloadLimitExceeded", nameof(RtfReadOptions.MaxBinaryBytesPerPayload), count, _options.MaxBinaryBytesPerPayload, position);
+        Check("RtfBinaryPayloadLimitExceeded", nameof(RtfReadLimits.MaxBinaryPayloadBytes), count, _options.Limits.MaxBinaryPayloadBytes, position);
         _binaryBytes += count;
-        Check("RtfTotalBinaryLimitExceeded", nameof(RtfReadOptions.MaxTotalBinaryBytes), _binaryBytes, _options.MaxTotalBinaryBytes, position);
+        Check("RtfTotalBinaryLimitExceeded", nameof(RtfReadLimits.MaxTotalBinaryBytes), _binaryBytes, _options.Limits.MaxTotalBinaryBytes, position);
     }
 
-    public void BeginImage(int position) => Check("RtfImageCountLimitExceeded", nameof(RtfReadOptions.MaxImageCount), ++_imageCount, _options.MaxImageCount, position);
+    public void BeginImage(int position) => Check("RtfImageCountLimitExceeded", nameof(RtfReadLimits.MaxImages), ++_imageCount, _options.Limits.MaxImages, position);
 
     public void AddImageBytes(ref long imageBytes, int count, int position) {
         if (count <= 0) return;
         imageBytes += count;
-        Check("RtfImagePayloadLimitExceeded", nameof(RtfReadOptions.MaxImageBytesPerImage), imageBytes, _options.MaxImageBytesPerImage, position);
+        Check("RtfImagePayloadLimitExceeded", nameof(RtfReadLimits.MaxImageBytes), imageBytes, _options.Limits.MaxImageBytes, position);
         _imageBytes += count;
-        Check("RtfTotalImageLimitExceeded", nameof(RtfReadOptions.MaxTotalImageBytes), _imageBytes, _options.MaxTotalImageBytes, position);
+        Check("RtfTotalImageLimitExceeded", nameof(RtfReadLimits.MaxTotalImageBytes), _imageBytes, _options.Limits.MaxTotalImageBytes, position);
     }
 
-    public void BeginObject(int position) => Check("RtfObjectCountLimitExceeded", nameof(RtfReadOptions.MaxObjectCount), ++_objectCount, _options.MaxObjectCount, position);
+    public void BeginObject(int position) => Check("RtfObjectCountLimitExceeded", nameof(RtfReadLimits.MaxObjects), ++_objectCount, _options.Limits.MaxObjects, position);
 
     public void AddObjectBytes(ref long objectBytes, int count, int position) {
         if (count <= 0) return;
         objectBytes += count;
-        Check("RtfObjectPayloadLimitExceeded", nameof(RtfReadOptions.MaxObjectBytesPerObject), objectBytes, _options.MaxObjectBytesPerObject, position);
+        Check("RtfObjectPayloadLimitExceeded", nameof(RtfReadLimits.MaxObjectBytes), objectBytes, _options.Limits.MaxObjectBytes, position);
         _objectBytes += count;
-        Check("RtfTotalObjectLimitExceeded", nameof(RtfReadOptions.MaxTotalObjectBytes), _objectBytes, _options.MaxTotalObjectBytes, position);
+        Check("RtfTotalObjectLimitExceeded", nameof(RtfReadLimits.MaxTotalObjectBytes), _objectBytes, _options.Limits.MaxTotalObjectBytes, position);
     }
 
-    public void AddSemanticBlock(int position) => Check("RtfSemanticBlockLimitExceeded", nameof(RtfReadOptions.MaxSemanticBlockCount), ++_semanticBlockCount, _options.MaxSemanticBlockCount, position);
+    public void AddSemanticBlock(int position) => Check("RtfSemanticBlockLimitExceeded", nameof(RtfReadLimits.MaxSemanticBlocks), ++_semanticBlockCount, _options.Limits.MaxSemanticBlocks, position);
 
     public void CheckCancellation() {
         if ((_operationCount++ & 0x3FF) == 0) {

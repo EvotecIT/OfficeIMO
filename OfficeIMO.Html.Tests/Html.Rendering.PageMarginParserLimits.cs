@@ -11,7 +11,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(PageMarginTypographySource(declarations),
             HtmlConversionDocumentOptions.CreateTrustedProfile());
         var options = PageMarginTypographyOptions();
-        options.PageSize = new OfficeIMO.Drawing.OfficePageSize(360D / 96D, 480D / 96D);
+        options.PageSize = new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(360D / 96D), global::OfficeIMO.OfficeLength.Inches(480D / 96D));
 
         HtmlRenderPage page = Assert.Single(HtmlRenderEngine.Render(document, options).Pages);
 
@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginParserLimits_ConfiguredTokenLimitUsesTheSharedDiagnostic() {
         using var document = new HtmlParser().ParseDocument(PageMarginTypographySource("font:16px/10cqw Pinned"));
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssTokens = 4;
 
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>

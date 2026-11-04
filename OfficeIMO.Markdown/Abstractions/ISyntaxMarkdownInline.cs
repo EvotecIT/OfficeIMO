@@ -2,7 +2,7 @@ namespace OfficeIMO.Markdown;
 
 /// <summary>
 /// Allows a custom inline node to control the syntax-tree node shape emitted by
-/// <see cref="MarkdownReader.ParseWithSyntaxTree(string, MarkdownReaderOptions?)"/>.
+/// <see cref="MarkdownReader.ParseWithSyntaxTree(string, MarkdownLoadOptions?)"/>.
 /// </summary>
 public interface ISyntaxMarkdownInline {
     /// <summary>

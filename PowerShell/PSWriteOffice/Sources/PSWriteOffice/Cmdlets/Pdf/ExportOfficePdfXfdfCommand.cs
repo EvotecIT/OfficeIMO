@@ -1,8 +1,10 @@
 using OfficeIMO.Core.Internal;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using System.Text;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -26,7 +28,8 @@ public sealed class ExportOfficePdfXfdfCommand : PSCmdlet
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed form-reading restrictions.</summary>
     [Parameter]
@@ -40,17 +43,21 @@ public sealed class ExportOfficePdfXfdfCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var input = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+        var output = string.IsNullOrWhiteSpace(OutputPath) ? null
+            : SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath!);
+        if (output != null && OfficePath.AreEquivalent(input, output))
+            throw new PSArgumentException("The source PDF and XFDF destination must be different files.");
         var readOptions = PdfCommandUtilities.CreateReadOptions(
             ReadOptions,
             Password,
             IgnorePermissionRestrictions.IsPresent);
-        var xfdf = PdfCommandUtilities.LoadDocument(input, readOptions).Forms.ExportXfdf();
-        if (string.IsNullOrWhiteSpace(OutputPath))
+        using var document = PdfCommandUtilities.LoadDocument(input, readOptions);
+        var xfdf = document.Forms.ExportXfdf();
+        if (output == null)
         {
             WriteObject(xfdf);
             return;
         }
-        var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath!);
         if (!ShouldProcess(output, "Write PDF form data as XFDF")) return;
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
         OfficeFileOutput.Write(output, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, xfdf, new UTF8Encoding(false)));

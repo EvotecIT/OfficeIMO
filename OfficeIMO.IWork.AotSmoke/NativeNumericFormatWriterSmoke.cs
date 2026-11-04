@@ -75,7 +75,7 @@ internal static class NativeNumericFormatWriterSmoke {
         }
         using var output = new MemoryStream();
         if (kind == "Numbers") {
-            using var result = source.ToExcelDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+            using var result = source.ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
             result.Value.Save(output); output.Position = 0;
             using var saved = SpreadsheetDocument.Open(output, false);
             Require(!new OpenXmlValidator().Validate(saved).Any(), "Saved numeric XLSX is invalid.");
@@ -92,14 +92,14 @@ internal static class NativeNumericFormatWriterSmoke {
                     && codes[id] == row.GetProperty("excelFormatCode").GetString(), "Saved numeric XLSX value or format changed.");
             }
         } else if (kind == "Pages") {
-            using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
             result.RequireCompleteEditableReconstruction(); result.Value.Save(output); output.Position = 0;
             using var saved = WordprocessingDocument.Open(output, false);
             Require(!new OpenXmlValidator().Validate(saved).Any(), "Saved numeric DOCX is invalid.");
             VerifyText(root, edited, saved.MainDocumentPart!.Document!.Body!.Elements<W.Table>().Single()
                 .Elements<W.TableRow>().Select(row => row.Elements<W.TableCell>().Last().InnerText).ToArray());
         } else {
-            using var result = source.ToPowerPointPresentationResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var result = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
             result.RequireCompleteEditableReconstruction(); result.Value.Save(output); output.Position = 0;
             using var saved = PresentationDocument.Open(output, false);
             Require(!new OpenXmlValidator().Validate(saved).Any(), "Saved numeric PPTX is invalid.");

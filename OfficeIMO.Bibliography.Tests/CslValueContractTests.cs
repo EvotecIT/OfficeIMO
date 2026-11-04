@@ -123,9 +123,9 @@ public sealed class CslValueContractTests {
 
     [Fact]
     public void PlainTextOutputLimitsDoNotCountHtmlEscapingOrInvisibleMarkup() {
-        var options = new CslRenderOptions { MaximumOutputCharacters = 1 };
+        var options = new CslRenderOptions { MaxOutputCharacters = 1 };
         Assert.Equal("&", Render("\"title\":\"&amp;\"", "<text variable=\"title\" font-style=\"italic\"/>", options: options));
-        options.MaximumIntermediateCharacters = 5;
+        options.MaxIntermediateCharacters = 5;
         Assert.Throws<InvalidDataException>(() => Render("\"title\":\"&amp;\"", "<text variable=\"title\" font-style=\"italic\"/>", options: options));
     }
 

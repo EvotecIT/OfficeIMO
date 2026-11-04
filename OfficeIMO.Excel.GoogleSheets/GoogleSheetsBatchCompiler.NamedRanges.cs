@@ -4,7 +4,7 @@ using System.Text;
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private static string BuildSheetScopedNamedRangeName(
-            ExcelNamedRangeSnapshot namedRange,
+            ExcelNamedRangeInspectionInfo namedRange,
             ISet<string> reservedNames,
             TranslationReport report) {
             string sheetPart = SanitizeNamedRangePart(namedRange.SheetName, "Sheet");

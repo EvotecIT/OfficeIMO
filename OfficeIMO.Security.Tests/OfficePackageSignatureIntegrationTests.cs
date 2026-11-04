@@ -75,7 +75,7 @@ public sealed class OfficePackageSignatureIntegrationTests {
             options.Inspection.MaxTotalDigestBytes = 1;
 
             OfficePackageSignatureValidationReport validation =
-                WordDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options);
+                WordDocument.ValidateSignatures(path, OfficeSecurityProvider.Default, options);
 
             Assert.False(validation.IsCryptographicallyValid);
             Assert.Contains(validation.SignatureInfo.SignatureParts,
@@ -97,7 +97,7 @@ public sealed class OfficePackageSignatureIntegrationTests {
             options.Inspection.MaxSignatureParts = 1;
 
             OfficePackageSignatureValidationReport validation =
-                WordDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options);
+                WordDocument.ValidateSignatures(path, OfficeSecurityProvider.Default, options);
 
             Assert.False(validation.SignatureInfo.SignatureDiscoveryComplete);
             Assert.False(validation.IsCryptographicallyValid);
@@ -128,11 +128,11 @@ public sealed class OfficePackageSignatureIntegrationTests {
             CreatePackage(path, "docx");
             WriteApplicationProperties(path,
                 "<ep:Properties xmlns:ep=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><x:DigSig xmlns:x=\"urn:not-office\" /></ep:Properties>");
-            Assert.False(WordDocument.InspectPackageSignatures(path).HasApplicationSignatureMetadata);
+            Assert.False(OfficeIMO.Security.OfficePackageSignatureService.Inspect(path).HasApplicationSignatureMetadata);
 
             WriteApplicationProperties(path,
                 "<ep:Properties xmlns:ep=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><ep:DigSig /></ep:Properties>");
-            Assert.True(WordDocument.InspectPackageSignatures(path).HasApplicationSignatureMetadata);
+            Assert.True(OfficeIMO.Security.OfficePackageSignatureService.Inspect(path).HasApplicationSignatureMetadata);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -194,12 +194,12 @@ public sealed class OfficePackageSignatureIntegrationTests {
                 break;
             case "xlsx":
                 using (ExcelDocument document = ExcelDocument.Create(path)) {
-                    document.AddWorksheet("Data").CellValue(1, 1, "signed content");
+                    document.AddSheet("Data").Cell(1, 1).SetValue("signed content");
                     document.Save();
                 }
                 break;
             case "pptx":
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) presentation.Save();
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) presentation.Save();
                 break;
             case "vsdx":
                 VisioDocument.Create(path).Save();
@@ -210,28 +210,28 @@ public sealed class OfficePackageSignatureIntegrationTests {
     }
 
     private static OfficePackageSigningResult Sign(string path, string extension, X509Certificate2 certificate) => extension switch {
-        "docx" => WordDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
+        "docx" => WordDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate, new OfficePackageSigningOptions()),
         "xlsx" => ExcelDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
-        "pptx" => PowerPointPresentation.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
-        "vsdx" => VisioDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
+        "pptx" => PowerPointDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate),
+        "vsdx" => VisioDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate),
         _ => throw new ArgumentOutOfRangeException(nameof(extension))
     };
 
     private static OfficePackageSignatureInfo Inspect(string path, string extension) => extension switch {
-        "docx" => WordDocument.InspectPackageSignatures(path),
-        "xlsx" => ExcelDocument.InspectPackageSignatures(path),
-        "pptx" => PowerPointPresentation.InspectPackageSignatures(path),
-        "vsdx" => VisioDocument.InspectPackageSignatures(path),
+        "docx" => OfficeIMO.Security.OfficePackageSignatureService.Inspect(path),
+        "xlsx" => OfficeIMO.Security.OfficePackageSignatureService.Inspect(path),
+        "pptx" => OfficeIMO.Security.OfficePackageSignatureService.Inspect(path),
+        "vsdx" => VisioDocument.InspectSignatures(path),
         _ => throw new ArgumentOutOfRangeException(nameof(extension))
     };
 
     private static OfficePackageSignatureValidationReport Validate(string path, string extension) {
         var options = new OfficePackageSignatureValidationOptions { ValidateCertificateTrust = false };
         return extension switch {
-            "docx" => WordDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
+            "docx" => WordDocument.ValidateSignatures(path, OfficeSecurityProvider.Default, options),
             "xlsx" => ExcelDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
-            "pptx" => PowerPointPresentation.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
-            "vsdx" => VisioDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options),
+            "pptx" => PowerPointDocument.ValidateSignatures(path, OfficeSecurityProvider.Default, options),
+            "vsdx" => VisioDocument.ValidateSignatures(path, OfficeSecurityProvider.Default, options),
             _ => throw new ArgumentOutOfRangeException(nameof(extension))
         };
     }

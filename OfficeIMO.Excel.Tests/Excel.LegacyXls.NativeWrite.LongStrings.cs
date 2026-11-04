@@ -15,10 +15,10 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Long Strings");
-                    sheet.CellValue(1, 1, longAsciiText);
-                    sheet.CellValue(1, 2, longAsciiText);
-                    sheet.CellValue(2, 1, longUnicodeText);
+                    ExcelSheet sheet = document.AddSheet("Long Strings");
+                    sheet.Cell(1, 1).SetValue(longAsciiText);
+                    sheet.Cell(1, 2).SetValue(longAsciiText);
+                    sheet.Cell(2, 1).SetValue(longUnicodeText);
                     document.Save(xlsOutputPath);
                 }
 
@@ -55,10 +55,10 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExtSST");
+                    ExcelSheet sheet = document.AddSheet("ExtSST");
                     for (int index = 0; index < 9; index++) {
                         int characterCount = index < 7 ? 1024 : index == 7 ? 1023 : 1008;
-                        sheet.CellValue(index + 1, 1, new string((char)('A' + index), characterCount));
+                        sheet.Cell(index + 1, 1).SetValue(new string((char)('A' + index), characterCount));
                     }
 
                     document.Save(xlsOutputPath);
@@ -85,8 +85,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Formula String");
-                    sheet.CellValue(1, 1, "Formula text");
+                    ExcelSheet sheet = document.AddSheet("Formula String");
+                    sheet.Cell(1, 1).SetValue("Formula text");
                     Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                         .Single(item => string.Equals(item.CellReference?.Value, "A1", StringComparison.OrdinalIgnoreCase));
                     cell.DataType = CellValues.String;
@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Long Rich Text");
-                    sheet.CellAt(1, 1).SetRichText(
+                    ExcelSheet sheet = document.AddSheet("Long Rich Text");
+                    sheet.Cell(1, 1).SetRichText(
                         new ExcelRichTextRun(firstRunText) { Bold = true },
                         new ExcelRichTextRun(secondRunText) { Italic = true });
                     document.Save(xlsOutputPath);
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((ushort)0, cell.TextFormattingRuns[0].StartCharacter);
                 Assert.Equal((ushort)5000, cell.TextFormattingRuns[1].StartCharacter);
 
-                IReadOnlyList<ExcelRichTextRun> projectedRuns = result.Document.Sheets[0].CellAt(1, 1).GetRichText();
+                IReadOnlyList<ExcelRichTextRun> projectedRuns = result.Document.Sheets[0].Cell(1, 1).GetRichText();
                 Assert.Equal(2, projectedRuns.Count);
                 Assert.Equal(firstRunText, projectedRuns[0].Text);
                 Assert.True(projectedRuns[0].Bold);

@@ -31,7 +31,7 @@ public class PdfEncryptedReadTests {
         Assert.Contains("Secret PDF Text", text, StringComparison.Ordinal);
         Assert.Contains("Secret PDF Text", fluentText, StringComparison.Ordinal);
         Assert.True(diagnostics.ObjectGraphParsed);
-        Assert.Contains(diagnostics.Findings, finding => finding.Code == "EncryptionDetected");
+        Assert.Contains(diagnostics.Findings, finding => finding.Code == "encryption-detected");
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class PdfEncryptedReadTests {
         Assert.True(report.HasSignatures);
         Assert.Equal(1, report.SignatureCount);
         Assert.Equal("Approval", Assert.Single(report.Signatures).Signature.FieldName);
-        Assert.DoesNotContain(report.Findings, finding => finding.Code == "NoSignatures");
+        Assert.DoesNotContain(report.Findings, finding => finding.Code == "no-signatures");
     }
 
     [Fact]
@@ -135,12 +135,17 @@ public class PdfEncryptedReadTests {
     }
 
     [Fact]
-    public void StandardPasswordEncryptedFormPdf_ExtractBlocksDecryptedFormMarkers() {
+    public void StandardPasswordEncryptedFormPdf_ExtractPreservesLiveFieldsAndEncryption() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
-        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfLoadOptions { Password = "open" }, 1));
-
-        Assert.Contains("FullRewrite.Forms", exception.Plan.BlockerCodes);
+        var options = new PdfLoadOptions { Password = "open" };
+        byte[] page = PdfPageExtractor.ExtractPages(pdf, options, 1);
+        PdfDocumentInfo info = PdfInspector.Inspect(page, options);
+        Assert.True(info.Security.HasEncryption);
+        PdfFormField field = Assert.Single(info.FormFields);
+        Assert.Equal("Name", field.Name);
+        Assert.Equal("Ada", field.Value);
+        Assert.Equal(1, Assert.Single(field.Widgets).PageNumber);
     }
 
 

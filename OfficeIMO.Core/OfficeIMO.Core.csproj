@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <Description>Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.</Description>
-    <AssemblyName>OfficeIMO.Core</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Core</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -33,6 +31,9 @@
     <InternalsVisibleTo Include="OfficeIMO.Archives" />
     <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Html" />
+    <InternalsVisibleTo Include="OfficeIMO" />
+    <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote" />
     <InternalsVisibleTo Include="OfficeIMO.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Xps" />
@@ -48,6 +49,7 @@
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf" />
+    <InternalsVisibleTo Include="OfficeIMO.Rtf.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.OpenDocument" />
     <InternalsVisibleTo Include="OfficeIMO.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
@@ -57,12 +59,15 @@
     <InternalsVisibleTo Include="OfficeIMO.Provenance.C2pa" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Tool" />
+    <InternalsVisibleTo Include="OfficeIMO.Tool.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Studio" />
     <InternalsVisibleTo Include="OfficeIMO.Studio.Core" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.RealWorldCorpus.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Drive" />
     <InternalsVisibleTo Include="OfficeIMO.IWork" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Project" />
@@ -90,16 +95,15 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
-
   <ItemGroup>
     <EmbeddedResource Include="Raster/Avif/OfficeAv1QuantizerMatrices.bin" LogicalName="OfficeIMO.Core.Av1QuantizerMatrices" />
     <EmbeddedResource Include="Typography/Hyphenation/*.patterns" LogicalName="OfficeIMO.Core.Hyphenation.%(Filename)" />
     <None Include="Typography/Hyphenation/manifest.json" Pack="true" PackagePath="Typography/Hyphenation/" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
 </Project>

@@ -10,11 +10,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_ExpandsThreeDimensionalSheetQualifiers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("First Sheet");
-            document.AddWorksheet("Middle Sheet");
-            document.AddWorksheet("Last Sheet");
-            ExcelSheet summary = document.AddWorksheet("Summary");
-            summary.CellFormula(1, 1, "SUM('First Sheet':'Last Sheet'!B2)");
+            document.AddSheet("First Sheet");
+            document.AddSheet("Middle Sheet");
+            document.AddSheet("Last Sheet");
+            ExcelSheet summary = document.AddSheet("Summary");
+            summary.Cell(1, 1).SetFormula("SUM('First Sheet':'Last Sheet'!B2)");
 
             ExcelFormulaCellInfo match = Assert.Single(document.SearchFormulas(
                 new ExcelFormulaSearchOptions { Reference = "'Middle Sheet'!B2" }));
@@ -27,10 +27,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedStyleRedefinition_LeavesAmbiguousSharedConsumersUnchanged() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet first = document.AddWorksheet("First");
-            ExcelSheet second = document.AddWorksheet("Second");
-            first.CellValue(1, 1, "Replacement");
-            first.CellAt(1, 1).SetFillColor("C6EFCE");
+            ExcelSheet first = document.AddSheet("First");
+            ExcelSheet second = document.AddSheet("Second");
+            first.Cell(1, 1).SetValue("Replacement");
+            first.Cell(1, 1).SetFillColor("C6EFCE");
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
             CellStyle normal = stylesheet.CellStyles!.Elements<CellStyle>()
                 .Single(style => style.Name?.Value == "Normal");
@@ -64,12 +64,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_PreservesImplicitShownTotalsRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
-            sheet.CellValue(3, 1, "Total");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
+            sheet.Cell(3, 1).SetValue("Total");
             sheet.AddTable("A1:B3", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = sheet.WorksheetPart.TableDefinitionParts.Single().Table!;
             table.TotalsRowShown = true;

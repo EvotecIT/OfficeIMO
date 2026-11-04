@@ -134,7 +134,9 @@ public sealed class ReleasePackagingGuardrails {
     [Fact]
     public void SolutionReleaseConfiguration_IncludesEveryPublishablePackage() {
         string repositoryRoot = GetRepositoryRoot();
-        string solution = File.ReadAllText(Path.Combine(repositoryRoot, "OfficeIMO.sln"));
+        XElement[] solutionProjects = XDocument.Load(Path.Combine(repositoryRoot, "OfficeIMO.slnx"))
+            .Descendants("Project")
+            .ToArray();
         PackageProject[] packageProjects = Directory
             .EnumerateFiles(repositoryRoot, "*.csproj", SearchOption.AllDirectories)
             .Where(static path => !ContainsBuildOutput(path))
@@ -144,17 +146,13 @@ public sealed class ReleasePackagingGuardrails {
             .ToArray();
 
         Assert.All(packageProjects, project => {
-            Match projectDeclaration = Assert.Single(Regex.Matches(
-                solution,
-                $@"^Project\(""[^""]+""\) = ""{Regex.Escape(project.ProjectName)}"", ""[^""]+"", ""\{{(?<guid>[A-F0-9-]+)\}}""\r?$",
-                RegexOptions.Multiline | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)
-                .Cast<Match>());
-            string projectGuid = projectDeclaration.Groups["guid"].Value;
+            XElement projectDeclaration = Assert.Single(solutionProjects, _ => string.Equals(
+                Path.GetFileNameWithoutExtension((string?)_.Attribute("Path")),
+                project.ProjectName,
+                StringComparison.OrdinalIgnoreCase));
 
-            Assert.Contains(
-                $"{{{projectGuid}}}.Release|Any CPU.Build.0 = Release|Any CPU",
-                solution,
-                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(projectDeclaration.Elements("Build"), _ =>
+                string.Equals((string?)_.Attribute("Project"), "false", StringComparison.OrdinalIgnoreCase));
         });
     }
 

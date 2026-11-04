@@ -13,12 +13,6 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Default aggregate embedded-image bytes retained by one slide export.</summary>
         public const long DefaultMaximumTotalEmbeddedImageBytes = 256L * 1024 * 1024;
 
-        /// <summary>Shared slide layout settings used by PDF and image exports.</summary>
-        public Pdf.PowerPointToPdfOptions LayoutOptions { get; set; } = new Pdf.PowerPointToPdfOptions();
-
-        internal OfficeIMO.Pdf.PdfImageExportOptions ToPdfImageOptions() =>
-            CopyImageExportOptionsTo(new OfficeIMO.Pdf.PdfImageExportOptions());
-
         /// <inheritdoc />
         public override double LogicalUnitsPerInch => 72D;
 
@@ -64,14 +58,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Maximum aggregate embedded-image bytes retained by one slide export.</summary>
         public long MaximumTotalEmbeddedImageBytes { get; set; } = DefaultMaximumTotalEmbeddedImageBytes;
 
+        /// <summary>Includes hidden slides during document batch export.</summary>
+        public bool IncludeHiddenSlides { get; set; }
+
+        /// <summary>Selected 1-based slide numbers; null or empty exports every eligible slide in document order.</summary>
+        public IReadOnlyList<int>? SlideNumbers { get; set; }
+
         /// <summary>Creates an independent options snapshot.</summary>
         public PowerPointImageExportOptions Clone() =>
             CopyPowerPointOptionsTo(new PowerPointImageExportOptions());
 
         internal T CopyPowerPointOptionsTo<T>(T target) where T : PowerPointImageExportOptions {
-            if (LayoutOptions == null) throw new ArgumentNullException(nameof(LayoutOptions));
             CopyImageExportOptionsTo(target);
-            target.LayoutOptions = LayoutOptions.Clone();
             target.IncludeSlideBackground = IncludeSlideBackground;
             target.IncludeSlideContent = IncludeSlideContent;
             target.IncludePictures = IncludePictures;
@@ -84,6 +82,8 @@ namespace OfficeIMO.PowerPoint {
             target.MaxGroupShapeDepth = MaxGroupShapeDepth;
             target.MaximumEmbeddedImageBytes = MaximumEmbeddedImageBytes;
             target.MaximumTotalEmbeddedImageBytes = MaximumTotalEmbeddedImageBytes;
+            target.IncludeHiddenSlides = IncludeHiddenSlides;
+            target.SlideNumbers = SlideNumbers?.ToArray();
             return target;
         }
 
@@ -98,27 +98,4 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 
-    /// <summary>
-    /// Options controlling dependency-free PowerPoint presentation image export.
-    /// </summary>
-    public sealed class PowerPointPresentationImageExportOptions : PowerPointImageExportOptions {
-        /// <summary>
-        /// Gets or sets a value indicating whether hidden slides should be included in presentation-level exports.
-        /// </summary>
-        public bool IncludeHiddenSlides { get; set; }
-
-        /// <summary>
-        /// Gets or sets the 1-based slide numbers to export. When null or empty, all eligible slides are exported.
-        /// </summary>
-        public IReadOnlyList<int>? SlideNumbers { get; set; }
-
-        /// <summary>Creates an independent presentation options snapshot.</summary>
-        public PowerPointPresentationImageExportOptions ClonePresentation() {
-            PowerPointPresentationImageExportOptions clone =
-                CopyPowerPointOptionsTo(new PowerPointPresentationImageExportOptions());
-            clone.IncludeHiddenSlides = IncludeHiddenSlides;
-            clone.SlideNumbers = SlideNumbers?.ToArray();
-            return clone;
-        }
-    }
 }

@@ -54,7 +54,7 @@ internal sealed partial class PdfUnderstandingReadingFrame {
             if (lines.TryGetValue(line, out PdfUnderstandingLine? restored)) return restored;
             var bounds = PdfRecursiveXyCutReadingOrderStage.GetSourceBounds(new PdfUnderstandingRegion(new[] { line }));
             restored = new PdfUnderstandingLine(line.Words.Select(RestoreWord).ToArray(), line.Text, line.Confidence,
-                line.Evidence.Concat(new[] { new PdfInferenceEvidence("line.corrected-reading-frame",
+                line.Evidence.Concat(new[] { new PdfInferenceEvidence("line-corrected-reading-frame",
                     "Layout was inferred along the dominant quarter-turn baseline and mapped back to the source page.", 0.8D) }),
                 line.SourceKind, line.SourceSequence, line.BlockId, line.ParagraphId, line.LineId,
                 line.VisualBounds is not null ? RestoreVisualBounds(line.VisualBounds)

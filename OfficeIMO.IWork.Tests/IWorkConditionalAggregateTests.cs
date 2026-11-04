@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Incomplete_conditional_aggregate_calls_retain_typed_caches_after_saved_conversion(int index, int count) {
         using var source = CreateNumbersPackage(new[] { new TableSpec("Criteria", 1, 1, 42d,
             hasFormula: true, formulaPayload: FunctionPayload(index, count)) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(source);
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Numbers).ToExcelResult();
         var cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
         Assert.False(cell.FormulaIsComplete);
         Assert.True(cell.CachedValueIsComplete);
@@ -45,7 +45,7 @@ public sealed partial class IWorkBoundaryTests {
         using var bytes = new MemoryStream(); result.Value.Save(bytes); bytes.Position = 0;
         using var saved = ExcelDocument.Load(bytes);
         Assert.Null(saved.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, saved.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, saved.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(0, saved.Calculate());
         Assert.Empty(saved.ValidateOpenXml());
     }

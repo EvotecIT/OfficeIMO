@@ -11,17 +11,17 @@ Imports rows from an Excel workbook as PowerShell objects.
 ## SYNTAX
 ### Path
 ```powershell
-Import-OfficeExcel [-Path] <string> [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleSize <int>] [-ChunkRows <int>] [<CommonParameters>]
+Import-OfficeExcel [-Path] <string> [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleRows <int>] [-ChunkRows <int>] [<CommonParameters>]
 ```
 
 ### Uri
 ```powershell
-Import-OfficeExcel [-Uri] <uri> [-AllowHttp] [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleSize <int>] [-ChunkRows <int>] [<CommonParameters>]
+Import-OfficeExcel [-Uri] <uri> [-AllowHttp] [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleRows <int>] [-ChunkRows <int>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Import-OfficeExcel -Document <ExcelDocument> [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleSize <int>] [-ChunkRows <int>] [<CommonParameters>]
+Import-OfficeExcel -Document <ExcelDocument> [-WorksheetName <string>] [-SheetIndex <Int32>] [-AllSheets] [-Range <string>] [-StartRow <Int32>] [-EndRow <Int32>] [-StartColumn <Int32>] [-EndColumn <Int32>] [-NoHeader] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-CultureName <string>] [-AsHashtable] [-AsDataTable] [-AsDataReader] [-ByColumn] [-SchemaSampleRows <int>] [-ChunkRows <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -314,7 +314,7 @@ Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
-### -SchemaSampleSize
+### -SchemaSampleRows
 Maximum row count inspected when -AsDataReader infers the reader schema.
 
 ```yaml

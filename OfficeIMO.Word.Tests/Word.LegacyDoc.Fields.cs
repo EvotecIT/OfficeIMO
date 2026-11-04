@@ -17,24 +17,24 @@ namespace OfficeIMO.Tests {
                     WordParagraph bodyParagraph = document.AddParagraph("Body ");
                     AppendBookmarkedSimpleField(bodyParagraph._paragraph, "81", "BodySimpleFieldBookmark", " PAGE ");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     AppendBookmarkedSimpleField(cellParagraph._paragraph, "82", "CellSimpleFieldBookmark", " NUMPAGES ");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header ");
                     AppendBookmarkedSimpleField(headerParagraph._paragraph, "83", "HeaderSimpleFieldBookmark", " PAGE ");
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer ");
                     AppendBookmarkedSimpleField(footerParagraph._paragraph, "84", "FooterSimpleFieldBookmark", " NUMPAGES ");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendBookmarkedSimpleField(footnoteBody._paragraph, "85", "FootnoteSimpleFieldBookmark", " PAGE ");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendBookmarkedSimpleField(endnoteBody._paragraph, "86", "EndnoteSimpleFieldBookmark", " NUMPAGES ");
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                     AppendInteriorBookmarkedSimpleField(bodyParagraph._paragraph, "87", "InteriorSimpleFieldBookmark", " DATE ", "Al", "pha");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendInteriorBookmarkedSimpleField(footnoteBody._paragraph, "88", "InteriorFootnoteSimpleFieldBookmark", " DATE ", "Be", "ta");
 
@@ -96,24 +96,24 @@ namespace OfficeIMO.Tests {
                     WordParagraph bodyParagraph = document.AddParagraph("Body ");
                     AppendBookmarkedComplexField(bodyParagraph._paragraph, "91", "BodyComplexFieldBookmark", " PAGE ");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     AppendBookmarkedComplexField(cellParagraph._paragraph, "92", "CellComplexFieldBookmark", " NUMPAGES ");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header ");
                     AppendBookmarkedComplexField(headerParagraph._paragraph, "93", "HeaderComplexFieldBookmark", " PAGE ");
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer ");
                     AppendBookmarkedComplexField(footerParagraph._paragraph, "94", "FooterComplexFieldBookmark", " NUMPAGES ");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendBookmarkedComplexField(footnoteBody._paragraph, "95", "FootnoteComplexFieldBookmark", " PAGE ");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendBookmarkedComplexField(endnoteBody._paragraph, "96", "EndnoteComplexFieldBookmark", " NUMPAGES ");
 
@@ -145,24 +145,24 @@ namespace OfficeIMO.Tests {
                     WordParagraph bodyParagraph = document.AddParagraph("Body date ");
                     AppendSimpleField(bodyParagraph._paragraph, dateInstruction, "2026-07-01");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell date ", removeExistingParagraphs: true);
                     AppendComplexField(cellParagraph._paragraph, dateInstruction, "2026-07-02");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header date ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header date ");
                     AppendSimpleField(headerParagraph._paragraph, dateInstruction, "2026-07-03");
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer date ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer date ");
                     AppendComplexField(footerParagraph._paragraph, dateInstruction, "2026-07-04");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendSimpleField(footnoteBody._paragraph, dateInstruction, "2026-07-05");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendComplexField(endnoteBody._paragraph, dateInstruction, "2026-07-06");
 
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
                         "Body",
                         BreakValues.TextWrapping);
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell inline field ", removeExistingParagraphs: true);
                     AppendComplexFieldWithResultRun(
                         cellParagraph._paragraph,
@@ -239,16 +239,16 @@ namespace OfficeIMO.Tests {
                         "Cell",
                         BreakValues.Page);
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
                     AppendSimpleFieldWithResultRun(
-                        section.Header.Default!.AddParagraph("Header inline field ")._paragraph,
+                        section.PageSetup.Header.AddParagraph("Header inline field ")._paragraph,
                         " CREATEDATE \\@ \"yyyy-MM-dd\" ",
                         "Header",
                         BreakValues.Column);
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendSimpleFieldWithResultRun(
                         footnoteBody._paragraph,
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
                         "Footnote",
                         BreakValues.TextWrapping);
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendComplexFieldWithResultRun(
                         endnoteBody._paragraph,
@@ -290,21 +290,21 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     AppendSimpleField(document.AddParagraph("Author ")._paragraph, " AUTHOR ", "Ada Writer");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Title ", removeExistingParagraphs: true);
                     AppendComplexField(cellParagraph._paragraph, " TITLE ", "Quarterly Plan");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    AppendSimpleField(section.Header.Default!.AddParagraph("Client ")._paragraph, " DOCPROPERTY \"ClientName\" ", "Evotec");
-                    AppendComplexField(section.Footer.Default!.AddParagraph("Subject ")._paragraph, " SUBJECT ", "Legacy DOC subject");
+                    AppendSimpleField(section.PageSetup.Header.AddParagraph("Client ")._paragraph, " DOCPROPERTY \"ClientName\" ", "Evotec");
+                    AppendComplexField(section.PageSetup.Footer.AddParagraph("Subject ")._paragraph, " SUBJECT ", "Legacy DOC subject");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendSimpleField(footnoteBody._paragraph, " KEYWORDS ", "doc fields");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendComplexField(endnoteBody._paragraph, " LASTSAVEDBY ", "OfficeIMO");
 
@@ -362,32 +362,32 @@ namespace OfficeIMO.Tests {
                         "Legacy DOC body inline field",
                         CreateSimpleField(" DATE \\@ \"yyyy-MM-dd\" ", "2026-07-01")));
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell controlled ", removeExistingParagraphs: true);
                     cellParagraph._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC table inline field",
                         CreateSimpleField(" TIME \\@ \"HH:mm\" ", "09:30")));
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header controlled ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header controlled ");
                     headerParagraph._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC header inline field",
                         CreateSimpleField(" CREATEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-01")));
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer controlled ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer controlled ");
                     footerParagraph._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC footer inline field",
                         CreateSimpleField(" SAVEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-02")));
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC footnote inline field",
                         CreateSimpleField(" PRINTDATE \\@ \"yyyy-MM-dd\" ", "2026-06-03")));
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC endnote inline field",
@@ -430,15 +430,14 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddEquation(fractionOmml);
                     document.AddEquation(noBarFractionOmml);
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true).AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>t</m:t>"));
-                    document.AddHeadersAndFooters();
-                    document.Sections[0].Header.Default!.AddParagraph("Header ").AddEquation(fractionOmml);
-                    document.Sections[0].Footer.Default!.AddParagraph("Footer ").AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>f</m:t>"));
+                    document.Sections[0].PageSetup.Header.AddParagraph("Header ").AddEquation(fractionOmml);
+                    document.Sections[0].PageSetup.Footer.AddParagraph("Footer ").AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>f</m:t>"));
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     footnoteReference.FootNote!.Paragraphs![1].AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>n</m:t>"));
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     endnoteReference.EndNote!.Paragraphs![1].AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>e</m:t>"));
                     document.Save(docPath);
                 }
@@ -500,14 +499,13 @@ namespace OfficeIMO.Tests {
                         Anchor = "equation-target"
                     });
 
-                    document.AddHeadersAndFooters();
-                    WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
+                    WordParagraph header = document.Sections[0].PageSetup.Header.AddParagraph();
                     header._paragraph.Append(new Hyperlink(
                         new M.OfficeMath(new M.Run(new M.Text("header-linked")))) {
                         Anchor = "header-equation-target"
                     });
 
-                    WordParagraph noteReference = document.AddParagraph("note ").AddFootNote("placeholder");
+                    WordParagraph noteReference = document.AddParagraph("note ").AddFootNote("placeholder").Paragraph;
                     WordParagraph noteBody = noteReference.FootNote!.Paragraphs![1];
                     noteBody.Text = string.Empty;
                     noteBody._paragraph.Append(new Hyperlink(

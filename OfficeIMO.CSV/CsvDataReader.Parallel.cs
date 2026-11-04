@@ -1,5 +1,3 @@
-#nullable enable
-
 using System.Collections;
 using System.Buffers;
 using System.Data;
@@ -13,7 +11,7 @@ using CsvDataReaderTextRowSource = OfficeIMO.CSV.ICsvDataReaderTextRowSource;
 
 namespace OfficeIMO.CSV;
 
-internal sealed partial class CsvDataReader
+public partial class CsvDataReader
 {
     internal bool HasIncrementalSource =>
 #if NET8_0_OR_GREATER

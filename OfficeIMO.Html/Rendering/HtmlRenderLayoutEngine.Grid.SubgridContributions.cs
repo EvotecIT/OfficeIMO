@@ -59,6 +59,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return contributions;
     }
 
+    /// <summary>
+    /// A row subgrid's children size the parent rows they occupy. Measuring the subgrid as one
+    /// spanning item would share its height evenly and leave the tallest row too short.
+    /// </summary>
+    private List<double> ResolveGridRowsWithSubgridContributions(
+        List<GridTrack> rowTracks,
+        List<GridItem> items,
+        double rowGap,
+        double? declaredContentHeight) {
+        var measured = new List<(GridItem Item, double[] Rows)>();
+        foreach (GridItem item in items) {
+            if (item.Item.Element != null && _measuredRowSubgridRows.TryGetValue(item.Item.Element, out double[]? rows)) {
+                _measuredRowSubgridRows.Remove(item.Item.Element);
+                measured.Add((item, rows));
+            }
+        }
+        if (measured.Count == 0) return ResolveNaturalGridRows(rowTracks, items, rowGap, declaredContentHeight);
+
+        var ordinary = items.Where(item => !measured.Any(entry => ReferenceEquals(entry.Item, item))).ToList();
+        List<double> sizes = ResolveNaturalGridRows(rowTracks, ordinary, rowGap, declaredContentHeight);
+        foreach ((GridItem item, double[] rows) in measured) {
+            for (int index = 0; index < rows.Length && index < item.RowSpan && item.Row + index < sizes.Count; index++) {
+                int row = item.Row + index;
+                if (rowTracks[row].Kind != GridTrackKind.Fixed) sizes[row] = Math.Max(sizes[row], rows[index]);
+            }
+        }
+        return sizes;
+    }
+
+    private static double[] MeasureRowSubgridContribution(IReadOnlyList<double> rowSizes, HtmlRenderBoxStyle style) {
+        double[] rows = rowSizes.ToArray();
+        if (rows.Length == 0) return rows;
+        rows[0] += style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        rows[rows.Length - 1] += style.MarginBottom + style.BorderBottomWidth + style.PaddingBottom;
+        return rows;
+    }
+
     private sealed class GridIntrinsicContribution {
         internal GridIntrinsicContribution(GridItem item, double edgeInsets) {
             Item = item;

@@ -6,13 +6,13 @@ using OfficeIMO.OneNote.Markdown;
 namespace OfficeIMO.OneNote.Html;
 
 internal static class OneNoteHtmlDiagnosticCollector {
-    internal static IEnumerable<HtmlDiagnostic> Collect(OneNoteSection section, OneNoteMarkdownOptions options) {
+    internal static IEnumerable<HtmlDiagnostic> Collect(OneNoteSection section, OneNoteMarkdownExportOptions options) {
         foreach (OneNotePage page in section.Pages) {
             foreach (HtmlDiagnostic diagnostic in InspectPage(page, options)) yield return diagnostic;
         }
     }
 
-    internal static IEnumerable<HtmlDiagnostic> Collect(OneNoteNotebook notebook, OneNoteMarkdownOptions options) {
+    internal static IEnumerable<HtmlDiagnostic> Collect(OneNoteNotebook notebook, OneNoteMarkdownExportOptions options) {
         foreach (OneNoteSection section in notebook.Sections) {
             foreach (HtmlDiagnostic diagnostic in Collect(section, options)) yield return diagnostic;
         }
@@ -23,7 +23,7 @@ internal static class OneNoteHtmlDiagnosticCollector {
 
     private static IEnumerable<HtmlDiagnostic> InspectGroup(
         OneNoteSectionGroup group,
-        OneNoteMarkdownOptions options,
+        OneNoteMarkdownExportOptions options,
         int depth) {
         if (depth >= options.MaxSectionGroupDepth) yield break;
         foreach (OneNoteSection section in group.Sections) {
@@ -34,7 +34,7 @@ internal static class OneNoteHtmlDiagnosticCollector {
         }
     }
 
-    private static IEnumerable<HtmlDiagnostic> InspectPage(OneNotePage page, OneNoteMarkdownOptions options) {
+    private static IEnumerable<HtmlDiagnostic> InspectPage(OneNotePage page, OneNoteMarkdownExportOptions options) {
         int simplified = 0;
         foreach (OneNoteOutline outline in page.Outlines) simplified += CountUnrepresentedFormatting(outline, options, 0);
         foreach (OneNoteElement element in page.DirectContent) simplified += CountUnrepresentedFormatting(element, options, 0);
@@ -69,7 +69,7 @@ internal static class OneNoteHtmlDiagnosticCollector {
 
     private static int CountUnrepresentedFormatting(
         OneNoteElement element,
-        OneNoteMarkdownOptions options,
+        OneNoteMarkdownExportOptions options,
         int depth) {
         if (depth >= options.MaxContentDepth) return 0;
         int count = element.Tags.Count > 0 || element.Author != null ? 1 : 0;
@@ -97,7 +97,7 @@ internal static class OneNoteHtmlDiagnosticCollector {
 
     private static IEnumerable<HtmlDiagnostic> InspectAssetUris(
         OneNoteElement element,
-        OneNoteMarkdownOptions options,
+        OneNoteMarkdownExportOptions options,
         int depth) {
         if (depth >= options.MaxContentDepth) yield break;
         if (element is OneNoteBinaryElement binary

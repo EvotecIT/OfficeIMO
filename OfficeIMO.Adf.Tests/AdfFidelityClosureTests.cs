@@ -14,11 +14,11 @@ public sealed class AdfFidelityClosureTests {
         var report = new AdfConversionReport(source);
         source[0] = new AdfConversionDiagnostic("info", "$", "Information", AdfConversionSeverity.Information);
 
-        Assert.Same(error, Assert.Single(report.Diagnostics));
-        Assert.Throws<NotSupportedException>(() => ((IList<AdfConversionDiagnostic>)report.Diagnostics)[0] = source[0]);
+        Assert.Same(error, Assert.Single(report.NativeDiagnostics));
+        Assert.Throws<NotSupportedException>(() => ((IList<AdfConversionDiagnostic>)report.NativeDiagnostics)[0] = source[0]);
         Assert.True(report.HasErrors);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]
@@ -56,7 +56,7 @@ public sealed class AdfFidelityClosureTests {
 
     [Fact]
     public void TaskListInsideQuoteUsesValidVisibleFallback() {
-        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(MarkdownReader.Parse("> - [ ] Pending\n> - [x] Done"));
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(MarkdownDocument.Parse("> - [ ] Pending\n> - [x] Done"));
         Assert.True(result.Value.Validate().IsValid);
         Assert.True(result.Value.Validate(new AdfValidationOptions { Profile = AdfValidationProfile.FullSchema }).IsValid);
         AdfNode quote = Assert.Single(result.Value.Content);
@@ -74,8 +74,8 @@ public sealed class AdfFidelityClosureTests {
         var result = AdfConverter.ToMarkdown(document);
         Assert.Contains("Visible", result.Value);
         Assert.False(result.Report.IsLossless);
-        Assert.Contains(result.Report.Diagnostics, issue => issue.Code == "ADF_NODE_PROPERTIES_DROPPED" && issue.Path == "$.content[0]");
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.Contains(result.Report.NativeDiagnostics, issue => issue.Code == "ADF_NODE_PROPERTIES_DROPPED" && issue.Path == "$.content[0]");
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         Assert.Equal("p1", Assert.Single(AdfDocument.Parse(document.ToJson()).Content).GetStringAttribute("localId"));
     }
 

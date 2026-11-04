@@ -53,6 +53,7 @@ struct DocumentToolbar: ToolbarContent {
                 }
                 .disabled(!session.isReady)
             }
+            toolsMenu
             share
         }
         ToolbarItem(placement: .primaryAction) {
@@ -87,7 +88,7 @@ struct DocumentToolbar: ToolbarContent {
             ToolbarItem(placement: .topBarTrailing) { inspectorToggle }
             // Separate items with flexible spacers, so each is its own glass control in the bottom bar.
             if session.task == .pages {
-                ToolbarItem(placement: .bottomBar) { taskMenu }
+                ToolbarItem(placement: .bottomBar) { toolsMenu }
                 ToolbarSpacer(.flexible, placement: .bottomBar)
                 ToolbarItemGroup(placement: .bottomBar) { pageActions }
             } else {
@@ -96,13 +97,19 @@ struct DocumentToolbar: ToolbarContent {
                         .disabled(!session.isReady)
                 }
                 ToolbarSpacer(.flexible, placement: .bottomBar)
-                ToolbarItem(placement: .bottomBar) { taskMenu }
+                ToolbarItem(placement: .bottomBar) { layoutMenu }
                 ToolbarSpacer(.flexible, placement: .bottomBar)
-                ToolbarItem(placement: .bottomBar) { share }
+                ToolbarItemGroup(placement: .bottomBar) {
+                    searchButton
+                    toolsMenu
+                    share
+                }
             }
         } else if session.task != .markup {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                taskMenu
+                layoutMenu
+                searchButton
+                toolsMenu
                 share
                 inspectorToggle
             }
@@ -184,47 +191,37 @@ struct DocumentToolbar: ToolbarContent {
     }
     #endif
 
-    /// The task menu: the current task's name, opening the list of tasks.
-    private var taskMenu: some View {
+    /// How the pages are laid out, as the View menu does on the Mac.
+    private var layoutMenu: some View {
         Menu {
-            Picker("Task", selection: $session.task) {
-                ForEach(StudioTask.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+            Picker("Reading Layout", selection: $session.readingLayout) {
+                ForEach(ReadingLayout.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
             }
             .pickerStyle(.inline)
-            Menu {
-                Picker("Reading Layout", selection: $session.readingLayout) {
-                    ForEach(ReadingLayout.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
-                }
-                .pickerStyle(.inline)
-                Section {
-                    Button("Rotate View Left", systemImage: "rotate.left") { session.rotateView(clockwise: false) }
-                    Button("Rotate View Right", systemImage: "rotate.right") { session.rotateView(clockwise: true) }
-                }
-            } label: {
-                Label("Reading Layout", systemImage: session.readingLayout.systemImage)
-            }
             Section {
-                Button("Make Searchable", systemImage: "text.viewfinder") { session.makeSearchable() }
-                    .disabled(!session.canMakeSearchable)
-            }
-            Section {
-                StructureCommands(session: session)
-            }
-            Section {
-                SignatureMenu(session: session)
-                SecurityCommands(session: session)
+                Button("Rotate View Left", systemImage: "rotate.left") { session.rotateView(clockwise: false) }
+                Button("Rotate View Right", systemImage: "rotate.right") { session.rotateView(clockwise: true) }
             }
         } label: {
-            HStack(spacing: 4) {
-                Text(session.task.title)
-                Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .accessibilityHidden(true)
-            }
-            .accessibilityLabel(Text("Task: \(Text(session.task.title))"))
+            Label("Reading Layout", systemImage: session.readingLayout.systemImage)
         }
-        .menuIndicator(.hidden)
-        .fixedSize()
+        .disabled(!session.isReady)
+    }
+
+    /// Opens the search field, which on iPad and iPhone appears only when it is asked for.
+    private var searchButton: some View {
+        Button("Search", systemImage: "magnifyingglass") {
+            session.task = .read
+            session.isSearchFocused = true
+        }
+        .disabled(!session.isReady || session.facts?.canExtractText == false)
+    }
+
+    /// What can be done to the document, as the Tools menu does on the Mac.
+    private var toolsMenu: some View {
+        Menu("Tools", systemImage: "wrench.and.screwdriver") {
+            StructureCommands(session: session)
+        }
         .disabled(!session.isReady)
     }
 

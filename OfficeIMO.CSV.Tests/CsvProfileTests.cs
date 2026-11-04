@@ -17,7 +17,7 @@ public class CsvProfileTests {
     public void StrictRejectsMalformedInputAcrossDocumentAndReader(string text) {
         Assert.ThrowsAny<CsvException>(() => CsvDocument.Parse(text, CsvProfiles.CreateLoadOptions(CsvProfile.Strict)));
         Assert.ThrowsAny<CsvException>(() => {
-            using var reader = CsvDocument.OpenTextDataReader(text, CsvProfiles.CreateLoadOptions(CsvProfile.Strict));
+            using var reader = CsvDocument.OpenReader(new System.IO.StringReader(text), options: CsvProfiles.CreateReaderOptions(CsvProfile.Strict));
             while (reader.Read()) reader.GetValues(new object[reader.FieldCount]);
         });
     }
@@ -59,7 +59,7 @@ public class CsvProfileTests {
         try {
             File.WriteAllBytes(path, bytes);
             Assert.Throws<DecoderFallbackException>(() => {
-                using var reader = CsvDocument.OpenDataReader(path, CsvProfiles.CreateLoadOptions(CsvProfile.Strict));
+                using var reader = CsvDocument.OpenReader(path, options: CsvProfiles.CreateReaderOptions(CsvProfile.Strict));
                 while (reader.Read()) reader.GetInt32(0);
             });
         } finally { File.Delete(path); }
@@ -88,7 +88,7 @@ public class CsvProfileTests {
         string path = Path.GetTempFileName();
         try {
             File.WriteAllBytes(path, Encoding.UTF8.GetBytes("Id,Value\n1,plain\n\uFEFF2,\"quoted\"\n"));
-            using var reader = CsvDocument.OpenDataReader(path, CsvProfiles.CreateLoadOptions(CsvProfile.Strict));
+            using var reader = CsvDocument.OpenReader(path, options: CsvProfiles.CreateReaderOptions(CsvProfile.Strict));
             Assert.True(reader.Read());
             Assert.True(reader.Read());
             Assert.Equal("\uFEFF2", reader.GetString(0));
@@ -108,7 +108,7 @@ public class CsvProfileTests {
         string path = Path.GetTempFileName();
         try {
             File.WriteAllBytes(path, bytes);
-            using var reader = CsvDocument.OpenDataReader(path, options);
+            using var reader = CsvDocument.OpenReader(path, options: new CsvReaderOptions { Encoding = useDefaultEncoding ? null : new UTF8Encoding(false), DetectEncodingFromByteOrderMarks = false });
             Assert.Equal(document.Header[0], reader.GetName(0));
         } finally { File.Delete(path); }
     }
@@ -152,7 +152,7 @@ public class CsvProfileTests {
     public async Task IncrementalStrictReaderRejectsMalformedRows(string text) {
         using var source = new MemoryStream(Encoding.UTF8.GetBytes(text));
         await Assert.ThrowsAnyAsync<CsvException>(async () => {
-            using var reader = await CsvDocument.OpenDataReaderAsync(source, CsvProfiles.CreateLoadOptions(CsvProfile.Strict));
+            using var reader = await CsvDocument.OpenReaderAsync(source, options: CsvProfiles.CreateReaderOptions(CsvProfile.Strict));
             while (await reader.ReadAsync()) { }
         });
         Assert.True(source.CanRead);

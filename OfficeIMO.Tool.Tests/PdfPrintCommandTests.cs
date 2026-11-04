@@ -9,7 +9,7 @@ public sealed class PdfPrintCommandTests {
     [Fact]
     public async Task PrintUsesThePreparedSheetsAndExplicitDeliverySettings() {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-print-cli-" + Guid.NewGuid().ToString("N") + ".pdf");
-        PdfPlainTextConverter.ToPdfDocumentResult("Print command content").SaveResult(path).RequireSuccess();
+        PdfPlainTextConverter.ToPdfDocumentResult("Print command content").TrySaveWithEvidence(path).RequireSuccess();
         try {
             var service = new PrinterBoundary();
             using var output = new StringWriter();

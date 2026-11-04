@@ -11,13 +11,13 @@ namespace OfficeIMO.Tests {
         [InlineData("AVERAGEA", "SUM(A1:A100001)")]
         public void UnsupportedNestedFormulaDoesNotProduceAnInferredValue(string function, string leaf) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Bounds");
+            ExcelSheet sheet = document.AddSheet("Bounds");
             string formula = leaf;
             for (int depth = 0; depth < 12; depth++)
                 formula = function == "IFERROR" || function == "IFNA"
                     ? $"{function}({formula},0)"
                     : $"{function}({formula})";
-            sheet.CellFormula(1, 2, formula);
+            sheet.Cell(1, 2).SetFormula(formula);
 
             Assert.Equal(0, document.Calculate());
             Assert.False(sheet.TryGetCachedFormulaValue(1, 2, out _));
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         [InlineData("TEXTBEFORE")]
         public void NestedConditionsAndDatesDoNotRetryUnsupportedSubtrees(string function) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Bounds");
+            ExcelSheet sheet = document.AddSheet("Bounds");
             string formula = "SUM(A1:A100001)";
             for (int depth = 0; depth < 12; depth++)
                 formula = function switch {
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                     "DATEDIF" => $"DATEDIF({formula},1,\"D\")",
                     _ => $"TEXTBEFORE(\"text\",\"e\",1,0,{formula})"
                 };
-            sheet.CellFormula(1, 2, formula);
+            sheet.Cell(1, 2).SetFormula(formula);
 
             Assert.Equal(0, document.Calculate());
             Assert.False(sheet.TryGetCachedFormulaValue(1, 2, out _));
@@ -50,11 +50,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NestedTextJoinBooleanPolicyKeepsTheCalculatedValue() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Bounds");
+            ExcelSheet sheet = document.AddSheet("Bounds");
             string formula = "0";
             for (int depth = 0; depth < 12; depth++)
                 formula = $"LEN(TEXTJOIN(\"\",{formula},\"x\"))";
-            sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetFormula(formula);
 
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? cached));

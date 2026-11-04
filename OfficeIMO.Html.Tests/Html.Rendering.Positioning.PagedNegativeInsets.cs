@@ -17,15 +17,15 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='right-margin' style='position:absolute;top:30px;left:310px'>RightMarginMarker</div>"
             + "<div id='bottom-margin' style='position:absolute;top:320px;left:0'>BottomMarginMarker</div>"
             + "<main style='padding-top:80px'>MainFlowMarker</main>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch, 400D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(60D)
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
 
         Assert.DoesNotContain("OffTopMarker", text, StringComparison.Ordinal);
         Assert.DoesNotContain("OffLeftMarker", text, StringComparison.Ordinal);
@@ -42,15 +42,15 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='position:absolute;top:-50px;left:0;height:10px'>OffParentMarker"
             + "<div style='position:relative;top:70px'>VisibleChildMarker</div></div>"
             + "<main style='padding-top:80px'>MainFlowMarker</main>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch, 400D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(400D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(60D)
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
-        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
 
         Assert.Contains("VisibleChildMarker", text, StringComparison.Ordinal);
         Assert.Contains("MainFlowMarker", text, StringComparison.Ordinal);

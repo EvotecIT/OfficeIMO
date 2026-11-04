@@ -13,14 +13,40 @@ internal static class HtmlCssIdSelectorRewriter {
         "cursor", "ping", "archive"
     }, StringComparer.OrdinalIgnoreCase);
     internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token,
-        Func<string, string, string, string?, HtmlCssAttributeSelectorEdit>? rewriteRelationship = null) {
+        Func<string, string, string, string?, HtmlCssAttributeSelectorEdit>? rewriteRelationship = null,
+        long maximumOutputCharacters = int.MaxValue) {
+        if (maximumOutputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maximumOutputCharacters));
+        maximumOutputCharacters = Math.Min(maximumOutputCharacters, int.MaxValue);
+        if (css.Length > maximumOutputCharacters) throw OutputLimit();
         var edits = new List<(int Start, int Length, string Value)>();
+        long stagedCharacters = 0;
+        long outputCharacters = css.Length;
         var introducedIds = new HashSet<string>(map.Where(pair => pair.Key != pair.Value).Select(pair => pair.Value), StringComparer.Ordinal);
         var blocks = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
         Rules(0, css.Length, 0, false);
-        var result = new StringBuilder(css);
-        foreach (var edit in edits.OrderByDescending(edit => edit.Start)) result.Remove(edit.Start, edit.Length).Insert(edit.Start, edit.Value);
+        if (outputCharacters > maximumOutputCharacters) throw OutputLimit();
+        if (edits.Count == 0) return css;
+        var result = new StringBuilder(checked((int)outputCharacters));
+        int copied = 0;
+        foreach (var edit in edits.OrderBy(edit => edit.Start)) {
+            token.ThrowIfCancellationRequested();
+            if (edit.Start < copied) throw Unsupported();
+            result.Append(css, copied, edit.Start - copied);
+            result.Append(edit.Value);
+            copied = edit.Start + edit.Length;
+        }
+        result.Append(css, copied, css.Length - copied);
         return result.ToString();
+
+        void AddEdit(int start, int length, string value) {
+            if (value.Length > maximumOutputCharacters - stagedCharacters) throw OutputLimit();
+            stagedCharacters += value.Length;
+            outputCharacters += value.Length - length;
+            edits.Add((start, length, value));
+        }
+
+        static NotSupportedException OutputLimit() =>
+            new NotSupportedException("Selector reconciliation exceeds the stylesheet output limit.");
 
         void Rules(int start, int end, int depth, bool declarations) {
             if (depth > 64) throw new NotSupportedException("Selector reconciliation exceeds 64 rule levels.");
@@ -131,11 +157,11 @@ internal static class HtmlCssIdSelectorRewriter {
                 int nameStart = i;
                 if (!HtmlCssIdentifierParser.TryRead(css, ref i, out string id) || i > end) throw Unsupported();
                 if (map.TryGetValue(id, out string? replacement)) {
-                    if (replacement != id) edits.Add((nameStart, i - nameStart, Identifier(replacement)));
+                    if (replacement != id) AddEdit(nameStart, i - nameStart, Identifier(replacement));
                 } else if (introducedIds.Contains(id)) {
                     // A destination-only ID did not match the source. Keep it impossible without
                     // changing the hash selector's specificity, including inside :not/:is/:has.
-                    edits.Add((nameStart - 1, 0, ":where([id~=\"\"])"));
+                    AddEdit(nameStart - 1, 0, ":where([id~=\"\"])");
                 }
             }
         }
@@ -179,9 +205,9 @@ internal static class HtmlCssIdSelectorRewriter {
                 HtmlCssAttributeSelectorEdit.Operand(map.TryGetValue(id, out string? mapped) ? mapped : id);
             if (replacement.ExactValues != null) {
                 string expanded = ExpandAttribute(name, replacement.ExactValues);
-                edits.Add((start - 1, end - start + 2, expanded));
+                AddEdit(start - 1, end - start + 2, expanded);
             } else if (replacement.Value != id)
-                edits.Add((valueStart, valueEnd - valueStart, HtmlCssStringEncoder.Quote(replacement.Value!)));
+                AddEdit(valueStart, valueEnd - valueStart, HtmlCssStringEncoder.Quote(replacement.Value!));
         }
 
         string ExpandAttribute(string name, IReadOnlyList<string> values) {

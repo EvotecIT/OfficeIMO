@@ -92,7 +92,9 @@ public class PdfHtmlPayloadBenchmarks {
     }
 
     private static void ValidateTaggedStructure(string engine, byte[] bytes) {
-        PdfDocumentInfo info = PdfDocument.Load(bytes).Inspect();
+        using var input = new MemoryStream(bytes, writable: false);
+        using PdfDocument document = PdfDocument.Load(input);
+        PdfDocumentInfo info = document.Inspect();
         PdfTaggedContentInfo? tagged = info.TaggedContent;
         if (!info.HasTaggedContent ||
             tagged == null ||

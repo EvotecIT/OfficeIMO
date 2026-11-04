@@ -32,7 +32,7 @@ public sealed partial class OfficeWorkflowRunner {
         PdfAssemblyRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null) throw new ArgumentNullException(nameof(request));
         var stopwatch = Stopwatch.StartNew();
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         string? stagingPath = null;
@@ -45,7 +45,7 @@ public sealed partial class OfficeWorkflowRunner {
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedAssemblyRequest? validated = null;
         var inputs = new WorkflowInputSnapshots();
-        var stagingGuard = request.PublicationGuard as IOfficeWorkflowStagingGuard;
+        var stagingGuard = request.PublicationGuard as IOfficeStagingGuard;
 
         try {
             validated = ValidateAssemblyRequest(request);
@@ -89,7 +89,7 @@ public sealed partial class OfficeWorkflowRunner {
                     diagnostics,
                     cancellationToken);
                 using (var measurement = new OfficeWorkflowBoundedCountingStream(remainingOutputBytes)) {
-                    await normalized.SaveAsync(measurement, cancellationToken).ConfigureAwait(false);
+                    await normalized.SaveAsync(measurement, new PdfSaveOptions { AllowLoss = true }, cancellationToken).ConfigureAwait(false);
                     normalizedBytes = checked(normalizedBytes + measurement.Length);
                 }
                 documents.Add(normalized);
@@ -108,21 +108,19 @@ public sealed partial class OfficeWorkflowRunner {
             Directory.CreateDirectory(outputDirectory);
             if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
-            stagingPath = Path.Combine(
-                outputDirectory,
-                "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-            await using (var outputStream = new FileStream(
+            stagingPath = Path.Combine(outputDirectory, ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp");
+            using (var outputStream = new FileStream(
                 stagingPath,
                 FileMode.CreateNew,
                 FileAccess.Write,
                 FileShare.None,
                 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan))
-            await using (var boundedOutput = new OfficeWorkflowBoundedWriteStream(
+            using (var boundedOutput = new OfficeWorkflowBoundedWriteStream(
                 outputStream,
                 validated.Limits.MaximumOutputBytes,
                 leaveOpen: false)) {
-                await merged.SaveAsync(boundedOutput, cancellationToken).ConfigureAwait(false);
+                await merged.SaveAsync(boundedOutput, new PdfSaveOptions { AllowLoss = true }, cancellationToken).ConfigureAwait(false);
             }
             cancellationToken.ThrowIfCancellationRequested();
             long stagedOutputBytes = new FileInfo(stagingPath).Length;
@@ -250,10 +248,10 @@ public sealed partial class OfficeWorkflowRunner {
     }
 
     private static ValidatedAssemblyRequest ValidateAssemblyRequest(PdfAssemblyRequest request) {
-        if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.", nameof(request));
+        if ((request.Id == null || string.IsNullOrWhiteSpace(request.Id))) throw new ArgumentException("Request id cannot be empty.", nameof(request));
         if (request.Sources == null || request.Sources.Count == 0) throw new ArgumentException("At least one source is required.", nameof(request));
         if (request.Sources.Any(string.IsNullOrWhiteSpace)) throw new ArgumentException("Source paths cannot be empty.", nameof(request));
-        if (string.IsNullOrWhiteSpace(request.OutputPath)) throw new ArgumentException("Output path cannot be empty.", nameof(request));
+        if ((request.OutputPath == null || string.IsNullOrWhiteSpace(request.OutputPath))) throw new ArgumentException("Output path cannot be empty.", nameof(request));
         PdfAssemblyOptions options = (request.Options ?? throw new ArgumentException("Assembly options cannot be null.", nameof(request))).CloneAndValidate();
         if (request.Sources.Count > options.MaximumSourceCount) {
             throw new ArgumentException(
@@ -262,7 +260,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
         string outputPath = request.OutputStream is null ? ValidateLocalOutput(request.OutputPath) : OfficeIMO.Internal.OfficeStorageIdentity.Normalize(request.OutputPath);
         EnsurePdfExtension(request.OutputStream?.Name ?? outputPath);
-        if (request.OutputStream is not null && request.ConflictPolicy != OfficeWorkflowConflictPolicy.Replace) {
+        if (request.OutputStream is not null && request.ConflictPolicy != OfficePublicationPolicy.Replace) {
             throw new ArgumentException("A provider output requires the Replace policy after direct-write confirmation.", nameof(request));
         }
         var sourceStreams = new Dictionary<string, OfficeWorkflowStreamInput>(StringComparer.Ordinal);
@@ -290,9 +288,9 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new FileNotFoundException("An assembly source does not exist.", path);
             }
         }
-        if (!Enum.IsDefined(request.ConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
-        if (!Enum.IsDefined(request.OutputProfile)) throw new ArgumentOutOfRangeException(nameof(request.OutputProfile));
-        OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
+        if (!OfficeRuntimeCompatibility.IsDefined(request.ConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
+        if (!OfficeRuntimeCompatibility.IsDefined(request.OutputProfile)) throw new ArgumentOutOfRangeException(nameof(request.OutputProfile));
+        OfficeOperationLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         return new ValidatedAssemblyRequest(
             request.Id,
             sources,
@@ -324,12 +322,7 @@ public sealed partial class OfficeWorkflowRunner {
                 string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(input);
                 List<string> files = [];
                 try {
-                    foreach (string file in Directory.EnumerateFiles(input, "*", new EnumerationOptions {
-                            RecurseSubdirectories = request.Options.IncludeSubdirectories,
-                            IgnoreInaccessible = false,
-                            AttributesToSkip = FileAttributes.ReparsePoint,
-                            ReturnSpecialDirectories = false
-                        })) {
+                    foreach (string file in OfficeRuntimeCompatibility.EnumerateFiles(input, "*", request.Options.IncludeSubdirectories)) {
                         cancellationToken.ThrowIfCancellationRequested();
                         CountDiscoveredEntry();
                         files.Add(file);
@@ -459,7 +452,7 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 string normalizedName = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
                 bool isAssemblySource = TryClassifyAssemblySource(entry.Name, out AssemblySourceKind kind, out OfficeWorkflowRoute? route);
-                bool isPotentialHtmlDependency = OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(entry.Name);
+                bool isPotentialHtmlDependency = OfficeHtmlResourceResolver.IsSupportedDependency(entry.Name);
                 if (!isAssemblySource && !isPotentialHtmlDependency && !request.Options.IgnoreDiscoveredUnsupportedFiles) {
                     throw new NotSupportedException("No PDF assembly intake route is available for archive entry '" + entry.FullName + "'.");
                 }
@@ -588,7 +581,7 @@ public sealed partial class OfficeWorkflowRunner {
         foreach (string file in files) {
             cancellationToken.ThrowIfCancellationRequested();
             string fullPath = Path.GetFullPath(file);
-            if (OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(fullPath)) {
+            if (OfficeHtmlResourceResolver.IsSupportedDependency(fullPath)) {
                 candidates[fullPath] = fullPath;
             }
             string extension = Path.GetExtension(fullPath);
@@ -609,7 +602,7 @@ public sealed partial class OfficeWorkflowRunner {
             AddManifestReferences(
                 HtmlResourcePipeline.BuildManifest(
                     DecodeHtmlInput(htmlBytes, cancellationToken),
-                    OfficeWorkflowHtmlResourceResolver.CreatePdfResourcePipelineOptions(new Uri(htmlPath))),
+                    OfficeHtmlResourceResolver.CreatePdfResourcePipelineOptions(new Uri(htmlPath))),
                 pendingStylesheets);
         }
         while (pendingStylesheets.Count > 0) {
@@ -621,7 +614,7 @@ public sealed partial class OfficeWorkflowRunner {
             HtmlResourceManifest manifest = HtmlResourcePipeline.BuildStylesheetManifest(
                 css,
                 new Uri(stylesheetPath),
-                OfficeWorkflowHtmlResourceResolver.CreatePdfResourcePipelineOptions());
+                OfficeHtmlResourceResolver.CreatePdfResourcePipelineOptions());
             AddManifestReferences(manifest, pendingStylesheets, depth + 1);
         }
         return new HtmlDependencyDiscovery(referenced, snapshots, referencedBytes);
@@ -652,9 +645,9 @@ public sealed partial class OfficeWorkflowRunner {
                 string fullPath = Path.GetFullPath(uri.LocalPath);
                 if (!TryGetCandidate(fullPath, out string? candidate)) continue;
                 if (referenced.Add(candidate)) {
-                    if (referenced.Count > OfficeWorkflowHtmlResourceResolver.MaximumReferencedResourceCount) {
+                    if (referenced.Count > OfficeHtmlResourceResolver.MaximumReferencedResourceCount) {
                         throw new InvalidOperationException(
-                            $"Referenced HTML resource count exceeds the configured {OfficeWorkflowHtmlResourceResolver.MaximumReferencedResourceCount:N0}-item limit.");
+                            $"Referenced HTML resource count exceeds the configured {OfficeHtmlResourceResolver.MaximumReferencedResourceCount:N0}-item limit.");
                     }
                     byte[] snapshot = ReadDependencyBytes(candidate);
                     referencedBytes = checked(referencedBytes + snapshot.LongLength);
@@ -666,9 +659,9 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 if (resource.Kind == HtmlResourceKind.Stylesheet &&
                     string.Equals(Path.GetExtension(candidate), ".css", StringComparison.OrdinalIgnoreCase)) {
-                    if (stylesheetDepth > OfficeWorkflowHtmlResourceResolver.MaximumStylesheetImportDepth) {
+                    if (stylesheetDepth > OfficeHtmlResourceResolver.MaximumStylesheetImportDepth) {
                         throw new InvalidOperationException(
-                            $"Referenced HTML stylesheet import depth exceeds the configured {OfficeWorkflowHtmlResourceResolver.MaximumStylesheetImportDepth:N0}-level limit.");
+                            $"Referenced HTML stylesheet import depth exceeds the configured {OfficeHtmlResourceResolver.MaximumStylesheetImportDepth:N0}-level limit.");
                     }
                     stylesheets.Enqueue((candidate, stylesheetDepth));
                 }
@@ -682,7 +675,7 @@ public sealed partial class OfficeWorkflowRunner {
             }
             candidate = string.Empty;
             if (!discoverReferencedFiles ||
-                !OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(fullPath) ||
+                !OfficeHtmlResourceResolver.IsSupportedDependency(fullPath) ||
                 !File.Exists(fullPath)) {
                 return false;
             }
@@ -708,12 +701,12 @@ public sealed partial class OfficeWorkflowRunner {
     private static bool IsAssemblyOutputCandidate(
         string path,
         string requestedOutputPath,
-        OfficeWorkflowConflictPolicy conflictPolicy) {
+        OfficePublicationPolicy conflictPolicy) {
         string? localOutputPath = OfficeStorageIdentity.GetLocalPath(requestedOutputPath);
         if (localOutputPath is null) return false;
         requestedOutputPath = localOutputPath;
         if (OfficeWorkflowPathIdentity.AreEquivalent(path, requestedOutputPath)) return true;
-        if (conflictPolicy != OfficeWorkflowConflictPolicy.Rename) return false;
+        if (conflictPolicy != OfficePublicationPolicy.Rename) return false;
 
         string fullPath = Path.GetFullPath(path);
         string outputPath = Path.GetFullPath(requestedOutputPath);
@@ -727,7 +720,7 @@ public sealed partial class OfficeWorkflowRunner {
             !candidateStem.EndsWith(")", StringComparison.Ordinal)) {
             return false;
         }
-        ReadOnlySpan<char> suffix = candidateStem.AsSpan(outputStem.Length + 2, candidateStem.Length - outputStem.Length - 3);
+        string suffix = candidateStem.Substring(outputStem.Length + 2, candidateStem.Length - outputStem.Length - 3);
         return int.TryParse(
             suffix,
             System.Globalization.NumberStyles.None,
@@ -756,7 +749,7 @@ public sealed partial class OfficeWorkflowRunner {
             source.DisplayName,
             request.Limits.MaximumInputBytes,
             cancellationToken);
-        string observedContentSha256 = System.Convert.ToHexString(SHA256.HashData(input));
+        string observedContentSha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(input));
         if (!string.Equals(observedContentSha256, source.ContentSha256, StringComparison.Ordinal)) {
             throw new InvalidDataException("An assembly source changed after discovery: " + source.DisplayName);
         }
@@ -783,7 +776,7 @@ public sealed partial class OfficeWorkflowRunner {
                     source.Route,
                     request.ConflictPolicy,
                     request.OutputProfile,
-                    new OfficeWorkflowLimits {
+                    new OfficeOperationLimits {
                         MaximumInputBytes = request.Limits.MaximumInputBytes,
                         MaximumOutputBytes = maximumNormalizedBytes,
                         MaximumXmlCharactersInPart = request.Limits.MaximumXmlCharactersInPart
@@ -886,7 +879,7 @@ public sealed partial class OfficeWorkflowRunner {
             hash.AppendData(buffer, 0, read);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return System.Convert.ToHexString(hash.GetHashAndReset());
+        return OfficeRuntimeCompatibility.ToHexString(hash.GetHashAndReset());
     }
 
     private sealed record AssemblySource(
@@ -905,13 +898,13 @@ public sealed partial class OfficeWorkflowRunner {
         string Id,
         IReadOnlyList<string> Sources,
         string OutputPath,
-        OfficeWorkflowConflictPolicy ConflictPolicy,
-        OfficeWorkflowOutputProfile OutputProfile,
+        OfficePublicationPolicy ConflictPolicy,
+        OfficeConversionProfile OutputProfile,
         PdfAssemblyOptions Options,
-        OfficeWorkflowLimits Limits,
+        OfficeOperationLimits Limits,
         PdfLoadOptions PdfLoadOptions,
         PdfLoadOptions OutputPdfLoadOptions,
-        IOfficeWorkflowPublicationGuard? PublicationGuard,
+        IOfficePublicationGuard? PublicationGuard,
         IReadOnlyDictionary<string, OfficeWorkflowStreamInput> SourceStreams,
         IReadOnlyDictionary<string, string>? SourceLocations = null,
         OfficeWorkflowStreamOutput? OutputStream = null,

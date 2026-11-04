@@ -26,7 +26,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Paragraphs_Runs_Formatting_And_Unicode() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}{\colortbl;\red255\green0\blue0;}\pard Hello {\b bold} {\i italic} \u380? \cf1 red\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == RtfDiagnosticSeverity.Error);
         Assert.Equal(2, result.Document.Fonts.Count);
@@ -42,7 +42,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Uses_Font_Charset_CodePage_For_Ansi_Bytes() {
         const string rtf = @"{\rtf1\ansi\ansicpg1252{\fonttbl{\f0\fcharset0 Arial;}{\f1\fcharset238 Arial CE;}}\f1 Za\'bf\'f3\'b3\'e6 g\'ea\'9cl\'b9 ja\'9f\'f1\f0  \'bf\par}";
 
-        RtfDocument document = RtfDocument.Read(rtf).Document;
+        RtfDocument document = RtfDocument.ParseResult(rtf).Document;
         string text = Assert.Single(document.Paragraphs).ToPlainText();
 
         Assert.StartsWith("Zażółć gęślą jaźń", text, StringComparison.Ordinal);
@@ -60,7 +60,7 @@ public partial class RtfDocumentReadWriteTests {
         for (int index = 0; index < 1_000; index++) rtf.Append(@"\f999 \'bf");
         rtf.Append('}');
 
-        RtfDocument document = RtfDocument.Read(rtf.ToString()).Document;
+        RtfDocument document = RtfDocument.ParseResult(rtf.ToString()).Document;
 
         Assert.Equal(1_000, document.Fonts.Count);
         Assert.Equal(1_000, Assert.Single(document.Paragraphs).ToPlainText().Count(character => character == 'ż'));
@@ -75,8 +75,8 @@ public partial class RtfDocumentReadWriteTests {
         paragraph.AddText("RTF").SetBold().SetUnderline().SetFontSize(14);
         paragraph.AddText(" ż").ForegroundColorIndex = red;
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.StartsWith(@"{\rtf1\ansi\deff0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\fonttbl{\f0 Calibri;}}", rtf, StringComparison.Ordinal);
@@ -92,7 +92,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Write_Provides_Encoded_Byte_And_Stream_Output() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Generated ż");
-        var options = new RtfWriteOptions { IncludeGenerator = false };
+        var options = new RtfSaveOptions { IncludeGenerator = false };
 
         string expected = document.ToRtf(options);
         byte[] bytes = document.ToBytes(options);
@@ -103,7 +103,7 @@ public partial class RtfDocumentReadWriteTests {
         document.Save(stream, options);
         Assert.Equal(bytes, stream.ToArray());
 
-        using MemoryStream memoryStream = document.ToStream(options);
+        using MemoryStream memoryStream = new System.IO.MemoryStream(document.ToBytes(options));
         Assert.Equal(bytes, memoryStream.ToArray());
 
         RtfReadResult read = RtfDocument.LoadResult(bytes);
@@ -188,8 +188,8 @@ public partial class RtfDocumentReadWriteTests {
         mixedStyled.StyleId = 2;
         mixed.AddText(" plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfRun nextRun = Assert.Single(read.Document.Paragraphs[1].Runs);
         Assert.Equal("Next", nextRun.Text);
@@ -209,7 +209,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Preserves_Syntax_And_Binds_Picture_Destinations() {
         const string rtf = @"{\rtf1\ansi{\pict\pngblip\bin3 abc}\pard Visible\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(result.SyntaxTree.Root.Children, node => node is OfficeIMO.Rtf.Syntax.RtfGroup group && group.Destination == "pict");
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF101" && diagnostic.Severity == RtfDiagnosticSeverity.Warning);
@@ -224,12 +224,12 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Uses_Ansi_CodePage_For_Hex_Escaped_Body_Text_And_Metadata() {
         const string rtf = @"{\rtf1\ansi\ansicpg1250{\info{\title \'a3\'b9\'8c}}\pard \'a3\'b9\'8c\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(RtfDocumentCharacterSet.Ansi, result.Document.Settings.CharacterSet);
         Assert.Equal(1250, result.Document.Settings.AnsiCodePage);
-        Assert.Equal("ŁąŚ", result.Document.Info.Title);
+        Assert.Equal("ŁąŚ", result.Document.Properties.Title);
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
         Assert.Equal("ŁąŚ", paragraph.ToPlainText());
     }
@@ -241,12 +241,12 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Uses_Document_Character_Set_Default_For_Hex_Escaped_Text_And_Metadata(string characterSetControl, RtfDocumentCharacterSet expectedCharacterSet, string encodedText, string expectedText) {
         string rtf = $@"{{\rtf1{characterSetControl}{{\info{{\title {encodedText}}}}}\pard {encodedText}\par}}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(expectedCharacterSet, result.Document.Settings.CharacterSet);
         Assert.Null(result.Document.Settings.AnsiCodePage);
-        Assert.Equal(expectedText, result.Document.Info.Title);
+        Assert.Equal(expectedText, result.Document.Properties.Title);
         Assert.Equal(expectedText, Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
     }
@@ -255,11 +255,11 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Ansi_CodePage_Overrides_Document_Character_Set_Default() {
         const string rtf = @"{\rtf1\mac\ansicpg1252{\info{\title \'80}}\pard \'80\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(RtfDocumentCharacterSet.Mac, result.Document.Settings.CharacterSet);
         Assert.Equal(1252, result.Document.Settings.AnsiCodePage);
-        Assert.Equal("€", result.Document.Info.Title);
+        Assert.Equal("€", result.Document.Properties.Title);
         Assert.Equal("€", Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
     }

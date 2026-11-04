@@ -12,36 +12,20 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with Headers and Footers");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is a test for Title";
-                document.BuiltinDocumentProperties.Category = "This is a test for Category";
+                document.Properties.Title = "This is a test for Title";
+                document.Properties.Category = "This is a test for Category";
 
-                document.AddHeadersAndFooters();
-                document.DifferentOddAndEvenPages = true;
+                document.PageSetup.DifferentOddAndEvenPages = true;
 
-                WordHeaders RequireHeaders(WordHeaders? headers, string description) {
-                    if (headers == null) {
-                        throw new InvalidOperationException($"{description} are not available.");
-                    }
-
-                    return headers;
-                }
-
-                WordHeader RequireHeader(WordHeader? header, string description) {
-                    if (header == null) {
-                        throw new InvalidOperationException($"{description} is not available.");
-                    }
-
-                    return header;
-                }
 
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
-                var headers = RequireHeaders(document.Header, "Document headers");
-                var defaultHeader = RequireHeader(headers.Default, "Default header");
-                var evenHeader = RequireHeader(headers.Even, "Even header");
+                var setup = document.PageSetup;
+                var defaultHeader = setup.Header;
+                var evenHeader = setup.EvenPageHeader;
 
                 var paragraphInHeaderO = defaultHeader.AddParagraph();
                 paragraphInHeaderO.Text = "Odd Header / Section 0";
@@ -53,13 +37,13 @@ namespace OfficeIMO.Examples.Word {
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 2");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 document.AddPageBreak();
 
                 paragraph = document.AddParagraph("Basic paragraph - Page 3");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 // 2 section, 9 paragraphs + 7 pagebreaks = 15 paragraphs, 7 pagebreaks
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);

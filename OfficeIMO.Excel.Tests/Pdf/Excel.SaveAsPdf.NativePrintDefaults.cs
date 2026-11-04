@@ -16,16 +16,20 @@ public partial class Excel {
     [InlineData(4, 0U, 1U, 3)]
     public void SaveAsPdf_ResolvesNativePrintFitDefaultsAndEnabledState(int settingsCase, uint? fitWidth, uint? fitHeight, int expectedPages) {
         string path = Path.Combine(_directoryWithFiles, "NativePrintDefaults" + settingsCase + ".xlsx");
-        using (var workbook = ExcelDocument.Create(path, "Layout")) {
+        using (var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Layout" })) {
+            // Keep this print-setting matrix on its original physical column grid.
+            Font nativeFont = workbook.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet.Fonts!.Elements<Font>().First();
+            nativeFont.FontName!.Val = "Calibri";
+            nativeFont.FontSize!.Val = 11D;
             ExcelSheet sheet = workbook.Sheets[0];
-            sheet.SetColumnWidth(1, 50);
-            sheet.SetColumnWidth(2, 80);
-            sheet.SetColumnWidth(3, 40);
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(50));
+            sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(80));
+            sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(40));
             for (int row = 1; row <= 24; row++) {
-                for (int column = 1; column <= 3; column++) sheet.CellValue(row, column, "Cell");
-                sheet.SetRowHeight(row, 24);
+                for (int column = 1; column <= 3; column++) sheet.Cell(row, column).SetValue("Cell");
+                sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.A4);
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
             workbook.Save();
         }
         // Native Excel omits dimensions that equal the format defaults and
@@ -43,10 +47,10 @@ public partial class Excel {
             worksheet.Save();
         }
         using var loaded = ExcelDocument.Load(path);
-        ExcelSheetPageSetup pageSetup = loaded.Sheets[0].GetPageSetup();
+        ExcelSheetPageSetup pageSetup = loaded.Sheets[0].PageSetup;
         Assert.Equal(fitWidth, pageSetup.FitToWidth);
         Assert.Equal(fitHeight, pageSetup.FitToHeight);
-        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(loaded.ToPdfBytes());
+        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(loaded.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(expectedPages, pdf.Pages.Count);
     }
 }

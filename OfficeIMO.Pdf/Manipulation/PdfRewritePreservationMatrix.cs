@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Runs reusable rewrite-preservation proof matrices for PDF manipulation operations.
 /// </summary>
-public static class PdfRewritePreservationMatrix {
+internal static class PdfRewritePreservationMatrix {
     /// <summary>
     /// Runs the supplied scenarios and classifies each rewrite outcome.
     /// </summary>

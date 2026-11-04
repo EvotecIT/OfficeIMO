@@ -28,11 +28,11 @@ internal static class HtmlToMarkdownBenchmarkValidation {
     }
 
     internal static void AssertAllDefaultComparisons() {
-        var officeOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+        var officeOptions = HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
         var reverseConverter = new ReverseMarkdown.Converter();
         foreach (string corpusName in HtmlToMarkdownBenchmarkCorpus.ComparisonNames) {
             string html = HtmlToMarkdownBenchmarkCorpus.Get(corpusName);
-            string officeMarkdown = HtmlConversionDocument.Parse(html).ToMarkdown(officeOptions);
+            string officeMarkdown = HtmlConversionDocument.Parse(html).ToMarkdown(officeOptions).ToMarkdown();
             string reverseMarkdown = reverseConverter.Convert(html);
             AssertDefaultEquivalent(corpusName, officeMarkdown, reverseMarkdown);
         }

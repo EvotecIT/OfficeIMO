@@ -3,22 +3,22 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
-public delegate string? MarkdownCodeBlockHtmlRenderer(CodeBlock block, HtmlOptions options);
+public delegate string? MarkdownCodeBlockHtmlRenderer(CodeBlock block, MarkdownHtmlExportOptions options);
 
 /// <summary>
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
-public delegate string? MarkdownSemanticFencedBlockHtmlRenderer(SemanticFencedBlock block, HtmlOptions options);
+public delegate string? MarkdownSemanticFencedBlockHtmlRenderer(SemanticFencedBlock block, MarkdownHtmlExportOptions options);
 
 /// <summary>
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
-public delegate string? MarkdownTocHtmlRenderer(TocOptions tocOptions, IReadOnlyList<TocBlock.Entry> entries, HtmlOptions options);
+public delegate string? MarkdownTocHtmlRenderer(MarkdownTocOptions tocOptions, IReadOnlyList<TocBlock.Entry> entries, MarkdownHtmlExportOptions options);
 
 /// <summary>
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
-public delegate string? MarkdownFootnoteSectionHtmlRenderer(IReadOnlyList<FootnoteDefinitionBlock> footnotes, HtmlOptions options);
+public delegate string? MarkdownFootnoteSectionHtmlRenderer(IReadOnlyList<FootnoteDefinitionBlock> footnotes, MarkdownHtmlExportOptions options);
 
 /// <summary>Resolves an explicitly requested external CSS or JavaScript resource for offline rendering.</summary>
 public delegate string? MarkdownExternalTextResolver(Uri uri);
@@ -26,41 +26,59 @@ public delegate string? MarkdownExternalTextResolver(Uri uri);
 /// <summary>
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
-public sealed class HtmlOptions {
+public sealed class MarkdownHtmlExportOptions {
+    /// <summary>Blocks conversion when any fidelity loss is reported.</summary>
+    public bool FailOnLoss { get; set; }
+    /// <summary>Includes CSS and scripts when rendering a fragment as one self-contained string.</summary>
+    public bool IncludeCssInFragment { get; set; }
+    internal Action<OfficeDiagnostic>? DiagnosticSink { get; set; }
+
+    internal void RecordRawHtmlChange(string original, string rendered, string location) {
+        if (RawHtmlHandling == MarkdownRawHtmlHandling.Allow) {
+            if (!GitHubHtmlTagFilter || string.Equals(original, OfficeIMO.Markdown.GitHubHtmlTagFilter.Apply(original), StringComparison.Ordinal)) return;
+        } else if (string.Equals(original, rendered, StringComparison.Ordinal)) return;
+        bool asText = RawHtmlHandling is MarkdownRawHtmlHandling.Escape or MarkdownRawHtmlHandling.Allow;
+        DiagnosticSink?.Invoke(new OfficeDiagnostic(
+            asText ? OfficeDiagnosticCodes.HtmlBlockAsText : OfficeDiagnosticCodes.ContentOmitted,
+            OfficeDiagnosticSeverity.Warning,
+            asText ? "Raw HTML was escaped as literal text." : "Raw HTML content was removed by the output policy.",
+            location, "Markdown", asText ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.Omission));
+    }
+
     /// <summary>
     /// Creates a fragment-oriented HTML rendering profile for GitHub Flavored Markdown comparison/output.
     /// This enables cmark-gfm-style task-list HTML, footnote HTML, and the GFM raw HTML tag filter while
-    /// leaving raw HTML otherwise allowed. Use a stricter <see cref="RawHtmlHandling"/> value for untrusted hosts.
+    /// leaving raw HTML otherwise allowed. Use a stricter <see cref="MarkdownRawHtmlHandling"/> value for untrusted hosts.
     /// </summary>
-    public static HtmlOptions CreateGitHubFlavoredMarkdownProfile() {
-        return new HtmlOptions {
-            Kind = HtmlKind.Fragment,
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+    public static MarkdownHtmlExportOptions CreateGitHubFlavoredMarkdownProfile() {
+        return new MarkdownHtmlExportOptions {
+            Kind = MarkdownHtmlKind.Fragment,
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
             GitHubTaskListHtml = true,
             GitHubFootnoteHtml = true,
             GitHubHtmlTagFilter = true,
             HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.GitHub,
-            RawHtmlHandling = RawHtmlHandling.Allow,
+            RawHtmlHandling = MarkdownRawHtmlHandling.Allow,
             NormalizeUrlHostsToIdn = false,
             EscapeNonAsciiText = false
         };
     }
 
-    /// <summary>Fragment vs full document. Default: <see cref="HtmlKind.Document"/> when used with <see cref="MarkdownDoc.ToHtmlDocument"/>.</summary>
-    public HtmlKind Kind { get; set; } = HtmlKind.Fragment;
-    /// <summary>Built-in style preset. Default: <see cref="HtmlStyle.Clean"/>.</summary>
-    public HtmlStyle Style { get; set; } = HtmlStyle.Clean;
-    /// <summary>How to deliver CSS. Default: <see cref="CssDelivery.Inline"/>.</summary>
-    public CssDelivery CssDelivery { get; set; } = CssDelivery.Inline;
-    /// <summary>Connectivity mode for external assets (CDNs). Default: <see cref="AssetMode.Online"/>.</summary>
-    public AssetMode AssetMode { get; set; } = AssetMode.Online;
-    /// <summary>Optional explicit CSS URL for <see cref="CssDelivery.LinkHref"/>.</summary>
+    /// <summary>Fragment vs full document. Default: <see cref="MarkdownHtmlKind.Fragment"/>.</summary>
+    public MarkdownHtmlKind Kind { get; set; } = MarkdownHtmlKind.Fragment;
+    /// <summary>Built-in style preset. Default: <see cref="MarkdownHtmlStyle.Clean"/>.</summary>
+    public MarkdownHtmlStyle Style { get; set; } = MarkdownHtmlStyle.Clean;
+    /// <summary>How to deliver CSS. Default: <see cref="MarkdownCssDelivery.Inline"/>.</summary>
+    public MarkdownCssDelivery CssDelivery { get; set; } = MarkdownCssDelivery.Inline;
+    /// <summary>Connectivity mode for external assets (CDNs). Default: <see cref="MarkdownAssetMode.Online"/>.</summary>
+    public MarkdownAssetMode AssetMode { get; set; } = MarkdownAssetMode.Online;
+    /// <summary>Optional explicit CSS URL for <see cref="MarkdownCssDelivery.LinkHref"/>.</summary>
     public string? CssHref { get; set; }
-    /// <summary>Additional CSS URLs to include (link or inline depending on <see cref="AssetMode"/>).</summary>
+    /// <summary>Additional CSS URLs to include (link or inline depending on <see cref="MarkdownAssetMode"/>).</summary>
     public List<string> AdditionalCssHrefs { get; } = new();
-    /// <summary>Additional JS URLs to include (script src or inline depending on <see cref="AssetMode"/>).</summary>
+    /// <summary>Additional JS URLs to include (script src or inline depending on <see cref="MarkdownAssetMode"/>).</summary>
     public List<string> AdditionalJsHrefs { get; } = new();
     /// <summary>
     /// Optional caller-owned resolver used to inline HTTP or HTTPS CSS and JavaScript in offline mode.
@@ -88,18 +106,18 @@ public sealed class HtmlOptions {
     public string AnchorIcon { get; set; } = "🔗";
     /// <summary>When true, clicking the anchor icon copies a deep link to the clipboard.</summary>
     public bool CopyHeadingLinkOnClick { get; set; } = false;
-    /// <summary>Render small "Back to top" links for headings at or below the given level. 1=H1, 2=H2, etc. Set to false to disable.</summary>
+    /// <summary>Render small "Back to top" links for headings at or below the given level. 1=MarkdownH1, 2=MarkdownH2, etc. Set to false to disable.</summary>
     public bool BackToTopLinks { get; set; } = false;
-    /// <summary>Heading level threshold for BackToTopLinks. Default: 2 (H2+).</summary>
+    /// <summary>Heading level threshold for BackToTopLinks. Default: 2 (MarkdownH2+).</summary>
     public int BackToTopMinLevel { get; set; } = 2;
     /// <summary>Text for the back-to-top link.</summary>
     public string BackToTopText { get; set; } = "Back to top";
     /// <summary>When true, writes a small theme toggle control if <see cref="Style"/> supports it. Default: false.</summary>
     public bool ThemeToggle { get; set; } = false;
-    /// <summary>Emit tags vs manifest-only. Default: <see cref="AssetEmitMode.Emit"/>.</summary>
-    public AssetEmitMode EmitMode { get; set; } = AssetEmitMode.Emit;
+    /// <summary>Emit tags vs manifest-only. Default: <see cref="MarkdownAssetEmitMode.Emit"/>.</summary>
+    public MarkdownAssetEmitMode EmitMode { get; set; } = MarkdownAssetEmitMode.Emit;
     /// <summary>Optional Prism highlighting configuration.</summary>
-    public PrismOptions? Prism { get; set; }
+    public MarkdownPrismOptions? Prism { get; set; }
     /// <summary>
     /// Optional callback that can replace HTML emitted for individual code blocks.
     /// Returning <see langword="null"/> falls back to the default <c>&lt;pre&gt;&lt;code&gt;</c> rendering.
@@ -177,10 +195,10 @@ public sealed class HtmlOptions {
     public string? CssScopeSelector { get; set; } = "article.markdown-body";
 
     /// <summary>
-    /// Controls how raw HTML blocks and inline fragments are emitted. Default: <see cref="RawHtmlHandling.Allow"/>.
-    /// For untrusted chat scenarios, prefer <see cref="RawHtmlHandling.Strip"/> or <see cref="RawHtmlHandling.Escape"/>.
+    /// Controls how raw HTML blocks and inline fragments are emitted. Default: <see cref="MarkdownRawHtmlHandling.Allow"/>.
+    /// For untrusted chat scenarios, prefer <see cref="MarkdownRawHtmlHandling.Strip"/> or <see cref="MarkdownRawHtmlHandling.Escape"/>.
     /// </summary>
-    public RawHtmlHandling RawHtmlHandling { get; set; } = RawHtmlHandling.Allow;
+    public MarkdownRawHtmlHandling RawHtmlHandling { get; set; } = MarkdownRawHtmlHandling.Allow;
 
     /// <summary>
     /// When true, external HTTP(S) links are rendered with <c>target="_blank"</c>.
@@ -292,8 +310,8 @@ public sealed class HtmlOptions {
 
     // TOC injection (used by higher-level pipelines like Word→Markdown→HTML)
     /// <summary>
-    /// When true, injects a Table of Contents at the top of the document before rendering HTML.
-    /// This is applied by host pipelines that have access to the MarkdownDoc model.
+    /// When true, injects a MarkdownTable of Contents at the top of the document before rendering HTML.
+    /// This is applied by host pipelines that have access to the MarkdownDocument model.
     /// </summary>
     public bool InjectTocAtTop { get; set; } = false;
     /// <summary>Title for the injected TOC. Default: "Contents".</summary>
@@ -307,8 +325,11 @@ public sealed class HtmlOptions {
     /// <summary>Heading level used for the TOC title. Default: 2.</summary>
     public int InjectTocTitleLevel { get; set; } = 2;
 
-    internal HtmlOptions CloneForRender(HtmlKind? kind = null) {
-        var clone = new HtmlOptions {
+    internal MarkdownHtmlExportOptions CloneForRender(MarkdownHtmlKind? kind = null) {
+        var clone = new MarkdownHtmlExportOptions {
+            FailOnLoss = FailOnLoss,
+            IncludeCssInFragment = IncludeCssInFragment,
+            DiagnosticSink = DiagnosticSink,
             Kind = kind ?? Kind,
             Style = Style,
             CssDelivery = CssDelivery,

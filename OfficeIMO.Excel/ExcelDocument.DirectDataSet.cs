@@ -20,36 +20,6 @@ namespace OfficeIMO.Excel {
 
         private static DateTime DefaultDateTimeOffsetWriteStrategy(DateTimeOffset value) => value.LocalDateTime;
 
-        /// <summary>
-        /// Writes a DataSet directly to an XLSX package, using one worksheet and one Excel table per DataTable.
-        /// This path is intended for export workloads where the caller does not need to keep editing the workbook object.
-        /// </summary>
-        public static IReadOnlyList<ExcelDataSetImportResult> WriteDataSet(
-            Stream stream,
-            DataSet dataSet,
-            ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
-            bool includeHeaders = true,
-            bool includeAutoFilter = true,
-            CancellationToken ct = default,
-            ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
-            if (dataSet == null) throw new ArgumentNullException(nameof(dataSet));
-            if (dataSet.Tables.Count == 0) throw new ArgumentException("The DataSet must contain at least one DataTable.", nameof(dataSet));
-
-            var model = DirectDataSetWorkbookModel.Create(dataSet, createTables: true, tableStyle, includeHeaders, includeAutoFilter, autoFit: false, DefaultDateTimeOffsetWriteStrategy, ct, omitBlankCells: true, dateSystem: dateSystem);
-            if (stream.CanSeek) {
-                PrepareDestinationStreamForWrite(stream);
-            }
-
-            DirectDataSetWorkbookWriter.Write(stream, model, ct);
-            if (stream.CanSeek) {
-                stream.Seek(0, SeekOrigin.Begin);
-            }
-
-            return model.Results;
-        }
-
         private void RegisterDirectDataSetSaveCandidate(
             DataSet dataSet,
             bool createTables,
@@ -321,6 +291,41 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool RegisterDeferredCellValueBufferSaveCandidate(ExcelSheet sheet, ExcelCellValueBuffer buffer) {
+            if (!ReferenceEquals(sheet.Document, this)
+                || !TryBeginDeferredDirectSaveCandidateRegistration(replacingPendingDirectCellValues: true)) {
+                return false;
+            }
+
+            try {
+                var model = DirectDataSetWorkbookModel.CreateSingle(
+                    sheet.Name,
+                    "Cells",
+                    tableName: null,
+                    buffer.TabularRange,
+                    DirectDataSetTableModel.FromCellValueBuffer(buffer),
+                    createTable: false,
+                    ExcelTableStyle.TableStyleMedium2,
+                    includeHeaders: false,
+                    includeAutoFilter: false,
+                    autoFit: false,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None,
+                    useCellValueNumberFormats: true,
+                    DateSystem,
+                    omitBlankCells: true);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
+                _directDataSetMetadataSourceSheet = sheet;
+                _packageDirty = true;
+                _unchangedPackageBytes = null;
+                _requiresSavePreflight = false;
+                return true;
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
+        }
+
         internal bool RegisterDeferredDirectCellValuesSaveCandidate(
             ExcelSheet sheet,
             string tableNameForModel,
@@ -500,7 +505,8 @@ namespace OfficeIMO.Excel {
             string tableName,
             bool includeHeaders,
             ExcelTableStyle tableStyle,
-            bool includeAutoFilter) {
+            bool includeAutoFilter,
+            IReadOnlyList<string> columnNames) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
@@ -525,6 +531,7 @@ namespace OfficeIMO.Excel {
                 includeHeaders,
                 tableStyle,
                 includeAutoFilter,
+                columnNames,
                 _dateTimeOffsetWriteStrategy,
                 CancellationToken.None);
             _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(

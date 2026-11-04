@@ -20,7 +20,7 @@ public sealed class MhtmlDocumentTests {
                 "text/css", contentLocation: "https://example.test/site.css") },
             "https://example.test/page.html");
         HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf,
-            new HtmlToPdfOptions { ViewportWidth = 816, ViewportHeight = 900 });
+            new HtmlPdfExportOptions { ViewportWidth = 816, ViewportHeight = 900 });
 
         PdfCore.PdfDocumentConversionResult result = await archive.RenderToPdfDocumentResultAsync(request);
         string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
@@ -36,7 +36,7 @@ public sealed class MhtmlDocumentTests {
         HtmlRenderRequest request = HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.ScreenSnapshotPaged,
             HtmlRenderEncoder.Pdf,
-            new HtmlToPdfOptions { ViewportWidth = 816, ViewportHeight = 900 });
+            new HtmlPdfExportOptions { ViewportWidth = 816, ViewportHeight = 900 });
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(archive.HtmlDocument, request).Document;
 
         double headingY = Assert.Single(rendered.Headings).Y;
@@ -61,9 +61,9 @@ public sealed class MhtmlDocumentTests {
             """;
         var archive = new MhtmlDocument(html);
 
-        PdfCore.PdfDocumentConversionResult first = await archive.ToPdfDocumentResultAsync();
-        string text = PdfCore.PdfReadDocument.Open(first.ToBytes()).ExtractText();
-        PdfCore.PdfDocumentConversionResult second = await archive.ToPdfDocumentResultAsync();
+        var first = await archive.ToPdfAsync();
+        string text = PdfCore.PdfReadDocument.Open(first.Value.ToBytes()).ExtractText();
+        var second = await archive.ToPdfAsync();
 
         Assert.Contains("AssignedTitle", text, StringComparison.Ordinal);
         Assert.Contains("AssignedBody", text, StringComparison.Ordinal);
@@ -72,8 +72,8 @@ public sealed class MhtmlDocumentTests {
         Assert.DoesNotContain("Unused title", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Unused default", text, StringComparison.Ordinal);
         Assert.DoesNotContain("OrdinaryTemplateMustStayInert", text, StringComparison.Ordinal);
-        Assert.Contains(first.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated);
-        Assert.Equal(text, PdfCore.PdfReadDocument.Open(second.ToBytes()).ExtractText());
+        Assert.Contains(first.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated);
+        Assert.Equal(text, PdfCore.PdfReadDocument.Open(second.Value.ToBytes()).ExtractText());
         Assert.Contains("<template shadowmode", archive.HtmlDocument.SourceHtml, StringComparison.Ordinal);
     }
 
@@ -82,10 +82,10 @@ public sealed class MhtmlDocumentTests {
         const string html = "<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
 
-        string ordinary = PdfCore.PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
-        string projected = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new HtmlToPdfOptions {
+        string ordinary = PdfCore.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
+        string projected = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlPdfExportOptions {
             ProjectSerializedShadowRoots = true
-        })).ExtractText();
+        })).ToBytes()).ExtractText();
 
         Assert.Contains("VisibleLight", ordinary, StringComparison.Ordinal);
         Assert.DoesNotContain("HiddenSnapshot", ordinary, StringComparison.Ordinal);
@@ -97,14 +97,14 @@ public sealed class MhtmlDocumentTests {
     public async Task MhtmlCallerCanDisableSerializedShadowRootProjection() {
         var archive = new MhtmlDocument("<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>");
 
-        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+        var result = await archive.ToPdfAsync(new HtmlPdfExportOptions {
             ProjectSerializedShadowRoots = false
         });
-        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        string text = PdfCore.PdfReadDocument.Open(result.Value.ToBytes()).ExtractText();
 
         Assert.Contains("VisibleLight", text, StringComparison.Ordinal);
         Assert.DoesNotContain("HiddenSnapshot", text, StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Warnings,
+        Assert.DoesNotContain(result.Report.Diagnostics,
             warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowRootApproximated);
     }
 
@@ -117,8 +117,8 @@ public sealed class MhtmlDocumentTests {
             </template><b slot="x">ChainedValue</b></outer-el>
             """);
 
-        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
-        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        var result = await archive.ToPdfAsync();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes())).ExtractText();
 
         Assert.Contains("ChainedValue", text, StringComparison.Ordinal);
         Assert.DoesNotContain("InnerFallback", text, StringComparison.Ordinal);
@@ -132,12 +132,12 @@ public sealed class MhtmlDocumentTests {
             <p>OutsideVisible</p>
             """);
 
-        PdfCore.PdfDocumentConversionResult result = await archive.ToPdfDocumentResultAsync();
-        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        var result = await archive.ToPdfAsync();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes())).ExtractText();
 
         Assert.Contains("InsideVisible", text, StringComparison.Ordinal);
         Assert.Contains("OutsideVisible", text, StringComparison.Ordinal);
-        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowStyleOmitted);
+        Assert.Contains(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.SerializedShadowStyleOmitted);
     }
 
     [Theory]
@@ -693,12 +693,12 @@ public sealed class MhtmlDocumentTests {
         using var stream = new MemoryStream(prefix.Concat(html).Concat(suffix).ToArray());
 
         MhtmlDocument document = MhtmlDocument.Load(stream);
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult();
-        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        PdfCore.PdfDocument result = document.ToPdf(null, out OfficeConversionReport resultReport);
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
 
         Assert.Contains("Zażółć MHTML", text, StringComparison.Ordinal);
         Assert.DoesNotContain("executed", text, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(result.Warnings, warning => warning.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED");
+        Assert.Contains(resultReport.Diagnostics, warning => warning.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED");
     }
 
     [Fact]
@@ -707,7 +707,7 @@ public sealed class MhtmlDocumentTests {
             "<img src='https://example.test/allowed.png'><img src='https://example.test/escaped.png'>",
             contentLocation: "https://example.test/page.html");
         int calls = 0;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost()
         };
         MhtmlRemoteResourcePolicy remotePolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile(maximumRedirects: 1);
@@ -720,10 +720,10 @@ public sealed class MhtmlDocumentTests {
         };
         document.ConfigureRenderOptions(options, remotePolicy);
 
-        PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options);
+        var result = await document.ToPdfAsync(options);
 
         Assert.Equal(2, calls);
-        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile);
-        Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.Value.ToBytes()), image => image.IsImageFile);
+        Assert.Contains(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 }

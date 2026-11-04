@@ -10,7 +10,7 @@ using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
-public sealed record PrintPaperChoice(string Name, PageSize Size);
+public sealed record PrintPaperChoice(string Name, PdfPageSize Size);
 public sealed record PrintOrientationChoice(PdfPrintOrientation Value, string Label);
 public sealed record PrintScaleChoice(PdfPrintScaleMode Value, string Label, string Description);
 public sealed record PrintPagesPerSheetChoice(int Value, string Label);
@@ -18,11 +18,11 @@ public sealed record PrintPagesPerSheetChoice(int Value, string Label);
 public sealed class PrintPreviewSheetViewModel : IDisposable {
     public PrintPreviewSheetViewModel(PdfRenderedPrintSheet sheet, string label) {
         const double maximumPreviewWidth = 350D;
-        double scale = maximumPreviewWidth / sheet.Plan.PaperSize.Width;
+        double scale = maximumPreviewWidth / sheet.Plan.PaperSize.Width.ToPoints();
         SheetNumber = sheet.Plan.SheetNumber;
         Label = label;
         Width = maximumPreviewWidth;
-        Height = sheet.Plan.PaperSize.Height * scale;
+        Height = sheet.Plan.PaperSize.Height.ToPoints() * scale;
         Placements = sheet.Plan.Placements;
         using var stream = new MemoryStream(sheet.GetPng(), writable: false);
         Image = Bitmap.DecodeToWidth(stream, (int)maximumPreviewWidth);
@@ -67,10 +67,10 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
         _pickPrintFile = pickPrintFile ?? (_ => Task.FromResult<string?>(null));
         _jobHistory = jobHistory;
         PaperChoices = [
-            new("A4", PageSizes.A4),
-            new(T("Paper.Letter"), PageSizes.Letter),
-            new(T("Paper.Legal"), PageSizes.Legal),
-            new("A3", PageSizes.A3)
+            new("A4", PdfPageSizes.A4),
+            new(T("Paper.Letter"), PdfPageSizes.Letter),
+            new(T("Paper.Legal"), PdfPageSizes.Legal),
+            new("A3", PdfPageSizes.A3)
         ];
         OrientationChoices = [
             Orientation(PdfPrintOrientation.Automatic),
@@ -152,7 +152,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
 
     private async Task<PdfDocument> ReadStorageSnapshotAsync(string path, CancellationToken token) {
         StudioStorageSnapshot snapshot = await _storage.ReadSnapshotAsync(path, token).ConfigureAwait(true);
-        return await Task.Run(() => PdfDocument.Load(snapshot.Bytes), token).ConfigureAwait(true);
+        return await Task.Run(() => PdfDocument.Load(new MemoryStream(snapshot.Bytes)), token).ConfigureAwait(true);
     }
 
     internal void UseDocument(string? path) {

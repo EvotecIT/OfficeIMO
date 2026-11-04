@@ -8,7 +8,10 @@ internal sealed partial class HtmlRenderStyleResolver {
     private DeclarationFacts GetDeclarationFacts(HtmlComputedStyle computed) {
         object identity = computed.DeclarationIdentity;
         if (_declarationFacts.TryGetValue(identity, out DeclarationFacts facts)) return facts;
-        facts = new DeclarationFacts(computed.Properties.Values.Any(ContainsCharacterUnit),
+        // Computed ordinary declarations already contain resolved var() values;
+        // unused inherited custom payloads cannot affect character-unit sizing.
+        facts = new DeclarationFacts(computed.Properties.Any(pair =>
+                !pair.Key.StartsWith("--", StringComparison.Ordinal) && ContainsCharacterUnit(pair.Value)),
             computed.HasCascadeStateMatching(IsLogicalPropertyName));
         if (_declarationFacts.Count < MaximumDeclarationFacts) _declarationFacts.Add(identity, facts);
         return facts;

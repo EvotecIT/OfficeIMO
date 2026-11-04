@@ -20,6 +20,6 @@ The [delimited-import recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/
 
 ## Publish the useful part
 
-Use `Export-OfficeExcelRangeImage` for a bounded report region, `Export-OfficeExcelChartImage` for a chart, and `Export-OfficeExcelImage` for workbook-oriented image output. HTML export is useful for review without Excel. `Export-OfficeExcel` turns PowerShell objects into a new or appended workbook when the pipeline begins with objects rather than an existing file.
+Use `Export-OfficeDocumentImage` with `-Sheet` and `-Range` for a bounded report region, `-Sheet` and `-Chart` for a chart, or `-OutputDirectory` for worksheet images. Use `-OutputPath` only when the selection produces one image. HTML export is useful for review without Excel. `Export-OfficeExcel` turns PowerShell objects into a new or appended workbook when the pipeline begins with objects rather than an existing file.
 
 Choose the smallest artifact that preserves the intended experience. A range image is good for a status message; an XLSX is better when recipients must filter, inspect formulas, or continue editing.

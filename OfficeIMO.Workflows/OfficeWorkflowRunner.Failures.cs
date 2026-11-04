@@ -5,6 +5,7 @@ public sealed partial class OfficeWorkflowRunner {
         if (FindCodecUnavailable(exception) != null) return OfficeWorkflowFailureKind.UnsupportedInput;
         if (stage == WorkflowFailureStage.Output ||
             OfficeWorkflowOutputLimitErrors.IsOutputLimitExceeded(exception) ||
+            OfficeIMO.Core.Internal.OfficeOutputLimit.Is(exception) ||
             OfficeIMO.Provenance.OfficeProvenanceLimitException.IsOutput(exception) ||
             OfficeIMO.Pdf.PdfOutputLimitErrors.IsOutputLimitExceeded(exception)) {
             return OfficeWorkflowFailureKind.OutputFailed;

@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>ExcelSheet 'Data' { Set-OfficeExcelRowGroup -StartRow 2 -EndRow 20 -Collapsed }</code>
 ///   <para>Applies Excel row outline metadata using OfficeIMO.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelRowGroup")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelRowGroup", DefaultParameterSetName = "Default")]
 [Alias("ExcelRowGroup")]
 public sealed class SetOfficeExcelRowGroupCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>First 1-based row in the group.</summary>

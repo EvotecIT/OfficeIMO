@@ -8,7 +8,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Drawing.Binary;
 
 /// <summary>Reads bounded OfficeArt FBSE records and their embedded or delayed BLIP payloads.</summary>
-public static class OfficeArtBlipStoreEntryReader {
+internal static class OfficeArtBlipStoreEntryReader {
     private const int FixedFbseLength = 36;
     private const int DefaultMaximumDecodedImageBytes = 64 * 1024 * 1024;
 

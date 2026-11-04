@@ -22,7 +22,7 @@ public sealed partial class HtmlRenderingTests {
             <p id="medium">MediumViewport</p><p id="large">LargeViewport</p>
             <p id="medium-element">MediumStyleElement</p><p id="large-element">LargeStyleElement</p>
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
             PrintLayoutWidthCssPixels = 1200D
         };
 
-        string text = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(options)).ExtractText();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes())).ExtractText();
 
         Assert.Contains("MediumViewport", text, StringComparison.Ordinal);
         Assert.DoesNotContain("LargeViewport", text, StringComparison.Ordinal);
@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
             </picture>
             """;
         var requested = new ConcurrentBag<string>();
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             HonorCssPageRules = false,
             ViewportWidth = 816D,
@@ -68,7 +68,7 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
-        await HtmlConversionDocument.Parse(html).ToPdfBytesAsync(options);
+        (await HtmlConversionDocument.Parse(html).ToPdfAsync(options)).Value.ToBytes();
 
         Assert.Contains("https://assets.example.test/medium.css", requested);
         Assert.Contains("https://assets.example.test/medium.svg", requested);
@@ -88,7 +88,7 @@ public sealed partial class HtmlRenderingTests {
               <p id='narrow'>NarrowFrame</p><p id='wide'>WideFrame</p>
             "></iframe>
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
@@ -96,7 +96,7 @@ public sealed partial class HtmlRenderingTests {
             PrintLayoutWidthCssPixels = 1200D
         };
 
-        string text = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(options)).ExtractText();
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes())).ExtractText();
 
         Assert.Contains("NarrowFrame", text, StringComparison.Ordinal);
         Assert.DoesNotContain("WideFrame", text, StringComparison.Ordinal);
@@ -105,6 +105,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_PrintLayoutWidthFitsWideRowsOnPhysicalA4() {
         const string html = """
+            <style>body{margin:0}</style>
             <div style="width:66.666%">
               <div style="display:flex;flex-wrap:wrap">
                 <div style="flex:none;width:310px;height:30px;background:#ff0000">FirstCard</div>
@@ -112,23 +113,23 @@ public sealed partial class HtmlRenderingTests {
               </div>
             </div>
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(24D),
             HonorCssPageRules = false,
             PrintLayoutWidthCssPixels = 1200D
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
-        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
+        PdfCore.PdfDocument read = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
         (double width, double height) = read.Pages[0].GetPageSize();
         PdfCore.PdfLogicalPage page = PdfCore.PdfDocumentReadResult.Load(pdf).Pages[0];
         PdfCore.PdfLogicalTextBlock first = Assert.Single(page.TextBlocks, block => block.Text.Contains("FirstCard", StringComparison.Ordinal));
         PdfCore.PdfLogicalTextBlock second = Assert.Single(page.TextBlocks, block => block.Text.Contains("SecondCard", StringComparison.Ordinal));
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.com/second"));
 
-        Assert.Equal(OfficePageSizes.A4.WidthInches * 72D, width, 2);
-        Assert.Equal(OfficePageSizes.A4.HeightInches * 72D, height, 2);
+        Assert.Equal(OfficePageSizes.A4.Width.ToInches() * 72D, width, 2);
+        Assert.Equal(OfficePageSizes.A4.Height.ToInches() * 72D, height, 2);
         Assert.Equal(first.BaselineY, second.BaselineY, 2);
         Assert.InRange(first.XStart, 17D, 20D);
         Assert.True(second.XStart > first.XStart + 100D);
@@ -140,12 +141,12 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_PrintLayoutWidthRejectsNonPrintIntentAndWidthsBelowAuthoredContent() {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 500D
         };
         HtmlConversionDocument document = HtmlConversionDocument.Parse("<p>Content</p>");
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPdfBytes(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => (document.ToPdf(options)).ToBytes());
 
         HtmlRenderRequest screen = HtmlRenderRequest.Create(HtmlRenderIntentProfile.ScreenMediaPaged, HtmlRenderEncoder.Pdf, options);
         Assert.Throws<ArgumentException>(() => document.RenderToPdfBytes(screen));
@@ -158,13 +159,13 @@ public sealed partial class HtmlRenderingTests {
             + "div { height: 25px; line-height: 25px; font-size: 20px }</style>"
             + string.Concat(Enumerable.Range(1, 35).Select(index => "<div>Row " + index + "</div>"));
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        byte[] regularPdf = document.ToPdfBytes(new HtmlToPdfOptions {
+        byte[] regularPdf = (document.ToPdf(new HtmlPdfExportOptions {
             AutoFitWidePrintContent = false
-        });
-        byte[] automaticPdf = document.ToPdfBytes(new HtmlToPdfOptions());
-        byte[] fittedPdf = document.ToPdfBytes(new HtmlToPdfOptions {
+        })).ToBytes();
+        byte[] automaticPdf = (document.ToPdf(new HtmlPdfExportOptions())).ToBytes();
+        byte[] fittedPdf = (document.ToPdf(new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 1000D
-        });
+        })).ToBytes();
         PdfCore.PdfReadDocument regular = PdfCore.PdfReadDocument.Open(regularPdf);
         PdfCore.PdfReadDocument automatic = PdfCore.PdfReadDocument.Open(automaticPdf);
         PdfCore.PdfReadDocument fitted = PdfCore.PdfReadDocument.Open(fittedPdf);
@@ -197,13 +198,13 @@ public sealed partial class HtmlRenderingTests {
               <p>FrameHeight</p>
             "></iframe>
             """;
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions())).ToBytes();
 
-        Assert.Contains("Physical media height", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Contains("FrameHeight", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        byte[] explicitPdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        Assert.Contains("Physical media height", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("FrameHeight", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
+        byte[] explicitPdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 300D
-        });
+        })).ToBytes();
         Assert.Contains("Physical media height", PdfCore.PdfReadDocument.Open(explicitPdf).ExtractText(), StringComparison.Ordinal);
     }
 
@@ -217,10 +218,10 @@ public sealed partial class HtmlRenderingTests {
             <p>Wide padded body</p>
             """;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        byte[] automatic = document.ToPdfBytes(new HtmlToPdfOptions());
-        byte[] explicitWidth = document.ToPdfBytes(new HtmlToPdfOptions {
+        byte[] automatic = (document.ToPdf(new HtmlPdfExportOptions())).ToBytes();
+        byte[] explicitWidth = (document.ToPdf(new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 400D
-        });
+        })).ToBytes();
 
         Assert.Equal(explicitWidth, automatic);
         Assert.Contains("Wide padded body", PdfCore.PdfReadDocument.Open(automatic).ExtractText(), StringComparison.Ordinal);
@@ -237,9 +238,9 @@ public sealed partial class HtmlRenderingTests {
             </style>
             <p>Wide page</p><section>Narrow page</section>
             """;
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 400D
-        });
+        })).ToBytes();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
 
         Assert.Equal(2, read.Pages.Count);
@@ -258,8 +259,8 @@ public sealed partial class HtmlRenderingTests {
             <p>First page</p><section>Named page</section>
             """;
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlConversionDocument.Parse(html).ToPdfBytes(
-            new HtmlToPdfOptions { PrintLayoutWidthCssPixels = 20000D }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => (HtmlConversionDocument.Parse(html).ToPdf(
+            new HtmlPdfExportOptions { PrintLayoutWidthCssPixels = 20000D })).ToBytes());
     }
 
     [Fact]
@@ -272,8 +273,8 @@ public sealed partial class HtmlRenderingTests {
             <p>Print production</p>
             """;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        HtmlPdfRenderResult regular = HtmlPdfRenderedConverter.Convert(document, new HtmlToPdfOptions());
-        HtmlPdfRenderResult fitted = HtmlPdfRenderedConverter.Convert(document, new HtmlToPdfOptions {
+        HtmlPdfRenderResult regular = HtmlPdfRenderedConverter.Convert(document, new HtmlPdfExportOptions());
+        HtmlPdfRenderResult fitted = HtmlPdfRenderedConverter.Convert(document, new HtmlPdfExportOptions {
             PrintLayoutWidthCssPixels = 160D
         });
         HtmlRenderPage regularPage = Assert.Single(regular.RenderResult!.Document.Pages);
@@ -299,7 +300,7 @@ public sealed partial class HtmlRenderingTests {
             + string.Concat(Enumerable.Range(1, 35).Select(index => "<div>Row " + index + "</div>"));
         var options = new HtmlRenderCapabilityGalleryOptions(
             new HtmlCapabilityGalleryScenario("authored-fit", "Authored fit", "Rendering", "Print fitting")) {
-            RenderOptions = new HtmlToPdfOptions { PrintLayoutWidthCssPixels = 1000D }
+            RenderOptions = new HtmlPdfExportOptions { PrintLayoutWidthCssPixels = 1000D }
         };
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.AuthoredFit." + Guid.NewGuid().ToString("N"));
         try {
@@ -321,19 +322,19 @@ public sealed partial class HtmlRenderingTests {
             <p id="target">Target</p>
             <input name="query" value="Hello" style="width:200px;height:30px">
             """;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
             PrintLayoutWidthCssPixels = 1200D
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         PdfCore.PdfNamedDestination target = Assert.Single(info.NamedDestinations, destination => destination.Name == "html-fragment:target");
         PdfCore.PdfFormField field = Assert.Single(info.FormFields, item => item.Name == "query");
 
-        Assert.InRange(target.DestinationTop!.Value, 650D, OfficePageSizes.A4.HeightInches * 72D);
-        Assert.True(Assert.Single(field.Widgets).X2 <= OfficePageSizes.A4.WidthInches * 72D);
+        Assert.InRange(target.DestinationTop!.Value, 650D, OfficePageSizes.A4.Height.ToInches() * 72D);
+        Assert.True(Assert.Single(field.Widgets).X2 <= OfficePageSizes.A4.Width.ToInches() * 72D);
     }
 }

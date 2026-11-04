@@ -4,11 +4,11 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     internal sealed partial class WorkbookScanWorkload {
         /// <summary>Qualifies exact first-sheet values and row order against two independent readers.</summary>
         private (long Raw, long Materialized, int Sheets) QualifyValues(
-            ExcelReaderOptions? options = null, bool borrowedUtf8 = false) {
+            ExcelReader.Core.Reader.ExcelReaderOptions? options = null, bool borrowedUtf8 = false) {
             using MemoryStream stream = new MemoryStream(_bytes, writable: false);
             using IExcelWorkbook workbook = OpenPeer(stream, options);
-            using ExcelWorkbookDataReader office = ExcelDocument.OpenDataReader(_bytes,
-                new ExcelReadOptions { HasHeaderRow = false, SheetIndex = 0 });
+            using ExcelWorkbookDataReader office = ExcelDocument.OpenReader(new MemoryStream(_bytes, writable: false),
+                new OfficeIMO.Excel.ExcelReaderOptions { HasHeaderRow = false, SheetIndex = 0 });
             using MemoryStream sylvanStream = new MemoryStream(_bytes, writable: false);
             using Sylvan.Data.Excel.ExcelDataReader sylvan = OpenSylvan(sylvanStream);
             int count = 0;

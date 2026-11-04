@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves an OfficeIMO LaTeX document.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeLatex [-Document] <LatexDocument> [-Path] <string> [-Options <LatexWriterOptions>] [-Mode <LatexWriterMode>] [-LineEnding <OfficeLineEnding>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ LaTeX document to save.
 
 ```yaml
 Type: LatexDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Canonical line ending: LF, CRLF, or CR. Omit it to retain the source preference.
 
 ```yaml
 Type: OfficeLineEnding
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: LF, CRLF, CR
 
@@ -65,7 +65,7 @@ Writer mode. Preserve retains unchanged source; Canonical normalizes output.
 
 ```yaml
 Type: LatexWriterMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: Preserve, Canonical
 
@@ -81,7 +81,7 @@ Optional writer settings.
 
 ```yaml
 Type: LatexWriterOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Return the saved document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Destination path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

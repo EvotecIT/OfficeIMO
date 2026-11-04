@@ -15,13 +15,13 @@ public partial class PdfStamperTests {
 
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Size(PageSizes.A4);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page body"))));
+                page.Size(PdfPageSizes.A4);
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("First page body"))));
             });
 
             compose.Page(page => {
-                page.Size(PageSizes.A4);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page body"))));
+                page.Size(PdfPageSizes.A4);
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Second page body"))));
             });
         });
 

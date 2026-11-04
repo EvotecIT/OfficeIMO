@@ -1,54 +1,55 @@
 using System.Management.Automation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.Pdf;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Creates discoverable PowerPoint-to-PDF conversion options for Export-OfficeDocumentPdf.</summary>
-/// <example>
-///   <summary>Create a handout PDF with notes and hidden slides.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$options = New-OfficePowerPointPdfOptions -PageLayout Handouts -HandoutSlidesPerPage 3 -IncludeSpeakerNotes -IncludeHiddenSlides
-/// Export-OfficeDocumentPdf -InputPath .\Briefing.pptx -Path .\Briefing.pdf -PowerPointOptions $options</code>
-/// </example>
-[Cmdlet(VerbsCommon.New, "OfficePowerPointPdfOptions")]
-[OutputType(typeof(PowerPointToPdfOptions))]
-public sealed class NewOfficePowerPointPdfOptionsCommand : PSCmdlet {
+/// <summary>Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.</summary>
+/// <example><summary>Create a three-slide handout.</summary>
+/// <code>$options = New-OfficePowerPointPdfOptions -PageLayout Handouts -HandoutSlidesPerPage 3 -IncludeHiddenSlides
+/// Convert-OfficeDocument -Path ./Briefing.pptx -To Pdf -OutputPath ./Briefing.pdf -Options $options</code></example>
+/// <example><summary>Omit charts and SmartArt from a review copy.</summary>
+/// <code>$options = New-OfficePowerPointPdfOptions -NoCharts -NoSmartArt -Font Aptos
+/// Convert-OfficeDocument -Path ./Briefing.pptx -To Pdf -OutputPath ./Review.pdf -Options $options</code></example>
+[Cmdlet(VerbsCommon.New, "OfficePowerPointPdfOptions", DefaultParameterSetName = "Default")]
+[OutputType(typeof(PowerPointPdfExportOptions))]
+public sealed class NewOfficePowerPointPdfOptionsCommand : OfficeCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>
     [Parameter]
-    public OfficeIMO.Pdf.PdfOptions? PdfOptions { get; set; }
+    public OfficeIMO.Pdf.PdfCreateOptions? PdfOptions { get; set; }
 
     /// <summary>Default font family used when the presentation does not specify one.</summary>
     [Parameter]
-    public string? FontFamily { get; set; }
+    public string? Font { get; set; }
 
-    /// <summary>Render pictures.</summary>
+    /// <summary>Omit pictures.</summary>
     [Parameter]
-    public SwitchParameter IncludePictures { get; set; }
+    public SwitchParameter NoPictures { get; set; }
 
-    /// <summary>Render automatic shapes.</summary>
+    /// <summary>Omit automatic shapes.</summary>
     [Parameter]
-    public SwitchParameter IncludeAutoShapes { get; set; }
+    public SwitchParameter NoAutoShapes { get; set; }
 
-    /// <summary>Render text boxes.</summary>
+    /// <summary>Omit text boxes.</summary>
     [Parameter]
-    public SwitchParameter IncludeTextBoxes { get; set; }
+    public SwitchParameter NoTextBoxes { get; set; }
 
-    /// <summary>Render slide backgrounds.</summary>
+    /// <summary>Omit slide backgrounds.</summary>
     [Parameter]
-    public SwitchParameter IncludeSlideBackgrounds { get; set; }
+    public SwitchParameter NoSlideBackgrounds { get; set; }
 
-    /// <summary>Render tables.</summary>
+    /// <summary>Omit tables.</summary>
     [Parameter]
-    public SwitchParameter IncludeTables { get; set; }
+    public SwitchParameter NoTables { get; set; }
 
-    /// <summary>Render charts.</summary>
+    /// <summary>Omit charts.</summary>
     [Parameter]
-    public SwitchParameter IncludeCharts { get; set; }
+    public SwitchParameter NoCharts { get; set; }
 
-    /// <summary>Render SmartArt.</summary>
+    /// <summary>Omit SmartArt.</summary>
     [Parameter]
-    public SwitchParameter IncludeSmartArt { get; set; }
+    public SwitchParameter NoSmartArt { get; set; }
 
     /// <summary>Include slides marked hidden.</summary>
     [Parameter]
@@ -63,9 +64,9 @@ public sealed class NewOfficePowerPointPdfOptionsCommand : PSCmdlet {
     [ValidateRange(1, 9)]
     public int? HandoutSlidesPerPage { get; set; }
 
-    /// <summary>Include speaker notes.</summary>
+    /// <summary>Omit speaker notes.</summary>
     [Parameter]
-    public SwitchParameter IncludeSpeakerNotes { get; set; }
+    public SwitchParameter NoSpeakerNotes { get; set; }
 
     /// <summary>Maximum nested group-shape depth to render.</summary>
     [Parameter]
@@ -98,31 +99,28 @@ public sealed class NewOfficePowerPointPdfOptionsCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PowerPointToPdfOptions();
+        var options = new PowerPointPdfExportOptions();
         if (PdfOptions != null) options.PdfOptions = PdfOptions;
-        if (!string.IsNullOrWhiteSpace(FontFamily)) options.FontFamily = FontFamily;
-        SetBoundSwitch(nameof(IncludePictures), IncludePictures, value => options.IncludePictures = value);
-        SetBoundSwitch(nameof(IncludeAutoShapes), IncludeAutoShapes, value => options.IncludeAutoShapes = value);
-        SetBoundSwitch(nameof(IncludeTextBoxes), IncludeTextBoxes, value => options.IncludeTextBoxes = value);
-        SetBoundSwitch(nameof(IncludeSlideBackgrounds), IncludeSlideBackgrounds, value => options.IncludeSlideBackgrounds = value);
-        SetBoundSwitch(nameof(IncludeTables), IncludeTables, value => options.IncludeTables = value);
-        SetBoundSwitch(nameof(IncludeCharts), IncludeCharts, value => options.IncludeCharts = value);
-        SetBoundSwitch(nameof(IncludeSmartArt), IncludeSmartArt, value => options.IncludeSmartArt = value);
-        SetBoundSwitch(nameof(IncludeHiddenSlides), IncludeHiddenSlides, value => options.IncludeHiddenSlides = value);
+        if (!string.IsNullOrWhiteSpace(Font)) options.FontFamily = Font;
+        options.IncludePictures = FeatureEnabled("Pictures");
+        options.IncludeAutoShapes = FeatureEnabled("AutoShapes");
+        options.IncludeTextBoxes = FeatureEnabled("TextBoxes");
+        options.IncludeSlideBackgrounds = FeatureEnabled("SlideBackgrounds");
+        options.IncludeTables = FeatureEnabled("Tables");
+        options.IncludeCharts = FeatureEnabled("Charts");
+        options.IncludeSmartArt = FeatureEnabled("SmartArt");
+        if (BoundSwitch(nameof(IncludeHiddenSlides)) is bool hidden) options.IncludeHiddenSlides = hidden;
         if (PageLayout.HasValue) options.PageLayout = PageLayout.Value;
         if (HandoutSlidesPerPage.HasValue) options.HandoutSlidesPerPage = HandoutSlidesPerPage.Value;
-        SetBoundSwitch(nameof(IncludeSpeakerNotes), IncludeSpeakerNotes, value => options.IncludeSpeakerNotes = value);
+        options.IncludeSpeakerNotes = FeatureEnabled("SpeakerNotes");
         if (MaxGroupShapeDepth.HasValue) options.MaxGroupShapeDepth = MaxGroupShapeDepth.Value;
         if (PictureFit.HasValue) options.PictureFit = PictureFit.Value;
-        SetBoundSwitch(nameof(WarnOnPictureAspectRatioDistortion), WarnOnPictureAspectRatioDistortion, value => options.WarnOnPictureAspectRatioDistortion = value);
+        if (BoundSwitch(nameof(WarnOnPictureAspectRatioDistortion)) is bool warn) options.WarnOnPictureAspectRatioDistortion = warn;
         if (ChartStyle != null) options.ChartStyle = ChartStyle;
         if (ChartLayout != null) options.ChartLayout = ChartLayout;
-        SetBoundSwitch(nameof(AllowSystemFontEmbedding), AllowSystemFontEmbedding, value => options.ResourcePolicy.AllowSystemFontEmbedding = value);
-        SetBoundSwitch(nameof(AllowDocumentFontEmbedding), AllowDocumentFontEmbedding, value => options.ResourcePolicy.AllowDocumentFontEmbedding = value);
+        if (BoundSwitch(nameof(AllowSystemFontEmbedding)) is bool systemFonts) options.ResourcePolicy.AllowSystemFontEmbedding = systemFonts;
+        if (BoundSwitch(nameof(AllowDocumentFontEmbedding)) is bool documentFonts) options.ResourcePolicy.AllowDocumentFontEmbedding = documentFonts;
         WriteObject(options);
     }
 
-    private void SetBoundSwitch(string name, SwitchParameter value, System.Action<bool> setter) {
-        if (MyInvocation.BoundParameters.ContainsKey(name)) setter(value.IsPresent);
-    }
 }

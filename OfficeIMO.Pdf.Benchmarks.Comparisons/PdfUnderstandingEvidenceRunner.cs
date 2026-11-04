@@ -7,7 +7,8 @@ internal static class PdfUnderstandingEvidenceRunner {
         string outputPath = ReadOption(args, "--output") ?? throw new ArgumentException("semantic-evidence requires --output <path>.");
         PdfBenchmarkScale scale = ParseScale(ReadOption(args, "--scale") ?? "Medium");
         PdfUnderstandingBenchmarkCorpus corpus = PdfUnderstandingBenchmarkCorpusFactory.Create(scale);
-        PdfDocument document = PdfDocument.Load(corpus.Pdf);
+        using var documentStream = new MemoryStream(corpus.Pdf, writable: false);
+        using PdfDocument document = PdfDocument.Load(documentStream);
         PdfDocumentReadResult structured = document.Read(
             PdfUnderstandingBenchmarkReadOptions.Create(PdfReadProfile.Structured, corpus.Pages.Count));
         PdfSemanticCorrectnessObservation correctness = PdfUnderstandingBenchmarkValidation.Evaluate(structured, corpus);

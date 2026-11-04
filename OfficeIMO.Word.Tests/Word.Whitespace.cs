@@ -22,8 +22,8 @@ public partial class Word {
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string target = crossRun ? "FirstSecond" : "First";
         Assert.Equal(target, string.Concat(imported.Paragraphs.Select(value => value.Text)));
-        Assert.NotEmpty(imported.Find(target, StringComparison.Ordinal));
-        Assert.Equal(1, imported.FindAndReplace(target, "Updated", StringComparison.Ordinal));
+        Assert.NotEmpty(imported.Find(target, new OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+        Assert.Equal(1, imported.ReplaceAll(target, "Updated", new OfficeTextSearchOptions { MatchCase = true }));
         Assert.Equal("Updated", string.Concat(imported.Paragraphs.Select(value => value.Text)));
     }
 
@@ -54,7 +54,7 @@ public partial class Word {
         if (wrapping) run.InsertBefore(new W.Break(), run.Elements<W.Break>().Single());
         string before = prefix.Trim(' ', '\t') + (wrapping ? "\n" : "") + "\u2028After";
         Assert.Equal(before, paragraph.Text);
-        if (replace) Assert.Equal(1, document.FindAndReplace("After", "Updated", StringComparison.Ordinal));
+        if (replace) Assert.Equal(1, document.ReplaceAll("After", "Updated", new OfficeTextSearchOptions { MatchCase = true }));
         else paragraph.Text = paragraph.Text;
         Assert.Equal(replace ? before.Replace("After", "Updated") : before, paragraph.Text);
         Assert.Equal(breakType, Assert.Single(run.Elements<W.Break>(), value => value.Type?.Value == breakType).Type!.Value);
@@ -68,7 +68,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph;
         if (story == "header") {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             paragraph = RequireSectionHeader(document, 0, W.HeaderFooterValues.Default).AddParagraph();
         } else if (story == "table") paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         else paragraph = document.AddParagraph();
@@ -80,9 +80,9 @@ public partial class Word {
         string xml = section._sdtRun.OuterXml;
         Assert.Equal("FirstSecond", Assert.Single(section.TextItems));
         Assert.Equal(xml, section._sdtRun.OuterXml);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal("FirstSecond", string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)));
         Assert.Equal(xml, section._sdtRun.OuterXml);
     }
@@ -91,8 +91,12 @@ public partial class Word {
     public void RepeatingSection_UnknownXmlTextHonorsWhitespaceAndPreservedReplacement() {
         using WordDocument document = WordDocument.Create();
         WordRepeatingSection section = document.AddParagraph().AddRepeatingSection("Seed", "Whitespace");
-        OpenXmlElement item = section._sdtRun.SdtContentRun!.FirstChild!;
-        item.RemoveAllChildren();
+        // Earlier versions wrote items as w15:repeatingSectionItem wrappers whose
+        // children reload as unknown elements; reading them must keep working.
+        OpenXmlElement seed = section._sdtRun.SdtContentRun!.FirstChild!;
+        var item = new OpenXmlUnknownElement("w15", "repeatingSectionItem", "http://schemas.microsoft.com/office/word/2012/wordml");
+        seed.InsertBeforeSelf(item);
+        seed.Remove();
         item.InnerXml = "<w:sdt xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:sdtContent><w:r><w:t> First </w:t><w:t> Second </w:t></w:r></w:sdtContent></w:sdt>";
         Assert.Empty(item.Descendants<W.Text>());
         string xml = section._sdtRun.OuterXml;
@@ -130,7 +134,7 @@ public partial class Word {
     [Fact]
     public void HyperlinkText_ImportedWhitespaceAndAuthoredReplacementUseTheirRespectiveModes() {
         using WordDocument document = WordDocument.Create();
-        WordParagraph paragraph = document.AddParagraph().AddHyperLink(" Old ", new Uri("https://example.test/link"));
+        WordParagraph paragraph = document.AddParagraph().AddHyperLink(" Old ", new Uri("https://example.test/link")).Paragraph;
         W.Text text = paragraph._paragraph.Descendants<W.Text>().Single();
         text.Space = null;
         string xml = paragraph._paragraph.OuterXml;
@@ -162,7 +166,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph;
         if (story == "header") {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             paragraph = RequireSectionHeader(document, 0, W.HeaderFooterValues.Default).AddParagraph();
         } else if (story == "table") {
             paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
@@ -172,9 +176,9 @@ public partial class Word {
         foreach (W.Text text in paragraph._paragraph.Descendants<W.Text>()) text.Space = null;
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal("FirstSecond", string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)));
         Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }

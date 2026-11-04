@@ -19,13 +19,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(references);
         package.Position = 0;
         if (kind == IWorkDocumentKind.Pages) {
-            using var fallback = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var fallback = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else {
-            using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         }
         package.Position = 0;
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, issue.Kind);
         });
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.All(report.SourceDeclarationIssues, issue => Assert.Equal(IWorkSourceDeclarationIssueKind.InvalidValue, issue.Kind));
         Assert.Equal(2, Assert.Single(report.SourceDeclarationIssues, issue => issue.FieldPath == "11/13").DeclaredValueCount);
         package.Position = 0;
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 }

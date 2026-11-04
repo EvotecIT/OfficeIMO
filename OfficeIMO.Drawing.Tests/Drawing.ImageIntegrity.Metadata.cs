@@ -82,16 +82,16 @@ public partial class DrawingTests {
                 MetadataSelection = OfficeImageMetadataKinds.Xmp
             });
 
-        Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Source);
+        Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.SourceKinds);
         Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Requested);
         Assert.Equal(OfficeImageMetadataKinds.Xmp, result.Metadata.Lost);
-        IOfficeConversionReport report = result.Metadata;
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        OfficeConversionReport report = result.Metadata;
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
         Assert.True(report.HasLoss);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Equal("IMAGE_METADATA_XMP_LOST", diagnostic.Code);
         Assert.Equal("Xmp", diagnostic.Location);
-        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     // Metadata-carrier fixtures start from untagged RGBA samples so each test

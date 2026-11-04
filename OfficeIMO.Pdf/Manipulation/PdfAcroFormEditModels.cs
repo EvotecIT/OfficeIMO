@@ -29,6 +29,7 @@ public enum PdfPageTabOrder {
 }
 
 /// <summary>Creates an AcroForm field and its widget or widgets on an existing page.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfFormFieldCreateOptions {
     /// <summary>Unique fully qualified field name.</summary>
     public string Name { get; set; } = string.Empty;
@@ -64,9 +65,9 @@ public sealed class PdfFormFieldCreateOptions {
     public string? JavaScript { get; set; }
     /// <summary>Font size used for generated text, choice, and push-button appearances.</summary>
     public double FontSize { get; set; } = 10D;
-    /// <summary>Radio widget size in points. Applies only to radio-button groups.</summary>
+    /// <summary>Radio widget size in page user-space units. Applies only to radio-button groups.</summary>
     public double RadioButtonSize { get; set; } = 14D;
-    /// <summary>Vertical gap between radio widgets in points.</summary>
+    /// <summary>Vertical gap between radio widgets in page user-space units.</summary>
     public double RadioButtonGap { get; set; } = 6D;
     /// <summary>Visual and semantic field style used by generated widget appearances.</summary>
     public PdfFormFieldStyle? Style { get; set; }

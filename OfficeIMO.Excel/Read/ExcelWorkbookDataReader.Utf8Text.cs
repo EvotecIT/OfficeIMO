@@ -1,5 +1,3 @@
-#nullable enable
-
 #if NET8_0_OR_GREATER
 
 namespace OfficeIMO.Excel {
@@ -21,7 +19,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="InvalidOperationException">The reader is closed or is not positioned on a row.</exception>
         public bool TryGetUtf8Text(int ordinal, out ReadOnlySpan<byte> text) {
             ThrowIfClosed();
-            if (_current is IDataReaderUtf8TextSource source) {
+            if (CurrentReader is IDataReaderUtf8TextSource source) {
                 return source.TryGetUtf8Text(ordinal, out text);
             }
 

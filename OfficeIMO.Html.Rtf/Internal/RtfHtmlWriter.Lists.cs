@@ -9,7 +9,7 @@ internal static partial class RtfHtmlWriter {
         internal bool ItemOpen { get; set; }
     }
 
-    private static void AppendListParagraph(StringBuilder builder, RtfParagraph paragraph, RtfListMarker marker, List<HtmlListFrame> frames, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendListParagraph(StringBuilder builder, RtfParagraph paragraph, RtfListMarker marker, List<HtmlListFrame> frames, RtfHtmlExportOptions options, RtfDocument document) {
         if (!marker.IsNumberFormatSupported) options.AddDiagnostic("RtfHtmlListNumberFormatFlattened", "The requested numbering format was represented by decimal marker text.", "Paragraph/List", action: RtfConversionAction.Flattened);
         if (marker.Formatting.Level.PictureIndex.HasValue) options.AddDiagnostic("RtfHtmlListPictureFlattened", "The picture bullet was represented by its text marker.", "Paragraph/List", action: RtfConversionAction.Flattened);
         int level = marker.Formatting.LevelIndex;

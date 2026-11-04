@@ -7,6 +7,24 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfRedactionVerification {
     private const int MaxDecodedRedactionVerificationStreamBytes = 16 * 1024 * 1024;
 
+    /// <summary>Checks literal and hex string tokens in otherwise unclassified data, reusing the verifier's escape-aware readers.</summary>
+    internal static bool ContainsSearchedPdfString(byte[] data, PdfRedactionSearchCriteria[] criteria, CancellationToken cancellationToken) {
+        for (int index = 0; index < data.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (data[index] == (byte)'(' && TryReadLiteralStringBytes(data, index, cancellationToken, out byte[] literal, out int literalEnd)) {
+                if (criteria.Any(criterion => criterion.Matches(PdfTextString.Decode(literal, cancellationToken)))) return true;
+                index = literalEnd;
+            } else if (data[index] == (byte)'<' && (index + 1 >= data.Length || data[index + 1] != (byte)'<')) {
+                int end = FindHexStringEnd(data, index + 1, cancellationToken);
+                if (end < 0) continue;
+                string decoded = PdfTextString.Decode(ReadHexStringBytes(data, index + 1, end, cancellationToken), cancellationToken);
+                if (criteria.Any(criterion => criterion.Matches(decoded))) return true;
+                index = end;
+            }
+        }
+        return false;
+    }
+
     private static bool ContainsEncodedPdfMarker(byte[] pdf, string marker, bool matchCase, CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(marker)) {
             return false;
@@ -84,7 +102,7 @@ internal static partial class PdfRedactionVerification {
                 continue;
             }
 
-            if (IsOpaqueImageCodecStream(stream, objects, readOptions, cancellationToken)) {
+            if (IsOpaqueImageCodecStream(stream, objects, readOptions.Limits, cancellationToken)) {
                 continue;
             }
 
@@ -105,10 +123,10 @@ internal static partial class PdfRedactionVerification {
         return issues;
     }
 
-    private static bool IsOpaqueImageCodecStream(
+    internal static bool IsOpaqueImageCodecStream(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
-        PdfLoadOptions readOptions,
+        PdfReadLimits limits,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (PdfObjectLookup.ResolveChain(
@@ -154,7 +172,7 @@ internal static partial class PdfRedactionVerification {
             prefixDictionary.Items["DecodeParms"] = prefixDecodeParameters;
         }
 
-        int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, readOptions.Limits.MaxDecodedStreamBytes);
+        int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, limits.MaxDecodedStreamBytes);
         if (!StreamDecoder.TryDecode(prefixDictionary, stream.Data, maximumDecodedBytes, out byte[] opaquePayload, objects)) return false;
         return filters[filters.Count - 1] is not ("DCTDecode" or "DCT") || OfficeJpegCodec.IsJpeg(opaquePayload);
 
@@ -387,18 +405,18 @@ internal static partial class PdfRedactionVerification {
     }
 
     private static bool HexStringContains(byte[] pdf, int start, int end, byte[] markerBytes, bool matchCase, CancellationToken cancellationToken) {
+        return ContainsBytes(ReadHexStringBytes(pdf, start, end, cancellationToken), markerBytes, matchCase, cancellationToken);
+    }
+
+    // FindHexStringEnd validates the token. Strip PDF whitespace (including NUL), not
+    // Unicode whitespace, before using the strict semantic hex decoder.
+    private static byte[] ReadHexStringBytes(byte[] data, int start, int end, CancellationToken cancellationToken) {
         var builder = new System.Text.StringBuilder(end - start);
         for (int i = start; i < end; i++) {
             if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            byte value = pdf[i];
-            if (IsHexDigit(value)) {
-                builder.Append((char)ToUpperAscii(value));
-            }
+            if (IsHexDigit(data[i])) builder.Append((char)data[i]);
         }
-
-        if ((builder.Length & 1) != 0) builder.Append('0');
-        byte[] decoded = PdfTextString.DecodeHexBytes(builder.ToString());
-        return ContainsBytes(decoded, markerBytes, matchCase, cancellationToken);
+        return PdfTextString.DecodeHexBytes(builder.ToString(), 0, builder.Length, cancellationToken);
     }
 
     private static bool BytesEqual(byte[] left, byte[] right) {

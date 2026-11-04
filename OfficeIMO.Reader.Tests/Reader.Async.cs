@@ -28,7 +28,7 @@ public sealed class ReaderAsyncTests {
                 .Build();
 
             OfficeDocumentReadResult result = await reader.ReadDocumentAsync(file);
-            IReadOnlyList<ReaderChunk> chunks = await reader.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = (await reader.ReadDocumentAsync(file)).Chunks;
             ReaderHandlerCapability capability = Assert.Single(
                 reader.GetCapabilities(),
                 item => item.Id == "officeimo.tests.async.path");
@@ -67,7 +67,7 @@ public sealed class ReaderAsyncTests {
                 .Build();
 
             OfficeDocumentReadResult result = await reader.ReadDocumentAsync(file);
-            IReadOnlyList<ReaderChunk> chunks = await reader.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = (await reader.ReadDocumentAsync(file)).Chunks;
             ReaderHandlerCapability capability = Assert.Single(
                 reader.GetCapabilities(),
                 item => item.Id == "officeimo.tests.sync.path");
@@ -179,7 +179,9 @@ public sealed class ReaderAsyncTests {
                     MaxDocuments = 5
                 });
 
-            Task started = await Task.WhenAny(twoStarted.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+            // File admission can wait for I/O completions on a busy .NET Framework runner; this is a deadlock watchdog, not a latency budget.
+            Task started = await Task.WhenAny(twoStarted.Task, batch, Task.Delay(TimeSpan.FromSeconds(30)));
+            if (ReferenceEquals(started, batch)) await batch;
             Assert.Same(twoStarted.Task, started);
             Assert.Equal(2, maximumActive);
             release.TrySetResult(true);
@@ -211,7 +213,7 @@ public sealed class ReaderAsyncTests {
         File.WriteAllText(file, "built-in async fallback");
 
         try {
-            IReadOnlyList<ReaderChunk> chunks = await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = (await OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocumentAsync(file)).Chunks;
 
             Assert.Contains(chunks, chunk => chunk.Text.Contains("built-in async fallback", StringComparison.Ordinal));
         } finally {
@@ -223,10 +225,10 @@ public sealed class ReaderAsyncTests {
     public async Task DocumentReader_ReadDocumentAsync_CancelsEncryptedDetectionAfterInitialProbe() {
         const string password = "reader-async-cancel-pass";
         byte[] encrypted;
-        using (PowerPointPresentation source =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument source =
+               PowerPointDocument.Create()) {
             source.AddSlide().AddTextBox("Encrypted cancellation probe");
-            encrypted = source.ToEncryptedBytes(password);
+            encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
         }
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelAfterFirstAsyncReadStream(encrypted,
@@ -245,10 +247,10 @@ public sealed class ReaderAsyncTests {
     public void DocumentReader_ReadDocument_CancelsEncryptedDetectionAfterInitialProbe() {
         const string password = "reader-sync-cancel-pass";
         byte[] encrypted;
-        using (PowerPointPresentation source =
-               PowerPointPresentation.Create()) {
+        using (PowerPointDocument source =
+               PowerPointDocument.Create()) {
             source.AddSlide().AddTextBox("Encrypted sync cancellation probe");
-            encrypted = source.ToEncryptedBytes(password);
+            encrypted = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=password});
         }
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelAfterFirstSyncReadStream(encrypted,
@@ -271,7 +273,7 @@ public sealed class ReaderAsyncTests {
             cancellation.Cancel);
 
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(stream, "large.txt",
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(stream, "large.txt",
                 new ReaderOptions { ComputeHashes = true },
                 cancellation.Token).ToArray());
 

@@ -1,5 +1,8 @@
+using OfficeIMO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -24,7 +27,8 @@ public sealed class GetOfficePdfPreflightCommand : PSCmdlet
 
     /// <summary>Password used to preflight a Standard password-encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed usage restrictions.</summary>
     [Parameter]
@@ -33,8 +37,10 @@ public sealed class GetOfficePdfPreflightCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        WriteObject(PdfDocument.Preflight(
-            PdfCommandUtilities.ResolvePath(this, Path),
-            PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent)));
+        WriteObject(OfficeDocument.Inspect(PdfCommandUtilities.ResolvePath(this, Path),
+            new OfficeInspectOptions {
+                IncludeContent = false,
+                PdfPreflight = PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent) ?? new PdfLoadOptions()
+            }).PdfPreflight);
     }
 }

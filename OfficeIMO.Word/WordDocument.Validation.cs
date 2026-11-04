@@ -2,7 +2,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Core.Internal;
-using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -54,25 +53,33 @@ namespace OfficeIMO.Word {
             return listErrors;
         }
 
-        /// <summary>
-        /// Creates a fluent wrapper for this document.
-        /// </summary>
-        /// <returns>A new <see cref="WordFluentDocument"/> instance.</returns>
-        public WordFluentDocument AsFluent() {
-            return new WordFluentDocument(this);
-        }
+
 
         /// <summary>
         /// Gets or sets compatibility settings for the document.
         /// </summary>
         public WordCompatibilitySettings CompatibilitySettings { get; set; } = null!;
 
-        internal void NotifyTableOfContentUpdateQueued() {
+        internal void NotifyTableOfContentUpdateQueued(bool enabledUpdateFieldsOnOpen = false) {
             _tableOfContentUpdateQueued = true;
+            if (enabledUpdateFieldsOnOpen) {
+                _tableOfContentEnabledUpdateFieldsOnOpen = true;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether OfficeIMO itself turned on <c>UpdateFieldsOnOpen</c> to have Word rebuild a table of contents,
+        /// as opposed to the caller or the loaded file having set it.
+        /// </summary>
+        internal bool TableOfContentEnabledUpdateFieldsOnOpen => _tableOfContentEnabledUpdateFieldsOnOpen;
+
+        internal void ReleaseTableOfContentUpdateFieldsOnOpen() {
+            _tableOfContentEnabledUpdateFieldsOnOpen = false;
         }
 
         internal void ResetTableOfContentUpdateQueue() {
             _tableOfContentUpdateQueued = false;
+            _tableOfContentEnabledUpdateFieldsOnOpen = false;
         }
 
         /// <summary>
@@ -106,15 +113,31 @@ namespace OfficeIMO.Word {
             tableOfContent.QueueUpdateOnOpen(force: true);
         }
 
+        // A TOC created here holds only a placeholder until Word updates its field.
+        // Write the deterministic entries so every viewer shows a usable TOC; Word
+        // still refreshes the field and its page numbers on open.
+        private void RefreshGeneratedTableOfContent() {
+            WordTableOfContent? generated = _generatedTableOfContent;
+            if (generated == null) return;
+            if (generated.SdtBlock.Parent == null || !ReferenceEquals(generated.SdtBlock.Ancestors<Body>().FirstOrDefault(),
+                    _wordprocessingDocument.MainDocumentPart?.Document?.Body)) {
+                _generatedTableOfContent = null;
+                return;
+            }
+            generated.RefreshEntriesOnSave();
+        }
+
         private void PreSaving() {
             EnsureStyleDefinitionsInitialized();
             MoveSectionProperties();
+            RepairEmptyTableStructure();
             // Keep tblGrid consistent for online viewers without changing authoring semantics.
             NormalizeTablesForOnline();
             SaveNumbering();
             if (AutoUpdateToc && TableOfContent != null) {
                 TableOfContent.Update();
             }
+            RefreshGeneratedTableOfContent();
             new WordCustomProperties(this, true);
             var settingsPart = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart;
             bool hasVariables = settingsPart?.Settings?.GetFirstChild<DocumentVariables>() != null;

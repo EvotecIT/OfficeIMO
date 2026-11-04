@@ -17,13 +17,89 @@ namespace OfficeIMO.Excel {
         public ExcelStructuralMutationPlan PlanDeleteColumns(int firstColumn, int count = 1, ExcelMutationPlanOptions? options = null) =>
             PlanColumnMutation(firstColumn, count, deleting: true, options);
 
-        /// <summary>Transactionally inserts complete columns and returns post-edit package diagnostics.</summary>
-        public ExcelMutationResult InsertColumns(int firstColumn, int count = 1, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
-            PlanInsertColumns(firstColumn, count, options).Apply(cancellationToken);
+        /// <summary>
+        /// Inserts blank worksheet columns immediately before <paramref name="firstColumn"/> and shifts existing
+        /// columns right. Formulas, defined names, tables, merges, comments, hyperlinks, validations, conditional
+        /// formatting, drawings, page breaks and connection parameters are adjusted where supported. Use
+        /// <see cref="InsertColumnsTransactional"/> for rollback and post-edit diagnostics.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The requested columns fall outside the worksheet column limit.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Content or a dependent reference would exceed the column limit, or the insertion would split an array
+        /// formula, data table or PivotTable output range, or the worksheet contains unsupported controls.
+        /// </exception>
+        public void InsertColumns(int firstColumn, int count = 1) =>
+            ApplyColumnMutationWithoutTransaction(firstColumn, count, deleting: false);
 
-        /// <summary>Transactionally deletes complete columns and returns post-edit package diagnostics.</summary>
-        public ExcelMutationResult DeleteColumns(int firstColumn, int count = 1, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
-            PlanDeleteColumns(firstColumn, count, options).Apply(cancellationToken);
+        /// <summary>
+        /// Deletes worksheet columns starting at <paramref name="firstColumn"/> and shifts following columns left.
+        /// Formula references to cells fully removed by the operation become <c>#REF!</c>; partially overlapping
+        /// ranges are reduced to the surviving cells. Use <see cref="DeleteColumnsTransactional"/> for rollback and
+        /// post-edit diagnostics.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The requested columns fall outside the worksheet column limit.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// The deletion would remove every column of a table, or intersect an array formula, data table or PivotTable
+        /// output range, or the worksheet contains unsupported controls.
+        /// </exception>
+        public void DeleteColumns(int firstColumn, int count = 1) =>
+            ApplyColumnMutationWithoutTransaction(firstColumn, count, deleting: true);
+
+        /// <summary>Plans and transactionally inserts columns with bounded rollback and post-edit diagnostics.</summary>
+        public ExcelMutationResult InsertColumnsTransactional(
+            int firstColumn,
+            int count = 1,
+            ExcelMutationPlanOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            ApplyColumnMutationDirectly(firstColumn, count, deleting: false, options, cancellationToken);
+
+        /// <summary>Plans and transactionally deletes columns with bounded rollback and post-edit diagnostics.</summary>
+        public ExcelMutationResult DeleteColumnsTransactional(
+            int firstColumn,
+            int count = 1,
+            ExcelMutationPlanOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            ApplyColumnMutationDirectly(firstColumn, count, deleting: true, options, cancellationToken);
+
+        /// <summary>
+        /// Runs the same safety checks and reference remapping as the transactional route, like the plain row calls:
+        /// no plan budget, snapshot or package validation.
+        /// </summary>
+        private void ApplyColumnMutationWithoutTransaction(int firstColumn, int count, bool deleting) {
+            ValidateStructuralColumnArguments(firstColumn, count);
+            WriteLockConditional(() => {
+                MaterializeDeferredDataSetImportIfNeeded();
+                int maximumCellColumn = 0, gridCells = 0;
+                if (!deleting) {
+                    foreach (var item in EnumerateCellCoordinates()) {
+                        gridCells++;
+                        if (item.Column > maximumCellColumn) maximumCellColumn = item.Column;
+                    }
+                }
+                var unbounded = new MutationPlanScanBudget(int.MaxValue, long.MaxValue);
+                PreflightColumnMutation(firstColumn, firstColumn + count - 1, count, deleting, unbounded, maximumCellColumn, gridCells);
+                ApplyColumnMutation(firstColumn, count, deleting, CancellationToken.None);
+                MarkRequiresSavePreparation();
+            });
+        }
+
+        /// <summary>Plans inside the write lock, because a plan applied at once would otherwise be built and checked twice.</summary>
+        private ExcelMutationResult ApplyColumnMutationDirectly(
+            int firstColumn,
+            int count,
+            bool deleting,
+            ExcelMutationPlanOptions? options,
+            CancellationToken cancellationToken) {
+            ValidateStructuralColumnArguments(firstColumn, count);
+            ExcelMutationPlanOptions effective = (options ?? new ExcelMutationPlanOptions()).CloneAndValidate();
+            Locking.ExecuteRead(_excelDocument.EnsureLock(), EnsureMutationPlanCanInspectWithoutMaterializing);
+            return ApplyTransactionalMutation(token => {
+                token.ThrowIfCancellationRequested();
+                ExcelStructuralMutationPlan current = PlanColumnMutation(firstColumn, count, deleting, effective);
+                ApplyColumnMutation(firstColumn, count, deleting, token);
+                return current.AffectedCells;
+            }, effective, cancellationToken);
+        }
 
         private ExcelStructuralMutationPlan PlanColumnMutation(
             int firstColumn,
@@ -36,17 +112,26 @@ namespace OfficeIMO.Excel {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
                 MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
                 int last = firstColumn + count - 1;
-                PreflightColumnMutation(firstColumn, last, count, deleting, budget);
-                int cells = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
-                    .Count(item => item.Column >= firstColumn);
+                // One walk of the grid serves both checks; each still charges the budget for every cell it inspects.
+                int maximumCellColumn = 0, cells = 0, gridCells = 0;
+                foreach (var item in EnumerateCellCoordinates()) {
+                    gridCells++;
+                    if (item.Column > maximumCellColumn) maximumCellColumn = item.Column;
+                    if (item.Column >= firstColumn) cells++;
+                }
+                PreflightColumnMutation(firstColumn, last, count, deleting, budget, maximumCellColumn, gridCells);
+                for (int index = 0; index < gridCells; index++) budget.Consume();
                 if (cells > effective.MaximumAffectedCells) {
                     throw new InvalidOperationException($"Column mutation affects {cells} cells, exceeding MaximumAffectedCells ({effective.MaximumAffectedCells}).");
                 }
                 var impacts = new List<ExcelMutationImpact>();
                 if (cells > 0) impacts.Add(new ExcelMutationImpact("cells", cells, "Worksheet cells will be shifted or removed."));
-                int formulas = InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget)
-                    .Count(formula => ExcelFormulaSyntaxTree.Parse(formula.Text ?? string.Empty)
-                        .Nodes.OfType<ExcelFormulaReferenceSyntax>().Any());
+                ExcelFormulaAxisShift shift = ExcelFormulaAxisShift.Columns(firstColumn, count, deleting);
+                int formulas = InspectMutationPlanElements(ExcelWorksheetScan.CellFormulas(WorksheetRoot), budget)
+                    .Count(formula => shift.TryInspect(formula.Text ?? string.Empty, out bool hasReference)
+                        ? hasReference
+                        : ExcelFormulaSyntaxTree.Parse(formula.Text ?? string.Empty)
+                            .Nodes.OfType<ExcelFormulaReferenceSyntax>().Any());
                 if (formulas > 0) impacts.Add(new ExcelMutationImpact("formulas", formulas, "Parsed formula references may be rewritten."));
                 int tables = InspectMutationPlanElements(_worksheetPart.TableDefinitionParts, budget).Count();
                 if (tables > 0) impacts.Add(new ExcelMutationImpact("tables", tables, "Intersecting table ranges and schemas will be remapped."));
@@ -55,7 +140,7 @@ namespace OfficeIMO.Excel {
                         ?? Enumerable.Empty<OpenXmlElement>(),
                     budget).Count();
                 if (drawings > 0) impacts.Add(new ExcelMutationImpact("drawings", drawings, "Cell-anchored drawing columns will be remapped."));
-                string range = A1.ColumnIndexToLetters(firstColumn) + ":" + A1.ColumnIndexToLetters(last);
+                string range = ExcelA1.ColumnIndexToLetters(firstColumn) + ":" + ExcelA1.ColumnIndexToLetters(last);
                 return new ExcelStructuralMutationPlan(
                     this,
                     deleting ? ExcelStructuralMutationKind.DeleteColumns : ExcelStructuralMutationKind.InsertColumns,
@@ -78,29 +163,30 @@ namespace OfficeIMO.Excel {
             int lastColumn,
             int count,
             bool deleting,
-            MutationPlanScanBudget? budget = null) {
+            MutationPlanScanBudget budget,
+            int maximumCellColumn,
+            int gridCells) {
             ValidatePackageMutationReferenceSafety(
                 "Structural column edits",
-                budget == null ? null : new Action(budget.Consume),
+                new Action(budget.Consume),
                 capacityTransform: reference => ExcelDocument.TransformColumnReference(
                     reference,
                     firstColumn,
                     lastColumn,
                     count,
-                    deleting));
+                    deleting),
+                plainFormulaShift: ExcelFormulaAxisShift.Columns(firstColumn, count, deleting));
             ValidateWorkbookSharedFormulasForStructuralEdit();
             ValidateStructuralVmlControlSafety(budget);
             ValidateColumnConnectionParameters(firstColumn, count, deleting, budget);
             if (!deleting) ValidateColumnCommentVmlAnchorCapacity(firstColumn, count, budget);
             if (!deleting) {
-                int maximumCellColumn = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
-                    .Select(item => item.Column)
-                    .DefaultIfEmpty(0).Max();
-                int maximumDefinedColumn = InspectMutationPlanElements(WorksheetRoot.Descendants<Column>(), budget)
+                for (int index = 0; index < gridCells; index++) budget.Consume();
+                int maximumDefinedColumn = InspectMutationPlanElements(WorksheetRoot.MetadataDescendants<Column>(), budget)
                     .Select(column => checked((int)(column.Max?.Value ?? column.Min?.Value ?? 0U)))
                     .DefaultIfEmpty(0).Max();
                 int maximumPageBreakColumn = InspectMutationPlanElements(
-                        WorksheetRoot.Descendants<ColumnBreaks>().SelectMany(columnBreaks => columnBreaks.Elements<Break>()),
+                        WorksheetRoot.MetadataDescendants<ColumnBreaks>().SelectMany(columnBreaks => columnBreaks.Elements<Break>()),
                         budget)
                     .Select(pageBreak => checked((int)(pageBreak.Id?.Value ?? 0U)))
                     .DefaultIfEmpty(0).Max();
@@ -117,11 +203,11 @@ namespace OfficeIMO.Excel {
                 int maximumUsedColumn = Math.Max(
                     Math.Max(maximumCellColumn, maximumDefinedColumn),
                     Math.Max(maximumPageBreakColumn, maximumDrawingColumn));
-                if (maximumUsedColumn >= firstColumn && (long)maximumUsedColumn + count > A1.MaxColumns) {
+                if (maximumUsedColumn >= firstColumn && (long)maximumUsedColumn + count > ExcelA1.MaxColumns) {
                     throw new InvalidOperationException("Column insertion would move worksheet content or column metadata beyond the Excel column limit.");
                 }
             }
-            foreach (CellFormula formula in InspectMutationPlanElements(WorksheetRoot.Descendants<CellFormula>(), budget).Where(item =>
+            foreach (CellFormula formula in InspectMutationPlanElements(ExcelWorksheetScan.CellFormulas(WorksheetRoot), budget).Where(item =>
                 item.FormulaType?.Value == CellFormulaValues.Array || item.FormulaType?.Value == CellFormulaValues.DataTable)) {
                 if (!ExcelReference.TryParse(formula.Reference?.Value, out ExcelReference? range)) continue;
                 range!.GetBounds(out _, out int c1, out _, out int c2);
@@ -156,8 +242,19 @@ namespace OfficeIMO.Excel {
             if (sheetData != null) {
                 foreach (Row row in sheetData.Elements<Row>().ToList()) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    List<Cell> cells = row.Elements<Cell>().ToList();
                     bool rowChanged = false;
+                    List<Cell> cells;
+                    bool storedCells = row is ExcelStoredRow stored && stored.IsStoreAvailable;
+                    if (storedCells) {
+                        // Stored cells shift by column number; their references are rebuilt when written.
+                        rowChanged = ((ExcelStoredRow)row).ShiftStoredColumns(firstColumn, count, deleting);
+                        cells = GetDomCells(row);
+                    } else {
+                        cells = row.Elements<Cell>().ToList();
+                    }
+                    // Removing a DOM cell of a stored row must not merge its already shifted stored cells with DOM
+                    // cells that still carry their old references.
+                    using (ExcelStoredRow.BeginRawAccessIf(storedCells))
                     if (deleting) {
                         foreach (Cell cell in cells) {
                             string? reference = cell.CellReference?.Value;
@@ -166,25 +263,23 @@ namespace OfficeIMO.Excel {
                                 RemoveCellWithValueMetadataCleanup(cell);
                                 rowChanged = true;
                             } else if (column > lastColumn) {
-                                int cellRow = A1.ParseCellRef(reference!).Row;
-                                cell.CellReference = A1.CellReference(cellRow, column - count);
+                                int cellRow = ExcelA1.ParseCellRef(reference!).Row;
+                                cell.CellReference = ExcelA1.CellReference(cellRow, column - count);
                                 rowChanged = true;
                             }
                         }
                     } else {
-                        foreach (Cell cell in cells.OrderByDescending(cell =>
-                            cell.CellReference?.Value is string reference ? GetColumnIndex(reference) : 0)) {
-                            string? reference = cell.CellReference?.Value;
-                            int column = reference == null ? 0 : GetColumnIndex(reference);
-                            if (column >= firstColumn) {
-                                int cellRow = A1.ParseCellRef(reference!).Row;
-                                cell.CellReference = A1.CellReference(cellRow, checked(column + count));
+                        foreach (Cell cell in cells) {
+                            if (cell.CellReference is { Value: { } reference } cellReference
+                                && ExcelA1.TryParseCellReferenceFast(reference, out int cellRow, out int column)
+                                && column >= firstColumn) {
+                                cellReference.Value = GetMovedCellReference(cellRow, checked(column + count));
                                 rowChanged = true;
                             }
                         }
                     }
                     if (rowChanged) row.Spans = null;
-                    if (!row.Elements<Cell>().Any()) row.Remove();
+                    if (!RowHasCells(row)) row.Remove();
                 }
             }
             foreach ((int row, int column, string name) in pendingHeaders) CellValueCoreNoMaterialize(row, column, name);
@@ -298,8 +393,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateStructuralColumnArguments(int firstColumn, int count) {
-            if (firstColumn < 1 || firstColumn > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(firstColumn));
-            if (count < 1 || (long)firstColumn + count - 1L > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(count));
+            if (firstColumn < 1 || firstColumn > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(firstColumn));
+            if (count < 1 || (long)firstColumn + count - 1L > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(count));
         }
     }
 }

@@ -27,10 +27,10 @@ public static class VisioDocumentModelExtensions {
         var source = new OfficeDocumentModelSource {
             Path = logicalSourceName,
             SourceId = BuildSourceId(logicalSourceName),
-            Title = document.Title,
-            Author = document.Author
+            Title = document.Properties.Title,
+            Author = document.Properties.Author
         };
-        VisioInspectionSnapshot snapshot = document.CreateInspectionSnapshot(operation.MaxTableRows);
+        VisioInspectionSnapshot snapshot = document.Inspect(operation.MaxTableRows);
         OfficeDocumentModelBlock[] blocks = BuildBlocks(snapshot, logicalSourceName).ToArray();
         OfficeDocumentModelTable[] tables = BuildTables(snapshot, logicalSourceName, operation.MaxTableRows).ToArray();
         VisioPage[] orderedPages = GetSnapshotOrderedPages(document, snapshot).ToArray();
@@ -182,10 +182,10 @@ public static class VisioDocumentModelExtensions {
                         "shape",
                         shape.Id,
                         new OfficeDocumentModelRegion {
-                            X = InchesToPoints(shape.PinX - (shape.Width / 2D)),
-                            Y = InchesToPoints(shape.PinY - (shape.Height / 2D)),
-                            Width = InchesToPoints(shape.Width),
-                            Height = InchesToPoints(shape.Height)
+                            X = InchesToPoints(shape.PinXInches - (shape.WidthInches / 2D)),
+                            Y = InchesToPoints(shape.PinYInches - (shape.HeightInches / 2D)),
+                            Width = InchesToPoints(shape.WidthInches),
+                            Height = InchesToPoints(shape.HeightInches)
                         });
                 }
             }

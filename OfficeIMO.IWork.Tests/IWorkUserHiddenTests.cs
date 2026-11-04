@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(manifest.RootElement.GetProperty("source").GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
         IWorkSourceDocument source = IWorkSourceDocument.Open(path);
-        using var result = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable[] tables = result.Projection.Sheets.SelectMany(sheet => sheet.Tables).ToArray();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_hidden_rows_and_columns_keep_populated_cells_and_reader_content() {
         using MemoryStream package = MappedHiddenPackage(IWorkDocumentKind.Numbers);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package);
-        using var result = source.ToExcelDocumentResult();
+        using var result = source.ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.False(result.Report.IsPartialEditableReconstruction);
         IWorkTable table = result.Projection.Sheets[0].Tables[0];
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { 1 }, table.HiddenColumns);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         saved.Position = 0;
         using var archive = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
         using Stream xml = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open();
@@ -75,15 +75,15 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = MappedHiddenPackage(kind);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
         }
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);
         Assert.True(report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => report.RequireCompleteEditableReconstruction());
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code.EndsWith("TABLE_VISIBILITY_OMITTED", StringComparison.Ordinal)
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code.EndsWith("TABLE_VISIBILITY_OMITTED", StringComparison.Ordinal)
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
@@ -133,7 +133,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { 1 }, Assert.Single(Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets).Tables).HiddenRows);
         package.Position = 0;
         Assert.Contains("limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 10 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxTableDimensionEntries = 10 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static byte[] VisibilityUuid(ulong lower, ulong upper = 10) => Message(VarintField(1, lower), VarintField(2, upper));

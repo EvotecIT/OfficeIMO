@@ -11,10 +11,10 @@ internal sealed class ImageBlock : IPdfBlock {
     public PdfImageStyle? Style { get; }
     public string? LinkUri { get; }
     public string? LinkContents { get; }
-    public PdfAlign Align => (Style ?? new PdfImageStyle()).Align;
+    public OfficeAlignment Align => (Style ?? new PdfImageStyle()).Align;
     public OfficeClipPath? ClipPath => Style?.ClipPath;
     public OfficeImageFit Fit => (Style ?? new PdfImageStyle()).Fit;
-    public string? AlternativeText => Style?.AlternativeText;
+    public string? AltText => Style?.AltText;
 
     public ImageBlock(byte[] data, double width, double height, OfficeImageInfo info, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, bool useDataSnapshot = false, PdfWriter.PdfImageStream? preparedStream = null) {
         Guard.NotNullOrEmpty(data, nameof(data));
@@ -40,7 +40,7 @@ internal sealed class ImageBlock : IPdfBlock {
         LinkContents = linkUri == null ? null : linkContents ?? "Image";
     }
 
-    public ImageBlock(byte[] data, double width, double height, PdfAlign align, OfficeImageInfo info, OfficeClipPath? clipPath = null, OfficeImageFit fit = OfficeImageFit.Stretch, string? linkUri = null, string? linkContents = null)
+    public ImageBlock(byte[] data, double width, double height, OfficeAlignment align, OfficeImageInfo info, OfficeClipPath? clipPath = null, OfficeImageFit fit = OfficeImageFit.Stretch, string? linkUri = null, string? linkContents = null)
         : this(data, width, height, info, new PdfImageStyle {
             Align = align,
             ClipPath = clipPath,

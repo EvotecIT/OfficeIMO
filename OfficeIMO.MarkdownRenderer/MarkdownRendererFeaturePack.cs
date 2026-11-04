@@ -9,13 +9,13 @@ namespace OfficeIMO.MarkdownRenderer;
 /// </summary>
 public sealed class MarkdownRendererFeaturePack {
     private readonly Action<MarkdownRendererOptions> _apply;
-    private readonly Action<MarkdownReaderOptions> _applyReader;
+    private readonly Action<MarkdownLoadOptions> _applyReader;
     private readonly IReadOnlyList<MarkdownRendererPlugin> _plugins;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _readerDocumentTransforms;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _htmlDocumentTransforms;
     private readonly IReadOnlyList<IMarkdownDocumentTransform> _rendererDocumentTransforms;
-    private readonly IReadOnlyList<HtmlElementBlockConverter> _htmlElementBlockConverters;
-    private readonly IReadOnlyList<HtmlInlineElementConverter> _htmlInlineElementConverters;
+    private readonly IReadOnlyList<MarkdownHtmlBlockConverter> _htmlElementBlockConverters;
+    private readonly IReadOnlyList<MarkdownHtmlInlineConverter> _htmlInlineElementConverters;
     private readonly IReadOnlyList<MarkdownVisualElementRoundTripHint> _visualElementRoundTripHints;
 
     /// <summary>
@@ -25,7 +25,7 @@ public sealed class MarkdownRendererFeaturePack {
         string id,
         string name,
         Action<MarkdownRendererOptions> apply,
-        Action<MarkdownReaderOptions>? applyReader = null) {
+        Action<MarkdownLoadOptions>? applyReader = null) {
         if (string.IsNullOrWhiteSpace(id)) {
             throw new ArgumentException("Feature pack id is required.", nameof(id));
         }
@@ -39,8 +39,8 @@ public sealed class MarkdownRendererFeaturePack {
         _readerDocumentTransforms = Array.Empty<IMarkdownDocumentTransform>();
         _htmlDocumentTransforms = Array.Empty<IMarkdownDocumentTransform>();
         _rendererDocumentTransforms = Array.Empty<IMarkdownDocumentTransform>();
-        _htmlElementBlockConverters = Array.Empty<HtmlElementBlockConverter>();
-        _htmlInlineElementConverters = Array.Empty<HtmlInlineElementConverter>();
+        _htmlElementBlockConverters = Array.Empty<MarkdownHtmlBlockConverter>();
+        _htmlInlineElementConverters = Array.Empty<MarkdownHtmlInlineConverter>();
         _visualElementRoundTripHints = Array.Empty<MarkdownVisualElementRoundTripHint>();
         _applyReader = applyReader ?? (_ => { });
         Id = id.Trim();
@@ -55,7 +55,7 @@ public sealed class MarkdownRendererFeaturePack {
         string name,
         IEnumerable<MarkdownRendererPlugin> plugins,
         Action<MarkdownRendererOptions>? apply = null,
-        Action<MarkdownReaderOptions>? applyReader = null) {
+        Action<MarkdownLoadOptions>? applyReader = null) {
         if (string.IsNullOrWhiteSpace(id)) {
             throw new ArgumentException("Feature pack id is required.", nameof(id));
         }
@@ -72,8 +72,8 @@ public sealed class MarkdownRendererFeaturePack {
         var readerDocumentTransforms = new List<IMarkdownDocumentTransform>();
         var htmlDocumentTransforms = new List<IMarkdownDocumentTransform>();
         var rendererDocumentTransforms = new List<IMarkdownDocumentTransform>();
-        var htmlElementBlockConverters = new List<HtmlElementBlockConverter>();
-        var htmlInlineElementConverters = new List<HtmlInlineElementConverter>();
+        var htmlElementBlockConverters = new List<MarkdownHtmlBlockConverter>();
+        var htmlInlineElementConverters = new List<MarkdownHtmlInlineConverter>();
         var roundTripHints = new List<MarkdownVisualElementRoundTripHint>();
         foreach (var plugin in plugins) {
             if (plugin == null) {
@@ -252,12 +252,12 @@ public sealed class MarkdownRendererFeaturePack {
     /// <summary>
     /// HTML-to-markdown custom element block converters contributed by the composed plugins in this feature pack.
     /// </summary>
-    public IReadOnlyList<HtmlElementBlockConverter> HtmlElementBlockConverters => _htmlElementBlockConverters;
+    public IReadOnlyList<MarkdownHtmlBlockConverter> HtmlElementBlockConverters => _htmlElementBlockConverters;
 
     /// <summary>
     /// HTML-to-markdown custom inline element converters contributed by the composed plugins in this feature pack.
     /// </summary>
-    public IReadOnlyList<HtmlInlineElementConverter> HtmlInlineElementConverters => _htmlInlineElementConverters;
+    public IReadOnlyList<MarkdownHtmlInlineConverter> HtmlInlineElementConverters => _htmlInlineElementConverters;
 
     /// <summary>
     /// Shared visual-host HTML round-trip hints contributed by the composed plugins in this feature pack.
@@ -295,7 +295,7 @@ public sealed class MarkdownRendererFeaturePack {
         return options.HasFeaturePackId(Id);
     }
 
-    internal void ApplyReader(MarkdownReaderOptions options) {
+    internal void ApplyReader(MarkdownLoadOptions options) {
         if (options == null) {
             throw new ArgumentNullException(nameof(options));
         }
@@ -307,7 +307,7 @@ public sealed class MarkdownRendererFeaturePack {
         _applyReader(options);
     }
 
-    internal bool ReaderContractMatches(MarkdownReaderOptions options) {
+    internal bool ReaderContractMatches(MarkdownLoadOptions options) {
         if (options == null) {
             return false;
         }

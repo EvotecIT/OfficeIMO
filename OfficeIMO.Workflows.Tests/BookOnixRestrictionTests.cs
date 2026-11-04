@@ -11,7 +11,7 @@ public sealed class BookOnixRestrictionTests {
             new(BookOnixSalesOutletScheme.Onix, "AMZ"), new(BookOnixSalesOutletScheme.Gln, "1234567890128"),
             new(BookOnixSalesOutletScheme.San, "1234567")] }],
         Notes = [new("Only <this> outlet", "eng"), new("Wyłączność", "pol")],
-        ValidFrom = new DateOnly(2026, 10, 1), ValidUntil = new DateOnly(2026, 10, 31)
+        ValidFrom = new DateTime(2026, 10, 1), ValidUntil = new DateTime(2026, 10, 31)
     };
     private static BookOnixExportResult Export(params BookOnixSalesRestriction[] restrictions) => BookOnixTests.Project().ExportOnix(
         BookOnixTests.Options() with { Commercial = new() {
@@ -66,7 +66,7 @@ public sealed class BookOnixRestrictionTests {
             "pod" => new((BookOnixSalesRestrictionKind)17),
             "empty-outlet" => value with { Outlets = [new()] },
             "no-restrictions-outlet" => value with { Kind = BookOnixSalesRestrictionKind.NoRestrictions },
-            "reversed" => value with { ValidUntil = new DateOnly(2026, 9, 30) },
+            "reversed" => value with { ValidUntil = new DateTime(2026, 9, 30) },
             "untranslated" => value with { Notes = [new("one"), new("two", "pol")] },
             "duplicate-language" => value with { Notes = [new("one", "eng"), new("two", "eng")] },
             "long-note" => value with { Notes = [new(new string('x', 301))] },
@@ -93,8 +93,9 @@ public sealed class BookOnixRestrictionTests {
     [InlineData(BookOnixSalesRestrictionKind.NoRestrictions, BookOnixSalesRestrictionKind.LibrariesOnly)]
     public void OpposingAssertionsRequireNonOverlappingPeriods(BookOnixSalesRestrictionKind first, BookOnixSalesRestrictionKind second) {
         Assert.Throws<ArgumentException>(() => Export(new(first), new(second)));
-        Export(new(first) { ValidUntil = new DateOnly(2026, 10, 1) }, new(second) { ValidFrom = new DateOnly(2026, 10, 2) });
-        Assert.Throws<ArgumentException>(() => Export(new(first) { ValidUntil = new DateOnly(2026, 10, 1) }, new(second) { ValidFrom = new DateOnly(2026, 10, 1) }));
+        Export(new(first) { ValidUntil = new DateTime(2026, 10, 1) }, new(second) { ValidFrom = new DateTime(2026, 10, 2) });
+        Assert.Throws<ArgumentException>(() => Export(new(first) { ValidUntil = new DateTime(2026, 10, 1, 0, 0, 1) },
+            new(second) { ValidFrom = new DateTime(2026, 10, 1, 23, 59, 59) }));
     }
 
     [Fact]

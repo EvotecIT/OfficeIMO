@@ -5,13 +5,13 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class BookProject {
     private static IReadOnlyList<XElement> BuildOnixDiscountCodes(BookOnixPrice price) {
-        ArgumentNullException.ThrowIfNull(price.DiscountCodes);
+        if (price.DiscountCodes == null) throw new ArgumentNullException("price.DiscountCodes");
         if (price.DiscountCodes.Count > 16)
             throw new ArgumentException("Supply at most 16 coded discount declarations per price.", nameof(price));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         foreach (BookOnixDiscountCode discount in price.DiscountCodes) {
-            ArgumentNullException.ThrowIfNull(discount);
+            if (discount == null) throw new ArgumentNullException(nameof(discount));
             string scheme = discount.Scheme switch {
                 BookOnixDiscountScheme.BicDiscount => "01", BookOnixDiscountScheme.ProprietaryDiscount => "02",
                 BookOnixDiscountScheme.Boeksoort => "03", BookOnixDiscountScheme.GermanTerms => "04",

@@ -14,7 +14,7 @@ public sealed partial class DocumentAssistantTests {
             var services = TestAppBuilder.CreateTestServices();
             var connections = services.AiConnections;
             connections.ProviderIndex = 3; connections.Model = "fixture"; connections.IsConnected = true;
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("A source sentence.")))).ToBytes();
             using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => true),
                 _ => { }, services.Localizer, (profile, _, _) => Task.FromResult<IOfficeAiExecutor>(new FixtureExecutor(profile, request => Task.FromResult(Answer(request)))));
             model.ExportAnswer = (_, isCurrent, token) => {
@@ -45,7 +45,7 @@ public sealed partial class DocumentAssistantTests {
             connections.ProviderIndex = 3; connections.Model = "fixture"; connections.IsConnected = true;
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("A source sentence.")))).ToBytes();
             using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => true),
                 _ => { }, services.Localizer, (profile, _, _) => Task.FromResult<IOfficeAiExecutor>(new FixtureExecutor(profile, async request => {
                     started.TrySetResult(); await finish.Task; return Answer(request);
@@ -75,7 +75,7 @@ public sealed partial class DocumentAssistantTests {
             var services = TestAppBuilder.CreateTestServices();
             var connections = services.AiConnections;
             connections.ProviderIndex = 3; connections.Model = "fixture"; connections.IsConnected = true;
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("A source sentence.")))).ToBytes();
             bool current = true, checkedDestination = false;
             using var model = new DocumentAssistantViewModel(connections, _ => new(bytes, "source.pdf", null, () => current),
                 _ => { }, services.Localizer, (profile, _, _) => Task.FromResult<IOfficeAiExecutor>(new FixtureExecutor(profile, request => Task.FromResult(Answer(request))))) {
@@ -102,7 +102,7 @@ public sealed partial class DocumentAssistantTests {
             var connections = services.AiConnections;
             connections.ProviderIndex = 3; connections.Model = "fixture"; connections.IsConnected = true;
             int captures = 0;
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("A source sentence.")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("A source sentence.")))).ToBytes();
             bool current = true;
             string? copied = null;
             using var model = new DocumentAssistantViewModel(connections, _ => {
@@ -137,7 +137,7 @@ public sealed partial class DocumentAssistantTests {
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {
             var services = TestAppBuilder.CreateTestServices();
-            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text(" ")))).ToBytes();
+            byte[] bytes = PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph(" ")))).ToBytes();
             bool openedOcr = false;
             using var model = new DocumentAssistantViewModel(services.AiConnections, _ => new(bytes, "scan.pdf", null, () => true),
                 _ => { }, services.Localizer, (_, _, _) => throw new InvalidOperationException("Readiness must not connect")) {

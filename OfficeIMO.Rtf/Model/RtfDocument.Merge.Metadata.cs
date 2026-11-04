@@ -25,40 +25,40 @@ public sealed partial class RtfDocument {
         }
         foreach (int rsid in source.RevisionSaveIds) if (!_revisionSaveIds.Contains(rsid)) _revisionSaveIds.Add(rsid);
         RevisionRootSaveId = MergeMetadataValue(RevisionRootSaveId, source.RevisionRootSaveId, "RevisionRootSaveId", report);
-        RtfDocumentInfo info = source.Info;
-        Info.Generator = MergeMetadataValue(Info.Generator, info.Generator, "Info/Generator", report);
-        Info.Title = MergeMetadataValue(Info.Title, info.Title, "Info/Title", report);
-        Info.Subject = MergeMetadataValue(Info.Subject, info.Subject, "Info/Subject", report);
-        Info.Author = MergeMetadataValue(Info.Author, info.Author, "Info/Author", report);
-        Info.Manager = MergeMetadataValue(Info.Manager, info.Manager, "Info/Manager", report);
-        Info.Company = MergeMetadataValue(Info.Company, info.Company, "Info/Company", report);
-        Info.Operator = MergeMetadataValue(Info.Operator, info.Operator, "Info/Operator", report);
-        Info.Category = MergeMetadataValue(Info.Category, info.Category, "Info/Category", report);
-        Info.Keywords = MergeMetadataValue(Info.Keywords, info.Keywords, "Info/Keywords", report);
-        Info.Comments = MergeMetadataValue(Info.Comments, info.Comments, "Info/Comments", report);
-        Info.HyperlinkBase = MergeMetadataValue(Info.HyperlinkBase, info.HyperlinkBase, "Info/HyperlinkBase", report);
-        Info.Created = MergeMetadataValue(Info.Created, info.Created, "Info/Created", report);
-        Info.Revised = MergeMetadataValue(Info.Revised, info.Revised, "Info/Revised", report);
-        Info.Printed = MergeMetadataValue(Info.Printed, info.Printed, "Info/Printed", report);
-        Info.BackedUp = MergeMetadataValue(Info.BackedUp, info.BackedUp, "Info/BackedUp", report);
-        Info.EditingMinutes = MergeMetadataValue(Info.EditingMinutes, info.EditingMinutes, "Info/EditingMinutes", report);
+        RtfDocumentInfo info = source.Properties;
+        Properties.Generator = MergeMetadataValue(Properties.Generator, info.Generator, "Info/Generator", report);
+        Properties.Title = MergeMetadataValue(Properties.Title, info.Title, "Info/Title", report);
+        Properties.Subject = MergeMetadataValue(Properties.Subject, info.Subject, "Info/Subject", report);
+        Properties.Author = MergeMetadataValue(Properties.Author, info.Author, "Info/Author", report);
+        Properties.Manager = MergeMetadataValue(Properties.Manager, info.Manager, "Info/Manager", report);
+        Properties.Company = MergeMetadataValue(Properties.Company, info.Company, "Info/Company", report);
+        Properties.Operator = MergeMetadataValue(Properties.Operator, info.Operator, "Info/Operator", report);
+        Properties.Category = MergeMetadataValue(Properties.Category, info.Category, "Info/Category", report);
+        Properties.Keywords = MergeMetadataValue(Properties.Keywords, info.Keywords, "Info/Keywords", report);
+        Properties.Comments = MergeMetadataValue(Properties.Comments, info.Comments, "Info/Comments", report);
+        Properties.HyperlinkBase = MergeMetadataValue(Properties.HyperlinkBase, info.HyperlinkBase, "Info/HyperlinkBase", report);
+        Properties.Created = MergeMetadataValue(Properties.Created, info.Created, "Info/Created", report);
+        Properties.Revised = MergeMetadataValue(Properties.Revised, info.Revised, "Info/Revised", report);
+        Properties.Printed = MergeMetadataValue(Properties.Printed, info.Printed, "Info/Printed", report);
+        Properties.BackedUp = MergeMetadataValue(Properties.BackedUp, info.BackedUp, "Info/BackedUp", report);
+        Properties.EditingMinutes = MergeMetadataValue(Properties.EditingMinutes, info.EditingMinutes, "Info/EditingMinutes", report);
         if (invalidateStatistics) {
-            bool hadCounts = Info.NumberOfPages.HasValue || Info.NumberOfWords.HasValue || Info.NumberOfCharacters.HasValue || Info.NumberOfCharactersWithSpaces.HasValue ||
+            bool hadCounts = Properties.NumberOfPages.HasValue || Properties.NumberOfWords.HasValue || Properties.NumberOfCharacters.HasValue || Properties.NumberOfCharactersWithSpaces.HasValue ||
                 info.NumberOfPages.HasValue || info.NumberOfWords.HasValue || info.NumberOfCharacters.HasValue || info.NumberOfCharactersWithSpaces.HasValue;
-            Info.NumberOfPages = null;
-            Info.NumberOfWords = null;
-            Info.NumberOfCharacters = null;
-            Info.NumberOfCharactersWithSpaces = null;
+            Properties.NumberOfPages = null;
+            Properties.NumberOfWords = null;
+            Properties.NumberOfCharacters = null;
+            Properties.NumberOfCharactersWithSpaces = null;
             if (hadCounts) report.Add(RtfConversionSeverity.Warning, "RtfMergeStatisticsInvalidated",
                 "Source and destination page, word, and character counts are omitted because they do not describe the combined content. Recalculate them in the consuming application.",
                 RtfConversionAction.Omitted, sourcePath: "Info", feature: "DocumentStatistics");
         } else {
-            Info.NumberOfPages = MergeMetadataValue(Info.NumberOfPages, info.NumberOfPages, "Info/NumberOfPages", report);
-            Info.NumberOfWords = MergeMetadataValue(Info.NumberOfWords, info.NumberOfWords, "Info/NumberOfWords", report);
-            Info.NumberOfCharacters = MergeMetadataValue(Info.NumberOfCharacters, info.NumberOfCharacters, "Info/NumberOfCharacters", report);
-            Info.NumberOfCharactersWithSpaces = MergeMetadataValue(Info.NumberOfCharactersWithSpaces, info.NumberOfCharactersWithSpaces, "Info/NumberOfCharactersWithSpaces", report);
+            Properties.NumberOfPages = MergeMetadataValue(Properties.NumberOfPages, info.NumberOfPages, "Info/NumberOfPages", report);
+            Properties.NumberOfWords = MergeMetadataValue(Properties.NumberOfWords, info.NumberOfWords, "Info/NumberOfWords", report);
+            Properties.NumberOfCharacters = MergeMetadataValue(Properties.NumberOfCharacters, info.NumberOfCharacters, "Info/NumberOfCharacters", report);
+            Properties.NumberOfCharactersWithSpaces = MergeMetadataValue(Properties.NumberOfCharactersWithSpaces, info.NumberOfCharactersWithSpaces, "Info/NumberOfCharactersWithSpaces", report);
         }
-        Info.InternalVersion = MergeMetadataValue(Info.InternalVersion, info.InternalVersion, "Info/InternalVersion", report);
+        Properties.InternalVersion = MergeMetadataValue(Properties.InternalVersion, info.InternalVersion, "Info/InternalVersion", report);
     }
 
     private static T MergeMetadataValue<T>(T destination, T source, string path, RtfConversionReport report) {

@@ -5,12 +5,12 @@ using System.IO;
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         internal static IReadOnlyList<GoogleSheetsRequest> BuildFilterRequests(
-            ExcelWorksheetSnapshot worksheet,
+            ExcelWorksheetInfo worksheet,
             TranslationReport report,
             ref bool multipleFilterNoticeAdded,
             ref bool customFilterNoticeAdded) {
             var requests = new List<GoogleSheetsRequest>();
-            var filterSources = new List<(ExcelAutoFilterSnapshot Filter, string Title)>();
+            var filterSources = new List<(ExcelAutoFilterInspectionInfo Filter, string Title)>();
 
             if (worksheet.AutoFilter != null) {
                 filterSources.Add((worksheet.AutoFilter, worksheet.Name + " Filter"));
@@ -68,8 +68,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static IReadOnlyList<GoogleSheetsFilterColumnCriteria> BuildFilterCriteria(
-            ExcelWorksheetSnapshot worksheet,
-            ExcelAutoFilterSnapshot filter,
+            ExcelWorksheetInfo worksheet,
+            ExcelAutoFilterInspectionInfo filter,
             TranslationReport report,
             ref bool customFilterNoticeAdded) {
             var criteria = new List<GoogleSheetsFilterColumnCriteria>();
@@ -123,7 +123,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static GoogleSheetsBooleanCondition? BuildBooleanCondition(
-            ExcelCustomFiltersSnapshot customFilters,
+            ExcelCustomFiltersInfo customFilters,
             TranslationReport report,
             ref bool customFilterNoticeAdded) {
             if (customFilters.Conditions.Count == 2) {
@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static bool TryBuildNumericRangeCondition(
-            ExcelCustomFiltersSnapshot customFilters,
+            ExcelCustomFiltersInfo customFilters,
             out GoogleSheetsBooleanCondition? condition) {
             condition = null;
             if (customFilters.Conditions.Count != 2) {
@@ -284,7 +284,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static bool TryNormalizeNumericCondition(
-            ExcelCustomFilterConditionSnapshot condition,
+            ExcelCustomFilterConditionInfo condition,
             out string normalizedOperator,
             out string normalizedValue) {
             normalizedOperator = string.Empty;

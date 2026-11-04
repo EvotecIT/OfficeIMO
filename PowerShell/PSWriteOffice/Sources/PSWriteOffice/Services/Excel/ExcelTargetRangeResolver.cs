@@ -32,7 +32,9 @@ internal static class ExcelTargetRangeResolver
             throw new PSArgumentException("Provide -Range or -HeaderName.");
         }
 
-        return sheet.GetColumnRangeByHeader(headerName!, tableName, headerRow, includeHeader);
+        if (sheet.TryGetColumnRangeByHeader(headerName!, tableName, headerRow, includeHeader, true, out string resolved))
+            return resolved;
+        throw new PSArgumentException($"Column header '{headerName}' was not found on worksheet '{sheet.Name}'.", nameof(headerName));
     }
 
     public static string? ResolveOptional(

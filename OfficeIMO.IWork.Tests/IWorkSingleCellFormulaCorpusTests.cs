@@ -34,7 +34,7 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
             Assert.Equal((row == 20 ? "=COLUMNS" : "=ROWS") + "({1,2,3})", referenceTable.GetCell(row, 2)!.Formula);
             Assert.True(referenceTable.GetCell(row, 2)!.CachedValueIsComplete);
         }
-        using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions {
+        using var result = source.ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED"
@@ -44,8 +44,7 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
     [Fact]
     public void Independent_endpoint_ranges_and_single_cell_offset_preserve_saved_formulas_caches_and_edited_calculation() {
         using var manifest = ReadManifest("endpoint-formulas", out string path);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback, string.Join("\n", result.Report.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -60,7 +59,7 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
             ExcelSheet sheet = reopened.Sheets.Single(sheet => sheet.Name == sourceName);
             Assert.Equal(expected.GetProperty("sourceFormula").GetString()!.Replace("Data::", "'" + targetName.Replace("'", "''") + "'!"),
                 sheet.GetFormulaText(row, column));
-            Assert.Equal(expected.GetProperty("cachedValue").GetDouble(), sheet.CellAt(row, column).GetValue<double>());
+            Assert.Equal(expected.GetProperty("cachedValue").GetDouble(), sheet.Cell(row, column).GetValue<double>());
         }
         foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray()) {
             AssertSourceScalarFunction(result.Projection, expected);
@@ -74,21 +73,21 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
             string expression = formulas.GetFormulaText(row, 2)!;
-            formulas.CellValue(row, 2, -999d);
-            formulas.CellFormula(row, 2, expression);
+            formulas.Cell(row, 2).SetValue(-999d);
+            formulas.Cell(row, 2).SetFormula(expression);
         }
-        data.CellValue(3, 3, 80d);
+        data.Cell(3, 3).SetValue(80d);
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal(80d, formulas.CellAt(79, 2).GetValue<double>());
-        Assert.Equal(80d, formulas.CellAt(102, 2).GetValue<double>());
-        Assert.Equal(2d, formulas.CellAt(29, 2).GetValue<double>());
+        Assert.Equal(80d, formulas.Cell(79, 2).GetValue<double>());
+        Assert.Equal(80d, formulas.Cell(102, 2).GetValue<double>());
+        Assert.Equal(2d, formulas.Cell(29, 2).GetValue<double>());
         foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray())
             AssertSavedScalarFunction(reopened, formulas, expected);
-        formulas.CellFormula(95, 2, "NOT(1)");
-        formulas.CellFormula(145, 2, "UPPER(\"updated\")");
+        formulas.Cell(95, 2).SetFormula("NOT(1)");
+        formulas.Cell(145, 2).SetFormula("UPPER(\"updated\")");
         Assert.True(reopened.Calculate() > 0);
-        Assert.False(formulas.CellAt(95, 2).GetValue<bool>());
-        Assert.Equal("UPDATED", formulas.CellAt(145, 2).GetValue<string>());
+        Assert.False(formulas.Cell(95, 2).GetValue<bool>());
+        Assert.Equal("UPDATED", formulas.Cell(145, 2).GetValue<string>());
 
         string Name(string sourceSheet, string sourceTable) => result.WorksheetMappings.Single(mapping =>
             mapping.SourceSheetName == sourceSheet && mapping.SourceTableName == sourceTable).DestinationName;
@@ -147,8 +146,8 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         Assert.Equal(expected.TryGetProperty("excelFormula", out JsonElement formula) ? formula.GetString()
             : expected.GetProperty("sourceFormula").GetString(), sheet.GetFormulaText(row, column));
         object value = ScalarValue(expected.GetProperty("cachedValue"));
-        object actual = value is bool ? sheet.CellAt(row, column).GetValue<bool>()
-            : value is double ? sheet.CellAt(row, column).GetValue<double>() : sheet.CellAt(row, column).GetValue<string>()!;
+        object actual = value is bool ? sheet.Cell(row, column).GetValue<bool>()
+            : value is double ? sheet.Cell(row, column).GetValue<double>() : sheet.Cell(row, column).GetValue<string>()!;
         Assert.Equal(value, actual);
         IWorkFormulaCacheAssertions.HasType(document, document.Sheets.ToList().IndexOf(sheet), "B" + row, value is bool ? "b" : value is double ? "n" : "str");
     }

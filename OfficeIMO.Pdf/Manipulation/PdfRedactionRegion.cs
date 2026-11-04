@@ -15,6 +15,7 @@ public enum PdfRedactionRegionKind {
 }
 
 /// <summary>One point in PDF default user-space coordinates.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public readonly struct PdfRedactionPoint {
     /// <summary>Creates a finite PDF point.</summary>
     public PdfRedactionPoint(double x, double y) {
@@ -24,9 +25,9 @@ public readonly struct PdfRedactionPoint {
         Y = y;
     }
 
-    /// <summary>Horizontal coordinate in PDF points.</summary>
+    /// <summary>Horizontal coordinate in page user-space units.</summary>
     public double X { get; }
-    /// <summary>Vertical coordinate in PDF points.</summary>
+    /// <summary>Vertical coordinate in page user-space units.</summary>
     public double Y { get; }
 }
 
@@ -34,6 +35,7 @@ public readonly struct PdfRedactionPoint {
 /// Review geometry normalized into bounded areas that retain exact polygon or freehand geometry through
 /// planning, destructive application, verification, and evidence.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfRedactionRegion {
     private const int MaximumPointCount = 4096;
     private PdfRedactionRegion(PdfRedactionRegionKind kind, int pageNumber, IReadOnlyList<PdfRedactionPoint> points, IReadOnlyList<PdfRedactionArea> areas, string? label, double strokeWidth) {
@@ -55,7 +57,7 @@ public sealed class PdfRedactionRegion {
     public IReadOnlyList<PdfRedactionArea> Areas { get; }
     /// <summary>Optional caller label.</summary>
     public string? Label { get; }
-    /// <summary>Freehand stroke width in PDF points, or zero for other kinds.</summary>
+    /// <summary>Freehand stroke width in page user-space units, or zero for other kinds.</summary>
     public double StrokeWidth { get; }
 
     /// <summary>Creates one rectangle region.</summary>

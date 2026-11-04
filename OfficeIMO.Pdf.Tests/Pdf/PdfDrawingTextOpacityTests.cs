@@ -153,11 +153,13 @@ public sealed class PdfDrawingTextOpacityTests {
         }
     }
 
-    private static byte[] CreatePdf(OfficeDrawing drawing) => PdfDocument.Create(new PdfOptions {
-        PageWidth = drawing.Width, PageHeight = drawing.Height,
-        MarginLeft = 0D, MarginTop = 0D, MarginRight = 0D, MarginBottom = 0D,
+    private static byte[] CreatePdf(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+        },
         CompressContentStreams = false
-    }).Compose(composer => composer.Page(page => page.Content(content => content.Drawing(drawing)))).ToBytes();
+    }).Compose(composer => composer.Page(page => page.Content(content => content.Drawing(drawing)))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
     private static IEnumerable<OfficeDrawingElement> EnumerateElements(OfficeDrawing drawing) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
@@ -183,11 +185,13 @@ public sealed class PdfDrawingTextOpacityTests {
         drawing.AddText("FIRST", 0D, 0D, 180D, 40D, new OfficeFontInfo("Arial", 24D),
             OfficeColor.FromRgba(255, 0, 0, alpha), wrapText: wrap);
         drawing.AddText("FOLLOW", 0D, 60D, 180D, 40D, new OfficeFontInfo("Arial", 24D), OfficeColor.FromRgb(0, 0, 255));
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 220D, PageHeight = 150D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+        var document = PdfDocument.Create(new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(150D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            }
         });
-        document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
+        document.Content.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(110D)));
         byte[] bytes = document.ToBytes();
         string text = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Contains("FIRST", text);
@@ -224,11 +228,13 @@ public sealed class PdfDrawingTextOpacityTests {
             OfficeTextVerticalAlignment.Top, 0D, null, null, wrap, false, false, false, false,
             null, null, OfficeTextDecorationStyle.Single, OfficeTextDecorationStyle.Single,
             OfficeTextBaseline.Normal, 0, 1D, 0D, OfficeColor.FromRgba(0, 0, 255, decorationAlpha));
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 220D, PageHeight = 150D,
-            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+        var document = PdfDocument.Create(new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(150D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            }
         });
-        document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
+        document.Content.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(110D)));
         OfficeDrawing scene = PdfPageImageRenderer.RenderPage(document.ToBytes());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(scene, 2D, OfficeColor.White);
         int opaqueBlue = 0;
@@ -254,12 +260,14 @@ public sealed class PdfDrawingTextOpacityTests {
             OfficeTextVerticalAlignment.Top, 5D, null, null, wrap, false, false, false, false,
             null, null, OfficeTextDecorationStyle.Single, OfficeTextDecorationStyle.Single,
             OfficeTextBaseline.Normal, 0, 1D, 0D, OfficeColor.FromRgba(0, 0, 255, strokeAlpha));
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 220D, PageHeight = 150D, MarginLeft = 20D, MarginRight = 20D,
-            MarginTop = 20D, MarginBottom = 20D, CompressContentStreams = false,
+        var document = PdfDocument.Create(new PdfCreateOptions {
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(150D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20D), Right = global::OfficeIMO.OfficeLength.Points(20D), Top = global::OfficeIMO.OfficeLength.Points(20D), Bottom = global::OfficeIMO.OfficeLength.Points(20D) }
+            }, CompressContentStreams = false,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         });
-        document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
+        document.Content.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(110D)));
         byte[] bytes = document.ToBytes();
         var (objects, _) = PdfSyntax.ParseObjects(bytes);
         var form = Assert.Single(objects.Values.Select(value => value.Value).OfType<PdfStream>()

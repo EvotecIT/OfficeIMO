@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Linq;
 using System.Globalization;
 using System.Threading;
 
@@ -28,12 +29,14 @@ internal static partial class PdfIncrementalUpdater {
     /// <summary>
     /// Appends a simple AcroForm field-value revision to a PDF byte array without rewriting the existing bytes.
     /// </summary>
-    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
-        return UpdateFormFields(pdf, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options);
+    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return UpdateFormFields(pdf, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a form-field revision using optional password and parsing settings.</summary>
     public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return UpdateFormFields(pdf, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default, cancellationToken), options, readOptions, cancellationToken);
     }
@@ -51,8 +54,9 @@ internal static partial class PdfIncrementalUpdater {
     /// <summary>
     /// Appends a simple AcroForm field-value revision to a PDF byte array without rewriting the existing bytes.
     /// </summary>
-    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
-        return UpdateFormFields(pdf, fieldValues, options, readOptions: null);
+    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return UpdateFormFields(pdf, fieldValues, options, readOptions: null, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a form-field revision using optional password and parsing settings.</summary>
@@ -60,6 +64,8 @@ internal static partial class PdfIncrementalUpdater {
         PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfIncrementalFormFieldUpdateOptions effectiveOptions = options ?? new PdfIncrementalFormFieldUpdateOptions();
+        // Without NeedAppearances no viewer repaints the field, so the old appearance would go on showing the replaced value.
+        bool generateAppearanceStreams = effectiveOptions.GenerateAppearanceStreams || !effectiveOptions.KeepNeedAppearances;
         CancellationToken optionToken = effectiveOptions.CancellationToken;
         using var linkedCancellation = optionToken.CanBeCanceled && cancellationToken.CanBeCanceled && optionToken != cancellationToken
             ? CancellationTokenSource.CreateLinkedTokenSource(optionToken, cancellationToken) : null;
@@ -115,11 +121,12 @@ internal static partial class PdfIncrementalUpdater {
                 fieldValues,
                 remaining,
                 changedObjectNumbers,
-                effectiveOptions,
+                generateAppearanceStreams,
                 new HashSet<int>(),
                 ref nextObjectNumber,
                 ref helveticaFontObjectNumber,
                 readOptions?.Limits.MaxDecodedStreamBytes ?? PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                readOptions?.Limits.MaxDecodedTextCharacters ?? PdfReadLimits.DefaultMaxDecodedTextCharacters,
                 cancellationToken);
         }
 
@@ -162,13 +169,15 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a readable PDF stream.</summary>
-    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
-        return UpdateFormFields(input, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options);
+    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return UpdateFormFields(input, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a form-field revision from a readable stream using optional password and parsing settings.</summary>
-    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
-        return UpdateFormFields(input, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options, readOptions);
+    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return UpdateFormFields(input, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options, readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a readable PDF stream.</summary>
@@ -180,14 +189,16 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a readable PDF stream.</summary>
-    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
-        return UpdateFormFields(input, fieldValues, options, readOptions: null);
+    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return UpdateFormFields(input, fieldValues, options, readOptions: null, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a form-field revision from a readable stream using optional password and parsing settings.</summary>
-    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
+    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions, options?.CancellationToken ?? default);
-        return UpdateFormFields(source.Bytes, fieldValues, options, source.Options);
+        return UpdateFormFields(source.Bytes, fieldValues, options, source.Options, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
@@ -199,13 +210,15 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
-    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
-        UpdateFormFields(inputPath, outputPath, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options);
+    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        UpdateFormFields(inputPath, outputPath, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a form-field revision to a PDF file using optional password and parsing settings.</summary>
-    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
-        UpdateFormFields(inputPath, outputPath, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options, readOptions);
+    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        UpdateFormFields(inputPath, outputPath, ToIncrementalFormFieldValues(fieldValues, options?.CancellationToken ?? default), options, readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
@@ -217,18 +230,20 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
-    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options) {
-        UpdateFormFields(inputPath, outputPath, fieldValues, options, readOptions: null);
+    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        UpdateFormFields(inputPath, outputPath, fieldValues, options, readOptions: null, cancellationToken: cancellationToken);
     }
 
     /// <summary>Appends a form-field revision to a PDF file using optional password and parsing settings.</summary>
-    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
+    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions, options?.CancellationToken ?? default);
-        byte[] output = UpdateFormFields(source.Bytes, fieldValues, options, source.Options);
+        byte[] output = UpdateFormFields(source.Bytes, fieldValues, options, source.Options, cancellationToken: cancellationToken);
         (options?.CancellationToken ?? default).ThrowIfCancellationRequested();
-        CancellationToken cancellationToken = options?.CancellationToken ?? default;
+        cancellationToken = options?.CancellationToken ?? default;
         OfficeFileCommit.Write(outputPath, stream => OfficeStreamWriter.CopyBytes(stream, output, cancellationToken), cancellationToken);
     }
 
@@ -287,11 +302,12 @@ internal static partial class PdfIncrementalUpdater {
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         HashSet<string> remaining,
         HashSet<int> changedObjectNumbers,
-        PdfIncrementalFormFieldUpdateOptions options,
+        bool generateAppearanceStreams,
         HashSet<int> visited,
         ref int nextObjectNumber,
         ref int helveticaFontObjectNumber,
         int maximumDecodedBytes,
+        int maximumVisibleTextCharacters,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int? objectNumber = null;
@@ -330,19 +346,20 @@ internal static partial class PdfIncrementalUpdater {
             if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
                 bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
                 string name = preparedValue.FirstStoredValue;
-                SetIncrementalWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, options.GenerateAppearanceStreams,
+                SetIncrementalWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, generateAppearanceStreams,
                     changedObjectNumbers, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
-            } else if (options.GenerateAppearanceStreams) {
+            } else if (generateAppearanceStreams) {
                 PdfFormFiller.ChoiceAppearanceData? choiceAppearance = null;
                 if (fieldType == "Ch" && (fieldFlags & IncrementalComboChoiceFlag) == 0 && fieldOptions != null) {
                     field.Items.TryGetValue("V", out PdfObject? selectedValue);
                     PdfArray? indices = field.Items.TryGetValue("I", out PdfObject? i) ? ResolveObject(objects, i) as PdfArray : null;
                     int top = field.Get<PdfNumber>("TI") is PdfNumber number && number.Value >= 0 && number.Value <= int.MaxValue ? (int)number.Value : 0;
-                    choiceAppearance = PdfFormFiller.ReadChoiceAppearanceData(objects, fieldOptions, ResolveObject(objects, selectedValue), indices, top, fieldFlags, cancellationToken);
+                    choiceAppearance = PdfFormFiller.ReadChoiceAppearanceData(objects, fieldOptions, ResolveObject(objects, selectedValue), indices, top, fieldFlags,
+                        maximumVisibleTextCharacters, cancellationToken);
                 }
                 SetIncrementalTextWidgetAppearances(objects, field, preparedValue.AppearanceValue, fieldFlags, fieldQuadding, fieldMaxLength,
                     defaultResources, defaultAppearance, preparedValue.ForceMultilineAppearance, changedObjectNumbers, new HashSet<int>(),
-                    ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken);
+                    ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken);
             }
 
             remaining.Remove(fullName);
@@ -359,8 +376,8 @@ internal static partial class PdfIncrementalUpdater {
         for (int i = 0; i < kids.Items.Count; i++) {
 
             UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength,
-                defaultResources, defaultAppearance, fieldOptions, fieldValues, remaining, changedObjectNumbers, options, visited,
-                ref nextObjectNumber, ref helveticaFontObjectNumber, maximumDecodedBytes, cancellationToken);
+                defaultResources, defaultAppearance, fieldOptions, fieldValues, remaining, changedObjectNumbers, generateAppearanceStreams, visited,
+                ref nextObjectNumber, ref helveticaFontObjectNumber, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken);
         }
     }
 
@@ -381,6 +398,7 @@ internal static partial class PdfIncrementalUpdater {
         ref int helveticaFontObjectNumber,
         PdfFormFiller.ChoiceAppearanceData? choiceAppearance,
         int maximumDecodedBytes,
+        int maximumMeasurementCharacters,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
@@ -389,6 +407,7 @@ internal static partial class PdfIncrementalUpdater {
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
         if (IsWidget(field) && TryReadRect(field, out double width, out double height)) {
+            int turn = PdfFormFiller.ReadWidgetRotation(objects, field, ref width, ref height);
             PdfDictionary? widgetAppearanceResources = TryReadIncrementalNormalAppearanceResources(objects, field);
             PdfDictionary? widgetPageResources = TryReadIncrementalWidgetPageResources(objects, field);
             int appearanceObjectNumber = nextObjectNumber++;
@@ -401,7 +420,7 @@ internal static partial class PdfIncrementalUpdater {
             objects[appearanceObjectNumber] = new PdfIndirectObject(
                 appearanceObjectNumber,
                 0,
-                CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken));
+                PdfFormFiller.ApplyWidgetRotation(CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken), turn, width, height));
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
@@ -427,7 +446,7 @@ internal static partial class PdfIncrementalUpdater {
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
                 SetIncrementalTextWidgetAppearances(objects, kid, value, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources,
                     defaultAppearance, forceMultilineAppearance, changedObjectNumbers, visited, ref nextObjectNumber,
-                    ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken);
+                    ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken);
                 if (kidObjectNumber.HasValue) {
                     changedObjectNumbers.Add(kidObjectNumber.Value);
                 }
@@ -521,7 +540,8 @@ internal static partial class PdfIncrementalUpdater {
         PdfFormFieldStyle style,
         double fontSize,
         ref int nextObjectNumber,
-        ref int helveticaFontObjectNumber, PdfFormFiller.ChoiceAppearanceData? choiceAppearance, int maximumDecodedBytes, CancellationToken cancellationToken) {
+        ref int helveticaFontObjectNumber, PdfFormFiller.ChoiceAppearanceData? choiceAppearance, int maximumDecodedBytes,
+        int maximumMeasurementCharacters, CancellationToken cancellationToken) {
         string fontResourceName = IncrementalDefaultAppearanceFontName;
         PdfDictionary resources;
         if (!TryCreateIncrementalDefaultAppearanceFontResources(objects, defaultAppearance, out fontResourceName, out resources, inheritedDefaultResources, widgetAppearanceResources, widgetPageResources)) {
@@ -531,7 +551,7 @@ internal static partial class PdfIncrementalUpdater {
 
         string effectiveAppearance = "/" + fontResourceName + " " + fontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " Tf";
         return PdfFormFiller.CreateUpdatedTextWidgetAppearance(objects, resources, widgetAppearanceResources, widgetPageResources, effectiveAppearance, value,
-            width, height, style, fontSize, choiceAppearance, ref nextObjectNumber, maximumDecodedBytes, cancellationToken);
+            width, height, style, fontSize, choiceAppearance, ref nextObjectNumber, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken);
     }
 
     private static PdfStream CreateIncrementalButtonAppearanceStream(double width, double height, bool selected, bool isRadioButton, PdfFormFieldStyle? style = null) {
@@ -671,17 +691,17 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out PdfObject? mkObject) ? mkObject : null) is PdfDictionary mk) {
-            if (TryReadColor(objects, mk, "BG", out PdfColor backgroundColor)) {
+            if (TryReadColor(objects, mk, "BG", out global::OfficeIMO.OfficeColor backgroundColor)) {
                 style.BackgroundColor = backgroundColor;
             }
 
-            if (TryReadColor(objects, mk, "BC", out PdfColor borderColor)) {
+            if (TryReadColor(objects, mk, "BC", out global::OfficeIMO.OfficeColor borderColor)) {
                 style.BorderColor = borderColor;
             }
         }
 
         if (TryReadWidgetBorderWidth(objects, widget, out double borderWidth)) {
-            style.BorderWidth = borderWidth;
+            style.BorderWidth = global::OfficeIMO.OfficeLength.Points(borderWidth);
         }
 
         if (TryReadWidgetBorderStyle(objects, widget, out PdfFormFieldBorderStyle borderStyle)) {
@@ -689,10 +709,10 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (TryReadWidgetBorderDashPattern(objects, widget, out IReadOnlyList<double>? borderDashPattern)) {
-            style.BorderDashPattern = borderDashPattern;
+            style.BorderDashPattern = borderDashPattern?.Select(global::OfficeIMO.OfficeLength.Points).ToArray();
         }
 
-        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out PdfColor textColor)) {
+        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor textColor)) {
             style.TextColor = textColor;
         }
 
@@ -859,8 +879,8 @@ internal static partial class PdfIncrementalUpdater {
         }
     }
 
-    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out PdfColor color) {
-        color = PdfColor.Black;
+    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out global::OfficeIMO.OfficeColor color) {
+        color = global::OfficeIMO.OfficeColor.Black;
         if (!dictionary.Items.TryGetValue(key, out PdfObject? colorObject) ||
             ResolveObject(objects, colorObject) is not PdfArray colorArray ||
             colorArray.Items.Count < 3 ||
@@ -870,7 +890,7 @@ internal static partial class PdfIncrementalUpdater {
             return false;
         }
 
-        color = new PdfColor(ClampColor(red.Value), ClampColor(green.Value), ClampColor(blue.Value));
+        color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(ClampColor(red.Value), ClampColor(green.Value), ClampColor(blue.Value));
         return true;
     }
 
@@ -976,7 +996,7 @@ internal static partial class PdfIncrementalUpdater {
         return true;
     }
 
-    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out PdfColor color) {
+    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor color) {
         return PdfDefaultAppearanceParser.TryReadTextColor(TryReadText(objects, widget, "DA") ?? inheritedDefaultAppearance, out color);
     }
 

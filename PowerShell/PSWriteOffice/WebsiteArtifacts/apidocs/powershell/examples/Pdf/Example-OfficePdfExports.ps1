@@ -50,9 +50,8 @@ Export-OfficeDocumentPdf `
     -PdfConversionReportVariable markdownReport
 
 New-OfficePowerPoint -Path $powerPointPath {
-    PptSlide {
-        PptTitle -Title 'PowerPoint PDF export'
-        PptBullets -Bullets 'Create the deck', 'Export the PDF', 'Inspect generated output'
+    PowerPointSlide -Title 'PowerPoint PDF export' {
+        PowerPointList 'Create the deck', 'Export the PDF', 'Inspect generated output'
     }
 }
 Export-OfficeDocumentPdf -InputPath $powerPointPath -Path $powerPointPdf

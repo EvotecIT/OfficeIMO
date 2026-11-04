@@ -129,12 +129,12 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets or sets the font size of the numbering symbols in points.
     /// </summary>
-    public int? FontSize {
+    public global::OfficeIMO.OfficeLength? FontSize {
         get {
-            return GetNumberingProperty<int?>(props => {
+            return GetNumberingProperty<global::OfficeIMO.OfficeLength?>(props => {
                 var fontSize = props.Elements<FontSize>().FirstOrDefault();
                 if (fontSize?.Val != null && int.TryParse(fontSize.Val, out var size)) {
-                    return size / 2;
+                    return global::OfficeIMO.OfficeLength.Emus((long)size * 6350);
                 }
                 return null;
             });
@@ -145,7 +145,7 @@ public partial class WordList : WordElement {
                 props.RemoveAllChildren<FontSizeComplexScript>();
                 if (value.HasValue) {
                     // Convert from points to half-points
-                    var halfPoints = (value.Value * 2).ToString();
+                    var halfPoints = checked((int)value.Value.ToHalfPoints()).ToString(System.Globalization.CultureInfo.InvariantCulture);
                     props.Append(new FontSize { Val = halfPoints });
                     props.Append(new FontSizeComplexScript { Val = halfPoints });
                 }
@@ -154,40 +154,25 @@ public partial class WordList : WordElement {
     }
 
     /// <summary>
-    /// Gets or sets the color of the numbering symbols.
+    /// Gets or sets the color of the numbering symbols. Setting <see langword="null"/> removes the color.
     /// </summary>
-    public OfficeIMO.Drawing.OfficeColor? Color {
+    public OfficeIMO.OfficeColor? Color {
         get {
-            return OfficeIMO.Drawing.OfficeColor.TryParse(ColorHex, out var color) ? color : null;
-        }
-        set {
-            if (value != null) {
-                this.ColorHex = value.Value.ToRgbHex();
-            } else {
-                this.ColorHex = "";
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets the hexadecimal color value of the numbering symbols.
-    /// </summary>
-    public string ColorHex {
-        get {
-            return (GetNumberingProperty<string>(props => {
+            string value = (GetNumberingProperty<string>(props => {
                 var color = props.Elements<DocumentFormat.OpenXml.Wordprocessing.Color>().FirstOrDefault();
                 return color?.Val ?? string.Empty;
             }, string.Empty)) ?? string.Empty;
+            return OfficeIMO.OfficeColor.TryParse(value, out var parsed) ? parsed : null;
         }
         set {
             SetNumberingProperty(props => {
                 props.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.Color>();
-                if (!string.IsNullOrEmpty(value)) {
+                if (value.HasValue) {
                     props.Append(new DocumentFormat.OpenXml.Wordprocessing.Color {
-                        Val = value.Replace("#", "").ToUpperInvariant()
+                        Val = value.Value.ToRgbHex()
                     });
                 }
-            }, !string.IsNullOrEmpty(value));
+            }, value.HasValue);
         }
     }
 
@@ -247,11 +232,14 @@ public partial class WordList : WordElement {
     }
 
     /// <summary>
-    /// Gets or sets the font name of the numbering symbols.
+    /// Gets or sets the font family of the numbering symbols; <see langword="null"/> when none is set.
     /// </summary>
-    public string FontName {
-        get => (GetNumberingProperty<string>(props =>
-            props.Elements<RunFonts>().FirstOrDefault()?.Ascii, string.Empty)) ?? string.Empty;
+    public string? FontFamily {
+        get {
+            string? value = GetNumberingProperty<string>(props =>
+                props.Elements<RunFonts>().FirstOrDefault()?.Ascii, string.Empty);
+            return string.IsNullOrEmpty(value) ? null : value;
+        }
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<RunFonts>();
             if (!string.IsNullOrEmpty(value)) {

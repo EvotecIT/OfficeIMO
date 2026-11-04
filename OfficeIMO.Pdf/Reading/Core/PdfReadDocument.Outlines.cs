@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     private const int MaxReadOutlineDepth = 64;
     private const int MaxReadOutlineItems = 2048;
 

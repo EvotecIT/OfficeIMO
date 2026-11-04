@@ -1,0 +1,95 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [7 0 R 8 0 R] /DA (/F1 12 Tf 0 g) /DR << /Font << /F1 5 0 R >> >> /NeedAppearances true >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 9 0 R >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 10 0 R /Annots [7 0 R 8 0 R] >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+7 0 obj
+<< /Type /Annot /Subtype /Widget /FT /Tx /T (ApprovedBy) /TU (Approved by) /V () /Ff 0 /Rect [180 632 460 656] /F 4 /P 4 0 R /DA (/F1 12 Tf 0 g) /MK << /BC [0.6 0.6 0.6] >> /AP << /N 11 0 R >> >>
+endobj
+8 0 obj
+<< /Type /Annot /Subtype /Widget /FT /Btn /T (Amount checked) /Rect [180 584 198 602] /F 4 /P 4 0 R /V /Off /AS /Off /MK << /BC [0.6 0.6 0.6] /CA (4) >> /AP << /N << /Yes 13 0 R /Off 12 0 R >> >> >>
+endobj
+9 0 obj
+<< /Length 824 >>
+stream
+BT /F2 26 Tf 72 716 Td (Welcome to OfficeIMO Studio) Tj ET
+BT /F1 12 Tf 72 686 Td (This short PDF is here for you to try the app. Use it however you like.) Tj ET
+BT /F2 15 Tf 72 644 Td (Things to try) Tj ET
+BT /F1 12 Tf 72 620 Td (Search: look for the word invoice in this document.) Tj ET
+BT /F1 12 Tf 72 600 Td (Mark up: choose Markup, then highlight this sentence or draw on the page.) Tj ET
+BT /F1 12 Tf 72 580 Td (Pages: choose Pages to see every page at a glance.) Tj ET
+BT /F1 12 Tf 72 560 Td (Fill and sign: go to the next page and complete the form.) Tj ET
+BT /F1 12 Tf 72 540 Td (Convert: open Tools to turn this PDF into a Word document.) Tj ET
+BT /F2 15 Tf 72 498 Td (Your documents stay yours) Tj ET
+BT /F1 12 Tf 72 474 Td (Everything happens on your device. Nothing is uploaded and no account is needed.) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Length 332 >>
+stream
+BT /F2 26 Tf 72 716 Td (Sample invoice approval) Tj ET
+BT /F1 12 Tf 72 686 Td (Fill in the form, then add your signature from Tools.) Tj ET
+BT /F2 12 Tf 72 640 Td (Approved by) Tj ET
+BT /F2 12 Tf 72 590 Td (Amount checked) Tj ET
+BT /F1 12 Tf 72 540 Td (Signature) Tj ET
+BT /F1 12 Tf 150 538 Td (______________________________) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Length 56 /Type /XObject /Subtype /Form /BBox [0 0 280 24] >>
+stream
+0.95 0.97 1 rg 0 0 280 24 re f 0.6 G 0.5 0.5 279 23 re S
+endstream
+endobj
+12 0 obj
+<< /Length 24 /Type /XObject /Subtype /Form /BBox [0 0 18 18] >>
+stream
+0.6 G 0.5 0.5 17 17 re S
+endstream
+endobj
+13 0 obj
+<< /Length 54 /Type /XObject /Subtype /Form /BBox [0 0 18 18] >>
+stream
+0.6 G 0.5 0.5 17 17 re S 0 G 2 w 3 9 m 7 4 l 15 14 l S
+endstream
+endobj
+14 0 obj
+<< /Title (OfficeIMO Studio Sample) /Producer (OfficeIMO) >>
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000015 00000 n 
+0000000176 00000 n 
+0000000239 00000 n 
+0000000375 00000 n 
+0000000534 00000 n 
+0000000604 00000 n 
+0000000679 00000 n 
+0000000890 00000 n 
+0000001104 00000 n 
+0000001979 00000 n 
+0000002363 00000 n 
+0000002519 00000 n 
+0000002642 00000 n 
+0000002795 00000 n 
+trailer
+<< /Size 15 /Root 1 0 R /Info 14 0 R >>
+startxref
+2872
+%%EOF

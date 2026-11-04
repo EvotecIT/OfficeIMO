@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Data");
-                sheet.Cell(1, 1, "Present");
+                var sheet = doc.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Present");
 
                 sheet.SetByHeader(2, "Missing", "value");
 
@@ -39,8 +39,8 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
+                var sheet = doc.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Name");
                 sheet.SetByHeader(2, "Name", null);
 
                 Assert.True(sheet.TryGetCellText(2, 1, out string text));
@@ -61,38 +61,34 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         [Trait("Category", "ExcelHeaders")]
-        public void Excel_AutoFilterByHeaderEquals_MissingHeader_DoesNothing() {
-            string filePath = Path.Combine(_directoryWithFiles, "HeaderMissing_AutoFilter.xlsx");
-            if (File.Exists(filePath)) File.Delete(filePath);
+        public void Excel_AutoFilterColumn_MissingHeader_Throws() {
+            using var doc = ExcelDocument.Create(new MemoryStream());
+            var sheet = doc.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("Alice");
 
-            using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alice");
-
-                sheet.AutoFilterByHeaderEquals("Missing", new[] { "Alice" });
-                doc.Save();
-            }
-
-            using (var pkg = SpreadsheetDocument.Open(filePath, false)) {
-                var wsPart = pkg.WorkbookPart!.WorksheetParts.First();
-                var autoFilter = wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault();
-                Assert.Null(autoFilter);
-            }
+            ExcelAutoFilter filter = sheet.UsedRange.AutoFilter();
+            ArgumentException error = Assert.Throws<ArgumentException>(() => filter.Column("Missing"));
+            Assert.Contains("Missing", error.Message, StringComparison.Ordinal);
+            Assert.Empty(Assert.Single(sheet.GetAutoFilters()).Columns);
         }
 
         [Fact]
         [Trait("Category", "ExcelHeaders")]
-        public void Excel_LinkByHeaderToUrls_MissingHeader_DoesNothing() {
+        public void Excel_LinkByHeader_MissingHeader_ReportsFailureWithoutLinks() {
             string filePath = Path.Combine(_directoryWithFiles, "HeaderMissing_Links.xlsx");
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Summary");
-                sheet.Cell(1, 1, "Existing");
-                sheet.Cell(2, 1, "value");
+                var sheet = doc.AddSheet("Summary");
+                sheet.Cell(1, 1).SetValue("Existing");
+                sheet.Cell(2, 1).SetValue("value");
 
-                sheet.LinkByHeaderToUrls("Missing", rowFrom: 2, rowTo: 2, urlForCellText: _ => "https://example.com");
+                ExcelLinkByHeaderResult result = sheet.LinkByHeader("Missing", ExcelLinkTarget.Url(_ => "https://example.com"),
+                    new ExcelLinkByHeaderOptions { FirstRow = 2, LastRow = 2 });
+                Assert.False(result.Succeeded);
+                Assert.Contains("Missing", result.Failure, StringComparison.Ordinal);
+                Assert.Equal(0, result.LinkedCount);
                 doc.Save();
             }
 
@@ -110,9 +106,9 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                var sheet = doc.AddWorksheet("Data");
-                sheet.Cell(1, 1, "Existing");
-                sheet.CellValue(2, 1, 10);
+                var sheet = doc.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Existing");
+                sheet.Cell(2, 1).SetValue(10);
 
                 sheet.ColumnStyleByHeader("Missing").Bold().Number();
                 doc.Save();

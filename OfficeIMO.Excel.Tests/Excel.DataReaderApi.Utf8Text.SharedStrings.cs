@@ -19,7 +19,7 @@ public sealed partial class ExcelUtf8TextTests {
     public void BorrowedSharedText_UsesCanonicalTextForSpansStringsAndCopies(string item, string expected) {
         string path = CreateWorkbook("<c r=\"A2\" t=\"s\"><v>0</v></c>", sharedStringItems: item);
         try {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.True(reader.Read());
             Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text));
             Assert.Equal(expected, Decode(text));
@@ -46,7 +46,7 @@ public sealed partial class ExcelUtf8TextTests {
         string path = CreateWorkbook("<c r=\"A2\" t=\"s\"><v>0</v></c><c r=\"B2\" t=\"s\"><v>256</v></c>",
             columns: 2, sharedStringItems: items);
         try {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.True(reader.Read());
             Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> first));
             Assert.True(reader.TryGetUtf8Text(1, out ReadOnlySpan<byte> last));
@@ -64,7 +64,7 @@ public sealed partial class ExcelUtf8TextTests {
         string path = CreateWorkbook("<c r=\"A2\" t=\"s\"><v>0</v></c>",
             sharedStringItems: "<si><t>" + expected + "</t></si>");
         try {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.True(reader.Read());
             AssertBorrowedText(reader, expected);
             Assert.Equal(expected, reader.GetString(0));
@@ -85,12 +85,12 @@ public sealed partial class ExcelUtf8TextTests {
         string path = CreateWorkbook(cell, utf16: projection == "Utf16",
             sharedStringItems: "<si><t>original</t></si>");
         try {
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 InferSchema = projection == "Schema",
                 SchemaSampleRows = 1,
                 CellValueConverter = projection == "Converter" ? static _ => new ExcelCellValue("converted") : null
             };
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path, options);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, options);
             Assert.True(reader.Read());
             Assert.False(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text));
             Assert.True(text.IsEmpty);
@@ -106,7 +106,7 @@ public sealed partial class ExcelUtf8TextTests {
             extraRows: "<row r=\"3\"><c r=\"A3\" t=\"s\"><v>1</v></c></row>", secondSheet: true,
             sharedStringItems: "<si><t>first Ż</t></si><si><t>second 🐢</t></si>");
         try {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.Throws<InvalidOperationException>(() => reader.TryGetUtf8Text(0, out _));
             Assert.True(await reader.ReadAsync());
             AssertBorrowedText(reader, "first Ż");

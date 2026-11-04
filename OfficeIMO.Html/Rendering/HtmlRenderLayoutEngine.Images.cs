@@ -7,6 +7,8 @@ using System.Xml.Linq;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    private readonly Dictionary<IElement, string> _imageAnchorNames = new();
+
     private HtmlRenderFlowBlock LayoutImage(IElement element, double containingWidth, HtmlRenderBoxStyle style, string? inheritedLink = null) {
         if (IsInlineFrameElement(element)) return LayoutFrame(element, containingWidth, style);
         string? editableImageKey = HtmlEditableLayoutProjector.GetImageSourceKey(element);
@@ -43,6 +45,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicHeight = hasIntrinsicSize
             ? imageInfo!.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? imageInfo.DpiY)
             : 150D;
+        ApplyBrokenImageIntrinsicSize(element, style, hasIntrinsicSize, bytes, ref intrinsicWidth, ref intrinsicHeight);
         ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
         double boxWidth = contentSize.Width + style.HorizontalInsets;
         double boxHeight = contentSize.Height + style.VerticalInsets;
@@ -151,10 +154,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     /// <summary>Names a decorative image's separate link interaction from its enclosing anchor.</summary>
-    private static string ResolveImageLinkDescription(IElement element, string fallback) {
+    private string ResolveImageLinkDescription(IElement element, string fallback) {
         for (IElement? current = element; current != null; current = current.ParentElement) {
             if (!current.LocalName.Equals("a", StringComparison.OrdinalIgnoreCase)) continue;
-            string name = HtmlAccessibilitySemantics.GetAccessibleName(current, includeTextFallback: true);
+            if (!_imageAnchorNames.TryGetValue(current, out string? name)) {
+                name = HtmlAccessibilitySemantics.GetAccessibleName(current, includeTextFallback: true);
+                _imageAnchorNames.Add(current, name);
+            }
             return string.IsNullOrWhiteSpace(name) ? fallback : name;
         }
         return fallback;
@@ -334,7 +340,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source = "<!doctype html><html><head><meta charset='utf-8'><style>"
             + "html,body{margin:0;padding:0;width:" + width + "px;height:" + height + "px;overflow:hidden;background:transparent}"
             + "</style></head><body>" + context.Html + "</body></html>";
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxHtmlNodes = Math.Min(limits.MaxHtmlNodes ?? int.MaxValue, _options.MaxSvgForeignObjectHtmlNodes);
         limits.MaxHtmlDepth = Math.Min(limits.MaxHtmlDepth ?? int.MaxValue, _options.MaxLayoutDepth);
         var conversionOptions = new HtmlConversionDocumentOptions {
@@ -366,7 +372,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         nestedOptions.AdditionalStylesheets.Clear();
 
         HtmlRenderDocument rendered = HtmlRenderEngine.RenderEmbedded(nestedDocument, nestedOptions, _resources, _cancellationToken);
-        _diagnostics.AddRange(rendered.Diagnostics);
+        _diagnostics.AddRange(rendered.NativeDiagnostics);
         HtmlRenderPage page = rendered.Pages[0];
         OfficeDrawing nested = page.CreateDrawing(_cancellationToken);
         if (Math.Abs(nested.Width - context.Width) <= 0.0001D
@@ -541,7 +547,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _diagnostics.Add(ComponentName, diagnosticCode, "An image data URI exceeded the configured operation-wide resource budget.", HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail, OfficeConversionLossKind.Omission);
             }
         } else if (reportDiagnostics && !string.IsNullOrWhiteSpace(source) && !_resources.WasAttempted(source, resolvedSource)) {
-            string code = resolvedSource.Length == 0 ? "ImageResourceRejectedByPolicy" : HtmlRenderDiagnosticCodes.ExternalImagePending;
+            string code = resolvedSource.Length == 0 ? global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy : HtmlRenderDiagnosticCodes.ExternalImagePending;
             string message = resolvedSource.Length == 0
                 ? "An image was rejected before entering the rendered document."
                 : "Synchronous rendering does not load external images; use RenderAsync with an application-supplied resolver or provide a data URI.";
@@ -557,6 +563,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Like a browser, an image that did not load and has no authored size occupies the space of its
+    /// alternative text (or nothing) instead of reserving the 300x150 default object box.
+    /// </summary>
+    private void ApplyBrokenImageIntrinsicSize(IElement element, HtmlRenderBoxStyle style, bool hasIntrinsicSize, byte[]? bytes,
+        ref double intrinsicWidth, ref double intrinsicHeight) {
+        if (hasIntrinsicSize || bytes != null && bytes.Length > 0
+            || !string.Equals(element.LocalName, "img", StringComparison.OrdinalIgnoreCase)
+            || style.ExplicitWidth.HasValue || style.ExplicitHeight.HasValue || style.AspectRatio.HasValue) return;
+        string? alternative = HtmlAccessibilitySemantics.IsDecorativeImage(element)
+            ? null : HtmlAccessibilitySemantics.GetImageAccessibleName(element);
+        string collapsed = string.IsNullOrWhiteSpace(alternative) ? string.Empty : CollapseImageAlternativeText(alternative!);
+        if (collapsed.Length == 0) {
+            intrinsicWidth = 0.01D;
+            intrinsicHeight = 0.01D;
+            return;
+        }
+
+        string measured = collapsed.Length > 1024 ? collapsed.Substring(0, 1024) : collapsed;
+        // The missing-image painter insets text by up to 4px per side; keep room so the text never wraps.
+        intrinsicWidth = Math.Ceiling(MeasureText(measured, style.Font, style.FontDescriptor) * 1.02D) + 10D;
+        intrinsicHeight = Math.Max(0.01D, style.LineHeight);
     }
 
     private static string CollapseImageAlternativeText(string value) =>

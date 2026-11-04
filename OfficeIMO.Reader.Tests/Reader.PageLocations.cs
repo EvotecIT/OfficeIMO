@@ -438,17 +438,15 @@ public sealed class ReaderPageLocationTests {
 
     [Fact]
     public void PdfReader_ExposesNativePageSearchAndPageMarkedMarkdown() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                }
             })
-            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .Paragraph(paragraph => paragraph.AddText("First page body."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Needle on native page two."))
+            .Paragraph(paragraph => paragraph.AddText("Needle on native page two."))
             .ToBytes();
 
         OfficeDocumentReadResult document = PdfReaderAdapter.ReadDocument(
@@ -470,7 +468,7 @@ public sealed class ReaderPageLocationTests {
     [Fact]
     public void RtfReader_UsesExplicitBreaksAndSavedPageCountWithoutClaimingOverflowLayout() {
         RtfDocument rtf = RtfDocument.Create();
-        rtf.Info.NumberOfPages = 20;
+        rtf.Properties.NumberOfPages = 20;
         rtf.PageSetup.SetPaperSize(12240, 15840);
         rtf.AddParagraph("First page body.");
         RtfParagraph paragraph = rtf.AddParagraph("Needle on explicit page two.");

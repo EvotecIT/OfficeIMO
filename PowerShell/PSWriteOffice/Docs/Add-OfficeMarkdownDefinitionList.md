@@ -16,7 +16,7 @@ Add-OfficeMarkdownDefinitionList [-Definition] <hashtable> [-PassThru] [<CommonP
 
 ### Document
 ```powershell
-Add-OfficeMarkdownDefinitionList [-Definition] <hashtable> -Document <MarkdownDoc> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownDefinitionList [-Definition] <hashtable> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -53,7 +53,7 @@ Accept wildcard characters: False
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -86,11 +86,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

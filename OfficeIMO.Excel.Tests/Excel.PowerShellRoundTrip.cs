@@ -19,20 +19,20 @@ namespace OfficeIMO.Tests
             if (File.Exists(path)) File.Delete(path);
 
             // Write initial file
-            using (var doc = ExcelDocument.Create(path, "Data"))
+            using (var doc = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var s = doc.Sheets[0];
-                s.CellValue(1, 1, "Name");
-                s.CellValue(1, 2, "Value");
-                s.CellValue(1, 3, "Status");
+                s.Cell(1, 1).SetValue("Name");
+                s.Cell(1, 2).SetValue("Value");
+                s.Cell(1, 3).SetValue("Status");
 
-                s.CellValue(2, 1, "Alpha");
-                s.CellValue(2, 2, 10);
-                s.CellValue(2, 3, "New");
+                s.Cell(2, 1).SetValue("Alpha");
+                s.Cell(2, 2).SetValue(10);
+                s.Cell(2, 3).SetValue("New");
 
-                s.CellValue(3, 1, "Beta");
-                s.CellValue(3, 2, 20);
-                s.CellValue(3, 3, "New");
+                s.Cell(3, 1).SetValue("Beta");
+                s.Cell(3, 2).SetValue(20);
+                s.Cell(3, 3).SetValue("New");
 
                 doc.Save();
             }
@@ -56,12 +56,12 @@ namespace OfficeIMO.Tests
 
                     if (string.Equals(name, "Alpha", StringComparison.OrdinalIgnoreCase) && value == 10)
                     {
-                        s.CellValue(2, 2, 15);
-                        s.CellValue(2, 3, "Processed");
+                        s.Cell(2, 2).SetValue(15);
+                        s.Cell(2, 3).SetValue("Processed");
                     }
                     if (string.Equals(name, "Beta", StringComparison.OrdinalIgnoreCase))
                     {
-                        s.CellValue(3, 3, "Hold");
+                        s.Cell(3, 3).SetValue("Hold");
                     }
                 }
                 doc.Save();
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests
 
         private static List<Dictionary<string, object?>> ReadRows(string path)
         {
-            using DbDataReader reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions
+            using DbDataReader reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions
             {
                 SheetName = "Data"
             });

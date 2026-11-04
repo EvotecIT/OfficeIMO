@@ -24,12 +24,12 @@ public sealed class SpreadsheetSheetNameMappingTests {
         consumer.Cell(0, 1).Formula = "of:=\"" + sourceName + "\"";
         consumer.Cell(1, 0).SetHyperlink("Link", "#$'" + sourceName + "'.A1");
         source.AddNamedRange("Original", "$'" + sourceName + "'.$A$1");
-        using ExcelDocument converted = source.ToExcelDocument();
+        using ExcelDocument converted = source.ToExcel();
         using ExcelDocument result = ExcelDocument.Load(new MemoryStream(converted.ToBytes()));
         string firstName = result.Sheets[0].Name, secondName = result.Sheets[1].Name;
         Assert.NotEqual(firstName, secondName);
         ExcelSheet target = result.Sheets[2];
-        var snapshot = result.CreateInspectionSnapshot();
+        var snapshot = result.Inspect();
         var cells = snapshot.Worksheets[2].Cells;
         string formula = cells.Single(cell => cell.Row == 1 && cell.Column == 1).Formula!;
         Assert.Contains("'" + firstName + "'!$A$1", formula);

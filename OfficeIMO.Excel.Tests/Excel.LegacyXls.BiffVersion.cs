@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(workbook.Worksheets);
             Assert.Empty(workbook.UnsupportedFeatures);
-            Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED");
+            Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-version-unsupported");
             Assert.False(report.HasImportErrors);
             Assert.False(report.HasUnsupportedFeatures);
             Assert.False(report.UnsupportedFeaturesByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion));
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, cell.Column);
             Assert.Equal("ShouldNotImport", cell.Value);
             Assert.Empty(workbook.UnsupportedFeatures);
-            Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED");
+            Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-version-unsupported");
             LegacyXlsImportReport report = workbook.CreateImportReport();
             Assert.Equal(0, report.PreservedFeatureRecordCount);
             Assert.False(report.PreservedFeatureRecordsByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion));
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
                 LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions());
                 Assert.Empty(workbook.Worksheets);
                 Assert.Contains(workbook.Diagnostics, diagnostic =>
-                    diagnostic.Code == "XLS-BIFF-CODEPAGE-INVALID"
+                    diagnostic.Code == "xls-biff-codepage-invalid"
                     && diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             } finally {
                 File.Delete(path);
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                 LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions());
                 Assert.Equal("Лист", Assert.Single(workbook.Worksheets).Name);
                 Assert.DoesNotContain(workbook.Diagnostics, diagnostic =>
-                    diagnostic.Code == "XLS-BIFF-CODEPAGE-INVALID");
+                    diagnostic.Code == "xls-biff-codepage-invalid");
             } finally {
                 File.Delete(path);
             }
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
                 InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
                     OfficeIMO.Excel.ExcelDocument.GetSheetNames(
                         path,
-                        new OfficeIMO.Excel.ExcelReadOptions { MaxWorksheets = 1 }));
+                        new OfficeIMO.Excel.ExcelReaderOptions { MaxWorksheets = 1 }));
                 Assert.Contains("more than the configured 1 worksheet definitions", exception.Message);
             } finally {
                 File.Delete(path);
@@ -245,14 +245,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expectedDetail, feature.DetailCode);
             Assert.Contains(workbook.Diagnostics, diagnostic =>
                 diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
-                && diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED"
+                && diagnostic.Code == "xls-biff-version-unsupported"
                 && diagnostic.DetailCode == expectedDetail);
             Assert.Equal(1, report.PreservedFeatureRecordCount);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
             Assert.Equal(0, report.UnsupportedProjectionGapCount);
             Assert.Equal(1, report.FileFormatBlockersByRecordType["UnsupportedBiffVersion|0x0809"]);
             Assert.Equal(1, report.FileFormatBlockersByRecordName["UnsupportedBiffVersion|Record0x0809"]);
-            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-VERSION-UNSUPPORTED|(workbook)"]);
+            Assert.Equal(1, report.FileFormatBlockersByLocation["xls-biff-version-unsupported|(workbook)"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersion[expectedVersionName]);
             Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
             Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream[$"{expectedVersionName}|WorkbookGlobals"]);
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(workbook.Worksheets);
             Assert.Contains(workbook.Diagnostics, diagnostic =>
                 diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
-                && diagnostic.Code == "XLS-BIFF-BOF-MISSING");
+                && diagnostic.Code == "xls-biff-bof-missing");
             Assert.Equal(1, report.FileFormatStates["WorkbookFormat:MalformedBof"]);
             Assert.Equal(1, report.FileFormatStates["MalformedBof:Present"]);
             Assert.Equal(1, report.FileFormatStates["Encryption:Missing"]);

@@ -21,21 +21,21 @@ namespace OfficeIMO.Word {
         /// <summary>Creates an embedded image value from encoded image bytes.</summary>
         /// <param name="content">Encoded image bytes, such as PNG or JPEG content.</param>
         /// <param name="fileName">File name with an extension that identifies the image format.</param>
-        /// <param name="width">Optional width in pixels.</param>
-        /// <param name="height">Optional height in pixels.</param>
-        /// <param name="description">Alternative-text description stored with the image.</param>
-        public WordTemplateImage(byte[] content, string fileName, double? width = null, double? height = null, string description = "") {
+        /// <param name="width">Optional placed width; omitted dimensions use the image aspect ratio or intrinsic size at 96 DPI.</param>
+        /// <param name="height">Optional placed height; omitted dimensions use the image aspect ratio or intrinsic size at 96 DPI.</param>
+        /// <param name="altText">Alternative text stored with the image.</param>
+        public WordTemplateImage(byte[] content, string fileName, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null, string altText = "") {
             if (content == null) throw new ArgumentNullException(nameof(content));
             if (content.Length == 0) throw new ArgumentException("Image content cannot be empty.", nameof(content));
             if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("Image file name cannot be empty.", nameof(fileName));
-            if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width), "Image width must be positive.");
-            if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height), "Image height must be positive.");
+            if (width <= global::OfficeIMO.OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width), "Image width must be positive.");
+            if (height <= global::OfficeIMO.OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height), "Image height must be positive.");
 
             _content = (byte[])content.Clone();
             FileName = fileName;
             Width = width;
             Height = height;
-            Description = description ?? string.Empty;
+            AltText = altText ?? string.Empty;
         }
 
         /// <summary>Gets a copy of the encoded image bytes.</summary>
@@ -46,14 +46,14 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the image file name used to identify its format.</summary>
         public string FileName { get; }
 
-        /// <summary>Gets the optional image width in pixels.</summary>
-        public double? Width { get; }
+        /// <summary>Gets the optional placed image width.</summary>
+        public global::OfficeIMO.OfficeLength? Width { get; }
 
-        /// <summary>Gets the optional image height in pixels.</summary>
-        public double? Height { get; }
+        /// <summary>Gets the optional placed image height.</summary>
+        public global::OfficeIMO.OfficeLength? Height { get; }
 
-        /// <summary>Gets the image alternative-text description.</summary>
-        public string Description { get; }
+        /// <summary>Gets the image alternative text.</summary>
+        public string AltText { get; }
 
         internal byte[] GetContentUnsafe() => _content;
     }

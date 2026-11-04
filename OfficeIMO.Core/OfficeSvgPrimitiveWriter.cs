@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared XML writer helpers for simple SVG primitives used by OfficeIMO renderers.
 /// </summary>
-public static class OfficeSvgPrimitiveWriter {
+internal static class OfficeSvgPrimitiveWriter {
     /// <summary>
     /// Writes a filled or stroked SVG circle.
     /// </summary>

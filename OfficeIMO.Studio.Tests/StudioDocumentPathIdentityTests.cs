@@ -106,7 +106,7 @@ public sealed class StudioDocumentPathIdentityTests {
     }
 
     private static void CreateDocument(string path) =>
-        PdfDocument.Create(document => document.Page(page => page.Size(420D, 620D))).Save(path);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420D), global::OfficeIMO.OfficeLength.Points(620D)))).Save(path);
 
     [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

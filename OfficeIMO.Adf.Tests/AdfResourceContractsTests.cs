@@ -11,11 +11,12 @@ public sealed class AdfResourceContractsTests {
     [Fact]
     public void MutableMarkdownInputIsCheckedBeforeRecursiveConversion() {
         var quote = new QuoteBlock(Array.Empty<string>());
-        var document = MarkdownDoc.Create().Add(quote);
+        var document = MarkdownDocument.Create();
+        document.Add(quote);
         quote.ChildBlocks.Add(quote);
         Assert.Throws<InvalidOperationException>(() => AdfConverter.FromMarkdown(document));
 
-        var normal = MarkdownDoc.Create().P("text");
+        var normal = MarkdownDocument.Create().P("text");
         Assert.Throws<InvalidDataException>(() => AdfConverter.FromMarkdown(normal, new AdfConversionOptions { MaxNodes = 1 }));
         Assert.Throws<InvalidDataException>(() => AdfConverter.FromMarkdown(normal, new AdfConversionOptions { MaxDepth = 1 }));
     }

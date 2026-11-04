@@ -12,9 +12,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Value");
-                    sheet.CellValue(2, 1, 3d);
+                    var sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Value");
+                    sheet.Cell(2, 1).SetValue(3d);
                     sheet.ColumnStyleByHeader("Value").NumberFormat("0 \"days\"");
                     document.Save();
                 }
@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Duration");
-                    sheet.CellValue(2, 1, 1.5d);
+                    var sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Duration");
+                    sheet.Cell(2, 1).SetValue(1.5d);
                     sheet.ColumnStyleByHeader("Duration").NumberFormat("[h]:mm");
                     document.Save();
                 }
@@ -62,9 +62,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Data");
-                    sheet.CellValue(1, 1, "Hours");
-                    sheet.CellValue(2, 1, 7d);
+                    var sheet = document.AddSheet("Data");
+                    sheet.Cell(1, 1).SetValue("Hours");
+                    sheet.Cell(2, 1).SetValue(7d);
                     sheet.ColumnStyleByHeader("Hours").NumberFormat("0\\h");
                     document.Save();
                 }

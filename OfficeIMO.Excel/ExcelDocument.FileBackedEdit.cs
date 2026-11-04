@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Core.Internal;
@@ -22,7 +23,7 @@ namespace OfficeIMO.Excel {
         /// <see cref="DocumentPersistenceMode.SaveOnDispose"/> is selected. XLS and XLSB projection remains available through
         /// <see cref="Load(string, ExcelLoadOptions?)"/>.
         /// </remarks>
-        public static ExcelDocument OpenFileBacked(
+        internal static ExcelDocument OpenFileBacked(
             string filePath,
             ExcelLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
@@ -85,7 +86,10 @@ namespace OfficeIMO.Excel {
                     packageContentTypesKnownNormalized: normalized,
                     unchangedPackageBytes: null,
                     persistenceMode: resolved.PersistenceMode);
+                document._sourceMaxCharactersInPart = effectiveOpenSettings.MaxCharactersInPart;
                 document._usesFileBackedPackage = true;
+                document._readSnapshotAllowed = effectiveOpenSettings.MaxCharactersInPart == 0
+                    && effectiveOpenSettings.MarkupCompatibilityProcessSettings.ProcessMode == MarkupCompatibilityProcessMode.NoProcess;
                 cancellationToken.ThrowIfCancellationRequested();
                 package = null;
                 packageStream = null;

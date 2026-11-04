@@ -10,19 +10,21 @@ using OfficeIMO.Excel;
 using Xunit;
 using Cx = DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Fact]
         public async Task Test_QueryRefresh_RejectsRecreatedBindingBeforeWritingResults() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             ExcelQueryBackedTableInfo original = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "OriginalQuery",
                 WorksheetName = data.Name,
                 TableName = "Results",
                 ColumnNames = new[] { "Value" }
             });
-            ExcelSheet anchor = document.AddWorksheet("Anchor");
+            ExcelSheet anchor = document.AddSheet("Anchor");
             document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "AnchorQuery",
                 WorksheetName = anchor.Name,
@@ -49,45 +51,39 @@ namespace OfficeIMO.Tests {
             host.Release();
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => refresh);
-            Assert.Equal("Value", data.CellAt(1, 1).GetValue<string>());
-            Assert.Null(data.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Value", data.Cell(1, 1).GetValue<string>());
+            Assert.Null(data.Cell(2, 1).GetValue<string>());
             Assert.Equal(replacement.ConnectionId, document.GetQueryBackedTables()
                 .Single(item => item.TableName == replacement.TableName).ConnectionId);
         }
 
         [Fact]
-        public async Task Test_PivotInteraction_ExplicitNameIsUniqueInsideTransaction() {
+        public async Task Test_PivotInteraction_ExplicitNameIsUniqueInsideTransaction()
+        {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            data.CellValue(1, 1, "Region");
-            data.CellValue(1, 2, "Sales");
-            data.CellValue(2, 1, "East");
-            data.CellValue(2, 2, 10d);
-            data.AddPivotTable(
-                "A1:B2",
-                "D2",
-                "SalesPivot",
-                rowFields: new[] { "Region" },
-                dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+            ExcelSheet data = document.AddSheet("Data");
+            data.Cell(1, 1).SetValue("Region");
+            data.Cell(1, 2).SetValue("Sales");
+            data.Cell(2, 1).SetValue("East");
+            data.Cell(2, 2).SetValue(10d);
+            data.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             using var start = new ManualResetEventSlim(false);
             int successes = 0;
-            Task[] callers = Enumerable.Range(0, 8).Select(_ => Task.Run(() => {
+            Task[] callers = Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+            {
                 start.Wait();
-                try {
-                    document.AddPivotSlicer(
-                        "SalesPivot",
-                        "Region",
-                        data.Name,
-                        new ExcelSlicerViewOptions { Name = "SharedFilter", Row = 6, Column = 1 });
+                try
+                {
+                    document.AddPivotSlicer("SalesPivot", "Region", data.Name, new ExcelSlicerViewOptions { Name = "SharedFilter", Row = 6, Column = 1 });
                     Interlocked.Increment(ref successes);
-                } catch (InvalidOperationException) {
-                    // The first transaction owns the explicit name; every contender must be rejected.
+                }
+                catch (InvalidOperationException)
+                {
+                // The first transaction owns the explicit name; every contender must be rejected.
                 }
             })).ToArray();
-
             start.Set();
             await Task.WhenAll(callers);
-
             Assert.Equal(1, successes);
             Assert.Equal("SharedFilter", Assert.Single(document.GetPivotInteractions()).Name);
             Assert.Empty(document.ValidateOpenXml());
@@ -96,7 +92,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ModernChart_ValidatesPlotAreaBeforeWritingBackingData() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },
@@ -107,7 +103,7 @@ namespace OfficeIMO.Tests {
             ExcelChartDataRange range = chart.DataRange!;
             ExcelSheet backingSheet = document[range.SheetName];
             double originalValue = backingSheet
-                .CellAt(range.SeriesStartRow, range.SeriesStartColumn)
+                .Cell(range.SeriesStartRow, range.SeriesStartColumn)
                 .GetValue<double>();
             ExtendedChartPart part = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ExtendedChartParts);
             part.ChartSpace!.Descendants<Cx.PlotArea>().Single().Remove();
@@ -118,15 +114,15 @@ namespace OfficeIMO.Tests {
                 new[] { new ExcelChartSeries("Value", new[] { 9d }) })));
 
             Assert.Equal(originalValue, backingSheet
-                .CellAt(range.SeriesStartRow, range.SeriesStartColumn)
+                .Cell(range.SeriesStartRow, range.SeriesStartColumn)
                 .GetValue<double>());
         }
 
         [Fact]
         public async Task Test_GetNamedStyles_WaitsForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellAt(1, 1).SetBold();
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetBold();
             sheet.DefineNamedStyle("LockedStyle", 1, 1);
             ReaderWriterLockSlim workbookLock = document.EnsureLock();
             workbookLock.EnterWriteLock();

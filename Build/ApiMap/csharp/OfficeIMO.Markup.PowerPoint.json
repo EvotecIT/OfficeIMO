@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Markup.PowerPoint",
+  "changes": [
+    {
+      "old": "OfficeIMO.Markup.PowerPoint.MarkupToPowerPointOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markup.PowerPoint.MarkupPowerPointExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

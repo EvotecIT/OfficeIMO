@@ -14,7 +14,7 @@ public sealed class StudioScanCancellationTests {
         try {
             StudioNativeEngine.Initialize(Path.Combine(root, "data"));
             string source = Path.Combine(root, "source.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(source);
             string image = Path.Combine(root, "page.png");
             using (StudioNativeDocument document = await StudioNativeDocument.OpenAsync(source, null, default)) {
                 File.WriteAllBytes(image, (await document.RenderPageAsync(1, 1D, default)).Bytes);

@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort OfficeArtBStoreContainer = 0xF001;
 
         internal static bool TryReadPictureCatalog(
-            PowerPointPresentation presentation,
+            PowerPointDocument presentation,
             LegacyPptWriterFontCatalog tableFonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             bool convertUnsupportedTables,
@@ -45,13 +45,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 foreach (PowerPointShape shape in shapes) {
-                    if (shape is PowerPointPicture
+                    if (shape is PowerPointImage
                         && IsLayoutShape(shape)) {
                         materializedLayoutPictures.Add(shape.Element);
                     }
                     byte[] imageBytes;
                     string contentType;
-                    if (shape is PowerPointPicture picture
+                    if (shape is PowerPointImage picture
                         && picture is not PowerPointMedia) {
                         failureFeature = LegacyPptFeature.RasterPictures;
                         if (!TryReadPicture(picture, out imageBytes,
@@ -86,7 +86,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     } else if (shape is PowerPointOleObject ole) {
                         failureFeature = LegacyPptFeature.EmbeddedOle;
                         if (!TryReadOlePreview(slide.SlidePart, ole,
-                                out PowerPointPicture? preview,
+                                out PowerPointImage? preview,
                                 out imageBytes,
                                 out string? previewContentType,
                                 out reason)) {
@@ -309,7 +309,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static bool TryValidatePictureForWrite(
-            PowerPointPicture picture, out string? reason) {
+            PowerPointImage picture, out string? reason) {
             if (picture == null) throw new ArgumentNullException(nameof(picture));
             if (picture is PowerPointMedia) {
                 reason = "Media poster frames are encoded through the binary media catalog, not as standalone pictures.";
@@ -347,7 +347,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryReadPicture(PowerPointPicture picture,
+        private static bool TryReadPicture(PowerPointImage picture,
             out byte[] imageBytes, out string? contentType,
             out string? reason) {
             imageBytes = Array.Empty<byte>();
@@ -388,7 +388,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             };
         }
 
-        private static byte[] BuildPictureFoptRecord(PowerPointPicture picture,
+        private static byte[] BuildPictureFoptRecord(PowerPointImage picture,
             uint oneBasedStoreIndex) {
             var properties = new List<LegacyPptWriterFoptProperty>(16);
             AddShapeFormattingProperties(properties, picture);
@@ -399,7 +399,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static byte[] BuildPreservedPictureFoptRecord(
-            LegacyPptRecord prototype, PowerPointPicture picture) {
+            LegacyPptRecord prototype, PowerPointImage picture) {
             if (prototype == null) throw new ArgumentNullException(
                 nameof(prototype));
             if (picture == null) throw new ArgumentNullException(
@@ -414,17 +414,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[]? BuildPictureTertiaryFoptRecord(
-            PowerPointPicture picture) =>
+            PowerPointImage picture) =>
             BuildPreservedPictureTertiaryFoptRecord(null, picture);
 
         internal static byte[]? BuildPreservedPictureTertiaryFoptRecord(
-            LegacyPptRecord? prototype, PowerPointPicture picture) =>
+            LegacyPptRecord? prototype, PowerPointImage picture) =>
             BuildPreservedTertiaryFoptRecord(prototype, picture,
                 shapeVisibility: null);
 
         internal static byte[]? BuildPreservedTertiaryFoptRecord(
             LegacyPptRecord? prototype,
-            PowerPointPicture? pictureFormatting,
+            PowerPointImage? pictureFormatting,
             PowerPointShape? shapeVisibility) {
             if (pictureFormatting == null && shapeVisibility == null) {
                 throw new ArgumentException(
@@ -471,7 +471,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static void AddPictureFormatProperties(
             ICollection<LegacyPptWriterFoptProperty> properties,
-            PowerPointPicture picture,
+            PowerPointImage picture,
             uint preservedBooleanProperties = 0) {
             P.Picture source = (P.Picture)picture.Element;
             AddPictureProtectionProperties(properties, picture);
@@ -503,7 +503,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildOlePreviewFoptRecord(
-            PowerPointOleObject shape, PowerPointPicture preview,
+            PowerPointOleObject shape, PowerPointImage preview,
             uint oneBasedStoreIndex) {
             var properties = new List<LegacyPptWriterFoptProperty>(16);
             AddShapeTransformProperties(properties, shape);

@@ -1,0 +1,1167 @@
+{
+  "SchemaVersion": 1,
+  "Date": "2026-11-01",
+  "BaselineCommit": "bace5c13c9646165bcfe0e97f49dfa457a0a5e35",
+  "CandidateCommit": "0db5cff3154a8678e636ad40dc1e68be46d9fd12",
+  "BaselineExcelSha256": "70A57F06123F7F2518D8BF4AB8AAD9B3555592B3C09E9A4C68D5109FF5B8B3E6",
+  "CandidateExcelSha256": "72B5AFAC6B1E3C5858A3BE81C4164F72342B74BF0FA57B03F2303213C25B3EBD",
+  "Runner": "PSPublishModule 3.0.170 Invoke-BenchmarkSuite",
+  "Workload": "200 products, 1000 orders, 2048 formula caches checked individually against input-derived expectations",
+  "Policy": "One warmup, three measurements, rotated engine order; setup and validation excluded",
+  "Host": "AMD Ryzen 9 9950X3D2, 16 cores / 32 logical processors; Windows 10.0.26300 x64; .NET 10.0.14; SDK 10.0.403; PowerShell 7.6.9; High Performance power plan; normal process priority",
+  "Limits": "Shared workstation activity was not quantitatively recorded. Three samples limit timing precision. Allocations are cumulative managed bytes for synchronous Calculate, not retained or peak RAM.",
+  "Domains": [
+    {
+      "AffinityMask": "0xFFFF",
+      "RunId": "20261101-084859-4074144a",
+      "Summary": [
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "IndexHit200",
+          "Operation": "Calculate",
+          "Engine": "AfterOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Missing": "False",
+            "Lookup": "INDEX",
+            "Products": "200",
+            "Orders": "1000"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 181.0495,
+          "MeanMs": 185.987,
+          "MinMs": 161.49,
+          "MaxMs": 215.4215,
+          "P95Ms": 211.98430000000002,
+          "P99Ms": 214.73406,
+          "StdDevMs": 27.30267116510764,
+          "StdErrMs": 15.76320454677073,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251893184.0,
+            "AllocatedBytes": 253732856.0,
+            "WorkingSetDeltaBytes": 2428928.0
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "IndexHit200",
+          "Operation": "Calculate",
+          "Engine": "BeforeOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Missing": "False",
+            "Lookup": "INDEX",
+            "Products": "200",
+            "Orders": "1000"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 5243.9492,
+          "MeanMs": 5257.133733333333,
+          "MinMs": 4932.9935,
+          "MaxMs": 5594.4585,
+          "P95Ms": 5559.407569999999,
+          "P99Ms": 5587.448313999999,
+          "StdDevMs": 330.92954007713394,
+          "StdErrMs": 191.06225904633234,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13028535826.666666,
+            "AllocatedBytes": 13030376005.333334,
+            "WorkingSetDeltaBytes": -3816106.6666666665
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "IndexMiss200",
+          "Operation": "Calculate",
+          "Engine": "AfterOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Missing": "True",
+            "Lookup": "INDEX",
+            "Products": "200",
+            "Orders": "1000"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 203.0848,
+          "MeanMs": 207.75653333333335,
+          "MinMs": 199.2564,
+          "MaxMs": 220.9284,
+          "P95Ms": 219.14404000000002,
+          "P99Ms": 220.571528,
+          "StdDevMs": 11.566663963880568,
+          "StdErrMs": 6.67801655317239,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251884640.0,
+            "AllocatedBytes": 253724954.66666666,
+            "WorkingSetDeltaBytes": 939349.3333333334
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "IndexMiss200",
+          "Operation": "Calculate",
+          "Engine": "BeforeOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Missing": "True",
+            "Lookup": "INDEX",
+            "Products": "200",
+            "Orders": "1000"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 5856.8262,
+          "MeanMs": 6157.221466666667,
+          "MinMs": 5399.165,
+          "MaxMs": 7215.6732,
+          "P95Ms": 7079.788500000001,
+          "P99Ms": 7188.49626,
+          "StdDevMs": 944.7769563995587,
+          "StdErrMs": 545.4672301014406,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13079603762.666666,
+            "AllocatedBytes": 13081444498.666666,
+            "WorkingSetDeltaBytes": -5330261.333333333
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "VlookupMiss200",
+          "Operation": "Calculate",
+          "Engine": "AfterOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Missing": "True",
+            "Lookup": "VLOOKUP",
+            "Products": "200",
+            "Orders": "1000"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 152.2996,
+          "MeanMs": 146.04173333333333,
+          "MinMs": 122.9221,
+          "MaxMs": 162.9035,
+          "P95Ms": 161.84311,
+          "P99Ms": 162.69142200000002,
+          "StdDevMs": 20.712285192690192,
+          "StdErrMs": 11.958243431531983,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 154886664.0,
+            "AllocatedBytes": 156725368.0,
+            "WorkingSetDeltaBytes": 1482752.0
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "VlookupMiss200",
+          "Operation": "Calculate",
+          "Engine": "BeforeOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Missing": "True",
+            "Lookup": "VLOOKUP",
+            "Products": "200",
+            "Orders": "1000"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 3250.622,
+          "MeanMs": 3096.694233333333,
+          "MinMs": 2783.5142,
+          "MaxMs": 3255.9465,
+          "P95Ms": 3255.41405,
+          "P99Ms": 3255.84001,
+          "StdDevMs": 271.23493051976783,
+          "StdErrMs": 156.5975601492174,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 6709579144.0,
+            "AllocatedBytes": 6711417413.333333,
+            "WorkingSetDeltaBytes": 331776.0
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "XlookupMiss200",
+          "Operation": "Calculate",
+          "Engine": "AfterOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Missing": "True",
+            "Lookup": "XLOOKUP",
+            "Products": "200",
+            "Orders": "1000"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 302.7247,
+          "MeanMs": 314.3930666666667,
+          "MinMs": 284.8224,
+          "MaxMs": 355.6321,
+          "P95Ms": 350.34135999999995,
+          "P99Ms": 354.57395199999996,
+          "StdDevMs": 36.81869754653649,
+          "StdErrMs": 21.25728493970426,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 414705520.0,
+            "AllocatedBytes": 416542370.6666667,
+            "WorkingSetDeltaBytes": 1664341.3333333333
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "XlookupMiss200",
+          "Operation": "Calculate",
+          "Engine": "BeforeOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Missing": "True",
+            "Lookup": "XLOOKUP",
+            "Products": "200",
+            "Orders": "1000"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 12519.6822,
+          "MeanMs": 12272.432033333333,
+          "MinMs": 11172.9732,
+          "MaxMs": 13124.6407,
+          "P95Ms": 13064.14485,
+          "P99Ms": 13112.54153,
+          "StdDevMs": 999.0500444555231,
+          "StdErrMs": 576.8018121003039,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 25886732082.666668,
+            "AllocatedBytes": 25888571144.0,
+            "WorkingSetDeltaBytes": 546133.3333333334
+          }
+        }
+      ],
+      "Samples": [
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 5243.9492,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13028535824.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "AfterOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 215.4215,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251893096.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 5399.165,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13079603680.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 199.2564,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251884552.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 2783.5142,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 6709579136.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 122.9221,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 154886664.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 11172.9732,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 25886731992.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 284.8224,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 414705520.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 203.0848,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251884816.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 5856.8262,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13079603944.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 162.9035,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 154886664.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 3250.622,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 6709579160.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 355.6321,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 414705520.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 13124.6407,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 25886731992.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "AfterOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 181.0495,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251893096.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 5594.4585,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13028535824.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 3255.9465,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 6709579136.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 152.2996,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 154886664.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 12519.6822,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 25886732264.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 302.7247,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 414705520.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 4932.9935,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13028535832.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "AfterOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 161.49,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251893360.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 7215.6732,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13079603664.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 220.9284,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251884552.0
+          }
+        }
+      ]
+    },
+    {
+      "AffinityMask": "0xFFFF0000",
+      "RunId": "20261101-085105-c63df6a4",
+      "Summary": [
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "IndexHit200",
+          "Operation": "Calculate",
+          "Engine": "AfterOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Lookup": "INDEX",
+            "Orders": "1000",
+            "Products": "200",
+            "Missing": "False"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 267.0695,
+          "MeanMs": 248.9878,
+          "MinMs": 197.7355,
+          "MaxMs": 282.1584,
+          "P95Ms": 280.64950999999996,
+          "P99Ms": 281.85662199999996,
+          "StdDevMs": 45.02241016727113,
+          "StdErrMs": 25.993700629639733,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251927112.0,
+            "AllocatedBytes": 253768789.33333334,
+            "WorkingSetDeltaBytes": 3244032.0
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "IndexHit200",
+          "Operation": "Calculate",
+          "Engine": "BeforeOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Lookup": "INDEX",
+            "Orders": "1000",
+            "Products": "200",
+            "Missing": "False"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 5147.0935,
+          "MeanMs": 6089.8321,
+          "MinMs": 4051.1927,
+          "MaxMs": 9071.2101,
+          "P95Ms": 8678.79844,
+          "P99Ms": 8992.727768,
+          "StdDevMs": 2639.4527321062524,
+          "StdErrMs": 1523.888745394838,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13028572597.333334,
+            "AllocatedBytes": 13030437981.333334,
+            "WorkingSetDeltaBytes": -3006464.0
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "IndexMiss200",
+          "Operation": "Calculate",
+          "Engine": "AfterOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Lookup": "INDEX",
+            "Orders": "1000",
+            "Products": "200",
+            "Missing": "True"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 201.7142,
+          "MeanMs": 252.1749333333333,
+          "MinMs": 191.487,
+          "MaxMs": 363.3236,
+          "P95Ms": 347.16265999999996,
+          "P99Ms": 360.091412,
+          "StdDevMs": 96.39330101876028,
+          "StdErrMs": 55.65269829125788,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251918656.0,
+            "AllocatedBytes": 253760149.33333334,
+            "WorkingSetDeltaBytes": 2359296.0
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "IndexMiss200",
+          "Operation": "Calculate",
+          "Engine": "BeforeOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Lookup": "INDEX",
+            "Orders": "1000",
+            "Products": "200",
+            "Missing": "True"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 4926.1947,
+          "MeanMs": 4888.8251,
+          "MinMs": 4336.3107,
+          "MaxMs": 5403.9699,
+          "P95Ms": 5356.19238,
+          "P99Ms": 5394.414396,
+          "StdDevMs": 534.8096924040177,
+          "StdErrMs": 308.7725198746806,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13079638066.666666,
+            "AllocatedBytes": 13081494376.0,
+            "WorkingSetDeltaBytes": -2489002.6666666665
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "VlookupMiss200",
+          "Operation": "Calculate",
+          "Engine": "AfterOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Lookup": "VLOOKUP",
+            "Orders": "1000",
+            "Products": "200",
+            "Missing": "True"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 209.5916,
+          "MeanMs": 244.55463333333333,
+          "MinMs": 135.2123,
+          "MaxMs": 388.86,
+          "P95Ms": 370.93316,
+          "P99Ms": 385.274632,
+          "StdDevMs": 130.38826328977365,
+          "StdErrMs": 75.27969890951861,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 154920680.0,
+            "AllocatedBytes": 156761272.0,
+            "WorkingSetDeltaBytes": -3988138.6666666665
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "VlookupMiss200",
+          "Operation": "Calculate",
+          "Engine": "BeforeOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Lookup": "VLOOKUP",
+            "Orders": "1000",
+            "Products": "200",
+            "Missing": "True"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 4125.4872,
+          "MeanMs": 4189.566266666667,
+          "MinMs": 2445.2078,
+          "MaxMs": 5998.0038,
+          "P95Ms": 5810.7521400000005,
+          "P99Ms": 5960.553468,
+          "StdDevMs": 1777.2645974903833,
+          "StdErrMs": 1026.1041937822647,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 6709613453.333333,
+            "AllocatedBytes": 6711477450.666667,
+            "WorkingSetDeltaBytes": -1945600.0
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "XlookupMiss200",
+          "Operation": "Calculate",
+          "Engine": "AfterOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Lookup": "XLOOKUP",
+            "Orders": "1000",
+            "Products": "200",
+            "Missing": "True"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 264.4713,
+          "MeanMs": 269.84246666666667,
+          "MinMs": 246.4547,
+          "MaxMs": 298.6014,
+          "P95Ms": 295.18839,
+          "P99Ms": 297.91879800000004,
+          "StdDevMs": 26.485026972675215,
+          "StdErrMs": 15.291137452168535,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 414750712.0,
+            "AllocatedBytes": 416602461.3333333,
+            "WorkingSetDeltaBytes": 3016021.3333333335
+          }
+        },
+        {
+          "Suite": "excel-formula-calculation",
+          "Scenario": "XlookupMiss200",
+          "Operation": "Calculate",
+          "Engine": "BeforeOptimization",
+          "Host": "Core-7.6.9",
+          "Os": "Windows",
+          "RunMode": "standard",
+          "Variables": {
+            "Lookup": "XLOOKUP",
+            "Orders": "1000",
+            "Products": "200",
+            "Missing": "True"
+          },
+          "SampleCount": 3,
+          "FailureCount": 0,
+          "Status": "Succeeded",
+          "MedianMs": 12155.8196,
+          "MeanMs": 11976.741500000002,
+          "MinMs": 10608.8992,
+          "MaxMs": 13165.5057,
+          "P95Ms": 13064.53709,
+          "P99Ms": 13145.311978,
+          "StdDevMs": 1287.6765600822553,
+          "StdErrMs": 743.4404085926615,
+          "OutlierCount": 0,
+          "FailureReasons": {},
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 25886777186.666668,
+            "AllocatedBytes": 25888630248.0,
+            "WorkingSetDeltaBytes": 3661824.0
+          }
+        }
+      ],
+      "Samples": [
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 4051.1927,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13028558896.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "AfterOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 197.7355,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251916168.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 5403.9699,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13079627192.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 363.3236,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251907624.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 4125.4872,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 6709602208.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 209.5916,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 154909736.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 10608.8992,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 25886755064.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 0,
+          "Status": 0,
+          "DurationMs": 246.4547,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 414728592.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 191.487,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251907888.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 4336.3107,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13079627000.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 135.2123,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 154909736.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 2445.2078,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 6709602664.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 264.4713,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 414761424.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 13165.5057,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 25886787896.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "AfterOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 282.1584,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251916168.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 1,
+          "Status": 0,
+          "DurationMs": 9071.2101,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13028566720.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 5998.0038,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 6709635488.0
+          }
+        },
+        {
+          "Scenario": "VlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 388.86,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 154942568.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 12155.8196,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 25886788600.0
+          }
+        },
+        {
+          "Scenario": "XlookupMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 298.6014,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 414762120.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 5147.0935,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13028592176.0
+          }
+        },
+        {
+          "Scenario": "IndexHit200",
+          "Engine": "AfterOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 267.0695,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251949000.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "BeforeOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 4926.1947,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 13079660008.0
+          }
+        },
+        {
+          "Scenario": "IndexMiss200",
+          "Engine": "AfterOptimization",
+          "Iteration": 2,
+          "Status": 0,
+          "DurationMs": 201.7142,
+          "Metrics": {
+            "Calculated": 2048.0,
+            "Expected": 2048.0,
+            "FormulaAllocatedBytes": 251940456.0
+          }
+        }
+      ]
+    }
+  ]
+}

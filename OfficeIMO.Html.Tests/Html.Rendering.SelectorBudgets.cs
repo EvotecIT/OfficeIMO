@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
             </style>
             <p id="target">Body</p>
             """;
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxSelectorEvaluations = 3;
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html,
             new HtmlConversionDocumentOptions { Limits = limits });
@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_StillBoundsUnsuccessfulCandidateMatches(string pseudo) {
         string html = "<style>#target.unmatched" + pseudo + "{color:red;content:'wrong'}"
             + "#target" + pseudo + "{color:blue;content:'selected'}</style><p id='target'>Body</p>";
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxSelectorEvaluations = 1;
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html,
             new HtmlConversionDocumentOptions { Limits = limits });

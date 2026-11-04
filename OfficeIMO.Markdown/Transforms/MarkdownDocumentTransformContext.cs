@@ -12,7 +12,7 @@ public sealed class MarkdownDocumentTransformContext {
     /// <summary>
     /// Reader options used when the pipeline runs after markdown parsing.
     /// </summary>
-    public MarkdownReaderOptions? ReaderOptions { get; }
+    public MarkdownLoadOptions? ReaderOptions { get; }
 
     /// <summary>
     /// Source options object used by the caller when the pipeline runs outside the markdown reader.
@@ -52,7 +52,7 @@ public sealed class MarkdownDocumentTransformContext {
     /// <summary>
     /// Creates a transform context for a reader-driven pipeline.
     /// </summary>
-    public MarkdownDocumentTransformContext(MarkdownDocumentTransformSource source, MarkdownReaderOptions? readerOptions = null) {
+    public MarkdownDocumentTransformContext(MarkdownDocumentTransformSource source, MarkdownLoadOptions? readerOptions = null) {
         Source = source;
         ReaderOptions = readerOptions;
         SourceMarkdown = string.Empty;
@@ -73,7 +73,7 @@ public sealed class MarkdownDocumentTransformContext {
     /// Creates a transform context for pipelines that want both reader options and source options,
     /// such as renderer-owned AST transforms that run after markdown parsing.
     /// </summary>
-    public MarkdownDocumentTransformContext(MarkdownDocumentTransformSource source, MarkdownReaderOptions? readerOptions, object? sourceOptions) {
+    public MarkdownDocumentTransformContext(MarkdownDocumentTransformSource source, MarkdownLoadOptions? readerOptions, object? sourceOptions) {
         Source = source;
         ReaderOptions = readerOptions;
         SourceOptions = sourceOptions;
@@ -86,7 +86,7 @@ public sealed class MarkdownDocumentTransformContext {
     /// </summary>
     public MarkdownDocumentTransformContext(
         MarkdownDocumentTransformSource source,
-        MarkdownReaderOptions? readerOptions,
+        MarkdownLoadOptions? readerOptions,
         object? sourceOptions,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics) {
         Source = source;
@@ -102,7 +102,7 @@ public sealed class MarkdownDocumentTransformContext {
     /// </summary>
     public MarkdownDocumentTransformContext(
         MarkdownDocumentTransformSource source,
-        MarkdownReaderOptions? readerOptions,
+        MarkdownLoadOptions? readerOptions,
         object? sourceOptions,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics,
         MarkdownSyntaxNode? syntaxTree) {
@@ -120,7 +120,7 @@ public sealed class MarkdownDocumentTransformContext {
     /// </summary>
     public MarkdownDocumentTransformContext(
         MarkdownDocumentTransformSource source,
-        MarkdownReaderOptions? readerOptions,
+        MarkdownLoadOptions? readerOptions,
         object? sourceOptions,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics,
         MarkdownSyntaxNode? syntaxTree,

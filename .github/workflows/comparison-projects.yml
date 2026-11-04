@@ -25,9 +25,6 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: |
-    8.0.426
-    10.0.113
   BUILD_CONFIGURATION: Release
 
 jobs:
@@ -46,7 +43,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -88,7 +86,8 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: ${{ hashFiles('global.json') != '' && 'global.json' || '' }}
       - name: Validate optional control revision
         if: inputs.control_source_ref != ''
         shell: pwsh
@@ -106,6 +105,11 @@ jobs:
           ref: ${{ inputs.control_source_ref }}
           path: Ignore/StaticQualificationControl
           persist-credentials: false
+      - name: Setup control revision SDK
+        if: inputs.suite == 'html-static' && inputs.control_source_ref != '' && hashFiles('Ignore/StaticQualificationControl/global.json') != ''
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: Ignore/StaticQualificationControl/global.json
       - name: Install multilingual fixture fonts
         if: runner.os == 'Linux'
         run: |

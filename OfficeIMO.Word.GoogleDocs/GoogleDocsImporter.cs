@@ -79,7 +79,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             var stream = new MemoryStream();
             WordDocument document = WordDocument.Create(stream);
             try {
-                document.BuiltinDocumentProperties.Title = response.Title;
+                document.Properties.Title = response.Title;
                 IReadOnlyList<GoogleDocsApiTabResponse> tabs = SelectImportTabs(response, options);
                 bool addHeadings = options.TabMode == GoogleDocsImportTabMode.FlattenWithHeadings && tabs.Count > 1;
                 foreach (GoogleDocsApiTabResponse tab in tabs) {
@@ -187,9 +187,9 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (style.Italic == true) run.SetItalic();
             if (style.Underline == true) run.SetUnderline(WordUnderlineStyle.Single);
             if (style.Strikethrough == true) run.SetStrike();
-            if (style.FontSize?.Magnitude is double size && size > 0) run.SetFontSize((int)Math.Round(size));
+            if (style.FontSize?.Magnitude is double size && size > 0) run.SetFontSize(global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)));
             if (!string.IsNullOrWhiteSpace(style.WeightedFontFamily?.FontFamily)) run.SetFontFamily(style.WeightedFontFamily!.FontFamily);
-            if (style.ForegroundColor?.Color.RgbColor is GoogleDocsApiRgbColorPayload color) run.SetColorHex(ToHex(color));
+            if (style.ForegroundColor?.Color.RgbColor is GoogleDocsApiRgbColorPayload color) run.SetColor(OfficeIMO.OfficeColor.Parse(ToHex(color)));
             if (style.SmallCaps == true) run.CapsStyle = WordCapsStyle.SmallCaps;
             run.VerticalTextAlignment = style.BaselineOffset switch {
                 "SUPERSCRIPT" => WordVerticalTextPosition.Superscript,

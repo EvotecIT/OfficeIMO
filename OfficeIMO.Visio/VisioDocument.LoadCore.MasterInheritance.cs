@@ -10,16 +10,16 @@ public partial class VisioDocument {
         var cells = new HashSet<string>(element.Elements(ns + "Cell").Attributes("N").Select(attribute => attribute.Value), StringComparer.Ordinal);
         if (element.Element(ns + "XForm") is XElement xform)
             foreach (XElement cell in xform.Elements()) cells.Add(cell.Name.LocalName);
-        double scaleX = shape.Parent?.MasterShape?.Width > 0 ? shape.Parent.Width / shape.Parent.MasterShape.Width : 1;
-        double scaleY = shape.Parent?.MasterShape?.Height > 0 ? shape.Parent.Height / shape.Parent.MasterShape.Height : 1;
-        if (!shape.HasExplicitWidth) shape.Width = source.Width * scaleX;
-        if (!shape.HasExplicitHeight) shape.Height = source.Height * scaleY;
-        if (!shape.HasExplicitLocPinX) shape.LocPinX = source.LocPinX * scaleX;
-        if (!shape.HasExplicitLocPinY) shape.LocPinY = source.LocPinY * scaleY;
+        double scaleX = shape.Parent?.MasterShape?.WidthInches > 0 ? shape.Parent.WidthInches / shape.Parent.MasterShape.WidthInches : 1;
+        double scaleY = shape.Parent?.MasterShape?.HeightInches > 0 ? shape.Parent.HeightInches / shape.Parent.MasterShape.HeightInches : 1;
+        if (!shape.HasExplicitWidth) shape.WidthInches = source.WidthInches * scaleX;
+        if (!shape.HasExplicitHeight) shape.HeightInches = source.HeightInches * scaleY;
+        if (!shape.HasExplicitLocPinX) shape.LocPinXInches = source.LocPinXInches * scaleX;
+        if (!shape.HasExplicitLocPinY) shape.LocPinYInches = source.LocPinYInches * scaleY;
         // Resolved zero pins are meaningful coordinates, not authoring defaults.
         shape.HasExplicitLocPinX = true; shape.HasExplicitLocPinY = true;
-        if (!cells.Contains("PinX")) shape.PinX = source.PinX * scaleX;
-        if (!cells.Contains("PinY")) shape.PinY = source.PinY * scaleY;
+        if (!cells.Contains("PinX")) shape.PinXInches = source.PinXInches * scaleX;
+        if (!cells.Contains("PinY")) shape.PinYInches = source.PinYInches * scaleY;
         if (!cells.Contains("Angle")) shape.Angle = source.Angle;
         if (string.IsNullOrEmpty(shape.NativeStyleReferences?.LineStyle)) {
             if (!cells.Contains("LineWeight")) shape.LineWeight = source.LineWeight;
@@ -37,12 +37,14 @@ public partial class VisioDocument {
         if (element.Element(ns + "Text") == null) {
             shape.Text = source.Text;
             shape.PreservedTextValue = source.PreservedTextValue;
-            shape.PreservedTextElement = source.PreservedTextElement == null ? null : new XElement(source.PreservedTextElement);
+            // Inherited text is immutable during loading and projection. Share its XML
+            // so a compact master cannot expand into a full tree for every instance.
+            shape.PreservedTextElement = source.PreservedTextElement;
             shape.HasInheritedText = true;
         }
         if (source.TextStyle != null) {
             var style = source.TextStyle.Clone();
-            style.ScaleTextBlock(source.Width > 0 ? shape.Width / source.Width : 1, source.Height > 0 ? shape.Height / source.Height : 1);
+            style.ScaleTextBlock(source.WidthInches > 0 ? shape.WidthInches / source.WidthInches : 1, source.HeightInches > 0 ? shape.HeightInches / source.HeightInches : 1);
             bool preservedCharacter = shape.PreservedNonGeometrySections.Any(section => IsCharacterSection((string?)section.Attribute("N")));
             bool preservedParagraph = shape.PreservedNonGeometrySections.Any(section => IsParagraphSection((string?)section.Attribute("N")));
             bool explicitTextStyle = !string.IsNullOrEmpty(shape.NativeStyleReferences?.TextStyle);

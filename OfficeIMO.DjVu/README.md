@@ -19,7 +19,7 @@ Console.WriteLine(stored.Text);
 
 var rendered = page.Render(new DjVuRenderOptions { Dpi = 150 });
 // rendered.Image is an owned OfficeRasterImage; use Core's image encoder to save it.
-foreach (var diagnostic in rendered.FidelityDiagnostics)
+foreach (var diagnostic in rendered.Diagnostics)
     Console.WriteLine(diagnostic.Message);
 ```
 
@@ -27,8 +27,8 @@ foreach (var diagnostic in rendered.FidelityDiagnostics)
 
 Byte inputs and options are copied. `Load(Stream)` reads from its current position, supports non-seekable streams, and leaves the stream open. A file handle is closed before `Load(string)` returns. The source hash and length describe the primary input, excluding resolved indirect components.
 
-Indirect documents require a caller-supplied `DjVuReadOptions.ComponentResolver`. Its component IDs are opaque: OfficeIMO does not interpret them as paths or URLs. Return bytes from an explicitly approved component map. Resolved bytes are copied and count toward the aggregate source limit; recursive includes and foreign component forms are rejected.
+Indirect documents require a caller-supplied `DjVuLoadOptions.ComponentResolver`. Its component IDs are opaque: OfficeIMO does not interpret them as paths or URLs. Return bytes from an explicitly approved component map. Resolved bytes are copied and count toward the aggregate source limit; recursive includes and foreign component forms are rejected.
 
-Rendering defaults to native DPI, applies display rotation, and returns an RGBA raster. `Region` selects an unrotated native rectangle before scaling and rotation. Read and render options bound input, expansion, page pixels, codec memory, symbols, and output; cancellation is observed during parsing and decoding. `RequireNoLoss()` rejects reported rendering qualifications.
+Rendering defaults to native DPI, applies display rotation, and returns an RGBA raster. `Region` selects an unrotated native rectangle before scaling and rotation. Read and render options bound input, expansion, page pixels, codec memory, symbols, and output; cancellation is observed during parsing and decoding. `ThrowIfLoss()` rejects reported rendering qualifications.
 
 See the [support and independent evidence contract](SUPPORT.md), [Reader adapter](../OfficeIMO.Reader.DjVu/README.md), and [searchable PDF adapter](../OfficeIMO.DjVu.Pdf/README.md).

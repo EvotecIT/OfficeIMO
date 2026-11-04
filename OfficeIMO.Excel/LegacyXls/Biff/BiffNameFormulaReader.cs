@@ -200,9 +200,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (wholeColumns) {
                 return area.SheetQualifier
                     + "!$"
-                    + A1.ColumnIndexToLetters(firstColumn + 1)
+                    + ExcelA1.ColumnIndexToLetters(firstColumn + 1)
                     + ":$"
-                    + A1.ColumnIndexToLetters(lastColumn + 1);
+                    + ExcelA1.ColumnIndexToLetters(lastColumn + 1);
             }
 
             string start = BiffFormulaReferenceFormatter.FormatCellReference(area.FirstRow, area.FirstColumnBits);

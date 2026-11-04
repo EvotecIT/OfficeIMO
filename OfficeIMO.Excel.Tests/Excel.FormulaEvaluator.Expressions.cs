@@ -24,12 +24,12 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_PreservesBooleanCachesThroughSavedReadback() {
             string path = Path.Combine(_directoryWithFiles, "BooleanFormulaCaches.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Booleans");
-                sheet.CellFormula(1, 1, "1=1");
-                sheet.CellFormula(2, 1, "AND(TRUE,TRUE)");
-                sheet.CellFormula(3, 1, "EXACT(\"a\",\"b\")");
-                sheet.CellFormula(4, 1, "ISNUMBER(1)");
-                sheet.CellFormula(5, 1, "ISFORMULA(A1)");
+                var sheet = document.AddSheet("Booleans");
+                sheet.Cell(1, 1).SetFormula("1=1");
+                sheet.Cell(2, 1).SetFormula("AND(TRUE,TRUE)");
+                sheet.Cell(3, 1).SetFormula("EXACT(\"a\",\"b\")");
+                sheet.Cell(4, 1).SetFormula("ISNUMBER(1)");
+                sheet.Cell(5, 1).SetFormula("ISFORMULA(A1)");
                 Assert.Equal(5, document.Calculate());
                 document.Save();
             }
@@ -63,8 +63,8 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_ComposableScalarExpressions(string formula, string expected) {
             string path = Path.Combine(_directoryWithFiles, "ScalarExpressions.xlsx");
             using var document = ExcelDocument.Create(path);
-            var sheet = document.AddWorksheet("Expressions");
-            sheet.CellFormula(1, 1, formula);
+            var sheet = document.AddSheet("Expressions");
+            sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
             document.Save();
@@ -74,11 +74,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_ComposedReferencesAndBoundedSyntax() {
             using var document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ScalarReferences.xlsx"));
-            var sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, 3);
-            sheet.CellFormula(1, 2, "(A1+SUM(A1,2))*2");
-            sheet.CellFormula(1, 3, new string('(', 140) + "1" + new string(')', 140));
-            sheet.CellFormula(1, 4, "1+2*");
+            var sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue(3);
+            sheet.Cell(1, 2).SetFormula("(A1+SUM(A1,2))*2");
+            sheet.Cell(1, 3).SetFormula(new string('(', 140) + "1" + new string(')', 140));
+            sheet.Cell(1, 4).SetFormula("1+2*");
             Assert.Equal(1, document.Calculate());
             Assert.Contains(sheet.InspectFormulas().Formulas, f => f.CellReference == "B1" && f.CachedValue == "16");
             Assert.Contains(sheet.InspectFormulas().Formulas, f => f.CellReference == "C1" && !f.IsSupportedByOfficeIMO);

@@ -40,11 +40,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             out string unsupportedResolution);
         if (unsupportedResolution.Length > 0) unsupported.Add(unsupportedResolution);
 
-        if (!HtmlCssReplacedElementParser.TryParseAspectRatio(
-                computed.GetValue("aspect-ratio"),
-                out style.AspectRatio,
-                out style.AspectRatioPrefersIntrinsic,
-                out string unsupportedRatio)) {
+        bool aspectRatioParsed = HtmlCssReplacedElementParser.TryParseAspectRatio(
+            computed.GetValue("aspect-ratio"),
+            out double? aspectRatio,
+            out bool aspectRatioPrefersIntrinsic,
+            out string unsupportedRatio);
+        style.AspectRatio = aspectRatio;
+        style.AspectRatioPrefersIntrinsic = aspectRatioPrefersIntrinsic;
+        if (!aspectRatioParsed) {
             style.AspectRatio = null;
             style.AspectRatioPrefersIntrinsic = true;
         }

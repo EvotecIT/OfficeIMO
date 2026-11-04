@@ -2,7 +2,7 @@ using System;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class AdvancedDocument {
@@ -16,8 +16,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "AdvancedDocument.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 // lets add some properties to the document
-                document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-                document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+                document.Properties.Title = "Cover Page Templates";
+                document.Properties.Subject = "How to use Cover Pages with TOC";
                 document.ApplicationProperties.Company = "Evotec Services";
 
                 // we force document to update fields on open, this will be used by TOC
@@ -65,7 +65,7 @@ namespace OfficeIMO.Examples.Word {
                 elements = document.Elements;
                 Console.WriteLine("Elements count after list: " + elements.Count);
 
-                var paragraphWithHyperlink = document.AddHyperLink("Go to Evotec Blogs", new Uri("https://evotec.xyz"), true, "URL with tooltip");
+                var paragraphWithHyperlink = document.AddHyperLink("Go to Evotec Blogs", new Uri("https://evotec.xyz"), true, "URL with tooltip").Paragraph;
                 // you can also change the hyperlink text, uri later on using properties
                 var hyperlink = Guard.NotNull(paragraphWithHyperlink.Hyperlink, "Hyperlink should be created when calling AddHyperLink.");
                 hyperlink.Uri = new Uri("https://evotec.xyz/hub");
@@ -83,26 +83,26 @@ namespace OfficeIMO.Examples.Word {
                 listNumbered.AddItem("Different list number 4", 1);
 
                 var section = document.AddSection();
-                section.PageOrientation = OfficePageOrientation.Landscape;
-                section.PageSettings.PageSize = WordPageSize.A4;
+                section.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                section.PageSetup.Size.PageSize = WordPageSize.A4;
 
                 wordListToc.AddItem("Adding headers / footers");
 
                 // add header text without null checks
-                document.HeaderDefaultOrCreate.AddParagraph("Text added to header - Default");
+                document.PageSetup.Header.AddParagraph("Text added to header - Default");
 
                 var section1 = document.AddSection();
-                section1.PageOrientation = OfficePageOrientation.Portrait;
-                section1.PageSettings.PageSize = WordPageSize.A5;
+                section1.PageSetup.Orientation = OfficePageOrientation.Portrait;
+                section1.PageSetup.Size.PageSize = WordPageSize.A5;
 
                 wordListToc.AddItem("Adding custom properties and page numbers to document");
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
-                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+                document.CustomProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomProperties.Add("MyName", new WordCustomProperty("Some text"));
+                document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
                 // add page numbers
-                document.FooterDefaultOrCreate.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
 
                 // add watermark
                 document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");

@@ -1,5 +1,3 @@
-#nullable enable
-
 #if NET8_0_OR_GREATER
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -18,7 +16,7 @@ internal static partial class CsvParser
         private const int LargeDataReaderBufferSize = 128 * 1024;
         private readonly TextReader _reader;
         private readonly CsvLineReader _lineReader;
-        private readonly CsvLoadOptions _options;
+        private readonly CsvParsingSettings _options;
         private readonly char _delimiter;
         private readonly bool _trim;
         private readonly bool _strictQuotes;
@@ -36,7 +34,7 @@ internal static partial class CsvParser
 
         internal CsvStreamDataReaderRowSource(
             TextReader reader,
-            CsvLoadOptions options,
+            CsvParsingSettings options,
             int initialEmittedRecordCount = 0,
             int physicalLineOffset = 0)
         {

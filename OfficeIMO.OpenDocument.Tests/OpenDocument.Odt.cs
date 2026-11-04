@@ -33,7 +33,7 @@ public class OpenDocumentOdtTests {
     [Fact]
     public void WritesAndReopensUsefulTextDocumentWithoutFlatteningStructure() {
         OdtDocument document = OdtDocument.Create();
-        document.Metadata.Title = "Native ODT";
+        document.Properties.Title = "Native ODT";
         document.AddHeading("Quarterly report", 1);
         OdtParagraph paragraph = document.AddParagraph("Revenue  increased\t12%\nYear over year.");
         OdtSpan span = paragraph.AddSpan(" Important");
@@ -65,7 +65,7 @@ public class OpenDocumentOdtTests {
         Assert.True(document.Validate().IsValid);
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(bytes));
 
-        Assert.Equal("Native ODT", reopened.Metadata.Title);
+        Assert.Equal("Native ODT", reopened.Properties.Title);
         Assert.Contains(reopened.Paragraphs, item => item.IsHeading && item.Text == "Quarterly report");
         Assert.Contains(reopened.Paragraphs, item => item.Text.IndexOf("Revenue  increased\t12%\nYear over year.", System.StringComparison.Ordinal) >= 0);
         Assert.Equal(2, reopened.Lists.Single().Items.Count);

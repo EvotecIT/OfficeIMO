@@ -65,11 +65,11 @@ namespace OfficeIMO.Excel {
                 normalized = normalized.Substring(bangIndex + 1);
             }
 
-            if (A1.TryParseRange(normalized, out _, out _, out _, out _)) {
+            if (ExcelA1.TryParseRange(normalized, out _, out _, out _, out _)) {
                 return true;
             }
 
-            var cell = A1.ParseCellRef(normalized);
+            var cell = ExcelA1.ParseCellRef(normalized);
             return cell.Row > 0 && cell.Col > 0;
         }
     }

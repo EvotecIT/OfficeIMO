@@ -15,7 +15,7 @@ Invoke-OfficeConversionJob [-Path] <string> [-Plan] [-RetryFailed] [-ItemResults
 ```
 
 ## DESCRIPTION
-Requires PowerShell 7.4 or newer. Plan performs no output or checkpoint writes. Execution revalidates current inputs and retains completed artifacts after a partial failure or cancellation. Password environment references are resolved only for execution; values are not written to the job or reports.
+Plan performs no output or checkpoint writes. Execution revalidates current inputs and retains completed artifacts after a partial failure or cancellation. Password environment references are resolved only for execution; values are not written to the job or reports.
 
 ## EXAMPLES
 
@@ -155,9 +155,9 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Workflows.OfficeConversionBatchResult`
-- `OfficeIMO.Workflows.OfficeConversionBatchItemResult`
-- `OfficeIMO.Workflows.OfficeConversionJobPlan`
+- `OfficeIMO.OfficeBatchSummary`
+- `OfficeIMO.OfficeBatchItemReport`
+- `OfficeIMO.OfficeBatchPlan`
 
 ## RELATED LINKS
 

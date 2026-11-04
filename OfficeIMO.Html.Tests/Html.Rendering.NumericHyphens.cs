@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(new[] { "AA END-", "12345" }, NumericHyphenLines(rendered));
         Assert.Equal("AA END-12345", NumericHyphenLogicalText(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderNumericHyphen(content, 80D);
 
         Assert.Equal(new[] { "AA", number }, NumericHyphenLines(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(50D, box.Width, 6);
         Assert.Equal(new[] { "END-", "12345" }, NumericHyphenLines(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(new[] { "AA \U00010400-", "12345" }, NumericHyphenLines(rendered));
         Assert.Equal("AA \U00010400-12345", NumericHyphenLogicalText(rendered));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static HtmlRenderDocument RenderNumericHyphen(string content, double width, string extraStyle = "",

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 ///   <summary>Writes a qualified native database with strict loss protection.</summary>
 ///   <code>$database | Save-OfficeAccess -Path ./contacts.accdb</code>
 /// </example>
-[Cmdlet(VerbsData.Save, "OfficeAccess", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeAccess", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(AccessDocument))]
 public sealed class SaveOfficeAccessCommand : PSCmdlet {
     /// <summary>Live database document.</summary>
@@ -39,7 +39,7 @@ public sealed class SaveOfficeAccessCommand : PSCmdlet {
         var options = new AccessSaveOptions {
             FileConflictPolicy = Force.IsPresent ? OfficeConversionFileConflictPolicy.Replace : OfficeConversionFileConflictPolicy.FailIfExists
         };
-        Document.AssessSave(path, options).RequireNoLoss();
+        Document.AssessSave(path, options).ThrowIfLoss();
         Document.Save(path, options);
         if (PassThru.IsPresent) WriteObject(Document);
     }

@@ -33,13 +33,13 @@ internal abstract class RtfMarkdownConversionContext {
 }
 
 internal sealed class RtfToMarkdownConversionContext : RtfMarkdownConversionContext {
-    private readonly RtfToMarkdownOptions _options;
+    private readonly RtfMarkdownExportOptions _options;
 
-    internal RtfToMarkdownConversionContext(RtfToMarkdownOptions options) {
+    internal RtfToMarkdownConversionContext(RtfMarkdownExportOptions options) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    internal MarkdownReaderOptions? InlineReaderOptions => _options.InlineReaderOptions;
+    internal MarkdownLoadOptions? InlineReaderOptions => _options.InlineReaderOptions;
     internal bool IncludeHiddenText => _options.IncludeHiddenText;
     internal bool EmitUnsupportedHtmlComments => _options.EmitUnsupportedHtmlComments;
     internal Func<RtfImage, int, string>? ImagePathFactory => _options.ImagePathFactory;
@@ -57,9 +57,9 @@ internal sealed class RtfToMarkdownConversionContext : RtfMarkdownConversionCont
 }
 
 internal sealed class MarkdownToRtfConversionContext : RtfMarkdownConversionContext {
-    private readonly MarkdownToRtfOptions _options;
+    private readonly MarkdownRtfExportOptions _options;
 
-    internal MarkdownToRtfConversionContext(MarkdownToRtfOptions options) {
+    internal MarkdownToRtfConversionContext(MarkdownRtfExportOptions options) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         if (_options.MaxListNestingDepth <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxListNestingDepth), _options.MaxListNestingDepth, "Maximum list nesting depth must be positive.");
@@ -70,7 +70,7 @@ internal sealed class MarkdownToRtfConversionContext : RtfMarkdownConversionCont
         }
     }
 
-    internal MarkdownReaderOptions? ReaderOptions => _options.ReaderOptions;
+    internal MarkdownLoadOptions? ReaderOptions => _options.ReaderOptions;
     internal bool PreserveRawHtmlAsText => _options.PreserveRawHtmlAsText;
     internal int MaxListNestingDepth => _options.MaxListNestingDepth;
     internal int MaxTableCells => _options.MaxTableCells;

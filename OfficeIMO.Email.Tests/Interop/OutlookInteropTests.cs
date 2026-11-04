@@ -56,7 +56,7 @@ public sealed class OutlookInteropTests {
                 ReminderDeltaMinutes = 15
             }
         };
-        EmailDocument projectedAppointment = new EmailDocumentReader().Read(
+        EmailDocument projectedAppointment = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(appointment, EmailFileFormat.Eml)).Document;
         EmailAttachment calendar = Assert.Single(projectedAppointment.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
@@ -75,7 +75,7 @@ public sealed class OutlookInteropTests {
             }
         };
         contact.Contact.Email1.Address = "officeimo.vcard@example.com";
-        EmailDocument projectedContact = new EmailDocumentReader().Read(
+        EmailDocument projectedContact = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(contact, EmailFileFormat.Eml)).Document;
         EmailAttachment vcard = Assert.Single(projectedContact.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/vcard", StringComparison.OrdinalIgnoreCase));
@@ -220,7 +220,7 @@ public sealed class OutlookInteropTests {
                 ReleaseComObject(itemObject);
             }
 
-            using EmailReadResult read = new EmailDocumentReader().Read(path);
+            using EmailReadResult read = new EmailDocumentReader().ReadDocument(path);
             Assert.Equal(kinds[index], read.Document.OutlookItemKind);
             Assert.DoesNotContain(read.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
             Assert.Contains(read.Document.MapiProperties, property =>
@@ -275,7 +275,7 @@ public sealed class OutlookInteropTests {
         string path = Path.Combine(directory,
             "officeimo-reopen-" + index.ToString(CultureInfo.InvariantCulture) + ".msg");
         File.WriteAllBytes(path, new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg));
-        using (EmailReadResult officeImoReopen = new EmailDocumentReader().Read(path)) {
+        using (EmailReadResult officeImoReopen = new EmailDocumentReader().ReadDocument(path)) {
             MapiProperty[] unknown = document.MapiProperties.Where(property => property.Name == null &&
                 MapiKnownProperties.Find(property) == null).ToArray();
             foreach (MapiProperty property in unknown) {

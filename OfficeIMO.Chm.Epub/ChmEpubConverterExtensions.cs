@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Epub;
 
 namespace OfficeIMO.Chm;
@@ -5,44 +6,110 @@ namespace OfficeIMO.Chm;
 /// <summary>Creates reflowable EPUB publications using the shared manuscript importer and archive-only resources.</summary>
 public static class ChmEpubConverterExtensions {
     /// <summary>Imports a linked topic book and its embedded resources into an editable EPUB publication.</summary>
-    public static EpubManuscriptResult ToEpubPublicationResult(this ChmDocument document, ChmConversionOptions? options = null,
-        EpubManuscriptOptions? epubOptions = null, CancellationToken cancellationToken = default) =>
-        Task.Run(() => document.ToEpubPublicationResultAsync(options, epubOptions, cancellationToken), cancellationToken).GetAwaiter().GetResult();
+    /// <remarks>Topics resolve through the asynchronous archive resolver; the synchronous form waits for it on the thread pool.</remarks>
+    public static EpubPublication ToEpub(this ChmDocument document, ChmEpubExportOptions? options = null,
+        CancellationToken cancellationToken = default) => document.ToEpub(options, out _, cancellationToken);
+
+    /// <summary>Imports a linked topic book into an EPUB publication and returns the source and import findings.</summary>
+    public static EpubPublication ToEpub(this ChmDocument document, ChmEpubExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
+        EpubManuscriptResult result = Task.Run(() => document.ConvertToEpubWithEvidenceAsync(options, cancellationToken),
+            cancellationToken).GetAwaiter().GetResult();
+        return OfficeConversionOutput.Complete(result.RequireValue(), result.Report, options?.FailOnLoss == true, out report);
+    }
 
     /// <summary>Asynchronously imports a linked topic book. Resource resolution never contacts the network or opens external files.</summary>
-    public static async Task<EpubManuscriptResult> ToEpubPublicationResultAsync(this ChmDocument document, ChmConversionOptions? options = null,
-        EpubManuscriptOptions? epubOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<OfficeConversionResult<EpubPublication>> ToEpubAsync(this ChmDocument document,
+        ChmEpubExportOptions? options = null, CancellationToken cancellationToken = default) {
+        EpubManuscriptResult result = await document.ConvertToEpubWithEvidenceAsync(options, cancellationToken).ConfigureAwait(false);
+        EpubPublication value = OfficeConversionOutput.Complete(result.RequireValue(), result.Report, options?.FailOnLoss == true, out OfficeConversionReport report);
+        return new OfficeConversionResult<EpubPublication>(value, report);
+    }
+
+    /// <summary>Writes the converted EPUB package to a path and returns the import and package-write report.</summary>
+    public static OfficeConversionReport SaveAsEpub(this ChmDocument document, string path, ChmEpubExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        var (bytes, report) = document.WriteEpub(options, cancellationToken);
+        return OfficeConversionOutput.Save(report, path, bytes);
+    }
+
+    /// <summary>Writes the converted EPUB package to a caller-owned stream and returns the import and package-write report.</summary>
+    public static OfficeConversionReport SaveAsEpub(this ChmDocument document, Stream stream, ChmEpubExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        var (bytes, report) = document.WriteEpub(options, cancellationToken);
+        return OfficeConversionOutput.Save(report, stream, bytes);
+    }
+
+    /// <summary>Asynchronously writes the converted EPUB package to a path.</summary>
+    public static async Task<OfficeConversionReport> SaveAsEpubAsync(this ChmDocument document, string path,
+        ChmEpubExportOptions? options = null, CancellationToken cancellationToken = default) {
+        var (bytes, report) = await document.WriteEpubAsync(options, cancellationToken).ConfigureAwait(false);
+        return await OfficeConversionOutput.SaveAsync(report, path, bytes, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Asynchronously writes the converted EPUB package to a caller-owned stream.</summary>
+    public static async Task<OfficeConversionReport> SaveAsEpubAsync(this ChmDocument document, Stream stream,
+        ChmEpubExportOptions? options = null, CancellationToken cancellationToken = default) {
+        var (bytes, report) = await document.WriteEpubAsync(options, cancellationToken).ConfigureAwait(false);
+        return await OfficeConversionOutput.SaveAsync(report, stream, bytes, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static EpubManuscriptResult ConvertToEpubWithEvidence(this ChmDocument document, ChmConversionOptions? options = null,
+        EpubManuscriptOptions? epubOptions = null, CancellationToken cancellationToken = default) =>
+        Task.Run(() => document.ConvertToEpubWithEvidenceAsync(Combine(options, epubOptions, null), cancellationToken), cancellationToken).GetAwaiter().GetResult();
+
+    internal static Task<EpubManuscriptResult> ConvertToEpubWithEvidenceAsync(this ChmDocument document, ChmConversionOptions? options = null,
+        EpubManuscriptOptions? epubOptions = null, CancellationToken cancellationToken = default) =>
+        document.ConvertToEpubWithEvidenceAsync(Combine(options, epubOptions, null), cancellationToken);
+
+    internal static ChmConversionResult<byte[]> ConvertToEpubBytesWithEvidence(this ChmDocument document, ChmConversionOptions? options = null,
+        EpubManuscriptOptions? epubOptions = null, EpubSaveOptions? writeOptions = null, CancellationToken cancellationToken = default) {
+        var (bytes, report) = document.WriteEpub(Combine(options, epubOptions, writeOptions), cancellationToken);
+        return new ChmConversionResult<byte[]>(bytes, (ChmConversionReport)report);
+    }
+
+    private static ChmEpubExportOptions Combine(ChmConversionOptions? options, EpubManuscriptOptions? epubOptions, EpubSaveOptions? writeOptions) =>
+        new ChmEpubExportOptions { ConversionOptions = options ?? new ChmConversionOptions(), EpubOptions = epubOptions, SaveOptions = writeOptions };
+
+    internal static async Task<EpubManuscriptResult> ConvertToEpubWithEvidenceAsync(this ChmDocument document,
+        ChmEpubExportOptions? options, CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions(); configured.EmbedImages = false;
+        cancellationToken.ThrowIfCancellationRequested();
+        ChmConversionOptions configured = options?.ConversionOptions.Clone() ?? new ChmConversionOptions(); configured.EmbedImages = false;
         ChmConversionResult<HtmlConversionDocument> projected = document.ToHtmlDocumentResult(configured, cancellationToken);
-        EpubManuscriptOptions conversion = epubOptions?.Clone() ?? new EpubManuscriptOptions();
+        EpubManuscriptOptions conversion = options?.EpubOptions?.Clone() ?? new EpubManuscriptOptions();
         conversion.Title = conversion.Title ?? document.Title ?? "Compiled help";
         conversion.ResourceResolver = document.CreateResourceResolver();
         EpubManuscriptResult result = await EpubManuscript.ImportHtmlAsync(projected.Value, conversion, cancellationToken).ConfigureAwait(false);
-        var diagnostics = projected.Report.FidelityDiagnostics.ToList();
+        var diagnostics = projected.Report.Diagnostics.ToList();
         if (result.Succeeded) diagnostics.AddRange(RestoreNavigation(document, projected.Value, result.Publication, cancellationToken));
         return result.WithSourceReports(new ChmConversionReport(projected.Report.TopicPaths, diagnostics));
     }
 
-    /// <summary>Creates serialized EPUB bytes and retains import and package-write fidelity reports.</summary>
-    public static ChmConversionResult<byte[]> ToEpubBytesResult(this ChmDocument document, ChmConversionOptions? options = null,
-        EpubManuscriptOptions? epubOptions = null, EpubWriteOptions? writeOptions = null, CancellationToken cancellationToken = default) {
-        ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();
-        EpubManuscriptResult imported = document.ToEpubPublicationResult(configured, epubOptions, cancellationToken);
-        EpubWriteOptions requested = writeOptions ?? new EpubWriteOptions();
-        var writing = new EpubWriteOptions {
+    private static (byte[] Bytes, OfficeConversionReport Report) WriteEpub(this ChmDocument document, ChmEpubExportOptions? options,
+        CancellationToken cancellationToken) =>
+        Task.Run(() => document.WriteEpubAsync(options, cancellationToken), cancellationToken).GetAwaiter().GetResult();
+
+    private static async Task<(byte[] Bytes, OfficeConversionReport Report)> WriteEpubAsync(this ChmDocument document,
+        ChmEpubExportOptions? options, CancellationToken cancellationToken) {
+        ChmConversionOptions configured = options?.ConversionOptions.Clone() ?? new ChmConversionOptions();
+        EpubManuscriptResult imported = await document.ConvertToEpubWithEvidenceAsync(options, cancellationToken).ConfigureAwait(false);
+        EpubSaveOptions requested = options?.SaveOptions ?? new EpubSaveOptions();
+        var writing = new EpubSaveOptions {
             CompressEntries = requested.CompressEntries, MaxOutputBytes = Math.Min(requested.MaxOutputBytes, configured.MaxOutputBytes),
             MaxExpandedBytes = requested.MaxExpandedBytes, MaxEntries = requested.MaxEntries,
             RemoveInvalidatedSignatures = requested.RemoveInvalidatedSignatures, ModifiedAt = requested.ModifiedAt
         };
         var written = imported.RequireValue().Write(writing, cancellationToken);
         ChmDocument.EnforceOutput(written.Value.LongLength, configured);
-        return new ChmConversionResult<byte[]>(written.Value, new ChmConversionReport(document.SelectTopics(configured).Select(topic => topic.Path),
-            imported.Report.FidelityDiagnostics.Concat(written.Report.FidelityDiagnostics)));
+        var report = new ChmConversionReport(document.SelectTopics(configured).Select(topic => topic.Path),
+            imported.Report.Diagnostics.Concat(written.Report.Diagnostics));
+        if (options?.FailOnLoss == true) report.ThrowIfLoss();
+        return (written.Value, report);
     }
 
-    private static IReadOnlyList<OfficeConversionFidelityDiagnostic> RestoreNavigation(ChmDocument source, HtmlConversionDocument projection, EpubPublication publication, CancellationToken token) {
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+    private static IReadOnlyList<OfficeDiagnostic> RestoreNavigation(ChmDocument source, HtmlConversionDocument projection, EpubPublication publication, CancellationToken token) {
+        var diagnostics = new List<OfficeDiagnostic>();
         var targets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var anchorTargets = new Dictionary<string, string>(StringComparer.Ordinal);
         // Only direct book sections are generated topic boundaries. Retained authored
@@ -72,11 +139,11 @@ public static class ChmEpubConverterExtensions {
                 string anchor = fragment < 0 ? sectionAnchor : sectionAnchor + "-" + Uri.UnescapeDataString(link.Target.Substring(fragment + 1));
                 if (!anchorTargets.TryGetValue(anchor, out string? resolved)) {
                     resolved = topicTarget;
-                    diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_EPUB_NAVIGATION_FRAGMENT", "A contents fragment is absent from the projected topic; navigation uses the topic heading.", OfficeConversionLossKind.Approximation, "OfficeIMO.Chm.Epub", link.Target));
+                    diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_EPUB_NAVIGATION_FRAGMENT", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "A contents fragment is absent from the projected topic; navigation uses the topic heading.", link.Target, "OfficeIMO.Chm.Epub", OfficeConversionLossKind.Approximation));
                 }
                 target = resolved; break;
             }
-            if (item.Links.Count > 1) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_EPUB_NAVIGATION_TARGETS", "EPUB contents use one destination for a help contents item with several targets.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm.Epub", item.Name));
+            if (item.Links.Count > 1) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_EPUB_NAVIGATION_TARGETS", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "EPUB contents use one destination for a help contents item with several targets.", item.Name, "OfficeIMO.Chm.Epub", OfficeConversionLossKind.Omission));
             target = target ?? children.FirstOrDefault()?.Target;
             return target == null ? null : new EpubNavigationEntry(item.Name, target, children);
         }

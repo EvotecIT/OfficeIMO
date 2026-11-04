@@ -13,14 +13,14 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "DataValidation.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
 
-                sheet.ValidationWholeNumber("A1:A10", ExcelDataValidationOperator.Between, 1, 10);
-                sheet.ValidationDecimal("B1:B10", ExcelDataValidationOperator.GreaterThan, 5.5);
-                sheet.ValidationDate("C1:C10", ExcelDataValidationOperator.LessThan, new DateTime(2024, 1, 1));
-                sheet.ValidationTime("D1:D10", ExcelDataValidationOperator.Equal, TimeSpan.FromHours(12));
-                sheet.ValidationTextLength("E1:E10", ExcelDataValidationOperator.LessThanOrEqual, 20);
-                sheet.ValidationCustomFormula("F1:F10", "SUM(A1:B1)>10");
+                sheet.Range("A1:A10").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
+                sheet.Range("B1:B10").Validation().Decimal(ExcelDataValidationOperator.GreaterThan, 5.5);
+                sheet.Range("C1:C10").Validation().Date(ExcelDataValidationOperator.LessThan, new DateTime(2024, 1, 1));
+                sheet.Range("D1:D10").Validation().Time(ExcelDataValidationOperator.Equal, TimeSpan.FromHours(12));
+                sheet.Range("E1:E10").Validation().TextLength(ExcelDataValidationOperator.LessThanOrEqual, 20);
+                sheet.Range("F1:F10").Validation().CustomFormula("SUM(A1:B1)>10");
 
                 document.Save();
                 if (openExcel) document.OpenInApplication();

@@ -35,7 +35,7 @@ public partial class Word {
         items[3].AddBookmark("NoteTableAnchor");
         var imageParagraph = new WordParagraph(source, cells[1].Elements<W.Paragraph>().Single());
         using (var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng((byte)0, (byte)180, (byte)80)))
-            imageParagraph.AddText(string.Empty).InsertImage(pixels, "note-table.png", 24, 16);
+            imageParagraph.AddText(string.Empty).AddImage(pixels, "note-table.png", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(16));
         var linkParagraph = new W.Paragraph();
         cells[1].Append(linkParagraph);
         new WordParagraph(source, linkParagraph).AddHyperLink("CELLLINK", new Uri("https://example.test/note-table"));
@@ -52,11 +52,11 @@ public partial class Word {
         var main = document._wordprocessingDocument.MainDocumentPart!;
         OpenXmlCompositeElement loadedNotes = endnote ? main.EndnotesPart!.Endnotes! : main.FootnotesPart!.Footnotes!;
         string original = main.Document.OuterXml + loadedNotes.OuterXml + main.StyleDefinitionsPart!.Styles!.OuterXml;
-        WordToPdfOptions options = FootnoteDiagnosticOptions();
-        options.PdfOptions = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+        WordPdfExportOptions options = FootnoteDiagnosticOptions();
+        options.PdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray())));
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
             using var pdf = PdfPigDocument.Open(bytes);
@@ -87,7 +87,7 @@ public partial class Word {
             Assert.Single(navigation.NamedDestinations, destination => destination.Name.StartsWith(
                 endnote ? "OfficeIMO.Endnote." : "OfficeIMO.Footnote.", StringComparison.Ordinal));
             Assert.DoesNotContain(result.Warnings, warning => warning.Code is
-                "NativeFootnotePlacementApproximated" or "NativeEndnoteContentApproximated" or "NativeNestedTableLayoutApproximated");
+                "native-footnote-placement-approximated" or "native-endnote-content-approximated" or "native-nested-table-layout-approximated");
             Assert.Equal(original, main.Document.OuterXml + loadedNotes.OuterXml + main.StyleDefinitionsPart.Styles.OuterXml);
         }
         Assert.Empty(document.ValidateDocument());
@@ -121,7 +121,7 @@ public partial class Word {
         Assert.All(loadedTable.Elements<W.TableRow>(), row => Assert.Null(row.TableRowProperties));
         Assert.All(loadedTable.Descendants<W.TableCell>(), cell => Assert.Null(cell.TableCellProperties));
         string original = loadedNotes.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         Assert.Equal(original, loadedNotes.OuterXml);
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
@@ -134,7 +134,7 @@ public partial class Word {
             Assert.Equal(left[0].StartBaseLine.Y, right[0].StartBaseLine.Y, 3);
             Assert.True(right[0].StartBaseLine.X > left[left.Length - 1].EndBaseLine.X);
             Assert.DoesNotContain(result.Warnings, warning => warning.Code is
-                "NativeFootnotePlacementApproximated" or "NativeEndnoteContentApproximated");
+                "native-footnote-placement-approximated" or "native-endnote-content-approximated");
             Assert.Equal(original, loadedNotes.OuterXml);
         }
         Assert.Empty(document.ValidateDocument());
@@ -165,11 +165,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.FootnotesPart?.Footnotes?.OuterXml + main.EndnotesPart?.Endnotes?.OuterXml;
-        WordToPdfOptions options = FootnoteDiagnosticOptions();
-        options.PageSize = new PageSize(360D, 260D);
-        options.Margins = PageMargins.Uniform(30D);
-        options.PdfOptions = new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        WordPdfExportOptions options = FootnoteDiagnosticOptions();
+        options.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(360D),OfficeIMO.OfficeLength.Points(260D));
+        options.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30D));
+        options.PdfOptions = new PdfCreateOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
             using var pdf = PdfPigDocument.Open(bytes);
@@ -187,7 +187,7 @@ public partial class Word {
             PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
             Assert.Contains(tagged.StructureElements, element => element.StructureType == "TH");
             foreach (string token in rows.Skip(1).SelectMany(row => row)) Assert.Single(Regex.Matches(text, token));
-            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
             Assert.Equal(original, main.Document.OuterXml + main.FootnotesPart?.Footnotes?.OuterXml + main.EndnotesPart?.Endnotes?.OuterXml);
         }
     }
@@ -208,11 +208,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         var notes = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!;
         string original = notes.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Contains("UNSUPPORTEDTABLETEXT", text, StringComparison.Ordinal);
-        Assert.Single(result.Warnings, warning => warning.Code == "NativeFootnotePlacementApproximated");
+        Assert.Single(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         Assert.True(result.HasLoss);
         Assert.Equal(original, notes.OuterXml);
     }

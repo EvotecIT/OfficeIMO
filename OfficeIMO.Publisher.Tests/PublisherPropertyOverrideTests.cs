@@ -5,6 +5,20 @@ using OfficeIMO.Publisher.Internal;
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherPropertyOverrideTests {
+    [Fact]
+    public void ShapePropertyIndexPreservesLastEntryAndComplexOverrides() {
+        var shape = new PublisherEscherShape(1, 1, 0, new[] {
+            new OfficeArtProperty(0, 0x0384, 100),
+            new OfficeArtProperty(1, 0x0384, 200),
+            new OfficeArtProperty(2, 0x8385, 5)
+        });
+
+        Assert.Equal(200U, shape.Property(0x384));
+        Assert.Null(shape.Property(0x385));
+        Assert.True(shape.HasProperty(0x385));
+        Assert.False(shape.HasProperty(0x386));
+    }
+
     [Theory]
     [InlineData(false, 0U, false, true)]
     [InlineData(true, 0U, false, true)]
@@ -24,10 +38,10 @@ public sealed class PublisherPropertyOverrideTests {
                 complex ? (int)value : null, complexData: complex ? new byte[value] : null)
         }) { Bounds = new PublisherNativeRectangle(-100 * 12700, -100 * 12700, 100 * 12700, 100 * 12700) });
         PublisherDocument publication = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), default)).Project();
         Assert.DoesNotContain(PublisherNativeTests.Elements(publication.Pages[0].Drawing), item => item is OfficeDrawingImage);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_IMAGE_REFERENCE_UNRESOLVED");
-        Assert.Equal(unsupported, publication.ReadReport.FidelityDiagnostics.Any(item => item.Code == "PUB_IMAGE_DATA_UNSUPPORTED"
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code == "PUB_IMAGE_REFERENCE_UNRESOLVED");
+        Assert.Equal(unsupported, publication.ReadReport.Diagnostics.Any(item => item.Code == "PUB_IMAGE_DATA_UNSUPPORTED"
             && item.Location == "Contents/object/2"));
         Assert.Equal(image, Assert.Single(publication.Images).GetBytes());
     }

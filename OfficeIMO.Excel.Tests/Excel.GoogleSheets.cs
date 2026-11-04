@@ -53,52 +53,51 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
-                    var hidden = document.AddWorksheet("Hidden");
+                    var summary = document.AddSheet("Summary");
+                    var hidden = document.AddSheet("Hidden");
 
-                    summary.CellValue(1, 1, "Name");
-                    summary.CellValue(2, 1, "Alpha");
-                    summary.CellValue(2, 3, "Accent");
-                    summary.CellFormula(2, 2, "SUM(1,2)");
+                    summary.Cell(1, 1).SetValue("Name");
+                    summary.Cell(2, 1).SetValue("Alpha");
+                    summary.Cell(2, 3).SetValue("Accent");
+                    summary.Cell(2, 2).SetFormula("SUM(1,2)");
                     summary.SetHyperlink(1, 1, "https://example.org", display: "Name");
                     summary.SetComment(2, 3, "Accent comment", author: "Tester", initials: "TT");
-                    summary.FormatCell(2, 1, "0.00%");
-                    summary.CellBackground(2, 1, "#00FF00");
-                    summary.CellBold(2, 1, true);
-                    summary.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
-                    summary.CellFontColor(2, 3, "#112233");
-                    summary.SetColumnWidth(1, 20);
-                    summary.CellValue(3, 1, "First line\nSecond line");
-                    summary.WrapCells(3, 3, 1, 20);
-                    summary.AutoFitRow(3);
-                    summary.CellValue(1, 4, "Status");
-                    summary.CellValue(1, 5, "Region");
-                    summary.CellValue(1, 6, "Score");
-                    summary.CellValue(1, 7, "Budget");
-                    summary.CellValue(2, 4, "Open");
-                    summary.CellValue(2, 5, "North");
-                    summary.CellValue(2, 6, 10d);
-                    summary.CellValue(2, 7, 8d);
-                    summary.CellValue(3, 4, "Closed");
-                    summary.CellValue(3, 5, "South");
-                    summary.CellValue(3, 6, 20d);
-                    summary.CellValue(3, 7, 18d);
-                    summary.CellValue(4, 4, "Open");
-                    summary.CellValue(4, 5, "East");
-                    summary.CellValue(4, 6, 30d);
-                    summary.CellValue(4, 7, 28d);
+                    summary.Cell(2, 1).SetNumberFormat("0.00%");
+                    summary.Cell(2, 1).SetFillColor("#00FF00");
+                    summary.Cell(2, 1).SetBold(true);
+                    summary.Cell(2, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+                    summary.Cell(2, 3).SetFontColor("#112233");
+                    summary.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+                    // Row 3 stays free for the totals row that SetTableTotals adds below the table.
+                    summary.Cell(4, 1).SetValue("First line\nSecond line");
+                    summary.Range(4, 1, 4, 1).SetWrapText(); summary.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+                    summary.AutoFitRow(4);
+                    summary.Cell(1, 4).SetValue("Status");
+                    summary.Cell(1, 5).SetValue("Region");
+                    summary.Cell(1, 6).SetValue("Score");
+                    summary.Cell(1, 7).SetValue("Budget");
+                    summary.Cell(2, 4).SetValue("Open");
+                    summary.Cell(2, 5).SetValue("North");
+                    summary.Cell(2, 6).SetValue(10d);
+                    summary.Cell(2, 7).SetValue(8d);
+                    summary.Cell(3, 4).SetValue("Closed");
+                    summary.Cell(3, 5).SetValue("South");
+                    summary.Cell(3, 6).SetValue(20d);
+                    summary.Cell(3, 7).SetValue(18d);
+                    summary.Cell(4, 4).SetValue("Open");
+                    summary.Cell(4, 5).SetValue("East");
+                    summary.Cell(4, 6).SetValue(30d);
+                    summary.Cell(4, 7).SetValue(28d);
                     summary.AddTable("A1:B2", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.SetTableTotals("A1:B2", new Dictionary<string, ExcelTableTotalsFunction> {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Column2"] = ExcelTableTotalsFunction.Sum,
                     });
-                    summary.AddAutoFilter("D1:G4", new Dictionary<uint, IEnumerable<string>> {
-                        { 0, new[] { "Open" } }
-                    });
-                    summary.AutoFilterByHeaderContains("Region", "or");
-                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
-                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
-                    summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Range("D1:G4").AutoFilter().Column(0).Equals(new[] { "Open" });
+                    summary.Range("D1:G4").AutoFilter().Column("Region").Contains("or");
+                    summary.Range("D1:G4").AutoFilter().Column("Score").GreaterThanOrEqual(15d);
+                    summary.Range("D1:G4").AutoFilter().Column("Budget").Between(10d, 20d);
+                    summary.View.Freeze(topRows: 1, leftColumns: 1);
                     summary.Protect(new ExcelSheetProtectionOptions {
                         AllowSelectLockedCells = false,
                         AllowSelectUnlockedCells = false,
@@ -115,7 +114,7 @@ namespace OfficeIMO.Tests {
                 ApplySheetDisplaySettings(filePath, "Summary", "FF336699", rightToLeft: true);
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
 
                 Assert.Equal(2, snapshot.Worksheets.Count);
 
@@ -138,7 +137,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Open" }, worksheetFilterColumn.Values);
                 var table = Assert.Single(summarySheet.Tables);
                 Assert.Equal("SummaryTable", table.Name);
-                Assert.Equal("A1:B2", table.A1Range);
+                Assert.Equal("A1:B3", table.A1Range);
                 Assert.Equal("TableStyleMedium2", table.StyleName);
                 Assert.True(table.HasHeaderRow);
                 Assert.True(table.TotalsRowShown);
@@ -191,10 +190,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Accent comment", fontColorCell.Comment.Text);
 
                 var column = Assert.Single(summarySheet.Columns, c => c.StartIndex == 1 && c.EndIndex == 1);
-                Assert.Equal(20, column.Width);
+                Assert.Equal(20, column.Width?.CharacterCount);
 
-                var row = Assert.Single(summarySheet.Rows, r => r.Index == 3);
-                Assert.True(row.Height > 15);
+                var row = Assert.Single(summarySheet.Rows, r => r.Index == 4);
+                Assert.True(row.Height?.PhysicalLength?.ToPoints() > 15);
 
                 var hiddenSheet = Assert.Single(snapshot.Worksheets, w => w.Name == "Hidden");
                 Assert.True(hiddenSheet.Hidden);
@@ -213,30 +212,30 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorksheet("Summary");
+                    var sheet = document.AddSheet("Summary");
 
-                    sheet.CellValue(2, 1, 12.34d);
-                    sheet.CellBackground(2, 1, "#D9EAD3");
-                    sheet.CellFontColor(2, 1, "#112233");
-                    sheet.CellBold(2, 1, true);
-                    sheet.CellItalic(2, 1, true);
-                    sheet.CellUnderline(2, 1, true);
-                    sheet.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
-                    sheet.CellVerticalAlign(2, 1, ExcelVerticalAlignment.Center);
-                    sheet.CellBorder(2, 1, ExcelBorderStyle.Thin, "#445566");
-                    sheet.FormatCell(2, 1, "0.00%");
+                    sheet.Cell(2, 1).SetValue(12.34d);
+                    sheet.Cell(2, 1).SetFillColor("#D9EAD3");
+                    sheet.Cell(2, 1).SetFontColor("#112233");
+                    sheet.Cell(2, 1).SetBold(true);
+                    sheet.Cell(2, 1).SetItalic(true);
+                    sheet.Cell(2, 1).SetUnderline(true);
+                    sheet.Cell(2, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+                    sheet.Cell(2, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
+                    sheet.Cell(2, 1).SetBorder(ExcelBorderStyle.Thin, "#445566");
+                    sheet.Cell(2, 1).SetNumberFormat("0.00%");
 
-                    sheet.CellValue(3, 1, "First line\nSecond line");
-                    sheet.WrapCells(3, 3, 1, 20);
-                    sheet.CellFontColor(3, 1, "#445566");
-                    sheet.CellBold(3, 1, true);
-                    sheet.CellAlign(3, 1, ExcelHorizontalAlignment.Left);
+                    sheet.Cell(3, 1).SetValue("First line\nSecond line");
+                    sheet.Range(3, 1, 3, 1).SetWrapText(); sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+                    sheet.Cell(3, 1).SetFontColor("#445566");
+                    sheet.Cell(3, 1).SetBold(true);
+                    sheet.Cell(3, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Left);
 
                     document.Save();
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, w => w.Name == "Summary");
 
                 var numericCell = Assert.Single(summarySheet.Cells, c => c.Row == 2 && c.Column == 1);
@@ -275,58 +274,58 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
-                    var hidden = document.AddWorksheet("Hidden");
+                    var summary = document.AddSheet("Summary");
+                    var hidden = document.AddSheet("Hidden");
 
-                    summary.CellValue(1, 1, "Name");
-                    summary.CellValue(1, 2, "Count");
-                    summary.CellValue(2, 1, "Alpha");
-                    summary.CellValue(2, 2, 12);
-                    summary.CellValue(2, 3, true);
-                    summary.CellValue(2, 4, new DateTime(2024, 12, 24, 10, 30, 0, DateTimeKind.Utc));
-                    summary.CellValue(2, 6, "Accent");
-                    summary.CellFormula(2, 5, "SUM(B2:B2)");
+                    summary.Cell(1, 1).SetValue("Name");
+                    summary.Cell(1, 2).SetValue("Count");
+                    summary.Cell(2, 1).SetValue("Alpha");
+                    summary.Cell(2, 2).SetValue(12);
+                    summary.Cell(2, 3).SetValue(true);
+                    summary.Cell(2, 4).SetValue(new DateTime(2024, 12, 24, 10, 30, 0, DateTimeKind.Utc));
+                    summary.Cell(2, 6).SetValue("Accent");
+                    summary.Cell(2, 5).SetFormula("SUM(B2:B2)");
                     summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
                     summary.SetComment(2, 6, "Accent comment", author: "Tester", initials: "TT");
-                    summary.FormatCell(2, 2, "0.00%");
-                    summary.CellBackground(2, 2, "#00FF00");
-                    summary.CellBold(2, 2, true);
-                    summary.CellAlign(2, 2, ExcelHorizontalAlignment.Center);
-                    summary.CellFontColor(2, 6, "#112233");
-                    summary.SetColumnWidth(2, 20);
-                    summary.CellValue(3, 2, "Wrapped\nRow");
-                    summary.WrapCells(3, 3, 2, 20);
+                    summary.Cell(2, 2).SetNumberFormat("0.00%");
+                    summary.Cell(2, 2).SetFillColor("#00FF00");
+                    summary.Cell(2, 2).SetBold(true);
+                    summary.Cell(2, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+                    summary.Cell(2, 6).SetFontColor("#112233");
+                    summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
+                    summary.Cell(3, 2).SetValue("Wrapped\nRow");
+                    summary.Range(3, 2, 3, 2).SetWrapText(); summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
                     summary.AutoFitRow(3);
-                    summary.CellValue(1, 7, "Status");
-                    summary.CellValue(1, 8, "Region");
-                    summary.CellValue(1, 9, "Score");
-                    summary.CellValue(1, 10, "Budget");
-                    summary.CellValue(2, 7, "Open");
-                    summary.CellValue(2, 8, "North");
-                    summary.CellValue(2, 9, 10d);
-                    summary.CellValue(2, 10, 8d);
-                    summary.CellValue(3, 7, "Closed");
-                    summary.CellValue(3, 8, "South");
-                    summary.CellValue(3, 9, 20d);
-                    summary.CellValue(3, 10, 18d);
-                    summary.CellValue(4, 7, "Open");
-                    summary.CellValue(4, 8, "East");
-                    summary.CellValue(4, 9, 30d);
-                    summary.CellValue(4, 10, 28d);
+                    // Row 3 is written as the table's totals row before SetTableTotals marks it.
+                    summary.Cell(3, 1).SetValue("Total");
+                    summary.Cell(1, 7).SetValue("Status");
+                    summary.Cell(1, 8).SetValue("Region");
+                    summary.Cell(1, 9).SetValue("Score");
+                    summary.Cell(1, 10).SetValue("Budget");
+                    summary.Cell(2, 7).SetValue("Open");
+                    summary.Cell(2, 8).SetValue("North");
+                    summary.Cell(2, 9).SetValue(10d);
+                    summary.Cell(2, 10).SetValue(8d);
+                    summary.Cell(3, 7).SetValue("Closed");
+                    summary.Cell(3, 8).SetValue("South");
+                    summary.Cell(3, 9).SetValue(20d);
+                    summary.Cell(3, 10).SetValue(18d);
+                    summary.Cell(4, 7).SetValue("Open");
+                    summary.Cell(4, 8).SetValue("East");
+                    summary.Cell(4, 9).SetValue(30d);
+                    summary.Cell(4, 10).SetValue(28d);
                     summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.SetTableTotals("A1:B3", new Dictionary<string, ExcelTableTotalsFunction> {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Count"] = ExcelTableTotalsFunction.Sum,
                     });
-                    summary.CellBackground(3, 1, "#D9EAD3");
-                    summary.CellBackground(3, 2, "#D9EAD3");
-                    summary.AddAutoFilter("G1:J4", new Dictionary<uint, IEnumerable<string>> {
-                        { 0, new[] { "Open" } }
-                    });
-                    summary.AutoFilterByHeaderContains("Region", "or");
-                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
-                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
-                    summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Cell(3, 1).SetFillColor("#D9EAD3");
+                    summary.Cell(3, 2).SetFillColor("#D9EAD3");
+                    summary.Range("G1:J4").AutoFilter().Column(0).Equals(new[] { "Open" });
+                    summary.Range("G1:J4").AutoFilter().Column("Region").Contains("or");
+                    summary.Range("G1:J4").AutoFilter().Column("Score").GreaterThanOrEqual(15d);
+                    summary.Range("G1:J4").AutoFilter().Column("Budget").Between(10d, 20d);
+                    summary.View.Freeze(topRows: 1, leftColumns: 1);
                     summary.Protect(new ExcelSheetProtectionOptions {
                         AllowSelectLockedCells = false,
                         AllowSelectUnlockedCells = false,
@@ -444,7 +443,8 @@ namespace OfficeIMO.Tests {
 
                 var filterView = Assert.Single(batch.Requests.OfType<GoogleSheetsAddFilterViewRequest>(), r => r.SheetName == "Summary");
                 Assert.Equal("SummaryTable Filter", filterView.Title);
-                Assert.Equal("A1:B3", filterView.A1Range);
+                // The table filter covers the header and data rows, not the totals row.
+                Assert.Equal("A1:B2", filterView.A1Range);
 
                 var protectedRange = Assert.Single(batch.Requests.OfType<GoogleSheetsAddProtectedRangeRequest>(), r => r.SheetName == "Summary");
                 Assert.False(protectedRange.WarningOnly);
@@ -472,9 +472,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorksheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                document.SetPrintArea(sheet, "A1:A5", save: false);
+                var sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.PageSetup.PrintArea = "A1:A5";
 
                 var batch = document.BuildGoogleSheetsBatch();
 
@@ -493,35 +493,35 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
-                    data.CellValue(1, 1, "Prefix");
-                    data.CellValue(1, 2, "Suffix");
-                    data.CellValue(1, 3, "Variance");
-                    data.CellValue(1, 4, "Notes");
-                    data.CellValue(1, 5, "Delta");
-                    data.CellValue(2, 1, "Ops-West");
-                    data.CellValue(2, 2, "NorthOps");
-                    data.CellValue(2, 3, 5d);
-                    data.CellValue(2, 4, "keep");
-                    data.CellValue(2, 5, 5d);
-                    data.CellValue(3, 1, "Sales-East");
-                    data.CellValue(3, 2, "WestTeam");
-                    data.CellValue(3, 3, 15d);
-                    data.CellValue(3, 4, "review later");
-                    data.CellValue(3, 5, 10d);
-                    data.CellValue(4, 1, "Ops-Central");
-                    data.CellValue(4, 2, "FieldOps");
-                    data.CellValue(4, 3, 25d);
-                    data.CellValue(4, 4, "done");
-                    data.CellValue(4, 5, 15d);
+                    data.Cell(1, 1).SetValue("Prefix");
+                    data.Cell(1, 2).SetValue("Suffix");
+                    data.Cell(1, 3).SetValue("Variance");
+                    data.Cell(1, 4).SetValue("Notes");
+                    data.Cell(1, 5).SetValue("Delta");
+                    data.Cell(2, 1).SetValue("Ops-West");
+                    data.Cell(2, 2).SetValue("NorthOps");
+                    data.Cell(2, 3).SetValue(5d);
+                    data.Cell(2, 4).SetValue("keep");
+                    data.Cell(2, 5).SetValue(5d);
+                    data.Cell(3, 1).SetValue("Sales-East");
+                    data.Cell(3, 2).SetValue("WestTeam");
+                    data.Cell(3, 3).SetValue(15d);
+                    data.Cell(3, 4).SetValue("review later");
+                    data.Cell(3, 5).SetValue(10d);
+                    data.Cell(4, 1).SetValue("Ops-Central");
+                    data.Cell(4, 2).SetValue("FieldOps");
+                    data.Cell(4, 3).SetValue(25d);
+                    data.Cell(4, 4).SetValue("done");
+                    data.Cell(4, 5).SetValue(15d);
 
-                    data.AddAutoFilter("A1:E4");
-                    data.AutoFilterByHeaderStartsWith("Prefix", "Op");
-                    data.AutoFilterByHeaderEndsWith("Suffix", "Ops");
-                    data.AutoFilterByHeaderNotBetween("Variance", 10d, 20d);
-                    data.AutoFilterByHeaderDoesNotContain("Notes", "view");
-                    data.AutoFilterByHeaderNotEqual("Delta", 10d);
+                    data.Range("A1:E4").AutoFilter();
+                    data.Range("A1:E4").AutoFilter().Column("Prefix").BeginsWith("Op");
+                    data.Range("A1:E4").AutoFilter().Column("Suffix").EndsWith("Ops");
+                    data.Range("A1:E4").AutoFilter().Column("Variance").NotBetween(10d, 20d);
+                    data.Range("A1:E4").AutoFilter().Column("Notes").DoesNotContain("view");
+                    data.Range("A1:E4").AutoFilter().Column("Delta").NotEqual(10d);
 
                     document.Save();
                 }
@@ -586,30 +586,30 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
+                    var summary = document.AddSheet("Summary");
 
-                    summary.CellValue(1, 1, "Name");
-                    summary.CellValue(1, 2, "Amount");
-                    summary.CellValue(2, 1, "Alpha");
-                    summary.CellValue(2, 2, 10d);
-                    summary.CellValue(3, 1, "Beta");
-                    summary.CellValue(3, 2, 20d);
-                    summary.CellValue(4, 1, "Total");
-                    summary.CellValue(4, 2, 30d);
+                    summary.Cell(1, 1).SetValue("Name");
+                    summary.Cell(1, 2).SetValue("Amount");
+                    summary.Cell(2, 1).SetValue("Alpha");
+                    summary.Cell(2, 2).SetValue(10d);
+                    summary.Cell(3, 1).SetValue("Beta");
+                    summary.Cell(3, 2).SetValue(20d);
+                    summary.Cell(4, 1).SetValue("Total");
+                    summary.Cell(4, 2).SetValue(30d);
 
                     summary.AddTable("A1:B4", hasHeader: true, name: "StyledTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.SetTableTotals("A1:B4", new Dictionary<string, ExcelTableTotalsFunction> {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Amount"] = ExcelTableTotalsFunction.Sum,
                     });
-                    summary.CellBackground(1, 1, "#B6D7A8");
-                    summary.CellBackground(1, 2, "#B6D7A8");
-                    summary.CellBackground(2, 1, "#E2F0D9");
-                    summary.CellBackground(2, 2, "#E2F0D9");
-                    summary.CellBackground(3, 1, "#FFF2CC");
-                    summary.CellBackground(3, 2, "#FFF2CC");
-                    summary.CellBackground(4, 1, "#D9EAD3");
-                    summary.CellBackground(4, 2, "#D9EAD3");
+                    summary.Cell(1, 1).SetFillColor("#B6D7A8");
+                    summary.Cell(1, 2).SetFillColor("#B6D7A8");
+                    summary.Cell(2, 1).SetFillColor("#E2F0D9");
+                    summary.Cell(2, 2).SetFillColor("#E2F0D9");
+                    summary.Cell(3, 1).SetFillColor("#FFF2CC");
+                    summary.Cell(3, 2).SetFillColor("#FFF2CC");
+                    summary.Cell(4, 1).SetFillColor("#D9EAD3");
+                    summary.Cell(4, 2).SetFillColor("#D9EAD3");
 
                     document.Save();
                 }
@@ -662,23 +662,23 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
+                    var summary = document.AddSheet("Summary");
 
-                    summary.CellValue(1, 1, "Name");
-                    summary.CellValue(1, 2, "Status");
-                    summary.CellValue(2, 1, "Alpha");
-                    summary.CellValue(2, 2, "Open");
-                    summary.CellValue(3, 1, "Beta");
-                    summary.CellValue(3, 2, "Closed");
+                    summary.Cell(1, 1).SetValue("Name");
+                    summary.Cell(1, 2).SetValue("Status");
+                    summary.Cell(2, 1).SetValue("Alpha");
+                    summary.Cell(2, 2).SetValue("Open");
+                    summary.Cell(3, 1).SetValue("Beta");
+                    summary.Cell(3, 2).SetValue("Closed");
 
                     summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.ValidationList("B2:B3", new[] { "Open", "Closed", "Pending" });
+                    summary.Range("B2:B3").Validation().List(new[] { "Open", "Closed", "Pending" });
 
                     document.Save();
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Summary");
                 var validation = Assert.Single(summarySheet.Validations);
                 Assert.Equal("list", validation.Type);
@@ -720,29 +720,29 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var options = document.AddWorksheet("Options");
-                    var summary = document.AddWorksheet("Summary");
+                    var options = document.AddSheet("Options");
+                    var summary = document.AddSheet("Summary");
 
-                    options.CellValue(1, 1, "Open");
-                    options.CellValue(2, 1, "Closed");
-                    options.CellValue(3, 1, "Pending");
+                    options.Cell(1, 1).SetValue("Open");
+                    options.Cell(2, 1).SetValue("Closed");
+                    options.Cell(3, 1).SetValue("Pending");
                     document.SetNamedRange("StatusOptions", "'Options'!A1:A3", save: false);
 
-                    summary.CellValue(1, 1, "Name");
-                    summary.CellValue(1, 2, "Status");
-                    summary.CellValue(2, 1, "Alpha");
-                    summary.CellValue(2, 2, "Open");
-                    summary.CellValue(3, 1, "Beta");
-                    summary.CellValue(3, 2, "Closed");
+                    summary.Cell(1, 1).SetValue("Name");
+                    summary.Cell(1, 2).SetValue("Status");
+                    summary.Cell(2, 1).SetValue("Alpha");
+                    summary.Cell(2, 2).SetValue("Open");
+                    summary.Cell(3, 1).SetValue("Beta");
+                    summary.Cell(3, 2).SetValue("Closed");
 
                     summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.ValidationListNamedRange("B2:B3", "StatusOptions");
+                    summary.Range("B2:B3").Validation().ListNamedRange("StatusOptions");
 
                     document.Save();
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Summary");
                 var validation = Assert.Single(summarySheet.Validations);
                 Assert.Equal("list", validation.Type);
@@ -779,28 +779,28 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var options = document.AddWorksheet("Options");
-                    var summary = document.AddWorksheet("Summary");
+                    var options = document.AddSheet("Options");
+                    var summary = document.AddSheet("Summary");
 
-                    options.CellValue(1, 1, "Open");
-                    options.CellValue(2, 1, "Closed");
-                    options.CellValue(3, 1, "Pending");
+                    options.Cell(1, 1).SetValue("Open");
+                    options.Cell(2, 1).SetValue("Closed");
+                    options.Cell(3, 1).SetValue("Pending");
 
-                    summary.CellValue(1, 1, "Name");
-                    summary.CellValue(1, 2, "Status");
-                    summary.CellValue(2, 1, "Alpha");
-                    summary.CellValue(2, 2, "Open");
-                    summary.CellValue(3, 1, "Beta");
-                    summary.CellValue(3, 2, "Closed");
+                    summary.Cell(1, 1).SetValue("Name");
+                    summary.Cell(1, 2).SetValue("Status");
+                    summary.Cell(2, 1).SetValue("Alpha");
+                    summary.Cell(2, 2).SetValue("Open");
+                    summary.Cell(3, 1).SetValue("Beta");
+                    summary.Cell(3, 2).SetValue("Closed");
 
                     summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.ValidationListRange("B2:B3", "A1:A3", "Options");
+                    summary.Range("B2:B3").Validation().ListRange("A1:A3", "Options");
 
                     document.Save();
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Summary");
                 var validation = Assert.Single(summarySheet.Validations);
                 Assert.Equal("list", validation.Type);
@@ -837,27 +837,27 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
+                    var summary = document.AddSheet("Summary");
 
-                    summary.CellValue(1, 1, "Name");
-                    summary.CellValue(1, 2, "Status");
-                    summary.CellValue(1, 4, "Allowed Status");
-                    summary.CellValue(2, 1, "Alpha");
-                    summary.CellValue(2, 2, "Open");
-                    summary.CellValue(2, 4, "Open");
-                    summary.CellValue(3, 1, "Beta");
-                    summary.CellValue(3, 2, "Closed");
-                    summary.CellValue(3, 4, "Closed");
-                    summary.CellValue(4, 4, "Pending");
+                    summary.Cell(1, 1).SetValue("Name");
+                    summary.Cell(1, 2).SetValue("Status");
+                    summary.Cell(1, 4).SetValue("Allowed Status");
+                    summary.Cell(2, 1).SetValue("Alpha");
+                    summary.Cell(2, 2).SetValue("Open");
+                    summary.Cell(2, 4).SetValue("Open");
+                    summary.Cell(3, 1).SetValue("Beta");
+                    summary.Cell(3, 2).SetValue("Closed");
+                    summary.Cell(3, 4).SetValue("Closed");
+                    summary.Cell(4, 4).SetValue("Pending");
 
                     summary.AddTable("A1:B3", hasHeader: true, name: "StatusTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    summary.ValidationListRange("B2:B3", "D2:D4");
+                    summary.Range("B2:B3").Validation().ListRange("D2:D4");
 
                     document.Save();
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var summarySheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Summary");
                 var validation = Assert.Single(summarySheet.Validations);
                 Assert.Equal("list", validation.Type);
@@ -894,23 +894,23 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
-                    data.CellValue(1, 1, "Quantity");
-                    data.CellValue(1, 2, "Score");
-                    data.CellValue(2, 1, 2);
-                    data.CellValue(3, 1, 8);
-                    data.CellValue(2, 2, 5.75);
-                    data.CellValue(3, 2, 7.25);
+                    data.Cell(1, 1).SetValue("Quantity");
+                    data.Cell(1, 2).SetValue("Score");
+                    data.Cell(2, 1).SetValue(2);
+                    data.Cell(3, 1).SetValue(8);
+                    data.Cell(2, 2).SetValue(5.75);
+                    data.Cell(3, 2).SetValue(7.25);
 
-                    data.ValidationWholeNumber("A2:A3", ExcelDataValidationOperator.Between, 1, 10);
-                    data.ValidationDecimal("B2:B3", ExcelDataValidationOperator.GreaterThanOrEqual, 5.5);
+                    data.Range("A2:A3").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
+                    data.Range("B2:B3").Validation().Decimal(ExcelDataValidationOperator.GreaterThanOrEqual, 5.5);
 
                     document.Save();
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
                 Assert.Equal(2, dataSheet.Validations.Count);
                 Assert.Contains(dataSheet.Validations, validation =>
@@ -977,19 +977,19 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
-                    data.CellValue(1, 1, "Start");
-                    data.CellValue(2, 1, minimumDate);
-                    data.CellValue(3, 1, new DateTime(2024, 6, 15));
+                    data.Cell(1, 1).SetValue("Start");
+                    data.Cell(2, 1).SetValue(minimumDate);
+                    data.Cell(3, 1).SetValue(new DateTime(2024, 6, 15));
 
-                    data.ValidationDate("A2:A3", ExcelDataValidationOperator.Between, minimumDate, maximumDate);
+                    data.Range("A2:A3").Validation().Date(ExcelDataValidationOperator.Between, minimumDate, maximumDate);
 
                     document.Save();
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
                 var validation = Assert.Single(dataSheet.Validations);
                 Assert.Equal("date", validation.Type);
@@ -1038,19 +1038,19 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
-                    data.CellValue(1, 1, "Code");
-                    data.CellValue(2, 1, "ABCD");
-                    data.CellValue(3, 1, "WXYZ");
+                    data.Cell(1, 1).SetValue("Code");
+                    data.Cell(2, 1).SetValue("ABCD");
+                    data.Cell(3, 1).SetValue("WXYZ");
 
-                    data.ValidationTextLength("A2:A3", ExcelDataValidationOperator.Equal, 4);
+                    data.Range("A2:A3").Validation().TextLength(ExcelDataValidationOperator.Equal, 4);
 
                     document.Save();
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var snapshot = reloadedDocument.CreateInspectionSnapshot();
+                var snapshot = reloadedDocument.Inspect();
                 var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
                 var validation = Assert.Single(dataSheet.Validations);
                 Assert.Equal("textlength", validation.Type);
@@ -1100,11 +1100,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
-                    data.CellValue(1, 1, "Quantity");
-                    data.CellValue(2, 1, 2);
-                    data.ValidationWholeNumber("A2:A2000", ExcelDataValidationOperator.Between, 1, 10);
+                    data.Cell(1, 1).SetValue("Quantity");
+                    data.Cell(2, 1).SetValue(2);
+                    data.Range("A2:A2000").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
 
                     document.Save();
                 }
@@ -1157,9 +1157,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
-                    data.CellValue(1, 1, "Quantity");
-                    data.ValidationWholeNumber("A1:A1048576", ExcelDataValidationOperator.Between, 1, 10);
+                    var data = document.AddSheet("Data");
+                    data.Cell(1, 1).SetValue("Quantity");
+                    data.Range("A1:A1048576").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
                     document.Save();
                 }
 
@@ -1177,10 +1177,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_GoogleSheetsBatchCompiler_RejectsAggregateGridExpansionBeyondServiceLimits() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet first = document.AddWorksheet("First");
-            ExcelSheet second = document.AddWorksheet("Second");
-            first.ValidationWholeNumber("A1:ALM5000", ExcelDataValidationOperator.Between, 1, 10);
-            second.ValidationWholeNumber("A1:ALM5000", ExcelDataValidationOperator.Between, 1, 10);
+            ExcelSheet first = document.AddSheet("First");
+            ExcelSheet second = document.AddSheet("Second");
+            first.Range("A1:ALM5000").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
+            second.Range("A1:ALM5000").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 10);
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
                 () => document.BuildGoogleSheetsBatch());
@@ -1195,11 +1195,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data");
+                    var data = document.AddSheet("Data");
 
-                    data.CellValue(1, 1, "Status");
-                    data.CellValue(2, 1, "Open");
-                    data.ValidationList("A2:A4", new[] { "Open", "Closed", "Pending" });
+                    data.Cell(1, 1).SetValue("Status");
+                    data.Cell(2, 1).SetValue("Open");
+                    data.Range("A2:A4").Validation().List(new[] { "Open", "Closed", "Pending" });
 
                     document.Save();
                 }
@@ -1244,51 +1244,51 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorksheet("Summary");
-                    var hidden = document.AddWorksheet("Hidden");
+                    var summary = document.AddSheet("Summary");
+                    var hidden = document.AddSheet("Hidden");
 
-                    summary.CellValue(1, 1, "Name");
-                    summary.CellValue(2, 2, 12);
+                    summary.Cell(1, 1).SetValue("Name");
+                    summary.Cell(2, 2).SetValue(12);
                     summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
                     summary.SetComment(2, 1, "External link note", author: "Tester", initials: "TT");
-                    summary.FormatCell(2, 2, "0.00%");
-                    summary.CellBackground(2, 2, "#00FF00");
-                    summary.CellBold(2, 2, true);
-                    summary.CellAlign(2, 2, ExcelHorizontalAlignment.Center);
-                    summary.SetColumnWidth(2, 20);
-                    summary.CellValue(3, 2, "Wrapped\nRow");
-                    summary.WrapCells(3, 3, 2, 20);
+                    summary.Cell(2, 2).SetNumberFormat("0.00%");
+                    summary.Cell(2, 2).SetFillColor("#00FF00");
+                    summary.Cell(2, 2).SetBold(true);
+                    summary.Cell(2, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+                    summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
+                    summary.Cell(3, 2).SetValue("Wrapped\nRow");
+                    summary.Range(3, 2, 3, 2).SetWrapText(); summary.SetColumnWidth(2, ExcelColumnWidth.Characters(20));
                     summary.AutoFitRow(3);
-                    summary.CellValue(1, 7, "Status");
-                    summary.CellValue(1, 8, "Region");
-                    summary.CellValue(1, 9, "Score");
-                    summary.CellValue(1, 10, "Budget");
-                    summary.CellValue(2, 7, "Open");
-                    summary.CellValue(2, 8, "North");
-                    summary.CellValue(2, 9, 10d);
-                    summary.CellValue(2, 10, 8d);
-                    summary.CellValue(3, 7, "Closed");
-                    summary.CellValue(3, 8, "South");
-                    summary.CellValue(3, 9, 20d);
-                    summary.CellValue(3, 10, 18d);
-                    summary.CellValue(4, 7, "Open");
-                    summary.CellValue(4, 8, "East");
-                    summary.CellValue(4, 9, 30d);
-                    summary.CellValue(4, 10, 28d);
+                    // Row 3 is written as the table's totals row before SetTableTotals marks it.
+                    summary.Cell(3, 1).SetValue("Total");
+                    summary.Cell(1, 7).SetValue("Status");
+                    summary.Cell(1, 8).SetValue("Region");
+                    summary.Cell(1, 9).SetValue("Score");
+                    summary.Cell(1, 10).SetValue("Budget");
+                    summary.Cell(2, 7).SetValue("Open");
+                    summary.Cell(2, 8).SetValue("North");
+                    summary.Cell(2, 9).SetValue(10d);
+                    summary.Cell(2, 10).SetValue(8d);
+                    summary.Cell(3, 7).SetValue("Closed");
+                    summary.Cell(3, 8).SetValue("South");
+                    summary.Cell(3, 9).SetValue(20d);
+                    summary.Cell(3, 10).SetValue(18d);
+                    summary.Cell(4, 7).SetValue("Open");
+                    summary.Cell(4, 8).SetValue("East");
+                    summary.Cell(4, 9).SetValue(30d);
+                    summary.Cell(4, 10).SetValue(28d);
                     summary.AddTable("A1:B3", hasHeader: true, name: "SummaryTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     summary.SetTableTotals("A1:B3", new Dictionary<string, ExcelTableTotalsFunction> {
                         ["Name"] = ExcelTableTotalsFunction.Count,
                         ["Count"] = ExcelTableTotalsFunction.Sum,
                     });
-                    summary.CellBackground(3, 1, "#D9EAD3");
-                    summary.CellBackground(3, 2, "#D9EAD3");
-                    summary.AddAutoFilter("G1:J4", new Dictionary<uint, IEnumerable<string>> {
-                        { 0, new[] { "Open" } }
-                    });
-                    summary.AutoFilterByHeaderContains("Region", "or");
-                    summary.AutoFilterByHeaderGreaterThanOrEqual("Score", 15d);
-                    summary.AutoFilterByHeaderBetween("Budget", 10d, 20d);
-                    summary.Freeze(topRows: 1, leftCols: 1);
+                    summary.Cell(3, 1).SetFillColor("#D9EAD3");
+                    summary.Cell(3, 2).SetFillColor("#D9EAD3");
+                    summary.Range("G1:J4").AutoFilter().Column(0).Equals(new[] { "Open" });
+                    summary.Range("G1:J4").AutoFilter().Column("Region").Contains("or");
+                    summary.Range("G1:J4").AutoFilter().Column("Score").GreaterThanOrEqual(15d);
+                    summary.Range("G1:J4").AutoFilter().Column("Budget").Between(10d, 20d);
+                    summary.View.Freeze(topRows: 1, leftColumns: 1);
                     summary.Protect(new ExcelSheetProtectionOptions {
                         AllowSelectLockedCells = false,
                         AllowSelectUnlockedCells = false,
@@ -1434,15 +1434,15 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                var target = document.AddWorksheet("Target");
-                summary.CellValue(1, 1, "Name");
+                var summary = document.AddSheet("Summary");
+                var target = document.AddSheet("Target");
+                summary.Cell(1, 1).SetValue("Name");
                 summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
                 summary.SetInternalLink(3, 1, target, "B5", display: "Target");
                 summary.SetNamedRange("LocalData", "B2:B3", save: false);
                 summary.SetInternalLink(4, 1, "LocalData", display: "Local");
                 summary.SetComment(4, 1, "Jump note", author: "Tester", initials: "TT");
-                summary.CellValue(2, 2, 5);
+                summary.Cell(2, 2).SetValue(5);
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body, string? Authorization)>();
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
@@ -1515,9 +1515,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 int createAttempts = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
@@ -1569,9 +1569,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 int createAttempts = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
@@ -1625,9 +1625,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body)>();
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
@@ -1700,9 +1700,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 int driveMetadataAttempts = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
@@ -1774,9 +1774,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body)>();
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
@@ -1841,10 +1841,10 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
-                summary.SetColumnWidth(1, 18);
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
+                summary.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body)>();
                 int driveMetadataReads = 0;
@@ -1931,9 +1931,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 int replaceAttempts = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
@@ -1997,9 +1997,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorksheet("Summary");
-                summary.CellValue(1, 1, "Name");
-                summary.CellValue(2, 1, "Alpha");
+                var summary = document.AddSheet("Summary");
+                summary.Cell(1, 1).SetValue("Name");
+                summary.Cell(2, 1).SetValue("Alpha");
 
                 var session = GoogleTestSession(
                     new DelegateGoogleWorkspaceCredentialSource((scopes, cancellationToken) =>

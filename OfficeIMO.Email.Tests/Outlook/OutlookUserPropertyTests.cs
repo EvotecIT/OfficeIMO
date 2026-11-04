@@ -51,7 +51,7 @@ public sealed class OutlookUserPropertyTests {
         source.UserProperties.SetKeywords("Regions", new[] { "EMEA", "North America" });
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument result = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument result = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Equal(OutlookUserPropertyDefinitionState.Valid, result.UserProperties.DefinitionState);
         Assert.Equal(8, result.UserProperties.Count);

@@ -48,5 +48,27 @@ public sealed class JpegArithmeticColorTests {
         }
     }
 
+    [Fact]
+    public void IccAdmissionRejectsAConflictingFirstJpegFrame() {
+        string name = File.ReadLines(Path.Combine(Corpus, "manifest.csv")).Skip(1).First().Split(',')[0];
+        byte[] source = Read(name);
+        // SOF5 is identified as a frame but unsupported by the managed decoder.
+        byte[] falseFrame = { 0xFF, 0xC5, 0x00, 0x0B, 0x08, 0x00, 0x01, 0x00, 0x01, 0x01, 0x01, 0x11, 0x00 };
+        byte[] crafted = new byte[source.Length + falseFrame.Length];
+        Buffer.BlockCopy(source, 0, crafted, 0, 2);
+        Buffer.BlockCopy(falseFrame, 0, crafted, 2, falseFrame.Length);
+        Buffer.BlockCopy(source, 2, crafted, 2 + falseFrame.Length, source.Length - 2);
+        Assert.True(OfficeImageReader.TryIdentifyByContent(crafted, null, out var identified));
+        Assert.Equal((1, 1), (identified.Width, identified.Height));
+        Assert.True(OfficeJpegCodec.TryDecodeColorComponents(crafted, null, false,
+            out _, out int decodedWidth, out int decodedHeight, out _));
+        Assert.Equal((35, 19), (decodedWidth, decodedHeight));
+        Assert.False(OfficeImageReader.HasCompleteJpegPayload(crafted, default,
+            requireManagedFrame: true, validateMetadata: false));
+        Assert.True(OfficeIccColorProfile.TryCreate(File.ReadAllBytes(Path.Combine(Corpus, "..", "IccColorCorpus", "littlecms-cmyk-lut.icc")), out var profile));
+        Assert.False(OfficeIccRasterConverter.TryDecodeToSrgb(crafted, profile!,
+            new OfficeRasterDecodeOptions { MaximumDecodedPixels = 1 }, out _));
+    }
+
     private static byte[] Read(string name) => File.ReadAllBytes(Path.Combine(Corpus, name));
 }

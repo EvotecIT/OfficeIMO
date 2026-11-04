@@ -1,5 +1,5 @@
 $path = '.\Markdown-Inspection.md'
-MarkdownNew -Path $path {
+New-OfficeMarkdown -Path $path {
     MarkdownFrontMatter -Data @{ title = 'Service review'; owner = 'Operations' }
     MarkdownHeading -Level 1 -Text 'Service review'
     MarkdownParagraph -Text 'This document is inspected without regex parsing.'

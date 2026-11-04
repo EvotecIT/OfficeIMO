@@ -58,20 +58,20 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
         string html = "<img alt='Positioned picture' src='" + image
             + "' style='position:absolute;left:20px;top:10px;width:40px;height:20px'>";
 
-        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
-        HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = powerPointResult.Value;
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = powerPointResult.Value;
 
-        Assert.Contains(wordResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
-        Assert.Contains(rtfResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
-        Assert.Contains(excelResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
-        Assert.Contains(powerPointResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
+        Assert.Contains(wordResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
+        Assert.Contains(rtfResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
+        Assert.Contains(excelResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
+        Assert.Contains(powerPointResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
     }
 
     [Fact]
@@ -84,10 +84,10 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
         string html = "<div style='position:absolute;width:180px;height:70px'>"
             + "<img alt='Budget rejected' src='" + image + "'></div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
 
         Assert.DoesNotContain(result.Value.Paragraphs, paragraph => paragraph.Frame.HasAnyValue);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "unrenderedRegionImage=true; semanticFlow=true");
     }

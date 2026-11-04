@@ -1,5 +1,3 @@
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -43,6 +41,14 @@ public interface IDataReaderMappingErrorMetadata {
 
 internal interface IDataReaderFastMappingValues {
     bool HasOnlyNonNullFastValues { get; }
+}
+
+/// <summary>
+/// Exposes the reader that owns the current row when a reader forwards to another one,
+/// so typed mapping can qualify and read fields without the forwarding layer.
+/// </summary>
+internal interface IDataReaderMappingRowSource {
+    DbDataReader? CurrentRowReader { get; }
 }
 
 internal interface IDataReaderFastValueSource {
@@ -132,12 +138,12 @@ public sealed class RowMapper<T> where T : new() {
 /// <summary>Typed row projections for any forward-only <see cref="DbDataReader"/>.</summary>
 public static partial class DataReaderMappingExtensions {
     /// <summary>
-    /// Projects the remaining unread rows by matching column names to writable public properties.
+    /// Projects the remaining unread rows by matching column names to public properties and their constructor parameters.
     /// The caller retains ownership of the reader.
     /// </summary>
     public static IEnumerable<T> RowsAs<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-        this DbDataReader reader) where T : new() {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+        this DbDataReader reader) {
         if (reader is null) throw new ArgumentNullException(nameof(reader));
         return EnumerateAutomatic<T>(reader);
     }
@@ -170,8 +176,8 @@ public static partial class DataReaderMappingExtensions {
     }
 
     private static IEnumerable<T> EnumerateAutomatic<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-        DbDataReader reader) where T : new() {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+        DbDataReader reader) {
         if (reader.FieldCount == 0) yield break;
 
         GetConversionOptions(
@@ -201,13 +207,15 @@ public static partial class DataReaderMappingExtensions {
             yield break;
         }
 
+        var rowSource = reader as IDataReaderMappingRowSource;
         while (reader.Read()) {
             yield return plan.MapReaderRow(
                 reader,
                 culture,
                 dateTimeFormats,
                 typeConverter,
-                errorValuePolicy);
+                errorValuePolicy,
+                rowSource?.CurrentRowReader ?? reader);
         }
     }
 

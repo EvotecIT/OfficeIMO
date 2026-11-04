@@ -6,6 +6,16 @@ namespace OfficeIMO.Html;
 /// Shared layout and safety options used by HTML image and PDF rendering.
 /// </summary>
 public partial class HtmlRenderOptions : OfficeImageExportOptions {
+    /// <summary>Zero-based page used by single-image conversion and saving operations.</summary>
+    public int PageIndex { get; set; }
+
+    /// <summary>
+    /// Caller-ordered one-based page numbers within the retained surfaces for batch image export.
+    /// Null exports all retained surfaces. Single-image operations use their selected page instead.
+    /// This does not change HTML layout, PDF output, or the request's page set.
+    /// </summary>
+    public IReadOnlyList<int>? PageSelection { get; set; }
+
     private readonly List<string> _additionalStylesheets = new List<string>();
 
     /// <summary>CSS reference pixel density used for physical page conversion.</summary>
@@ -95,6 +105,13 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     /// The document profile preserves the existing OfficeIMO layout contract.
     /// </summary>
     public HtmlRenderUserAgentStyleMode UserAgentStyles { get; set; } = HtmlRenderUserAgentStyleMode.Document;
+
+    // HTML-to-PDF output is read against a browser's print output, so its Document mode keeps the
+    // body's eight-pixel inset. Scene, image and editable projections keep the uninset body.
+    internal bool UsesBrowserBodyMargin { get; set; }
+
+    // Used content widths of query containers from a first layout, so their queries see real sizes.
+    internal IReadOnlyDictionary<AngleSharp.Dom.IElement, double>? ContainerInlineSizes { get; set; }
 
     /// <summary>
     /// Selects the bounded browser user-agent defaults and a generic serif fallback.
@@ -258,10 +275,10 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         (Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen);
 
     /// <summary>Gets the paged surface width in CSS pixels.</summary>
-    public double PageWidth => PageSize.WidthInches * CssPixelsPerInch;
+    public double PageWidth => PageSize.Width.ToInches() * CssPixelsPerInch;
 
     /// <summary>Gets the paged surface height in CSS pixels.</summary>
-    public double PageHeight => PageSize.HeightInches * CssPixelsPerInch;
+    public double PageHeight => PageSize.Height.ToInches() * CssPixelsPerInch;
 
     /// <summary>Creates an independent options snapshot.</summary>
     public virtual HtmlRenderOptions Clone() => CopyTo(new HtmlRenderOptions());
@@ -286,6 +303,8 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target._defaultLineHeight = _defaultLineHeight;
         target._hasExplicitDefaultLineHeight = _hasExplicitDefaultLineHeight;
         target.UserAgentStyles = UserAgentStyles;
+        target.UsesBrowserBodyMargin = UsesBrowserBodyMargin;
+        target.ContainerInlineSizes = ContainerInlineSizes;
         target.TextHyphenationCallback = TextHyphenationCallback;
         target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();
         target._additionalStylesheets.Clear();
@@ -305,6 +324,8 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSurfaceWidth = MaxSurfaceWidth;
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
+        target.PageIndex = PageIndex;
+        target.PageSelection = PageSelection?.ToArray();
         target.MaxProjectedVisuals = MaxProjectedVisuals;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxInputCharacters = MaxInputCharacters;
@@ -385,7 +406,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     internal void Validate() {
         ValidateImageExportOptions();
         if (FidelityPolicy != HtmlRenderFidelityPolicy.AllowDiagnosedLoss
-            && FidelityPolicy != HtmlRenderFidelityPolicy.RequireNoLoss) {
+            && FidelityPolicy != HtmlRenderFidelityPolicy.FailOnLoss) {
             throw new ArgumentOutOfRangeException(nameof(FidelityPolicy));
         }
         if (CssMediaContextOverride.HasValue

@@ -9,15 +9,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownToWord_Respects_DefaultPageSettings() {
             string md = "# Hello";
-            var options = new MarkdownToWordOptions {
+            var options = new MarkdownWordExportOptions {
                 DefaultOrientation = OfficePageOrientation.Landscape,
                 DefaultPageSize = WordPageSize.A5
             };
             
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(options);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(options);
             
-            Assert.Equal(OfficePageOrientation.Landscape, doc.PageOrientation);
-            Assert.Equal(WordPageSize.A5, doc.PageSettings.PageSize);
+            Assert.Equal(OfficePageOrientation.Landscape, doc.PageSetup.Orientation);
+            Assert.Equal(WordPageSize.A5, doc.PageSetup.Size.PageSize);
         }
     }
 }

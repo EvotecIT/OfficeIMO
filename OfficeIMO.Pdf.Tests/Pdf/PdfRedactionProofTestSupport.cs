@@ -21,7 +21,7 @@ internal static class PdfRedactionProofTestSupport {
     }
 
     private static byte[] BuildRedactionRemovalProofPdf() {
-        return PdfDocument.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Meta(
@@ -29,9 +29,9 @@ internal static class PdfRedactionProofTestSupport {
                 author: "OfficeIMO",
                 subject: "Redaction removal proof",
                 keywords: "pdf,redaction,removal")
-            .Paragraph(paragraph => paragraph.Text("Visible compliance marker"))
-            .Paragraph(paragraph => paragraph.Text("Sensitive payroll token PAY-SECRET-2026"))
-            .Paragraph(paragraph => paragraph.Text("Public summary marker"))
+            .Paragraph(paragraph => paragraph.AddText("Visible compliance marker"))
+            .Paragraph(paragraph => paragraph.AddText("Sensitive payroll token PAY-SECRET-2026"))
+            .Paragraph(paragraph => paragraph.AddText("Public summary marker"))
             .ToBytes();
     }
 

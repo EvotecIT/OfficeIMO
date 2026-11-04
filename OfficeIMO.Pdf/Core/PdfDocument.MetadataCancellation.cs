@@ -1,15 +1,16 @@
+#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Updates metadata with cooperative cancellation, preserving the source document and its captured read limits.</summary>
-    public PdfDocument UpdateMetadata(CancellationToken cancellationToken, string? title = null, string? author = null,
+    public PdfDocument UpdateProperties(CancellationToken cancellationToken, string? title = null, string? author = null,
         string? subject = null, string? keywords = null) =>
         UpdateMetadata(title, author, subject, keywords, ReadOptions, cancellationToken);
 
     /// <summary>Replaces metadata with cooperative cancellation through parsing, rewriting and output adoption.</summary>
-    public PdfDocument ReplaceMetadata(PdfMetadata metadata, CancellationToken cancellationToken) {
+    public PdfDocument ReplaceProperties(PdfDocumentProperties metadata, CancellationToken cancellationToken) {
         Guard.NotNull(metadata, nameof(metadata));
         return ReplaceMetadata(metadata, ReadOptions, cancellationToken);
     }
@@ -25,7 +26,7 @@ public sealed partial class PdfDocument {
         AppendMetadataRevision(title, author, subject, keywords, ReadOptions, createXmpMetadata, cancellationToken);
 
     /// <summary>Attempts metadata updating through the planner-selected path; requested cancellation propagates to the caller.</summary>
-    public PdfOperationResult<PdfDocument> UpdateMetadataResult(CancellationToken cancellationToken, string? title = null,
+    internal PdfOperationResult<PdfDocument> UpdateMetadataResult(CancellationToken cancellationToken, string? title = null,
         string? author = null, string? subject = null, string? keywords = null, PdfLoadOptions? options = null) =>
         TryMutationOperation("Update metadata", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.UpdateMetadata,
             mode => mode == PdfMutationExecutionMode.AppendOnly
@@ -34,7 +35,7 @@ public sealed partial class PdfDocument {
             options: options, cancellationToken: cancellationToken);
 
     /// <summary>Attempts metadata replacement with cancellation through planning, full rewriting and output adoption.</summary>
-    public PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfMetadata metadata, CancellationToken cancellationToken,
+    internal PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfDocumentProperties metadata, CancellationToken cancellationToken,
         PdfLoadOptions? options = null) {
         Guard.NotNull(metadata, nameof(metadata));
         return TryMutationOperation("Replace metadata", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.UpdateMetadata,
@@ -43,7 +44,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Attempts Info/XMP synchronization with cancellation across the planner-selected rewrite or append-only path.</summary>
-    public PdfOperationResult<PdfDocument> SynchronizeMetadataResult(CancellationToken cancellationToken, string? title = null,
+    internal PdfOperationResult<PdfDocument> SynchronizeMetadataResult(CancellationToken cancellationToken, string? title = null,
         string? author = null, string? subject = null, string? keywords = null, bool createXmpMetadata = true,
         PdfLoadOptions? options = null) =>
         TryMutationOperation("Synchronize Info and XMP metadata", PdfPreflightCapability.ManipulatePages,
@@ -55,7 +56,7 @@ public sealed partial class PdfDocument {
             options: options, cancellationToken: cancellationToken);
 
     /// <summary>Attempts a metadata-only incremental revision; requested cancellation propagates without changing the source.</summary>
-    public PdfOperationResult<PdfDocument> AppendMetadataRevisionResult(CancellationToken cancellationToken, string? title = null,
+    internal PdfOperationResult<PdfDocument> AppendMetadataRevisionResult(CancellationToken cancellationToken, string? title = null,
         string? author = null, string? subject = null, string? keywords = null, PdfLoadOptions? options = null,
         bool createXmpMetadata = false) =>
         TryMutationOperation("Append metadata revision", PdfPreflightCapability.AppendMetadataRevision,

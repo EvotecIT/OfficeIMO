@@ -27,7 +27,7 @@ public sealed class PdfColumnRowBalancingTests {
     [InlineData(43)]
     public void Columns_RowBalancingReservesPaddingInEachFragment(int lines) {
         var style = TableStyle();
-        style.CellPaddingY = 4;
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
         using var pdf = PdfPigDocument.Open(Render(new[] { new[] { Cell("Padded", lines) } }, style));
         int pages = lines == 21 ? 1 : 2;
         int leftLast = lines == 21 ? 11 : 37; // Full-height columns hold fifteen padded lines each.
@@ -44,7 +44,7 @@ public sealed class PdfColumnRowBalancingTests {
     public void Columns_RowBalancingReservesARepeatedHeader(int lines) {
         var style = TableStyle();
         style.HeaderRowCount = 1; style.RepeatHeaderRowCount = 1;
-        style.HeaderFontSize = 12; style.HeaderBold = false;
+        style.HeaderFontSize = global::OfficeIMO.OfficeLength.Points(12); style.HeaderBold = false;
         var rows = new[] { new[] { Cell("Header", 1) }, new[] { Cell("Body", lines) } };
         using var pdf = PdfPigDocument.Open(Render(rows, style));
         int pages = lines == 21 ? 1 : 2;
@@ -62,15 +62,15 @@ public sealed class PdfColumnRowBalancingTests {
             var paragraphs = Enumerable.Range(1, 12).Select(index => {
                 double height = right ? (index <= 6 && index % 2 == 1 ? 10 : 30)
                     : (index <= 6 && index % 2 == 1 ? 30 : 10);
-                return new PdfTableCellParagraph(new[] { PdfTextRun.Normal($"{prefix}{index:D3}", fontSize: 8) },
-                    fontSize: 8, lineSpacing: PdfLineSpacing.Exactly(height), widowControl: false);
+                return new PdfTableCellParagraph(new[] { PdfTextRun.Normal($"{prefix}{index:D3}", fontSize: global::OfficeIMO.OfficeLength.Points(8)) },
+                    fontSize: global::OfficeIMO.OfficeLength.Points(8), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(height)), widowControl: false);
             }).ToArray();
             return new PdfTableCell(paragraphs.SelectMany(paragraph => paragraph.Runs), paragraphs);
         }
         var rows = new[] { new[] { MakeCell("Left", false), MakeCell("Right", true) } };
         using var pdf = PdfPigDocument.Open(Render(rows, TableStyle()));
         using var sequential = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(rows, style: TableStyle())
-            .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes());
+            .Paragraph(p => p.AddText("AfterColumns"), style: ParagraphStyle()).ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.InRange(X(pdf, 1, "Left007"), 39.9, 40.1);
         Assert.InRange(X(pdf, 1, "Left008"), 259.9, 260.1);
@@ -83,8 +83,8 @@ public sealed class PdfColumnRowBalancingTests {
         var first = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(1, 10).Select(index => $"Kept{index:D3}"))) };
         var second = new[] { PdfTextRun.Normal("Following001\nFollowing002\nFollowing003") };
         var paragraphs = new[] {
-            new PdfTableCellParagraph(first, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false, keepTogether: true),
-            new PdfTableCellParagraph(second, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false)
+            new PdfTableCellParagraph(first, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false, keepTogether: true),
+            new PdfTableCellParagraph(second, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false)
         };
         var rows = new[] { new[] { new PdfTableCell(first.Concat(second), paragraphs) } };
         using var pdf = PdfPigDocument.Open(Render(rows, TableStyle()));
@@ -96,8 +96,8 @@ public sealed class PdfColumnRowBalancingTests {
 
     private static PdfTableCell Cell(string prefix, int lines) {
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(1, lines).Select(index => $"{prefix}{index:D3}"))) };
-        return new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: 12,
-            lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false) });
+        return new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fontSize: global::OfficeIMO.OfficeLength.Points(12),
+            lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false) });
     }
 
     [Theory]
@@ -108,9 +108,9 @@ public sealed class PdfColumnRowBalancingTests {
         var first = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(1, firstCount).Select(index => $"Boundary{index:D3}"))) };
         var second = new[] { PdfTextRun.Normal(string.Join("\n", Enumerable.Range(firstCount + 1, secondCount).Select(index => $"Boundary{index:D3}"))) };
         var paragraphs = new[] {
-            new PdfTableCellParagraph(first, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20),
+            new PdfTableCellParagraph(first, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
                 widowControl: !keepNext, keepWithNext: keepNext),
-            new PdfTableCellParagraph(second, fontSize: 12, lineSpacing: PdfLineSpacing.Exactly(20), widowControl: false)
+            new PdfTableCellParagraph(second, fontSize: global::OfficeIMO.OfficeLength.Points(12), lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), widowControl: false)
         };
         using var pdf = PdfPigDocument.Open(Render(new[] { new[] { new PdfTableCell(first.Concat(second), paragraphs) } }, TableStyle()));
         Assert.Equal(1, pdf.NumberOfPages);
@@ -124,9 +124,9 @@ public sealed class PdfColumnRowBalancingTests {
         var tableStyle = TableStyle(); tableStyle.KeepWithNext = true;
         var paragraphStyle = ParagraphStyle(); paragraphStyle.KeepTogether = true;
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
-            content.Table(new[] { new[] { Cell("KeptTable", 3) } }, style: tableStyle);
-            content.Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 5).Select(index => $"KeptAfter{index:D3}"))), style: paragraphStyle);
-        }, new PdfMultiColumnOptions { Gap = 20, BalanceTableRowLines = true }).ToBytes();
+            content.AddTable(new[] { new[] { Cell("KeptTable", 3) } }, style: tableStyle);
+            content.AddParagraph(p => p.AddText(string.Join("\n", Enumerable.Range(1, 5).Select(index => $"KeptAfter{index:D3}"))), style: paragraphStyle);
+        }, new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceTableRowLines = true }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.InRange(X(pdf, 1, "KeptTable003"), 39.9, 40.1);
@@ -150,7 +150,7 @@ public sealed class PdfColumnRowBalancingTests {
 
     [Fact]
     public void Columns_RowBalancingReservesTableSpacingAfterTheFinalFragment() {
-        var style = TableStyle(); style.SpacingAfter = 40;
+        var style = TableStyle(); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(40);
         using var pdf = PdfPigDocument.Open(Render(new[] { new[] { Cell("Spaced", 21) } }, style));
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.InRange(X(pdf, 1, "Spaced012"), 39.9, 40.1);
@@ -161,9 +161,9 @@ public sealed class PdfColumnRowBalancingTests {
     }
 
     private static byte[] Render(PdfTableCell[][] rows, PdfTableStyle style, bool balance = true) =>
-        PdfDocument.Create(Options()).Columns(content => content.Table(rows, style: style),
-            new PdfMultiColumnOptions { Gap = 20, BalanceTableRowLines = balance })
-            .Paragraph(p => p.Text("AfterColumns"), style: ParagraphStyle()).ToBytes();
+        PdfDocument.Create(Options()).Columns(content => content.AddTable(rows, style: style),
+            new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceTableRowLines = balance })
+            .Paragraph(p => p.AddText("AfterColumns"), style: ParagraphStyle()).ToBytes();
     private static double X(PdfPigDocument pdf, int page, string marker) =>
         pdf.GetPage(page).GetWords().Single(word => word.Text == marker).BoundingBox.Left;
     private static double Y(PdfPigDocument pdf, int page, string marker) =>
@@ -172,11 +172,13 @@ public sealed class PdfColumnRowBalancingTests {
         Assert.Equal(Enumerable.Range(1, count), System.Text.RegularExpressions.Regex.Matches(
             string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text)), prefix + @"(\d{3})")
             .Cast<System.Text.RegularExpressions.Match>().Select(match => int.Parse(match.Groups[1].Value)));
-    private static PdfOptions Options() => new() { PageWidth = 500, PageHeight = 400,
-        MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40, DefaultFontSize = 12 };
-    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exactly(20),
-        SpacingBefore = 0, SpacingAfter = 0, WidowControl = false };
-    private static PdfTableStyle TableStyle() => new() { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
-        FontSize = 12, LineHeight = 20D / 12D, BorderWidth = 0, RowSeparatorWidth = 0, SpacingBefore = 0, SpacingAfter = 0,
+    private static PdfCreateOptions Options() => new() { PageSetup = {
+        Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(400)),
+        Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+    }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
+    private static PdfParagraphStyle ParagraphStyle() => new() { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)),
+        SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false };
+    private static PdfTableStyle TableStyle() => new() { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+        FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 20D / 12D, BorderWidth = global::OfficeIMO.OfficeLength.Points(0), RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
         MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0 };
 }

@@ -11,7 +11,7 @@ Runs an external OCR provider and merges recognized words with native PDF text.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Invoke-OfficePdfOcrMerge [-Path] <string> -Provider <IOcrEngine> [-Options <PdfOcrMergeOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Invoke-OfficePdfOcrMerge [-Path] <string> -Provider <IOcrEngine> [-Options <PdfOcrMergeOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -63,7 +63,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

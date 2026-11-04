@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 for (int i = 0; i < document.Tables.Count; i++) {
                     Console.WriteLine("===");
                     Console.WriteLine("Tables " + i + " style: " + document.Tables[i].Style);
-                    Console.WriteLine("Tables " + i + " width type: " + document.Tables[i].WidthType);
+                    Console.WriteLine("Tables " + i + " width type: " + document.Tables[i].Width?.Kind);
                     Console.WriteLine("Tables " + i + " alignment: " + document.Tables[i].Alignment);
                     Console.WriteLine("Tables " + i + " width: " + document.Tables[i].Width);
                 }

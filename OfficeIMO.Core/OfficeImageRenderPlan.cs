@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared fit and source-crop placement plan for rendering an image into a target rectangle.
 /// </summary>
-public readonly struct OfficeImageRenderPlan {
+internal readonly struct OfficeImageRenderPlan {
     private OfficeImageRenderPlan(
         OfficeImagePlacement targetPlacement,
         OfficeImagePlacement visiblePlacement,

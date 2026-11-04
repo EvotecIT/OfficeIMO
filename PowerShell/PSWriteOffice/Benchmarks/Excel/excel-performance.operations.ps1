@@ -521,8 +521,8 @@ function Invoke-ExcelBenchmarkUpdateExistingWorkbook {
             try {
                 $sheet = $document.Sheets | Where-Object { $_.Name -eq $Run.WorksheetName } | Select-Object -First 1
                 $formulaColumn = $Run.ColumnCount + 1
-                $sheet.Cell(1, $formulaColumn, 'ScoreDouble', $null, $null)
-                $sheet.Cell(2, $formulaColumn, $null, 'G2*2', '#,##0.00')
+                $sheet.Cell(1, $formulaColumn).SetValue('ScoreDouble')
+                $sheet.Cell(2, $formulaColumn).SetFormula('G2*2').SetNumberFormat('#,##0.00')
                 $document | Save-OfficeExcel
             } finally {
                 $document | Close-OfficeExcel
@@ -618,7 +618,7 @@ function Invoke-ExcelBenchmarkChartOnlyWorkbook {
             New-OfficeExcel -Path $Run.Path {
                 Add-OfficeExcelSheet -Name $Run.WorksheetName -Content {
                     Add-OfficeExcelTable -Data $Run.Payload -TableName Data
-                    Add-OfficeExcelChart -TableName Data -Row 2 -Column 12 -Type ColumnClustered -Title 'Score by region'
+                    Add-OfficeExcelChart -Table Data -Address L2 -Type ColumnClustered -Title 'Score by region'
                 }
             } | Out-Null
         }
@@ -673,7 +673,7 @@ function Invoke-ExcelBenchmarkReportWorkbook {
                     Add-OfficeExcelValidationList -Range "D2:D$lastRow" -Values NA, EU, APAC, LATAM
                     Set-OfficeExcelColumnStyleByHeader -Header Score -NumberFormat '#,##0.000'
                     Set-OfficeExcelColumnStyleByHeader -Header Created -NumberFormat 'yyyy-mm-dd hh:mm'
-                    Add-OfficeExcelChart -TableName Data -Row 2 -Column 12 -Type ColumnClustered -Title 'Score by region'
+                    Add-OfficeExcelChart -Table Data -Address L2 -Type ColumnClustered -Title 'Score by region'
                     Add-OfficeExcelPivotTable -SourceRange $Run.Range -DestinationCell L24 -Name SummaryPivot -RowField Region -ColumnField Department -DataField Score, TicketCount -DataFunction Average, Sum -DataDisplayName 'Average Score', Tickets -DataNumberFormat '#,##0.00', '#,##0'
                 }
             } | Out-Null

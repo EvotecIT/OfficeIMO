@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly IReadOnlyList<string> _sharedStrings;
         private readonly ExcelSerialDateStyle[] _dateStyles;
         private readonly bool _uses1904DateSystem;
-        private readonly ExcelReadOptions _options;
+        private readonly ExcelReaderOptions _options;
         private readonly CancellationToken _cancellationToken;
         private CancellationToken _activeReadCancellationToken;
         private readonly string[] _headers;
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ExcelSerialDateStyle[] dateStyles,
             bool uses1904DateSystem,
             bool hasHeaderRow,
-            ExcelReadOptions options,
+            ExcelReaderOptions options,
             CancellationToken cancellationToken) {
             _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
             _bufferedBytes = bytes.ContiguousBuffer;
@@ -205,8 +205,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private bool ReadSourceRow() {
             if (_nextRow < 0 || _nextRow > _lastDataRow) return false;
 
-            Array.Clear(_kinds, 0, _kinds.Length);
-            Array.Clear(_strings, 0, _strings.Length);
+            _kinds.AsSpan().Clear();
+            _strings.AsSpan().Clear();
             int currentRow = _nextRow++;
             int pendingFormulaOrdinal = -1;
             ushort pendingFormulaStyle = 0;

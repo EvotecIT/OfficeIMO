@@ -13,16 +13,16 @@ public partial class Excel {
             $"OfficeIMO.Excel.AsyncReader.{Guid.NewGuid():N}.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet first = document.AddWorksheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Alpha");
-                ExcelSheet second = document.AddWorksheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Beta");
+                ExcelSheet first = document.AddSheet("First");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Alpha");
+                ExcelSheet second = document.AddSheet("Second");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Beta");
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.True(await reader.ReadAsync(CancellationToken.None));
             Assert.Equal("Alpha", reader.GetString(0));
             Assert.False(await reader.ReadAsync(CancellationToken.None));
@@ -33,7 +33,7 @@ public partial class Excel {
 
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 () => reader.ReadAsync(cancellation.Token));
         } finally {
             File.Delete(path);
@@ -49,20 +49,20 @@ public partial class Excel {
         bool cancelDuringNextSheet = false;
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet first = document.AddWorksheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Alpha");
-                ExcelSheet second = document.AddWorksheet("Second");
-                second.CellValue(1, 1, "Value");
+                ExcelSheet first = document.AddSheet("First");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Alpha");
+                ExcelSheet second = document.AddSheet("Second");
+                second.Cell(1, 1).SetValue("Value");
                 for (int row = 2; row <= 512; row++) {
-                    second.CellValue(row, 1, row == 2 ? "CancelHere" : "Value" + row);
+                    second.Cell(row, 1).SetValue(row == 2 ? "CancelHere" : "Value" + row);
                 }
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
                 path,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     InferSchema = true,
                     SchemaSampleRows = 512,
                     CellValueConverter = _ => {
@@ -72,7 +72,7 @@ public partial class Excel {
                 });
 
             Volatile.Write(ref cancelDuringNextSheet, true);
-            await Assert.ThrowsAsync<OperationCanceledException>(
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 () => reader.NextResultAsync(cancellation.Token));
         } finally {
             File.Delete(path);
@@ -87,16 +87,16 @@ public partial class Excel {
         using var perCallCancellation = new CancellationTokenSource();
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet first = document.AddWorksheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Alpha");
-                ExcelSheet second = document.AddWorksheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Beta");
+                ExcelSheet first = document.AddSheet("First");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Alpha");
+                ExcelSheet second = document.AddSheet("Second");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Beta");
                 document.Save();
             }
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.True(await reader.NextResultAsync(perCallCancellation.Token));
             perCallCancellation.Cancel();
 
@@ -112,19 +112,19 @@ public partial class Excel {
     public async Task ReadAsyncThreadsThePerCallTokenIntoBinaryWorksheetReads(ExcelFileFormat format) {
         byte[] workbook;
         using (ExcelDocument document = ExcelDocument.Create()) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             for (int column = 1; column <= 256; column++) {
-                sheet.CellValue(1, column, "Column" + column);
-                sheet.CellValue(2, column, column);
+                sheet.Cell(1, column).SetValue("Column" + column);
+                sheet.Cell(2, column).SetValue(column);
             }
             workbook = document.ToBytes(format);
         }
 
         using var cancellation = new CancellationTokenSource();
         bool cancelDuringRead = false;
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
             workbook,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = false,
                 CellValueConverter = _ => {
                     if (Volatile.Read(ref cancelDuringRead)) cancellation.Cancel();
@@ -145,17 +145,17 @@ public partial class Excel {
     public async Task ReadAsyncCompletesRowAdvanceWithoutThreadPoolDispatch(ExcelFileFormat format) {
         byte[] workbook;
         using (ExcelDocument document = ExcelDocument.Create()) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, "Alpha");
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Alpha");
             workbook = document.ToBytes(format);
         }
 
         int callerThread = Environment.CurrentManagedThreadId;
         int converterThread = 0;
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
             workbook,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 InferSchema = false,
                 CellValueConverter = value => {
                     Volatile.Write(ref converterThread, Environment.CurrentManagedThreadId);

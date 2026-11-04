@@ -12,13 +12,14 @@ internal static partial class PdfRedactionVerification {
     public static PdfRedactionVerificationReport Verify(
         byte[] redactedPdf,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(redactedPdf, nameof(redactedPdf));
         Guard.NotNull(options, nameof(options));
         options.CancellationToken.ThrowIfCancellationRequested();
 
-        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.Resolve(readOptions);
-        string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions, options.CancellationToken).ExtractText();
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithArtifactText(readOptions);
+        string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions, options.CancellationToken).ExtractText(cancellationToken: cancellationToken);
         options.CancellationToken.ThrowIfCancellationRequested();
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
         var issues = new List<PdfRedactionVerificationIssue>();
@@ -76,7 +77,7 @@ internal static partial class PdfRedactionVerification {
         }
 
         if (options.CheckManagedRendering) {
-            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions, cancellationToken: options.CancellationToken);
+            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions, cancellationToken: options.CancellationToken);
             for (int i = 0; i < renders.Count; i++) if (!renders[i].Succeeded) issues.Add(new PdfRedactionVerificationIssue("ManagedRendering", renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture), "Managed rendering failed for redacted page " + renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + string.Join("; ", renders[i].Diagnostics)));
         }
 
@@ -109,13 +110,15 @@ internal static partial class PdfRedactionVerification {
         byte[] redactedPdf,
         PdfRedactionPlan reviewedPlan,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) =>
-        VerifyAppliedPlan(
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return VerifyAppliedPlan(
             redactedPdf,
             reviewedPlan,
             options,
             readOptions,
             Array.Empty<PdfRedactionMatch>());
+    }
 
     internal static PdfRedactionVerificationReport VerifyAppliedPlan(
         byte[] redactedPdf,
@@ -124,6 +127,7 @@ internal static partial class PdfRedactionVerification {
         PdfLoadOptions? readOptions,
         IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
         Guard.NotNull(reviewedPlan, nameof(reviewedPlan));
+        readOptions = PdfLoadOptions.WithArtifactText(readOptions);
         options.CancellationToken.ThrowIfCancellationRequested();
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
         PdfDocumentPreflight rewrittenPreflight = PdfInspector.Preflight(redactedPdf, readOptions, options.CancellationToken);
@@ -204,6 +208,12 @@ internal static partial class PdfRedactionVerification {
                 (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
         }
 
+        if (rewrittenPreflight.CanReadLogicalObjects) {
+            issues.AddRange(PdfRedactionApplier.FindSearchResidue(redactedPdf, reviewedPlan, readOptions, options.CancellationToken));
+            issues.AddRange(PdfRedactionApplier.FindRedactedContentOutsidePages(redactedPdf, reviewedPlan, readOptions, options.CancellationToken));
+            issues.AddRange(PdfRedactionApplier.FindAlternateTextAroundRemovedContent(redactedPdf, reviewedPlan, readOptions, options.CancellationToken));
+        }
+
         if (hasResidualText) {
             issues.Add(new PdfRedactionVerificationIssue(
                 "RedactionPlanResidual",
@@ -227,12 +237,16 @@ internal static partial class PdfRedactionVerification {
                 $"The rewritten PDF still contains {group.Count()} {group.Key.Kind} match(es) inside a reviewed redaction area on page {group.Key.PageNumber}."));
         }
 
-        if (issues.Count == markerReport.Issues.Count) {
-            return markerReport;
+        PdfRedactionSearchCriteria[] searched = PdfRedactionApplier.GetSearchCriteria(reviewedPlan);
+        string extracted = searched.Any(criterion => criterion.Matches(markerReport.ExtractedText)) ? string.Empty : markerReport.ExtractedText;
+        for (int index = 0; index < issues.Count; index++) {
+            PdfRedactionVerificationIssue issue = issues[index];
+            if (searched.Any(criterion => criterion.Matches(issue.Message) || criterion.Matches(issue.Marker)))
+                issues[index] = new PdfRedactionVerificationIssue(issue.Feature, "Search", "Redaction verification found retained searched data.");
         }
 
         return new PdfRedactionVerificationReport(
-            markerReport.ExtractedText,
+            extracted,
             markerReport.RawPdfBytesChecked,
             markerReport.EncodedPdfStringsChecked,
             markerReport.DecodedPdfStreamsChecked,
@@ -297,7 +311,7 @@ internal static partial class PdfRedactionVerification {
         IReadOnlyList<PdfRedactionArea> areas,
         PdfLoadOptions? readOptions,
         CancellationToken cancellationToken) {
-        PdfReadDocument document = PdfReadDocument.Open(redactedPdf, readOptions, cancellationToken);
+        PdfReadDocument document = PdfReadDocument.Open(redactedPdf, PdfLoadOptions.WithArtifactText(readOptions), cancellationToken);
         for (int areaIndex = 0; areaIndex < areas.Count; areaIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfRedactionArea area = areas[areaIndex];
@@ -319,8 +333,9 @@ internal static partial class PdfRedactionVerification {
     public static PdfRedactionVerificationReport AssertVerified(
         byte[] redactedPdf,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) {
-        PdfRedactionVerificationReport report = Verify(redactedPdf, options, readOptions);
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        PdfRedactionVerificationReport report = Verify(redactedPdf, options, readOptions, cancellationToken: cancellationToken);
         report.ThrowIfFailed();
         return report;
     }
@@ -330,8 +345,9 @@ internal static partial class PdfRedactionVerification {
         byte[] redactedPdf,
         PdfRedactionPlan reviewedPlan,
         PdfRedactionVerificationOptions options,
-        PdfLoadOptions? readOptions = null) {
-        PdfRedactionVerificationReport report = VerifyAppliedPlan(redactedPdf, reviewedPlan, options, readOptions);
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        PdfRedactionVerificationReport report = VerifyAppliedPlan(redactedPdf, reviewedPlan, options, readOptions, cancellationToken: cancellationToken);
         report.ThrowIfFailed();
         return report;
     }

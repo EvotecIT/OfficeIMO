@@ -32,7 +32,7 @@ public partial class Html {
         var result = new HtmlTextConversionResult("<p>Body</p>", new[] { diagnostic });
 
         Assert.True(result.HasLoss);
-        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(result.Report.Diagnostics).LossKind);
     }
 
     [Fact]
@@ -47,8 +47,8 @@ public partial class Html {
 
         Assert.False(result.Succeeded);
         Assert.True(result.HasLoss);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
-        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.Diagnostics).LossKind);
+        Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Theory]
@@ -67,10 +67,10 @@ public partial class Html {
 
         Assert.False(result.Succeeded);
         Assert.True(result.HasLoss);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(result.Report.Diagnostics).LossKind);
         Assert.Equal(OfficeConversionLossKind.Failure,
             diagnostic.WithLossKind(OfficeConversionLossKind.Omission).LossKind);
-        Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -91,12 +91,12 @@ public partial class Html {
             new[] { diagnostic },
             Array.Empty<HtmlCapabilityGalleryCheck>());
 
-        IOfficeConversionReport report = evidence;
-        OfficeConversionFidelityDiagnostic projected = Assert.Single(report.FidelityDiagnostics);
+        OfficeConversionReport report = evidence;
+        OfficeDiagnostic projected = Assert.Single(report.Diagnostics);
         Assert.Equal(OfficeConversionLossKind.Omission, projected.LossKind);
-        Assert.Equal("OfficeIMO.Html.Tests", projected.Source);
+        Assert.Equal("OfficeIMO.Html.Tests", projected.Format);
         Assert.Equal("asset:image", projected.Location);
-        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     [Fact]
@@ -117,13 +117,13 @@ public partial class Html {
             new[] { diagnostic },
             Array.Empty<HtmlCapabilityGalleryCheck>());
 
-        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] {
+        foreach (OfficeConversionReport report in new OfficeConversionReport[] {
             conversion.Report,
             artifact
         }) {
-            OfficeConversionFidelityDiagnostic projected = Assert.Single(report.FidelityDiagnostics);
+            OfficeDiagnostic projected = Assert.Single(report.Diagnostics);
             Assert.Equal("HTML_DIAGNOSTIC_UNCATEGORIZED", projected.Code);
-            Assert.Equal("OfficeIMO.Html", projected.Source);
+            Assert.Equal("OfficeIMO.Html", projected.Format);
             Assert.Equal(OfficeConversionLossKind.Approximation, projected.LossKind);
             Assert.True(report.HasLoss);
         }
@@ -131,9 +131,9 @@ public partial class Html {
 
     [Fact]
     public void MarkdownImport_UsesHtmlIntegerRulesForOrderedLists() {
-        string markdown = HtmlConversionDocument
+        string markdown = (HtmlConversionDocument
             .Parse("<ol start='9x'><li>First</li><li value='12junk'>Second</li><li>Third</li></ol>")
-            .ToMarkdown();
+            .ToMarkdown()).ToMarkdown();
 
         Assert.Contains("9. First", markdown, StringComparison.Ordinal);
         Assert.Contains("12. Second", markdown, StringComparison.Ordinal);
@@ -144,10 +144,10 @@ public partial class Html {
     public void HtmlPreparedDocumentApis_ProduceArtifactsAcrossConversionTargets() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
 
-        string markdown = source.ToMarkdown();
-        MarkdownDoc markdownDocument = source.ToMarkdownDocument();
-        RtfDocument rtfDocument = source.ToRtfDocument();
-        using WordDocument wordDocument = source.ToWordDocumentResult().RequireValue();
+        string markdown = source.ToMarkdown().ToMarkdown();
+        MarkdownDocument markdownDocument = source.ToMarkdown();
+        RtfDocument rtfDocument = source.ToRtf();
+        using WordDocument wordDocument = source.ConvertToWordWithEvidence().RequireValue();
 
         Assert.Contains("Hello", markdown, StringComparison.Ordinal);
         Assert.NotNull(markdownDocument);
@@ -155,24 +155,24 @@ public partial class Html {
         Assert.NotEmpty(wordDocument.Paragraphs);
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").Cell(1, 1).SetValue("value");
         HtmlConversionDocument excelHtml = HtmlConversionDocument.Parse(workbook.ToHtml());
-        using ExcelDocument importedWorkbook = excelHtml.ToExcelDocumentResult().RequireValue();
+        using ExcelDocument importedWorkbook = excelHtml.ConvertToExcelWithEvidence().RequireValue();
         Assert.Single(importedWorkbook.Sheets);
 
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.AddSlide().AddTextBoxPoints("Hello", 20, 20, 200, 40);
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
+        presentation.AddSlide().AddTextBox("Hello",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         HtmlConversionDocument powerPointHtml = HtmlConversionDocument.Parse(presentation.ToHtml());
-        using PowerPointPresentation importedPresentation = powerPointHtml
-            .ToPowerPointPresentationResult()
+        using PowerPointDocument importedPresentation = powerPointHtml
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         Assert.Single(importedPresentation.Slides);
 
-        OneNoteSection oneNoteSection = source.ToOneNoteSectionResult().RequireValue();
-        HtmlTextConversionResult oneNoteHtml = oneNoteSection.ToHtmlDocumentResult();
+        OneNoteSection oneNoteSection = source.ConvertToOneNoteSectionWithEvidence().RequireValue();
+        HtmlTextConversionResult oneNoteHtml = oneNoteSection.ConvertToHtmlWithEvidence();
         Assert.Contains("Hello", oneNoteHtml.RequireValue(), StringComparison.Ordinal);
 
-        OfficeIMO.Pdf.PdfDocumentConversionResult pdf = source.ToPdfDocumentResult();
+        OfficeIMO.Pdf.PdfDocumentConversionResult pdf = source.ConvertToPdfWithEvidence();
         OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png);
         Assert.NotEmpty(pdf.ToBytes());
         Assert.NotEmpty(image.Bytes);
@@ -187,26 +187,26 @@ public partial class Html {
     public void HtmlTargetCapabilityContracts_AdvertisePublicCompiledApis() {
         var publicApis = new Dictionary<HtmlConversionTarget, ApiSurface> {
             [HtmlConversionTarget.Word] = new(
-                typeof(WordHtmlConverterExtensions), "ToWordDocument", "ToWordDocumentResult",
-                typeof(WordHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(WordHtmlConverterExtensions), "ToWord", "ToWord",
+                typeof(WordHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Excel] = new(
-                typeof(HtmlExcelConverterExtensions), "ToExcelDocument", "ToExcelDocumentResult",
-                typeof(ExcelHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(HtmlExcelConverterExtensions), "ToExcel", "ToExcel",
+                typeof(ExcelHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.PowerPoint] = new(
-                typeof(HtmlPowerPointConverterExtensions), "ToPowerPointPresentation", "ToPowerPointPresentationResult",
-                typeof(PowerPointHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(HtmlPowerPointConverterExtensions), "ToPowerPoint", "ToPowerPoint",
+                typeof(PowerPointHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.OneNote] = new(
-                typeof(HtmlOneNoteConverterExtensions), "ToOneNoteSection", "ToOneNoteSectionResult",
-                typeof(OneNoteHtmlConverterExtensions), "ToHtmlDocument", "ToHtmlDocumentResult"),
+                typeof(HtmlOneNoteConverterExtensions), "ToOneNoteSection", "ToOneNoteSection",
+                typeof(OneNoteHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Markdown] = new(
-                typeof(HtmlMarkdownConverterExtensions), "ToMarkdownDocument", "ToMarkdownDocumentResult",
-                typeof(MarkdownDoc), "ToHtmlDocument", null),
+                typeof(HtmlMarkdownConverterExtensions), "ToMarkdown", "ToMarkdown",
+                typeof(MarkdownDocument), "ToHtml", null),
             [HtmlConversionTarget.Rtf] = new(
-                typeof(HtmlRtfConverterExtensions), "ToRtfDocument", "ToRtfDocumentResult",
-                typeof(HtmlRtfConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(HtmlRtfConverterExtensions), "ToRtf", "ToRtf",
+                typeof(HtmlRtfConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Pdf] = new(
-                typeof(HtmlPdfConverterExtensions), "ToPdfDocument", "ToPdfDocumentResult",
-                typeof(PdfHtmlConverterExtensions), "ToHtml", "ToHtmlResult"),
+                typeof(HtmlPdfConverterExtensions), "ToPdf", "ToPdf",
+                typeof(PdfHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Image] = new(
                 typeof(HtmlImageExportExtensions), "ToPng", "ExportImage", null, null, null),
             [HtmlConversionTarget.Reader] = new(

@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>Managed DjVu scanned-page PDFs with stored text and optional engine-neutral OCR.</Description>
-    <AssemblyName>OfficeIMO.DjVu.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.DjVu.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -48,10 +46,6 @@
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.IO.Compression" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.DjVu\OfficeIMO.DjVu.csproj" />
@@ -64,4 +58,13 @@
   </ItemGroup>
 
   <ItemGroup><ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.DjVu.Tests" />
+  </ItemGroup>
 </Project>

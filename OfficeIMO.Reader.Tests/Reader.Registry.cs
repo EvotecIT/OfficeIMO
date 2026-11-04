@@ -78,7 +78,7 @@ public sealed partial class ReaderRegistryTests {
             sourceName: null);
 
         Assert.Equal(PowerPointReaderAdapter.DefaultModernMaxInputBytes, options.PackageSecurity!.MaxPackageBytes);
-        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes, options.LegacyPptImportOptions!.MaxInputBytes);
+        Assert.Equal(LegacyPptImportOptions.DefaultMaxInputBytes, options.MaxLegacyInputBytes);
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public sealed partial class ReaderRegistryTests {
                 })
                 .Build();
 
-            Assert.Equal("builder-output", Assert.Single(reader.Read(path)).Text);
+            Assert.Equal("builder-output", Assert.Single(reader.Enumerate(path)).Text);
             Assert.Equal(ReaderInputKind.Unknown, OfficeIMO.Reader.Tests.ReaderTestReaders.All.DetectKind(path));
             Assert.Contains(reader.GetCapabilities(), capability => capability.Id == handlerId && capability.Origin == ReaderHandlerOrigin.Custom);
             Assert.DoesNotContain(OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(), capability => capability.Id == handlerId);
@@ -278,7 +278,7 @@ public sealed partial class ReaderRegistryTests {
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                Assert.Throws<IOException>(() => reader.Read(stream, "sample.wrong", options).ToArray());
+                Assert.Throws<IOException>(() => reader.Enumerate(stream, "sample.wrong", options).ToArray());
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
@@ -288,7 +288,7 @@ public sealed partial class ReaderRegistryTests {
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(stream, "sample.wrong", options));
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "sample.wrong", options));
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
@@ -300,9 +300,9 @@ public sealed partial class ReaderRegistryTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
         try {
             File.WriteAllBytes(path, source);
-            Assert.Throws<IOException>(() => reader.Read(path, options).ToArray());
+            Assert.Throws<IOException>(() => reader.Enumerate(path, options).ToArray());
             Assert.Throws<IOException>(() => reader.ReadDocument(path, options));
-            await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, options));
             await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, options));
         } finally {
             if (File.Exists(path)) File.Delete(path);
@@ -340,7 +340,7 @@ public sealed partial class ReaderRegistryTests {
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                Assert.Throws<IOException>(() => boundedExtensionReader.Read(stream, "sample.wrong", options).ToArray());
+                Assert.Throws<IOException>(() => boundedExtensionReader.Enumerate(stream, "sample.wrong", options).ToArray());
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
@@ -350,7 +350,7 @@ public sealed partial class ReaderRegistryTests {
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadAsync(stream, "sample.wrong", options));
+                await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadDocumentAsync(stream, "sample.wrong", options));
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
@@ -362,9 +362,9 @@ public sealed partial class ReaderRegistryTests {
         string permissivePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
         try {
             File.WriteAllBytes(permissivePath, source);
-            Assert.Throws<IOException>(() => boundedExtensionReader.Read(permissivePath, options).ToArray());
+            Assert.Throws<IOException>(() => boundedExtensionReader.Enumerate(permissivePath, options).ToArray());
             Assert.Throws<IOException>(() => boundedExtensionReader.ReadDocument(permissivePath, options));
-            await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadAsync(permissivePath, options));
+            await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadDocumentAsync(permissivePath, options));
             await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadDocumentAsync(permissivePath, options));
         } finally {
             if (File.Exists(permissivePath)) File.Delete(permissivePath);
@@ -390,7 +390,7 @@ public sealed partial class ReaderRegistryTests {
         using var stream = new NonSeekableReadStream(Encoding.ASCII.GetBytes(
             "This payload exceeds the registered ceiling"));
 
-        Assert.Throws<IOException>(() => reader.Read(stream, "input.tiny", new ReaderOptions {
+        Assert.Throws<IOException>(() => reader.Enumerate(stream, "input.tiny", new ReaderOptions {
             DetectionMode = ReaderDetectionMode.PreferContent,
             MaxInputBytes = 1024
         }).ToArray());
@@ -425,7 +425,7 @@ public sealed partial class ReaderRegistryTests {
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                Assert.Throws<IOException>(() => reader.Read(stream, "sample.probedpdf", options).ToArray());
+                Assert.Throws<IOException>(() => reader.Enumerate(stream, "sample.probedpdf", options).ToArray());
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
@@ -435,7 +435,7 @@ public sealed partial class ReaderRegistryTests {
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(stream, "sample.probedpdf", options));
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "sample.probedpdf", options));
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
@@ -447,9 +447,9 @@ public sealed partial class ReaderRegistryTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".probedpdf");
         try {
             File.WriteAllBytes(path, source);
-            Assert.Throws<IOException>(() => reader.Read(path, options).ToArray());
+            Assert.Throws<IOException>(() => reader.Enumerate(path, options).ToArray());
             Assert.Throws<IOException>(() => reader.ReadDocument(path, options));
-            await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, options));
             await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, options));
         } finally {
             if (File.Exists(path)) File.Delete(path);
@@ -487,9 +487,9 @@ public sealed partial class ReaderRegistryTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
         try {
             File.WriteAllBytes(path, source);
-            Assert.Empty(reader.Read(path, options));
+            Assert.Empty(reader.Enumerate(path, options));
             _ = reader.ReadDocument(path, options);
-            Assert.Empty(await reader.ReadAsync(path, options));
+            Assert.Empty((await reader.ReadDocumentAsync(path, options)).Chunks);
             _ = await reader.ReadDocumentAsync(path, options);
         } finally {
             if (File.Exists(path)) File.Delete(path);

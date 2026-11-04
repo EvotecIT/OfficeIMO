@@ -132,7 +132,7 @@ public sealed class HtmlRenderResult {
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(providerId => providerId, StringComparer.Ordinal)
             .ToList().AsReadOnly();
-        _lossDiagnostics = document.Diagnostics
+        _lossDiagnostics = document.NativeDiagnostics
             .Where(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None)
             .ToList().AsReadOnly();
     }
@@ -155,7 +155,7 @@ public sealed class HtmlRenderResult {
     /// <summary>Provider identities declared by the compatibility manifests for this profile.</summary>
     public IReadOnlyList<string> DeclaredProviderIds => _declaredProviderIds;
     /// <summary>Structured diagnostics emitted by parsing, layout, and display-list construction.</summary>
-    public IReadOnlyList<HtmlDiagnostic> Diagnostics => Document.Diagnostics;
+    public IReadOnlyList<HtmlDiagnostic> Diagnostics => Document.NativeDiagnostics;
     /// <summary>Whether the retained result contains an approximation, omission, or failure.</summary>
     public bool HasLoss => Document.HasLoss;
     /// <summary>Diagnostics that report an approximation, omission, or failure.</summary>
@@ -179,8 +179,5 @@ public sealed class HtmlRenderResult {
     }
 
     /// <summary>Throws with the complete report when the retained result is not lossless.</summary>
-    public HtmlRenderResult RequireNoLoss() {
-        Document.RequireNoLoss();
-        return this;
-    }
+    public void ThrowIfLoss() => Document.ThrowIfLoss();
 }

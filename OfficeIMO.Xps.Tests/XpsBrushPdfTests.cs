@@ -13,8 +13,8 @@ public sealed class XpsBrushPdfTests {
     [InlineData("image-Tile", false)]
     [InlineData("image-FlipXY", true)]
     public void PdfPreservesTilePlacementAndFlipParity(string scenario, bool flip) {
-        byte[] pdf = XpsBrushFixtures.Create(scenario).ToPdf();
-        var drawing = PdfDocument.Load(pdf).Render.Drawing(1);
+        byte[] pdf = XpsBrushFixtures.Create(scenario).ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        var drawing = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Drawing(1);
         var pixels = OfficeDrawingRasterRenderer.Render(drawing, 96D / 72D);
         Assert.True(pixels.GetPixel(15, 15).R > 200);
         Assert.True(pixels.GetPixel(25, 15).B > 200);
@@ -27,9 +27,9 @@ public sealed class XpsBrushPdfTests {
     [InlineData("mask")]
     [InlineData("mask-transformed")]
     public void PdfPreservesAlphaMaskCoordinates(string scenario) {
-        byte[] pdf = XpsBrushFixtures.Create(scenario).ToPdf();
+        byte[] pdf = XpsBrushFixtures.Create(scenario).ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Contains("/S /Alpha", Encoding.ASCII.GetString(pdf));
-        var pixels = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(pdf).Render.Drawing(1), 96D / 72D);
+        var pixels = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Drawing(1), 96D / 72D);
         var low = pixels.GetPixel(10, 40); var high = pixels.GetPixel(90, 40);
         Assert.True(high.R > 200);
         Assert.True(low.A < high.A || low.G > high.G);

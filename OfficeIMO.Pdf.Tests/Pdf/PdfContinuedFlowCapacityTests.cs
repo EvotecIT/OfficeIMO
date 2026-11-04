@@ -60,9 +60,9 @@ public class PdfContinuedFlowCapacityTests {
     public void SelectedSourceFooterProtectsOnlyItsActualVariantIncludingTextFallback(bool useTextFallback) {
         PdfDocument document = PdfDocument.Create(Options());
         document.Footer(footer => {
-            footer.Text("").EvenPagesText("FooterFallback").FontSize(6).Offset(10);
-            if (useTextFallback) footer.EvenPagesContent(content => content.Spacer(200), 10);
-            else footer.EvenPagesContent(content => content.Text("FooterFlow", style: Style()), 10);
+            footer.Text("").EvenPagesText("FooterFallback").FontSize(global::OfficeIMO.OfficeLength.Points(6)).Offset(global::OfficeIMO.OfficeLength.Points(10));
+            if (useTextFallback) footer.EvenPagesContent(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(200)), global::OfficeIMO.OfficeLength.Points(10));
+            else footer.EvenPagesContent(content => content.AddParagraph("FooterFlow", style: Style()), global::OfficeIMO.OfficeLength.Points(10));
         });
         if (useTextFallback) document.Options.AllowRunningContentTextFallback(isHeader: false);
         AddStory(document, 30, allowBottomMargin: true);
@@ -79,22 +79,22 @@ public class PdfContinuedFlowCapacityTests {
 
     [Fact]
     public void AcceptedPageFootnotesKeepTheirReservationAboveTheContinuationSeparatorMargin() {
-        PdfOptions options = Options();
-        options.PageHeight = 140;
+        PdfCreateOptions options = Options();
+        options.PageSetup.Size = new PdfPageSize(options.PageSetup.Size.Width, global::OfficeIMO.OfficeLength.Points(140));
         PdfDocument document = PdfDocument.Create(options);
         var tableStyle = new PdfTableStyle {
             HeaderRowCount = 0, RepeatHeaderRowCount = 0, MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
-            FixedRowHeights = new List<double?> { 80D, 80D, 80D }, AllowRowBreakAcrossPages = false,
-            FontSize = 6, CellPaddingX = 2, CellPaddingY = 0, SpacingBefore = 0, SpacingAfter = 0
+            FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D) }, AllowRowBreakAcrossPages = false,
+            FontSize = global::OfficeIMO.OfficeLength.Points(6), CellPaddingX = global::OfficeIMO.OfficeLength.Points(2), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Table(new[] {
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddTable(new[] {
             new[] { "PageNote0" }, new[] { "PageNote1" }, new[] { "PageNote2" }
         }, style: tableStyle));
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
         document.Content.ContinuedFlow(content => WriteStory(content, 4), separator: null,
-            continuationSeparator: content => content.Text("ContinuationSeparator", style: Style()),
+            continuationSeparator: content => content.AddParagraph("ContinuationSeparator", style: Style()),
             continuationNotice: null, reserveFinalNotice: false, allowContinuationSeparatorInBottomMargin: true);
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -118,11 +118,11 @@ public class PdfContinuedFlowCapacityTests {
 
     private static void AddStory(PdfDocument document, int count, bool allowBottomMargin,
         double continuationHeight = 20D, bool emptyNotice = false) {
-        document.Content.Text("BodyLead", style: Style(20D));
+        document.Content.AddParagraph("BodyLead", style: Style(20D));
         Action<PdfContentBuilder> build = content => WriteStory(content, count);
-        Action<PdfContentBuilder> first = content => content.Text("FirstSeparator", style: Style(20D));
-        Action<PdfContentBuilder> later = content => content.Text("ContinuationSeparator", style: Style(continuationHeight));
-        Action<PdfContentBuilder>? notice = emptyNotice ? content => content.Spacer(10D) : null;
+        Action<PdfContentBuilder> first = content => content.AddParagraph("FirstSeparator", style: Style(20D));
+        Action<PdfContentBuilder> later = content => content.AddParagraph("ContinuationSeparator", style: Style(continuationHeight));
+        Action<PdfContentBuilder>? notice = emptyNotice ? content => content.Spacer(global::OfficeIMO.OfficeLength.Points(10D)) : null;
         if (allowBottomMargin)
             document.Content.ContinuedFlow(build, first, later, notice, reserveFinalNotice: false,
                 allowContinuationSeparatorInBottomMargin: true);
@@ -130,7 +130,7 @@ public class PdfContinuedFlowCapacityTests {
     }
 
     private static void WriteStory(PdfContentBuilder content, int count) {
-        for (int index = 0; index < count; index++) content.Text("Story" + index.ToString("00"), style: Style());
+        for (int index = 0; index < count; index++) content.AddParagraph("Story" + index.ToString("00"), style: Style());
     }
 
     private static string[] StoryTokens(PdfPigPage page) => page.GetWords()
@@ -139,12 +139,15 @@ public class PdfContinuedFlowCapacityTests {
     private static void AssertStoryOrder(PdfPigDocument pdf, int count) =>
         Assert.Equal(Enumerable.Range(0, count).Select(index => "Story" + index.ToString("00")), pdf.GetPages().SelectMany(StoryTokens));
 
-    private static PdfOptions Options() => new() {
-        PageWidth = 260, PageHeight = 160, MarginTop = 20, MarginBottom = 20, MarginLeft = 20, MarginRight = 20,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 6
+    private static PdfCreateOptions Options() => new() {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(160)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20), Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20) }
+        },
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(6)
     };
 
     private static PdfParagraphStyle Style(double height = 10D) => new() {
-        FontSize = 6, LineSpacing = PdfLineSpacing.Exactly(height), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+        FontSize = global::OfficeIMO.OfficeLength.Points(6), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(height)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
     };
 }

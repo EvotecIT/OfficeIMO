@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             var cursor = new XlsbBinaryCursor(record.Data);
             int zeroBasedColumn = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
-            if (zeroBasedColumn < 0 || zeroBasedColumn >= A1.MaxColumns) {
+            if (zeroBasedColumn < 0 || zeroBasedColumn >= ExcelA1.MaxColumns) {
                 throw new InvalidDataException($"The XLSB cell record at offset {record.Offset} contains invalid column index {zeroBasedColumn}.");
             }
 
@@ -119,7 +119,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 cell.FormulaText = formulaText;
             } else if (!(tokens.Length == 5 && tokens[0] == 1)) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
-                    "XLSB-FORMULA-PRESERVED",
+                    "xlsb-formula-preserved",
                     XlsbImportDiagnosticSeverity.Warning,
                     $"Preserved an unsupported BIFF12 formula token stream at row {row}, column {column}; its cached value was projected.",
                     partName,

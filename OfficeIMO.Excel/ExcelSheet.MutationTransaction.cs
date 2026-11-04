@@ -33,13 +33,15 @@ namespace OfficeIMO.Excel {
                 EnsureWorksheetCapturedByMutationPlanIsActive();
                 var dynamicSpillState = CaptureDynamicSpillMutationState(_excelDocument.WorkbookPartRoot);
                 FlushPendingPartsBeforeMutationSnapshot();
-                var snapshot = PackageMutationSnapshot.Capture(_excelDocument.WorkbookPartRoot, options.MaximumSnapshotCharacters);
+                ExcelDocument.SourcePackageRollback? sourceRollback = _excelDocument.TryCaptureSourcePackageRollback(options.MaximumSnapshotCharacters);
+                PackageMutationSnapshot? snapshot = sourceRollback == null
+                    ? PackageMutationSnapshot.Capture(_excelDocument.WorkbookPartRoot, options.MaximumSnapshotCharacters)
+                    : null;
                 ExcelDocument.FormulaMutationState formulaMutationState = _excelDocument.CaptureFormulaMutationState();
                 var drawingHandles = _excelDocument.CaptureDrawingHandlesForReload();
                 try {
                     int affectedCells = operation(cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
-                    WorksheetRoot.Save();
                     MarkRequiresSavePreparation();
                     IReadOnlyList<ExcelMutationDiagnostic> diagnostics =
                         _excelDocument.GetMutationDiagnostics(options.MaximumDiagnostics, cancellationToken);
@@ -49,7 +51,8 @@ namespace OfficeIMO.Excel {
                         diagnostics);
                 } catch {
                     try {
-                        snapshot.Restore();
+                        if (sourceRollback != null) _excelDocument.RestoreSourcePackage(sourceRollback, drawingHandles);
+                        else snapshot!.Restore();
                     } finally {
                         _excelDocument.RestoreFormulaMutationState(formulaMutationState);
                         ResetPendingPartsAfterMutationRollback();
@@ -121,14 +124,46 @@ namespace OfficeIMO.Excel {
             return counter.CharactersWritten;
         }
 
+        /// <summary>
+        /// Serializes rollback XML through the same budget. A compact byte copy suits grid-sized roots, which a
+        /// clone would duplicate element by element for a rollback that rarely happens.
+        /// </summary>
+        private static byte[] CaptureMutationSnapshotXml(
+            OpenXmlPartRootElement root,
+            long remainingCharacters,
+            long maximumCharacters,
+            out long characters) {
+            if (remainingCharacters < 1) {
+                throw new InvalidOperationException(
+                    $"Transactional snapshot exceeds MaximumSnapshotCharacters ({maximumCharacters}).");
+            }
+
+            using var bytes = new MemoryStream();
+            using var utf8 = new StreamWriter(bytes, new UTF8Encoding(false), 4096, leaveOpen: true);
+            using var counter = new SnapshotCharacterWriter(remainingCharacters, maximumCharacters, utf8);
+            using (XmlWriter writer = XmlWriter.Create(counter, new XmlWriterSettings {
+                CloseOutput = false,
+                ConformanceLevel = ConformanceLevel.Fragment,
+                OmitXmlDeclaration = true,
+                NewLineHandling = NewLineHandling.Entitize
+            })) {
+                root.WriteTo(writer);
+            }
+            utf8.Flush();
+            characters = counter.CharactersWritten;
+            return bytes.ToArray();
+        }
+
         private sealed class SnapshotCharacterWriter : TextWriter {
             private readonly long _maximumCharacters;
             private readonly long _limit;
+            private readonly TextWriter? _output;
             private long _charactersWritten;
 
-            internal SnapshotCharacterWriter(long limit, long maximumCharacters) {
+            internal SnapshotCharacterWriter(long limit, long maximumCharacters, TextWriter? output = null) {
                 _limit = limit;
                 _maximumCharacters = maximumCharacters;
+                _output = output;
             }
 
             public override Encoding Encoding => Encoding.UTF8;
@@ -137,6 +172,7 @@ namespace OfficeIMO.Excel {
 
             public override void Write(char value) {
                 Reserve(1);
+                _output?.Write(value);
             }
 
             public override void Write(char[] buffer, int index, int count) {
@@ -145,10 +181,12 @@ namespace OfficeIMO.Excel {
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }
                 Reserve(count);
+                _output?.Write(buffer, index, count);
             }
 
             public override void Write(string? value) {
                 if (value != null) Reserve(value.Length);
+                _output?.Write(value);
             }
 
             private void Reserve(long count) {
@@ -174,6 +212,13 @@ namespace OfficeIMO.Excel {
                         maximumCharacters));
                     T clone = (T)root.CloneNode(true);
                     snapshot._restore.Add(() => restore(clone));
+                }
+
+                void AddXmlRoot<T>(T? root, Func<string, T> parse, Action<T> restore) where T : OpenXmlPartRootElement {
+                    if (root == null) return;
+                    byte[] xml = CaptureMutationSnapshotXml(root, maximumCharacters - characters, maximumCharacters, out long written);
+                    characters = checked(characters + written);
+                    snapshot._restore.Add(() => restore(parse(Encoding.UTF8.GetString(xml))));
                 }
 
                 TPart RestorePartRelationship<TPart>(
@@ -306,7 +351,7 @@ namespace OfficeIMO.Excel {
                     AddExtendedPartGraph(workbookPart, connectionPart);
                 }
                 AddRoot(workbookPart.WorkbookStylesPart?.Stylesheet, value => workbookPart.WorkbookStylesPart!.Stylesheet = value);
-                AddRoot(workbookPart.SharedStringTablePart?.SharedStringTable, value => workbookPart.SharedStringTablePart!.SharedStringTable = value);
+                AddXmlRoot(workbookPart.SharedStringTablePart?.SharedStringTable, static xml => new SharedStringTable(xml), value => workbookPart.SharedStringTablePart!.SharedStringTable = value);
                 CellMetadataPart? cellMetadataPart = workbookPart.CellMetadataPart;
                 if (cellMetadataPart != null) {
                     AddPartRoot(
@@ -391,7 +436,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 foreach (WorksheetPart worksheetPart in workbookPart.WorksheetParts) {
-                    AddRoot(worksheetPart.Worksheet, value => worksheetPart.Worksheet = value);
+                    AddXmlRoot(worksheetPart.Worksheet, static xml => new Worksheet(xml), value => worksheetPart.Worksheet = value);
                     var hyperlinkRelationships = worksheetPart.HyperlinkRelationships
                         .Select(relationship => (
                             relationship.Id,
@@ -535,27 +580,6 @@ namespace OfficeIMO.Excel {
             internal void Restore() {
                 for (int index = _restore.Count - 1; index >= 0; index--) _restore[index]();
             }
-        }
-    }
-
-    public partial class ExcelDocument {
-        internal IReadOnlyList<ExcelMutationDiagnostic> GetMutationDiagnostics(
-            int maximumDiagnostics,
-            CancellationToken cancellationToken = default) {
-            var diagnostics = new List<ExcelMutationDiagnostic>(maximumDiagnostics);
-            var validator = new OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Microsoft365) {
-                MaxNumberOfErrors = maximumDiagnostics
-            };
-            foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument, cancellationToken)) {
-                if (diagnostics.Count >= maximumDiagnostics) break;
-                diagnostics.Add(new ExcelMutationDiagnostic(
-                    "OPENXML_VALIDATION",
-                    ExcelMutationDiagnosticSeverity.Error,
-                    error.Description ?? "Open XML validation error.",
-                    error.Part?.Uri.ToString()));
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-            return diagnostics;
         }
     }
 }

@@ -1,7 +1,7 @@
 using OfficeIMO.Word;
 using Xunit;
 using W = DocumentFormat.OpenXml.Wordprocessing;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Tests;
 
@@ -10,12 +10,12 @@ public partial class Word {
     public void TableCellShading_AutomaticFillHasNoRgbColorAndRoundTrips() {
         using WordDocument source = WordDocument.Create();
         WordTableCell cell = source.AddTable(1, 1).Rows[0].Cells[0];
-        cell.ShadingFillColorHex = "auto";
-        Assert.Equal("AUTO", cell.ShadingFillColorHex);
+        cell.ShadingFillValue = "auto";
+        Assert.Equal("AUTO", cell.ShadingFillValue);
         Assert.Null(cell.ShadingFillColor);
-        cell.ShadingFillColorHex = cell.ShadingFillColorHex;
+        cell.ShadingFillValue = cell.ShadingFillValue;
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
-        Assert.Equal("AUTO", loaded.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal("AUTO", loaded.Tables[0].Rows[0].Cells[0].ShadingFillValue);
         Assert.Null(loaded.Tables[0].Rows[0].Cells[0].ShadingFillColor);
         Assert.Empty(loaded.DocumentValidationErrors);
     }
@@ -28,7 +28,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordTable original = source.AddTable(1, 1);
         original.Rows[0].Cells[0].Paragraphs[0].Text = "Imported table";
-        original.Rows[0].Cells[0].ShadingFillColorHex = "FFFF00";
+        original.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("FFFF00");
         if (kind == "no-properties") original._tableProperties!.Remove();
         else {
             original._tableProperties!.TableStyle?.Remove();
@@ -42,15 +42,15 @@ public partial class Word {
         if (kind != "no-properties") Assert.Empty(loaded.DocumentValidationErrors);
         Assert.Null(table._tableProperties?.TableStyle);
         WordTableStyleDetails details = Assert.IsType<WordTableStyleDetails>(table.StyleDetails);
-        Assert.Equal(kind == "direct-shading" ? "FF0000" : string.Empty, details.ShadingFillColorHex);
-        details.ShadingFillColorHex = "0000FF";
-        details.CellSpacing = 120;
+        Assert.Equal(kind == "direct-shading" ? OfficeColor.Parse("FF0000") : null, details.ShadingFillColor);
+        details.ShadingFillColor = OfficeColor.Parse("0000FF");
+        details.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
         using WordDocument roundtrip = WordDocument.Load(new MemoryStream(loaded.ToBytes()));
-        Assert.Equal("0000FF", roundtrip.Tables[0].StyleDetails!.ShadingFillColorHex);
-        Assert.Equal((short)120, roundtrip.Tables[0].StyleDetails!.CellSpacing);
+        Assert.Equal(OfficeColor.Parse("0000FF"), roundtrip.Tables[0].StyleDetails!.ShadingFillColor);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(6), roundtrip.Tables[0].StyleDetails!.CellSpacing);
         Assert.Null(roundtrip.Tables[0]._tableProperties!.TableStyle);
         Assert.IsType<W.TableProperties>(roundtrip.Tables[0]._table.ChildElements[0]);
-        Assert.Equal("FFFF00", roundtrip.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("FFFF00"), roundtrip.Tables[0].Rows[0].Cells[0].ShadingFillColor);
         Assert.Equal("Imported table", roundtrip.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         Assert.Empty(roundtrip.DocumentValidationErrors);
     }
@@ -59,22 +59,22 @@ public partial class Word {
     public void TableShading_PublicSettingsRoundTripWithoutChangingCellsOrMargins() {
         using WordDocument source = WordDocument.Create();
         WordTable table = source.AddTable(2, 2, WordTableStyle.TableGrid);
-        table.StyleDetails!.CellSpacing = 120;
-        table.StyleDetails.MarginDefaultBottomWidth = 80;
-        table.Rows[0].Cells[0].ShadingFillColorHex = "FFFFFF";
-        table.StyleDetails.ShadingFillColorHex = "#80c0ff";
+        table.StyleDetails!.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
+        table.StyleDetails.MarginDefaultBottom = global::OfficeIMO.OfficeLength.Points(4);
+        table.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("FFFFFF");
+        table.StyleDetails.ShadingFillColor = OfficeColor.Parse("#80c0ff");
         table.StyleDetails.ShadingPattern = WordShadingPattern.Percent20;
         table.StyleDetails.ShadingColor = Color.Blue;
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
         WordTableStyleDetails style = loaded.Tables[0].StyleDetails!;
-        Assert.Equal("80C0FF", style.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("80C0FF"), style.ShadingFillColor);
         Assert.Equal(Color.FromRgb(128, 192, 255), style.ShadingFillColor);
         Assert.Equal(WordShadingPattern.Percent20, style.ShadingPattern);
-        Assert.Equal("0000FF", style.ShadingColorHex);
+        Assert.Equal(OfficeColor.Parse("0000FF"), style.ShadingColor);
         Assert.Equal(Color.Blue, style.ShadingColor);
-        Assert.Equal((short)120, style.CellSpacing);
-        Assert.Equal((short)80, style.MarginDefaultBottomWidth);
-        Assert.Equal("FFFFFF", loaded.Tables[0].Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(6), style.CellSpacing);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(4), style.MarginDefaultBottom);
+        Assert.Equal(OfficeColor.Parse("FFFFFF"), loaded.Tables[0].Rows[0].Cells[0].ShadingFillColor);
         Assert.Empty(loaded.DocumentValidationErrors);
     }
 
@@ -93,12 +93,12 @@ public partial class Word {
             style.ShadingFillColor = Color.Red;
             Assert.Null(shading.ThemeFill); Assert.Null(shading.ThemeFillTint); Assert.Null(shading.ThemeFillShade);
             Assert.Equal(W.ThemeColorValues.Accent2, shading.ThemeColor!.Value);
-            Assert.Equal("000000", style.ShadingColorHex);
+            Assert.Equal(OfficeColor.Parse("000000"), style.ShadingColor);
         } else {
-            style.ShadingColorHex = "#0000ff";
+            style.ShadingColor = OfficeColor.Parse("#0000ff");
             Assert.Null(shading.ThemeColor); Assert.Null(shading.ThemeTint); Assert.Null(shading.ThemeShade);
             Assert.Equal(W.ThemeColorValues.Accent1, shading.ThemeFill!.Value);
-            Assert.Equal("FFFFFF", style.ShadingFillColorHex);
+            Assert.Equal(OfficeColor.Parse("FFFFFF"), style.ShadingFillColor);
         }
         Assert.Equal(WordShadingPattern.Percent20, style.ShadingPattern);
         Assert.Empty(document.DocumentValidationErrors);
@@ -119,12 +119,12 @@ public partial class Word {
         else style.ShadingColor = null;
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
         style = loaded.Tables[0].StyleDetails!;
-        Assert.Equal(string.Empty, style.ShadingColorHex);
+        Assert.Null(style.ShadingColor);
         if (channel == "color") {
             Assert.Equal(Color.Red, style.ShadingFillColor);
             Assert.Equal(WordShadingPattern.Percent20, style.ShadingPattern);
         } else {
-            Assert.Equal(string.Empty, style.ShadingFillColorHex);
+            Assert.Null(style.ShadingFillColor);
             Assert.Null(style.ShadingFillColor); Assert.Null(style.ShadingPattern);
         }
         Assert.Empty(loaded.DocumentValidationErrors);
@@ -134,13 +134,13 @@ public partial class Word {
     public void TableShading_AutomaticFillClearsInheritedGapFillWithoutInventingRgb() {
         using WordDocument source = WordDocument.Create();
         WordTable table = CreateNativeGapShadingTable(source, "inherited");
-        table.StyleDetails!.ShadingFillColorHex = "AUTO";
-        table.StyleDetails.ShadingColorHex = "auto";
+        table.StyleDetails!.ShadingFillValue = "AUTO";
+        table.StyleDetails.ShadingColorValue = "auto";
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
-        Assert.Equal("AUTO", loaded.Tables[0].StyleDetails!.ShadingFillColorHex);
+        Assert.Equal("AUTO", loaded.Tables[0].StyleDetails!.ShadingFillValue);
         Assert.Null(loaded.Tables[0].StyleDetails!.ShadingFillColor);
         Assert.Null(loaded.Tables[0].StyleDetails!.ShadingColor);
-        Assert.NotEmpty(loaded.ToBytes(WordFileFormat.Doc, new WordSaveOptions { LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
+        Assert.NotEmpty(loaded.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc,  LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
     }
 
     [Theory]
@@ -152,8 +152,8 @@ public partial class Word {
         table.StyleDetails!.ShadingFillColor = Color.Red;
         string xml = table._tableProperties!.OuterXml;
         Assert.Throws<ArgumentException>(() => {
-            if (foreground) table.StyleDetails.ShadingColorHex = "FF112233";
-            else table.StyleDetails.ShadingFillColorHex = "not-a-color";
+            if (foreground) table.StyleDetails.ShadingColorValue = "FF112233";
+            else table.StyleDetails.ShadingFillValue = "not-a-color";
         });
         Assert.Equal(xml, table._tableProperties.OuterXml);
     }
@@ -162,10 +162,9 @@ public partial class Word {
     public void TableShading_VisibleNativeDocGapsRemainExplicitlyUnsupported() {
         using WordDocument document = WordDocument.Create();
         WordTableStyleDetails style = document.AddTable(1, 1).StyleDetails!;
-        style.CellSpacing = 120;
-        style.ShadingFillColorHex = "80C0FF";
-        var error = Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc,
-            new WordSaveOptions { LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
+        style.CellSpacing = global::OfficeIMO.OfficeLength.Points(6);
+        style.ShadingFillColor = OfficeColor.Parse("80C0FF");
+        var error = Assert.Throws<NotSupportedException>(() => document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc,  LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
         Assert.Contains("table gap shading", error.Message);
     }
 }

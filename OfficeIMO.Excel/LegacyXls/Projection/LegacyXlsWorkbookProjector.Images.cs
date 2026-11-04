@@ -85,9 +85,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             HeaderFooterImagePlacement placement,
             LegacyXlsDrawingBlipStoreEntry image) {
             if (placement.IsHeader) {
-                sheet.SetHeaderImage(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
+                sheet.SetHeaderImageCore(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
             } else {
-                sheet.SetFooterImage(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
+                sheet.SetFooterImageCore(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
             }
         }
 
@@ -157,20 +157,17 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             if (endRow > startRow || endColumn > startColumn) {
                 string range = BuildA1Range(startRow, startColumn, endRow, endColumn);
-                sheet.AddImageToRange(
-                    range,
-                    image.EmbeddedBlipPayloadBytes,
-                    image.EmbeddedBlipContentType!,
-                    name: name,
-                    altText: name);
+                sheet.AddImage(range, image.EmbeddedBlipPayloadBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = image.EmbeddedBlipContentType!,
+                    Name = name,
+                    Description = name
+                });
             } else {
-                sheet.AddImage(
-                    startRow,
-                    startColumn,
-                    image.EmbeddedBlipPayloadBytes,
-                    image.EmbeddedBlipContentType!,
-                    name: name,
-                    altText: name);
+                sheet.AddImage(startRow, startColumn, image.EmbeddedBlipPayloadBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = image.EmbeddedBlipContentType!,
+                    Name = name,
+                    Description = name
+                });
             }
         }
     }

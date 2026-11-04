@@ -23,7 +23,10 @@ public sealed class ExcelLongSharedStringsTests {
         for (int index = 0; index < 200; index++) table.Rows.Add(repeated);
 
         using var output = new MemoryStream();
-        using (var source = table.CreateDataReader()) ExcelDocument.WriteDataReader(output, source);
+        using (var document = ExcelDocument.Create()) {
+            document.AddSheet("Data").WriteData(table);
+            document.Save(output);
+        }
         byte[] package = output.ToArray();
 
         using (var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false)) {

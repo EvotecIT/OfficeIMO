@@ -64,7 +64,7 @@ public sealed class ReaderIWorkTests {
             await Assert.ThrowsAsync<InvalidDataException>(() => reader.DetectAsync(link,
                 new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent }));
             Assert.Throws<InvalidDataException>(() => reader.ReadDocument(link, options));
-            Assert.Throws<InvalidDataException>(() => reader.Read(link, options).ToArray());
+            Assert.Throws<InvalidDataException>(() => reader.Enumerate(link, options).ToArray());
             await Assert.ThrowsAsync<InvalidDataException>(() => reader.ReadDocumentAsync(link, options));
         } finally {
             Directory.Delete(root, recursive: true);
@@ -95,7 +95,7 @@ public sealed class ReaderIWorkTests {
     [Fact]
     public void NumbersTablesRetainCachedValuesAndReportBoundedProjection() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-            .AddIWorkHandler(new ReaderIWorkOptions { MaximumTableColumns = 2 })
+            .AddIWorkHandler(new ReaderIWorkOptions { MaxTableColumns = 2 })
             .Build();
 
         OfficeDocumentReadResult document = reader.ReadDocument(
@@ -383,7 +383,7 @@ public sealed class ReaderIWorkTests {
     [Fact]
     public void ChunkOnlyReadCarriesSourceWarnings() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
-        ReaderChunk[] chunks = reader.Read(Fixture("picodocs/sample-v14.4.pages")).ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(Fixture("picodocs/sample-v14.4.pages")).ToArray();
         Assert.Contains(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
             warning => warning.Contains("IWORK_PAGES_TEXT_UNSUPPORTED", StringComparison.Ordinal));
     }

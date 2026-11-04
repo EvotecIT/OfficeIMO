@@ -211,7 +211,7 @@ namespace OfficeIMO.PowerPoint {
             };
         }
 
-        private static PowerPointLayoutBox? GetLayoutElementBounds(OpenXmlElement element) {
+        internal static PowerPointLayoutBox? GetLayoutElementBounds(OpenXmlElement element) {
             return element switch {
                 Shape s => GetLayoutElementBounds(s.ShapeProperties?.Transform2D),
                 DocumentFormat.OpenXml.Presentation.Picture p => GetLayoutElementBounds(p.ShapeProperties?.Transform2D),
@@ -229,7 +229,7 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            return new PowerPointLayoutBox(x.Value, y.Value, cx.Value, cy.Value);
+            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(cx.Value),OfficeIMO.OfficeLength.Emus(cy.Value));
         }
 
         private static PowerPointLayoutBox? GetLayoutElementBounds(Transform? transform) {
@@ -241,7 +241,7 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            return new PowerPointLayoutBox(x.Value, y.Value, cx.Value, cy.Value);
+            return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(cx.Value),OfficeIMO.OfficeLength.Emus(cy.Value));
         }
     }
 }

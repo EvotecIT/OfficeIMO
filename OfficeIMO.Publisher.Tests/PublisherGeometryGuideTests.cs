@@ -20,7 +20,7 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
         Assert.Equal(new OfficePoint(shape.Width / 4, shape.Height / 4), shape.PathCommands[0].Point);
         Assert.Equal(shape.Width * 3 / 4, shape.PathCommands[1].Point.X, 10);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
     }
 
     [Theory]
@@ -44,7 +44,7 @@ public sealed class PublisherGeometryGuideTests {
         input = OfficeCompoundFileWriter.Rewrite(source, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = replacement });
         PublisherDocument publication = PublisherDocument.Load(input);
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Location == "Contents/object/293"
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Location == "Contents/object/293"
             && item.Code.StartsWith("PUB_CUSTOM_PATH_"));
     }
 
@@ -57,12 +57,12 @@ public sealed class PublisherGeometryGuideTests {
         byte[] group = Record(0xF000, 15, Record(0xF00B, 0x23, properties));
         byte[] shape = Record(0xF004, 15, Record(0xF00A, 2, BitConverter.GetBytes(1U).Concat(BitConverter.GetBytes(1U)).ToArray()));
         byte[] bytes = group.Concat(new byte[4]).Concat(shape).Concat(shape).ToArray();
-        var context = new PublisherParseContext(new PublisherReadOptions {
+        var context = new PublisherParseContext(new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxRecords = 12 }
         }, default);
         new PublisherEscherReader(new PublisherBinaryData(bytes, "controlled defaults"), null, context).Read();
         Assert.Equal(12, context.Records);
-        var limited = new PublisherParseContext(new PublisherReadOptions {
+        var limited = new PublisherParseContext(new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxRecords = 11 }
         }, default);
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
@@ -98,7 +98,7 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
         Assert.Equal(shape.Width / 100 * (localStroke ? 1 : 0), shape.PathCommands[0].Point.X, 10);
         Assert.Equal(shape.Width * (localStroke ? 0.45 : 0.4), shape.PathCommands[1].Point.X, 10);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_INVALID");
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_INVALID");
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public sealed class PublisherGeometryGuideTests {
             new OfficeArtProperty(7, 0x181, 0x000000FF), new OfficeArtProperty(8, 0x1BF, 0x00100010)
         }) { Bounds = new PublisherNativeRectangle(0, 0, nativeWidth, nativeHeight) });
         PublisherDocument publication = new PublisherPageProjector(source, new PublisherQuillText(), escher,
-            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None)).Project();
         OfficeShape shape = PublisherNativeTests.Elements(publication.Pages[0].Drawing).OfType<OfficeDrawingShape>()
             .Single(item => item.SourceElementIds?.Contains("publisher-object-2") == true).Shape;
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
@@ -147,14 +147,14 @@ public sealed class PublisherGeometryGuideTests {
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
         Assert.Equal(new OfficePoint(shape.Width / 4, shape.Height / 4), shape.PathCommands[0].Point);
         Assert.Equal(new OfficePoint(shape.Width * 3 / 4, shape.Height / 4), shape.PathCommands[1].Point);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
         var svg = publication.ToSvgResult();
-        Assert.Contains(svg.Report.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
+        Assert.Contains(svg.Report.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED"
             && item.Message.Contains("producer rounding") && item.Location == "Contents/object/293");
-        Assert.Throws<OfficeConversionException>(() => svg.RequireNoLoss());
-        var pdf = publication.ToPdfDocumentResult();
-        Assert.Contains(publication.ReadReport, pdf.SourceConversionReports);
-        Assert.Equal(publication.Pages.Count, PdfReadDocument.Open(pdf.ToBytes()).Pages.Count);
+        Assert.Throws<OfficeConversionException>(() => svg.ThrowIfLoss());
+        var pdf = publication.ToPdf(null, out OfficeConversionReport pdfReport);
+        Assert.All(publication.ReadReport.Diagnostics, source => Assert.Contains(pdfReport.Diagnostics, item => item.Code == source.Code));
+        Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).Pages.Count);
         Assert.NotEmpty(publication.TextStories);
     }
 
@@ -168,7 +168,7 @@ public sealed class PublisherGeometryGuideTests {
         var publication = PublisherDocument.Load(Input(new[] { (operation, first, (ushort)0, (ushort)0) }));
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);
         Assert.NotEmpty(publication.TextStories);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == code
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == code
             && item.Location == "Contents/object/293" && item.LossKind == OfficeConversionLossKind.Approximation);
     }
 
@@ -176,7 +176,7 @@ public sealed class PublisherGeometryGuideTests {
     public void Native_guides_retain_recovery_limits_in_the_complete_reader() {
         var records = Enumerable.Range(0, 128).Select(index => ((ushort)0, (ushort)index, (ushort)0, (ushort)0)).ToArray();
         var error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(Input(records),
-            new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } }));
+            new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 100 } }));
         Assert.Contains("custom path item work limit", error.Message);
     }
 
@@ -188,7 +188,7 @@ public sealed class PublisherGeometryGuideTests {
             new() { [0x0145] = PublisherCustomPathTests.Vertices(new[] { (0, 0), (21600, 0), (0, 21600) }) });
         var publication = PublisherDocument.Load(input);
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);
-        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_SCALING_UNSUPPORTED");
+        Assert.Contains(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_SCALING_UNSUPPORTED");
     }
 
     [Fact]
@@ -200,7 +200,7 @@ public sealed class PublisherGeometryGuideTests {
             ((ushort)0x2000, (ushort)0x0147, (ushort)0, (ushort)0),
             ((ushort)0x2000, (ushort)0x0400, (ushort)50, (ushort)0),
             ((ushort)0x2000, (ushort)0x04F8, (ushort)0, (ushort)0) }), 362);
-        var options = new PublisherReadOptions { ImageCodec = new SolidCodec() };
+        var options = new PublisherLoadOptions { ImageCodec = new SolidCodec() };
         PublisherDocument publication = PublisherDocument.Load(input, options);
         PublisherDocument control = PublisherDocument.Load(original, options);
         Assert.Equal(control.Images.SelectMany(image => image.GetBytes()), publication.Images.SelectMany(image => image.GetBytes()));

@@ -97,8 +97,6 @@ public sealed class PackageDependencyGuardrailTests {
 
     private static readonly Dictionary<string, HashSet<string>> ApprovedExternalCompatibilitySourceTerms =
         new(StringComparer.OrdinalIgnoreCase) {
-            ["OfficeIMO.PowerPoint/PowerPointDesktopReferenceRenderer.cs"] =
-                new HashSet<string>(["PowerPoint.Application"], StringComparer.OrdinalIgnoreCase),
             ["OfficeIMO.PowerPoint/PowerPointCompatibilityReport.cs"] =
                 new HashSet<string>(["LibreOffice", "soffice"], StringComparer.OrdinalIgnoreCase)
         };
@@ -332,16 +330,16 @@ public sealed class PackageDependencyGuardrailTests {
         var ns = document.Root?.Name.Namespace ?? XNamespace.None;
 
         Assert.Equal("OfficeIMO.Html.Rtf", (string?)document.Descendants(ns + "PackageId").Single());
-        Assert.Equal("OfficeIMO.Html.Rtf", (string?)document.Descendants(ns + "AssemblyName").Single());
+        Assert.Equal("OfficeIMO.Html.Rtf", typeof(OfficeIMO.Html.HtmlRtfExportOptions).Assembly.GetName().Name);
 
-        var exportedTypeNames = typeof(OfficeIMO.Html.HtmlToRtfOptions)
+        var exportedTypeNames = typeof(OfficeIMO.Html.HtmlRtfExportOptions)
             .Assembly
             .GetExportedTypes()
             .Select(static type => type.FullName ?? type.Name)
             .ToArray();
 
-        Assert.Contains("OfficeIMO.Html.HtmlToRtfOptions", exportedTypeNames);
-        Assert.Contains("OfficeIMO.Html.RtfToHtmlOptions", exportedTypeNames);
+        Assert.Contains("OfficeIMO.Html.HtmlRtfExportOptions", exportedTypeNames);
+        Assert.Contains("OfficeIMO.Html.RtfHtmlExportOptions", exportedTypeNames);
         Assert.DoesNotContain(exportedTypeNames, static typeName => typeName.StartsWith("OfficeIMO.Rtf.Html.", StringComparison.Ordinal));
 
         var projectReferences = document
@@ -361,20 +359,20 @@ public sealed class PackageDependencyGuardrailTests {
 
         Assert.Equal([
             "../OfficeIMO.Core/OfficeIMO.Core.csproj",
-            "../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
             "../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
             "../OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj"
         ], references);
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Email", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Mhtml", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(references, static reference => reference.Contains("OfficeIMO.Pdf", StringComparison.OrdinalIgnoreCase));
     }
 
     [Theory]
     [InlineData("OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj", "OfficeIMO.Core", "OfficeIMO.Html", "OfficeIMO.Rtf")]
     [InlineData("OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj", "OfficeIMO.Core", "OfficeIMO.Email", "OfficeIMO.Html")]
     [InlineData("OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj", "OfficeIMO.Email", "OfficeIMO.Html", "OfficeIMO.Html.Rtf")]
-    [InlineData("OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj", "OfficeIMO.Core", "OfficeIMO.Email", "OfficeIMO.Email.Html", "OfficeIMO.Html")]
+    [InlineData("OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj", "OfficeIMO.Core", "OfficeIMO.Email", "OfficeIMO.Email.Html", "OfficeIMO.Html", "OfficeIMO.Html.Pdf")]
     [InlineData("OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj", "OfficeIMO.Core", "OfficeIMO.Html.Pdf", "OfficeIMO.Mhtml", "OfficeIMO.Pdf")]
     public void OptionalHtmlBridges_DeclareOnlyTheirOwningEdges(string relativeProjectPath, params string[] expectedProjects) {
         string[] references = GetProjectReferences(GetRepositoryPath(relativeProjectPath));
@@ -484,6 +482,7 @@ public sealed class PackageDependencyGuardrailTests {
 
         Assert.Equal(
             new[] {
+                "OfficeIMO.SharedSource/Charts/OfficeChartTypeName.cs",
                 "OfficeIMO.SharedSource/Compatibility/TrimmingAttributes.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundDocumentDetector.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFile.cs",
@@ -496,6 +495,7 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Stream.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundWriterLayout.cs",
+                "OfficeIMO.SharedSource/Html/OfficeThemeCssTokens.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoiceBankAccountIdentity.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoicePreservedXml.cs",
                 "OfficeIMO.SharedSource/Invoicing/InvoiceProfile.cs",
@@ -693,17 +693,17 @@ public sealed class PackageDependencyGuardrailTests {
     public static IEnumerable<object[]> OpenDocumentPdfAdapters() {
         yield return new object[] {
             "OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj",
-            new[] { "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf" },
+            new[] { "OfficeIMO.Word.OpenDocument", "OfficeIMO.Word.Pdf", "OfficeIMO.Pdf.Word" },
             new[] { "OfficeIMO.Excel", "OfficeIMO.PowerPoint" }
         };
         yield return new object[] {
             "OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj",
-            new[] { "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf" },
+            new[] { "OfficeIMO.Excel.OpenDocument", "OfficeIMO.Excel.Pdf", "OfficeIMO.Pdf.Excel" },
             new[] { "OfficeIMO.Word", "OfficeIMO.PowerPoint" }
         };
         yield return new object[] {
             "OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj",
-            new[] { "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf" },
+            new[] { "OfficeIMO.PowerPoint.OpenDocument", "OfficeIMO.PowerPoint.Pdf", "OfficeIMO.Pdf.PowerPoint" },
             new[] { "OfficeIMO.Word", "OfficeIMO.Excel" }
         };
     }

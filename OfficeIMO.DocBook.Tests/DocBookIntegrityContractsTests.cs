@@ -18,7 +18,7 @@ public sealed class DocBookIntegrityContractsTests {
         Assert.Contains(model.Links, link => link.Uri == "https://example.com/guide");
         Assert.Equal(2, Assert.Single(model.Tables).Rows.Count);
         using var written = new System.IO.MemoryStream();
-        document.Write(written);
+        document.Save(written);
         Assert.Equal(bytes, written.ToArray());
     }
     [Theory]

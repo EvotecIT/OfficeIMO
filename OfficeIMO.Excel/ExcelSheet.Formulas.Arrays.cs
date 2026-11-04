@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryGetCalculatedArray(Cell cell, out FormulaArrayValue array) {
             array = null!;
-            return cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Array && _formulaEvaluationCache != null
+            return ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value == CellFormulaValues.Array && _formulaEvaluationCache != null
                 && ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache).Results.TryGetValue(
                     GetFormulaEvaluationCacheKey(cell.CellReference!.Value!), out array!);
         }
@@ -60,11 +60,12 @@ namespace OfficeIMO.Excel {
         private FixedArraySheetIndex BuildFixedArraySheetIndex() {
             var index = new FixedArraySheetIndex();
             Metadata? metadata = null;
-            foreach (Cell candidate in WorksheetRoot.Descendants<Cell>()) {
-                if (candidate.CellFormula != null) index.FormulaCells.Add(candidate);
-                if (candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Array
-                    && IsSupportedArrayCall(candidate.CellFormula.Text)
-                    && TryFixedArrayBounds(candidate.CellFormula.Reference?.Value ?? "",
+            // Array owners and formula cells are DOM cells, so the walk leaves stored cells where they are.
+            foreach (Cell candidate in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
+                index.FormulaCells.Add(candidate);
+                if (ExcelWorksheetScan.FindFormula(candidate)?.FormulaType?.Value == CellFormulaValues.Array
+                    && IsSupportedArrayExpression(ExcelWorksheetScan.FindFormula(candidate)!.Text)
+                    && TryFixedArrayBounds(ExcelWorksheetScan.FindFormula(candidate)!.Reference?.Value ?? "",
                         out int top, out int left, out int bottom, out int right)) {
                     bool dynamic = false;
                     if (candidate.CellMetaIndex != null) {
@@ -81,7 +82,7 @@ namespace OfficeIMO.Excel {
                 }
             }
             if (index.DynamicOwners.Count > 0)
-                foreach (Cell candidate in WorksheetRoot.Descendants<Cell>())
+                foreach (Cell candidate in ExcelWorksheetScan.Cells(WorksheetRoot))
                     if (TryParseCellReference(candidate.CellReference?.Value ?? "", out int row, out int column))
                         index.Cells[DynamicCellKey(row, column)] = candidate;
             return index;
@@ -109,9 +110,9 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateAuthoredFormulaCell(Cell cell, string formula, out FormulaArgumentValue result) {
             result = default;
-            if (cell.CellFormula?.FormulaType?.Value != CellFormulaValues.Array)
+            if (ExcelWorksheetScan.FindFormula(cell)?.FormulaType?.Value != CellFormulaValues.Array)
                 return TryEvaluateFormulaValue(formula, out result);
-            if (!IsSupportedArrayCall(formula)) return TryEvaluateFormulaValue(formula, out result);
+            if (!IsSupportedArrayExpression(formula)) return TryEvaluateFormulaValue(formula, out result);
             FormulaArgumentValue previousError = _formulaReferenceError;
             _formulaReferenceError = default;
             try {
@@ -123,7 +124,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateAuthoredArrayFormulaCell(Cell cell, string formula, out FormulaArgumentValue result) {
             result = default;
-            string? reference = cell.CellFormula?.Reference?.Value;
+            string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
             if (reference == null || !TryFixedArrayBounds(reference,
                 out int r1, out int c1, out int r2, out int c2)
                 || !TryParseCellReference(cell.CellReference?.Value ?? "", out int row, out int column)
@@ -134,6 +135,10 @@ namespace OfficeIMO.Excel {
             if (_formulaEvaluationDepthFrames?.Count > 0
                 && _formulaEvaluationDepthFrames.Peek().UsedUnevaluatedFormulaCache)
                 array = array.WithUnevaluatedFormulaCache();
+            // These are formula-cell outputs, not source references. Publish zero
+            // for every blank member so dependencies and serialized caches agree.
+            for (int index = 0; index < array.Values.Length; index++)
+                array.Values[index] = NormalizeLookupResult(array.Values[index]);
             if (_formulaEvaluationCache != null
                 && GetFixedArraySheetIndex().DynamicByCell.TryGetValue(cell, out FixedArrayOwner? dynamicOwner))
                 return TryPlanDynamicArray(dynamicOwner, array, out result);
@@ -141,10 +146,10 @@ namespace OfficeIMO.Excel {
             // Imported or subsequently edited ranges can contain another formula.
             // Never replace that formula with an array cache.
             IEnumerable<Cell> formulaCells = _formulaEvaluationCache == null
-                ? WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)
+                ? ExcelWorksheetScan.FormulaCells(WorksheetRoot)
                 : GetFixedArraySheetIndex().FormulaCells;
             foreach (Cell occupied in formulaCells) {
-                if (occupied == cell || occupied.CellFormula == null) continue;
+                if (occupied == cell || ExcelWorksheetScan.FindFormula(occupied) == null) continue;
                 if (TryParseCellReference(occupied.CellReference?.Value ?? "", out int rr, out int cc)
                     && rr >= r1 && rr <= r2 && cc >= c1 && cc <= c2) return false;
             }
@@ -161,14 +166,14 @@ namespace OfficeIMO.Excel {
 
         private static bool TryFixedArrayBounds(string reference, out int top, out int left, out int bottom, out int right) {
             reference = reference.Replace("$", "");
-            if (A1.TryParseRange(reference, out top, out left, out bottom, out right)) return true;
+            if (ExcelA1.TryParseRange(reference, out top, out left, out bottom, out right)) return true;
             if (TryParseCellReference(reference, out top, out left)) { bottom = top; right = left; return true; }
             bottom = right = 0;
             return false;
         }
 
         private void WriteFixedArrayFormulaCache(Cell owner, FormulaArrayValue array) {
-            var (row, column) = A1.ParseCellRef(owner.CellReference!.Value!);
+            var (row, column) = ExcelA1.ParseCellRef(owner.CellReference!.Value!);
             for (int r = 0; r < array.Rows; r++) {
                 for (int c = 0; c < array.Columns; c++) {
                     Cell cell = r == 0 && c == 0 ? owner : GetCell(row + r, column + c);
@@ -182,7 +187,15 @@ namespace OfficeIMO.Excel {
         private static bool IsSupportedArrayCall(string expression) {
             if (!ExcelFormulaExpressionParser.TryParseFunctionCall(expression, out ExcelFormulaFunctionCallSyntax? call)) return false;
             string name = GetArrayFunctionName(call!.Name);
-            return ExcelFormulaCapabilities.IsArrayFunction(name);
+            return ExcelFormulaCapabilities.IsArrayFunction(name) || name == "INDEX" || name == "XLOOKUP";
+        }
+
+        private bool IsSupportedArrayExpression(string expression) {
+            if (IsSupportedArrayCall(expression) || expression.TrimStart().StartsWith("{", StringComparison.Ordinal)
+                || ExcelFormulaExpressionParser.TryParseComparison(expression, out _)) return true;
+            if (TryParseQualifiedFormulaRange(expression, out _, out _, out _, out _, out _)
+                || TryParseQualifiedFormulaCellReference(expression, out _, out _, out _)) return true;
+            return TrySplitQualifiedReference(expression, out _, out string name) && IsFormulaDefinedNameToken(name);
         }
 
         private static string GetArrayFunctionName(string name) {
@@ -192,9 +205,14 @@ namespace OfficeIMO.Excel {
             return name;
         }
 
-        private bool TryEvaluateArrayValue(string expression, int depth, out FormulaArrayValue array) {
+        private bool TryEvaluateArrayValue(string expression, int depth, out FormulaArrayValue array,
+            bool preserveScalarValue = false) {
             array = null!;
             if (!HasSufficientFormulaExecutionStack() || depth >= 32 || expression.Length > MaxSupportedFormulaLength) return false;
+            if (expression.TrimStart().StartsWith("{", StringComparison.Ordinal)) {
+                int budget = MaxResolvedFormulaRangeCells;
+                return TryResolveFormulaArrayConstant(expression, ref budget, out array);
+            }
             if (ExcelFormulaExpressionParser.TryParseComparison(expression, out ExcelFormulaBinaryExpressionSyntax? comparison)) {
                 if (!TryEvaluateArrayValue(comparison!.Left, depth + 1, out FormulaArrayValue left)
                     || !TryEvaluateArrayValue(comparison.Right, depth + 1, out FormulaArrayValue right)) return false;
@@ -215,6 +233,16 @@ namespace OfficeIMO.Excel {
                 array = new FormulaArrayValue(shape.Rows, shape.Columns, compared);
                 return true;
             }
+            ExcelFormulaExpressionParser.TryParseFunctionCall(expression, out ExcelFormulaFunctionCallSyntax? call);
+            string function = call == null ? string.Empty : GetArrayFunctionName(call.Name);
+            if (function == "INDEX") {
+                return TrySelectIndexSource(call!.Arguments, out FormulaLookupSource selected)
+                    && TryMaterializeLookupArray(selected, out array);
+            }
+            if (function == "XLOOKUP") {
+                return TrySelectXLookupSource(SplitFormulaArguments(call!.Arguments, preserveEmpty: true), out FormulaLookupSource selected)
+                    && TryMaterializeLookupArray(selected, out array);
+            }
             if (TryResolveFormulaRangeReference(expression, out ExcelSheet sheet,
                 out int r1, out int c1, out int r2, out int c2)) {
                 if (!TryGetFormulaRangeCellCount(r1, c1, r2, c2, out int count)) return false;
@@ -230,13 +258,15 @@ namespace OfficeIMO.Excel {
                 array = new FormulaArrayValue(r2 - r1 + 1, c2 - c1 + 1, values);
                 return true;
             }
-            if (!ExcelFormulaExpressionParser.TryParseFunctionCall(expression, out ExcelFormulaFunctionCallSyntax? call)) {
+            if (call == null || !ExcelFormulaCapabilities.IsArrayFunction(function)) {
+                if (call == null && TryResolveDefinedNameArray(expression, depth, out array, preserveScalarValue)) return true;
                 if (!TryResolveFormulaArgument(expression, out FormulaArgumentValue scalar) || scalar.IsUnresolvedFormula) return false;
-                array = new FormulaArrayValue(1, 1, new[] { scalar.HasValue ? scalar : new FormulaArgumentValue(0, null) });
+                // SUMPRODUCT retains blank scalar arguments, including named expressions.
+                // Array-producing calls still apply their ordinary element conversion.
+                array = new FormulaArrayValue(1, 1, new[] { scalar.HasValue || preserveScalarValue ? scalar : new FormulaArgumentValue(0, null) });
                 return true;
             }
             var args = SplitFormulaArguments(call!.Arguments);
-            string function = GetArrayFunctionName(call.Name);
             if (function == "SEQUENCE") return TryEvaluateSequence(args, out array);
             if (args.Count < 1 || !TryEvaluateArrayValue(args[0], depth + 1, out FormulaArrayValue input)) return false;
             if (function == "FILTER") return TryEvaluateArrayFilter(args, input, depth, out array);
@@ -248,8 +278,7 @@ namespace OfficeIMO.Excel {
         private bool TryArrayNumber(IReadOnlyList<string> args, int index, double fallback, out double number) {
             number = fallback;
             if (index >= args.Count || string.IsNullOrWhiteSpace(args[index])) return true;
-            if (!TryResolveFormulaArgument(args[index], out FormulaArgumentValue value)
-                || value.IsUnresolvedFormula || value.IsError) return false;
+            if (!TryResolveFormulaValueArgument(args[index], out FormulaArgumentValue value) || value.IsError) return false;
             if (value.Number.HasValue) number = value.Number.Value;
             else if (!double.TryParse(value.Text, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out number)) return false;
@@ -269,7 +298,7 @@ namespace OfficeIMO.Excel {
                 array = ArrayError(rows < 0 || columns < 0 ? "#VALUE!" : "#CALC!");
                 return true;
             }
-            if (rows > A1.MaxRows || columns > A1.MaxColumns || rows * columns > MaxResolvedFormulaRangeCells) return false;
+            if (rows > ExcelA1.MaxRows || columns > ExcelA1.MaxColumns || rows * columns > MaxResolvedFormulaRangeCells) return false;
             var values = new FormulaArgumentValue[(int)(rows * columns)];
             for (int i = 0; i < values.Length; i++) {
                 double value = start + i * step;

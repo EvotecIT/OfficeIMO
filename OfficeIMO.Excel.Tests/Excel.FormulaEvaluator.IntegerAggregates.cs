@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
         [InlineData("LCM(9007199254740991,1)", "9007199254740991")]
         public void Integer_aggregates_replace_caches_and_preserve_saved_numbers_and_errors(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Integers");
-            sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
+            var sheet = document.AddSheet("Integers");
+            sheet.Cell(1, 1).SetValue(42d); sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
@@ -37,17 +37,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Integer_aggregates_recalculate_cross_sheet_ranges_blanks_text_and_dependencies() {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source data");
-            var sheet = document.AddWorksheet("Integers");
-            source.CellValue(1, 1, 24d); source.CellFormula(2, 1, "18*2");
-            source.CellValue(4, 1, "24"); source.CellValue(5, 1, true);
+            var source = document.AddSheet("Source data");
+            var sheet = document.AddSheet("Integers");
+            source.Cell(1, 1).SetValue(24d); source.Cell(2, 1).SetFormula("18*2");
+            source.Cell(4, 1).SetValue("24"); source.Cell(5, 1).SetValue(true);
             string[] formulas = { "GCD('Source data'!A1:A3)", "LCM('Source data'!A1:A3)",
                 "LCM('Source data'!A1:A2)", "LCM('Source data'!A4,'Source data'!A2)", "GCD('Source data'!A5,12)" };
-            for (int row = 0; row < formulas.Length; row++) sheet.CellFormula(row + 1, 1, formulas[row]);
+            for (int row = 0; row < formulas.Length; row++) sheet.Cell(row + 1, 1).SetFormula(formulas[row]);
             Assert.Equal(6, document.Calculate());
             string[] expected = { "12", "0", "72", "72", "#VALUE!" };
             for (int row = 0; row < expected.Length; row++) AssertCache(sheet, row + 1, expected[row]);
-            source.CellValue(1, 1, 60d); source.CellFormula(2, 1, "16*3");
+            source.Cell(1, 1).SetValue(60d); source.Cell(2, 1).SetFormula("16*3");
             Assert.Equal(6, document.Calculate());
             AssertCache(sheet, 1, "12"); AssertCache(sheet, 2, "0");
             AssertCache(sheet, 3, "240"); AssertCache(sheet, 4, "48");
@@ -65,8 +65,8 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(GCD(UNKNOWN(),24),99)")]
         public void Unqualified_integer_aggregate_inputs_preserve_existing_caches(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Bounds");
-            sheet.CellValue(1, 4, 42d); sheet.CellFormula(1, 4, formula);
+            var sheet = document.AddSheet("Bounds");
+            sheet.Cell(1, 4).SetValue(42d); sheet.Cell(1, 4).SetFormula(formula);
             Assert.Equal(0, document.Calculate());
             Assert.Equal("42", Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
         }
@@ -74,10 +74,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Integer_aggregates_enforce_the_argument_budget_before_flattening() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Bounds");
-            sheet.CellFormula(1, 1, "GCD(" + string.Join(",", Enumerable.Repeat("12", 255)) + ")");
-            sheet.CellValue(2, 1, 42d);
-            sheet.CellFormula(2, 1, "LCM(" + string.Join(",", Enumerable.Repeat("12", 256)) + ")");
+            var sheet = document.AddSheet("Bounds");
+            sheet.Cell(1, 1).SetFormula("GCD(" + string.Join(",", Enumerable.Repeat("12", 255)) + ")");
+            sheet.Cell(2, 1).SetValue(42d);
+            sheet.Cell(2, 1).SetFormula("LCM(" + string.Join(",", Enumerable.Repeat("12", 256)) + ")");
             Assert.Equal(1, document.Calculate());
             AssertCache(sheet, 1, "12"); AssertCache(sheet, 2, "42");
         }
@@ -90,9 +90,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Integer_aggregates_distinguish_direct_blanks_from_ranges_after_saved_input_edits() {
             using var document = ExcelDocument.Create();
-            var inputs = document.AddWorksheet("Source data");
-            var checks = document.AddWorksheet("Checks");
-            inputs.CellValue(1, 1, 30d); inputs.CellValue(3, 1, 0d);
+            var inputs = document.AddSheet("Source data");
+            var checks = document.AddSheet("Checks");
+            inputs.Cell(1, 1).SetValue(30d); inputs.Cell(3, 1).SetValue(0d);
             string[] formulas = {
                 "GCD('Source data'!$A$2,6)", "LCM('Source data'!$A$2,6)",
                 "GCD('Source data'!$A$1:$A$2)", "LCM('Source data'!$A$1:$A$2)",
@@ -104,21 +104,21 @@ namespace OfficeIMO.Tests {
                 "IFERROR(LCM('Source data'!$A$2),99)"
             };
             for (int row = 0; row < formulas.Length; row++) {
-                checks.CellValue(row + 1, 1, 42d); checks.CellFormula(row + 1, 1, formulas[row]);
+                checks.Cell(row + 1, 1).SetValue(42d); checks.Cell(row + 1, 1).SetFormula(formulas[row]);
             }
             Assert.Equal(formulas.Length, document.Calculate());
             string[] blank = { "6", "6", "30", "0", "0", "0", "#VALUE!", "#VALUE!", "#VALUE!", "#VALUE!", "99" };
             for (int row = 0; row < blank.Length; row++) AssertCache(checks, row + 1, blank[row]);
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
-            reopened.Sheets[0].CellValue(2, 1, 18d);
+            reopened.Sheets[0].Cell(2, 1).SetValue(18d);
             Assert.Equal(formulas.Length, reopened.Calculate());
             string[] filled = { "6", "18", "6", "90", "18", "0", "18", "18", "18", "18", "18" };
             for (int row = 0; row < filled.Length; row++) {
                 AssertCache(reopened.Sheets[1], row + 1, filled[row]);
                 Assert.Equal(formulas[row], reopened.Sheets[1].GetFormulaText(row + 1, 1));
             }
-            reopened.Sheets[0].ClearRange("A2:A2", ExcelClearOptions.Values);
+            reopened.Sheets[0].Range("A2:A2").Clear(ExcelClearOptions.Values);
             Assert.Equal(formulas.Length, reopened.Calculate());
             using var cleared = new MemoryStream(); reopened.Save(cleared); cleared.Position = 0;
             using var clearedReopened = ExcelDocument.Load(cleared);

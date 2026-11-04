@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
         [Fact]
         public void NativeWriter_BlocksUnrepresentablePackagePartsAndRelationships() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Package preflight");
             PresentationPart presentationPart = presentation.OpenXmlDocument
@@ -40,29 +40,29 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.CustomXml
-                && finding.Code == "PPT-WRITE-CUSTOM-XML");
+                && finding.Code == "ppt-write-custom-xml");
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EXTENDED-PART");
+                finding.Code == "ppt-write-extended-part");
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EMBEDDED-PACKAGE");
+                finding.Code == "ppt-write-embedded-package");
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EXTERNAL-RELATIONSHIP");
+                finding.Code == "ppt-write-external-relationship");
             Assert.Throws<NotSupportedException>(() =>
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
         public void ImportedPresentation_CustomXmlBypassesNeitherPreservationPath() {
             byte[] sourceBytes;
-            using (PowerPointPresentation source =
-                    PowerPointPresentation.Create()) {
+            using (PowerPointDocument source =
+                    PowerPointDocument.Create()) {
                 source.AddSlide().AddTextBox("Imported package preflight");
-                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+                sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(sourceBytes);
-            using PowerPointPresentation imported =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument imported =
+                PowerPointDocument.Load(input);
             CustomXmlPart customXml = imported.OpenXmlDocument
                 .PresentationPart!.AddCustomXmlPart(
                     CustomXmlPartType.CustomXml);
@@ -72,15 +72,15 @@ namespace OfficeIMO.Tests {
                 imported.AnalyzeLegacyPptWrite();
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-CUSTOM-XML");
+                finding.Code == "ppt-write-custom-xml");
             Assert.Throws<NotSupportedException>(() =>
-                imported.ToBytes(PowerPointFileFormat.Ppt));
+                imported.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
         public void NativeWriter_ClassifiesAdvancedExtendedParts() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Extended part preflight");
             PresentationPart presentationPart = presentation.OpenXmlDocument
                 .PresentationPart!;
@@ -105,21 +105,21 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.ActiveX
-                && finding.Code == "PPT-WRITE-ACTIVEX");
+                && finding.Code == "ppt-write-activex");
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.UnknownRecordsAndStreams
-                && finding.Code == "PPT-WRITE-WEB-EXTENSION");
+                && finding.Code == "ppt-write-web-extension");
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.VbaProjects
-                && finding.Code == "PPT-WRITE-VBA-EXTENDED-PART");
+                && finding.Code == "ppt-write-vba-extended-part");
             Assert.DoesNotContain(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EXTENDED-PART");
+                finding.Code == "ppt-write-extended-part");
         }
 
         [Fact]
         public void NativeWriter_BlocksTypedPartsAndPackageRootRelationships() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Typed package preflight");
 
             RibbonExtensibilityPart ribbon = presentation.OpenXmlDocument
@@ -134,25 +134,25 @@ namespace OfficeIMO.Tests {
                 presentation.AnalyzeLegacyPptWrite();
 
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-PACKAGE-PART");
+                finding.Code == "ppt-write-package-part");
             Assert.Contains(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EXTERNAL-RELATIONSHIP");
+                finding.Code == "ppt-write-external-relationship");
             Assert.Throws<NotSupportedException>(() =>
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
         public void NativeWriter_RecognizesMappedOleObjectInsideGroup() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             byte[] storageBytes = CreateOleTestStorage("Grouped OLE");
             using var storage = new MemoryStream(storageBytes,
                 writable: false);
             PowerPointOleObject ole = slide.AddOleObject(storage, "Package",
-                100000L, 100000L, 1000000L, 600000L);
+                OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(1000000L), OfficeIMO.OfficeLength.Emus(600000L));
             PowerPointAutoShape marker = slide.AddRectangle(
-                1200000L, 100000L, 600000L, 600000L);
+                OfficeIMO.OfficeLength.Emus(1200000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(600000L), OfficeIMO.OfficeLength.Emus(600000L));
             slide.GroupShapes(new PowerPointShape[] { ole, marker },
                 "Grouped OLE");
 
@@ -160,26 +160,26 @@ namespace OfficeIMO.Tests {
                 presentation.AnalyzeLegacyPptWrite();
 
             Assert.DoesNotContain(report.Findings, finding =>
-                finding.Code == "PPT-WRITE-EMBEDDED-PACKAGE");
+                finding.Code == "ppt-write-embedded-package");
             Assert.True(report.CanWrite,
                 string.Join(Environment.NewLine, report.Findings));
-            Assert.NotEmpty(presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.NotEmpty(presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
         [Fact]
         public void GroupProjection_MapsAnimationsPastOmittedOleChildren() {
             byte[] bytes;
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 byte[] storageBytes = CreateOleTestStorage(
                     "Animated group OLE");
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 PowerPointOleObject ole = slide.AddOleObject(storage,
-                    "Package", 100000L, 100000L, 1000000L, 600000L);
+                    "Package", OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(1000000L), OfficeIMO.OfficeLength.Emus(600000L));
                 PowerPointAutoShape marker = slide.AddRectangle(
-                    1200000L, 100000L, 600000L, 600000L);
+                    OfficeIMO.OfficeLength.Emus(1200000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(600000L), OfficeIMO.OfficeLength.Emus(600000L));
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { ole, marker },
                     "Animated group");
@@ -187,12 +187,12 @@ namespace OfficeIMO.Tests {
                     PowerPointClassicAnimationEffect.Fade);
                 Assert.Contains(slide.GetGroupChildren(group),
                     child => child.Id == marker.Id);
-                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+                bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation projected =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument projected =
+                PowerPointDocument.Load(input);
             PowerPointSlide projectedSlide = Assert.Single(
                 projected.Slides);
             PowerPointGroupShape projectedGroup = Assert.Single(
@@ -208,13 +208,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void OleCreationReservesBothShapeIdsBeforeAddingParts() {
             byte[] bytes;
-            using (PowerPointPresentation presentation =
-                   PowerPointPresentation.Create()) {
+            using (PowerPointDocument presentation =
+                   PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape first = slide.AddRectangle(
-                    1000, 1000, 2000, 1000);
+                    OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointAutoShape second = slide.AddRectangle(
-                    4000, 1000, 2000, 1000);
+                    OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { first, second });
                 group.GroupShape.Descendants<
@@ -224,8 +224,8 @@ namespace OfficeIMO.Tests {
             }
 
             using var input = new MemoryStream(bytes, writable: false);
-            using PowerPointPresentation loaded =
-                PowerPointPresentation.Load(input);
+            using PowerPointDocument loaded =
+                PowerPointDocument.Load(input);
             PowerPointSlide loadedSlide = Assert.Single(loaded.Slides);
             int partCount = loadedSlide.SlidePart.Parts.Count();
             using var storage = new MemoryStream(
@@ -236,14 +236,14 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(partCount, loadedSlide.SlidePart.Parts.Count());
             PowerPointAutoShape finalShape = loadedSlide.AddRectangle(
-                7000, 1000, 2000, 1000);
+                OfficeIMO.OfficeLength.Emus(7000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
             Assert.Equal(uint.MaxValue, finalShape.Id);
         }
 
         [Fact]
         public void NativeWriter_ReportsOpenXmlSignatureBeforeMutationPolicyRuns() {
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Create();
+            using PowerPointDocument presentation =
+                PowerPointDocument.Create();
             presentation.AddSlide().AddTextBox("Signed package preflight");
             DigitalSignatureOriginPart origin = presentation.OpenXmlDocument
                 .AddDigitalSignatureOriginPart();
@@ -256,13 +256,13 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(report.Findings, finding =>
                 finding.Feature == LegacyPptFeature.DigitalSignatures
-                && finding.Code == "PPT-WRITE-OPENXML-SIGNATURE");
-            Assert.Throws<PowerPointSignedPresentationMutationException>(() =>
-                presentation.ToBytes(PowerPointFileFormat.Ppt));
+                && finding.Code == "ppt-write-openxml-signature");
+            Assert.Throws<PowerPointSignedDocumentMutationException>(() =>
+                presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
 
             presentation.SignatureMutationPolicy =
                 OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures;
-            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            byte[] bytes = presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             Assert.NotEmpty(bytes);
             Assert.False(presentation.InspectSignatures().HasSignatureMetadata);
         }

@@ -16,7 +16,7 @@ public sealed class EpubReaderFeedbackContracts {
         byte[] package = Package(new[] { ("c", "chapter.xhtml", failure == "unsupported" ? "text/plain" : "application/xhtml+xml", "") },
             string.Concat(Enumerable.Repeat("<itemref idref='c'/>", positions)), failure == "missing" ? Array.Empty<(string, string)>() :
             new[] { ("chapter.xhtml", failure == "malformed" ? "<html>" : Xhtml("<p>Body</p>")) });
-        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubReadOptions {
+        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubLoadOptions {
             MaxChapterBytes = failure == "oversized" ? 1 : null });
         Assert.Empty(book.Chapters);
         Assert.Equal(positions, book.ReadSummary.RequestedChapterCount);
@@ -30,7 +30,7 @@ public sealed class EpubReaderFeedbackContracts {
         byte[] package = Package(new[] { ("z", "z.xhtml", "application/xhtml+xml", ""),
             ("a", "a.xhtml", "application/xhtml+xml", "") }, "<itemref idref='a'/><itemref idref='z'/><itemref idref='a'/>",
             new[] { ("z.xhtml", Xhtml("<p>Z</p>")), ("a.xhtml", Xhtml("<p>A</p>")) });
-        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubReadOptions {
+        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubLoadOptions {
             PreferSpineOrder = false, DeterministicOrder = false });
         Assert.Equal(new[] { "EPUB/z.xhtml", "EPUB/a.xhtml", "EPUB/a.xhtml" }, book.Chapters.Select(chapter => chapter.Path));
         Assert.Equal(new int?[] { 2, 1, 3 }, book.Chapters.Select(chapter => chapter.SpineIndex));
@@ -43,7 +43,7 @@ public sealed class EpubReaderFeedbackContracts {
             "</desc><text>Shared text</text></svg>";
         byte[] package = Package(new[] { ("s", "page.svg", "image/svg+xml", "") },
             string.Concat(Enumerable.Repeat("<itemref idref='s'/>", 500)), new[] { ("page.svg", svg) });
-        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubReadOptions {
+        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubLoadOptions {
             MaxTotalUncompressedBytes = 5 * 1024 * 1024, IncludeRawHtml = true, MaxTotalRawHtmlBytes = 5 * 1024 * 1024 });
         Assert.Equal(500, book.Chapters.Count);
         Assert.All(book.Chapters, chapter => Assert.Same(book.Chapters[0].Text, chapter.Text));

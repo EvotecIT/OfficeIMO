@@ -241,7 +241,19 @@ namespace OfficeIMO.Excel {
                     return _arrayRows;
                 }
 
-                return _listRows!;
+                if (_listRows != null) return _listRows;
+
+                // Resolve dictionary values through the original keys before a native
+                // table schema changes their display names.
+                var rows = new object?[RowCount][];
+                for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+                    var values = new object?[ColumnCount];
+                    for (int columnIndex = 0; columnIndex < values.Length; columnIndex++) {
+                        values[columnIndex] = GetValue(rowIndex, columnIndex);
+                    }
+                    rows[rowIndex] = values;
+                }
+                return rows;
             }
 
             private AutoFitWidthKind[] CreateAutoFitWidthKinds() {

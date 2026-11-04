@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <!-- OfficeIMO 3.4 adopts the conversion API changes described in MIGRATION.md.
-       Scope these reviewed breaks to exact API symbols and baseline validation.
-       Omit assembly operands because Unix packages use netstandard2.0 for the
-       3.3 net472 baseline; Windows packages use net472. -->
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Markdown.Pdf.MarkdownPdfSaveOptions</Target>
@@ -67,7 +63,22 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfFigureStyle.get_CaptionColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfFigureStyle.get_CaptionFontSize</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfFigureStyle.get_PanelStyle</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfFigureStyle.get_PlaceholderColor</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -77,7 +88,67 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfPageDecoration.get_BackgroundColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfSemanticBlocks.ConfigureReaderOptions(OfficeIMO.Markdown.MarkdownReaderOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfSemanticBlocks.CreateReaderOptions(OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_CalloutPanelStyle</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_ChecklistCheckedFillColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_ChecklistCheckedIconColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_ChecklistCheckedTextColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_ChecklistUncheckedFillColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_ChecklistUncheckedIconColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_ChecklistUncheckedTextColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_CodeBlockFontSize</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_CodeBlockLabelColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_CodeBlockLabelFontSize</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -87,7 +158,52 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_CodeBlockTextColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_DetailsPanelStyle</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_DocumentHeaderMetadataColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_DocumentHeaderMetadataFontSize</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_DocumentHeaderRuleColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_DocumentHeaderSubtitleColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_DocumentHeaderSubtitleFontSize</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_DocumentHeaderTitleColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_DocumentHeaderTitleFontSize</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_LinkColor</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
@@ -97,12 +213,75 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_SemanticBlockFontSize</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_SemanticBlockLabelColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_SemanticBlockLabelFontSize</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_SemanticBlockPanelStyle</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_SemanticBlockTextColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_TocLinkColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_TocPanelStyle</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_TocTextColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_TocTitleColor</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfFigureStyle.get_CaptionAlign</Target>
+    <Left>lib/net10.0/OfficeIMO.Markdown.Pdf.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Markdown.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfFigureStyle.get_CaptionAlign</Target>
+    <Left>lib/net472/OfficeIMO.Markdown.Pdf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Markdown.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfFigureStyle.get_CaptionAlign</Target>
+    <Left>lib/net8.0/OfficeIMO.Markdown.Pdf.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Markdown.Pdf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfFigureStyle.get_CaptionAlign</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Markdown.Pdf.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Markdown.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
 </Suppressions>

@@ -11,8 +11,7 @@ internal static class NativeNumbersBorderSmoke {
         using var expected = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "native-numbers-borders-decode.json")));
         Require(Hash(source) == expected.RootElement.GetProperty("sourceSha256").GetString(), "Native border source hash changed.");
         Require(Hash(reference) == expected.RootElement.GetProperty("nativeXlsxSha256").GetString(), "Native border XLSX hash changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(source,
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Require(result.Report.IsPartialEditableReconstruction
             && result.Report.Diagnostics.Any(d => d.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
                 && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission), "Native padding loss was hidden.");
@@ -29,11 +28,11 @@ internal static class NativeNumbersBorderSmoke {
         int edges = 0;
         foreach (var cell in expected.RootElement.GetProperty("cells").EnumerateArray()) {
             int row = cell.GetProperty("row").GetInt32(), column = cell.GetProperty("column").GetInt32();
-            Require((sheet.CellAt(row, column).GetValue<string>() ?? string.Empty)
+            Require((sheet.Cell(row, column).GetValue<string>() ?? string.Empty)
                 == (cell.GetProperty("value").GetString() ?? string.Empty), "Bordered cell value changed.");
             var sourceBorders = table.GetBorders(row, column);
-            var output = sheet.GetCellStyle(row, column).Border ?? throw new InvalidDataException("Saved border missing.");
-            var nativeBorders = native.Sheets.Single().GetCellStyle(row, column).Border ?? throw new InvalidDataException("Native border missing.");
+            var output = sheet.Cell(row, column).GetStyle().Border ?? throw new InvalidDataException("Saved border missing.");
+            var nativeBorders = native.Sheets.Single().Cell(row, column).GetStyle().Border ?? throw new InvalidDataException("Native border missing.");
             foreach (var edge in cell.GetProperty("edges").EnumerateObject()) {
                 var side = edge.Name switch { "left" => sourceBorders.Left, "right" => sourceBorders.Right,
                     "top" => sourceBorders.Top, "bottom" => sourceBorders.Bottom, _ => null };
@@ -55,7 +54,7 @@ internal static class NativeNumbersBorderSmoke {
         Console.WriteLine("PASS | native Numbers table borders | 64 independently decoded edges, hidden edge, later edit, saved/native indexed-palette XLSX and explicit native padding loss");
     }
 
-    private static ExcelBorderSideSnapshot? Side(ExcelCellBorderSnapshot border, string name) => name switch {
+    private static ExcelBorderSideInfo? Side(ExcelCellBorderInfo border, string name) => name switch {
         "left" => border.Left, "right" => border.Right, "top" => border.Top, "bottom" => border.Bottom, _ => null
     };
 

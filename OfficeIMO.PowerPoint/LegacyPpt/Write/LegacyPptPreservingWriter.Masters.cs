@@ -5,7 +5,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
         private static bool TryBuildModifiedMasterPersistObjects(
-            PowerPointPresentation presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
@@ -221,8 +221,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     changedShapeMetadata = shape;
                 }
-                PowerPointPicture? changedPictureFormatting = null;
-                if (shape is PowerPointPicture picture
+                PowerPointImage? changedPictureFormatting = null;
+                if (shape is PowerPointImage picture
                     && picture is not PowerPointMedia
                     && shapeProjection.CanEditPictureFormatting
                     && !shapeProjection.PictureFormattingMatches(picture)) {
@@ -319,7 +319,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildModifiedSpecialMasterPersistObjects(
-            PowerPointPresentation presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
@@ -388,7 +388,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildModifiedTitleMasterPersistObjects(
-            PowerPointPresentation presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,

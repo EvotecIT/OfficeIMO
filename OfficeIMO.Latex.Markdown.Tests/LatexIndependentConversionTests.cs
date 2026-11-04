@@ -10,7 +10,7 @@ public sealed class LatexIndependentConversionTests {
     public void LaTeXProject_samples_keep_supported_text_and_structured_children(string file) {
         LatexDocument document = LatexDocument.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "latex2e", file));
         LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
-        string pdf = PdfReadDocument.Open(document.ToPdfDocumentResult().Value.ToBytes()).ExtractText();
+        string pdf = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         if (file == "small2e.tex") {
             Assert.Equal(new[] { "Simple Text", "A Warning or Two" }, result.Value.Blocks.OfType<HeadingBlock>().Select(static heading => heading.Text));
             Assert.Single(result.Value.Descendants().OfType<BoldSequenceInline>());
@@ -29,8 +29,8 @@ public sealed class LatexIndependentConversionTests {
             Assert.Equal("This is an example of a footnote.", Assert.Single(note.ChildBlocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<MarkdownTextRun>().Single().Text);
             foreach (string text in new[] { "This is the third item", "This is the second paragraph", "This is an example of a footnote" })
                 Assert.Contains(text, pdf, StringComparison.Ordinal);
-            Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "environment:verse");
-            Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+            Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "environment:verse");
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         }
     }
 }

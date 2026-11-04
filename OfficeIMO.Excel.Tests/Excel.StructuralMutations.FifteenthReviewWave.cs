@@ -10,16 +10,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_MetadataIsDetachedByClearValueAndFormulaReplacement() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Clear");
             sheet.SetInCellImage(1, 2, TinyPng, altText: "Value");
             sheet.SetInCellImage(1, 3, TinyPng, altText: "Formula");
             sheet.SetInCellImage(1, 4, TinyPng, altText: "Rich text");
 
-            sheet.ClearRange("A1:A1", ExcelClearOptions.Values);
-            sheet.CellValue(1, 2, "Replacement");
-            sheet.CellFormula(1, 3, "1+1");
-            sheet.SetRichText(1, 4, new[] { new ExcelRichTextRun("Replacement") { Bold = true } });
+            sheet.Range("A1:A1").Clear(ExcelClearOptions.Values);
+            sheet.Cell(1, 2).SetValue("Replacement");
+            sheet.Cell(1, 3).SetFormula("1+1");
+            sheet.Cell(1, 4).SetRichText(new[] { new ExcelRichTextRun("Replacement") { Bold = true } });
 
             Assert.Empty(sheet.GetInCellImages());
             Assert.All(sheet.WorksheetPart.Worksheet.Descendants<Cell>(), cell => Assert.Null(cell.ValueMetaIndex));
@@ -31,12 +31,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_PackageWorksheetCopy_StreamsAndRemapsInCellImagesAcrossWorkbooks() {
             using var sourceDocument = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet source = sourceDocument.AddWorksheet("Images");
+            ExcelSheet source = sourceDocument.AddSheet("Images");
             source.SetInCellImage(2, 2, TinyPng, altText: "Copied image");
 
             using var targetStream = new MemoryStream();
             using (var targetDocument = ExcelDocument.Create(targetStream)) {
-                targetDocument.AddWorksheet("Existing").CellValue(1, 1, "Keep");
+                targetDocument.AddSheet("Existing").Cell(1, 1).SetValue("Keep");
                 ExcelSheet copied = targetDocument.CopyWorksheetFrom(
                     sourceDocument,
                     "Images",
@@ -79,16 +79,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_UnicodeSheetQualifier_IsSearchableAndRewrittenByStructuralEdits() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Данные");
-            ExcelSheet summary = document.AddWorksheet("Итог");
-            data.CellValue(1, 1, 10);
-            summary.CellFormula(1, 1, "Данные!A1");
+            ExcelSheet data = document.AddSheet("Данные");
+            ExcelSheet summary = document.AddSheet("Итог");
+            data.Cell(1, 1).SetValue(10);
+            summary.Cell(1, 1).SetFormula("Данные!A1");
 
             ExcelFormulaCellInfo match = Assert.Single(document.SearchFormulas(
                 new ExcelFormulaSearchOptions { Reference = "Данные!A1" }));
             Assert.Equal("Итог", match.SheetName);
 
-            data.InsertColumns(1);
+            data.InsertColumnsTransactional(1);
 
             Assert.Equal("Данные!B1", Assert.Single(summary.GetFormulaCells()).Formula);
         }

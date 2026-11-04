@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -31,7 +33,8 @@ public sealed class SetOfficePdfSignatureCommand : PSWriteOffice.Cmdlets.OfficeM
 
     /// <summary>Password used to authenticate an encrypted prepared PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed signature restrictions.</summary>
     [Parameter]
@@ -55,7 +58,7 @@ public sealed class SetOfficePdfSignatureCommand : PSWriteOffice.Cmdlets.OfficeM
         var document = PdfDocument
             .Load(inputPath, PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
             .Security.CompleteExternalSignature(File.ReadAllBytes(signaturePath));
-        document.Save(outputPath).RequireSuccess();
+        document.Save(outputPath);
         if (PassThruReport.IsPresent) {
             WriteObject(document.Security.ValidateSignatures());
             return;

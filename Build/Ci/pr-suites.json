@@ -62,7 +62,7 @@
       "OfficeIMO.Studio.Core.Tests",
       "OfficeIMO.Studio.Tests"
     ],
-    "studio-locked-restore": [
+    "studio-release-restore": [
       "OfficeIMO.Studio",
       "OfficeIMO.Studio.Core",
       "OfficeIMO.Studio.Native"
@@ -81,6 +81,7 @@
       "OfficeIMO.Html.AngleSharp",
       "OfficeIMO.Html.Core",
       "OfficeIMO.Html.Pdf",
+      "OfficeIMO.Html.Pdf.Workbench.Tests",
       "OfficeIMO.Html.Rtf",
       "OfficeIMO.Word.Pdf",
       "OfficeIMO.PowerPoint.Pdf"
@@ -231,15 +232,18 @@
       "OfficeIMO.Drawing.CodeGlyphX.Tests",
       "OfficeIMO.Drawing.Tests",
       "OfficeIMO.GoogleWorkspace.Tests",
+      "OfficeIMO.Html.Pdf.Browser.Tests",
       "OfficeIMO.IWork.Tests",
       "OfficeIMO.Latex.Markdown.Tests",
       "OfficeIMO.Latex.Tests",
       "OfficeIMO.MarkdownRenderer.Wpf.Tests",
       "OfficeIMO.Markup.Tests",
       "OfficeIMO.OneNote.Tests",
+      "OfficeIMO.Opml.Tests",
       "OfficeIMO.OpenDocument.Converters.Tests",
       "OfficeIMO.OpenDocument.Tests",
       "OfficeIMO.PowerPoint.Tests",
+      "OfficeIMO.Project.Tests",
       "OfficeIMO.Publisher.Tests",
       "OfficeIMO.Reader.Tests",
       "OfficeIMO.Shared.Tests",
@@ -262,6 +266,10 @@
     {
       "name": "Access",
       "project": "OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj"
+    },
+    {
+      "name": "Project",
+      "project": "OfficeIMO.Project.Tests/OfficeIMO.Project.Tests.csproj"
     },
     {
       "name": "Publisher",
@@ -322,6 +330,10 @@
     {
       "name": "Html",
       "project": "OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj"
+    },
+    {
+      "name": "Html-Pdf-Browser",
+      "project": "OfficeIMO.Html.Pdf.Browser.Tests/OfficeIMO.Html.Pdf.Browser.Tests.csproj"
     },
     {
       "name": "Latex",

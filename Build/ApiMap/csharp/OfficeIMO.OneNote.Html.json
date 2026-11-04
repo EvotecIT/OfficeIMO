@@ -1,0 +1,52 @@
+{
+  "package": "OfficeIMO.OneNote.Html",
+  "changes": [
+    {
+      "old": "OfficeIMO.OneNote.Html.HtmlToOneNoteOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.OneNote.Html.HtmlOneNoteExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OneNoteSection/OneNoteNotebook.ToHtmlDocument / ToHtmlDocumentResult / ToHtmlFragment / ToHtmlBytes(projectionOptions, htmlOptions); SaveAsHtml(path | stream, projectionOptions, htmlOptions)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OneNoteSection/OneNoteNotebook.ToHtml(OneNoteHtmlExportOptions options[, out OfficeConversionReport report], CancellationToken) : string; ToHtmlAsync; SaveAsHtml(path | stream) : OfficeConversionReport; SaveAsHtmlAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "OneNoteHtmlExportOptions { ProjectionOptions, HtmlOptions, Fragment, FailOnLoss }.",
+      "applied": true
+    },
+    {
+      "old": "ToVisualHtmlDocument / ToVisualHtmlFragment / ToVisualHtmlBytes; SaveAsVisualHtml : void / Task",
+      "kind": "method",
+      "action": "merge",
+      "new": "ToVisualHtml(OneNoteVisualHtmlExportOptions options[, out OfficeConversionReport report], CancellationToken) : string; ToVisualHtmlAsync; SaveAsVisualHtml(path | stream) : OfficeConversionReport; SaveAsVisualHtmlAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "Set Fragment = true for page figures without a document shell; image diagnostics appear in the report.",
+      "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.ToOneNoteSection / ToOneNoteSectionResult / ToOneNoteNotebook / ToOneNoteNotebookResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "HtmlConversionDocument.ToOneNoteSection / ToOneNoteNotebook(HtmlOneNoteExportOptions options[, out OfficeConversionReport report], CancellationToken); ToOneNoteSectionAsync / ToOneNoteNotebookAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OneNote.Html.OneNoteVisualHtmlOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.OneNote.Html.OneNoteVisualHtmlExportOptions (Fragment, FailOnLoss, public Clone)",
+      "reason": "Converter options are named {Source}{Target}ExportOptions.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

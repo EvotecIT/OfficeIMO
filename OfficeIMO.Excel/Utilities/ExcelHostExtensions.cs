@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel;
 /// <summary>
 /// Helper extensions for common Excel document tasks (sheet resolution, A1 parsing).
 /// </summary>
-public static class ExcelHostExtensions
+internal static class ExcelHostExtensions
 {
     /// <summary>
     /// Returns the named sheet if it exists, otherwise creates it; falls back to the last sheet.
@@ -29,12 +29,12 @@ public static class ExcelHostExtensions
                 return existing;
             }
 
-            return document.AddWorksheet(requestedName, validationMode);
+            return document.AddSheet(requestedName, validationMode);
         }
 
         if (sheetsCollection.Count == 0)
         {
-            return document.AddWorksheet();
+            return document.AddSheet();
         }
 
         return sheetsCollection[sheetsCollection.Count - 1];
@@ -48,7 +48,7 @@ public static class ExcelHostExtensions
         if (!string.IsNullOrWhiteSpace(address))
         {
             var trimmedAddress = address!.Trim();
-            var (rowIndex, columnIndex) = A1.ParseCellRef(trimmedAddress);
+            var (rowIndex, columnIndex) = ExcelA1.ParseCellRef(trimmedAddress);
             if (rowIndex <= 0 || columnIndex <= 0)
             {
                 throw new ArgumentException($"Address '{address}' is not a valid A1 reference.", nameof(address));
@@ -72,7 +72,7 @@ public static class ExcelHostExtensions
     {
         if (!string.IsNullOrWhiteSpace(columnName))
         {
-            var index = A1.ColumnLettersToIndex(columnName!.Trim());
+            var index = ExcelA1.ColumnLettersToIndex(columnName!.Trim());
             if (index <= 0)
             {
                 throw new ArgumentException($"ColumnName '{columnName}' is not a valid column reference.", nameof(columnName));

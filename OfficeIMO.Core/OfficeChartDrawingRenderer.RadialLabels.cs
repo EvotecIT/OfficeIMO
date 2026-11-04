@@ -37,7 +37,7 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void QueueRadialOutsideLabel(List<RadialOutsideLabel> labels,
-        OfficeChartLayout layout, OfficeChartStyle style, string category, OfficeChartSeries series, double value,
+        OfficeChartLayout layout, OfficeChartStyle style, string category, OfficeSeries series, double value,
         double total, double centerX, double centerY, double outerRadius, double angle,
         bool hasSlice, double percentageRatio) {
         string text = FormatDataLabel(layout, category, series, value, total, percentageRatio);

@@ -30,7 +30,7 @@ public sealed class VisioTextStylePreservationTests {
         }
         var style = document.Pages[0].Shapes[0].TextStyle!;
         style.Color = OfficeColor.Red;
-        style.HorizontalAlignment = VisioTextHorizontalAlignment.Right;
+        style.HorizontalAlignment = OfficeAlignment.Right;
         foreach (var candidate in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) }) {
             var shape = ExportShape(candidate);
             var character = Assert.Single(shape.Elements(legacy + "Char"));
@@ -65,7 +65,7 @@ public sealed class VisioTextStylePreservationTests {
         var document = Load(connector, charIndex: 7, paraIndex: 4);
         VisioTextStyle style = connector ? document.Pages[0].Connectors[0].TextStyle! : document.Pages[0].Shapes[0].TextStyle!;
         style.Color = OfficeColor.Red;
-        style.HorizontalAlignment = VisioTextHorizontalAlignment.Right;
+        style.HorizontalAlignment = OfficeAlignment.Right;
         if (package) document = VisioDocument.Load(new MemoryStream(document.ToBytes()));
         XElement shape = SavedShape(document);
         XElement character = Assert.Single(shape.Elements(Legacy + "Char"));
@@ -140,7 +140,7 @@ public sealed class VisioTextStylePreservationTests {
     public void MasterInstanceStyleChangesKeepRemappedFormulasAndDoNotEditTheSource(bool group) {
         var document = Load(false, 7, 4, master: true, group: group, sizeFormula: "GUARD(Sheet.1!Width*6 pt)");
         var master = document.Masters.Single();
-        var instance = document.AddPage("Instance").AddShape("8", master, 3, 3, 2, 1);
+        var instance = document.AddPage("Instance").AddShape("8", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
         instance.TextStyle!.Color = OfficeColor.Red;
         var xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         XElement shape = xml.Descendants(Legacy + "Pages").Descendants(Legacy + "Shape").Single(e => (string?)e.Attribute("ID") == "8");

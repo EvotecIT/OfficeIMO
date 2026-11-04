@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
-    public sealed partial class LegacyDocDocument {
+    internal sealed partial class LegacyDocDocument {
         /// <summary>Projects a non-body story through the shared paragraph/table parser.</summary>
         internal static IReadOnlyList<LegacyDocBodyBlock> BuildStoryBlocks(
             IReadOnlyList<LegacyDocTextCharacter> characters,
@@ -271,7 +271,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 reportedUnprojectedSectionBoundary = true;
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                     LegacyDocUnsupportedFeatureKind.Section,
-                    "DOC-MULTIPLE-SECTIONS-PRESENT",
+                    "doc-multiple-sections-present",
                     $"The legacy DOC contains a section boundary at character position {characterPosition} that does not align with a supported body-block boundary. That section is preserved in the source file but is not projected into the OfficeIMO document.",
                     detailCode: "Fib:PlcfSed"),
                     reportUnsupportedFeatures);

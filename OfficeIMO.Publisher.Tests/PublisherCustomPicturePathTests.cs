@@ -15,14 +15,14 @@ public sealed class PublisherCustomPicturePathTests {
         byte[] input = PublisherDrawingFixture.Mutate(original, new() {
             [0x140] = 0, [0x141] = 0, [0x142] = 100, [0x143] = 100, [0x144] = 1
         }, 0, complex, 362);
-        var options = new PublisherReadOptions { ImageCodec = new SolidCodec() };
+        var options = new PublisherLoadOptions { ImageCodec = new SolidCodec() };
         PublisherDocument publication = PublisherDocument.Load(input, options);
         PublisherDocument control = PublisherDocument.Load(original, options);
         Assert.Equal(control.Images.SelectMany(image => image.GetBytes()), publication.Images.SelectMany(image => image.GetBytes()));
         OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
             .OfType<OfficeDrawingGroup>().Single(item => item.SourceElementIds?.Contains("publisher-object-362") == true);
         Assert.Single(group.InnerDrawing.Images);
-        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
+        Assert.DoesNotContain(publication.ReadReport.Diagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
         OfficeRasterImage unmasked = OfficeDrawingRasterRenderer.Render(group.InnerDrawing);
         Assert.True(unmasked.GetPixel(unmasked.Width / 2, unmasked.Height / 2).A > 0);
         var drawing = new OfficeDrawing(group.ClipPath.Width, group.ClipPath.Height)
@@ -41,7 +41,7 @@ public sealed class PublisherCustomPicturePathTests {
         byte[] input = PublisherDrawingFixture.Mutate(original, new() {
             [0x140] = 0, [0x141] = 0, [0x142] = 60000, [0x143] = 60000, [0x144] = 1
         }, 0, new() { [0x145] = PublisherCustomPathTests.Vertices(new[] { (20000, 20000), (50000, 20000), (20000, 50000) }, elementSize) }, 362);
-        PublisherDocument publication = PublisherDocument.Load(input, new PublisherReadOptions { ImageCodec = new SolidCodec() });
+        PublisherDocument publication = PublisherDocument.Load(input, new PublisherLoadOptions { ImageCodec = new SolidCodec() });
         OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
             .OfType<OfficeDrawingGroup>().Single(item => item.SourceElementIds?.Contains("publisher-object-362") == true);
         Assert.Equal(group.ClipPath.Width * 5 / 6, group.ClipPath.Commands[1].Point.X, 6);
@@ -58,7 +58,7 @@ public sealed class PublisherCustomPicturePathTests {
         byte[] input = PublisherDrawingFixture.Mutate(original, new() {
             [0x140] = 0, [0x141] = 0, [0x142] = 100, [0x143] = 100, [0x144] = 1
         }, 0, new() { [0x145] = PublisherCustomPathTests.Vertices(new[] { (25, 25), (75, 25), (25, 75) }) }, 362);
-        var options = new PublisherReadOptions { ImageCodec = new SolidCodec() };
+        var options = new PublisherLoadOptions { ImageCodec = new SolidCodec() };
         PublisherDocument publication = PublisherDocument.Load(input, options);
         PublisherDocument control = PublisherDocument.Load(original, options);
         Assert.Equal(control.Images.SelectMany(image => image.GetBytes()), publication.Images.SelectMany(image => image.GetBytes()));

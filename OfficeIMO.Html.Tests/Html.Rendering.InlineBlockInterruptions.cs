@@ -49,7 +49,7 @@ public sealed class HtmlInlineBlockInterruptionTests {
             + "<div>Before<span>Lead<span style='display:block;break-before:page;height:40px'>Inside</span>Tail</span>After</div>";
         HtmlRenderOptions options = Options();
         options.Mode = HtmlRenderMode.Paged;
-        options.PageSize = new OfficePageSize(640D / 96D, 200D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(640D / 96D), global::OfficeIMO.OfficeLength.Inches(200D / 96D));
         HtmlRenderDocument result = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
         Assert.Equal(2, result.Pages.Count);
         Assert.Contains(result.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Lead");
@@ -118,7 +118,7 @@ public sealed class HtmlInlineBlockInterruptionTests {
             + "<ul><li><span>Lead<span style='display:block;break-before:page;height:40px'>Inside</span>Tail</span></li></ul>";
         HtmlRenderOptions options = Options();
         options.Mode = HtmlRenderMode.Paged;
-        options.PageSize = new OfficePageSize(640D / 96D, 200D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(640D / 96D), global::OfficeIMO.OfficeLength.Inches(200D / 96D));
         HtmlRenderDocument result = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
         Assert.Equal(2, result.Pages.Count);
         Assert.Contains(result.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Inside");

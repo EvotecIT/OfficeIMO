@@ -25,13 +25,13 @@ public class Markdown_Reader_Corpus_Tests {
             "Email: test@example.com and https://example.com/path). Trailing punctuation shouldn't break parsing.\n"
         };
 
-        var readerOptions = new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false };
-        var htmlOptions = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        var readerOptions = new MarkdownLoadOptions { HtmlBlocks = false, InlineHtml = false };
+        var htmlOptions = new MarkdownHtmlExportOptions { Style = MarkdownHtmlStyle.Plain, CssDelivery = MarkdownCssDelivery.None, BodyClass = null };
 
         for (int i = 0; i < samples.Length; i++) {
             var md = samples[i];
-            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, readerOptions);
-            var html = doc.ToHtmlFragment(htmlOptions);
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, readerOptions);
+            var html = doc.ToHtml(htmlOptions);
 
             Assert.False(string.IsNullOrWhiteSpace(html));
             Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);

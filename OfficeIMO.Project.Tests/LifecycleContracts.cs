@@ -11,7 +11,7 @@ public class LifecycleContracts {
         }
         Assert.True(stream.CanRead);
         using var destination = new MemoryStream();
-        var document = ProjectDocument.Create(destination, new DocumentCreateOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose });
+        var document = ProjectDocument.Create(destination, new ProjectCreateOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose });
         var task = document.Tasks.Add("Persisted");
         Assert.Equal(0, destination.Length);
         document.Dispose();
@@ -75,7 +75,7 @@ public class LifecycleContracts {
         using var document = ProjectDocument.Load(associatedStream);
         document.Tasks[0].Name = "Independent copy";
         using var copy = new MemoryStream(); await document.SaveAsync(copy, new ProjectSaveOptions {
-            Format = ProjectFileFormat.Mpx4, LossPolicy = OfficeConversionLossPolicy.Allow
+            Format = ProjectFileFormat.Mpx4, AllowLoss = true
         });
         Assert.True(document.IsModified);
         document.Tasks[0].Name = "Associated stream";

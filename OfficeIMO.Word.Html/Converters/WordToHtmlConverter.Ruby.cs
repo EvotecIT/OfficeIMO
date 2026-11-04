@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private static bool TryCreateRubyNode(IDocument htmlDoc, WordParagraph run, WordToHtmlOptions options, out INode node) {
+        private static bool TryCreateRubyNode(IDocument htmlDoc, WordParagraph run, WordHtmlExportOptions options, out INode node) {
             node = htmlDoc.CreateTextNode(string.Empty);
             var ruby = run._run?.Elements<Ruby>().FirstOrDefault();
             if (ruby == null) {
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.Html {
             IDocument htmlDoc,
             IElement target,
             OpenXmlCompositeElement? source,
-            WordToHtmlOptions options) {
+            WordHtmlExportOptions options) {
             foreach (Run run in source?.Elements<Run>() ?? Enumerable.Empty<Run>()) {
                 INode node = htmlDoc.CreateTextNode(run.InnerText);
                 RunProperties? properties = run.RunProperties;
@@ -72,7 +72,7 @@ namespace OfficeIMO.Word.Html {
                         span.AppendChild(node);
                         node = span;
                         if (!IsExactCssUnderline(wordUnderline)) {
-                            AddWordTextStyleApproximation(options, "WordUnderlineStyleApproximated", "Word underline style '" + wordUnderline + "' uses the closest CSS " + cssStyle + " pattern; private round-trip metadata retains the exact Word value.", "word:ruby-run");
+                            AddWordTextStyleApproximation(options, "word-underline-style-approximated", "Word underline style '" + wordUnderline + "' uses the closest CSS " + cssStyle + " pattern; private round-trip metadata retains the exact Word value.", "word:ruby-run");
                         }
                     }
                 }
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word.Html {
                     styles.Add($"font-size:{(halfPoints / 2D).ToString("0.###", CultureInfo.InvariantCulture)}pt");
                 }
                 string? font = properties.RunFonts?.Ascii?.Value ?? properties.RunFonts?.HighAnsi?.Value;
-                if (options.IncludeFontStyles && !string.IsNullOrWhiteSpace(font)) styles.Add($"font-family:{QuoteCssString(font!)}");
+                if (options.IncludeFontStyles && !string.IsNullOrWhiteSpace(font)) styles.Add($"font-family:{FontFamilyCss(font!)}");
                 if (IsEnabled(properties.SmallCaps)) styles.Add("font-variant:small-caps");
                 if (IsEnabled(properties.Caps)) styles.Add("text-transform:uppercase");
                 if (properties.Spacing?.Val?.Value is int twentiethPoints) {

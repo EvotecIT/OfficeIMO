@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static PdfTextShapingOptions? CreateSelectedManagedCoverageOptions(PdfOptions options,
+    private static PdfTextShapingOptions? CreateSelectedManagedCoverageOptions(PdfCreateOptions options,
         string fontName, PdfTextRun run, bool preferSelected) => preferSelected
             ? PdfTextDiagnostics.ForEncodingDiagnostics(options, fontName,
                 featureSettings: run.FeatureSettings, direction: run.TextDirection,

@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a colored callout block to the current Excel report sheet.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeExcelReportCallout [[-Kind] <OfficeExcelReportCalloutKind>] [-Title] <string> [-Body] <string> [-WidthColumns <int>] [-PassThru] [<CommonParameters>]
 ```
@@ -37,7 +37,7 @@ Callout body text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -53,7 +53,7 @@ Callout kind. Supported values include info, success, warning, error, and critic
 
 ```yaml
 Type: OfficeExcelReportCalloutKind
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Info, Success, Warning, Error, Critical
 
@@ -69,7 +69,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -85,7 +85,7 @@ Callout title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -101,7 +101,7 @@ Width of the highlighted callout band in worksheet columns.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

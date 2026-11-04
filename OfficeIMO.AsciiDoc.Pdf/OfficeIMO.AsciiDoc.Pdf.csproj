@@ -2,8 +2,6 @@
   <PropertyGroup>
     <Description>Loss-aware AsciiDoc to PDF adapter over the first-party OfficeIMO Markdown and PDF engines.</Description>
     <PackageId>OfficeIMO.AsciiDoc.Pdf</PackageId>
-    <AssemblyName>OfficeIMO.AsciiDoc.Pdf</AssemblyName>
-    <AssemblyTitle>OfficeIMO.AsciiDoc.Pdf</AssemblyTitle>
     <VersionPrefix>3.5.3</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -30,5 +28,9 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Markdown\OfficeIMO.AsciiDoc.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.AsciiDoc.Markdown.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
 </Project>

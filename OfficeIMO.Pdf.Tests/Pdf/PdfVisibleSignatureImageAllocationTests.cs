@@ -74,8 +74,8 @@ public sealed class PdfVisibleSignatureImageAllocationTests {
     }
 
     private static (Dictionary<int, PdfIndirectObject> Objects, PdfStream Image) PrepareAppearance(byte[] imageBytes, PdfFileVersion version) {
-        byte[] source = PdfDocument.Create(new PdfOptions { FileVersion = version })
-            .Paragraph(paragraph => paragraph.Text("Signature image allocation source"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { FileVersion = version })
+            .Paragraph(paragraph => paragraph.AddText("Signature image allocation source"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source,
             new PdfExternalSignatureOptions {

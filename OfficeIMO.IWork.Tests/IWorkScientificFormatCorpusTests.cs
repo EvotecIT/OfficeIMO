@@ -44,7 +44,7 @@ public sealed class IWorkScientificFormatCorpusTests {
     [Fact]
     public void Saved_scientific_values_match_the_explicit_producer_and_report_automatic_approximation() {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED"
@@ -53,14 +53,14 @@ public sealed class IWorkScientificFormatCorpusTests {
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         int count = manifest.RootElement.GetProperty("cases").GetArrayLength();
-        ExcelRangeVisualSnapshot snapshot = sheet.Range($"B1:B{count}").CreateVisualSnapshot();
+        ExcelRangeVisualInfo snapshot = sheet.Range($"B1:B{count}").CreateVisualSnapshot();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32();
-            ExcelCellData cell = sheet.CellAt(row, 2).GetValue();
+            ExcelCellData cell = sheet.Cell(row, 2).GetValue();
             Assert.Equal(ExcelCellDataKind.Number, cell.Kind);
             Assert.Equal(expected.GetProperty("portableValue").GetDouble(), Assert.IsType<double>(cell.Value));
             Assert.Equal(expected.GetProperty("destinationDisplayText").GetString(), Assert.Single(snapshot.Cells, c => c.Row == row).Text);
-            Assert.EndsWith("E+00", sheet.CellAt(row, 2).GetStyle().NumberFormatCode!);
+            Assert.EndsWith("E+00", sheet.Cell(row, 2).GetStyle().NumberFormatCode!);
         }
     }
 }

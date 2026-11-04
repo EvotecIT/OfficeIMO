@@ -28,28 +28,28 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Toggle leader lines for labels.</summary>
         public bool? ShowLeaderLines { get; set; }
-        /// <summary>Leader line color (hex).</summary>
-        public string? LeaderLineColor { get; set; }
-        /// <summary>Leader line width in points.</summary>
-        public double? LeaderLineWidthPoints { get; set; }
+        /// <summary>Leader line color.</summary>
+        public OfficeColor? LeaderLineColor { get; set; }
+        /// <summary>Leader line physical width.</summary>
+        public OfficeLength? LeaderLineWidth { get; set; }
 
-        /// <summary>Font size in points.</summary>
-        public double? FontSizePoints { get; set; }
+        /// <summary>Physical font size.</summary>
+        public OfficeLength? FontSize { get; set; }
         /// <summary>Toggle bold text.</summary>
         public bool? Bold { get; set; }
         /// <summary>Toggle italic text.</summary>
         public bool? Italic { get; set; }
         /// <summary>Font name.</summary>
         public string? FontName { get; set; }
-        /// <summary>Text color (hex).</summary>
-        public string? TextColor { get; set; }
+        /// <summary>Text color.</summary>
+        public OfficeColor? TextColor { get; set; }
 
-        /// <summary>Fill color (hex).</summary>
-        public string? FillColor { get; set; }
-        /// <summary>Line color (hex).</summary>
-        public string? LineColor { get; set; }
-        /// <summary>Line width in points.</summary>
-        public double? LineWidthPoints { get; set; }
+        /// <summary>Fill color.</summary>
+        public OfficeColor? FillColor { get; set; }
+        /// <summary>Line color.</summary>
+        public OfficeColor? LineColor { get; set; }
+        /// <summary>Line physical width.</summary>
+        public OfficeLength? LineWidth { get; set; }
         /// <summary>Disable fill.</summary>
         public bool NoFill { get; set; }
         /// <summary>Disable line.</summary>

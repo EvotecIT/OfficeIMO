@@ -16,7 +16,7 @@ Add-OfficeMarkdownCode [[-Language] <string>] [-Content] <string> [-PassThru] [<
 
 ### Document
 ```powershell
-Add-OfficeMarkdownCode [[-Language] <string>] [-Content] <string> -Document <MarkdownDoc> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownCode [[-Language] <string>] [-Content] <string> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -109,11 +109,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

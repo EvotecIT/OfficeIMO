@@ -121,7 +121,7 @@ public sealed class StudioSplitPreviewTests {
                 await model.DuplicateSelectedCommand.ExecuteAsync(null);
                 await model.SplitCommand.ExecuteAsync(null);
                 Assert.True(model.IsDirty);
-                Assert.Equal(4, PdfDocument.Load(File.ReadAllBytes(source)).Inspect().PageCount);
+                Assert.Equal(4, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(source))).Inspect().PageCount);
                 if (changeDuringReview) {
                     Assert.NotNull(model.ErrorMessage); Assert.Null(completed); Assert.Empty(services.Jobs.Entries);
                     Assert.False(Directory.Exists(folder));
@@ -130,7 +130,7 @@ public sealed class StudioSplitPreviewTests {
                     Assert.NotNull(completed);
                     Assert.Equal(3, completed.Files.Count);
                     Assert.Equal(new[] { 200D, 200D, 210D, 220D, 230D }, completed.Files
-                        .SelectMany(file => PdfDocument.Load(File.ReadAllBytes(file.Path)).Inspect().Pages).Select(page => page.Width));
+                        .SelectMany(file => PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(file.Path))).Inspect().Pages).Select(page => page.Width));
                     var job = Assert.Single(services.Jobs.Entries);
                     Assert.False(job.IsActive); Assert.True(job.HasOutput); Assert.False(job.HasRecovery);
                 }
@@ -199,7 +199,7 @@ public sealed class StudioSplitPreviewTests {
         }, CancellationToken.None);
     }
     private static PdfDocument CreatePdf() => PdfDocument.Create(document => {
-        for (int index = 0; index < 4; index++) { int width = 200 + index * 10; document.Page(page => page.Size(width, 300)); }
+        for (int index = 0; index < 4; index++) { int width = 200 + index * 10; document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(300))); }
     });
     private static async Task Layout(Window window) { window.UpdateLayout(); await Task.Delay(30); window.UpdateLayout(); }
     private static void Click(Window window, string label) {

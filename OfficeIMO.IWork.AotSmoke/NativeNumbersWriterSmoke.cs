@@ -34,21 +34,20 @@ internal static class NativeNumbersWriterSmoke {
             && table.GetCell(3, 4)!.Kind == IWorkCellKind.Text && table.RowHeights[1] == 36
             && table.ColumnWidths[1] == 130 && empty.RowCount == 2 && empty.ColumnCount == 3 && empty.Cells.Count == 0,
             "Numbers scalar types, Unicode, dimensions or empty positions differ.");
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Require(converted.Report.IsPartialEditableReconstruction
             && converted.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED")
             && empty.GetPadding(2, 3)?.BottomPoints == 4, "Native Numbers region padding was silently discarded.");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        Require(reopened.Sheets.Count == 3 && reopened.Sheets[0].CellAt(2, 2).GetValue<double>() == 12.5
-            && reopened.Sheets[0].CellAt(2, 3).GetValue<bool>() && !reopened.Sheets[0].CellAt(3, 3).GetValue<bool>()
-            && reopened.Sheets[0].CellAt(3, 4).GetValue<string>() == "=literal"
+        Require(reopened.Sheets.Count == 3 && reopened.Sheets[0].Cell(2, 2).GetValue<double>() == 12.5
+            && reopened.Sheets[0].Cell(2, 3).GetValue<bool>() && !reopened.Sheets[0].Cell(3, 3).GetValue<bool>()
+            && reopened.Sheets[0].Cell(3, 4).GetValue<string>() == "=literal"
             && string.IsNullOrEmpty(reopened.Sheets[0].GetFormulaText(3, 4))
             && !reopened.ValidateOpenXml().Any(), "Saved Numbers XLSX loses typed scalar values or literal text.");
         byte[] before = destination.ToArray();
         try {
-            document.Save(destination, new() { MaximumTableCells = 25 });
+            document.Save(destination, new() { MaxTableCells = 25 });
             throw new InvalidOperationException("Numbers dense-grid limit was not enforced.");
         } catch (InvalidDataException) {
             Require(before.SequenceEqual(destination.ToArray()), "Numbers budget rejection mutated its destination.");

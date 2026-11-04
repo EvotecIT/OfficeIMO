@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
         bool hasRemainingColumns = false;
         for (int column = 0; column < columns; column++) {
             double minimum = minimumWidths != null && column < minimumWidths.Length ? minimumWidths[column] : 0D;
-            minimum = Math.Max(minimum, GetOptionalColumnWidth(style.ColumnMinWidthPoints, column,
+            minimum = Math.Max(minimum, GetOptionalColumnWidth(style.ColumnMinWidths?.ConvertAll(static length => length?.ToPoints()), column,
                 "Table minimum column widths must be positive finite values.") ?? 0D);
             double preferred = preferredWidths != null && column < preferredWidths.Length ? preferredWidths[column] :
                 GetOptionalColumnWidth(style.AutoFitColumnPreferredWidthPoints, column,
@@ -46,6 +46,22 @@ internal static partial class PdfWriter {
         return width > .001D;
     }
 
+    /// <summary>Columns held at their minimum leave the rest of the width to the others, shared by their percentages.</summary>
+    private static void DistributeOvercommittedPercentages(double[] widths, System.Collections.Generic.List<double?> fractions,
+        double?[] minimums, double available) {
+        var held = new bool[widths.Length];
+        for (bool changed = true; changed;) {
+            changed = false;
+            double remaining = available - Enumerable.Range(0, widths.Length).Where(column => held[column]).Sum(column => minimums[column] ?? 0D);
+            double share = Enumerable.Range(0, widths.Length).Where(column => !held[column]).Sum(column => fractions[column]!.Value);
+            for (int column = 0; column < widths.Length; column++) {
+                if (held[column]) { widths[column] = minimums[column] ?? 0D; continue; }
+                widths[column] = share > 0D ? Math.Max(0D, remaining) * fractions[column]!.Value / share : 0D;
+                if (widths[column] < (minimums[column] ?? 0D)) { held[column] = true; changed = true; }
+            }
+        }
+    }
+
     /// <summary>Overcommitted imported percentages reserve later cell minima while consuming width in column order.</summary>
     private static bool TryDistributeImportedPercentageColumns(PdfTableStyle style, double[] widths, bool[] fixedColumns,
         double?[] minimums, double?[] maximums, double[]? preferences, double[]? paddingWidths, double available) {
@@ -58,6 +74,10 @@ internal static partial class PdfWriter {
         if (!hasRemainingColumns && fractionTotal <= 1D) return false;
         var remainingColumns = fractions.Select(value => !value.HasValue).ToArray();
         double remainingMinimum = minimums.Where((_, column) => remainingColumns[column]).Sum(value => value ?? 0D);
+        if (!hasRemainingColumns) {
+            DistributeOvercommittedPercentages(widths, fractions, minimums, available);
+            return true;
+        }
         double percentagePool = hasRemainingColumns && fractionTotal >= 1D ? available - remainingMinimum : available;
         double reserved = minimums.Sum(value => value ?? 0D);
         double remaining = available;

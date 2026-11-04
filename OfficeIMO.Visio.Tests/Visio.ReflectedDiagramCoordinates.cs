@@ -23,7 +23,7 @@ public sealed class VisioReflectedDiagramCoordinateTests {
         VisioShape shape = page.FindShapeById("1")!;
         var point = new VisioConnectionPoint(0, 0, 1, 0);
         shape.ConnectionPoints.Add(point);
-        VisioShape target = page.AddRectangle(7, 7, 1, 1, "Target");
+        VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
         VisioConnector connector = page.AddConnector(shape, target, ConnectorKind.Straight);
         connector.FromConnectionPoint = point;
         foreach (VisioDocument current in Reopenings(document)) {
@@ -32,15 +32,15 @@ public sealed class VisioReflectedDiagramCoordinateTests {
             Assert.Equal(originX, actual.X, 8); Assert.Equal(originY, actual.Y, 8);
             AssertBounds(left, bottom, right, top, leaf.GetShapeBounds());
             AssertBounds(left, bottom, right, top, leaf.GetPageShapeBounds());
-            ShapeBounds query = new(left - 0.01, bottom - 0.01, right + 0.01, top + 0.01);
+            ShapeBounds query = new(OfficeLength.Inches(left - 0.01), OfficeLength.Inches(bottom - 0.01), OfficeLength.Inches(right + 0.01), OfficeLength.Inches(top + 0.01));
             Assert.Contains(leaf, current.Pages[0].ShapesContainedIn(query));
             VisioConnector saved = Assert.Single(current.Pages[0].Connectors);
             Assert.Equal(originX, saved.StartPoint.X, 8); Assert.Equal(originY, saved.StartPoint.Y, 8);
-            leaf.PinX += 1;
+            leaf.PinX += OfficeLength.Inches(1);
             if (leaf.Parent == null) Assert.Equal(originX + 1, saved.StartPoint.X, 8);
             else {
                 // Moving the containing group translates the attached endpoint in page coordinates.
-                leaf.PinX -= 1; leaf.Parent.PinX += 1;
+                leaf.PinX -= OfficeLength.Inches(1); leaf.Parent.PinX += OfficeLength.Inches(1);
                 Assert.Equal(originX + 1, saved.StartPoint.X, 8);
             }
         }
@@ -49,8 +49,8 @@ public sealed class VisioReflectedDiagramCoordinateTests {
     [Fact]
     public void PublicAbsolutePointIncludesUnreflectedContainingGroups() {
         var document = VisioDocument.Create(); var page = document.AddPage("Coordinates");
-        var group = new VisioShape("group", 5, 5, 4, 4, "") { Angle = Math.PI / 2 };
-        var child = new VisioShape("child", 1, 1, 2, 2, "");
+        var group = new VisioShape("group", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(4), "") { Angle = Math.PI / 2 };
+        var child = new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "");
         group.Children.Add(child); page.Shapes.Add(group);
         var point = child.GetAbsolutePoint(0, 1);
         Assert.Equal(6, point.X, 8); Assert.Equal(3, point.Y, 8);
@@ -63,7 +63,7 @@ public sealed class VisioReflectedDiagramCoordinateTests {
         VisioShape shape = document.Pages[0].FindShapeById("1")!;
         VisioConnector connector = Assert.Single(document.Pages[0].Connectors);
         Assert.Equal(0.8, connector.StartPoint.X, 8); Assert.Equal(3.3, connector.StartPoint.Y, 8);
-        shape.PinX += 1; shape.Angle = Math.PI / 2;
+        shape.PinX += OfficeLength.Inches(1); shape.Angle = Math.PI / 2;
         foreach (VisioDocument current in Reopenings(document)) {
             VisioConnector saved = Assert.Single(current.Pages[0].Connectors);
             Assert.Equal("1", saved.From!.Id); Assert.Null(saved.To);
@@ -76,7 +76,7 @@ public sealed class VisioReflectedDiagramCoordinateTests {
     public void ContainerFittingUsesReflectedBoundsAndTheInverseOfItsContainingGroup() {
         VisioDocument document = Create(true, false, group: true, groupAngle: 90);
         VisioPage page = document.Pages[0];
-        VisioShape member = page.AddRectangle(6, 3, 2, 1, "Member");
+        VisioShape member = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Member");
         VisioShape container = page.AddContainer("container", "Container", new[] { member },
             new VisioContainerOptions { Margin = 0.2, HeadingHeight = 0 });
         page.ReparentShape(container, page.FindShapeById("2")!);
@@ -89,35 +89,35 @@ public sealed class VisioReflectedDiagramCoordinateTests {
     public void ReflectedSelectionAlignmentAndGridPlacementMovePageBounds() {
         VisioDocument document = Create(true, false, group: true, groupAngle: 90);
         VisioPage page = document.Pages[0]; VisioShape leaf = page.FindShapeById("1")!;
-        VisioShape target = page.AddRectangle(7, 6, 1, 1, "Target");
+        VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
         var selection = page.SelectShapes(shape => ReferenceEquals(shape, leaf) || ReferenceEquals(shape, target));
-        double expectedLeft = selection.GetShapeBounds().Left;
+        double expectedLeft = selection.GetShapeBounds().Left.ToInches();
         selection.Align(VisioHorizontalAlignment.Left);
-        Assert.Equal(expectedLeft, leaf.GetPageShapeBounds().Left, 8);
-        Assert.Equal(expectedLeft, target.GetPageShapeBounds().Left, 8);
-        double expectedTop = selection.GetShapeBounds().Top;
+        Assert.Equal(expectedLeft, leaf.GetPageShapeBounds().Left.ToInches(), 8);
+        Assert.Equal(expectedLeft, target.GetPageShapeBounds().Left.ToInches(), 8);
+        double expectedTop = selection.GetShapeBounds().Top.ToInches();
         selection.Align(VisioVerticalAlignment.Top);
-        Assert.Equal(expectedTop, leaf.GetPageShapeBounds().Top, 8);
-        Assert.Equal(expectedTop, target.GetPageShapeBounds().Top, 8);
+        Assert.Equal(expectedTop, leaf.GetPageShapeBounds().Top.ToInches(), 8);
+        Assert.Equal(expectedTop, target.GetPageShapeBounds().Top.ToInches(), 8);
         selection.RelayoutAsGrid(columns: 2, horizontalSpacing: 0.5, verticalSpacing: 0.5, routeInternalConnectors: false);
         ShapeBounds first = leaf.GetPageShapeBounds(), second = target.GetPageShapeBounds();
-        Assert.Equal(expectedLeft, first.Left, 8); Assert.Equal(expectedTop, first.Top, 8);
-        Assert.Equal(first.Right + 0.5, second.Left, 8); Assert.Equal(first.CenterY, second.CenterY, 8);
+        Assert.Equal(expectedLeft, first.Left.ToInches(), 8); Assert.Equal(expectedTop, first.Top.ToInches(), 8);
+        Assert.Equal(first.Right.ToInches() + 0.5, second.Left.ToInches(), 8); Assert.Equal(first.CenterY.ToInches(), second.CenterY.ToInches(), 8);
     }
 
     [Fact]
     public void NestedDistributionUsesPageCentersAlongBothAxes() {
         VisioDocument document = Create(true, false, group: true, groupAngle: 90);
         VisioPage page = document.Pages[0]; VisioShape leaf = page.FindShapeById("1")!;
-        VisioShape left = page.AddRectangle(-0.5, 5, 1, 1, "Left");
-        VisioShape right = page.AddRectangle(7, 5, 1, 1, "Right");
+        VisioShape left = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(-0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Left");
+        VisioShape right = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Right");
         var selection = page.SelectShapes(shape => shape.Parent != null || ReferenceEquals(shape, left) || ReferenceEquals(shape, right));
-        double originalY = leaf.GetPageShapeBounds().CenterY;
+        double originalY = leaf.GetPageShapeBounds().CenterY.ToInches();
         selection.DistributeHorizontally();
-        Assert.Equal(3.25, leaf.GetPageShapeBounds().CenterX, 8);
-        Assert.Equal(originalY, leaf.GetPageShapeBounds().CenterY, 8);
+        Assert.Equal(3.25, leaf.GetPageShapeBounds().CenterX.ToInches(), 8);
+        Assert.Equal(originalY, leaf.GetPageShapeBounds().CenterY.ToInches(), 8);
         selection.DistributeVertically();
-        double[] centers = selection.Select(shape => shape.GetPageShapeBounds().CenterY).OrderBy(value => value).ToArray();
+        double[] centers = selection.Select(shape => shape.GetPageShapeBounds().CenterY.ToInches()).OrderBy(value => value).ToArray();
         Assert.Equal((centers[0] + centers[2]) / 2, centers[1], 8);
     }
 
@@ -126,9 +126,9 @@ public sealed class VisioReflectedDiagramCoordinateTests {
         VisioDocument document = Create(false, false, group: true, groupAngle: 90);
         VisioPage page = document.Pages[0];
         var selection = page.SelectShapes(shape => true);
-        double expected = selection.GetShapeBounds().Right;
+        double expected = selection.GetShapeBounds().Right.ToInches();
         selection.Align(VisioHorizontalAlignment.Right);
-        Assert.All(selection, shape => Assert.Equal(expected, shape.GetPageShapeBounds().Right, 8));
+        Assert.All(selection, shape => Assert.Equal(expected, shape.GetPageShapeBounds().Right.ToInches(), 8));
     }
 
     [Theory]
@@ -138,7 +138,7 @@ public sealed class VisioReflectedDiagramCoordinateTests {
     public void OverlappingSelectionsLayoutEachDistinctShapeOnce(int operation) {
         (VisioShapeSelection Selection, VisioShape[] Shapes) CreateSelection(bool overlap) {
             var document = VisioDocument.Create(); var page = document.AddPage("Selection");
-            VisioShape[] shapes = { page.AddRectangle(2, 2, 1, 1, "A"), page.AddRectangle(4, 4, 1, 1, "B"), page.AddRectangle(8, 8, 1, 1, "C") };
+            VisioShape[] shapes = { page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "A"), page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "B"), page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "C") };
             return (new VisioShapeSelection(overlap ? new[] { shapes[0], shapes[1], shapes[0], shapes[2] } : shapes, page), shapes);
         }
         var control = CreateSelection(false); var overlapping = CreateSelection(true);
@@ -159,17 +159,17 @@ public sealed class VisioReflectedDiagramCoordinateTests {
         xml.Descendants(ns + "FlipX").Single().SetAttributeValue("F", "IF(PinX>3,1,0)");
         document = VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()))).Value;
         VisioPage page = document.Pages[0]; VisioShape leaf = page.FindShapeById("1")!;
-        page.AddRectangle(6, 3, 1, 1, "Target");
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
         page.SelectShapes(shape => true).Align(VisioHorizontalAlignment.Right);
         foreach (VisioDocument current in Reopenings(document)) {
-            Assert.Equal(6.5, current.Pages[0].FindShapeById("1")!.GetShapeBounds().Right, 8);
-            Assert.Contains(current.Pages[0].ToDrawing().Report.FidelityDiagnostics, finding => finding.Code == "VISIO_SHAPE_CACHED_REFLECTION");
+            Assert.Equal(6.5, current.Pages[0].FindShapeById("1")!.GetShapeBounds().Right.ToInches(), 8);
+            Assert.Contains(current.Pages[0].ToDrawing().Report.Diagnostics, finding => finding.Code == "VISIO_SHAPE_CACHED_REFLECTION");
         }
         document = Create(false, false, group: true);
         xml = System.Xml.Linq.XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         xml.Descendants(ns + "Shape").Single(shape => (string?)shape.Attribute("ID") == "2").Element(ns + "XForm")!.Element(ns + "FlipX")!.SetAttributeValue("F", "IF(PinX>3,1,0)");
         document = VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()))).Value;
-        document.Pages[0].FindShapeById("2")!.PinX = 2;
+        document.Pages[0].FindShapeById("2")!.PinX = OfficeLength.Inches(2);
         foreach (VisioDocument current in Reopenings(document)) {
             var origin = current.Pages[0].FindShapeById("1")!.GetAbsolutePoint(0, 0);
             Assert.Equal(0.3, origin.X, 8); Assert.Equal(5.8, origin.Y, 8);
@@ -191,8 +191,8 @@ public sealed class VisioReflectedDiagramCoordinateTests {
     }
 
     private static void AssertBounds(double left, double bottom, double right, double top, ShapeBounds bounds) {
-        Assert.Equal(left, bounds.Left, 8); Assert.Equal(bottom, bounds.Bottom, 8);
-        Assert.Equal(right, bounds.Right, 8); Assert.Equal(top, bounds.Top, 8);
+        Assert.Equal(OfficeLength.Inches(left), bounds.Left); Assert.Equal(OfficeLength.Inches(bottom), bounds.Bottom);
+        Assert.Equal(OfficeLength.Inches(right), bounds.Right); Assert.Equal(OfficeLength.Inches(top), bounds.Top);
     }
 
     private static VisioDocument Create(bool flipX, bool flipY, double angle = 0,

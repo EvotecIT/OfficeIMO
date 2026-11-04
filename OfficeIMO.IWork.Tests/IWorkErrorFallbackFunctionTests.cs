@@ -27,17 +27,17 @@ public sealed partial class IWorkBoundaryTests {
         nodes.Add(Message(VarintField(1, 16), VarintField(2, 235), VarintField(3, 2)));
         using var package = CreateNumbersPackage(new[] { new TableSpec("Fallback", 1, 1, 42d,
             hasFormula: true, formulaPayload: SingleCellFormula(nodes.ToArray())) });
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         string alternate = fallback switch { "text" => "\"Recovered\"", "boolean" => "TRUE", "number" => "99", _ => "1/0" };
         Assert.Equal("IFERROR(" + (primaryError ? "6/0" : "6") + "," + alternate + ")", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, reopened.Calculate());
-        if (fallback == "text") Assert.Equal("Recovered", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-        else if (fallback == "boolean") Assert.True(reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
-        else Assert.Equal(primaryError ? 99d : 6d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        if (fallback == "text") Assert.Equal("Recovered", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+        else if (fallback == "boolean") Assert.True(reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
+        else Assert.Equal(primaryError ? 99d : 6d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         IWorkFormulaCacheAssertions.HasType(reopened, 0, "A1", fallback == "text" ? "str" : fallback == "boolean" ? "b" : "n");
         Assert.Empty(reopened.ValidateOpenXml());
     }

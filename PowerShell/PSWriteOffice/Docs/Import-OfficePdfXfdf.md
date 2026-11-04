@@ -11,12 +11,12 @@ Imports bounded DTD-free XFDF through the validated PDF form filler.
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Import-OfficePdfXfdf [-Path] <string> -Xfdf <string> -OutputPath <string> [-Options <PdfFormFillerOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <string>] [-IgnorePermissionRestrictions] [-MaxXfdfBytes <long>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Import-OfficePdfXfdf [-Path] <string> -Xfdf <string> -OutputPath <string> [-Options <PdfFormFillerOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-MaxXfdfBytes <long>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### File
 ```powershell
-Import-OfficePdfXfdf [-Path] <string> -XfdfPath <string> -OutputPath <string> [-Options <PdfFormFillerOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <string>] [-IgnorePermissionRestrictions] [-MaxXfdfBytes <long>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Import-OfficePdfXfdf [-Path] <string> -XfdfPath <string> -OutputPath <string> [-Options <PdfFormFillerOptions>] [-ReadOptions <PdfLoadOptions>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-MaxXfdfBytes <long>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -122,7 +122,7 @@ Accept wildcard characters: False
 Password used to authenticate the source form.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Text, File
 Aliases: None
 Possible values:

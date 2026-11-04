@@ -134,7 +134,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 return null;
             }
 
-            VisioShape label = page.AddTextBox(
+            VisioShape label = page.AddTextBoxInches(
                 id,
                 left + width / 2D,
                 top + 0.16D,
@@ -154,7 +154,7 @@ namespace OfficeIMO.Visio.Diagrams {
             style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos" : style.FontFamily;
             style.Size = Math.Max(style.Size ?? 0D, 9.5D);
             style.Bold = true;
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.HorizontalAlignment = OfficeAlignment.Left;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
             style.LeftMargin = 0.08D;
             style.RightMargin = 0.08D;
@@ -164,8 +164,8 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         internal static void ResolveSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {
-            double dx = to.PinX - from.PinX;
-            double dy = to.PinY - from.PinY;
+            double dx = to.PinXInches - from.PinXInches;
+            double dy = to.PinYInches - from.PinYInches;
             if (Math.Abs(dx) >= Math.Abs(dy)) {
                 if (dx >= 0D) {
                     fromSide = VisioSide.Right;

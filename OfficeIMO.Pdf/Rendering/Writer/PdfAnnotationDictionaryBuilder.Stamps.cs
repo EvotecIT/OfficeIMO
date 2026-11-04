@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationDictionaryBuilder {
-    internal static string BuildTextAnnotationAppearanceContent(double width, double height, string iconName, PdfColor? color = null) {
+    internal static string BuildTextAnnotationAppearanceContent(double width, double height, string iconName, global::OfficeIMO.OfficeColor? color = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNullOrWhiteSpace(iconName, nameof(iconName));
@@ -10,7 +10,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             return BuildTextNoteAppearanceContent(width, height, color);
         }
 
-        PdfColor resolvedColor = color ?? new PdfColor(1D, 0.9D, 0.2D);
+        global::OfficeIMO.OfficeColor resolvedColor = color ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.2D);
         double size = Math.Min(width, height);
         double strokeWidth = Math.Max(0.6D, size * 0.07D);
         double left = width * 0.16D;
@@ -24,8 +24,8 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             .Append(FormatColor(resolvedColor)).Append(" rg 0 0 ")
             .Append(FormatCoordinate(width)).Append(' ')
             .Append(FormatCoordinate(height)).Append(" re f\n")
-            .Append(FormatColor(PdfColor.Black)).Append(" RG ")
-            .Append(FormatColor(PdfColor.Black)).Append(" rg ")
+            .Append(FormatColor(global::OfficeIMO.OfficeColor.Black)).Append(" RG ")
+            .Append(FormatColor(global::OfficeIMO.OfficeColor.Black)).Append(" rg ")
             .Append(FormatCoordinate(strokeWidth)).Append(" w 1 J 1 j\n");
 
         switch (iconName) {
@@ -93,11 +93,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildTextNoteAppearanceContent(double width, double height, PdfColor? color = null) {
+    internal static string BuildTextNoteAppearanceContent(double width, double height, global::OfficeIMO.OfficeColor? color = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
 
-        PdfColor resolvedColor = color ?? new PdfColor(1D, 0.9D, 0.2D);
+        global::OfficeIMO.OfficeColor resolvedColor = color ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.2D);
         double borderWidth = Math.Min(1D, Math.Min(width, height) / 4D);
         double inset = borderWidth / 2D;
         double fold = Math.Max(2D, Math.Min(Math.Min(width, height) * 0.28D, Math.Min(width, height) - 1D));
@@ -111,7 +111,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         var builder = new StringBuilder();
         builder.Append("q\n")
             .Append(FormatColor(resolvedColor)).Append(" rg ")
-            .Append(FormatColor(PdfColor.Black)).Append(" RG ")
+            .Append(FormatColor(global::OfficeIMO.OfficeColor.Black)).Append(" RG ")
             .Append(FormatCoordinate(borderWidth)).Append(" w ")
             .Append(FormatCoordinate(inset)).Append(' ')
             .Append(FormatCoordinate(inset)).Append(' ')
@@ -124,7 +124,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             .Append(FormatCoordinate(height - fold)).Append(" l ")
             .Append(FormatCoordinate(width - fold)).Append(' ')
             .Append(FormatCoordinate(height - fold)).Append(" l h f\n")
-            .Append(FormatColor(PdfColor.Black)).Append(" RG ")
+            .Append(FormatColor(global::OfficeIMO.OfficeColor.Black)).Append(" RG ")
             .Append(FormatCoordinate(width - fold)).Append(' ')
             .Append(FormatCoordinate(height)).Append(" m ")
             .Append(FormatCoordinate(width - fold)).Append(' ')
@@ -160,13 +160,13 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             .Append(FormatCoordinate(centerX + radius)).Append(' ').Append(FormatCoordinate(centerY)).Append(" c h\n");
     }
 
-    internal static string BuildStampAppearanceContent(double width, double height, string stampName, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 2D, IReadOnlyList<double>? borderDashPattern = null) {
+    internal static string BuildStampAppearanceContent(double width, double height, string stampName, global::OfficeIMO.OfficeColor? strokeColor = null, global::OfficeIMO.OfficeColor? fillColor = null, double borderWidth = 2D, IReadOnlyList<double>? borderDashPattern = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNullOrWhiteSpace(stampName, nameof(stampName));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
 
-        PdfColor resolvedStrokeColor = strokeColor ?? new PdfColor(0.7D, 0.05D, 0.05D);
+        global::OfficeIMO.OfficeColor resolvedStrokeColor = strokeColor ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.7D, 0.05D, 0.05D);
         string label = FormatStampLabel(stampName);
         double fontSize = ResolveStampFontSize(label, width, height);
         double textWidth = EstimateWinAnsiTextWidth(label, fontSize);
@@ -200,7 +200,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildCaretAppearanceContent(double width, double height, PdfColor? strokeColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null) {
+    internal static string BuildCaretAppearanceContent(double width, double height, global::OfficeIMO.OfficeColor? strokeColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
@@ -208,7 +208,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             return "q\nQ\n";
         }
 
-        PdfColor resolvedStrokeColor = strokeColor ?? PdfColor.Black;
+        global::OfficeIMO.OfficeColor resolvedStrokeColor = strokeColor ?? global::OfficeIMO.OfficeColor.Black;
         return "q\n" +
             BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern) +
             "1 J 1 j " +

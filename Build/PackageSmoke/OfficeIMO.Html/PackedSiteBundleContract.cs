@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.IO.Compression;
 using System.Text;
 using OfficeIMO.Drawing;
@@ -21,7 +22,8 @@ internal static class PackedSiteBundleContract {
             throw new InvalidOperationException("Packed site-bundle input ownership failed.");
 
         HtmlRenderRequest svgRequest = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg));
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg,
+            HtmlPdfExportOptions.ForImageExport(new HtmlRenderOptions())));
         foreach (HtmlRenderResult result in new[] {
             HtmlRenderEngine.Execute(bundle.HtmlDocument, svgRequest),
             HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, svgRequest).GetAwaiter().GetResult()
@@ -37,14 +39,15 @@ internal static class PackedSiteBundleContract {
         }
 
         HtmlRenderRequest pdfRequest = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions {
+            HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions {
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             });
         foreach (HtmlPdfRenderRequestResult result in new[] {
             bundle.RenderToPdfResult(pdfRequest),
             bundle.RenderToPdfResultAsync(pdfRequest).GetAwaiter().GetResult()
         }) {
-            PdfReadDocument pdf = PdfReadDocument.Open(result.ToBytes());
+            using var pdfInput = new MemoryStream(result.ToBytes());
+            using var pdf = PdfDocument.Load(pdfInput);
             if (!pdf.ExtractText().Contains("Packed site") || !pdf.ExtractImages().Any(image => image.IsImageFile))
                 throw new InvalidOperationException("Packed site-bundle PDF lost text or archive images.");
         }

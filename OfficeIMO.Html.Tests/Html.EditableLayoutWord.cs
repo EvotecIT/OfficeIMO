@@ -17,20 +17,20 @@ public sealed class HtmlEditableLayoutWordTests {
     public void PositionedRegionWithRawCommentStaysInSemanticFlow() {
         const string html = "<div style='position:absolute;width:180px;height:50px'>"
             + "Visible <!-- reviewer note -->text.</div>";
-        var options = new HtmlToWordOptions {
+        var options = new HtmlWordExportOptions {
             ImportHtmlComments = true,
             HtmlCommentAuthor = "HTML Reviewer",
             HtmlCommentInitials = "HR"
         };
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
         Assert.Equal("Visible text.", string.Concat(word.Paragraphs.Select(paragraph => paragraph.Text)));
         WordComment comment = Assert.Single(word.Comments);
         Assert.Equal("reviewer note", comment.Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "htmlComment=true; semanticFlow=true");
     }
@@ -40,7 +40,7 @@ public sealed class HtmlEditableLayoutWordTests {
         const string html = "<div style='position:absolute;width:180px;height:50px'>" +
             "<select name='status'><option>Draft</option><option selected>Approved</option></select></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
@@ -56,7 +56,7 @@ public sealed class HtmlEditableLayoutWordTests {
             "<img alt='Hidden marker' src='" + image + "' style='display:none'>" +
             "<img alt='Region marker' src='" + image + "' style='width:24px;height:18px;opacity:.4'></div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionImageOmitted);
         using var stream = new MemoryStream();
@@ -87,14 +87,14 @@ public sealed class HtmlEditableLayoutWordTests {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             return Task.FromResult(response);
         }));
-        var options = new HtmlToWordOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
-            ImageProcessing = ImageProcessingMode.Embed
+            ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
         const string html = "<div style='position:absolute;width:180px;height:70px'>" +
             "<img alt='Remote region' src='https://images.example.test/region.png'></div>";
 
-        HtmlToWordResult result = await HtmlConversionDocument.Parse(html).ToWordDocumentResultAsync(options);
+        HtmlToWordResult result = await HtmlConversionDocument.Parse(html).ConvertToWordWithEvidenceAsync(options);
         using var stream = new MemoryStream();
         result.Value.Save(stream);
         result.Value.Dispose();
@@ -109,11 +109,11 @@ public sealed class HtmlEditableLayoutWordTests {
     public void OversizedPageCoordinateIsBoundedWithStableDiagnostic() {
         const string html = "<div style='position:absolute;left:300000px;top:24px;width:180px;height:70px'>Bounded anchor</div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
 
-        Assert.Equal(int.MaxValue, Assert.Single(word.TextBoxes).HorizontalPositionOffset);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Equal(int.MaxValue, Assert.Single(word.TextBoxes).HorizontalPositionOffset?.ToEmus());
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("nativeRange", StringComparison.Ordinal));
@@ -123,13 +123,13 @@ public sealed class HtmlEditableLayoutWordTests {
     public void OversizedAnchorSizeIsBoundedWithStableDiagnostic() {
         const string html = "<div style='position:absolute;width:1000000000000000px;height:1000000000000000px'>Bounded size</div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
 
         WordTextBox textBox = Assert.Single(word.TextBoxes);
-        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Width);
-        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Height);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Width.ToEmus());
+        Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Height.ToEmus());
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("sizeRange", StringComparison.Ordinal));
@@ -141,11 +141,11 @@ public sealed class HtmlEditableLayoutWordTests {
         string html = "<div style='position:absolute;width:180px;height:50px'>Before" +
             "<img alt='Middle' src='" + image + "'>After</div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Detail == "mixedInlinePictures=true");
     }
 
@@ -157,11 +157,11 @@ public sealed class HtmlEditableLayoutWordTests {
             Profile = HtmlConversionProfile.HighFidelityPrint
         });
 
-        HtmlToWordResult result = document.ToWordDocumentResult();
+        HtmlToWordResult result = document.ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Print anchor", StringComparison.Ordinal));
+        Assert.NotEmpty(word.Find("Print anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }
@@ -171,12 +171,12 @@ public sealed class HtmlEditableLayoutWordTests {
         const string html = "<div style='height:1400px'>Long semantic flow</div>" +
             "<div style='position:absolute;top:24px;width:160px;height:40px'>Ambiguous anchor</div>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Ambiguous anchor", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.NotEmpty(word.Find("Ambiguous anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
@@ -185,11 +185,11 @@ public sealed class HtmlEditableLayoutWordTests {
     [Fact]
     public void CallerStylesheetContentsParticipateInEditableLayoutProjection() {
         const string html = "<div class='positioned'>Caller styled anchor</div>";
-        var options = new HtmlToWordOptions();
+        var options = new HtmlWordExportOptions();
         options.StylesheetContents.Add(
             ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}");
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument word = result.Value;
 
         Assert.Single(word.TextBoxes);
@@ -203,16 +203,16 @@ public sealed class HtmlEditableLayoutWordTests {
         try {
             File.WriteAllText(path,
                 ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}");
-            var options = new HtmlToWordOptions();
+            var options = new HtmlWordExportOptions();
             options.StylesheetPaths.Add(path);
 
             HtmlToWordResult result = HtmlConversionDocument.Parse(
-                "<div class='positioned'>Path styled anchor</div>").ToWordDocumentResult(options);
+                "<div class='positioned'>Path styled anchor</div>").ConvertToWordWithEvidence(options);
             using WordDocument word = result.Value;
 
             Assert.Empty(word.TextBoxes);
-            Assert.NotEmpty(word.Find("Path styled anchor", StringComparison.Ordinal));
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.NotEmpty(word.Find("Path styled anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
         } finally {
@@ -230,7 +230,7 @@ public sealed class HtmlEditableLayoutWordTests {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/css");
             return Task.FromResult(response);
         }));
-        var options = new HtmlToWordOptions {
+        var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
             HttpClient = httpClient
         };
@@ -239,12 +239,12 @@ public sealed class HtmlEditableLayoutWordTests {
             "<div class='positioned'>Linked styled anchor</div>";
 
         HtmlToWordResult result = await HtmlConversionDocument.Parse(html)
-            .ToWordDocumentResultAsync(options);
+            .ConvertToWordWithEvidenceAsync(options);
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Linked styled anchor", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.NotEmpty(word.Find("Linked styled anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
     }
@@ -257,7 +257,7 @@ public sealed class HtmlEditableLayoutWordTests {
             ".flex{display:flex;width:300px}</style>" +
             "<p>Ordinary flow</p><div class='positioned'>Editable positioned</div>" +
             "<div class='floating'>Editable float</div><div class='flex'><span>Flex remains</span></div>";
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using var stream = new MemoryStream();
         result.Value.Save(stream);
         result.Value.Dispose();
@@ -270,14 +270,14 @@ public sealed class HtmlEditableLayoutWordTests {
         WordTextBox floating = Assert.Single(reopened.TextBoxes, textBox =>
             textBox.Paragraphs.Any(paragraph => paragraph.Text.Contains("Editable float", StringComparison.Ordinal)));
 
-        Assert.Equal(762000, positioned.HorizontalPositionOffset);
-        Assert.Equal(685800, positioned.VerticalPositionOffset);
-        Assert.Equal(2286000L, positioned.Width);
-        Assert.Equal(685800L, positioned.Height);
-        Assert.Equal("DBEAFE", positioned.FillColorHex);
+        Assert.Equal(762000, positioned.HorizontalPositionOffset?.ToEmus());
+        Assert.Equal(685800, positioned.VerticalPositionOffset?.ToEmus());
+        Assert.Equal(2286000L, positioned.Width.ToEmus());
+        Assert.Equal(685800L, positioned.Height.ToEmus());
+        Assert.Equal(OfficeColor.Parse("DBEAFE"), positioned.FillColor);
         Assert.Equal(WordImageTextWrapping.InFrontOfText, positioned.WrapText);
         Assert.Equal(WordImageTextWrapping.Square, floating.WrapText);
-        Assert.NotEmpty(reopened.Find("Flex remains", StringComparison.Ordinal));
+        Assert.NotEmpty(reopened.Find("Flex remains", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
         Assert.True(result.Succeeded);

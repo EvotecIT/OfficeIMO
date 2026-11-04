@@ -93,13 +93,13 @@ public class PdfPageInterleaverTests {
     public void Interleave_UsesOutputPageOwnershipWhenDroppingIncomingNamedLinks() {
         byte[] primary = PdfDocument.Create()
             .Bookmark("PrimaryDestination")
-            .Paragraph(paragraph => paragraph.LinkToBookmark("Primary link one", "PrimaryDestination"))
+            .Paragraph(paragraph => paragraph.AddBookmarkLink("Primary link one", "PrimaryDestination"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.LinkToBookmark("Primary link two", "PrimaryDestination"))
+            .Paragraph(paragraph => paragraph.AddBookmarkLink("Primary link two", "PrimaryDestination"))
             .ToBytes();
         byte[] incoming = PdfDocument.Create()
             .Bookmark("IncomingDestination")
-            .Paragraph(paragraph => paragraph.LinkToBookmark("Incoming link", "IncomingDestination"))
+            .Paragraph(paragraph => paragraph.AddBookmarkLink("Incoming link", "IncomingDestination"))
             .ToBytes();
 
         PdfInterleaveResult result = PdfPageInterleaver.Interleave(
@@ -164,7 +164,7 @@ public class PdfPageInterleaverTests {
             new[] { firstSource, secondSource },
             new PdfInterleaveOptions {
                 MergeOptions = new PdfMergeOptions {
-                    ResizePages = new PdfPageResizeOptions(new PageSize(420, 595))
+                    ResizePages = new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(420),OfficeIMO.OfficeLength.Points(595)))
                 }
             });
 

@@ -13,7 +13,7 @@ public sealed class McpPdfProtocolTests {
         Directory.CreateDirectory(root);
         string source = Path.Combine(root, "protected.pdf"), admitted = "PDF_TEST_ADMITTED", unrelated = "PDF_TEST_UNRELATED";
         const string syntheticPassword = "synthetic-owner-only";
-        byte[] bytes = PdfDocument.Create(d => d.Content(c => c.Paragraph(p => p.Text("Protected page")))).ToBytes();
+        byte[] bytes = PdfDocument.Create(d => d.Content(c => c.AddParagraph(p => p.AddText("Protected page")))).ToBytes();
         byte[] encrypted = PdfDocument.Load(bytes).Security.Encrypt(new("synthetic-reader") { OwnerPassword = syntheticPassword }).Pdf;
         await File.WriteAllBytesAsync(source, encrypted);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
