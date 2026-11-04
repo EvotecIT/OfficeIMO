@@ -179,6 +179,11 @@ class SelectionTests(unittest.TestCase):
         self.assertTrue(result["suites"]["csv"])
         self.assertFalse(result["suites"]["word"])
 
+    def test_native_heic_host_selects_its_executable_lane(self):
+        repository = Path(__file__).resolve().parents[2]
+        result = selection.select(repository, ["Build/Verification/HeicSmoke/Program.cs"])
+        self.assertTrue(result["suites"]["platform-image-codecs"])
+
     def test_conditional_references_are_not_lost_on_another_os(self):
         path = self.root / "OfficeIMO.Word/OfficeIMO.Word.csproj"
         path.write_text('<Project><ItemGroup Condition="false"><ProjectReference Include="../OfficeIMO.CSV/OfficeIMO.CSV.csproj" /></ItemGroup></Project>')

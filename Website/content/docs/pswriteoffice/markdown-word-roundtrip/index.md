@@ -14,6 +14,6 @@ A Markdown-to-Word workflow is useful when authors prefer text-based source cont
 
 `ConvertTo-OfficeWordMarkdown` converts a Word path or loaded document to Markdown. Image export mode and image directory determine whether embedded images become sidecar files. Underline and highlight output are opt-in because not every Markdown target represents them consistently.
 
-The [Word round-trip recipe](https://github.com/EvotecIT/OfficeIMO/blob/25f36d5a7c1c92c35e66c295444f3d4fb7b29ec0/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-WordRoundTrip.ps1) creates Markdown, converts it to DOCX, and converts the Word file back to Markdown.
+The [Word round-trip recipe](https://github.com/EvotecIT/OfficeIMO/blob/bd6a2bb9a06ec83b28d8c8b67511769a8f3e3a83/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-WordRoundTrip.ps1) creates Markdown, converts it to DOCX, and converts the Word file back to Markdown.
 
 For heavily designed Word templates, define which semantic elements must survive before promising a round-trip. Tables, headings, lists, links, and basic emphasis are a better contract than exact pagination.
