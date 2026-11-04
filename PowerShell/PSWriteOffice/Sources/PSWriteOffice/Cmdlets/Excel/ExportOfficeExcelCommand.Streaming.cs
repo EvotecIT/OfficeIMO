@@ -50,7 +50,7 @@ public sealed partial class ExportOfficeExcelCommand {
                 throw new PSArgumentException("A new workbook accepts a worksheet name or position 1.", nameof(Sheet));
             _resolvedSheetName = Sheet.Position == 1 ? "Sheet1" : Sheet.Name;
         }
-        var properties = DocumentProperty?.Cast<DictionaryEntry>().ToDictionary(
+        var properties = DocumentProperty?.Cast<DictionaryEntry>().ToDictionary<DictionaryEntry, string, object?>(
             entry => Convert.ToString(entry.Key, CultureInfo.InvariantCulture)!,
             entry => entry.Value is PSObject wrapped ? wrapped.BaseObject : entry.Value,
             StringComparer.OrdinalIgnoreCase);
