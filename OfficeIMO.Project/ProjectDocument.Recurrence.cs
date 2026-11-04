@@ -12,7 +12,7 @@ public sealed partial class ProjectDocument {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(occurrenceStarts);
-        ArgumentOutOfRangeException.ThrowIfNegative(duration.Value, nameof(duration));
+        ArgumentOutOfRangeException.ThrowIfLessThan(duration.Value, 0m, nameof(duration));
         if (maxOccurrences < 1 || maxOccurrences > 100000) throw new ArgumentOutOfRangeException(nameof(maxOccurrences));
         EnsureMutable(); CheckMember(parent); CheckMember(calendar);
         if (parent?.Uid == 0) throw new ArgumentException("The reserved project summary cannot own outline tasks.", nameof(parent));

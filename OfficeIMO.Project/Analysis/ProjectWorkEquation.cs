@@ -4,7 +4,7 @@ namespace OfficeIMO.Project;
 public static class ProjectWorkEquation {
     /// <summary>Computes work from working minutes and allocation units. Elapsed durations must first be resolved against a calendar.</summary>
     public static ProjectWork Work(decimal workingMinutes, ProjectUnits units) {
-        ArgumentOutOfRangeException.ThrowIfNegative(workingMinutes);
+        ArgumentOutOfRangeException.ThrowIfLessThan(workingMinutes, 0m);
         return ProjectWork.FromMinutes(workingMinutes).Scale(units.Value);
     }
     /// <summary>Computes the uniform working duration for a fixed amount of work and positive total units.</summary>
