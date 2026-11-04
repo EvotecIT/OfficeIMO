@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System.Threading.Tasks;
 using VerifyXunit;
@@ -10,13 +8,7 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Tests bookmark creation and removal within documents.
 /// </summary>
-public class BookmarkTests : VerifyTestBase {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
-    }
-
+public class BookmarkTests {
     [Fact]
     public async Task BasicWordWithBookmarks() {
         using var document = WordDocument.Create();
@@ -57,8 +49,6 @@ public class BookmarkTests : VerifyTestBase {
         document.PageBreaks[7].Remove(includingParagraph: false);
         document.PageBreaks[6].Remove(true);
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

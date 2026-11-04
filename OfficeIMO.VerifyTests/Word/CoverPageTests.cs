@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Word;
+﻿using OfficeIMO.Word;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
@@ -9,13 +8,7 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Validates cover page functionality within generated documents.
 /// </summary>
-public class CoverPageTests : VerifyTestBase {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
-    }
-
+public class CoverPageTests {
     [Fact]
     public async Task AddingCoverPage() {
         using var document = WordDocument.Create();
@@ -39,9 +32,7 @@ public class CoverPageTests : VerifyTestBase {
         document.AddPageBreak();
         wordListToc.AddItem("More on the next page");
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument!);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -74,8 +65,6 @@ public class CoverPageTests : VerifyTestBase {
 
         document.TableOfContent!.Update();
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument!);
+        await Verifier.Verify(document);
     }
 }

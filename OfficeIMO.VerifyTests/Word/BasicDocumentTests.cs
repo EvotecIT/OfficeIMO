@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System.Threading.Tasks;
 using VerifyXunit;
@@ -11,22 +9,15 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Provides baseline document generation tests.
 /// </summary>
-public class BasicDocumentTests : VerifyTestBase {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
-    }
-
+public class BasicDocumentTests {
     [Fact]
     public async Task BasicEmptyWord() {
         using var document = WordDocument.Create();
         document.Properties.Title = "This is my title";
         document.Properties.Creator = "Przemysław Kłys";
         document.Properties.Keywords = "word, docx, test";
-        _ = document.ToBytes();
 
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -44,9 +35,7 @@ public class BasicDocumentTests : VerifyTestBase {
         paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
         paragraph.Color = Color.CornflowerBlue;
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -66,9 +55,7 @@ public class BasicDocumentTests : VerifyTestBase {
         _ = document.AddParagraph("Adding paragraph3 with some text and pressing ENTER");
         _ = document.AddParagraph("Adding paragraph4 with some text and pressing SHIFT+ENTER");
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -84,9 +71,7 @@ public class BasicDocumentTests : VerifyTestBase {
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
         paragraph.FontFamily = "Courier New";
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -105,8 +90,6 @@ public class BasicDocumentTests : VerifyTestBase {
 
         document.AddParagraph(title).SetBold().ParagraphAlignment = WordParagraphAlignment.Center;
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

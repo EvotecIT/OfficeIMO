@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Word;
+﻿using OfficeIMO.Word;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
@@ -9,13 +8,7 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Tests adding and verifying comments in documents.
 /// </summary>
-public class CommentTests : VerifyTestBase {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
-    }
-
+public class CommentTests {
     [Fact]
     public async Task PlayingWithComments() {
         using var document = WordDocument.Create();
@@ -28,8 +21,6 @@ public class CommentTests : VerifyTestBase {
 
         document.Paragraphs[1].AddComment("Przemysław", "PK", "More comments");
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

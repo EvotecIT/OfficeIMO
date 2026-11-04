@@ -1,25 +1,16 @@
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
-using Color = OfficeIMO.OfficeColor;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
-using Assert = OfficeIMO.VerifyTests.TestAssert;
 
 namespace OfficeIMO.VerifyTests.Word;
 
 /// <summary>
 /// Tests removal of images and related cleanup.
 /// </summary>
-public class ImageRemoveTests : VerifyTestBase {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
-    }
-
+public class ImageRemoveTests {
     [Fact]
     public async Task RemoveImageDeletesPart() {
         using var stream = new MemoryStream(new byte[] {
@@ -47,7 +38,6 @@ public class ImageRemoveTests : VerifyTestBase {
         Assert.Empty(defaultHeader.Images);
         Assert.Empty(headerPart.ImageParts);
 
-        _ = document.ToBytes();
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

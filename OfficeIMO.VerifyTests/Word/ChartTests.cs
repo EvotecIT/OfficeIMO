@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Color = OfficeIMO.OfficeColor;
 using System.Collections.Generic;
@@ -12,13 +10,7 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Tests generating documents that contain charts.
 /// </summary>
-public class ChartTests : VerifyTestBase {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
-    }
-
+public class ChartTests {
     [Fact]
     public async Task AddingMultipleCharts() {
         using var document = WordDocument.Create();
@@ -74,9 +66,7 @@ public class ChartTests : VerifyTestBase {
         area3d.AddCategories(categories);
         area3d.AddArea3D("USA", new List<int> { 5, 2, 3, 4 }, Color.DarkBlue);
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
 }
