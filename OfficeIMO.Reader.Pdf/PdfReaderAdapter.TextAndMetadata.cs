@@ -4,13 +4,13 @@ namespace OfficeIMO.Reader.Pdf;
 
 internal static partial class PdfReaderAdapter {
     private static PdfLoadOptions GetEffectiveReadOptions(ReaderOptions readerOptions, ReaderPdfOptions pdfOptions) {
-        PdfLoadOptions source = (pdfOptions.ReadOptions ?? PdfLoadOptions.Default).Clone();
-        if (readerOptions.Projection != ReaderProjection.TextAndMetadata) return source;
-        return new PdfLoadOptions {
-            Profile = source.Profile, PageSelection = source.PageSelection,
-            LayoutOptions = source.LayoutOptions, Pipeline = source.Pipeline,
-            IncludeImages = false, IncludeFormWidgets = false
-        };
+        PdfLoadOptions source = pdfOptions.ReadOptions ?? pdfOptions.LoadOptions ?? PdfLoadOptions.Default;
+        long inputLimit = readerOptions.MaxInputBytes.HasValue
+            ? Math.Min(readerOptions.MaxInputBytes.Value, source.Limits.MaxInputBytes)
+            : source.Limits.MaxInputBytes;
+        bool lean = readerOptions.Projection == ReaderProjection.TextAndMetadata;
+        return source.Snapshot(inputLimit, readerOptions.OpenPassword ?? pdfOptions.Password,
+            includeImagesOverride: lean ? false : null, includeFormWidgetsOverride: lean ? false : null);
     }
 
     private static IEnumerable<ReaderChunk> ReadTextAndMetadataChunks(IReadOnlyList<PdfLogicalPage> pages,

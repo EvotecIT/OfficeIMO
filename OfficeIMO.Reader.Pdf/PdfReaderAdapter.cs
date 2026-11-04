@@ -886,7 +886,7 @@ internal static partial class PdfReaderAdapter {
         long inputLimit = options.MaxInputBytes.HasValue
             ? Math.Min(options.MaxInputBytes.Value, source.Limits.MaxInputBytes)
             : source.Limits.MaxInputBytes;
-        return source.Snapshot(inputLimit, pdfOptions.Password);
+        return source.Snapshot(inputLimit, options.OpenPassword ?? pdfOptions.Password);
     }
 
     private static PdfDocument OpenReaderPdf(Stream stream, ReaderOptions options, ReaderPdfOptions pdfOptions, CancellationToken cancellationToken) {
