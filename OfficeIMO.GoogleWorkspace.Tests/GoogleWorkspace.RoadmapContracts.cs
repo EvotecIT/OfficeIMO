@@ -966,7 +966,7 @@ namespace OfficeIMO.Tests {
             const int total = 16;
             bool committed = false;
             int statusQueries = 0;
-            using var http = new HttpClient(new Handler(async request => {
+            using var http = new HttpClient(new Handler(async (request, cancellationToken) => {
                 if (request.Method == HttpMethod.Post) {
                     var initiated = Json("{}");
                     initiated.Headers.Location = new Uri("https://upload.googleapis.com/ambiguous-timeout");
@@ -983,7 +983,11 @@ namespace OfficeIMO.Tests {
                 }
 
                 committed = true;
-                await Task.Delay(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
+                try {
+                    await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
+                } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                    // The server committed the chunk before the client deadline expired.
+                }
                 return new HttpResponseMessage(HttpStatusCode.Created) {
                     Content = new StringContent("{\"id\":\"already-created\",\"version\":\"2\"}",
                         Encoding.UTF8, "application/json"),
@@ -994,7 +998,7 @@ namespace OfficeIMO.Tests {
                 HttpClient = http,
                 ExpectedAccount = "test@example.com",
                 MaxRetryCount = 0,
-                MaxRetryElapsedTime = TimeSpan.FromMilliseconds(50),
+                MaxRetryElapsedTime = TimeSpan.FromSeconds(5),
                 OperationReceiptSink = receipts.Add,
             };
             sessionOptions.OperationPolicyProvider = context => new GoogleWorkspaceOperationPolicy(
@@ -1583,10 +1587,11 @@ namespace OfficeIMO.Tests {
                 Task.FromException<int>(new IOException("Transient response read failure."));
         }
         private sealed class Handler : HttpMessageHandler {
-            private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
-            internal Handler(Func<HttpRequestMessage, HttpResponseMessage> handler) { _handler = request => Task.FromResult(handler(request)); }
-            internal Handler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) { _handler = handler; }
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => _handler(request);
+            private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
+            internal Handler(Func<HttpRequestMessage, HttpResponseMessage> handler) { _handler = (request, _) => Task.FromResult(handler(request)); }
+            internal Handler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) { _handler = (request, _) => handler(request); }
+            internal Handler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler) { _handler = handler; }
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) => _handler(request, cancellationToken);
         }
     }
 }
