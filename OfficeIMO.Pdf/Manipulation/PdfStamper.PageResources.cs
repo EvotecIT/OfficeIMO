@@ -26,13 +26,16 @@ internal static partial class PdfStamper {
         int pageObjectNumber,
         string fontResourceName,
         int stampPseudoObjectNumber,
-        bool behindContent) {
+        bool behindContent,
+        string? graphicsStateResourceName = null,
+        int graphicsStateObjectNumber = 0) {
         if (!objects.TryGetValue(pageObjectNumber, out var indirect) || indirect.Value is not PdfDictionary pageDictionary) {
             throw new InvalidOperationException("PDF page object " + pageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was not found.");
         }
 
         var contents = BuildContentsArray(objects, pageDictionary.Items.TryGetValue("Contents", out var contentsObj) ? contentsObj : null, stampPseudoObjectNumber, behindContent);
         var resources = BuildResourcesDictionary(objects, GetInheritedPageValue(objects, pageDictionary, "Resources"), fontResourceName);
+        AddStampOpacityResource(objects, resources, graphicsStateResourceName, graphicsStateObjectNumber);
 
         return new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
             ["Contents"] = contents,
@@ -46,18 +49,50 @@ internal static partial class PdfStamper {
         string imageResourceName,
         int stampPseudoObjectNumber,
         bool behindContent,
-        int imageObjectNumber = ImagePseudoObjectNumber) {
+        int imageObjectNumber = ImagePseudoObjectNumber,
+        string? graphicsStateResourceName = null,
+        int graphicsStateObjectNumber = 0) {
         if (!objects.TryGetValue(pageObjectNumber, out var indirect) || indirect.Value is not PdfDictionary pageDictionary) {
             throw new InvalidOperationException("PDF page object " + pageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was not found.");
         }
 
         var contents = BuildContentsArray(objects, pageDictionary.Items.TryGetValue("Contents", out var contentsObj) ? contentsObj : null, stampPseudoObjectNumber, behindContent);
         var resources = BuildImageResourcesDictionary(objects, GetInheritedPageValue(objects, pageDictionary, "Resources"), imageResourceName, imageObjectNumber);
+        AddStampOpacityResource(objects, resources, graphicsStateResourceName, graphicsStateObjectNumber);
 
         return new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
             ["Contents"] = contents,
             ["Resources"] = resources
         };
+    }
+
+    private static string? PrepareStampOpacity(
+        Dictionary<int, PdfIndirectObject> objects,
+        int[] pageObjectNumbers,
+        double opacity,
+        ref int nextObjectNumber,
+        out int graphicsStateObjectNumber) {
+        graphicsStateObjectNumber = 0;
+        if (opacity >= 1D) return null;
+        string resourceName = GetAvailableGraphicsStateResourceName(objects, pageObjectNumbers);
+        var state = new PdfDictionary();
+        state.Items["Type"] = new PdfName("ExtGState");
+        state.Items["ca"] = new PdfNumber(opacity);
+        state.Items["CA"] = new PdfNumber(opacity);
+        graphicsStateObjectNumber = nextObjectNumber++;
+        objects[graphicsStateObjectNumber] = new PdfIndirectObject(graphicsStateObjectNumber, 0, state);
+        return resourceName;
+    }
+
+    private static void AddStampOpacityResource(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary resources,
+        string? resourceName,
+        int objectNumber) {
+        if (resourceName == null) return;
+        var states = CloneDictionary(ResolveDictionary(objects, resources.Items.TryGetValue("ExtGState", out var existing) ? existing : null));
+        states.Items[resourceName] = new PdfReference(objectNumber, 0);
+        resources.Items["ExtGState"] = states;
     }
 
     private static PdfArray BuildContentsArray(Dictionary<int, PdfIndirectObject> objects, PdfObject? existingContents, int stampPseudoObjectNumber, bool behindContent) {

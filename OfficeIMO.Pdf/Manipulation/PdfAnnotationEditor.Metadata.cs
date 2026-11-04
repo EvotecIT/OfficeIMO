@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationEditor {
     // Editing needs annotation identity and properties even when copying page content is forbidden.
+    // Primary URI targets are included for identity selection under this annotation-mutation authorization.
     // The mutation planner retains that metadata privately and applies encryption/certification policy.
     internal static IReadOnlyList<PdfAnnotation> GetEditingMetadata(byte[] pdf, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         var annotations = GetAnnotationMutationDocumentInfo(RequireAnnotationMutation(pdf, readOptions, cancellationToken: cancellationToken)).Annotations;

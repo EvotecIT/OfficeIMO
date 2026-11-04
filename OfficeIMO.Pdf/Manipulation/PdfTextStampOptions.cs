@@ -16,6 +16,7 @@ public sealed class PdfTextStampOptions : IPdfOperationCancellation {
     private PdfStandardFont _font = PdfStandardFont.HelveticaBold;
     private global::OfficeIMO.OfficeLength _fontSize = global::OfficeIMO.OfficeLength.Points(24);
     private double _rotationDegrees;
+    private double _opacity = 1D;
 
     /// <summary>
     /// One-based page numbers to stamp. When null or empty, every page is stamped.
@@ -88,7 +89,7 @@ public sealed class PdfTextStampOptions : IPdfOperationCancellation {
     }
 
     /// <summary>
-    /// RGB text color.
+    /// Text color, including alpha. Theme roles resolve against the default theme.
     /// </summary>
     public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
@@ -100,6 +101,17 @@ public sealed class PdfTextStampOptions : IPdfOperationCancellation {
         set {
             ValidateFinite(value, nameof(RotationDegrees), "Text stamp rotation must be finite.");
             _rotationDegrees = value;
+        }
+    }
+
+    /// <summary>Text opacity from 0 through 1, multiplied by the text color alpha. Defaults to 1.</summary>
+    public double Opacity {
+        get => _opacity;
+        set {
+            if (value < 0D || value > 1D || double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new System.ArgumentOutOfRangeException(nameof(Opacity), value, "Stamp opacity must be finite and between 0 and 1.");
+            }
+            _opacity = value;
         }
     }
 

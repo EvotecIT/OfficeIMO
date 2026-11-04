@@ -364,6 +364,10 @@ internal static partial class PdfStamper {
         if (!IsIdentity(targetVisualToUser)) {
             content.TransformMatrix(targetVisualToUser.A, targetVisualToUser.B, targetVisualToUser.C, targetVisualToUser.D, targetVisualToUser.E, targetVisualToUser.F);
         }
+        if (options.RotationDegrees != 0D) {
+            OfficeTransform rotation = OfficeTransform.RotateDegrees(options.RotationDegrees, frameX, frameY);
+            content.TransformMatrix(rotation.M11, rotation.M12, rotation.M21, rotation.M22, rotation.OffsetX, rotation.OffsetY, preciseCoordinates: true);
+        }
         if (options.Fit == PdfPageOverlayFit.Cover) content.Rectangle(frameX, frameY, frameWidth, frameHeight).ClipPath().EndPath();
         if (graphicsStateResourceName != null) content.GraphicsState(graphicsStateResourceName);
         content.TransformMatrix(drawWidth / sourceWidth, 0D, 0D, drawHeight / sourceHeight, drawX, drawY)

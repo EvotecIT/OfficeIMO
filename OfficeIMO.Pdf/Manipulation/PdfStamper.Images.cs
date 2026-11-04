@@ -114,6 +114,8 @@ internal static partial class PdfStamper {
                 return number;
             }, PdfFileAssembler.ResolveFileVersion(PdfSyntax.GetHeaderVersion(pdf), document.CatalogVersion));
 
+            string? graphicsStateResourceName = PrepareStampOpacity(rewrittenObjects, pageObjectNumbers,
+                effectiveOptions.Opacity, ref nextObjectNumber, out int graphicsStateObjectNumber);
             for (int i = 0; i < document.Pages.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int pageNumber = i + 1;
@@ -132,14 +134,17 @@ internal static partial class PdfStamper {
                         imageStream.LayoutPixelHeight,
                         imageStream.Orientation,
                         effectiveOptions,
-                        watermarkDefaults));
+                        watermarkDefaults,
+                        graphicsStateResourceName));
                 Dictionary<string, PdfObject> pageOverrides = BuildImagePageOverrides(
                     rewrittenObjects,
                     pageObjectNumbers[i],
                     imageResourceName,
                     stampObjectNumber,
                     effectiveOptions.BehindContent,
-                    imageObjectNumber);
+                    imageObjectNumber,
+                    graphicsStateResourceName,
+                    graphicsStateObjectNumber);
                 PdfDictionary pageDictionary = (PdfDictionary)rewrittenObjects[pageObjectNumbers[i]].Value;
                 foreach (KeyValuePair<string, PdfObject> item in pageOverrides) pageDictionary.Items[item.Key] = item.Value;
             }
@@ -433,6 +438,7 @@ internal static partial class PdfStamper {
             Width = options.Width,
             Height = options.Height,
             RotationDegrees = options.RotationDegrees,
+            Opacity = options.Opacity,
             MaximumEncodedImageBytes = options.MaximumEncodedImageBytes,
             BehindContent = true
         };
