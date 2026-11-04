@@ -8,19 +8,10 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Unified public API
 
-OfficeIMO 3.6 and PSWriteOffice 3.6 adopt one public API across C# and PowerShell: shared lengths, colors, themes and conversion reports; one lifecycle and conversion grammar per format; format packages without other format engines; consolidated, parameter-set-based cmdlets with one alias rule; and themed output by default. The [API design](officeimo.api-design.md) defines the rules. Milestones merge into the `feature/api-unification` branch, which reaches `master` as one pull request.
+The [API design](officeimo.api-design.md) defines the shared lengths, colors, themes, reports, lifecycle and conversion grammar. [MIGRATION.md](../MIGRATION.md) is generated from the [C# and PowerShell maps](../Build/ApiMap) and lists the upgrade actions.
 
-- [ ] M0 Contract: the design, generated inventories of today's C# and PowerShell API, and the machine-readable old-to-new command and type map that drives `MIGRATION.md`, the replacement test and removed-command hints.
-- [ ] M1 Foundations: `OfficeLength`, `OfficeColor` roles, `OfficeTheme`, shared `Office*` enums and options, the diagnostic catalog and `OfficeConversionReport`. Depends on M0.
-- [ ] M2 C# Tier 1: lifecycle including PDF, options naming, `Add*` returns and typed tables and charts, units, the conversion forms, `OfficeConverter`, fluent API removal, the Excel streaming writer, visibility cleanup, adapter packages without cross-engine dependencies, the `OfficeIMO` front-door package, unchanged framework reach (`netstandard2.0`, `net472`, `net8.0`, `net10.0`) for every library including the front door and Workflows, and AOT flags. Depends on M1.
-- [ ] M3 PowerShell foundations: shared base classes for paths, documents, lengths, colors, passwords, themes, switches and `-WhatIf` scope; format views; alias rules and their tests; assembly isolation on PowerShell 7.4 and later. Depends on M1.
-- [ ] M4 Cross-format commands: add `Test-OfficeDocument`, `Repair-OfficeDocument`, `Unprotect-OfficeDocument` and `Compare-OfficeDocument` over their owning engines; finish the common converter's page, theme, OCR and image-export controls and printer filtering. Add `New-OfficeGoogleWorkspaceSession` only after its optional authentication provider and credential-storage contract are approved. Keep the [command map](../Build/ApiMap/powershell/crossformat.json) aligned with implemented commands and executable examples.
-- [ ] M5 Format commands: complete the remaining consolidation and shared DSL in the [format command maps](../Build/ApiMap/powershell), with native option snapshots and thin cmdlets. Qualify the strict parameter-set and alias contracts before enabling their remaining validation cases.
-  - Excel: finish `Import-OfficeExcel` table/culture/output selection and `Export-OfficeExcel` create/append/replace, address, theme, formatting, freeze and save policies. Consolidate rich text, charts/data labels, subtotals, connections, validation and conditional formatting; add report heading/KPI/chart helpers and test/repair/HTML/compare option builders. Retire remaining worksheet-name, open and legacy command aliases through the map.
-  - Word and Markdown: add `New-OfficeMarkdownWordOptions` with detached template ownership and the shared theme; finish Word parameter consolidation, Markdown text/list-item commands, and Markdown HTML/PowerPoint/RTF option builders.
-  - PDF: finish list-item/chart/column/page-number authoring, form-field updates, optimization, selective content removal, redaction-area creation and document updates; add native encryption and merge option builders. Complete the remaining parameter and alias consolidation without silently ignoring native policies.
-  - Tier 2: complete open/save/close and native option builders for RTF, OpenDocument, AsciiDoc, LaTeX, iWork and OneNote; finish Visio lifecycle/stencil-catalog import, Project lifecycle/views/tables, Access opening and email/mailbox opening. Keep engine capabilities and the availability of a PowerShell command distinct.
-- [ ] M6 Visual quality: built-in themes, PowerPoint layouts with automatic selection and overflow handling, `Export-OfficePowerPoint` from data, Markdown outlines to decks, Word, Excel and PDF defaults, chart styling and visual acceptance. Depends on M1, then runs alongside M5.
+- [ ] M4 Google Workspace desktop OAuth: qualify an optional authentication provider and secure credential storage before adding interactive desktop sessions. Service-account sessions use the existing native credential source.
+- [ ] M6 Visual quality: built-in themes, PowerPoint layouts with automatic selection and overflow handling, `Export-OfficePowerPoint` from data, Markdown outlines to decks, Word, Excel and PDF defaults, chart styling and visual acceptance.
   - Fonts and themes: the theme model carries every value in `Build/Visual/themes.json`; fonts resolve through the theme fallback lists (Carlito for Calibri, Aptos to Carlito) and are embedded by default in every PDF route.
   - Charts: one renderer with readable axis scales, per-point colours, rotated axis titles, label collision handling and trendlines; valid chart parts in Word and PowerPoint.
   - Word: page numbers in content controls, tracked changes, symbol-font bullets, narrow tables, equations, floating shapes and TOC page numbers in PDF export; theme-based heading, table and column-width defaults.
@@ -30,9 +21,9 @@ OfficeIMO 3.6 and PSWriteOffice 3.6 adopt one public API across C# and PowerShel
   - PDF to Office: multi-column reading order, table detection, table styling, image placement, numeric cultures, fonts and form fields; Word, PowerPoint and Markdown round trips.
   - PowerPoint: the layout system in `Build/Visual/powerpoint-layouts.json` replacing today's designer composition, with a text-style chain, placeholders, table fitting and balanced continuations.
   - Every route reports what it drops; no supported input crashes a conversion.
-- [ ] M7 Scale: streaming export, parallel and resumable batches, measured runs. Depends on M4.
-- [ ] M8 Documentation: root and package READMEs with a quick start on the first screen, getting-started guides, help with executed examples, enum values and output properties with a sample of the output, `about_` topics, the 3.6 migration section generated from the map, and the website. Depends on M5.
-- [ ] M9 Console experience: optional ConsoleMonster integration. Depends on M5.
+- [ ] M7 Scale: qualify streaming export and parallel or resumable batches on matched workloads, with retained correctness and memory evidence.
+- [ ] M8 Documentation: extend the getting-started guides and executable examples with enum choices, output properties and representative results for each format. Keep package quick starts, command help, `about_` topics and website pages aligned with those examples.
+- [ ] M9 Console experience: optional ConsoleMonster integration.
 
 ## VBA host integration
 

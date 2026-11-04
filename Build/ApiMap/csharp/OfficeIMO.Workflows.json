@@ -806,7 +806,7 @@
       "kind": "type",
       "action": "change",
       "new": "OfficeIMO.Workflows.MarkdownToPowerPointOptions / MarkdownSlideBreak; MarkdownDocument.ToPowerPoint(options[,out report],ct) and async/result/report-returning save forms",
-      "replacement": "Markdown-specific boundaries, heading titles, front matter, speaker notes, parser profiles and image policies project to the existing OfficeIMO Markup native presentation renderer. Mermaid options are actually forwarded to that renderer. Workflows owns the optional pair and typed MarkdownPowerPoint slot; no Markup production file or renderer implementation is copied. The canonical markdown-pptx route is registered by Workflows; central support assessment and catalog metadata remain Core-owned.",
+      "replacement": "Markdown-specific boundaries, heading titles, front matter, speaker notes, parser profiles and image policies project to the existing OfficeIMO Markup native presentation renderer. Mermaid source is retained with omission diagnostics; this route does not execute an external renderer. Applications can materialize static Mermaid images through the optional OfficeIMO.ChartForgeX.Markdown adapter before conversion. Workflows owns the optional pair and typed MarkdownPowerPoint slot; no Markup production file or renderer implementation is copied. The canonical markdown-pptx route is registered by Workflows; central support assessment and catalog metadata remain Core-owned.",
       "category": "conversion",
       "applied": true
     }

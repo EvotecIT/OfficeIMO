@@ -8078,16 +8078,18 @@
       "note": "Footer shape authoring continues through its paragraphs; section convenience methods migrate with the exact map. Polygon point strings and shape-group geometry belong to separate map rows. Public lengths use exact native EMUs and invariant decimal VML points; internal point readers preserve imported renderer precision."
     },
     {
-      "change": "Validate consolidated VML shape colors before document mutation",
-      "reason": "The former typed-color forwards converted colors before creating a paragraph. The single nullable-color factory retains that ordering, so a rejected color leaves no paragraph or shape behind. Geometry, nullable clearing and native defaults remain unchanged.",
+      "change": "Resolve shape and cell colors against the owning document",
+      "reason": "DrawingML shapes and table shading preserve native theme slots. VML shapes and status colors resolve against the destination document's theme. Reusable cell definitions retain their role until applied, and literal edits clear superseded theme overrides. Retained inspection objects keep the native color context when shapes are first accessed after the package closes. Existing public color signatures and geometry remain unchanged.",
       "phase": "B",
       "applied": "phase-b-applied",
       "files": [
-        "OfficeIMO.Word/WordShape.cs",
-        "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
-        "OfficeIMO.Word/WordDocument.PublicMethods.cs",
-        "OfficeIMO.Word/WordHeader.cs",
-        "OfficeIMO.Word/WordSection.PublicMethods.cs"
+        "OfficeIMO.Word/WordShape.Colors.cs",
+        "OfficeIMO.Word/WordRunColor.cs",
+        "OfficeIMO.Word/WordDocument.ColorContext.cs",
+        "OfficeIMO.Word/WordDocument.Lifecycle.cs",
+        "OfficeIMO.Word/WordTableCell.cs",
+        "OfficeIMO.Word/WordShapeGroup.cs",
+        "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs"
       ]
     },
     {
