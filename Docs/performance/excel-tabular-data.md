@@ -938,6 +938,8 @@ One complete before/after pair covers all eleven lanes. A reversed repeat covers
 the affected OfficeIMO raw and typed lanes and their ExcelReader.NET controls.
 Each uses eight warmups, twelve measurements, sixteen invocations, unroll one
 and no outlier removal. Medians below combine both series where repeated.
+The evidence artifact’s `protocol.reproduction` records each leg’s exact command,
+filter, frozen-harness setup and invocation count, including the shape controls.
 
 | Lane | Library | Before ms | After ms | Allocation before → after MiB |
 |---|---|---:|---:|---:|
@@ -1111,7 +1113,10 @@ Final proof passes 7,784 Excel net10.0 tests with five expected skips, all 965
 CSV net10.0 tests and all 956 CSV net8.0 tests. Both libraries build for all four
 targets. Native osx-arm64 AOT passes for CSV stream/text/partition parsing and
 large escaped implicit XLSX raw and typed reads. The focused Excel run passes
-130 cases, including deliberately aligned forbidden XML sequences. Windows/x64
+130 cases, including deliberately aligned forbidden XML sequences. The nine
+aligned XML cases use canonical inline-cell text with valid controls. Removing
+the two character guards makes all nine fail; restoring the unchanged
+implementation passes the final suite. Windows/x64
 performance and Windows net472 runtime need their own execution evidence.
 
 ## Remaining costs and limits

@@ -41,7 +41,88 @@
     "hostLimits": "Normal priority, no processor affinity or quiet-host claim. Unrelated CI test jobs ran on this host during some shape controls. M4 has performance and efficiency cores. Preserve all samples; unchanged-lane timing movement is not attributed to this change. This is not a portable ranking.",
     "readBoundary": "Existing workload: OfficeIMO opens decoded text through StringReader; ExcelReader.NET consumes prepared UTF-8 bytes. Both return and consume every owned field string. Encoding preparation is outside timing.",
     "writeBoundary": "Prepared projected rows to a finalized UTF-8 MemoryStream; return its byte length. No extra ToArray copy or row preparation is timed.",
-    "validation": "Existing Setup validates every field and typed row, and reopens every writer output. Measured scans retain count/checksum work."
+    "validation": "Existing Setup validates every field and typed row, and reopens every writer output. Measured scans retain count/checksum work.",
+    "reproduction": {
+      "shell": "zsh; quote each filter so the shell does not expand it. Execute each listed command separately, in order, without concurrent benchmark processes.",
+      "variables": {
+        "RUN_ROOT": "An absolute, task-owned output directory containing the frozen csv-baseline and csv-cached folders.",
+        "HEAVY_LOCK": "The existing shared heavy-run lock; /Volumes/Samsung/Development/Scratch/heavy-run.lock on this host.",
+        "BASELINE_SOURCE": "A separate source checkout at baselineCommit, 41fbfd10e80e81b0e3abddec6020faff6b4b4acd.",
+        "CANDIDATE_SOURCE": "A separate source checkout at implementationCommit, d50de622e20f9443f555d2da492bb69f76bf189a."
+      },
+      "environment": [
+        "export MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0"
+      ],
+      "freezeCommands": [
+        "lockf -k \"$HEAVY_LOCK\" dotnet build \"$BASELINE_SOURCE/OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj\" -c Release -f net10.0 -m:2 -p:UseSharedCompilation=false",
+        "cp -R \"$BASELINE_SOURCE/OfficeIMO.CSV.Benchmarks/bin/Release/net10.0\" \"$RUN_ROOT/csv-baseline\"",
+        "lockf -k \"$HEAVY_LOCK\" dotnet build \"$CANDIDATE_SOURCE/OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj\" -c Release -f net10.0 -m:2 -p:UseSharedCompilation=false",
+        "cp -R \"$RUN_ROOT/csv-baseline\" \"$RUN_ROOT/csv-cached\"",
+        "cp \"$CANDIDATE_SOURCE/OfficeIMO.CSV.Benchmarks/bin/Release/net10.0/OfficeIMO.CSV.dll\" \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.dll\"",
+        "cp \"$CANDIDATE_SOURCE/OfficeIMO.CSV.Benchmarks/bin/Release/net10.0/OfficeIMO.CSV.pdb\" \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.pdb\""
+      ],
+      "freezeChecks": "Use new destination folders. Only OfficeIMO.CSV.dll differs between the frozen DLL sets; baselineAssemblies and candidateAssemblies record the measured hashes. The source checkouts are inputs, not branch-switching instructions. Run under the recorded SDK/runtime and packages; a later SDK rebuild need not reproduce identical metadata hashes.",
+      "commands": [
+        {
+          "leg": "K-A1",
+          "invocationCount": 16,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CsvExcelReaderGeneratedBenchmarks*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-K-A1\" > \"$RUN_ROOT/csv-K-A1.log\" 2>&1"
+        },
+        {
+          "leg": "K-B1",
+          "invocationCount": 16,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CsvExcelReaderGeneratedBenchmarks*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-K-B1\" > \"$RUN_ROOT/csv-K-B1.log\" 2>&1"
+        },
+        {
+          "leg": "K-B2",
+          "invocationCount": 16,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CsvExcelReaderGeneratedBenchmarks.OfficeIMO_Read*' '*CsvExcelReaderGeneratedBenchmarks.OfficeIMO_Parse*' '*CsvExcelReaderGeneratedBenchmarks.ExcelReaderNet_Read*' '*CsvExcelReaderGeneratedBenchmarks.ExcelReaderNet_Parse*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-K-B2\" > \"$RUN_ROOT/csv-K-B2.log\" 2>&1"
+        },
+        {
+          "leg": "K-A2",
+          "invocationCount": 16,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CsvExcelReaderGeneratedBenchmarks.OfficeIMO_Read*' '*CsvExcelReaderGeneratedBenchmarks.OfficeIMO_Parse*' '*CsvExcelReaderGeneratedBenchmarks.ExcelReaderNet_Read*' '*CsvExcelReaderGeneratedBenchmarks.ExcelReaderNet_Parse*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 16 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-K-A2\" > \"$RUN_ROOT/csv-K-A2.log\" 2>&1"
+        },
+        {
+          "shape": "Mixed",
+          "leg": "A",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Mixed*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Mixed*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Mixed-A\" > \"$RUN_ROOT/csv-cached-shape-Mixed-A.log\" 2>&1"
+        },
+        {
+          "shape": "Mixed",
+          "leg": "B",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Mixed*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Mixed*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Mixed-B\" > \"$RUN_ROOT/csv-cached-shape-Mixed-B.log\" 2>&1"
+        },
+        {
+          "shape": "Quoted",
+          "leg": "A",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Quoted*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Quoted*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Quoted-A\" > \"$RUN_ROOT/csv-cached-shape-Quoted-A.log\" 2>&1"
+        },
+        {
+          "shape": "Quoted",
+          "leg": "B",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Quoted*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Quoted*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Quoted-B\" > \"$RUN_ROOT/csv-cached-shape-Quoted-B.log\" 2>&1"
+        },
+        {
+          "shape": "Multiline",
+          "leg": "A",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-baseline/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Multiline*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Multiline*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Multiline-A\" > \"$RUN_ROOT/csv-cached-shape-Multiline-A.log\" 2>&1"
+        },
+        {
+          "shape": "Multiline",
+          "leg": "B",
+          "invocationCount": 64,
+          "command": "lockf -k \"$HEAVY_LOCK\" dotnet \"$RUN_ROOT/csv-cached/OfficeIMO.CSV.Benchmarks.dll\" --filter '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadDataReaderGetStrings*25000*Multiline*' '*CSV.Benchmarks.CsvBenchmarks.OfficeIMO_ReadTypedRowsForwardOnly*25000*Multiline*' --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 64 --unrollFactor 1 --outliers DontRemove --artifacts \"$RUN_ROOT/csv-cached-shape-Multiline-B\" > \"$RUN_ROOT/csv-cached-shape-Multiline-B.log\" 2>&1"
+        }
+      ],
+      "selection": "K-A1/K-B1 select all eleven generated comparison lanes. K-B2/K-A2 select the four raw/typed OfficeIMO and ExcelReader.NET lanes. Each shape command runs two OfficeIMO methods in its own fresh process; invocation counts are 16 for generated lanes and 64 for shape controls. These are the filters and settings from the retained accepted-run script.",
+      "workingDirectories": "Run each build from its corresponding source checkout root to select the repository SDK. Run the frozen benchmark commands from RUN_ROOT, using the recorded SDK/runtime and package versions."
+    }
   },
   "fixture": {
     "rows": 50000,
