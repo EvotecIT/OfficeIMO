@@ -11,18 +11,13 @@ namespace PSWriteOffice.Foundation;
 public abstract class OfficeLifecycleCmdlet<TDocument> : OfficeCmdlet, IDisposable where TDocument : class, IDisposable {
     private readonly CancellationTokenSource _stop = new();
     /// <summary>Gets or sets a content block; omission returns the live document.</summary>
-    [Parameter(Position = 1)]
-    [ValidateNotNull]
-    public ScriptBlock? Content { get; set; }
+    public virtual ScriptBlock? Content { get; set; }
     /// <summary>Gets or sets whether a completed content block returns the saved FileInfo.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
+    public virtual SwitchParameter PassThru { get; set; }
     /// <summary>Gets or sets whether native-save loss is explicitly accepted.</summary>
-    [Parameter]
-    public SwitchParameter AllowLoss { get; set; }
+    public virtual SwitchParameter AllowLoss { get; set; }
     /// <summary>Gets or sets whether the saved file opens in the system default application.</summary>
-    [Parameter]
-    public SwitchParameter Show { get; set; }
+    public virtual SwitchParameter Show { get; set; }
 
     /// <summary>Creates/loads a live document or runs and atomically publishes a content block on the pipeline thread.</summary>
     /// <param name="path">The provider path. A path is optional only for a new live document.</param>

@@ -14,17 +14,17 @@ public abstract class OfficeNewLifecycleCmdlet<TDocument> : OfficeLifecycleCmdle
     /// <summary>Authoring block to complete before the document is atomically saved and closed.</summary>
     [Parameter(Mandatory = true, Position = 1, ParameterSetName = "Content")]
     [ValidateNotNull]
-    public new ScriptBlock? Content { get => base.Content; set => base.Content = value; }
+    public override ScriptBlock? Content { get => base.Content; set => base.Content = value; }
 
     /// <summary>Return the saved FileInfo after a completed content block.</summary>
     [Parameter(ParameterSetName = "Content")]
-    public new SwitchParameter PassThru { get => base.PassThru; set => base.PassThru = value; }
+    public override SwitchParameter PassThru { get => base.PassThru; set => base.PassThru = value; }
 
     /// <summary>Explicitly accept reductions reported by the content block's native save.</summary>
     [Parameter(ParameterSetName = "Content")]
-    public new SwitchParameter AllowLoss { get => base.AllowLoss; set => base.AllowLoss = value; }
+    public override SwitchParameter AllowLoss { get => base.AllowLoss; set => base.AllowLoss = value; }
 
     /// <summary>Open the saved result in its registered application after the content block succeeds.</summary>
     [Parameter(ParameterSetName = "Content")]
-    public new SwitchParameter Show { get => base.Show; set => base.Show = value; }
+    public override SwitchParameter Show { get => base.Show; set => base.Show = value; }
 }

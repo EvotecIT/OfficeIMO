@@ -21,6 +21,8 @@ public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformatio
     /// <inheritdoc />
     public override object Transform(EngineIntrinsics engineIntrinsics, object inputData) {
         object? value = OfficeArgumentValue.Unwrap(inputData);
+        if (OptionsType == typeof(OfficeIMO.Pdf.PdfLoadOptions) && value is Models.Pdf.PdfReadOptions pdf)
+            return pdf.Snapshot().LoadOptions;
         if (value != null && OptionsType.IsInstanceOfType(value)) return value;
         if (value is not IDictionary dictionary) throw OfficeArgumentValue.Invalid("Expected a typed options object or hashtable.");
         return ApplyTo(engineIntrinsics, Activator.CreateInstance(OptionsType)!, dictionary);
@@ -42,11 +44,17 @@ public sealed class OfficeOptionsTransformationAttribute : ArgumentTransformatio
                 // Preserve native null/reset semantics; PowerShell converts null strings to empty strings.
                 if (input == null && (!property.PropertyType.IsValueType || Nullable.GetUnderlyingType(property.PropertyType) != null)) converted = null;
                 else if (property.PropertyType == typeof(OfficeIMO.Pdf.PdfPageSelection)) converted = OfficePageRange.From(input!).Selection;
-                else if (property.PropertyType == typeof(OfficeIMO.OfficeLength)) converted = new OfficeLengthTransformationAttribute().Transform(engineIntrinsics, input!);
-                else if (property.PropertyType == typeof(OfficeIMO.OfficeColor)) converted = new OfficeColorTransformationAttribute().Transform(engineIntrinsics, input!);
+                else if (property.PropertyType == typeof(OfficeIMO.OfficeLength) || property.PropertyType == typeof(OfficeIMO.OfficeLength?) || property.PropertyType == typeof(OfficeIMO.OfficeLength[])) converted = new OfficeLengthTransformationAttribute().Transform(engineIntrinsics, input!);
+                else if (property.PropertyType == typeof(OfficeIMO.OfficeColor) || property.PropertyType == typeof(OfficeIMO.OfficeColor?)) converted = new OfficeColorTransformationAttribute().Transform(engineIntrinsics, input!);
                 else if ((Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType) is var geometry &&
                     (geometry == typeof(OfficeIMO.Pdf.PdfPageSize) || geometry == typeof(OfficeIMO.Drawing.OfficePageSize)))
                     converted = new OfficePageSizeTransformationAttribute(geometry).Transform(engineIntrinsics, input!);
+                else if (property.PropertyType == typeof(OfficeIMO.Excel.OfficeSheetSelector[]) ||
+                    property.PropertyType == typeof(IReadOnlyList<OfficeIMO.Excel.OfficeSheetSelector>) ||
+                    property.PropertyType == typeof(IReadOnlyCollection<OfficeIMO.Excel.OfficeSheetSelector>)) {
+                    object selection = new OfficeSheetTransformationAttribute().Transform(engineIntrinsics, input!);
+                    converted = selection is OfficeIMO.Excel.OfficeSheetSelector single ? new[] { single } : selection;
+                }
                 else if (property.PropertyType.IsGenericType &&
                     (property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyList<>) ||
                      property.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyCollection<>)))
