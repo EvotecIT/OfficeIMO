@@ -10,9 +10,9 @@ public partial class WordImage {
         set => horizontalPosition.RelativeFrom = value.ToOpenXml();
     }
 
-    /// <summary>Gets or sets the horizontal image offset.</summary>
+    /// <summary>Gets or sets the horizontal image offset. Inline images have no page offset and return null.</summary>
     public OfficeLength? HorizontalPositionOffset {
-        get => ReadPositionOffset(horizontalPosition.PositionOffset);
+        get => ReadPositionOffset(_Image.Anchor?.HorizontalPosition?.PositionOffset);
         set => horizontalPosition.PositionOffset = value.HasValue
             ? new PositionOffset { Text = value.Value.ToEmus().ToString(CultureInfo.InvariantCulture) }
             : null;
@@ -24,9 +24,9 @@ public partial class WordImage {
         set => verticalPosition.RelativeFrom = value.ToOpenXml();
     }
 
-    /// <summary>Gets or sets the vertical image offset.</summary>
+    /// <summary>Gets or sets the vertical image offset. Inline images have no page offset and return null.</summary>
     public OfficeLength? VerticalPositionOffset {
-        get => ReadPositionOffset(verticalPosition.PositionOffset);
+        get => ReadPositionOffset(_Image.Anchor?.VerticalPosition?.PositionOffset);
         set => verticalPosition.PositionOffset = value.HasValue
             ? new PositionOffset { Text = value.Value.ToEmus().ToString(CultureInfo.InvariantCulture) }
             : null;

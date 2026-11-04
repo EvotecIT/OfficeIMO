@@ -17,9 +17,8 @@ namespace OfficeIMO.Tests {
 
             var image = document.Images.FirstOrDefault();
             Assert.NotNull(image);
-            var loc = image!.Location;
-            Assert.Equal(0, loc.X);
-            Assert.Equal(0, loc.Y);
+            Assert.Null(image!.HorizontalPositionOffset);
+            Assert.Null(image.VerticalPositionOffset);
 
             document.Save();
         }
@@ -46,9 +45,8 @@ namespace OfficeIMO.Tests {
 
             var image = document.Images.FirstOrDefault();
             Assert.NotNull(image);
-            var loc = image!.Location;
-            Assert.Equal(offset, loc.X);
-            Assert.Equal(offset, loc.Y);
+            Assert.Equal((long)offset, image!.HorizontalPositionOffset!.Value.ToEmus());
+            Assert.Equal((long)offset, image.VerticalPositionOffset!.Value.ToEmus());
 
             document.Save();
         }

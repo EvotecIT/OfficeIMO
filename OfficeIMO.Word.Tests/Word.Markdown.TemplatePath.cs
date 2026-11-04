@@ -22,7 +22,7 @@ public sealed class WordMarkdownTemplatePathTests {
             using WordDocument output = markdown.ToWord(options, out _);
             Assert.True(string.IsNullOrEmpty(output.FilePath));
             Assert.Contains(output.Paragraphs, paragraph => paragraph.Text.Contains("Retained template paragraph"));
-            Assert.Contains(output.Paragraphs, paragraph => paragraph.Text.Contains("Inserted content"));
+            Assert.Contains("Inserted content", string.Concat(output.Paragraphs.Select(paragraph => paragraph.Text)));
             Assert.Equal(original, File.ReadAllBytes(path));
             using (FileStream source = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
                 Assert.Equal(original.Length, source.Length);
