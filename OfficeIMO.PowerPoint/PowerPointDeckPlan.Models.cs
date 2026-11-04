@@ -135,8 +135,8 @@ namespace OfficeIMO.PowerPoint {
             string title, string? subtitle, string? seed, string resolvedSeed, string designSeed,
             int contentItemCount, string? layoutVariant, IReadOnlyList<string> layoutReasons,
             string directionName, PowerPointDesignMood mood, PowerPointSlideDensity density,
-            PowerPointVisualStyle visualStyle, PowerPointAutoLayoutStrategy layoutStrategy, string headingFontName,
-            string bodyFontName) {
+            PowerPointVisualStyle visualStyle, PowerPointAutoLayoutStrategy layoutStrategy, string headingFontFamily,
+            string bodyFontFamily) {
             Index = index;
             Kind = kind;
             Title = title;
@@ -152,8 +152,8 @@ namespace OfficeIMO.PowerPoint {
             Density = density;
             VisualStyle = visualStyle;
             LayoutStrategy = layoutStrategy;
-            HeadingFontName = headingFontName;
-            BodyFontName = bodyFontName;
+            HeadingFontFamily = headingFontFamily;
+            BodyFontFamily = bodyFontFamily;
         }
 
         /// <summary>
@@ -234,12 +234,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Heading font used by the deck design.
         /// </summary>
-        public string HeadingFontName { get; }
+        public string HeadingFontFamily { get; }
 
         /// <summary>
         ///     Body font used by the deck design.
         /// </summary>
-        public string BodyFontName { get; }
+        public string BodyFontFamily { get; }
 
         /// <inheritdoc />
         public override string ToString() {

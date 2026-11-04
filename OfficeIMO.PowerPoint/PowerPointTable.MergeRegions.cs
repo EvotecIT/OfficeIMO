@@ -9,8 +9,8 @@ public partial class PowerPointTable {
     // first, shifted for the inserted or removed index, and written back afterwards.
     // Without this an anchor keeps a span over cells that no longer continue it.
     private List<(int Row, int Column, int RowSpan, int ColumnSpan)> CaptureMergeRegions() {
-        int rows = Rows;
-        int columns = Columns;
+        int rows = RowCount;
+        int columns = ColumnCount;
         var regions = new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
         foreach ((int row, int column, PowerPointTableCell cell) in EnumerateAnchorCells().ToList()) {
             (int rowSpan, int columnSpan) = cell.Merge;

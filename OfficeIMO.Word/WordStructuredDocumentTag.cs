@@ -255,12 +255,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the text color using <see cref="Color"/>.
         /// </summary>
         public OfficeColor? Color {
-            get {
-                string value = ColorValue;
-                return value.Length > 0 && OfficeColor.TryParseHex(value, out OfficeColor color) ? color : null;
-            }
+            get => WordRunColor.Read(GetRunProperties()?.Color);
             set {
-                ColorValue = value?.ToRgbHex() ?? string.Empty;
+                if (value.HasValue) VerifyRunProperties().Color = WordRunColor.Create(value.Value, _document);
+                else ColorValue = string.Empty;
             }
         }
 

@@ -8,13 +8,13 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
         /// <summary>
-        ///     Gets or sets the fill color of the shape in hex format (e.g. "FF0000").
+        ///     Gets or sets the local fill color, retaining native theme slots and opacity.
         /// </summary>
-        public string? FillColor {
+        public OfficeColor? FillColor {
             get {
                 ShapeProperties? props = GetShapeProperties();
                 A.SolidFill? solid = props?.GetFirstChild<A.SolidFill>();
-                return solid?.RgbColorModelHex?.Val;
+                return PowerPointDrawingColor.Read(solid);
             }
             set {
                 ShapeProperties? props = GetShapeProperties(create: value != null);
@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 RemoveFillChoiceChildren(props);
                 InsertShapePropertyChild(props,
-                    new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+                    PowerPointDrawingColor.Fill(value, OwnerSlide?.AuthoringTheme));
             }
         }
 

@@ -122,8 +122,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the chart title text style.
         /// </summary>
         public PowerPointChart SetTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            string? color = null, string? fontName = null) {
-            ValidateTextStyle(fontSize, color, fontName);
+            OfficeColor? color = null, string? fontFamily = null) {
+            ValidateTextStyle(fontSize, color, fontFamily);
 
             C.Chart chart = GetChart();
             C.Title? title = chart.GetFirstChild<C.Title>();
@@ -137,7 +137,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             EnsureChartTextRunProperties(chartText);
-            PowerPointTextContent.FormatRuns(chartText, properties => ApplyTextStyle(properties, fontSize, bold, italic, color, fontName));
+            PowerPointTextContent.FormatRuns(chartText, properties => ApplyTextStyle(properties, fontSize, bold, italic, color, fontFamily));
             Save();
             return this;
         }
@@ -206,8 +206,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the legend text style.
         /// </summary>
         public PowerPointChart SetLegendTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            string? color = null, string? fontName = null) {
-            ValidateTextStyle(fontSize, color, fontName);
+            OfficeColor? color = null, string? fontFamily = null) {
+            ValidateTextStyle(fontSize, color, fontFamily);
 
             C.Chart chart = GetChart();
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
@@ -215,7 +215,7 @@ namespace OfficeIMO.PowerPoint {
                 return this;
             }
 
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSize, bold, italic, color, fontName);
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(legend), fontSize, bold, italic, color, fontFamily);
             Save();
             return this;
         }

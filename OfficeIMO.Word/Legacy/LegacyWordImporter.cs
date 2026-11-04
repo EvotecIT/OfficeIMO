@@ -209,7 +209,7 @@ public static partial class LegacyWordImporter {
                 WordParagraph run = paragraph.AddFormattedText(
                     normalized.Substring(segmentStart, segmentLength),
                     sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
-                if (sourceRun.Strike) run.SetStrike();
+                if (sourceRun.Strike) run.SetStrikethrough();
                 if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
                 if (sourceRun.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(sourceRun.FontSizePoints.Value);
                 if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);

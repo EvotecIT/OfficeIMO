@@ -520,7 +520,7 @@ namespace OfficeIMO.PowerPoint {
         public global::OfficeIMO.OfficeColor? Color {
             get {
                 A.Run? run = Runs.FirstOrDefault();
-                return PowerPointTextPropertyFormatting.ReadColor(run?.RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex);
+                return PowerPointDrawingColor.Read(run?.RunProperties?.GetFirstChild<A.SolidFill>());
             }
             set {
                 PowerPointTextContent.FormatRuns(EnsureTextBody(), runProps => PowerPointTextPropertyFormatting.SetColor(runProps, value));

@@ -2,10 +2,110 @@
 *REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 *REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.RequireNoLoss() -> void
+OfficeIMO.PowerPoint.PowerPointAutoShape.Fill(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAutoShape.Fill(string! color) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(string! color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
 OfficeIMO.PowerPoint.PowerPointCardContent.ImagePath.get -> string?
 OfficeIMO.PowerPoint.PowerPointCardContent.ImagePath.set -> void
 OfficeIMO.PowerPoint.PowerPointCardContent.Text.get -> string?
 OfficeIMO.PowerPoint.PowerPointCardContent.Text.set -> void
+OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetChartAreaStyle(OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetChartAreaStyle(string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelCallouts(bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelCallouts(bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelLeaderLines(bool showLeaderLines = true, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelLeaderLines(bool showLeaderLines = true, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelShapeStyle(OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelShapeStyle(string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetLegendTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetLegendTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetPlotAreaStyle(OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetPlotAreaStyle(string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(string! seriesName, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(string! seriesName, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(string! seriesName, bool showLeaderLines = true, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(string! seriesName, bool showLeaderLines = true, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(int seriesIndex, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(int seriesIndex, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(string! seriesName, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(string! seriesName, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(string! seriesName, int pointIndex, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(string! seriesName, int pointIndex, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(string! seriesName, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(string! seriesName, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(string! seriesName, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(string! seriesName, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesFillColor(int seriesIndex, OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesFillColor(int seriesIndex, string! color) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesFillColor(string! seriesName, OfficeIMO.OfficeColor color, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesFillColor(string! seriesName, string! color, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(int seriesIndex, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(int seriesIndex, string! color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(string! seriesName, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(string! seriesName, string! color, OfficeIMO.OfficeLength? width = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(int seriesIndex, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(int seriesIndex, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(string! seriesName, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(string! seriesName, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(int seriesIndex, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(int seriesIndex, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(string! seriesName, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(string! seriesName, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FillColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FillColor.get -> string?
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontFamily.get -> string?
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontName.set -> void
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineColor.get -> string?
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineColor.get -> string?
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.TextColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.TextColor.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop.get -> bool
+*REMOVED*OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop.set -> void
+OfficeIMO.PowerPoint.PowerPointConnectionShape.Stroke(OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointConnectionShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointConnectionShape.Stroke(string! color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointConnectionShape!
 OfficeIMO.PowerPoint.PowerPointContentPlanSlide
 OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Blocks.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>!
 OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Eyebrow.get -> string?
@@ -28,8 +128,43 @@ OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Takeaway.set -> void
 OfficeIMO.PowerPoint.PowerPointContentPlanSlide.TemplateLayout.get -> OfficeIMO.PowerPoint.PowerPointTemplateLayoutInfo?
 OfficeIMO.PowerPoint.PowerPointContentPlanSlide.TemplateLayout.set -> void
 OfficeIMO.PowerPoint.PowerPointDeckContinuationOptions.ContinuationTitleFormat.get -> string?
+OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.BodyFontFamily.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.BodyFontName.get -> string!
+OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.HeadingFontFamily.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDeckDesignSummary.HeadingFontName.get -> string!
 OfficeIMO.PowerPoint.PowerPointDeckPlan.AddContent(string? title, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointLayoutBlock!>! blocks, OfficeIMO.PowerPoint.PowerPointLayout layout = OfficeIMO.PowerPoint.PowerPointLayout.Auto, string? subtitle = null) -> OfficeIMO.PowerPoint.PowerPointDeckPlan!
 OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind.Content = 15 -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
+OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.BodyFontFamily.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.BodyFontName.get -> string!
+OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.HeadingFontFamily.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDeckPlanSlideRenderSummary.HeadingFontName.get -> string!
+OfficeIMO.PowerPoint.PowerPointDesignBrief.BodyFontFamily.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignBrief.BodyFontName.get -> string?
+OfficeIMO.PowerPoint.PowerPointDesignBrief.HeadingFontFamily.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignBrief.HeadingFontName.get -> string?
+OfficeIMO.PowerPoint.PowerPointDesignBrief.WithFonts(string? headingFontFamily = null, string? bodyFontFamily = null) -> OfficeIMO.PowerPoint.PowerPointDesignBrief!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignBrief.WithFonts(string? headingFontName = null, string? bodyFontName = null) -> OfficeIMO.PowerPoint.PowerPointDesignBrief!
+OfficeIMO.PowerPoint.PowerPointDesignDirection.BodyFontFamily.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignDirection.BodyFontName.get -> string!
+OfficeIMO.PowerPoint.PowerPointDesignDirection.HeadingFontFamily.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignDirection.HeadingFontName.get -> string!
+OfficeIMO.PowerPoint.PowerPointDesignDirection.PowerPointDesignDirection(string! name, OfficeIMO.PowerPoint.PowerPointDesignMood mood, OfficeIMO.PowerPoint.PowerPointSlideDensity density, OfficeIMO.PowerPoint.PowerPointVisualStyle visualStyle, string! headingFontFamily, string! bodyFontFamily, bool showDirectionMotif = true) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignDirection.PowerPointDesignDirection(string! name, OfficeIMO.PowerPoint.PowerPointDesignMood mood, OfficeIMO.PowerPoint.PowerPointSlideDensity density, OfficeIMO.PowerPoint.PowerPointVisualStyle visualStyle, string! headingFontName, string! bodyFontName, bool showDirectionMotif = true) -> void
+OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.BodyFontFamily.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.BodyFontName.get -> string!
+OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.HeadingFontFamily.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignDirectionSummary.HeadingFontName.get -> string!
+OfficeIMO.PowerPoint.PowerPointDesignRecipe.CreateAlternativesFromBrand(string! accentColor, string! seed, int count = 0, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string? headingFontFamily = null, string? bodyFontFamily = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointDeckDesign!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignRecipe.CreateAlternativesFromBrand(string! accentColor, string! seed, int count = 0, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string? headingFontName = null, string? bodyFontName = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointDeckDesign!>!
+OfficeIMO.PowerPoint.PowerPointDesignTheme.BodyFontFamily.get -> string!
+OfficeIMO.PowerPoint.PowerPointDesignTheme.BodyFontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignTheme.BodyFontName.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignTheme.BodyFontName.set -> void
+OfficeIMO.PowerPoint.PowerPointDesignTheme.HeadingFontFamily.get -> string!
+OfficeIMO.PowerPoint.PowerPointDesignTheme.HeadingFontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignTheme.HeadingFontName.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesignTheme.HeadingFontName.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer
 OfficeIMO.PowerPoint.PowerPointDocument.ApplyTheme(OfficeIMO.OfficeTheme! theme, int? masterIndex = null) -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.BuiltinDocumentProperties.get -> OfficeIMO.PowerPoint.PowerPointBuiltinDocumentProperties!
 OfficeIMO.PowerPoint.PowerPointDocument.GetTheme(int masterIndex = 0) -> OfficeIMO.OfficeTheme!
@@ -182,9 +317,15 @@ OfficeIMO.PowerPoint.PowerPointParagraph.AddFormattedText(string! text, bool bol
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.AddText(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.BulletFontFamily.get -> string?
+OfficeIMO.PowerPoint.PowerPointParagraph.BulletFontFamily.set -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.BulletFontName.get -> string?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.BulletFontName.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceText(string! oldValue, string! newValue) -> int
 OfficeIMO.PowerPoint.PowerPointParagraph.SetBackgroundColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletFont(string! fontName) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletFontFamily(string! fontFamily) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetFontFamily(string! fontFamily) -> OfficeIMO.PowerPoint.PowerPointParagraph!
@@ -216,8 +357,38 @@ OfficeIMO.PowerPoint.PowerPointParagraph.SetFontFamily(string! fontFamily) -> Of
 *REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.TransparentColor.set -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(System.IO.Stream! newImage, OfficeIMO.Drawing.OfficeImageFormat type) -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointPicture.UpdateImage(string! imagePath) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.ImagePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.IsSuccessful.get -> bool
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Message.get -> string!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Status.get -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Disabled = 0 -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Failed = 3 -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Succeeded = 2 -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
+*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Unavailable = 1 -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
 *REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Description.get -> string?
 *REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Description.set -> void
+OfficeIMO.PowerPoint.PowerPointShape.FillColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.FillColor.get -> string?
+OfficeIMO.PowerPoint.PowerPointShape.MoveBy(OfficeIMO.OfficeLength offsetX, OfficeIMO.OfficeLength offsetY) -> OfficeIMO.PowerPoint.PowerPointShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.MoveBy(OfficeIMO.OfficeLength offsetX, OfficeIMO.OfficeLength offsetY) -> void
+OfficeIMO.PowerPoint.PowerPointShape.OutlineColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.OutlineColor.get -> string?
+OfficeIMO.PowerPoint.PowerPointShape.Resize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.TopLeft) -> OfficeIMO.PowerPoint.PowerPointShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Resize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.TopLeft) -> void
+OfficeIMO.PowerPoint.PowerPointShape.Scale(double scale, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.Center) -> OfficeIMO.PowerPoint.PowerPointShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Scale(double scale, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.Center) -> void
+OfficeIMO.PowerPoint.PowerPointShape.Scale(double scaleX, double scaleY, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.Center) -> OfficeIMO.PowerPoint.PowerPointShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.Scale(double scaleX, double scaleY, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.Center) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetGlow(OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? radius = null, int transparencyPercent = 30) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.SetGlow(string! color, OfficeIMO.OfficeLength? radius = null, int transparencyPercent = 30) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetPosition(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top) -> OfficeIMO.PowerPoint.PowerPointShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.SetPosition(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetShadow(OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? blur = null, OfficeIMO.OfficeLength? distance = null, double angleDegrees = 45, int transparencyPercent = 35, bool rotateWithShape = false) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.SetShadow(string! color, OfficeIMO.OfficeLength? blur = null, OfficeIMO.OfficeLength? distance = null, double angleDegrees = 45, int transparencyPercent = 35, bool rotateWithShape = false) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetSize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.PowerPoint.PowerPointShape!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointShape.SetSize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.AddImage(OfficeIMO.PowerPoint.PowerPointImageAsset! asset, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> OfficeIMO.PowerPoint.PowerPointImage!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(OfficeIMO.PowerPoint.PowerPointImageAsset! asset, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> OfficeIMO.PowerPoint.PowerPointPicture!
 OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointImage!
@@ -228,6 +399,8 @@ OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.Offic
 *REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointPicture!
 OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointImage!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointPicture!
+OfficeIMO.PowerPoint.PowerPointSlide.BackgroundColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.BackgroundColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointSlide.ClearBackground() -> void
 OfficeIMO.PowerPoint.PowerPointSlide.GetGroupImages(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointImage!>!
 *REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.GetGroupPictures(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointPicture!>!
@@ -238,16 +411,67 @@ OfficeIMO.PowerPoint.PowerPointSlide.Images.get -> System.Collections.Generic.IE
 OfficeIMO.PowerPoint.PowerPointSlide.ReplaceAll(string! text, string! replacement, OfficeIMO.PowerPoint.PowerPointTextSearchOptions? options = null) -> int
 *REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.ReplaceText(string! oldValue, string! newValue, bool includeTables = true, bool includeNotes = false) -> int
 OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundColor(OfficeIMO.OfficeColor color) -> void
+OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundGradient(OfficeIMO.OfficeColor startColor, OfficeIMO.OfficeColor endColor, double angleDegrees = 135) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointSlide.SetBackgroundGradient(string! startColor, string! endColor, double angleDegrees = 135) -> void
+OfficeIMO.PowerPoint.PowerPointTable.ApplyStyle(OfficeIMO.PowerPoint.PowerPointTableStylePreset preset) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.ApplyStyle(OfficeIMO.PowerPoint.PowerPointTableStylePreset preset) -> void
+OfficeIMO.PowerPoint.PowerPointTable.ApplyStyleByName(string! styleName, bool ignoreCase = true, bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null, bool? bandedColumns = null) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.ApplyStyleByName(string! styleName, bool ignoreCase = true, bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null, bool? bandedColumns = null) -> void
+OfficeIMO.PowerPoint.PowerPointTable.ColumnCount.get -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.ColumnItems.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTableColumn!>!
+OfficeIMO.PowerPoint.PowerPointTable.Columns.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTableColumn!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.Columns.get -> int
+OfficeIMO.PowerPoint.PowerPointTable.RowCount.get -> int
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.RowItems.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTableRow!>!
+OfficeIMO.PowerPoint.PowerPointTable.Rows.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTableRow!>!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.Rows.get -> int
+OfficeIMO.PowerPoint.PowerPointTable.SetCellAlignment(OfficeIMO.PowerPoint.PowerPointTextAlignment? horizontal, OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment? vertical) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetCellAlignment(OfficeIMO.PowerPoint.PowerPointTextAlignment? horizontal, OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment? vertical) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetCellAlignment(OfficeIMO.PowerPoint.PowerPointTextAlignment? horizontal, OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment? vertical, int startRow, int endRow, int startColumn, int endColumn) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetCellAlignment(OfficeIMO.PowerPoint.PowerPointTextAlignment? horizontal, OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment? vertical, int startRow, int endRow, int startColumn, int endColumn) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null, OfficeIMO.PowerPoint.PowerPointLineDashStyle? dash = null) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, OfficeIMO.OfficeLength? width = null, OfficeIMO.PowerPoint.PowerPointLineDashStyle? dash = null) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetCellPadding(OfficeIMO.OfficeLength? left, OfficeIMO.OfficeLength? top, OfficeIMO.OfficeLength? right, OfficeIMO.OfficeLength? bottom) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetCellPadding(OfficeIMO.OfficeLength? left, OfficeIMO.OfficeLength? top, OfficeIMO.OfficeLength? right, OfficeIMO.OfficeLength? bottom) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetCellPadding(OfficeIMO.OfficeLength? left, OfficeIMO.OfficeLength? top, OfficeIMO.OfficeLength? right, OfficeIMO.OfficeLength? bottom, int startRow, int endRow, int startColumn, int endColumn) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetCellPadding(OfficeIMO.OfficeLength? left, OfficeIMO.OfficeLength? top, OfficeIMO.OfficeLength? right, OfficeIMO.OfficeLength? bottom, int startRow, int endRow, int startColumn, int endColumn) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidth(int columnIndex, OfficeIMO.OfficeLength width) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidth(int columnIndex, OfficeIMO.OfficeLength width) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidths(params OfficeIMO.OfficeLength[]! widths) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidths(params OfficeIMO.OfficeLength[]! widths) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsByRatio(params double[]! ratios) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsByRatio(params double[]! ratios) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsEvenly() -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsEvenly() -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetRowHeight(int rowIndex, OfficeIMO.OfficeLength height) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetRowHeight(int rowIndex, OfficeIMO.OfficeLength height) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetRowHeights(params OfficeIMO.OfficeLength[]! heights) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetRowHeights(params OfficeIMO.OfficeLength[]! heights) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsByRatio(params double[]! ratios) -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsByRatio(params double[]! ratios) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsEvenly() -> OfficeIMO.PowerPoint.PowerPointTable!
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsEvenly() -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.AddRun(string! text, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? configure = null) -> OfficeIMO.PowerPoint.PowerPointTextRun!
 OfficeIMO.PowerPoint.PowerPointTableCell.AddText(string! text) -> OfficeIMO.PowerPoint.PowerPointTextRun!
+OfficeIMO.PowerPoint.PowerPointTableCell.BorderColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.BorderColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointTableCell.Color.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.Color.get -> string?
+OfficeIMO.PowerPoint.PowerPointTableCell.FillColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FillColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointTableCell.FontFamily.get -> string?
 OfficeIMO.PowerPoint.PowerPointTableCell.FontFamily.set -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FontName.get -> string?
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.FontName.set -> void
 OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceText(string! oldValue, string! newValue) -> int
+OfficeIMO.PowerPoint.PowerPointTableCell.SetBold(bool bold = true) -> OfficeIMO.PowerPoint.PowerPointTableCell!
+OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null, OfficeIMO.PowerPoint.PowerPointLineDashStyle? dash = null) -> void
+*REMOVED*OfficeIMO.PowerPoint.PowerPointTableCell.SetBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, OfficeIMO.OfficeLength? width = null, OfficeIMO.PowerPoint.PowerPointLineDashStyle? dash = null) -> void
+OfficeIMO.PowerPoint.PowerPointTableCell.SetColor(OfficeIMO.OfficeColor? color) -> OfficeIMO.PowerPoint.PowerPointTableCell!
+OfficeIMO.PowerPoint.PowerPointTableCell.SetFontFamily(string? fontFamily) -> OfficeIMO.PowerPoint.PowerPointTableCell!
+OfficeIMO.PowerPoint.PowerPointTableCell.SetFontSize(OfficeIMO.OfficeLength? fontSize) -> OfficeIMO.PowerPoint.PowerPointTableCell!
+OfficeIMO.PowerPoint.PowerPointTableCell.SetItalic(bool italic = true) -> OfficeIMO.PowerPoint.PowerPointTableCell!
 OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextBox.FontFamily.get -> string?
@@ -256,6 +480,11 @@ OfficeIMO.PowerPoint.PowerPointTextBox.FontFamily.set -> void
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.FontName.set -> void
 OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceAll(string! text, string! replacement, OfficeIMO.OfficeTextSearchOptions? options = null) -> int
 *REMOVED*OfficeIMO.PowerPoint.PowerPointTextBox.ReplaceText(string! oldValue, string! newValue) -> int
+OfficeIMO.PowerPoint.PowerPointTextBox.SetBold(bool bold = true) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointTextBox.SetColor(OfficeIMO.OfficeColor? color) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointTextBox.SetFontFamily(string? fontFamily) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointTextBox.SetFontSize(OfficeIMO.OfficeLength? fontSize) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointTextBox.SetItalic(bool italic = true) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointTextRun.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.PowerPoint.PowerPointTextRun.BackgroundColor.set -> void
 OfficeIMO.PowerPoint.PowerPointTextRun.Color.get -> OfficeIMO.OfficeColor?
@@ -298,6 +527,17 @@ OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontFamily(string? fontFamily) -> O
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithUnderlineStyle(OfficeIMO.PowerPoint.PowerPointUnderlineStyle? underlineStyle) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 override OfficeIMO.PowerPoint.LegacyPpt.LegacyPptWritePreflightReport.HasLoss.get -> bool
 override OfficeIMO.PowerPoint.PowerPointContentPlanSlide.Kind.get -> OfficeIMO.PowerPoint.PowerPointDeckPlanSlideKind
+static OfficeIMO.PowerPoint.PowerPointDeckDesign.CreateAlternativesFromBrand(string! accentColor, string! seed, OfficeIMO.PowerPoint.PowerPointDesignRecipe! recipe, int count = 0, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string? headingFontFamily = null, string? bodyFontFamily = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointDeckDesign!>!
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointDeckDesign.CreateAlternativesFromBrand(string! accentColor, string! seed, OfficeIMO.PowerPoint.PowerPointDesignRecipe! recipe, int count = 0, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string? headingFontName = null, string? bodyFontName = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointDeckDesign!>!
+static OfficeIMO.PowerPoint.PowerPointDeckDesign.CreateAlternativesFromBrand(string! accentColor, string! seed, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointDesignDirection!>! directions, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string? headingFontFamily = null, string? bodyFontFamily = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointDeckDesign!>!
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointDeckDesign.CreateAlternativesFromBrand(string! accentColor, string! seed, System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointDesignDirection!>! directions, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string? headingFontName = null, string? bodyFontName = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointDeckDesign!>!
+static OfficeIMO.PowerPoint.PowerPointDeckDesign.CreateAlternativesFromBrand(string! accentColor, string! seed, int count = 3, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string! headingFontFamily = "Poppins", string! bodyFontFamily = "Lato") -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointDeckDesign!>!
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointDeckDesign.CreateAlternativesFromBrand(string! accentColor, string! seed, int count = 3, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string! headingFontName = "Poppins", string! bodyFontName = "Lato") -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointDeckDesign!>!
+static OfficeIMO.PowerPoint.PowerPointDeckDesign.FromBrand(string! accentColor, string! seed, OfficeIMO.PowerPoint.PowerPointDesignMood mood = OfficeIMO.PowerPoint.PowerPointDesignMood.Corporate, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string! headingFontFamily = "Poppins", string! bodyFontFamily = "Lato") -> OfficeIMO.PowerPoint.PowerPointDeckDesign!
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointDeckDesign.FromBrand(string! accentColor, string! seed, OfficeIMO.PowerPoint.PowerPointDesignMood mood = OfficeIMO.PowerPoint.PowerPointDesignMood.Corporate, string? name = null, string? eyebrow = null, string? footerLeft = null, string? footerRight = null, string! headingFontName = "Poppins", string! bodyFontName = "Lato") -> OfficeIMO.PowerPoint.PowerPointDeckDesign!
+static OfficeIMO.PowerPoint.PowerPointDesignTheme.FromBrand(string! accentColor, string? name = null, string! headingFontFamily = "Poppins", string! bodyFontFamily = "Lato") -> OfficeIMO.PowerPoint.PowerPointDesignTheme!
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointDesignTheme.FromBrand(string! accentColor, string? name = null, string! headingFontName = "Poppins", string! bodyFontName = "Lato") -> OfficeIMO.PowerPoint.PowerPointDesignTheme!
+*REMOVED*static OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.TryRender(string! presentationPath, string! outputDirectory, bool enabled = false) -> OfficeIMO.PowerPoint.PowerPointReferenceRenderResult!
 static OfficeIMO.PowerPoint.PowerPointDocument.SignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 *REMOVED*static OfficeIMO.PowerPoint.PowerPointDocument.SignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 static OfficeIMO.PowerPoint.PowerPointDocument.TrySignPackage(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
@@ -305,17 +545,3 @@ static OfficeIMO.PowerPoint.PowerPointDocument.TrySignPackage(string! filePath, 
 *REMOVED*static OfficeIMO.PowerPoint.PowerPointDocument.ValidatePackageSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
 static OfficeIMO.PowerPoint.PowerPointDocument.ValidateSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
 static OfficeIMO.PowerPoint.PowerPointLayoutKpi.FromDelta(string! value, string! label, double delta, string? unit = null, OfficeIMO.PowerPoint.PowerPointKpiDirection goodDirection = OfficeIMO.PowerPoint.PowerPointKpiDirection.Up, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.PowerPoint.PowerPointLayoutKpi!
-*REMOVED*OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop.get -> bool
-*REMOVED*OfficeIMO.PowerPoint.PowerPointCompatibilityOptions.EnablePowerPointDesktop.set -> void
-*REMOVED*OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.ImagePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.IsSuccessful.get -> bool
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Message.get -> string!
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderResult.Status.get -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Disabled = 0 -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Failed = 3 -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Succeeded = 2 -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
-*REMOVED*OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus.Unavailable = 1 -> OfficeIMO.PowerPoint.PowerPointReferenceRenderStatus
-*REMOVED*static OfficeIMO.PowerPoint.PowerPointDesktopReferenceRenderer.TryRender(string! presentationPath, string! outputDirectory, bool enabled = false) -> OfficeIMO.PowerPoint.PowerPointReferenceRenderResult!

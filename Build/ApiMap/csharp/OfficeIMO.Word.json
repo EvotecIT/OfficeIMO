@@ -2224,7 +2224,8 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle.",
+      "replacement": "Use AddLine(name, values, color) or AddArea(name, values, color) and let C# infer the numeric element type. The former array overload did not use its T argument; the sequence-based overload does."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddLine<T>(string name, List<T> values, OfficeColor color)",
@@ -2245,9 +2246,9 @@
     {
       "old": "OfficeIMO.Word.WordChart.AddChartAxisX(List<string> categories)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordChart.AddChartAxisX(...) : WordChartAxis",
-      "reason": "Add* methods return the created object.",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChart.AddCategories(IEnumerable<string> categories)",
+      "reason": "Use one sequence-based entry point per chart family while retaining attached axis and series handles.",
       "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
       "category": "authoring",
       "implementation": {
@@ -2255,7 +2256,7 @@
         "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-applied",
+      "applied": "applied",
       "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
     },
     {
@@ -2272,7 +2273,8 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle.",
+      "replacement": "Use AddBar(name, new[] { value }, color) for a single data point. The returned WordChartSeries remains attached and editable."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddBar<T>(string name, List<T> values, OfficeColor color)",
@@ -2336,7 +2338,8 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle."
+      "note": "Returns the attached model. Series retain native identity and support rename/removal; inspection series remain detached. Category settings apply to subsequent series. Replacing a legend invalidates the previous handle.",
+      "replacement": "Use AddLine(name, values, color) or AddArea(name, values, color) and let C# infer the numeric element type. The former array overload did not use its T argument; the sequence-based overload does."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddScatter(string name, List<double> xValues, List<double> yValues, OfficeColor color)",
@@ -7135,6 +7138,374 @@
       "replacement": "WordDocument.ReplaceAll(cell.Paragraphs, text, replacement, options).",
       "reason": "Paragraph-scoped replacement follows the document ReplaceAll name and options.",
       "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Word.Legacy.LegacyWordRunContent.Strike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Legacy.LegacyWordRunContent.Strikethrough",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.SetPaperStyle(bool percentageLabels = false, string titleColor = \"202428\")",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.SetPaperStyle(bool percentageLabels = false, OfficeColor? titleColor = null)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.Paper.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddCategories(List<string> categories)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddCategories(IEnumerable<string> categories)",
+      "reason": "Use one sequence-based entry point per chart family while retaining attached axis and series handles.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied",
+      "replacement": "Pass any category sequence. Use new[] { \"A\", \"B\" } or an explicit List<string> in place of target-typed new() because IEnumerable<string> is an interface."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddChartLine<T>(string name, int[] values, OfficeIMO.OfficeColor color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChart.AddLine<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied",
+      "replacement": "Use AddLine(name, values, color) or AddArea(name, values, color) and let C# infer the numeric element type. The former array overload did not use its T argument; the sequence-based overload does."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddLine<T>(string name, List<T> values, OfficeIMO.OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.AddLine<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddBar(string name, int values, OfficeIMO.OfficeColor color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChart.AddBar<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied",
+      "replacement": "Use AddBar(name, new[] { value }, color) for a single data point. The returned WordChartSeries remains attached and editable."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddBar<T>(string name, List<T> values, OfficeIMO.OfficeColor color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChart.AddBar<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddBar(string name, int[] values, OfficeIMO.OfficeColor color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChart.AddBar<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddArea<T>(string name, List<T> values, OfficeIMO.OfficeColor color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChart.AddArea<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.AddArea<T>(string name, int[] values, OfficeIMO.OfficeColor color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordChart.AddArea<T>(string name, IEnumerable<T> values, OfficeIMO.OfficeColor color)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied",
+      "replacement": "Use AddLine(name, values, color) or AddArea(name, values, color) and let C# infer the numeric element type. The former array overload did not use its T argument; the sequence-based overload does."
+    },
+    {
+      "old": "OfficeIMO.Word.WordChart.SetAxisTitleFormat(string fontName, global::OfficeIMO.OfficeLength fontSize, OfficeIMO.OfficeColor color)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordChart.SetAxisTitleFormat(string fontFamily, global::OfficeIMO.OfficeLength fontSize, OfficeIMO.OfficeColor color)",
+      "reason": "Use OfficeColor for authoring and retain native theme roles and opacity.",
+      "file": "OfficeIMO.Word/WordChart.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordFormattedRun.Strike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordFormattedRun.Strikethrough",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordFormattedRun.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordRunInfo.Strike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordRunInfo.Strikethrough",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordRunInfo.DoubleStrike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordRunInfo.DoubleStrikethrough",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordInspectionSnapshot.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordList.Strike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordList.Strikethrough",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordList.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordList.DoubleStrike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordList.DoubleStrikethrough",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordList.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.Strike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordParagraph.Strikethrough",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordParagraph.RunProperties.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.DoubleStrike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordParagraph.DoubleStrikethrough",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordParagraph.RunProperties.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.SetStrike(bool isStrike = true)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordParagraph.SetStrikethrough(bool strikethrough = true)",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordParagraph.RunPropertiesMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.SetDoubleStrike(bool isDoubleStrike = true)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordParagraph.SetDoubleStrikethrough(bool doubleStrikethrough = true)",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordParagraph.RunPropertiesMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.SetSubScript()",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordParagraph.SetSubscript()",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordParagraph.RunPropertiesMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraph.SetSuperScript()",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordParagraph.SetSuperscript()",
+      "reason": "Use one formatting vocabulary on the native object model.",
+      "file": "OfficeIMO.Word/WordParagraph.RunPropertiesMethods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontName, string? styleName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraphStyle.CreateFontStyle(string styleId, string fontFamily, string? styleName = null)",
+      "reason": "Use FontFamily for typeface names across authoring and design models.",
+      "file": "OfficeIMO.Word/WordParagraphStyle.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontName, string? styleName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordParagraphStyle.RegisterFontStyle(string styleId, string fontFamily, string? styleName = null)",
+      "reason": "Use FontFamily for typeface names across authoring and design models.",
+      "file": "OfficeIMO.Word/WordParagraphStyle.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.DistributeColumnsEvenly() -> void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTable.DistributeColumnsEvenly() -> WordTable",
+      "reason": "Return the edited table or shape so its existing configuration methods can be chained.",
+      "file": "OfficeIMO.Word/WordTable.Methods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.AutoFitToContents() -> void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTable.AutoFitToContents() -> WordTable",
+      "reason": "Return the edited table or shape so its existing configuration methods can be chained.",
+      "file": "OfficeIMO.Word/WordTable.Methods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.AutoFitToWindow() -> void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTable.AutoFitToWindow() -> WordTable",
+      "reason": "Return the edited table or shape so its existing configuration methods can be chained.",
+      "file": "OfficeIMO.Word/WordTable.Methods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.SetFixedWidth(int percentage) -> void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTable.SetFixedWidth(int percentage) -> WordTable",
+      "reason": "Return the edited table or shape so its existing configuration methods can be chained.",
+      "file": "OfficeIMO.Word/WordTable.Methods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.SetColumnWidthsPercentage(params int[] percentages) -> void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTable.SetColumnWidthsPercentage(params int[] percentages) -> WordTable",
+      "reason": "Return the edited table or shape so its existing configuration methods can be chained.",
+      "file": "OfficeIMO.Word/WordTable.Methods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.SetWidthPercentage(int percentage) -> void",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTable.SetWidthPercentage(int percentage) -> WordTable",
+      "reason": "Return the edited table or shape so its existing configuration methods can be chained.",
+      "file": "OfficeIMO.Word/WordTable.Methods.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.AddRow(int rowsCount, int cellsCount)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordTable.AddRows(int rowCount, int cellCount)",
+      "reason": "Separate row and column counts from their handle collections, and name bulk row creation AddRows.",
+      "file": "OfficeIMO.Word/WordTable.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.RowsCount",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordTable.RowCount",
+      "reason": "Separate row and column counts from their handle collections, and name bulk row creation AddRows.",
+      "file": "OfficeIMO.Word/WordTable.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.WordImage.Location",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordImage.HorizontalPositionOffset / VerticalPositionOffset",
+      "replacement": "For floating images, use the nullable OfficeLength horizontal and vertical offsets with their existing relative-position properties. Guard inline images before reading floating offsets; aligned anchors may have no offset.",
+      "reason": "Remove the raw-EMU tuple in favor of the existing typed offsets without flattening anchor reference frames.",
+      "file": "OfficeIMO.Word/WordImage.CropAndWrap.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "applied"
     }
   ],
   "packageMoves": [
@@ -8809,26 +9180,33 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 366,
+    "changes": 452,
     "byAction": {
-      "merge": 127,
-      "change": 139,
-      "remove": 26,
-      "rename": 17,
+      "change": 161,
       "internalize": 27,
       "keep": 29,
-      "move": 1
+      "merge": 138,
+      "move": 14,
+      "remove": 36,
+      "rename": 47
     },
     "byCategory": {
-      "lifecycle": 29,
-      "authoring": 82,
-      "units": 147,
-      "options": 4,
+      "accessibility": 4,
+      "authoring": 136,
       "conversion": 42,
+      "lifecycle": 29,
+      "naming": 34,
+      "options": 4,
       "package": 1,
-      "naming": 13,
+      "search": 5,
+      "tables": 2,
+      "units": 147,
       "visibility": 48
     },
     "packageMoves": 3
+  },
+  "authoringNotes": {
+    "numericSequences": "Numeric line, bar and area inputs are enumerated once; invariant IFormattable serialization preserves decimal values under non-English cultures.",
+    "nativeFormatting": "WordParagraph, content-control and numbering colors retain native theme references and literal fallbacks. Double strikethrough and superscript/subscript remain separate native states."
   }
 }

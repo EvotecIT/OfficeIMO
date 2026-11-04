@@ -87,8 +87,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ApplyDataLabelTextStyle(OpenXmlCompositeElement labels, OfficeLength? fontSize, bool? bold,
-            bool? italic, string? color, string? fontName) {
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSize, bold, italic, color, fontName);
+            bool? italic, OfficeColor? color, string? fontFamily) {
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSize, bold, italic, color, fontFamily);
             if (labels is C.DataLabels dataLabels) {
                 NormalizeDataLabelsOrder(dataLabels);
             } else if (labels is C.DataLabel dataLabel) {
@@ -96,7 +96,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyDataLabelShapeStyle(OpenXmlCompositeElement labels, string? fillColor, string? lineColor,
+        private static void ApplyDataLabelShapeStyle(OpenXmlCompositeElement labels, OfficeColor? fillColor, OfficeColor? lineColor,
             OfficeLength? lineWidth, bool noFill, bool noLine) {
             C.ChartShapeProperties props = EnsureDataLabelShapeProperties(labels);
             if (noFill) {
@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static void ApplyDataLabelLeaderLines(C.DataLabels labels, bool showLeaderLines, string? lineColor,
+        private static void ApplyDataLabelLeaderLines(C.DataLabels labels, bool showLeaderLines, OfficeColor? lineColor,
             OfficeLength? lineWidth) {
             ReplaceChild(labels, new C.ShowLeaderLines { Val = showLeaderLines });
 
@@ -178,7 +178,7 @@ namespace OfficeIMO.PowerPoint {
                 || template.Bold != null
                 || template.Italic != null
                 || template.TextColor != null
-                || template.FontName != null;
+                || template.FontFamily != null;
             bool applyShapeStyle = template.NoFill
                 || template.NoLine
                 || template.FillColor != null
@@ -189,7 +189,7 @@ namespace OfficeIMO.PowerPoint {
                 || template.LeaderLineWidth != null;
 
             if (applyTextStyle) {
-                ValidateTextStyle(template.FontSize, template.TextColor, template.FontName);
+                ValidateTextStyle(template.FontSize, template.TextColor, template.FontFamily);
             }
             if (applyShapeStyle) {
                 ValidateAreaStyle(template.FillColor, template.LineColor, template.LineWidth,
@@ -208,7 +208,7 @@ namespace OfficeIMO.PowerPoint {
             }
             if (applyTextStyle) {
                 ApplyDataLabelTextStyle(labels, template.FontSize, template.Bold, template.Italic,
-                    template.TextColor, template.FontName);
+                    template.TextColor, template.FontFamily);
             }
             if (applyShapeStyle) {
                 ApplyDataLabelShapeStyle(labels, template.FillColor, template.LineColor, template.LineWidth,
@@ -226,7 +226,7 @@ namespace OfficeIMO.PowerPoint {
                 || template.Bold != null
                 || template.Italic != null
                 || template.TextColor != null
-                || template.FontName != null;
+                || template.FontFamily != null;
             bool applyShapeStyle = template.NoFill
                 || template.NoLine
                 || template.FillColor != null
@@ -240,7 +240,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("Separator cannot be empty.", nameof(template.Separator));
             }
             if (applyTextStyle) {
-                ValidateTextStyle(template.FontSize, template.TextColor, template.FontName);
+                ValidateTextStyle(template.FontSize, template.TextColor, template.FontFamily);
             }
             if (applyShapeStyle) {
                 ValidateAreaStyle(template.FillColor, template.LineColor, template.LineWidth,
@@ -256,7 +256,7 @@ namespace OfficeIMO.PowerPoint {
             }
             if (applyTextStyle) {
                 ApplyDataLabelTextStyle(label, template.FontSize, template.Bold, template.Italic,
-                    template.TextColor, template.FontName);
+                    template.TextColor, template.FontFamily);
             }
             if (applyShapeStyle) {
                 ApplyDataLabelShapeStyle(label, template.FillColor, template.LineColor, template.LineWidth,

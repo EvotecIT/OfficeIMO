@@ -19,7 +19,7 @@ namespace OfficeIMO.Word {
         public bool Underline { get; }
 
         /// <summary>Indicates whether strike-through formatting is applied.</summary>
-        public bool Strike { get; }
+        public bool Strikethrough { get; }
 
         /// <summary>Indicates whether superscript formatting is applied.</summary>
         public bool Superscript { get; }
@@ -49,7 +49,7 @@ namespace OfficeIMO.Word {
             Bold = bold;
             Italic = italic;
             Underline = underline;
-            Strike = strike;
+            Strikethrough = strike;
             Superscript = superscript;
             Subscript = subscript;
             Code = code;

@@ -27,11 +27,11 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ApplyToCells(Action<PowerPointTableCell> action) {
             ArgumentNullException.ThrowIfNull(action);
-            if (Rows == 0 || Columns == 0) {
+            if (RowCount == 0 || ColumnCount == 0) {
                 return;
             }
 
-            ApplyToCells(0, Rows - 1, 0, Columns - 1, action);
+            ApplyToCells(0, RowCount - 1, 0, ColumnCount - 1, action);
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ApplyToCells(int startRow, int endRow, int startColumn, int endColumn, Action<PowerPointTableCell> action) {
             ArgumentNullException.ThrowIfNull(action);
-            if (Rows == 0 || Columns == 0) {
+            if (RowCount == 0 || ColumnCount == 0) {
                 return;
             }
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint {
             if (topRow < 0 || leftColumn < 0) {
                 throw new ArgumentOutOfRangeException("Row and column indices must be non-negative.");
             }
-            if (bottomRow >= Rows || rightColumn >= Columns) {
+            if (bottomRow >= RowCount || rightColumn >= ColumnCount) {
                 throw new ArgumentOutOfRangeException("Range exceeds table bounds.");
             }
 
@@ -67,8 +67,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ApplyToRow(int rowIndex, Action<PowerPointTableCell> action) {
             ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, Rows);
-            ApplyToCells(rowIndex, rowIndex, 0, Columns - 1, action);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, RowCount);
+            ApplyToCells(rowIndex, rowIndex, 0, ColumnCount - 1, action);
         }
 
         /// <summary>
@@ -76,26 +76,27 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ApplyToColumn(int columnIndex, Action<PowerPointTableCell> action) {
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, Columns);
-            ApplyToCells(0, Rows - 1, columnIndex, columnIndex, action);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, ColumnCount);
+            ApplyToCells(0, RowCount - 1, columnIndex, columnIndex, action);
         }
 
         /// <summary>
         ///     Sets cell padding for all cells.
         /// </summary>
-        public void SetCellPadding(global::OfficeIMO.OfficeLength? left, global::OfficeIMO.OfficeLength? top, global::OfficeIMO.OfficeLength? right, global::OfficeIMO.OfficeLength? bottom) {
+        public PowerPointTable SetCellPadding(global::OfficeIMO.OfficeLength? left, global::OfficeIMO.OfficeLength? top, global::OfficeIMO.OfficeLength? right, global::OfficeIMO.OfficeLength? bottom) {
             ApplyToCells(cell => {
                 cell.PaddingLeft = left;
                 cell.PaddingTop = top;
                 cell.PaddingRight = right;
                 cell.PaddingBottom = bottom;
             });
+            return this;
         }
 
         /// <summary>
         ///     Sets cell padding for a range of cells.
         /// </summary>
-        public void SetCellPadding(global::OfficeIMO.OfficeLength? left, global::OfficeIMO.OfficeLength? top, global::OfficeIMO.OfficeLength? right, global::OfficeIMO.OfficeLength? bottom,
+        public PowerPointTable SetCellPadding(global::OfficeIMO.OfficeLength? left, global::OfficeIMO.OfficeLength? top, global::OfficeIMO.OfficeLength? right, global::OfficeIMO.OfficeLength? bottom,
             int startRow, int endRow, int startColumn, int endColumn) {
             ApplyToCells(startRow, endRow, startColumn, endColumn, cell => {
                 cell.PaddingLeft = left;
@@ -103,31 +104,34 @@ namespace OfficeIMO.PowerPoint {
                 cell.PaddingRight = right;
                 cell.PaddingBottom = bottom;
             });
+            return this;
         }
 
         /// <summary>
         ///     Sets cell alignment for all cells.
         /// </summary>
-        public void SetCellAlignment(PowerPointTextAlignment? horizontal, PowerPointTextVerticalAlignment? vertical) {
+        public PowerPointTable SetCellAlignment(PowerPointTextAlignment? horizontal, PowerPointTextVerticalAlignment? vertical) {
             ApplyToCells(cell => {
                 cell.HorizontalAlignment = horizontal;
                 cell.VerticalAlignment = vertical;
             });
+            return this;
         }
 
         /// <summary>
         ///     Sets cell alignment for a range of cells.
         /// </summary>
-        public void SetCellAlignment(PowerPointTextAlignment? horizontal, PowerPointTextVerticalAlignment? vertical,
+        public PowerPointTable SetCellAlignment(PowerPointTextAlignment? horizontal, PowerPointTextVerticalAlignment? vertical,
             int startRow, int endRow, int startColumn, int endColumn) {
             ApplyToCells(startRow, endRow, startColumn, endColumn, cell => {
                 cell.HorizontalAlignment = horizontal;
                 cell.VerticalAlignment = vertical;
             });
+            return this;
         }
 
         /// <summary>Applies borders to all cells, retaining the existing width or dash when omitted.</summary>
-        public void SetCellBorders(PowerPointTableCellBorders borders, string color, OfficeLength? width = null,
+        public void SetCellBorders(PowerPointTableCellBorders borders, OfficeColor color, OfficeLength? width = null,
             PowerPointLineDashStyle? dash = null) {
             PowerPointTableCell.ValidateBorderStyle(borders, color, width);
             if (dash.HasValue) _ = dash.Value.ToOpenXml();
@@ -158,7 +162,7 @@ namespace OfficeIMO.PowerPoint {
             if (topRow < 0 || leftColumn < 0) {
                 throw new ArgumentOutOfRangeException("Row and column indices must be non-negative.");
             }
-            if (bottomRow >= Rows || rightColumn >= Columns) {
+            if (bottomRow >= RowCount || rightColumn >= ColumnCount) {
                 throw new ArgumentOutOfRangeException("Merge range exceeds table bounds.");
             }
 

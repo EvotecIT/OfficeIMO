@@ -73,8 +73,8 @@ namespace OfficeIMO.PowerPoint {
                 design.BaseIntent.Density,
                 design.BaseIntent.VisualStyle,
                 design.BaseIntent.LayoutStrategy,
-                design.Theme.HeadingFontName,
-                design.Theme.BodyFontName);
+                design.Theme.HeadingFontFamily,
+                design.Theme.BodyFontFamily);
         }
 
         internal virtual void Validate(int index, IList<PowerPointDeckPlanDiagnostic> diagnostics) {

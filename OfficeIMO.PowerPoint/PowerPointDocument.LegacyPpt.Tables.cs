@@ -80,10 +80,10 @@ namespace OfficeIMO.PowerPoint {
             table.StyleId = null;
 
             for (int index = 0; index < columnWidths.Length; index++) {
-                table.ColumnItems[index].Width= global::OfficeIMO.OfficeLength.Emus(columnWidths[index]);
+                table.Columns[index].Width= global::OfficeIMO.OfficeLength.Emus(columnWidths[index]);
             }
             for (int index = 0; index < rowHeights.Length; index++) {
-                table.RowItems[index].Height= global::OfficeIMO.OfficeLength.Emus(rowHeights[index]);
+                table.Rows[index].Height= global::OfficeIMO.OfficeLength.Emus(rowHeights[index]);
             }
 
             foreach (LegacyPptTableCell sourceCell in tableSource.Cells) {
@@ -110,11 +110,11 @@ namespace OfficeIMO.PowerPoint {
                 if (sourceCell.SourceShape.Style.FillEnabled == false) {
                     targetCell.NoFill = true;
                 } else if (sourceCell.SourceShape.FillColor != null) {
-                    targetCell.FillColor = sourceCell.SourceShape.FillColor;
+                    targetCell.FillColor = OfficeColor.Parse(sourceCell.SourceShape.FillColor);
                 }
                 if (!tableSource.HasExplicitGridLines
                     && sourceCell.SourceShape.LineColor != null) {
-                    targetCell.BorderColor = sourceCell.SourceShape.LineColor;
+                    targetCell.BorderColor = OfficeColor.Parse(sourceCell.SourceShape.LineColor);
                 } else {
                     ApplyLegacyTableBorder(targetCell,
                         PowerPointTableCellBorders.Left, sourceCell.LeftBorder);
@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
             LegacyPptTableBorder value = border.Value;
-            cell.SetBorders(side, value.Color, global::OfficeIMO.OfficeLength.Points(value.WidthPoints));
+            cell.SetBorders(side, OfficeColor.Parse(value.Color), global::OfficeIMO.OfficeLength.Points(value.WidthPoints));
         }
 
         private static void ApplyInvisibleLegacyTableBorder(

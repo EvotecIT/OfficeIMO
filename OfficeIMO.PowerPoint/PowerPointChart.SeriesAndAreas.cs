@@ -14,7 +14,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets chart area fill/line styling.
         /// </summary>
-        public PowerPointChart SetChartAreaStyle(string? fillColor = null, string? lineColor = null,
+        public PowerPointChart SetChartAreaStyle(OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
@@ -37,7 +37,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets plot area fill/line styling.
         /// </summary>
-        public PowerPointChart SetPlotAreaStyle(string? fillColor = null, string? lineColor = null,
+        public PowerPointChart SetPlotAreaStyle(OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
@@ -60,9 +60,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds or replaces a trendline for a chart series by index.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
-            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeLength? lineWidth = null) {
+            bool displayEquation = false, bool displayRSquared = false, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
@@ -81,10 +83,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds or replaces a trendline for a chart series by name.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesTrendline(string seriesName, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
-            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeLength? lineWidth = null,
+            bool displayEquation = false, bool displayRSquared = false, OfficeColor? lineColor = null, OfficeLength? lineWidth = null,
             bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
             ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
@@ -398,11 +402,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the fill color for a chart series by index.
         /// </summary>
-        public PowerPointChart SetSeriesFillColor(int seriesIndex, string color) {
+        public PowerPointChart SetSeriesFillColor(int seriesIndex, OfficeColor color) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
-            }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -422,11 +423,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the fill color for a chart series by name.
         /// </summary>
-        public PowerPointChart SetSeriesFillColor(string seriesName, string color, bool ignoreCase = true) {
+        public PowerPointChart SetSeriesFillColor(string seriesName, OfficeColor color, bool ignoreCase = true) {
             ArgumentNullException.ThrowIfNull(seriesName);
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
-            }
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -446,11 +444,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the line color for a chart series by index.
         /// </summary>
-        public PowerPointChart SetSeriesLineColor(int seriesIndex, string color, OfficeLength? width = null) {
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
+        public PowerPointChart SetSeriesLineColor(int seriesIndex, OfficeColor color, OfficeLength? width = null) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
-            }
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -469,11 +466,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the line color for a chart series by name.
         /// </summary>
-        public PowerPointChart SetSeriesLineColor(string seriesName, string color, OfficeLength? width = null, bool ignoreCase = true) {
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
+        public PowerPointChart SetSeriesLineColor(string seriesName, OfficeColor color, OfficeLength? width = null, bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
-            }
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
@@ -492,16 +488,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the marker style for a chart series by index.
         /// </summary>
-        public PowerPointChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeLength? lineWidth = null) {
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
+        public PowerPointChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (size.HasValue && (size.Value < OfficeLength.Points(1) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
-            }
-            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
-                throw new ArgumentException("Marker fill color cannot be empty.", nameof(fillColor));
-            }
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Marker line color cannot be empty.", nameof(lineColor));
             }
 
             bool applied = ApplySeriesMarkerByIndex(seriesIndex, marker => {
@@ -519,16 +511,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the marker style for a chart series by name.
         /// </summary>
-        public PowerPointChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
+        public PowerPointChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
             if (size.HasValue && (size.Value < OfficeLength.Points(1) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
-            }
-            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
-                throw new ArgumentException("Marker fill color cannot be empty.", nameof(fillColor));
-            }
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Marker line color cannot be empty.", nameof(lineColor));
             }
 
             bool applied = ApplySeriesMarkerByName(seriesName, ignoreCase, marker => {

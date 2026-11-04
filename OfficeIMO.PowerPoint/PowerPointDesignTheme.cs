@@ -25,15 +25,15 @@ namespace OfficeIMO.PowerPoint {
             Accent3Color = "6F6AA6",
             WarningColor = "F4A100",
             PaletteStyle = PowerPointPaletteStyle.Auto,
-            HeadingFontName = "Poppins",
-            BodyFontName = "Lato"
+            HeadingFontFamily = "Poppins",
+            BodyFontFamily = "Lato"
         };
 
         /// <summary>
         ///     Creates a theme from a primary brand accent while keeping readable defaults.
         /// </summary>
         public static PowerPointDesignTheme FromBrand(string accentColor, string? name = null,
-            string headingFontName = "Poppins", string bodyFontName = "Lato") {
+            string headingFontFamily = "Poppins", string bodyFontFamily = "Lato") {
             string accent = NormalizeHex(accentColor, nameof(accentColor));
             return new PowerPointDesignTheme {
                 Name = name ?? "OfficeIMO Brand Theme",
@@ -44,8 +44,8 @@ namespace OfficeIMO.PowerPoint {
                 Accent3Color = Shade(RotateAccent(accent), 0.1),
                 WarningColor = "F4A100",
                 PaletteStyle = PowerPointPaletteStyle.Auto,
-                HeadingFontName = headingFontName,
-                BodyFontName = bodyFontName
+                HeadingFontFamily = headingFontFamily,
+                BodyFontFamily = bodyFontFamily
             };
         }
 
@@ -71,8 +71,8 @@ namespace OfficeIMO.PowerPoint {
                 WarningColor = WarningColor,
                 PaletteStyle = PaletteStyle,
                 TypographyStyle = TypographyStyle,
-                HeadingFontName = HeadingFontName,
-                BodyFontName = BodyFontName
+                HeadingFontFamily = HeadingFontFamily,
+                BodyFontFamily = BodyFontFamily
             };
         }
 
@@ -141,8 +141,8 @@ namespace OfficeIMO.PowerPoint {
                     clone.PanelBorderColor = Shade(clone.Accent3Color, 0.68);
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.TypographyStyle = PowerPointTypographyStyle.ModernSans;
-                    clone.HeadingFontName = "Aptos Display";
-                    clone.BodyFontName = "Aptos";
+                    clone.HeadingFontFamily = "Aptos Display";
+                    clone.BodyFontFamily = "Aptos";
                     break;
                 case PowerPointDesignMood.Energetic:
                     clone.SurfaceColor = Shade(clone.WarningColor, 0.88);
@@ -150,8 +150,8 @@ namespace OfficeIMO.PowerPoint {
                     clone.AccentLightColor = Shade(clone.AccentColor, 0.70);
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.TypographyStyle = PowerPointTypographyStyle.FriendlySans;
-                    clone.HeadingFontName = "Poppins";
-                    clone.BodyFontName = "Lato";
+                    clone.HeadingFontFamily = "Poppins";
+                    clone.BodyFontFamily = "Lato";
                     break;
                 case PowerPointDesignMood.Minimal:
                     clone.SurfaceColor = "F5F7F9";
@@ -161,8 +161,8 @@ namespace OfficeIMO.PowerPoint {
                     clone.WarningColor = clone.Accent2Color;
                     clone.PaletteStyle = PowerPointPaletteStyle.Auto;
                     clone.TypographyStyle = PowerPointTypographyStyle.ModernSans;
-                    clone.HeadingFontName = "Aptos Display";
-                    clone.BodyFontName = "Aptos";
+                    clone.HeadingFontFamily = "Aptos Display";
+                    clone.BodyFontFamily = "Aptos";
                     break;
                 default:
                     break;
@@ -260,12 +260,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Font used for headings.
         /// </summary>
-        public string HeadingFontName { get; set; } = "Poppins";
+        public string HeadingFontFamily { get; set; } = "Poppins";
 
         /// <summary>
         ///     Font used for body text.
         /// </summary>
-        public string BodyFontName { get; set; } = "Lato";
+        public string BodyFontFamily { get; set; } = "Lato";
 
         internal void Validate() {
             ValidateHex(BackgroundColor, nameof(BackgroundColor));
@@ -283,11 +283,11 @@ namespace OfficeIMO.PowerPoint {
             ValidateHex(Accent3Color, nameof(Accent3Color));
             ValidateHex(WarningColor, nameof(WarningColor));
 
-            if (string.IsNullOrWhiteSpace(HeadingFontName)) {
-                throw new ArgumentException("Heading font cannot be null or empty.", nameof(HeadingFontName));
+            if (string.IsNullOrWhiteSpace(HeadingFontFamily)) {
+                throw new ArgumentException("Heading font cannot be null or empty.", nameof(HeadingFontFamily));
             }
-            if (string.IsNullOrWhiteSpace(BodyFontName)) {
-                throw new ArgumentException("Body font cannot be null or empty.", nameof(BodyFontName));
+            if (string.IsNullOrWhiteSpace(BodyFontFamily)) {
+                throw new ArgumentException("Body font cannot be null or empty.", nameof(BodyFontFamily));
             }
         }
 
@@ -366,24 +366,24 @@ namespace OfficeIMO.PowerPoint {
 
             switch (resolvedStyle) {
                 case PowerPointTypographyStyle.FriendlySans:
-                    HeadingFontName = "Poppins";
-                    BodyFontName = "Lato";
+                    HeadingFontFamily = "Poppins";
+                    BodyFontFamily = "Lato";
                     break;
                 case PowerPointTypographyStyle.ModernSans:
-                    HeadingFontName = "Aptos Display";
-                    BodyFontName = "Aptos";
+                    HeadingFontFamily = "Aptos Display";
+                    BodyFontFamily = "Aptos";
                     break;
                 case PowerPointTypographyStyle.ExecutiveSans:
-                    HeadingFontName = "Segoe UI Semibold";
-                    BodyFontName = "Segoe UI";
+                    HeadingFontFamily = "Segoe UI Semibold";
+                    BodyFontFamily = "Segoe UI";
                     break;
                 case PowerPointTypographyStyle.EditorialSerif:
-                    HeadingFontName = "Georgia";
-                    BodyFontName = "Aptos";
+                    HeadingFontFamily = "Georgia";
+                    BodyFontFamily = "Aptos";
                     break;
                 case PowerPointTypographyStyle.TechnicalSans:
-                    HeadingFontName = "Bahnschrift";
-                    BodyFontName = "Aptos";
+                    HeadingFontFamily = "Bahnschrift";
+                    BodyFontFamily = "Aptos";
                     break;
                 default:
                     break;
@@ -393,7 +393,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void SyncTypographyStyleToFonts() {
-            TypographyStyle = InferTypographyStyle(HeadingFontName, BodyFontName);
+            TypographyStyle = InferTypographyStyle(HeadingFontFamily, BodyFontFamily);
         }
 
         private static string NormalizeHex(string value, string name) {
@@ -482,30 +482,30 @@ namespace OfficeIMO.PowerPoint {
             return styles[StablePick(seed + "/typography", styles.Length)];
         }
 
-        private static PowerPointTypographyStyle InferTypographyStyle(string headingFontName, string bodyFontName) {
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Poppins", "Lato")) {
+        private static PowerPointTypographyStyle InferTypographyStyle(string headingFontFamily, string bodyFontFamily) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Poppins", "Lato")) {
                 return PowerPointTypographyStyle.FriendlySans;
             }
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Aptos Display", "Aptos")) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Aptos Display", "Aptos")) {
                 return PowerPointTypographyStyle.ModernSans;
             }
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Segoe UI Semibold", "Segoe UI")) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Segoe UI Semibold", "Segoe UI")) {
                 return PowerPointTypographyStyle.ExecutiveSans;
             }
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Georgia", "Aptos")) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Georgia", "Aptos")) {
                 return PowerPointTypographyStyle.EditorialSerif;
             }
-            if (MatchesTypographyPair(headingFontName, bodyFontName, "Bahnschrift", "Aptos")) {
+            if (MatchesTypographyPair(headingFontFamily, bodyFontFamily, "Bahnschrift", "Aptos")) {
                 return PowerPointTypographyStyle.TechnicalSans;
             }
 
             return PowerPointTypographyStyle.Auto;
         }
 
-        private static bool MatchesTypographyPair(string headingFontName, string bodyFontName,
-            string expectedHeadingFontName, string expectedBodyFontName) {
-            return string.Equals(headingFontName, expectedHeadingFontName, StringComparison.OrdinalIgnoreCase) &&
-                   string.Equals(bodyFontName, expectedBodyFontName, StringComparison.OrdinalIgnoreCase);
+        private static bool MatchesTypographyPair(string headingFontFamily, string bodyFontFamily,
+            string expectedHeadingFontFamily, string expectedBodyFontFamily) {
+            return string.Equals(headingFontFamily, expectedHeadingFontFamily, StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(bodyFontFamily, expectedBodyFontFamily, StringComparison.OrdinalIgnoreCase);
         }
 
         private static string ShiftHue(string value, double degrees, double saturationScale, double lightnessShift) {

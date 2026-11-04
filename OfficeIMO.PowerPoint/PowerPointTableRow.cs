@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTableCell GetCell(int columnIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, _table.Columns);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, _table.ColumnCount);
 
             A.TableCell cell = Row.Elements<A.TableCell>().ElementAt(columnIndex);
             return _table.WrapCell(cell);

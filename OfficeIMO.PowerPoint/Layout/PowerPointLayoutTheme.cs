@@ -257,8 +257,8 @@ namespace OfficeIMO.PowerPoint {
             if (!Distinct(accent2, accent)) accent2 = Distinct(palette.Accent2, accent) ? palette.Accent2 : palette.Accent4;
             if (!Distinct(accent3, accent) || !Distinct(accent3, accent2)) accent3 = palette.Accent3;
             palette = palette.With(accent1: accent, accent2: accent2, accent3: accent3);
-            OfficeThemeFont heading = theme.Fonts.Heading.With(family: Font(design.HeadingFontName, theme.Fonts.Heading.Family));
-            OfficeThemeFont body = theme.Fonts.Body.With(family: Font(design.BodyFontName, theme.Fonts.Body.Family));
+            OfficeThemeFont heading = theme.Fonts.Heading.With(family: Font(design.HeadingFontFamily, theme.Fonts.Heading.Family));
+            OfficeThemeFont body = theme.Fonts.Body.With(family: Font(design.BodyFontFamily, theme.Fonts.Body.Family));
             OfficeTheme mapped = theme.WithPalette(palette).WithFonts(new OfficeThemeFonts(heading, body));
             return new PowerPointLayoutTheme(mapped);
         }

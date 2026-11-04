@@ -8,13 +8,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies a drop shadow to the shape.
         /// </summary>
-        public void SetShadow(string color, OfficeLength? blur = null, OfficeLength? distance = null,
+        public void SetShadow(OfficeColor color, OfficeLength? blur = null, OfficeLength? distance = null,
             double angleDegrees = 45, int transparencyPercent = 35, bool rotateWithShape = false) {
             OfficeLength resolvedBlur = blur ?? OfficeLength.Points(4);
             OfficeLength resolvedDistance = distance ?? OfficeLength.Points(3);
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Shadow color cannot be null or empty.", nameof(color));
-            }
             if (resolvedBlur < OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(blur));
             }
@@ -36,9 +33,10 @@ namespace OfficeIMO.PowerPoint {
             shadow.RotateWithShape = rotateWithShape;
 
             RemoveShadowColors(shadow);
-            A.RgbColorModelHex rgb = new() { Val = color };
-            int alpha = 100000 - transparencyPercent * 1000;
-            rgb.Append(new A.Alpha { Val = alpha });
+            OpenXmlElement rgb = PowerPointDrawingColor.Create(color, OwnerSlide?.AuthoringTheme);
+            int alpha = rgb.GetFirstChild<A.Alpha>()?.Val?.Value ?? 100000;
+            rgb.RemoveAllChildren<A.Alpha>();
+            rgb.Append(new A.Alpha { Val = (int)Math.Round(alpha * (100 - transparencyPercent) / 100D) });
             shadow.Append(rgb);
         }
 
@@ -60,11 +58,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Applies a glow effect to the shape.
         /// </summary>
-        public void SetGlow(string color, OfficeLength? radius = null, int transparencyPercent = 30) {
+        public void SetGlow(OfficeColor color, OfficeLength? radius = null, int transparencyPercent = 30) {
             OfficeLength resolvedRadius = radius ?? OfficeLength.Points(4);
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Glow color cannot be null or empty.", nameof(color));
-            }
             if (resolvedRadius < OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(radius));
             }
@@ -80,9 +75,10 @@ namespace OfficeIMO.PowerPoint {
             glow.Radius = resolvedRadius.ToEmus();
             RemoveGlowColors(glow);
 
-            A.RgbColorModelHex rgb = new() { Val = color };
-            int alpha = 100000 - transparencyPercent * 1000;
-            rgb.Append(new A.Alpha { Val = alpha });
+            OpenXmlElement rgb = PowerPointDrawingColor.Create(color, OwnerSlide?.AuthoringTheme);
+            int alpha = rgb.GetFirstChild<A.Alpha>()?.Val?.Value ?? 100000;
+            rgb.RemoveAllChildren<A.Alpha>();
+            rgb.Append(new A.Alpha { Val = (int)Math.Round(alpha * (100 - transparencyPercent) / 100D) });
             glow.Append(rgb);
         }
 

@@ -179,7 +179,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the number of rows in the table.
         /// </summary>
-        public int RowsCount => this.Rows.Count;
+        public int RowCount => this.Rows.Count;
 
         /// <summary>
         /// Gets the table's rows in document order, including rows inside content controls and custom XML.
@@ -527,12 +527,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Add specified number of rows to an existing table with the specified number of columns
         /// </summary>
-        /// <param name="rowsCount"></param>
-        /// <param name="cellsCount"></param>
-        public List<WordTableRow> AddRow(int rowsCount, int cellsCount) {
+        /// <param name="rowCount">Number of rows to append.</param>
+        /// <param name="cellCount">Cells per row; zero uses the existing column count.</param>
+        public List<WordTableRow> AddRows(int rowCount, int cellCount) {
             List<WordTableRow> rows = new List<WordTableRow>();
-            for (int i = 0; i < rowsCount; i++) {
-                rows.Add(AddRow(cellsCount));
+            for (int i = 0; i < rowCount; i++) {
+                rows.Add(AddRow(cellCount));
             }
             return rows;
         }

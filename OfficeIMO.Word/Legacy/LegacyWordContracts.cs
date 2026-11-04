@@ -40,7 +40,7 @@ public sealed class LegacyWordRunContent {
         Text = source.Text;
         Bold = source.Bold;
         Italic = source.Italic;
-        Strike = source.Strike;
+        Strikethrough = source.Strike;
         Underline = source.Underline;
         VerticalPosition = source.VerticalPosition;
         FontSize = source.FontSizePoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.FontSizePoints.Value) : null;
@@ -56,7 +56,7 @@ public sealed class LegacyWordRunContent {
     /// <summary>Gets whether italic was recovered.</summary>
     public bool Italic { get; }
     /// <summary>Gets whether strike-through was recovered.</summary>
-    public bool Strike { get; }
+    public bool Strikethrough { get; }
     /// <summary>Gets the recovered underline style.</summary>
     public WordUnderlineStyle? Underline { get; }
     /// <summary>Gets the recovered vertical text position.</summary>

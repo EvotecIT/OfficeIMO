@@ -291,7 +291,7 @@ namespace OfficeIMO.PowerPoint {
                 run?.Italic == true,
                 run?.Underline == true,
                 PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                    (markerRun ? paragraph?.BulletFontName : null) ?? run?.FontFamily ?? textBox.FontFamily,
+                    (markerRun ? paragraph?.BulletFontFamily : null) ?? run?.FontFamily ?? textBox.FontFamily,
                     run?.OwnerPart ?? paragraph?.OwnerPart ?? textBox.RelationshipOwnerPart)
                     ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                 run?.Strikethrough == true,

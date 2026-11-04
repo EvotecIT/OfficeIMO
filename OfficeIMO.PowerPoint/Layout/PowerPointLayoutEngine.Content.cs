@@ -687,9 +687,9 @@ namespace OfficeIMO.PowerPoint {
                 // Readers get the share on each slice; the legend names the slices.
                 result.SetDataLabels(showValue: false, showPercent: true);
                 result.SetDataLabelNumberFormat("0%");
-                result.SetDataLabelTextStyle(fontSize: OfficeLength.Points(SliceLabelSize), bold: true, color: SliceLabelColor(context, chart));
+                result.SetDataLabelTextStyle(fontSize: OfficeLength.Points(SliceLabelSize), bold: true, color: OfficeColor.Parse(SliceLabelColor(context, chart)));
                 result.SetLegend(OfficeChartLegendPosition.Bottom);
-                result.SetLegendTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: context.Theme.TextMuted);
+                result.SetLegendTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: OfficeColor.Parse(context.Theme.TextMuted));
                 return;
             }
 
@@ -703,9 +703,9 @@ namespace OfficeIMO.PowerPoint {
                     or OfficeChartType.Scatter or OfficeChartType.Radar;
                 string accent = context.Theme.Accent(i + 1);
                 if (line) {
-                    if (series.ConnectLine) result.SetSeriesLineColor(i, accent, OfficeLength.Points(series.StrokeWidth?.ToPoints() ?? 2D));
+                    if (series.ConnectLine) result.SetSeriesLineColor(i, OfficeColor.Parse(accent), OfficeLength.Points(series.StrokeWidth?.ToPoints() ?? 2D));
                 }
-                else result.SetSeriesFillColor(i, accent);
+                else result.SetSeriesFillColor(i, OfficeColor.Parse(accent));
             }
 
             StyleCategoryChart(context, result, chart);
@@ -717,7 +717,7 @@ namespace OfficeIMO.PowerPoint {
                 result.Save();
             } else {
                 result.SetLegend(OfficeChartLegendPosition.Top);
-                result.SetLegendTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: context.Theme.TextMuted);
+                result.SetLegendTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: OfficeColor.Parse(context.Theme.TextMuted));
             }
         }
 
@@ -732,9 +732,9 @@ namespace OfficeIMO.PowerPoint {
         private static void StyleCategoryChart(PowerPointLayoutContext context, PowerPointChart result, PowerPointLayoutChart chart) {
             if (chart.Kind is OfficeChartType.Scatter or OfficeChartType.Bubble or OfficeChartType.Radar) return;
             PowerPointLayoutTheme theme = context.Theme;
-            result.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: theme.TextMuted);
-            result.SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: theme.TextMuted);
-            result.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: theme.Hairline, lineWidth: OfficeLength.Points(0.75D));
+            result.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: OfficeColor.Parse(theme.TextMuted));
+            result.SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), color: OfficeColor.Parse(theme.TextMuted));
+            result.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse(theme.Hairline), lineWidth: OfficeLength.Points(0.75D));
             UniformAxisText(result);
 
             bool secondary = chart.Data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Secondary);
@@ -751,7 +751,7 @@ namespace OfficeIMO.PowerPoint {
                 if (kind is OfficeChartType.Line or OfficeChartType.LineStacked or OfficeChartType.LineStacked100) {
                     if (series.Color == null && series.SeriesStyle == null) {
                         string accent = theme.Accent(i + 1);
-                        if (series.ShowMarkers || single) result.SetSeriesMarker(i, OfficeChartMarkerShape.Circle, OfficeLength.Points(6), theme.Background, accent, OfficeLength.Points(1.5D));
+                        if (series.ShowMarkers || single) result.SetSeriesMarker(i, OfficeChartMarkerShape.Circle, OfficeLength.Points(6), OfficeColor.Parse(theme.Background), OfficeColor.Parse(accent), OfficeLength.Points(1.5D));
                     }
                 }
             }
@@ -765,7 +765,7 @@ namespace OfficeIMO.PowerPoint {
                 if (!area) {
                     result.SetDataLabels(showValue: true);
                     result.SetDataLabelPosition(line ? OfficeChartDataLabelPosition.Top : OfficeChartDataLabelPosition.OutsideEnd);
-                    result.SetDataLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), bold: true, color: theme.Text);
+                    result.SetDataLabelTextStyle(fontSize: OfficeLength.Points(ChartTextSize), bold: true, color: OfficeColor.Parse(theme.Text));
                 }
             }
         }

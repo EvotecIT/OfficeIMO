@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the outline color (and optional physical width) and returns the shape for chaining.
         /// </summary>
-        public PowerPointConnectionShape Stroke(string color, OfficeLength? width = null) {
+        public PowerPointConnectionShape Stroke(OfficeColor color, OfficeLength? width = null) {
             if (width.HasValue) ToDrawingLineWidth(width.Value, nameof(width));
             OutlineColor = color;
             if (width.HasValue) {
