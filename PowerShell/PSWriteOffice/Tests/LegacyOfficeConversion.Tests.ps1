@@ -66,8 +66,9 @@ Describe 'Legacy Office conversion cmdlets' {
         Convert-OfficeDocument -Path $existingPath -OutputPath $targetPath | Out-Null
         $originalBytes = [IO.File]::ReadAllBytes($targetPath)
 
-        { Convert-OfficeDocument -Path $sourcePath -OutputPath $targetPath -NoClobber -ErrorAction Stop } |
-            Should -Throw '*already exists*'
+        $skipped = Convert-OfficeDocument -Path $sourcePath -OutputPath $targetPath -NoClobber -ErrorAction Stop
+        $skipped.Skipped | Should -BeTrue
+        $skipped.SkippedReason | Should -Be 'OutputExists'
         [IO.File]::ReadAllBytes($targetPath) | Should -Be $originalBytes
 
         Convert-OfficeDocument -Path $sourcePath -OutputPath $targetPath

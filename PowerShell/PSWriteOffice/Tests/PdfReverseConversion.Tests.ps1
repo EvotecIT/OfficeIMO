@@ -98,8 +98,9 @@ Describe 'PDF reverse conversion workflows' {
         Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wordPath | Out-Null
         $before = [Convert]::ToBase64String([IO.File]::ReadAllBytes($wordPath))
         $beforeTimestamp = (Get-Item -LiteralPath $wordPath).LastWriteTimeUtc
-        { Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wordPath -NoClobber -ErrorAction Stop } |
-            Should -Throw
+        $skipped = Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wordPath -NoClobber -ErrorAction Stop
+        $skipped.Skipped | Should -BeTrue
+        $skipped.SkippedReason | Should -Be 'OutputExists'
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($wordPath)) | Should -Be $before
         (Get-Item -LiteralPath $wordPath).LastWriteTimeUtc | Should -Be $beforeTimestamp
         Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wordPath | Out-Null

@@ -67,6 +67,6 @@ try {
 Get-Item -LiteralPath $workbookPath
 if ($IncludePdf) {
     $pdfPath = Join-Path $outputPath 'Service-Review.pdf'
-    Convert-OfficeDocument -Path $workbookPath -To Pdf -OutputPath $pdfPath
+    Convert-OfficeDocument -Path $workbookPath -To Pdf -OutputPath $pdfPath | Out-Null
     Get-Item -LiteralPath $pdfPath
 }

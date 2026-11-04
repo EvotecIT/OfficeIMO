@@ -46,7 +46,7 @@ Describe 'Executable recipe artifacts' {
             $file | Should -BeOfType ([IO.FileInfo])
             $file.Length | Should -BeGreaterThan 0
         }
-        $rows = @(Import-OfficeExcel -Path (Join-Path $folder 'Service-Review.xlsx') -WorksheetName Review -Range A3:C6)
+        $rows = @(Import-OfficeExcel -Path (Join-Path $folder 'Service-Review.xlsx') -Sheet Review -Range A3:C6)
         $rows.Count | Should -Be 3
         $rows[0].Service | Should -Be 'Identity'
         $rows[0].Availability | Should -BeOfType ([double])

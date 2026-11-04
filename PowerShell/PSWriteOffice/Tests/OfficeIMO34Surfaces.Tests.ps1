@@ -51,7 +51,9 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
         Get-Content -LiteralPath $markdownPath -Raw | Should -Match 'Review backup status'
 
         [IO.File]::WriteAllText($markdownPath, 'caller-owned')
-        { Convert-OfficeDocument -Path $onePath -OutputPath $markdownPath -NoClobber -ErrorAction Stop } | Should -Throw
+        $skipped = Convert-OfficeDocument -Path $onePath -OutputPath $markdownPath -NoClobber -ErrorAction Stop
+        $skipped.Skipped | Should -BeTrue
+        $skipped.SkippedReason | Should -Be 'OutputExists'
         [IO.File]::ReadAllText($markdownPath) | Should -Be 'caller-owned'
         Convert-OfficeDocument -Path $onePath -OutputPath $markdownPath | Should -BeOfType OfficeIMO.OfficeConversionReport
         Get-Content -LiteralPath $markdownPath -Raw | Should -Match 'Review backup status'

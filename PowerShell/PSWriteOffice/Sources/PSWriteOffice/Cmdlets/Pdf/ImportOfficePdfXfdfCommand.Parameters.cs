@@ -83,7 +83,7 @@ public sealed partial class ImportOfficePdfXfdfCommand {
     [Parameter(ParameterSetName = "LiteralPathFileDirectory")]
     [OfficeOptionsTransformation(typeof(PdfLoadOptions))]
     public PdfLoadOptions? LoadOptions { get; set; }
-    /// <summary>Return native annotation edit reports.</summary>
+    /// <summary>Return the changed, caller-owned PDF document. Dispose it when finished.</summary>
     [Parameter(ParameterSetName = "Path")]
     [Parameter(ParameterSetName = "PathDirectory")]
     [Parameter(ParameterSetName = "LiteralPath")]

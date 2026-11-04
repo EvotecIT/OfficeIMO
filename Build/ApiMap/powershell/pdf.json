@@ -10922,7 +10922,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Fills form fields from XFDF text or an XFDF file.",
-      "outputType": "System.IO.FileInfo, PdfDocument",
+      "outputType": "PdfDocument",
       "parameterSets": [
         {
           "name": "Path",
@@ -19472,7 +19472,7 @@
         "MaxXfdfBytes": "MaxXfdfSize",
         "ReadOptions": "LoadOptions"
       },
-      "reason": "Gains Document sets and a real -LiteralPath."
+      "reason": "Gains Document sets and a real -LiteralPath. -PassThru continues returning the changed caller-owned PdfDocument, including file inputs; dispose that result when finished."
     },
     {
       "old": "Invoke-OfficePdfOcrMerge",

@@ -59,15 +59,21 @@ Describe 'Expanded OfficeIMO support' {
         $brokenAsciiDocPath = Join-Path $TestDrive 'broken.adoc'
         $brokenAsciiDocOutput = Join-Path $TestDrive 'broken-adoc.md'
         Set-Content -LiteralPath $brokenAsciiDocPath -Encoding UTF8 -Value "----`nunterminated block"
-        { Convert-OfficeDocument -To Markdown -Path $brokenAsciiDocPath -OutputPath $brokenAsciiDocOutput -FailOnLoss -ErrorAction Stop } |
-            Should -Throw '*parsing reported errors*'
+        $failure = { Convert-OfficeDocument -To Markdown -Path $brokenAsciiDocPath -OutputPath $brokenAsciiDocOutput -FailOnLoss -ErrorAction Stop } |
+            Should -Throw -PassThru
+        $failure.Exception.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionException'
+        $failure.Exception.Report.HasLoss | Should -BeTrue
+        $failure.Exception.Report.Diagnostics.Code | Should -Contain 'ADOC001'
         Test-Path -LiteralPath $brokenAsciiDocOutput | Should -BeFalse
 
         $brokenLatexPath = Join-Path $TestDrive 'broken.tex'
         $brokenLatexOutput = Join-Path $TestDrive 'broken-latex.md'
         Set-Content -LiteralPath $brokenLatexPath -Encoding UTF8 -Value '\textbf{unterminated'
-        { Convert-OfficeDocument -To Markdown -Path $brokenLatexPath -OutputPath $brokenLatexOutput -FailOnLoss -ErrorAction Stop } |
-            Should -Throw '*parsing reported errors*'
+        $failure = { Convert-OfficeDocument -To Markdown -Path $brokenLatexPath -OutputPath $brokenLatexOutput -FailOnLoss -ErrorAction Stop } |
+            Should -Throw -PassThru
+        $failure.Exception.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionException'
+        $failure.Exception.Report.HasLoss | Should -BeTrue
+        $failure.Exception.Report.Diagnostics.Code | Should -Contain 'LATEX001'
         Test-Path -LiteralPath $brokenLatexOutput | Should -BeFalse
     }
 
@@ -221,15 +227,15 @@ Describe 'Expanded OfficeIMO support' {
         $excelPath = Join-Path $TestDrive 'extension-source.xlsx'
         $wrongOutput = Join-Path $TestDrive 'spreadsheet.odt'
         New-OfficeExcel -Path $excelPath { ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Extension contract' } } | Out-Null
-        { Convert-OfficeDocument -Path $excelPath -OutputPath $wrongOutput -ErrorAction Stop } |
-            Should -Throw '*must use the .ods extension*'
+        { Convert-OfficeDocument -Path $excelPath -To Ods -OutputPath $wrongOutput -ErrorAction Stop } |
+            Should -Throw '*To and the OutputPath extension must name the same target format*'
         Test-Path -LiteralPath $wrongOutput | Should -BeFalse
 
         $textPath = Join-Path $TestDrive 'reverse-source.odt'
         $wrongOfficeOutput = Join-Path $TestDrive 'text.xlsx'
         New-OfficeOpenDocument -Kind Text -Path $textPath -Content {} | Out-Null
-        { Convert-OfficeDocument -Path $textPath -OutputPath $wrongOfficeOutput -ErrorAction Stop } |
-            Should -Throw '*must use the .docx extension*'
+        { Convert-OfficeDocument -Path $textPath -To Word -OutputPath $wrongOfficeOutput -ErrorAction Stop } |
+            Should -Throw '*To and the OutputPath extension must name the same target format*'
         Test-Path -LiteralPath $wrongOfficeOutput | Should -BeFalse
 
         $wrongNewPath = Join-Path $TestDrive 'new-spreadsheet.odt'
@@ -477,14 +483,20 @@ Describe 'Expanded OfficeIMO support' {
         $xfdfOutput = Join-Path $TestDrive 'advanced-xfdf.pdf'
         $imported = @($xfdfLines | Import-OfficePdfXfdf -Path $formPdfPath -OutputPath $xfdfOutput -PassThru)
         $imported | Should -HaveCount 1
-        $imported[0].GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfDocument'
+        try {
+            $imported[0].GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfDocument'
+            $imported[0].Read().Text | Should -Match 'Advanced PDF form proof'
+        } finally {
+            if ($imported[0] -is [IDisposable]) { $imported[0].Dispose() }
+        }
         Test-Path -LiteralPath $xfdfOutput | Should -BeTrue
 
         $xfdfPath = Join-Path $TestDrive 'advanced.xfdf'
         Set-Content -LiteralPath $xfdfPath -Value $xfdf -Encoding UTF8
         $boundedOutput = Join-Path $TestDrive 'bounded-xfdf.pdf'
-        { Import-OfficePdfXfdf -Path $formPdfPath -XfdfPath $xfdfPath -OutputPath $boundedOutput -MaxXfdfSize 8 -ErrorAction Stop } |
-            Should -Throw '*configured limit*'
+        $failure = { Import-OfficePdfXfdf -Path $formPdfPath -XfdfPath $xfdfPath -OutputPath $boundedOutput -MaxXfdfSize 8 -ErrorAction Stop } |
+            Should -Throw -PassThru
+        $failure.Exception.GetType().FullName | Should -Be 'System.IO.InvalidDataException'
         Test-Path -LiteralPath $boundedOutput | Should -BeFalse
 
         $pdfReadOptionsType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.Pdf' -TypeName 'OfficeIMO.Pdf.PdfLoadOptions' -CommandName 'New-OfficePdfVisualComparisonOptions'

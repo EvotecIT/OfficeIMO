@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <summary>Imports bounded DTD-free XFDF into native PDF forms, with atomic file output or a caller-owned live result.</summary>
 /// <example><summary>Fill a literal file from XFDF.</summary><code>Import-OfficePdfXfdf -LiteralPath './Form[1].pdf' -XfdfPath ./Values.xfdf -OutputPath ./Completed.pdf</code></example>
 [Cmdlet(VerbsData.Import, "OfficePdfXfdf", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
-[OutputType(typeof(PdfDocument), typeof(FileInfo))]
+[OutputType(typeof(PdfDocument))]
 public sealed partial class ImportOfficePdfXfdfCommand : OfficeCmdlet, IDisposable {
     private readonly StringBuilder _xml = new();
     private readonly List<string> _inputs = new();
@@ -74,9 +74,15 @@ public sealed partial class ImportOfficePdfXfdfCommand : OfficeCmdlet, IDisposab
         foreach (var item in PdfFileCommandInputs.Resolve(this, null, _inputs.ToArray(), OutputPath, OutputDirectory, false)) {
             if (!ShouldProcess(item.Output, "Import XFDF form data")) continue;
             using var document = PdfDocument.Load(item.Input, read, _stop.Token);
-            using var changed = document.Forms.ImportXfdf(ReadXml(), options, _stop.Token);
-            changed.Save(item.Output, new PdfSaveOptions { ConflictPolicy = OfficeConversionFileConflictPolicy.Replace }, _stop.Token);
-            if (PassThru) WriteObject(new FileInfo(item.Output));
+            var changed = document.Forms.ImportXfdf(ReadXml(), options, _stop.Token);
+            bool transferred = false;
+            try {
+                changed.Save(item.Output, new PdfSaveOptions { ConflictPolicy = OfficeConversionFileConflictPolicy.Replace }, _stop.Token);
+                if (PassThru) {
+                    WriteObject(changed);
+                    transferred = true;
+                }
+            } finally { if (!transferred) changed.Dispose(); }
         }
     }
     /// <inheritdoc />

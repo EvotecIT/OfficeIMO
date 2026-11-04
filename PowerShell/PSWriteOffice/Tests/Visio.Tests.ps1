@@ -311,7 +311,7 @@ Describe 'Visio cmdlets' {
         New-OfficeVisio -Path $path -Title 'Metric stencil defaults' {
             Import-OfficeVisioStencilCatalog -Catalog $catalog -Name Metric -Default | Out-Null
             VisioPage 'Metric Page' -Width 210mm -Height 297mm -DisplayUnit Millimeters {
-                VisioStencil -Catalog Metric -Stencil 'metric.process' -Key process -Text 'Metric' -X 50 -Y 50 -Width 30
+                VisioStencil -Catalog Metric -Stencil 'metric.process' -Key process -Text 'Metric' -X 50mm -Y 50mm -Width 30mm
             }
         } | Out-Null
 
