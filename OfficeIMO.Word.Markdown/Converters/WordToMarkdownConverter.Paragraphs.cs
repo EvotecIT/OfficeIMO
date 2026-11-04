@@ -130,7 +130,7 @@ namespace OfficeIMO.Word.Markdown {
                     text = $"<u>{text}</u>";
                 }
 
-                if (run.Strike) {
+                if (run.Strikethrough) {
                     text = $"~~{text}~~";
                 }
 

@@ -2,16 +2,16 @@
   "package": "OfficeIMO.Word.Markdown",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 32,
+    "changes": 33,
     "byAction": {
-      "change": 5,
+      "change": 6,
       "internalize": 4,
       "merge": 11,
       "move": 1,
       "rename": 11
     },
     "byCategory": {
-      "conversion": 16,
+      "conversion": 17,
       "naming": 8,
       "options": 3,
       "visibility": 5
@@ -509,6 +509,15 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "MarkdownWordExportOptions.Template (caller-owned WordDocument) and mapped template-file factory input",
+      "kind": "property",
+      "action": "change",
+      "new": "MarkdownWordExportOptions.TemplatePath alongside Template",
+      "replacement": "TemplatePath copies an existing Word file through WordDocument.Create(WordCreateOptions.Template). The returned document is detached and caller-owned; Template remains the explicit caller-owned in-place route. The two inputs are exclusive.",
+      "reason": "The thin PowerShell options factory can forward a file path without owning a loaded document or duplicating template loading/lifetime rules. Template rendering propagates cancellation.",
+      "category": "conversion"
     }
   ],
   "packageMoves": [

@@ -25,13 +25,18 @@ namespace OfficeIMO.Word.Markdown {
 
             options ??= new MarkdownWordExportOptions();
 
+            cancellationToken.ThrowIfCancellationRequested();
             var document = WordDocument.Create();
-            options.ApplyDefaults(document);
-            ApplyThemeHeadingStyles(document, OfficeTheme.Default);
-            var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-
-            RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
-            return document;
+            try {
+                options.ApplyDefaults(document);
+                ApplyThemeHeadingStyles(document, OfficeTheme.Default);
+                var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
+                RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
+                return document;
+            } catch {
+                document.Dispose();
+                throw;
+            }
         }
 
         private void RenderDocument(Omd.MarkdownDocument markdown, WordDocument document, MarkdownWordExportOptions options, double pageContentWidthPixels, CancellationToken cancellationToken) {

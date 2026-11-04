@@ -161,9 +161,24 @@ namespace OfficeIMO.Word.Markdown {
                 callerWarning?.Invoke(message);
             };
 
-            WordDocument value = effectiveOptions.Template == null
-                ? new MarkdownToWordConverter().Convert(markdown, effectiveOptions, cancellationToken)
-                : new MarkdownToWordConverter().ConvertIntoTemplate(markdown, effectiveOptions.Template, effectiveOptions);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (effectiveOptions.Template != null && effectiveOptions.TemplatePath != null) {
+                throw new ArgumentException("Use either Template or TemplatePath.", nameof(options));
+            }
+            WordDocument value;
+            if (effectiveOptions.TemplatePath != null) {
+                value = WordDocument.Create(new WordCreateOptions { Template = effectiveOptions.TemplatePath });
+                try {
+                    new MarkdownToWordConverter().ConvertIntoTemplate(markdown, value, effectiveOptions, cancellationToken);
+                } catch {
+                    value.Dispose();
+                    throw;
+                }
+            } else {
+                value = effectiveOptions.Template == null
+                    ? new MarkdownToWordConverter().Convert(markdown, effectiveOptions, cancellationToken)
+                    : new MarkdownToWordConverter().ConvertIntoTemplate(markdown, effectiveOptions.Template, effectiveOptions, cancellationToken);
+            }
             return new MarkdownToWordResult(value, new WordMarkdownConversionReport(diagnostics));
         }
 
@@ -172,6 +187,7 @@ namespace OfficeIMO.Word.Markdown {
         internal static MarkdownWordExportOptions CopyOptions(MarkdownWordExportOptions source) {
             var copy = new MarkdownWordExportOptions {
                 Template = source.Template,
+                TemplatePath = source.TemplatePath,
                 ContentControlTag = source.ContentControlTag,
                 ContentControlAlias = source.ContentControlAlias,
                 BookmarkName = source.BookmarkName,

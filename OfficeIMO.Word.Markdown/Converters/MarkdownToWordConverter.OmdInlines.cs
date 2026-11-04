@@ -42,7 +42,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.Bold) run.SetBold();
             if (fmt.Italic) run.SetItalic();
             if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) run.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
-            if (fmt.Strike) run.SetStrike();
+            if (fmt.Strike) run.SetStrikethrough();
             if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) run.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
             if (fmt.VerticalTextAlignment.HasValue) run.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
             if (!string.IsNullOrEmpty(defaultFont)) run.SetFontFamily(defaultFont!);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.Bold) wrapper.SetBold();
             if (fmt.Italic) wrapper.SetItalic();
             if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) wrapper.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
-            if (fmt.Strike) wrapper.SetStrike();
+            if (fmt.Strike) wrapper.SetStrikethrough();
             if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) wrapper.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
             if (fmt.VerticalTextAlignment.HasValue) wrapper.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
 
@@ -599,7 +599,7 @@ namespace OfficeIMO.Word.Markdown {
             if (fmt.Bold) hyperlink.SetBold();
             if (fmt.Italic) hyperlink.SetItalic();
             if (fmt.Underline.HasValue && fmt.Underline.Value != UnderlineValues.None) hyperlink.SetUnderline(fmt.Underline.Value.ToOfficeEnum());
-            if (fmt.Strike) hyperlink.SetStrike();
+            if (fmt.Strike) hyperlink.SetStrikethrough();
             if (fmt.Highlight.HasValue && fmt.Highlight.Value != HighlightColorValues.None) hyperlink.SetHighlight(fmt.Highlight.Value.ToOfficeEnum());
             if (fmt.VerticalTextAlignment.HasValue) hyperlink.SetVerticalTextAlignment(fmt.VerticalTextAlignment.Value.ToOfficeEnum());
             if (!string.IsNullOrEmpty(defaultFont)) hyperlink.SetFontFamily(defaultFont!);

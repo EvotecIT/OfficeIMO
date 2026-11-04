@@ -20,6 +20,9 @@ namespace OfficeIMO.Word.Markdown {
         public bool FailOnLoss { get; set; }
         /// <summary>Optional caller-owned template to populate rather than creating a detached document.</summary>
         public WordDocument? Template { get; set; }
+        /// <summary>Optional template file copied into a detached output document. The source is never modified or associated with the result.</summary>
+        /// <remarks>Use either TemplatePath or the caller-owned Template object.</remarks>
+        public string? TemplatePath { get; set; }
         /// <summary>Tag identifying the template insertion content control.</summary>
         public string? ContentControlTag { get; set; }
         /// <summary>Alias identifying the template insertion content control.</summary>
@@ -181,7 +184,7 @@ namespace OfficeIMO.Word.Markdown {
         /// The default is true for a new document and false when a template consumes it as metadata.
         /// </summary>
         public bool RenderFrontMatter {
-            get => _renderFrontMatter ?? Template == null;
+            get => _renderFrontMatter ?? (Template == null && TemplatePath == null);
             set => _renderFrontMatter = value;
         }
 
