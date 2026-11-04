@@ -25,17 +25,20 @@ internal static partial class OfficeDrawingTextLayout {
     // the layout. Preserve that placement while measuring a separate horizontal canvas.
     internal static (double Left, double Right) HorizontalPaintEnvelope(
         OfficeRichTextBlockLayout layout, OfficeRasterCanvas metrics) =>
-        HorizontalPaintEnvelope(layout, (text, size, family, style) =>
-            metrics.MeasureTextLineHorizontalPaintBounds(text ?? string.Empty, size, family, style));
+        HorizontalPaintEnvelope(layout, metrics.CreateDrawingTextMetrics().MeasureSegmentHorizontalPaintBounds);
 
     internal static (double Left, double Right) HorizontalPaintEnvelope(OfficeRichTextBlockLayout layout,
-        Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measurePaint) {
+        Func<string?, double, string?, OfficeFontStyle, (double Left, double Right)> measurePaint) =>
+        HorizontalPaintEnvelope(layout, (segment, size) => measurePaint(segment.Text, size, segment.FontFamily, segment.FontStyle));
+
+    internal static (double Left, double Right) HorizontalPaintEnvelope(OfficeRichTextBlockLayout layout,
+        Func<OfficeRichTextSegment, double, (double Left, double Right)> measurePaint) {
         double left = 0D, right = layout.Width;
         foreach (OfficeRichTextLine line in layout.Lines) {
             double cursor = line.OffsetX;
             foreach (OfficeRichTextSegment segment in line.Segments) {
                 double size = OfficeTextBlockRenderer.ResolveRichTextRenderedFontSize(segment);
-                var bounds = measurePaint(segment.Text, size, segment.FontFamily, segment.FontStyle);
+                var bounds = measurePaint(segment, size);
                 left = Math.Min(left, cursor + bounds.Left); right = Math.Max(right, cursor + bounds.Right);
                 if (segment.Underline || segment.Strikethrough) {
                     double radius = Math.Max(1D, size / 16D) / 2D;

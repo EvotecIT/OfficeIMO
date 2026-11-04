@@ -5,8 +5,9 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeRasterCanvas {
     private readonly struct TextMeasurementKey : IEquatable<TextMeasurementKey> {
         internal TextMeasurementKey(string text, double fontSize, string? fontFamily, OfficeFontStyle style,
-            bool paintedGlyphOrder = false, OfficeFontFaceDescriptor? face = null) {
+            bool paintedGlyphOrder = false, OfficeFontFaceDescriptor? face = null, OfficeTextFeatureSettings? features = null) {
             Text = text;
+            Features = features ?? OfficeTextFeatureSettings.Default;
             PaintedGlyphOrder = paintedGlyphOrder;
             FontSize = fontSize;
             FontFamily = fontFamily ?? string.Empty;
@@ -15,6 +16,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         private string Text { get; }
+        private OfficeTextFeatureSettings Features { get; }
         private double FontSize { get; }
         private string FontFamily { get; }
         private OfficeFontStyle Style { get; }
@@ -23,7 +25,7 @@ public sealed partial class OfficeRasterCanvas {
         private bool PaintedGlyphOrder { get; }
 
         public bool Equals(TextMeasurementKey other) =>
-            FontSize.Equals(other.FontSize) &&
+            Features.Equals(other.Features) && FontSize.Equals(other.FontSize) &&
             string.Equals(Text, other.Text, StringComparison.Ordinal) &&
             string.Equals(FontFamily, other.FontFamily, StringComparison.Ordinal) &&
             Style == other.Style && Face == other.Face &&
@@ -34,7 +36,7 @@ public sealed partial class OfficeRasterCanvas {
 
         public override int GetHashCode() {
             unchecked {
-                int hash = StringComparer.Ordinal.GetHashCode(Text);
+                int hash = StringComparer.Ordinal.GetHashCode(Text) ^ Features.GetHashCode();
                 hash = (hash * 397) ^ FontSize.GetHashCode();
                 hash = (hash * 397) ^ StringComparer.Ordinal.GetHashCode(FontFamily);
                 hash = (hash * 397) ^ Style.GetHashCode();

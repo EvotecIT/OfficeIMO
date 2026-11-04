@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing;
 /// This adapter primitive uses the same line breaker as drawing renderers and
 /// retains source whitespace and UTF-16 boundaries instead of parsing painted text.
 /// </summary>
-internal sealed class OfficeRichTextFlow {
+internal sealed partial class OfficeRichTextFlow {
     private readonly IReadOnlyList<OfficeRichTextParagraph> _paragraphs;
     private readonly Action<int> _accountMeasurement;
     private int _paragraph, _offset;
@@ -30,6 +30,20 @@ internal sealed class OfficeRichTextFlow {
     /// </summary>
     internal IReadOnlyList<OfficeRichTextParagraph> Take(double width, double height,
         Func<string?, double, string?, OfficeFontStyle, double> measure, CancellationToken cancellationToken) {
+        return TakeCore(width, height, measure, null, cancellationToken);
+    }
+
+    internal IReadOnlyList<OfficeRichTextParagraph> Take(double width, double height,
+        OfficeDrawingTextMetrics metrics, CancellationToken cancellationToken) =>
+        TakeCore(width, height, metrics.MeasureText, metrics, cancellationToken);
+
+    internal IReadOnlyList<OfficeRichTextParagraph> Take(double width, double height,
+        OfficeDrawingTextMetrics metrics, CancellationToken cancellationToken, bool allowFirstLineOverflow) =>
+        TakeCore(width, height, metrics.MeasureText, metrics, cancellationToken, allowFirstLineOverflow);
+
+    private IReadOnlyList<OfficeRichTextParagraph> TakeCore(double width, double height,
+        Func<string?, double, string?, OfficeFontStyle, double> measure, OfficeDrawingTextMetrics? metrics,
+        CancellationToken cancellationToken, bool allowFirstLineOverflow = false) {
         cancellationToken.ThrowIfCancellationRequested();
         var visible = new List<OfficeRichTextParagraph>();
         if (width <= 0 || height <= 0) return visible;
@@ -40,29 +54,61 @@ internal sealed class OfficeRichTextFlow {
             int length = TextLength(source);
             OfficeRichTextParagraph tail = Slice(source, _offset, length - _offset, complete: true);
             _accountMeasurement(length - _offset);
-            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateParagraphs(new[] { tail },
-                width, remainingHeight, measure, cancellationToken: cancellationToken);
+            OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateFlowParagraphs(new[] { tail },
+                width, remainingHeight, measure, metrics, allowFirstLineOverflow && visible.Count == 0, cancellationToken);
             int consumed = 0;
             bool sourceEndVisible = false;
+            double measuredHeight = 0D, completedHeight = 0D;
+            var selectedLines = source.UsesPublisherKerningContext || source.Hyphenation != null
+                ? new List<(int SourceEnd, double? FittingWidth, bool GeneratedHyphen)>() : null;
+            var selectedTabs = selectedLines != null ? new List<OfficeTextTabPlacement>() : null;
             foreach (OfficeRichTextLine line in layout.Lines) {
                 // Ordinary drawing wrapping may force an indivisible glyph onto
                 // a narrow line. Flow must retain it for a region that can hold it.
-                if (line.OffsetX < -.000001D || line.OffsetX + line.Width > width - tail.Margins.Right + .000001D) break;
+                var fitting = line.FittingBounds ?? (line.OffsetX, line.OffsetX + line.Width);
+                if (fitting.Item1 < -.000001D || fitting.Item2 > width - tail.Margins.Right + .000001D) break;
+                measuredHeight += OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, layout.LineHeight);
                 consumed = Math.Max(consumed, line.SourceTextEnd);
+                if (line.SourceTextEnd > 0 || line.CompletesSource) selectedLines?.Add((line.SourceTextEnd,
+                    line.FittingBounds.HasValue ? line.FittingBounds.Value.Right - line.FittingBounds.Value.Left : null, line.EndsWithGeneratedHyphen));
+                selectedTabs?.AddRange(line.NativeTabs);
                 sourceEndVisible |= line.CompletesSource;
+                if (line.CompletesSource) completedHeight = measuredHeight + tail.Margins.Bottom;
             }
             consumed = Math.Min(consumed, length - _offset);
             bool complete = consumed == length - _offset && sourceEndVisible;
             // An empty paragraph still consumes a printable line; outer margin
             // gaps alone do not establish that the empty line fitted.
             if (consumed == 0 && !complete) break;
-            visible.Add(Slice(source, _offset, consumed, complete));
+            var selected = Slice(source, _offset, consumed, complete);
+            if (selectedLines != null) selected.NativeFlowPlan = new OfficeRichTextFlowPlan(width - source.Margins.Horizontal,
+                selectedLines.AsReadOnly(), selectedTabs!.AsReadOnly());
+            visible.Add(selected);
             CharacterPosition = checked(CharacterPosition + consumed);
             _offset += consumed;
-            remainingHeight -= layout.Height;
+            // Layout omits an after-gap that does not fit. Still account for
+            // that gap before admitting another paragraph into this region.
+            remainingHeight -= complete ? completedHeight : layout.Height;
             if (!complete) break;
             _paragraph++; _offset = 0;
             if (HasRemaining) CharacterPosition++;
+        }
+        if (visible.Count > 0 && visible[visible.Count - 1].Margins.Bottom != 0) {
+            // Paragraph spacing separates paragraphs inside a region; it does
+            // not enlarge the final block used for center/bottom alignment.
+            OfficeRichTextParagraph last = visible[visible.Count - 1];
+            var margins = new OfficeTextPadding(last.Margins.Left, last.Margins.Top, last.Margins.Right, 0);
+            OfficeRichTextParagraph trimmed = last.Label == null
+                ? new OfficeRichTextParagraph(last.Runs, last.Alignment, last.LineHeight, margins, last.Indent, last.LineHeightFactor)
+                : new OfficeRichTextParagraph(last.Runs, last.Label, last.Alignment, last.LineHeight, margins, last.Indent, last.LineHeightFactor);
+            trimmed.ContinuesInNextRegion = last.ContinuesInNextRegion;
+            trimmed.UsesPublisherFontMetrics = last.UsesPublisherFontMetrics;
+            trimmed.UsesPublisherKerningContext = last.UsesPublisherKerningContext;
+            trimmed = trimmed.WithTabStops(last.TabStops);
+            trimmed.SuppressAutomaticHyphenation = last.SuppressAutomaticHyphenation;
+            trimmed.Hyphenation = last.Hyphenation;
+            trimmed.NativeFlowPlan = last.NativeFlowPlan;
+            visible[visible.Count - 1] = trimmed;
         }
         return visible;
     }
@@ -73,20 +119,21 @@ internal sealed class OfficeRichTextFlow {
         return length;
     }
 
-    private static OfficeRichTextParagraph Slice(OfficeRichTextParagraph source, int start, int length, bool complete) {
+    private static OfficeRichTextParagraph Slice(OfficeRichTextParagraph source, int start, int length, bool complete,
+        bool verticalMargins = true, double tabOriginAdjustment = 0, bool keepTypingStyles = false) {
         var runs = new List<OfficeRichTextRun>();
         int position = 0, end = checked(start + length);
         foreach (OfficeRichTextRun run in source.Runs) {
             int next = checked(position + run.Text.Length);
             int left = Math.Max(position, start), right = Math.Min(next, end);
-            if (right > left) {
+            if (right > left || keepTypingStyles) {
                 OfficeTextParagraphIndent? indent = run.ParagraphIndent;
                 if (start != 0 && indent.HasValue) indent = new OfficeTextParagraphIndent(
                     indent.Value.ContinuationLineOffset, indent.Value.ContinuationLineOffset);
-                runs.Add(new OfficeRichTextRun(run.Text.Substring(left - position, right - left),
+                runs.Add(new OfficeRichTextRun(right > left ? run.Text.Substring(left - position, right - left) : string.Empty,
                     run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily,
                     run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
-                    run.Baseline, indent) { LinkUri = run.LinkUri });
+                    run.Baseline, indent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri });
             }
             position = next;
         }
@@ -97,16 +144,20 @@ internal sealed class OfficeRichTextFlow {
             foreach (OfficeRichTextRun run in source.Runs)
                 runs.Add(new OfficeRichTextRun(string.Empty, run.FontSize, run.Color, run.Bold, run.Italic,
                     run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor,
-                    run.UnderlineStyle, run.StrikethroughStyle, run.Baseline));
+                    run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId });
         }
-        var margins = new OfficeTextPadding(source.Margins.Left, start == 0 ? source.Margins.Top : 0,
-            source.Margins.Right, complete ? source.Margins.Bottom : 0);
+        var margins = new OfficeTextPadding(source.Margins.Left, verticalMargins && start == 0 ? source.Margins.Top : 0,
+            source.Margins.Right, verticalMargins && complete ? source.Margins.Bottom : 0);
         OfficeTextParagraphIndent paragraphIndent = start == 0 ? source.Indent :
             new OfficeTextParagraphIndent(source.Indent.ContinuationLineOffset, source.Indent.ContinuationLineOffset);
         OfficeRichTextParagraph result = start == 0 && source.Label != null
             ? new OfficeRichTextParagraph(runs, source.Label, source.Alignment, source.LineHeight, margins, paragraphIndent, source.LineHeightFactor)
             : new OfficeRichTextParagraph(runs, source.Alignment, source.LineHeight, margins, paragraphIndent, source.LineHeightFactor);
         result.ContinuesInNextRegion = !complete || source.ContinuesInNextRegion;
-        return result.WithTabStops(source.TabStops);
+        result.UsesPublisherFontMetrics = source.UsesPublisherFontMetrics;
+        result.UsesPublisherKerningContext = source.UsesPublisherKerningContext;
+        result.SuppressAutomaticHyphenation = source.SuppressAutomaticHyphenation;
+        result.Hyphenation = source.Hyphenation?.Slice(start, length);
+        return result.WithTabStops(tabOriginAdjustment == 0 ? source.TabStops : source.TabStops?.Scale(1, tabOriginAdjustment));
     }
 }

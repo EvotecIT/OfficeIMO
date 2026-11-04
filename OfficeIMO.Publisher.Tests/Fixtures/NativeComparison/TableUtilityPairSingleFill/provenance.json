@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.native-table-utility-pair-fixture.v1",
+  "license": "MIT",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableUtilityPairSingleFill",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tableutilitypairsinglefill.pub",
+      "bytes": 98816,
+      "sha256": "91fd2a7346a50102e7fb4d90f593e7dd010e3c0bbd70f66a87d00958cb4ed80b"
+    },
+    {
+      "name": "native-tableutilitypairsinglefill.pdf",
+      "bytes": 112314,
+      "sha256": "4d38c7e1bbbde73040b03bdc5d6b383c63c1554950d017ac6a59225f217482e3"
+    },
+    {
+      "name": "native-tableutilitypairsinglefill.json",
+      "bytes": 18278,
+      "sha256": "cd6b9b338a55c7a5ee1aecafc9f4fa9bcd1f84688b7aae3db4299add0dce952c"
+    }
+  ],
+  "scope": "Independent native decorated peer and single-fill target table; only the second table first cell is filled, other cells explicitly invisible."
+}

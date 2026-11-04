@@ -19,6 +19,8 @@ internal static class RtfTextDecoder {
 
     public static string DecodeAnsiText(string text, RtfTextDecodingState state) {
         if (string.IsNullOrEmpty(text)) return string.Empty;
+        if (CanReturnUnchanged(text, state)) return text;
+
         var result = new StringBuilder(text.Length);
         int start = 0;
         while (start < text.Length) {
@@ -53,13 +55,26 @@ internal static class RtfTextDecoder {
                 if (retainLead) length--;
                 if (length > 0) {
                     result.Append(FlushUnicode(state));
-                    result.Append(RtfAnsiCodePage.DecodeText(state.AnsiCodePage, text.Substring(start, length)));
+                    RtfAnsiCodePage.AppendDecodedText(result, state.AnsiCodePage, text, start, length);
                 }
                 if (retainLead) state.PendingAnsiLeadByte = (byte)text[last];
             }
             start = end;
         }
         return result.ToString();
+    }
+
+    // Most text tokens are plain single-byte runs with no pending decoder state; they decode to themselves.
+    private static bool CanReturnUnchanged(string text, RtfTextDecodingState state) {
+        if (state.SkipCharacters > 0 || state.PendingAnsiLeadByte.HasValue || state.PendingHighSurrogate.HasValue) {
+            return false;
+        }
+
+        if (text.IndexOf('\r') >= 0 || text.IndexOf('\n') >= 0) {
+            return false;
+        }
+
+        return RtfAnsiCodePage.DecodesToItself(state.AnsiCodePage, text);
     }
 
     private static bool EndsWithUnpairedLead(string text, int start, int length, int codePage) {

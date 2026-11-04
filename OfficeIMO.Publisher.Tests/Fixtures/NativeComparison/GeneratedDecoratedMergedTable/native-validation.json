@@ -1,0 +1,1379 @@
+{
+  "schema": "officeimo.publisher.native-validation.v1",
+  "stage": "Full",
+  "status": "OpenedExportedResavedAndReopened",
+  "stageCompleted": true,
+  "qualifiedOperations": [
+    "ReadOnlyOpen",
+    "InitialInventory",
+    "InitialPdfExport",
+    "NativeSaveAs",
+    "ReadOnlyReopen",
+    "ResavedInventory",
+    "ResavedPdfExport"
+  ],
+  "qualificationScope": "Only the listed native operations are established. Native repair and rendering fidelity remain unassessed.",
+  "candidateSha256": "7d88914fcb82f897d5f711180bb72b655a60a229bc980d4979f2f51c98e158fa",
+  "sourceUnchanged": true,
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "automationSecurity": 3
+  },
+  "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+  "initial": {
+    "pageCount": 1,
+    "widthPoints": 612.0,
+    "heightPoints": 792.0,
+    "readOnly": true,
+    "defaultTabStopPoints": 36.0,
+    "pages": [
+      {
+        "index": 1,
+        "pageId": 33554690,
+        "pageIndex": 1,
+        "pageNumber": "1",
+        "pageType": 2,
+        "name": "Page Title",
+        "masterStatus": "Observed",
+        "master": {
+          "pageId": 33554689,
+          "name": "Master Page A"
+        },
+        "masterErrorHResult": null,
+        "ignoreMaster": false,
+        "shapes": [
+          {
+            "name": "Text Box 1",
+            "type": 17,
+            "left": 72.0,
+            "top": 72.0,
+            "width": 300.0,
+            "height": 54.0,
+            "text": "Independent table label\r",
+            "font": "Arial",
+            "languageId": 0,
+            "automaticPairKerningThresholdPoints": 14.0,
+            "manualKerningPoints": 0.0,
+            "fontSizePoints": 12.0,
+            "nextLink": false,
+            "previousLink": false,
+            "frameLayout": {
+              "columns": 1,
+              "columnSpacing": 0.0,
+              "left": 0.0,
+              "top": 0.0,
+              "right": 0.0,
+              "bottom": 0.0,
+              "verticalAlignment": 0
+            },
+            "picture": null,
+            "tableGeometry": null,
+            "tableCells": null
+          },
+          {
+            "name": "Control 2",
+            "type": 18,
+            "left": 72.0,
+            "top": 144.0,
+            "width": 480.0,
+            "height": 162.0,
+            "text": null,
+            "font": null,
+            "languageId": null,
+            "automaticPairKerningThresholdPoints": null,
+            "manualKerningPoints": null,
+            "fontSizePoints": null,
+            "nextLink": false,
+            "previousLink": false,
+            "frameLayout": null,
+            "picture": null,
+            "tableGeometry": {
+              "rowHeightsPoints": [
+                42.0,
+                54.0,
+                66.0
+              ],
+              "columnWidthsPoints": [
+                90.0,
+                110.0,
+                130.0,
+                150.0
+              ]
+            },
+            "tableCells": [
+              {
+                "row": 1,
+                "column": 1,
+                "text": "Horizontal\r",
+                "columnSpan": 2,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 10543359,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 1,
+                "column": 2,
+                "text": "Horizontal\r",
+                "columnSpan": 2,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 10543359,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 1,
+                "column": 3,
+                "text": "R1C3\r",
+                "columnSpan": 1,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16761056,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 1,
+                "column": 4,
+                "text": "R1C4\r",
+                "columnSpan": 1,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": 0,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16777215,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 2,
+                "column": 1,
+                "text": "Vertical\r",
+                "columnSpan": 1,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16769184,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 2,
+                "column": 2,
+                "text": "R2C2\r",
+                "columnSpan": 1,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 8438015,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 0
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 2,
+                "column": 3,
+                "text": "Block\rSecond line\r",
+                "columnSpan": 2,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 11858100,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 2,
+                "column": 4,
+                "text": "Block\rSecond line\r",
+                "columnSpan": 2,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 11858100,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 3,
+                "column": 1,
+                "text": "Vertical\r",
+                "columnSpan": 1,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16769184,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 3,
+                "column": 2,
+                "text": "R3C2\r",
+                "columnSpan": 1,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": 0,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16777215,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 3,
+                "column": 3,
+                "text": "Block\rSecond line\r",
+                "columnSpan": 2,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 11858100,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 3,
+                "column": 4,
+                "text": "Block\rSecond line\r",
+                "columnSpan": 2,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 11858100,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "masterPages": [
+      {
+        "index": 1,
+        "pageId": 33554689,
+        "pageIndex": 1,
+        "pageType": 4,
+        "name": "Master Page A",
+        "isTwoPageMaster": false,
+        "shapeCount": 0,
+        "shapes": []
+      }
+    ]
+  },
+  "resaved": {
+    "pageCount": 1,
+    "widthPoints": 612.0,
+    "heightPoints": 792.0,
+    "readOnly": true,
+    "defaultTabStopPoints": 36.0,
+    "pages": [
+      {
+        "index": 1,
+        "pageId": 33554690,
+        "pageIndex": 1,
+        "pageNumber": "1",
+        "pageType": 2,
+        "name": "Page Title",
+        "masterStatus": "Observed",
+        "master": {
+          "pageId": 33554689,
+          "name": "Master Page A"
+        },
+        "masterErrorHResult": null,
+        "ignoreMaster": false,
+        "shapes": [
+          {
+            "name": "Text Box 1",
+            "type": 17,
+            "left": 72.0,
+            "top": 72.0,
+            "width": 300.0,
+            "height": 54.0,
+            "text": "Independent table label\r",
+            "font": "Arial",
+            "languageId": 0,
+            "automaticPairKerningThresholdPoints": 14.0,
+            "manualKerningPoints": 0.0,
+            "fontSizePoints": 12.0,
+            "nextLink": false,
+            "previousLink": false,
+            "frameLayout": {
+              "columns": 1,
+              "columnSpacing": 0.0,
+              "left": 0.0,
+              "top": 0.0,
+              "right": 0.0,
+              "bottom": 0.0,
+              "verticalAlignment": 0
+            },
+            "picture": null,
+            "tableGeometry": null,
+            "tableCells": null
+          },
+          {
+            "name": "Control 2",
+            "type": 18,
+            "left": 72.0,
+            "top": 144.0,
+            "width": 480.0,
+            "height": 162.0,
+            "text": null,
+            "font": null,
+            "languageId": null,
+            "automaticPairKerningThresholdPoints": null,
+            "manualKerningPoints": null,
+            "fontSizePoints": null,
+            "nextLink": false,
+            "previousLink": false,
+            "frameLayout": null,
+            "picture": null,
+            "tableGeometry": {
+              "rowHeightsPoints": [
+                42.0,
+                54.0,
+                66.0
+              ],
+              "columnWidthsPoints": [
+                90.0,
+                110.0,
+                130.0,
+                150.0
+              ]
+            },
+            "tableCells": [
+              {
+                "row": 1,
+                "column": 1,
+                "text": "Horizontal\r",
+                "columnSpan": 2,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 10543359,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 1,
+                "column": 2,
+                "text": "Horizontal\r",
+                "columnSpan": 2,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 10543359,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 1,
+                "column": 3,
+                "text": "R1C3\r",
+                "columnSpan": 1,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16761056,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 1,
+                "column": 4,
+                "text": "R1C4\r",
+                "columnSpan": 1,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": 0,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16777215,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 2,
+                "column": 1,
+                "text": "Vertical\r",
+                "columnSpan": 1,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16769184,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 2,
+                "column": 2,
+                "text": "R2C2\r",
+                "columnSpan": 1,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 8438015,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 0
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 2,
+                "column": 3,
+                "text": "Block\rSecond line\r",
+                "columnSpan": 2,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 11858100,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 2,
+                "column": 4,
+                "text": "Block\rSecond line\r",
+                "columnSpan": 2,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 11858100,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 3,
+                "column": 1,
+                "text": "Vertical\r",
+                "columnSpan": 1,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16769184,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 3,
+                "column": 2,
+                "text": "R3C2\r",
+                "columnSpan": 1,
+                "rowSpan": 1,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": 0,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 16777215,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 3,
+                "column": 3,
+                "text": "Block\rSecond line\r",
+                "columnSpan": 2,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 11858100,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              },
+              {
+                "row": 3,
+                "column": 4,
+                "text": "Block\rSecond line\r",
+                "columnSpan": 2,
+                "rowSpan": 2,
+                "style": {
+                  "fill": {
+                    "status": "Observed",
+                    "visible": -1,
+                    "type": 1,
+                    "colorType": 1,
+                    "rgb": 11858100,
+                    "transparency": 0.0
+                  },
+                  "borders": {
+                    "left": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 2,
+                      "rgb": 13998939
+                    },
+                    "top": {
+                      "status": "Observed",
+                      "widthPoints": 0.5,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "right": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "bottom": {
+                      "status": "Observed",
+                      "widthPoints": 0.0,
+                      "colorType": 1,
+                      "rgb": 32768
+                    },
+                    "diagonal": {
+                      "status": "Unassessed",
+                      "errorHResult": "0x80131501"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "masterPages": [
+      {
+        "index": 1,
+        "pageId": 33554689,
+        "pageIndex": 1,
+        "pageType": 4,
+        "name": "Master Page A",
+        "isTwoPageMaster": false,
+        "shapeCount": 0,
+        "shapes": []
+      }
+    ]
+  },
+  "files": [
+    {
+      "name": "candidate-input.pub",
+      "sha256": "7d88914fcb82f897d5f711180bb72b655a60a229bc980d4979f2f51c98e158fa"
+    },
+    {
+      "name": "native-initial-inventory.json",
+      "sha256": "8c9b1ae609152cdea858a7eadc9bb16296d51a5d1d21d448b62456d0e6c71b64"
+    },
+    {
+      "name": "native-resaved.pub",
+      "sha256": "c42eae7c6f107d824150cb20dd848916b5ff9c3bb399c42a461139af95be4bee"
+    },
+    {
+      "name": "native-resaved-inventory.json",
+      "sha256": "63434ef27b19539d5b7db1b0ec0ab5e272bcd6c5c71deeac6c6eb0e548548183"
+    },
+    {
+      "name": "native-initial.pdf",
+      "sha256": "1f6c716ed8e1c72430f99e3c32c138b2d2b056b3228b3d3ae3f36cc6795e55ee"
+    },
+    {
+      "name": "native-resaved.pdf",
+      "sha256": "7e4f15efd6e44933c98287881ae3a9e1b4bf8541cb3dce1cdd39dc32f1959ba4"
+    }
+  ]
+}

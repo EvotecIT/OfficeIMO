@@ -12,6 +12,26 @@ public sealed class OfficeRichTextLine {
     internal int SourceTextEnd { get; set; }
     // A terminal hard break has a second, empty source line at the same endpoint.
     internal bool CompletesSource { get; set; }
+    internal bool EndsWithGeneratedHyphen { get; set; }
+    // Content extent controls fitting/alignment; LineHeight remains the advance.
+    internal double? ContentHeight { get; set; }
+    internal double? BaselineOffset { get; set; }
+    // Native broken-word admission can retain a lookahead pair that is absent
+    // from the final painted line. Bounds precede paragraph alignment.
+    internal (double Left, double Right)? FittingBounds { get; set; }
+    internal IReadOnlyList<OfficeTextTabPlacement> NativeTabs { get; set; } = Array.Empty<OfficeTextTabPlacement>();
+
+    internal OfficeRichTextLine WithPlacement(IReadOnlyList<OfficeRichTextSegment> segments, double advance, double offset) =>
+        new OfficeRichTextLine(segments, advance, offset) {
+            SourceTextEnd = SourceTextEnd, CompletesSource = CompletesSource, EndsWithGeneratedHyphen = EndsWithGeneratedHyphen,
+            ContentHeight = ContentHeight, BaselineOffset = BaselineOffset,
+            FittingBounds = FittingBounds,
+            NativeTabs = NativeTabs,
+            RenderTokens = ReferenceEquals(segments, Segments) ? RenderTokens : null
+        };
+    // Native layout snapshots retain exact word/space advances for every output backend.
+    internal List<OfficeTextBlockRenderer.RichTextRenderToken>? RenderTokens { get; set; }
+
     /// <summary>Creates a line with renderer-resolved height and no horizontal offset.</summary>
     public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments)
         : this(segments, 0D, 0D) {

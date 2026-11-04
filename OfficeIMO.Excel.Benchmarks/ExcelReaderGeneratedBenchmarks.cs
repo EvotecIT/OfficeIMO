@@ -31,6 +31,9 @@ public partial class ExcelReaderGeneratedBenchmarks {
     [Params(50_000)]
     public int RowCount { get; set; }
 
+    [Params(false, true)]
+    public bool EscapedNames { get; set; }
+
     [GlobalSetup]
     public void Setup() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -40,11 +43,11 @@ public partial class ExcelReaderGeneratedBenchmarks {
         _ownsInput = string.IsNullOrEmpty(pinnedRoot);
         _path = _ownsInput
             ? Path.Combine(root, $"generated-four-columns-{Guid.NewGuid():N}.{Format.ToString().ToLowerInvariant()}")
-            : Path.Combine(pinnedRoot!, $"generated-four-columns-{RowCount}.{Format.ToString().ToLowerInvariant()}");
-        if (_ownsInput) File.WriteAllBytes(_path, WriteOfficeIMO(Format, RowCount));
+            : Path.Combine(pinnedRoot!, $"generated-four-columns-{(EscapedNames ? "escaped-" : string.Empty)}{RowCount}.{Format.ToString().ToLowerInvariant()}");
+        if (_ownsInput) File.WriteAllBytes(_path, WriteOfficeIMO(Format, RowCount, EscapedNames));
         else if (!File.Exists(_path)) throw new FileNotFoundException("Pinned benchmark input is missing.", _path);
         _expected = 0;
-        for (int index = 0; index < RowCount; index++) _expected = Add(_expected, CreateRecord(index));
+        for (int index = 0; index < RowCount; index++) _expected = Add(_expected, CreateRecord(index, EscapedNames));
         _validate = true;
         try {
             OfficeIMO_Read();
@@ -101,7 +104,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
             int id = reader is DbDataReader ? reader.GetInt32(1) : checked((int)reader.GetDouble(1));
             DateTime date = reader.GetDateTime(2);
             double amount = reader.GetDouble(3);
-            if (_validate) Validate(count, name, id, date, amount);
+            if (_validate) Validate(count, name, id, date, amount, EscapedNames);
             checksum = Add(checksum, name, id, date, amount);
             count++;
         }
@@ -132,7 +135,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
         long checksum = 0;
         int count = 0;
         foreach (var row in rows) {
-            if (_validate) Validate(count, row.Name, row.Id, row.CreatedOn, row.Amount);
+            if (_validate) Validate(count, row.Name, row.Id, row.CreatedOn, row.Amount, EscapedNames);
             checksum = Add(checksum, row);
             count++;
         }
@@ -151,13 +154,15 @@ public partial class ExcelReaderGeneratedBenchmarks {
         }
     }
 
-    internal static GeneratedRecord CreateRecord(int index) => new() {
-        Name = "Name " + index.ToString(CultureInfo.InvariantCulture), Id = index + 1,
+    internal static GeneratedRecord CreateRecord(int index, bool escapedNames = false) => new() {
+        Name = escapedNames
+            ? "Name <" + index.ToString(CultureInfo.InvariantCulture) + "> & \"quoted\" 'apostrophe'"
+            : "Name " + index.ToString(CultureInfo.InvariantCulture), Id = index + 1,
         CreatedOn = new DateTime(2024, 1, 1).AddDays(index % 365), Amount = index * 1.25
     };
 
-    internal static void Validate(int index, string name, int id, DateTime date, double amount) {
-        var expected = CreateRecord(index);
+    internal static void Validate(int index, string name, int id, DateTime date, double amount, bool escapedNames = false) {
+        var expected = CreateRecord(index, escapedNames);
         if (name != expected.Name || id != expected.Id || date != expected.CreatedOn || amount != expected.Amount)
             throw new InvalidDataException($"Incorrect row {index}.");
     }

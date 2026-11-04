@@ -149,13 +149,21 @@ internal static partial class PdfWriter {
 
             OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateWithMetrics(text, width, height, textMetrics);
             double clipX = contentX, clipWidth = width;
-            if (!text.WrapText && text.Paragraphs.Count > 0) {
-                var paint = OfficeDrawingTextLayout.HorizontalPaintEnvelope(layout, textMetrics.MeasureHorizontalPaintBounds);
+            if ((!text.WrapText || text.NativePublisherFrame) && text.Paragraphs.Count > 0) {
+                var paint = OfficeDrawingTextLayout.HorizontalPaintEnvelope(layout, textMetrics.MeasureSegmentHorizontalPaintBounds);
                 double left = Math.Min(0D, paint.Left), right = Math.Max(width, paint.Right);
                 clipX += left;
                 clipWidth = right - left;
             }
             double lineTop = OfficeTextPlacement.ResolveTop(0D, height, layout.Height, text.VerticalAlignment) + layout.ContentOffsetY;
+            double clipTop = 0D, clipBottom = height;
+            if (text.NativePublisherFrame) {
+                OfficeTextPaintBounds paint = OfficeDrawingTextLayout.PaintedBounds(layout,
+                    textMetrics.MeasurePaintBounds, textMetrics.MeasureSegmentPaintBounds);
+                clipTop = Math.Min(clipTop, lineTop + paint.Top);
+                clipBottom = Math.Max(clipBottom, lineTop + paint.Bottom);
+            }
+            double clipY = contentTopY - clipBottom, clipHeight = clipBottom - clipTop;
             for (int index = 0; index < layout.Lines.Count; index++) {
                 OfficeRichTextLine line = layout.Lines[index];
                 double lineHeight = OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, layout.LineHeight);
@@ -165,9 +173,8 @@ internal static partial class PdfWriter {
                 bool justify = OfficeTextBlockRenderer.ShouldJustifyRichTextLine(line, index, layout.Lines.Count, lineWidth, text.Alignment);
                 double cursor = OfficeTextPlacement.ResolveLineLeft(lineLeft, lineWidth, line.Width, text.Alignment);
                 if (justify) {
-                    var tokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, textMetrics.MeasureText);
-                    int gaps = OfficeTextBlockRenderer.CountJustifiableRichTextGaps(tokens);
-                    double gapWidth = gaps == 0 ? 0D : Math.Max(0D, lineWidth - line.Width) / gaps;
+                    var tokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, textMetrics.RichTextMeasurement);
+                    double gapWidth = OfficeTextBlockRenderer.ResolveRichTextJustificationGap(tokens, lineWidth);
                     bool hasWord = false;
                     cursor = lineLeft;
                     for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
@@ -192,7 +199,7 @@ internal static partial class PdfWriter {
                 double renderedBaseline = OfficeTextBlockRenderer.ResolveRichTextRenderedBaseline(segment, baseline);
                 if (segment.TabLinePaint is { } leader) {
                     var content = new ContentStreamBuilder(sb).SaveState()
-                        .Rectangle(clipX, contentTopY - height, clipWidth, height).ClipPath().EndPath();
+                        .Rectangle(clipX, clipY, clipWidth, clipHeight).ClipPath().EndPath();
                     DrawShapeGeometryAt(leader.ToShape(), x + leader.Left, contentTopY - renderedBaseline - leader.Bottom);
                     content.RestoreState();
                 }
@@ -202,18 +209,29 @@ internal static partial class PdfWriter {
                     linkUri: segment.LinkUri, linkDestinationName: segment.LinkDestinationName,
                     backgroundColor: ToPdfColor(segment.BackgroundColor),
                     fontFamily: segment.FontFamily, underlineStyle: segment.UnderlineStyle,
-                    strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor));
+                    strikeStyle: segment.StrikethroughStyle, decorationColor: ToPdfColor(decorationColor))
+                    .WithFeatureSettings(segment.KerningFeatures ?? OfficeTextFeatureSettings.Default);
                 WriteDrawingPositionedRun(run, x, contentTopY - renderedBaseline, advance,
-                    clipX, contentTopY - height, clipWidth, height, segment.Color, decorationColor);
+                    clipX, clipY, clipWidth, clipHeight, segment.Color, decorationColor,
+                    prepared: segment.PreparedShaping);
             }
         }
 
         private void WriteDrawingPositionedRun(PdfTextRun run, double x, double baseline, double advance,
             double clipX, double clipY, double clipWidth, double clipHeight, OfficeColor foregroundColor,
-            OfficeColor? decorationColor, bool clipToFrame = true) {
-            double size = (run.FontSize?.ToPoints()) ?? currentOpts.DefaultFontSize.ToPoints();
+            OfficeColor? decorationColor, bool clipToFrame = true, OfficePreparedTextShaping? prepared = null) {
+            double size = run.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
             var runs = new[] { run };
             var line = CreatePositionedTextLine(runs, size, size * 1.2D, currentOpts);
+            if (prepared != null) {
+                if (prepared.Text != run.Text || line.Lines[0].Count != 1)
+                    throw new InvalidOperationException("Prepared drawing text must retain its exact single-font source slice.");
+                RichSeg selected = line.Lines[0][0];
+                PdfTrueTypeFontProgram font = ResolvePreparedDrawingFont(selected, currentOpts)
+                    ?? throw new InvalidOperationException("Prepared drawing text requires its embedded TrueType font.");
+                line.Lines[0][0] = selected.WithPreparedGlyphs(
+                    PdfExternalTextShaper.BuildPreparedTextCommand(prepared, font, size), prepared.Measure(size));
+            }
             double actualWidth = MeasureRichLineWidth(line.Lines[0], currentOpts);
             double scale = actualWidth > 0D && advance > 0D ? advance / actualWidth : 1D;
             // Apply glyph and decoration alpha inside transformed paint, independently

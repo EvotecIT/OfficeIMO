@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -6,6 +7,29 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingTextExclusionTests {
+    [Theory]
+    [InlineData(0, 40, 20, 0, 100, "0:40,60:40")]
+    [InlineData(1, 40, 20, 0, 100, "0:40")]
+    [InlineData(2, 40, 20, 0, 100, "60:40")]
+    [InlineData(3, 40, 20, 0, 100, "0:40")]
+    [InlineData(3, 10, 20, 0, 100, "30:70")]
+    [InlineData(3, 70, 20, 0, 100, "0:70")]
+    [InlineData(3, 40, 20, 30, 70, "60:40")]
+    [InlineData(1, 100, 20, 0, 100, "0:100")]
+    [InlineData(2, -20, 20, 0, 100, "0:100")]
+    [InlineData(1, -10, 30, 0, 100, "")]
+    [InlineData(2, 80, 30, 0, 100, "")]
+    public void SideRestrictionUsesTheCurrentColumnAndLeavesOffColumnMasksInactive(int side,
+        double objectX, double objectWidth, double columnX, double columnWidth, string expected) {
+        var area = new OfficeTextFlowRegion(columnX, 0, columnWidth, 100);
+        var mask = OfficeTextFlowRegions.RestrictSide(area, new OfficeTextFlowRegion(objectX, 25, objectWidth, 40), (OfficeTextWrapSide)side);
+        var row = OfficeTextFlowRegions.Row(area, 30, 10, new[] { mask }, () => { }, default);
+        Assert.Equal(expected, string.Join(",", row.Select(r => r.X.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + ":" + r.Width.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+        var above = Assert.Single(OfficeTextFlowRegions.Row(area, 0, 10, new[] { mask }, () => { }, default));
+        Assert.Equal(columnX, above.X); Assert.Equal(columnWidth, above.Width);
+    }
+
     [Fact]
     public void ExclusionsPreserveBandsAboveAndBelowAndChooseAWideUnobstructedSide() {
         var area = new OfficeTextFlowRegion(0, 0, 100, 100);

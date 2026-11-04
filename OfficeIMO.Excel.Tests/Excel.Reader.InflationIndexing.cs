@@ -62,6 +62,10 @@ public partial class Excel {
     [InlineData(false, "XmlControl")]
     [InlineData(false, "Noncharacter")]
     [InlineData(false, "NormalizedText")]
+    [InlineData(false, "NamedEntities")]
+    [InlineData(true, "NamedEntities")]
+    [InlineData(false, "UnknownEntity")]
+    [InlineData(false, "TruncatedEntity")]
     public void OpenReader_CompressedImplicitRowsPreserveWindowValuesAndValidateLateCells(bool boundedWindow, string? invalidTail) {
         const int count = 6_000;
         string padding = new string('x', 320);
@@ -80,6 +84,9 @@ public partial class Excel {
                 else {
                     xml.Append("<c t=\"inlineStr\"><is><t>Label ").Append(row).Append(padding);
                     if (invalidTail == "NormalizedText" && row == count) xml.Append("β&amp;Co&#13;raw\r\nend");
+                    if (invalidTail == "NamedEntities") xml.Append(" &amp; &lt; &gt; &quot; &apos; &amp;amp; &amp;#13; &lt;/row&gt;");
+                    if (row == count && invalidTail == "UnknownEntity") xml.Append("&bogus;");
+                    if (row == count && invalidTail == "TruncatedEntity") xml.Append("&amp");
                     xml.Append("</t></is></c>");
                 }
                 if (row == 1 && boundedWindow) xml.Append("<c><f>1</f><v>1</v></c>");
@@ -106,7 +113,7 @@ public partial class Excel {
                 options.MaxDataReaderChunkRows = 2;
             }
             using var reader = ExcelDocument.OpenReader(path, options);
-            if (invalidTail != null && invalidTail != "NormalizedText") {
+            if (invalidTail is not (null or "NormalizedText" or "NamedEntities")) {
                 if (invalidTail == "SharedString") Assert.Throws<InvalidDataException>(() => reader.Read());
                 else Assert.Throws<System.Xml.XmlException>(() => reader.Read());
                 return;
@@ -115,6 +122,7 @@ public partial class Excel {
                 Assert.True(reader.Read());
                 string expected = "Label " + row + padding;
                 if (invalidTail == "NormalizedText" && row == count) expected += "β&Co\rraw\nend";
+                if (invalidTail == "NamedEntities") expected += " & < > \" ' &amp; &#13; </row>";
                 Assert.Equal(expected, reader.GetString(0));
                 Assert.Equal(row, reader.GetInt32(1));
                 double serial = 45_000 + row % 365;

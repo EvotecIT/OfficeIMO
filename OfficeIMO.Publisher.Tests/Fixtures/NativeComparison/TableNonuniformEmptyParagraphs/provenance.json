@@ -1,0 +1,48 @@
+{
+  "schema": "officeimo.publisher.native-empty-paragraph-retention-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableNonuniformEmptyParagraphs",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tablenonuniformemptyparagraphs.json",
+      "sha256": "526bec9fa1d072058598cf4f7b1be587ee973afb2cd8ed61491801d0c00d9a24"
+    },
+    {
+      "name": "native-tablenonuniformemptyparagraphs.pdf",
+      "sha256": "3d9dfc3b325a4c7ceea402ed5ab2d0cc32538364df359daa63ddb8718d864002"
+    },
+    {
+      "name": "native-tablenonuniformemptyparagraphs.pub",
+      "sha256": "97829311d7d82d31f4187e9e5a6e213d0d10bee5bbd6e40c3557a755a86171a0"
+    }
+  ],
+  "license": "MIT",
+  "documentPages": 11,
+  "profiles": [
+    "Baseline",
+    "DropFirst",
+    "DropMiddle",
+    "DropFinal",
+    "Reorder",
+    "Duplicate",
+    "AmbiguousLanguage",
+    "InteriorEmptyLast",
+    "FinalEmptyOnly",
+    "TwoEmpty",
+    "AmbiguousEmptyLanguage"
+  ],
+  "scope": "Independent native empty-paragraph final states with exact typing and language metadata; uniform controls include retained empties mixed with authored text. Ordinary nonuniform controls also distinguish Western font fields from right-to-left fields. General reflow and mixed-script rendering are not qualified."
+}

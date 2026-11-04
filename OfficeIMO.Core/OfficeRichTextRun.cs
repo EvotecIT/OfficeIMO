@@ -4,6 +4,26 @@ namespace OfficeIMO.Drawing;
 /// Describes one styled text run for shared rich text layout and rendering.
 /// </summary>
 public sealed class OfficeRichTextRun {
+    private double? _automaticPairKerningThreshold;
+    /// <summary>Native automatic pair-kerning threshold, in points. Zero disables pair kerning; null leaves the native setting unspecified.</summary>
+    /// <remarks>Font-aware drawing layout and raster, SVG and PDF rendering enable pair kerning when the base run size meets a positive threshold. Zero disables it; null retains the renderer's normal font-feature defaults. Custom width callbacks retain control of measurement.</remarks>
+    public double? AutomaticPairKerningThreshold {
+        get => _automaticPairKerningThreshold;
+        internal set {
+            if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value) || value.Value < 0))
+                throw new System.ArgumentOutOfRangeException(nameof(value), "A pair-kerning threshold must be finite and nonnegative.");
+            _automaticPairKerningThreshold = value;
+        }
+    }
+    internal OfficeTextFeatureSettings? KerningFeatures => OfficeTextKerning.Features(AutomaticPairKerningThreshold, FontSize);
+
+    /// <summary>Returns an independent run with a native pair-kerning threshold. Null leaves the setting unspecified; zero explicitly disables it.</summary>
+    /// <param name="thresholdPoints">A finite, nonnegative point size, or null. A native writer may impose a narrower representable range.</param>
+    public OfficeRichTextRun WithAutomaticPairKerningThreshold(double? thresholdPoints) {
+        OfficeRichTextRun copy = WithLanguageId(LanguageId);
+        copy.AutomaticPairKerningThreshold = thresholdPoints;
+        return copy;
+    }
     // Native document adapters keep annotations attached through wrapping and shrinking.
     internal string? LinkUri { get; set; }
     internal string? LinkDestinationName { get; set; }
@@ -137,10 +157,22 @@ public sealed class OfficeRichTextRun {
     /// <summary>Optional first-line and continuation offsets for the paragraph beginning at this run.</summary>
     public OfficeTextParagraphIndent? ParagraphIndent { get; }
 
+    /// <summary>Optional Windows language identifier for native document adapters. Null leaves language unspecified; it does not request removal of an imported override. When an adapter enables automatic hyphenation, supported language identifiers select the shared versioned pattern resources.</summary>
+    public uint? LanguageId { get; internal set; }
+
+    /// <summary>Creates a copy with an explicit 16-bit language identifier, or an unspecified language when null. All text, styling and annotations are retained.</summary>
+    public OfficeRichTextRun WithLanguageId(uint? languageId) {
+        if (languageId > ushort.MaxValue) throw new System.ArgumentOutOfRangeException(nameof(languageId));
+        return new OfficeRichTextRun(Text, FontSize, Color, Bold, Italic, Underline, FontFamily, Strikethrough,
+            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, ParagraphIndent) {
+            AutomaticPairKerningThreshold = AutomaticPairKerningThreshold, LanguageId = languageId, LinkUri = LinkUri, LinkDestinationName = LinkDestinationName
+        };
+    }
+
     /// <summary>Creates a styled copy that starts a paragraph with its own indentation.</summary>
     public OfficeRichTextRun WithParagraphIndent(OfficeTextParagraphIndent paragraphIndent) =>
         new OfficeRichTextRun(Text, FontSize, Color, Bold, Italic, Underline, FontFamily, Strikethrough,
-            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, paragraphIndent) { LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
+            BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline, paragraphIndent) { AutomaticPairKerningThreshold = AutomaticPairKerningThreshold, LanguageId = LanguageId, LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
 
     /// <summary>Creates a copy with transformed text casing while preserving all drawing styles.</summary>
     public OfficeRichTextRun WithTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) =>
@@ -157,5 +189,5 @@ public sealed class OfficeRichTextRun {
             UnderlineStyle,
             StrikethroughStyle,
             Baseline,
-            ParagraphIndent) { LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
+            ParagraphIndent) { AutomaticPairKerningThreshold = AutomaticPairKerningThreshold, LanguageId = LanguageId, LinkUri = LinkUri, LinkDestinationName = LinkDestinationName };
 }

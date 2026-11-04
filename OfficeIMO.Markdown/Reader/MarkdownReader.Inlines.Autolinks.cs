@@ -104,8 +104,7 @@ internal static partial class MarkdownReader {
         // Require a boundary on the left so we don't linkify inside longer words.
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
-        var rem = text.Substring(start);
-        if (!(rem.StartsWith("http://", StringComparison.Ordinal) || rem.StartsWith("https://", StringComparison.Ordinal))) return false;
+        if (!(StartsWithOrdinal(text, start, "http://") || StartsWithOrdinal(text, start, "https://"))) return false;
         int rawEnd = ConsumeLiteralUrl(text, start, options);
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
@@ -123,8 +122,8 @@ internal static partial class MarkdownReader {
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
         if (options.AutolinkRequireLowercaseWwwPrefix) {
-            if (!text.Substring(start).StartsWith("www.", StringComparison.Ordinal)) return false;
-        } else if (!text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return false;
+            if (!StartsWithOrdinal(text, start, "www.")) return false;
+        } else if (!StartsWithOrdinalIgnoreCase(text, start, "www.")) return false;
 
         int rawEnd = ConsumeLiteralUrl(text, start, options);
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
@@ -643,6 +642,11 @@ internal static partial class MarkdownReader {
         lineStart = lineStart < 0 ? 0 : lineStart + 1;
         int lineEnd = text.IndexOf('\n', start);
         if (lineEnd < 0) lineEnd = text.Length;
+
+        // A reference definition label starts with '[' after leading whitespace; skip copying any other line.
+        int firstContent = lineStart;
+        while (firstContent < lineEnd && char.IsWhiteSpace(text[firstContent])) firstContent++;
+        if (firstContent == lineEnd || text[firstContent] != '[') return false;
 
         string line = text.Substring(lineStart, lineEnd - lineStart);
         if (!StartsWithReferenceDefinitionLikeLabel(line)) return false;

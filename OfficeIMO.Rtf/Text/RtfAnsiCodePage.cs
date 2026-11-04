@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace OfficeIMO.Rtf;
 
 internal static partial class RtfAnsiCodePage {
@@ -50,35 +52,50 @@ internal static partial class RtfAnsiCodePage {
         };
     }
 
-    public static string DecodeText(int codePage, string text) {
-        if (string.IsNullOrEmpty(text)) return text;
+    private static readonly ConcurrentDictionary<int, Encoding> Encodings = new();
+
+    /// <summary>Appends the decoded form of a run of source characters without materializing the run.</summary>
+    public static void AppendDecodedText(StringBuilder builder, int codePage, string text, int start, int length) {
+        if (length <= 0) return;
 
         if (IsDoubleByteCodePage(codePage)) {
-            var bytes = new byte[text.Length];
-            for (int index = 0; index < text.Length; index++) {
-                bytes[index] = (byte)(text[index] & 0xFF);
+            var bytes = new byte[length];
+            for (int index = 0; index < length; index++) {
+                bytes[index] = (byte)(text[start + index] & 0xFF);
             }
 
-            return DecodeBytes(codePage, bytes);
+            builder.Append(DecodeBytes(codePage, bytes));
+            return;
         }
 
-        StringBuilder? builder = null;
-        for (int i = 0; i < text.Length; i++) {
-            char ch = text[i];
-            string decoded = ch <= byte.MaxValue ? DecodeByte(codePage, ch) : ch.ToString();
-            if (builder == null) {
-                if (decoded.Length == 1 && decoded[0] == ch) {
-                    continue;
-                }
-
-                builder = new StringBuilder(text.Length);
-                builder.Append(text, 0, i);
+        int end = start + length;
+        for (int index = start; index < end; index++) {
+            char ch = text[index];
+            if (ch > byte.MaxValue) {
+                builder.Append(ch);
+                continue;
             }
 
-            builder.Append(decoded);
+            int mapped = MapSingleByte(codePage, ch);
+            if (mapped <= char.MaxValue && !char.IsSurrogate((char)mapped)) {
+                builder.Append((char)mapped);
+            } else {
+                builder.Append(char.ConvertFromUtf32(mapped));
+            }
+        }
+    }
+
+    /// <summary>Returns true when every character of a single-byte run decodes to itself.</summary>
+    public static bool DecodesToItself(int codePage, string text) {
+        if (IsDoubleByteCodePage(codePage)) return false;
+
+        foreach (char ch in text) {
+            if (ch <= byte.MaxValue && MapSingleByte(codePage, ch) != ch) {
+                return false;
+            }
         }
 
-        return builder?.ToString() ?? text;
+        return true;
     }
 
     public static string DecodeByte(int codePage, int value) {
@@ -86,8 +103,12 @@ internal static partial class RtfAnsiCodePage {
             return DecodeBytes(codePage, new[] { (byte)(value & 0xFF) });
         }
 
+        return char.ConvertFromUtf32(MapSingleByte(codePage, value));
+    }
+
+    private static int MapSingleByte(int codePage, int value) {
         int b = value & 0xFF;
-        int mapped = codePage switch {
+        return codePage switch {
             IbmPcCodePage => DecodeIbmPc437(b),
             IbmPcaCodePage => DecodeIbmPc850(b),
             874 => DecodeWindows874(b),
@@ -103,8 +124,6 @@ internal static partial class RtfAnsiCodePage {
             MacRomanCodePage => DecodeMacRoman(b),
             _ => DecodeWindows1252(b)
         };
-
-        return char.ConvertFromUtf32(mapped);
     }
 
     public static bool IsDoubleByteCodePage(int codePage) =>
@@ -125,9 +144,10 @@ internal static partial class RtfAnsiCodePage {
 
     public static string DecodeBytes(int codePage, byte[] bytes) {
         ArgumentNullException.ThrowIfNull(bytes);
-        return Encoding.GetEncoding(
-            codePage,
+        // GetEncoding with explicit fallbacks clones the encoding on every call; decoding is thread-safe, so share one.
+        return Encodings.GetOrAdd(codePage, static _ => Encoding.GetEncoding(
+            _,
             EncoderFallback.ReplacementFallback,
-            DecoderFallback.ReplacementFallback).GetString(bytes);
+            DecoderFallback.ReplacementFallback)).GetString(bytes);
     }
 }

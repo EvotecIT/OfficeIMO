@@ -860,11 +860,71 @@ cross-built on macOS, without Windows or PowerShell 5.1 execution. The public AP
 selector timing, runtime dependencies, grid loader, cell/range/formatting APIs,
 binary formats, writers and CSV runtime are unchanged.
 
+## Escaped XLSX text: 4 November 2026
+
+I measure a fresh baseline at `295cd6cd09`, which includes the previous qualified
+reader through the merged performance work. The [normalized evidence](excel-xlsx-entity-allocations-2026-11-04.json)
+retains both matched series, every block, the runner source, failed experiments,
+input and assembly hashes, profiles and validation. The comparison harness is
+`6bd01af67e`; the retained reader change is `55603ca9d4`.
+
+The selected target is at least 20% less total read allocation for names containing
+XML escapes. Every participant returns owned strings and consumes the same four
+values for all 50,000 rows. Plain ASCII is a separate control: about 97% of its
+existing allocation is already required by the unique returned strings.
+
+These are medians of 24 round samples across two alternating paired series.
+Allocation below is for the escaped profile; MB means 1,000,000 bytes.
+
+| Lane | Escaped text, ms before → after | Allocation, MB before → after | ASCII, ms before → after |
+|---|---:|---:|---:|
+| OfficeIMO read | 28.668 → 9.757 | 10.830 → 4.876 | 5.489 → 5.614 |
+| ExcelReader.NET read | 12.864 → 12.734 | 4.803 → 4.803 | 6.453 → 6.485 |
+| Sylvan read | 31.411 → 31.530 | 5.147 → 5.147 | 27.045 → 27.051 |
+| ExcelDataReader read | 65.706 → 65.738 | 46.082 → 46.082 | 57.741 → 56.099 |
+| OfficeIMO typed parse | 30.486 → 11.559 | 13.230 → 7.276 | 6.964 → 6.995 |
+| ExcelReader.NET typed parse | 14.504 → 14.355 | 7.204 → 7.204 | 7.911 → 7.913 |
+
+Escaped raw-read allocation falls 55.0% in both series; typed allocation falls
+45.0%. Time falls 66.0% and 62.1%, respectively. ASCII raw reading is 2.3% slower
+and typed parsing 0.4% slower, with essentially unchanged allocation. Unchanged
+peer aggregate times move by up to 2.8%; I do not claim statistical equivalence
+or another 20% ASCII improvement.
+
+The allocation profile identifies strings as the dominant cost. A predefined
+entity used to force complete XmlReader qualification after indexing, then text
+decoding created an intermediate string before the final result. I recognize
+only XML's five predefined names during character qualification and fill one
+final ASCII string directly. Structural, coordinate, style and shared-string
+proof still finish before row delivery. Numeric references, Unicode, literal
+carriage returns and richer XML retain their existing fallbacks.
+
+Escaped attribute values also keep XmlReader normalization. The existing
+reader-boundary duplicate-attribute test now uses a large independent worksheet:
+it reproduces the preliminary candidate's missing exception when two namespace URI
+spellings become identical after entity expansion. The corrected reader rejects
+it. The compressed text regression checks all five names, double escaping and
+late unknown or incomplete entities, alongside the existing normalization cases.
+
+The 64 KiB worksheet buffer and packed numeric-cache experiments are removed:
+their complete-operation comparisons did not give a material gain. CPU traces
+include waits and logical stacks; they locate decoding and validation work but
+do not establish faster native inflation. No inflater, scheduler or runtime
+dependency changes are retained.
+
+Final net10.0 suites pass 7,778 Excel tests with five skips and all 938 CSV tests,
+including the twelve original omitted-reference cases. The focused proof passes
+128 cases. All four framework builds have zero warnings or errors; NativeAOT
+osx-arm64 and actual WASM under Node pass. XLSB/XLS escaped benchmark preflight
+passes all six reader lanes, without a new binary timing claim. Public APIs,
+selector timing, framework support, runtime dependencies and the grid loader
+remain unchanged; net472 is cross-built without Windows execution.
+
 ## Remaining costs and limits
 
 Parity across formats is incomplete. The latest paired XLSX cohort puts raw
 reading and typed parsing ahead of ExcelReader.NET in this owned-string workload.
-Earlier binary-format cohorts retain gaps. The remaining read cost is structural
+Earlier binary-format cohorts retain gaps. For simple ASCII, the remaining read cost is structural
 rather than one hidden hot spot. OfficeIMO proves the whole part before delivering the first row and
 gives the data reader a fixed field count. It therefore makes a validation and indexing pass and then a delivery
 pass; ExcelReader.NET reads each row once. Eligible large XLSX reads now overlap

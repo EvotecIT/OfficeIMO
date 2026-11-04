@@ -14,6 +14,21 @@ public static partial class OfficeTextBlockRenderer {
         double rotationDegrees,
         double rotationCenterX,
         double rotationCenterY) {
+        foreach (var segment in line.Segments) {
+            if (segment.PreparedShaping == null) continue;
+            var tokens = line.RenderTokens ?? throw new InvalidOperationException("Prepared SVG text requires its measured line tokens.");
+            double gap = ResolveRichTextJustificationGap(tokens, textLength), cursor = x;
+            bool hasWord = false;
+            for (int index = 0; index < tokens.Count; index++) {
+                var item = tokens[index];
+                builder.AppendSvgRichTextSegment(item.Segment, cursor, baseline,
+                    rotationDegrees, rotationCenterX, rotationCenterY);
+                cursor += item.Width;
+                if (item.IsWhitespace && hasWord && HasWordAfter(tokens, index + 1)) cursor += gap;
+                hasWord |= !item.IsWhitespace;
+            }
+            return builder;
+        }
         OfficeRichTextSegment first = line.Segments[0];
         double backgroundCursor = x;
         for (int i = 0; i < line.Segments.Count; i++) {
@@ -54,6 +69,8 @@ public static partial class OfficeTextBlockRenderer {
             } else if (segment.Baseline == OfficeTextBaseline.Subscript) {
                 builder.AppendNumberAttribute("baseline-shift", -segment.FontSize * 0.15D);
             }
+
+            AppendSvgFontFeatures(builder, segment.KerningFeatures);
 
             if (segment.Bold) {
                 builder.Append(" font-weight=\"700\"");
@@ -136,7 +153,7 @@ public static partial class OfficeTextBlockRenderer {
             return;
         }
 
-        double extraGap = Math.Max(0D, (availableWidth - line.Width) / gapCount);
+        double extraGap = ResolveRichTextJustificationGap(tokens, availableWidth);
         bool hasWordBefore = false;
         double cursor = left;
         for (int i = 0; i < tokens.Count; i++) {
@@ -180,7 +197,8 @@ public static partial class OfficeTextBlockRenderer {
                 rotationCenterY,
                 flipHorizontal,
                 flipVertical);
-            canvas.DrawTextLine(
+            using var preparedScope = canvas.PushPreparedShaping(token.Segment.PreparedShaping);
+            canvas.DrawTextLineWithFeatures(token.Segment.KerningFeatures,
                 token.Text,
                 cursor,
                 segmentTop,
@@ -205,9 +223,13 @@ public static partial class OfficeTextBlockRenderer {
     }
 
     internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, OfficeRasterCanvas canvas) =>
-        CreateRichTextRenderTokens(line, canvas.MeasureText);
+        CreateRichTextRenderTokens(line, canvas.CreateDrawingTextMetrics().RichTextMeasurement);
 
-    internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, Func<string?, double, string?, OfficeFontStyle, double> measure) {
+    internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, Func<string?, double, string?, OfficeFontStyle, double> measure) =>
+        CreateRichTextRenderTokens(line, new OfficeRichTextMeasurement(measure));
+
+    internal static List<RichTextRenderToken> CreateRichTextRenderTokens(OfficeRichTextLine line, OfficeRichTextMeasurement measure) {
+        if (line.RenderTokens != null) return line.RenderTokens;
         var tokens = new List<RichTextRenderToken>();
         for (int segmentIndex = 0; segmentIndex < line.Segments.Count; segmentIndex++) {
             OfficeRichTextSegment segment = line.Segments[segmentIndex];
@@ -217,7 +239,7 @@ public static partial class OfficeTextBlockRenderer {
             for (int i = 0; i < text.Length; i++) {
                 bool currentWhitespace = char.IsWhiteSpace(text[i]);
                 if (whitespace.HasValue && whitespace.Value != currentWhitespace) {
-                    AddRichTextRenderToken(tokens, segment, text.Substring(tokenStart, i - tokenStart), whitespace.Value, measure);
+                    AddRichTextRenderToken(tokens, segment, tokenStart, i - tokenStart, whitespace.Value, measure);
                     tokenStart = i;
                 }
 
@@ -225,19 +247,36 @@ public static partial class OfficeTextBlockRenderer {
             }
 
             if (whitespace.HasValue) {
-                AddRichTextRenderToken(tokens, segment, text.Substring(tokenStart), whitespace.Value, measure);
+                AddRichTextRenderToken(tokens, segment, tokenStart, text.Length - tokenStart, whitespace.Value, measure);
             }
         }
 
         return tokens;
     }
 
-    private static void AddRichTextRenderToken(List<RichTextRenderToken> tokens, OfficeRichTextSegment segment, string text, bool whitespace, Func<string?, double, string?, OfficeFontStyle, double> measure) {
+    private static void AddRichTextRenderToken(List<RichTextRenderToken> tokens, OfficeRichTextSegment segment,
+        int start, int length, bool whitespace, OfficeRichTextMeasurement measure) {
+        string text = segment.Text.Substring(start, length);
         if (text.Length == 0) {
             return;
         }
 
-        tokens.Add(new RichTextRenderToken(segment, text, measure(text, ResolveRichTextRenderedFontSize(segment), segment.FontFamily, segment.FontStyle), whitespace));
+        OfficePreparedTextShaping? prepared = null;
+        if (segment.PreparedShaping != null && !segment.PreparedShaping.TrySlice(start, length, out prepared))
+            throw new InvalidOperationException("A prepared rich-text context cannot split at its qualified paint boundary.");
+        double width = prepared?.Measure(ResolveRichTextRenderedFontSize(segment)) ?? measure.Measure(text, segment);
+        var paint = prepared == null ? segment : segment.WithLayout(text, width, prepared);
+        tokens.Add(new RichTextRenderToken(paint, text, width, whitespace));
+    }
+
+    internal static double ResolveRichTextJustificationGap(List<RichTextRenderToken> tokens, double width) {
+        int count = CountJustifiableRichTextGaps(tokens);
+        if (count == 0) return 0D;
+        double advance = 0D;
+        foreach (RichTextRenderToken token in tokens) advance += token.Width;
+        // Painting splits at adjustable spaces. Their contextual kern pairs no
+        // longer contribute, so allocate against these actual token advances.
+        return (width - advance) / count;
     }
 
     internal static int CountJustifiableRichTextGaps(List<RichTextRenderToken> tokens) {

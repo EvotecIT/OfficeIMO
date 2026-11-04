@@ -305,7 +305,7 @@ internal static partial class PdfSyntax {
         }
         bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref, out bool appliedClassicEntries, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref, cancellationToken) || appliedXrefStreamEntries;
+        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, text, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget, ReportIncompleteXref, cancellationToken) || appliedXrefStreamEntries;
         cancellationToken.ThrowIfCancellationRequested();
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters, cancellationToken);
         if (IndexOfSecurityMarker(trailerRaw, "/Prev", 0, cancellationToken) < 0) {
@@ -330,7 +330,7 @@ internal static partial class PdfSyntax {
             // Xref streams are never encrypted, but the object streams they reference can be.
             // Materialize compressed objects only after authentication and decryption so their
             // decoded bytes are charged exactly once and no encrypted payload is parsed as data.
-            ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
+            ApplyCompressedXrefStreamEntries(map, pdf, text, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
         } else {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
             ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);

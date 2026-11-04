@@ -1,0 +1,39 @@
+{
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableBorderTopologyTextFill",
+  "limits": "Modern producer control; native repair-free acceptance and broader styles/generations remain unqualified.",
+  "files": [
+    {
+      "sha256": "5524e2de58b86b929d1792c7a4ea2597bf18f34ec5ab5c70d8bd9ec00835b35d",
+      "bytes": 94208,
+      "name": "native-tablebordertopologytextfill.pub"
+    },
+    {
+      "sha256": "f8acfbf30c1ee90ac1ea1d85b043a2333495b8a8b08eafa39c34722dadd37f3f",
+      "bytes": 113442,
+      "name": "native-tablebordertopologytextfill.pdf"
+    },
+    {
+      "sha256": "e2f718fa331616c896c2c9805feca5921d08743fb0b15ddec0a559c78f162357",
+      "bytes": 10048,
+      "name": "native-tablebordertopologytextfill.json"
+    }
+  ],
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "observed": "Independent 2x2 decorated table. Topology removes the left red edge, replaces the top with two green unit edges and the lower-left edge with orange; cleared removes all six edges. Text/fill variant also changes first-cell text and visibility. Default-fill variant retains the automatic white fill enabled by native border authoring.",
+  "schema": "officeimo.publisher.native-border-topology-fixture.v1",
+  "license": "MIT"
+}

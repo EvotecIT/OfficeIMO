@@ -4,12 +4,26 @@ namespace OfficeIMO.Drawing;
 /// Describes one measured rich text segment on a laid-out line.
 /// </summary>
 public sealed class OfficeRichTextSegment {
+    /// <summary>Automatic pair-kerning threshold copied from the source run. Null retains normal font-feature defaults; zero disables pair kerning.</summary>
+    internal double? AutomaticPairKerningThreshold { get; set; }
+    internal OfficeTextFeatureSettings? KerningFeatures => OfficeTextKerning.Features(AutomaticPairKerningThreshold, FontSize);
+    internal OfficePreparedTextShaping? PreparedShaping { get; set; }
+    /// <summary>Optional language identifier retained from the source run, including a generated hyphen painted with that run's style.</summary>
+    internal uint? LanguageId { get; set; }
     // Native document adapters keep annotations attached through wrapping and shrinking.
     internal string? LinkUri { get; set; }
     internal string? LinkDestinationName { get; set; }
     internal OfficeTextTabLineLeaderPaint? TabLinePaint { get; set; }
     internal OfficeFontStyle FontStyle => (Bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
         | (Italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+
+    internal OfficeRichTextSegment WithLayout(string text, double width, OfficePreparedTextShaping? prepared) =>
+        new OfficeRichTextSegment(text, width, FontSize, Color, Bold, Italic, Underline, FontFamily,
+            Strikethrough, BackgroundColor, UnderlineStyle, StrikethroughStyle, Baseline) {
+            AutomaticPairKerningThreshold = AutomaticPairKerningThreshold, LanguageId = LanguageId,
+            LinkUri = LinkUri, LinkDestinationName = LinkDestinationName, PreparedShaping = prepared,
+            TabLinePaint = text == Text ? TabLinePaint : null
+        };
 
     /// <summary>Creates a measured segment using the pre-typography constructor signature.</summary>
     public OfficeRichTextSegment(string text, double width, double fontSize, OfficeColor color, bool bold, bool italic, bool underline, string fontFamily, bool strikethrough, OfficeColor? backgroundColor)

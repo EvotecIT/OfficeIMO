@@ -3,63 +3,66 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherPageProjector {
-    private IReadOnlyList<OfficeTextFlowRegion> TextExclusions(PublisherSourceShape frame, PublisherEscherShape source,
-        FrameRectangle bounds, IReadOnlyDictionary<uint, PublisherEscherShape> artwork) {
-        var result = new List<OfficeTextFlowRegion>();
-        if (frame.WrapObjects.Count == 0) return result;
-        OfficeTransform toFrame = PageTransform(source, bounds).Invert()
-            .Then(OfficeTransform.Translate(-bounds.X, -bounds.Y));
-        foreach (uint id in frame.WrapObjects) {
+    private IReadOnlyList<PreparedTextExclusion> TextExclusions(PublisherFrameState frame) {
+        var result = new List<PreparedTextExclusion>();
+        if (frame.WrapObjectIds.Count == 0) return result;
+        OfficeTransform toFrame = frame.PageTransform.Invert();
+        foreach (uint id in frame.WrapObjectIds) {
             _context.Record();
-            if (!artwork.TryGetValue(id, out PublisherEscherShape? obstacle) || !obstacle.Bounds.HasValue || !obstacle.LayoutTransform.TryInvert(out _) || !obstacle.GroupTransform.TryInvert(out _)
-                || Owner(id, 0) != Owner(frame.Chunk.Id, 0)) {
+            PublisherImportedWrapObject? obstacle = CurrentWrapObject(id);
+            if (obstacle == null || !obstacle.Available || obstacle.PageId != frame.PageId) {
                 _context.Add("PUB_TEXT_WRAP_REFERENCE_UNRESOLVED", "A native text-wrap object has no resolved anchor on the frame's page. Its exclusion could not be applied.",
-                    OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Chunk.Id));
+                    OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Id));
                 continue;
             }
             if (obstacle.Hidden) continue;
-            FrameRectangle objectBounds = FrameBounds(obstacle, _source.Width, _source.Height);
-            double left = WrapDistance(obstacle, 0x384), top = WrapDistance(obstacle, 0x385);
-            double right = WrapDistance(obstacle, 0x386), bottom = WrapDistance(obstacle, 0x387);
-            var local = PageTransform(obstacle, objectBounds).Then(toFrame)
-                .TransformRectangleBounds(objectBounds.X - left, objectBounds.Y - top,
-                    objectBounds.Width + left + right, objectBounds.Height + top + bottom);
-            result.Add(new OfficeTextFlowRegion(local.Left, local.Top, local.Right - local.Left, local.Bottom - local.Top));
-            if (obstacle.HasProperty(0x383))
+            _publication.Text.WrapInfo.TryGetValue(id, out PublisherWrapInfo? info);
+            OfficeTextPadding margin = info?.Margins ?? OfficeTextPadding.Empty;
+            if (info?.NegativeMargins == true)
+                _context.Add("PUB_NEGATIVE_WRAP_DISTANCE_APPROXIMATED", "A negative native wrap distance was bounded to the object's outline.",
+                    OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(id));
+            var local = obstacle.PageTransform.Then(toFrame).TransformRectangleBounds(-margin.Left, -margin.Top,
+                obstacle.Width + margin.Horizontal, obstacle.Height + margin.Vertical);
+            OfficeTextWrapSide side = info?.NativeMode switch {
+                PublisherNativeWrapMode.RectangularLeft => OfficeTextWrapSide.Left,
+                PublisherNativeWrapMode.RectangularRight => OfficeTextWrapSide.Right,
+                PublisherNativeWrapMode.RectangularLarger => OfficeTextWrapSide.Larger,
+                _ => OfficeTextWrapSide.Both
+            };
+            result.Add(new PreparedTextExclusion(new OfficeTextFlowRegion(local.Left, local.Top, local.Right - local.Left, local.Bottom - local.Top), side));
+            if (info?.Tight == true)
                 _context.Add("PUB_TIGHT_TEXT_WRAP_APPROXIMATED", "A native wrap polygon uses its transformed bounding rectangle. Tight and through-outline text paths are not reproduced.",
                     OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(id));
         }
-        _context.Add("PUB_TEXT_WRAP_APPROXIMATED", "Native wrap references and distances exclude transformed object rectangles. Text uses the widest available interval per horizontal band; native side selection and outline wrapping can differ.",
-            OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(frame.Chunk.Id));
+        _context.Add("PUB_TEXT_WRAP_APPROXIMATED", UsesRectangularWrap(frame)
+            ? "Native rectangular wrap references and distances exclude transformed object rectangles. Both uses successive free intervals on a shared baseline; Left, Right and Larger select a side per text column, with left selected on an equal-width Larger tie. Native line fitting and outline wrapping can differ."
+            : "Native wrap references and distances exclude transformed object rectangles. Unqualified wrap modes use the widest available interval per horizontal band; native side selection and outline wrapping can differ.",
+            OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(frame.Id));
         return result;
     }
 
-    private double WrapDistance(PublisherEscherShape shape, int property) {
-        int distance = unchecked((int)(shape.Property(property) ?? 0));
-        if (distance < 0) _context.Add("PUB_NEGATIVE_WRAP_DISTANCE_APPROXIMATED", "A negative native wrap distance was bounded to the object's outline.",
-            OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(shape.Id));
-        return Math.Max(0, distance) / 12700D;
-    }
+    private bool UsesRectangularWrap(PublisherFrameState frame) => frame.VerticalAlignment == OfficeTextVerticalAlignment.Top &&
+        frame.WrapObjectIds.Count != 0 && frame.WrapObjectIds.All(id =>
+        _publication.Text.WrapInfo.TryGetValue(id, out PublisherWrapInfo? wrap) &&
+        wrap.NativeMode is PublisherNativeWrapMode.RectangularBoth or PublisherNativeWrapMode.RectangularLeft
+            or PublisherNativeWrapMode.RectangularRight or PublisherNativeWrapMode.RectangularLarger
+        && !wrap.Tight && !wrap.NegativeMargins);
 
-    private OfficeTransform PageTransform(PublisherEscherShape shape, FrameRectangle bounds) {
-        // Collapsed layouts have no inverse frame basis. Their artwork is
-        // omitted by the geometry guard; retained model positions stay finite.
-        if (!shape.LayoutTransform.TryInvert(out _)) return OfficeTransform.Identity;
-        double x = bounds.X + bounds.Width / 2, y = bounds.Y + bounds.Height / 2;
-        double sx = shape.LayoutTransform.M11, sy = shape.LayoutTransform.M22;
-        // Layout is already expressed in physical units. Conjugate the child's
-        // rotation into that basis, then apply the remaining ancestor map.
-        return OfficeTransform.Translate(-x, -y).Then(OfficeTransform.Scale(1 / sx, 1 / sy))
-            .Then(OfficeTransform.Scale(shape.Transform.FlipHorizontal ? -1 : 1, shape.Transform.FlipVertical ? -1 : 1))
-            .Then(OfficeTransform.RotateDegrees(shape.Transform.RotationDegrees.GetValueOrDefault()))
-            .Then(OfficeTransform.Scale(sx, sy)).Then(OfficeTransform.Translate(x, y)).Then(GroupPageTransform(shape));
-    }
+    private sealed record PreparedTextExclusion(OfficeTextFlowRegion Bounds, OfficeTextWrapSide Side);
 
-    private OfficeTransform GroupPageTransform(PublisherEscherShape shape) =>
-        shape.GroupTransform == shape.LayoutTransform ? OfficeTransform.Identity :
-        OfficeTransform.Translate(-_source.Width / 2, -_source.Height / 2)
-            .Then(OfficeTransform.Scale(12700, 12700))
-            .Then(shape.LayoutTransform.Invert()).Then(shape.GroupTransform)
-            .Then(OfficeTransform.Scale(1 / 12700D, 1 / 12700D))
-            .Then(OfficeTransform.Translate(_source.Width / 2, _source.Height / 2));
+    private PublisherImportedWrapObject? CurrentWrapObject(uint id) {
+        if (_publication.Tables.TryGetValue(id, out PublisherTableState? table))
+            return new PublisherImportedWrapObject(table.PageId, table.X, table.Y, table.Width, table.Height, table.PageTransform,
+                table.HasPlacement, table.Hidden);
+        if (_publication.Text.Frames.TryGetValue(id, out PublisherFrameState? frame))
+            return new PublisherImportedWrapObject(frame.PageId, frame.X, frame.Y, frame.Width, frame.Height, frame.PageTransform,
+                frame.HasAnchor && frame.TransformAvailable, frame.Hidden);
+        if (_publication.Pictures.TryGetValue(id, out PublisherPicture? picture) && picture.CanEdit)
+            return new PublisherImportedWrapObject(picture.PageId, picture.X, picture.Y, picture.Width, picture.Height, picture.PageTransform,
+                picture.HasPlacement, false);
+        if (_publication.Shapes.TryGetValue(id, out PublisherShape? shape) && shape.CanEdit)
+            return new PublisherImportedWrapObject(shape.PageId, shape.X, shape.Y, shape.Width, shape.Height, shape.PageTransform,
+                shape.HasPlacement, false);
+        return _publication.Text.ImportedObstacles.TryGetValue(id, out PublisherImportedWrapObject? imported) ? imported : null;
+    }
 }

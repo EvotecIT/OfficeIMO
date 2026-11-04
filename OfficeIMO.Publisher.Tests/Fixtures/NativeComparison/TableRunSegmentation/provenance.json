@@ -1,0 +1,75 @@
+{
+  "schema": "officeimo.publisher.native-retained-text-run-segmentation-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableRunSegmentation",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tablerunsegmentation.json",
+      "sha256": "07ae40bbe220c3a198c3ca4266b60522f1ef63c025238826b8e1ddb26632c360"
+    },
+    {
+      "name": "native-tablerunsegmentation.pdf",
+      "sha256": "b9dd3594b9ec4f85424c91cbc0c3c78830ec2a0f8311b51ea101fd5d35f63d75"
+    },
+    {
+      "name": "native-tablerunsegmentation.pub",
+      "sha256": "baa93ef30010626dd04d09b0752fb70c53ec2c566d2fa48f20c35040a5b345f3"
+    }
+  ],
+  "profiles": [
+    "MixedBaseline",
+    "MergeDrop",
+    "MergeReorder",
+    "MergeDuplicate",
+    "MergeOnlyFinal",
+    "MergeFirstTwo",
+    "UniformBaseline",
+    "SplitDrop",
+    "SplitReorder",
+    "SplitDuplicate",
+    "SplitOnlyFinal",
+    "AmbiguousMixedLanguage",
+    "EquivalentMixedTemplates",
+    "MergeEquivalent",
+    "AmbiguousUniformLanguage",
+    "MergeHiddenLanguage",
+    "SplitHiddenLanguage",
+    "MergeSameParagraphCount",
+    "SplitSameParagraphCount",
+    "SplitHiddenSameParagraphCount"
+  ],
+  "mixedSourcePage": 0,
+  "uniformVisibleStyleSourcePage": 6,
+  "equivalentMixedSourcePage": 12,
+  "qualifiedReferencePages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    7,
+    8,
+    9,
+    10,
+    13,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "scope": "Independent native split/merge states with complete text retained, mixed/uniform visible styles, hidden French ranges, equivalent/ambiguous templates, same-count and count-changing edits, and fitting first/final table cells. Native boundaries can split visibly identical runs; semantic proof compares each text position. General reflow, broader producer/mixed-script profiles and repair-free opening remain unassessed."
+}

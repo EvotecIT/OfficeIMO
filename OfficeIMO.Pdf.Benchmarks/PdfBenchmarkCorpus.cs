@@ -27,6 +27,42 @@ internal static class PdfBenchmarkCorpus {
         return CreateDocument(PdfObjectSerializationMode.Buffered).ToBytes();
     }
 
+    /// <summary>Rewrites the mixed corpus with object streams and a cross-reference stream, as PDF 1.5+ producers do.</summary>
+    internal static byte[] CreateXrefStreamVariant(byte[] corpus) {
+        PdfOptimizationActionResult result = PdfOptimizer.Optimize(corpus, PdfOptimizationProfile.MaximumCompression);
+        byte[] variant = result.Bytes;
+        string structure = System.Text.Encoding.Latin1.GetString(variant);
+        if (result.ReturnedOriginal || !result.CandidateUsesObjectStreams
+            || !structure.Contains("/Type /XRef", StringComparison.Ordinal)
+            || !structure.Contains("/Type /ObjStm", StringComparison.Ordinal)) {
+            throw new InvalidOperationException("The xref-stream corpus variant does not use a cross-reference stream with object streams.");
+        }
+
+        ValidateReadableCorpus(variant, PageCount, SerializationRequiredText, "xref-stream corpus");
+        return variant;
+    }
+
+    /// <summary>Creates the embedded Carlito corpus, whose Identity-H text decodes through a ToUnicode CMap.</summary>
+    internal static byte[] CreateEmbeddedFontCorpus() {
+        byte[] corpus = CreateHarfBuzzDocument().ToBytes();
+        ValidateReadableCorpus(corpus, PageCount, HarfBuzzSerializationRequiredText, "embedded-font corpus");
+        return corpus;
+    }
+
+    private static void ValidateReadableCorpus(byte[] corpus, int pageCount, IReadOnlyList<string> requiredText, string name) {
+        PdfDocument document = PdfDocument.Load(corpus);
+        if (document.Pages.Count != pageCount) {
+            throw new InvalidOperationException($"The {name} has {document.Pages.Count} pages instead of {pageCount}.");
+        }
+
+        string text = document.ExtractText();
+        foreach (string marker in requiredText) {
+            if (!text.Contains(marker, StringComparison.Ordinal)) {
+                throw new InvalidOperationException($"The {name} text is missing '{marker}'.");
+            }
+        }
+    }
+
     internal static PdfDocument CreateDocument(PdfObjectSerializationMode objectSerializationMode) {
         byte[] image = CreateImage();
         var options = new PdfCreateOptions {

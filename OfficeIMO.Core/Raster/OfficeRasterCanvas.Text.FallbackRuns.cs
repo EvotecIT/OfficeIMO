@@ -124,18 +124,18 @@ public sealed partial class OfficeRasterCanvas {
         bool flipVertical,
         OfficeTextDecorationStyle underlineStyle,
         OfficeTextDecorationStyle strikethroughStyle,
-        OfficeColor? decorationColor) {
+        OfficeColor? decorationColor, OfficeTextFeatureSettings? features) {
         if (_fonts == null) return false;
         OfficeFontStyle style = (bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontFamily, RequestedTextFace(style));
         if (!ShouldUseFallbackRuns(runs, fontFamily)) return false;
 
-        double width = MeasureText(text, fontHeight, fontFamily, style);
+        double width = MeasureTextWithFeatures(text, fontHeight, fontFamily, style, features);
         double cursor = ResolveAnchoredTextX(anchorX, width, alignment);
         foreach (OfficeFontFallbackRun run in runs) {
-            double runWidth = MeasureText(run.Text, fontHeight, run.FamilyRequest, style);
-            DrawTextLine(
+            double runWidth = MeasureTextWithFeatures(run.Text, fontHeight, run.FamilyRequest, style, features);
+            DrawTextLineWithFeatures(features,
                 run.Text,
                 cursor,
                 top,

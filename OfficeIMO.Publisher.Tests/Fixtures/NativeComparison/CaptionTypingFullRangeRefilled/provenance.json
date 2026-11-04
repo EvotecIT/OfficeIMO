@@ -1,0 +1,38 @@
+{
+  "schema": "officeimo.publisher.native-caption-typing-fixture.v1",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "reproduction": "pwsh Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case CaptionTypingFullRangeRefilled -TimeoutSeconds 180 -PhaseTimeoutSeconds 45",
+  "files": [
+    {
+      "name": "native-captiontypingfullrangerefilled.pub",
+      "bytes": 89088,
+      "sha256": "85bd7cb405ea42841340c9ced49a969581834e3ef10d41ebc65388e343eb94c1"
+    },
+    {
+      "name": "native-captiontypingfullrangerefilled.pdf",
+      "bytes": 29110,
+      "sha256": "e7648dd739574bc798f82cfa6ce641d150910b934a7d242b8ed10ab76c77e7f2"
+    },
+    {
+      "name": "native-captiontypingfullrangerefilled.json",
+      "bytes": 10208,
+      "sha256": "ff8e1ead292973c5f5e5506bb44edaa61abd59c60d28e5688fa42c935aa531d0"
+    }
+  ],
+  "scope": "Independent sole ordinary caption with pre-acquired versus reacquired full-range formatting and optional explicit English language. Refilled cases clear, reacquire and refill without restyling. Point observations include final CR and post-save state; original pre-acquired RCW identity remains unassessed. No Office defaults or security settings changed."
+}

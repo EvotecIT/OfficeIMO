@@ -1,7 +1,12 @@
 # OfficeIMO.Publisher
 
-Recover Microsoft Publisher publications into positioned pages, styled text
-stories, and embedded image assets. The managed reader handles the Publisher
+Read Microsoft Publisher publications into positioned pages, styled text
+stories and embedded image assets, edit supported stories, frames, tables, pictures and
+vector artwork, or create an in-memory publication with pages, masters, styled
+text, embedded pictures, tables and primitive shapes. Render the same current model to SVG or PDF.
+Save an unchanged native source exactly, or save the supported source edits with
+an explicit fidelity policy and an operation report.
+The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
 limits.
@@ -11,6 +16,11 @@ this package; compound storage, OfficeArt properties and image envelopes, text
 layout, and SVG rendering use shared OfficeIMO engines.
 
 ## Read and inspect a publication
+
+Text runs retain native font names, size, referenced color, bold/italic,
+strikethrough, baseline and supported underline patterns. Native underline weight,
+long-dash and compound-pattern differences carry explicit approximation reports.
+Font availability and native layout fidelity remain separate rendering concerns.
 
 ```csharp
 using OfficeIMO.Publisher;
@@ -30,10 +40,729 @@ foreach (var diagnostic in publication.ReadReport.Diagnostics)
 `Pages` follows publication order and excludes utility pages and master
 definitions. `MasterPages` exposes the recovered definitions; their content is
 also applied to referring pages. Coordinates use points and a top-left origin.
-Each page's `Drawing` is the shared `OfficeDrawing` model. Callers can add artwork
-to that scene for subsequent exports. Recovered page content is held in a detached
-clipped group; this API does not directly edit native text frames or modify the
-publication file.
+`CreateDrawing()` returns a detached shared `OfficeDrawing` snapshot, including
+the applied master. Adding artwork to that copy affects exports of the copy;
+document exports use the publication model. Use the document's typed edit
+operations to change its stories and text frames.
+
+## Save a native publication
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Publisher;
+
+var publication = PublisherDocument.Load("flyer.pub");
+PublisherSaveReport copyReport = publication.Save("flyer-copy.pub");
+
+// After supported edits, accept and inspect the operation's unassessed fidelity.
+var settings = new PublisherSaveOptions {
+    AllowLoss = true,
+    MaxOutputBytes = 64L * 1024 * 1024
+};
+PublisherSaveReport report = await publication.SaveAsync("flyer-edited.pub", settings);
+foreach (var diagnostic in report.Diagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+
+byte[] detachedBytes = publication.ToBytes(settings, out PublisherSaveReport bytesReport);
+```
+
+`ToBytes`, `Save` and `SaveAsync` use the same bounded native
+codec. Unchanged semantic content produces a byte-exact copy of the original
+source. Supported edits include existing page object ordering, ordinary frame/shape/picture bounds,
+existing solid scalar paint slots, qualified frame columns/full intercolumn gap,
+insets and vertical alignment, and ordinary text stories with bounded
+size, bold, italic, underline pattern, single strikethrough, baseline, font family
+and opaque RGB color changes. Paragraph counts can change when the source paragraphs have
+uniform projected formatting and matching native definitions. Empty and nonempty native
+paragraphs with different formatting can also be retained, deleted, reordered or
+duplicated without changing their content or formatting. Pass the original
+paragraph snapshots to identify the exact native source; copied values require
+unambiguous native definitions. Retained empty paragraphs keep their own complete
+native CR typing in interior and final positions. Nonuniform count changes can
+also use retained ordered run text to select a native template for supported
+character and paragraph formatting changes. Exact snapshots and complete values
+resolve first, followed by retained ordered run text, complete paragraph text
+with preserved fields at each position, then unchanged complete formatting for
+text replacement. A retained-text match can split or merge runs through the
+original native character ranges. Ambiguous text refuses output even when another
+source paragraph matches the requested style. All matching templates must agree
+on complete native definitions; changed-text replacement additionally needs one
+uniform nonempty definition per corresponding ordered run. A single empty source
+run can instead supply its native CR definition for one or more nonempty styled
+runs during paragraph-count changes. Existing text/format correspondence retains
+priority; otherwise empty-source matching prefers retained paragraph formatting.
+Every eligible source must produce identical rewritten body, CR and paragraph
+definitions. The last requested run supplies the refilled CR typing. Unspecified
+language and kerning retain their source fields; opaque conflicts refuse saving.
+Native reload can
+expose separate runs with identical visible formatting when native source
+boundaries or opaque metadata remain distinct.
+With the paragraph count unchanged, an existing nonempty multi-run paragraph can
+also replace its complete text and formatting while splitting or merging runs.
+Every contributing native body definition is rewritten with each requested run's
+supported visible formatting; saving requires all rewritten definitions to agree
+byte for byte. Unspecified language and automatic pair-kerning values preserve
+their native fields and must agree across the source body. Explicit values can
+replace supported differences. Opaque fields, background, paragraph-indent
+overrides and links must remain unambiguous; destination CR typing follows the
+existing last-run edit rule. This profile excludes labels, empty replacement runs
+and unsupported native definitions.
+
+Paragraph-count changes can also replace complete nonempty paragraph text,
+visible formatting and run boundaries. Existing snapshot, text, formatting and
+empty-source correspondences retain priority and their ambiguity barriers. With
+no eligible empty source, the nonempty fallback prefers retained paragraph
+formatting and requires all rewritten body, paragraph and destination-CR
+definitions to agree. Interior destinations retain qualified interior CR typing;
+final destinations retain the original final CR. Visible body styling does not
+replace that CR typing; only the existing explicit language/kerning changes
+apply. A changed story
+can use one existing frame or a complete resolved chain of ordinary, visible,
+untransformed document-page frames. Native links, ownership and frame identities
+remain fixed. Known chained Quill layouts are supported; formatting and directory
+pages can be allocated or retired, and font/color resources can grow while existing
+entries retain their identities and bytes.
+
+For example, removing the first paragraph while retaining the others keeps their
+native formatting definitions:
+
+```csharp
+var story = publication.TextStories.First(item => item.Paragraphs.Count >= 2);
+publication.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Skip(1).ToArray());
+```
+
+`PublisherTextStory.AutomaticHyphenation` exposes the qualified native story
+setting, or null when it cannot be recovered. Ordinary stories can save an
+explicit enabled/disabled setting. Paragraph suppression uses the existing
+paragraph replacement API:
+
+```csharp
+publication.SetStoryAutomaticHyphenation(story.Id, true);
+publication.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select((paragraph, index) =>
+    paragraph.WithAutomaticHyphenationSuppressed(index == 0)).ToArray());
+```
+
+This enables native story hyphenation while suppressing it in the first
+paragraph. The native flags save independently of the stored text; generated
+hyphens are never inserted into story text. Managed rendering uses the shared
+versioned US English and reformed German patterns, with the observed 18 pt native
+application-zone profile. Unknown or mixed word languages do not select an
+invented dictionary. Generated display hyphens retain their source offsets and
+continue across linked frames. Native dictionaries can choose different breaks.
+The application's zone is not a recovered document setting. See the
+[native setting contract](SUPPORT.md#native-hyphenation-settings).
+
+Frame-layout saves retain links and page/master ownership. They can add missing
+default fields and relocate native records; changed distances must be exact
+nonnegative EMU values. This API's gap is the full distance between columns.
+Existing qualified pictures can save a replacement PNG or JPEG. Replacing one
+placement retains the original asset and leaves other placements sharing it
+unchanged, including master pictures. Native image slots and filename resources
+are allocated together; asset IDs are document-scoped and can change on reload.
+Qualified embedded pictures remain replaceable after Publisher removes their
+local filename reference during a native save. Saving creates a fresh owned
+filename resource and preserves the older resources and other placements.
+Existing qualified tables can save cell text and supported run formatting while
+retaining the grid and cell ownership, including qualified paragraph-count changes. Cell text
+endpoints are remapped with the complete story; preceding ordinary stories can
+also change length without detaching table cells.
+Retained empty paragraphs can save source typing or an explicit empty styled
+run. A paragraph with no runs retains its native CR style; native reload exposes
+one styled empty run. Uniform-source paragraph growth can end in an empty
+paragraph. Clearing an eligible imported ordinary story with an empty paragraph
+collection prepares one native empty CR paragraph using the source final
+paragraph definition and CR typing. The public model keeps zero paragraphs;
+reloading the native file exposes one styled empty paragraph. The save report
+includes `PUB_NATIVE_EMPTY_STORY_PARAGRAPH` as `Approximation`, requiring explicit
+`AllowLoss = true` even when an already-empty source can be copied exactly.
+Paragraph edits include alignment, before/after spacing, margins, first-line or
+hanging indents, explicit absolute/multiple line spacing, and ordinary left tabs.
+For native center/right paragraphs, use tab settings with
+`WithParagraphAlignment()`; the tab origin must remain `-paragraph.Margins.Left`
+and the source default interval must be retained. Use `lineHeightFactor: 1` for explicit single
+spacing. The support contract defines native units and representability limits.
+Ambiguous source definitions and unsupported directory layouts are refused. The
+[support contract](SUPPORT.md) defines the precise restrictions and qualified
+editing/authoring profiles. Edits outside those profiles refuse native output.
+Source-free native creation is unavailable.
+
+Existing physical pages can save `SetPageMaster(pageId, existingMasterId)` and
+`SetPageMaster(pageId, null)` through the same native source-save API. Clearing
+uses Publisher's master-formatting suppression while retaining its latent selected
+master reference. Reassignment selects the existing definition and enables its
+formatting. Reading a suppressed native page exposes no applied `MasterPageId`
+and leaves its master content out of that page's drawing; the definition and its
+stories remain available in `MasterPages` and `TextStories`. Unqualified reference
+or display tokens reject assignment edits; other unsupported topology remains refused.
+
+The default loss policy is `Block`, including unassessed fidelity. Edited native
+output requires explicit `AllowLoss = true`; this policy still refuses unsupported edits and
+unsafe source carriers. `OfficeConversionException.Report` carries a
+`PublisherSaveReport` for policy or preparation refusal. Its diagnostics describe
+this save operation; `SourceReadReport` separately retains the original decoding
+evidence. `IsExactSourceCopy` does not reassess native validity, signatures or
+repair. Saving leaves the original source baseline unchanged.
+
+File destinations require a `.pub` extension and default to `FailIfExists`.
+Select `FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace` for
+atomic replacement. The complete output is prepared and its policy checked before
+publication; preparation, limits and pre-publication cancellation preserve an
+existing destination. An unavailable atomic replacement fails explicitly.
+
+Stream overloads leave the caller's stream open. Seekable streams are replaced,
+truncated and rewound on success; non-seekable streams receive output at their
+current position. Preparation failures preserve existing bytes and position.
+Cancellation or I/O failure during stream publication can leave partial output.
+Asynchronous saves prepare the native bytes in process before asynchronous I/O;
+synchronous stream saves observe cancellation before publication. The default
+output ceiling is 64 MiB and can be set from 1 through `int.MaxValue` bytes.
+
+## Create pages, masters and styled text
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Publisher;
+
+var newsletter = PublisherDocument.Create(792, 612);
+var firstPage = newsletter.Pages[0];
+var header = newsletter.AddMasterPage("Newsletter header");
+newsletter.AddTextFrame(header.Id, 36, 18, 600, 30, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Weekly publication", 16, OfficeColor.Black,
+            bold: true, fontFamily: "Arial")
+    })
+});
+newsletter.SetPageMaster(firstPage.Id, header.Id);
+var body = newsletter.AddTextFrame(firstPage.Id, 36, 84, 300, 160, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("A complete styled story follows its linked frames.",
+            12, OfficeColor.Black, fontFamily: "Arial")
+    })
+});
+var secondPage = newsletter.AddPage(header.Id);
+newsletter.AddLinkedTextFrame(body.Id, secondPage.Id, 36, 84, 720, 420);
+File.WriteAllText("newsletter-page.svg", newsletter.ToSvg());
+```
+
+`Create` takes a positive finite width and height in points and creates one empty
+document page without a master or native source. Its optional `PublisherLoadOptions`
+is copied and bounds authoring and projection as well as native reading.
+`AddPage` appends at the existing publication size; omitting its master ID creates
+a page without a master. `AddMasterPage` creates a centered single-page definition
+with a nonempty name. `AddMasterPagePair` atomically appends named left and right
+definitions and returns `(Left, Right)`. `PublisherPage.MasterSide` distinguishes
+single, left and right master definitions; it is null on document pages or
+unqualified native layouts. `SetPageMaster(pageId, null)` clears an assignment. Direct
+qualified imported masters, including separately recovered left and right members,
+retain their exact registration. Master content remains owned once in `MasterPages`
+and renders on each assigned physical page. Nested masters, unassessed backgrounds
+and unsupported registrations reject assignment. Page resizing, deletion, reordering,
+and object moves are not provided.
+
+Pair members use the native definition registration. Applying a left member shifts
+its content right by half the publication width; applying a right member shifts it
+left by half the width. Assign either definition explicitly; page parity does not
+choose a member automatically:
+
+```csharp
+var pair = newsletter.AddMasterPagePair("Running headers");
+newsletter.SetPageMaster(firstPage.Id, pair.Right.Id);
+var leftPage = newsletter.AddPage(pair.Left.Id);
+```
+
+`AddTextFrame` creates a complete independent ordinary story and a frame on a
+qualified document or master page. It uses one column, zero gap and padding, top
+alignment, no fill or outline, and no transform or wrap references. Supplied
+paragraphs retain their Core formatting, labels and tabs. Empty paragraph
+collections are allowed. Carriage returns normalize to newlines; paragraph
+boundaries add newlines, with no implicit final terminator for authored ordinary
+stories. `AddLinkedTextFrame` continues an ordinary document-page story; master
+stories cannot be linked across physical pages. All story content remains available
+in `TextStories`, including overflow.
+
+Pages, masters, objects and stories share one publication identifier allocator;
+creating a frame/story pair or two-page master reserves both IDs atomically. Assets retain their own
+image IDs. Failed validation, limits, cancellation or projection leave the document
+and allocator unchanged. Returned objects are immutable snapshots; fetch current
+objects after later edits. `HasNativeSource` distinguishes a loaded document from
+source-free creation. `PublisherPage.HasNativeOrigin` identifies imported page
+definitions even after content or master-assignment edits; added pages and masters
+have no native origin. A source-free document has zero native source/record counts.
+Source-free creation supports in-memory authoring and rendering. Native saving
+requires a loaded publication and the supported source-edit profile below.
+
+Add an embedded picture to a qualified document or master page:
+
+```csharp
+var illustration = newsletter.AddImage(firstPage.Id,
+    File.ReadAllBytes("illustration.png"), 360, 84, 144, 96);
+newsletter.SetPictureBounds(illustration.Id, 360, 84, 120, 80);
+```
+
+`AddImage` accepts a static PNG or JPEG with normal encoded orientation,
+validated through the shared managed image decoder. Animated PNGs, non-normal
+EXIF orientations, other formats and invalid payloads are rejected. The supplied
+point rectangle controls placement and size; image DPI does not choose the frame.
+The new picture has no crop, fill, outline, effects, story or wrap references and
+is appended in drawing order. Pictures added to a master stay owned once and
+render on every assigned page. Creation does not add text-wrap exclusions.
+
+The byte-array overload copies and retains the original encoding. Each call creates
+one placement and a separate asset, even for identical input. To reuse a document
+image, pass its document-scoped ID instead of bytes:
+
+```csharp
+var repeated = newsletter.AddImage(firstPage.Id, illustration.ImageId!.Value,
+    48, 480, 72, 48);
+```
+
+The ID overload appends a placement without copying or reserving an asset. Bounds,
+crop and paint belong to each placement. Replacing one placement leaves its siblings
+on the original asset; superseded edit-owned bytes are released only after their
+last placement is replaced. Source-native assets remain retained. Object and image IDs
+are reserved together and neither is consumed on failure. Existing image replacement
+and movement operations remain available; replacement retains its existing PNG/JPEG
+contract. Per-image, current-object, image-store, retained-byte and cumulative scene
+budgets apply, including repeated master use. `GetBytes()` and old page/picture/asset
+references remain detached from later edits.
+
+## Edit publication content
+
+### Order existing page objects
+
+`PublisherPage.ObjectIds` lists owned objects from back to front. Text-capable
+artwork appears once, even when it also has a text-frame view. Supply every ID
+exactly once; master objects remain on their master page.
+
+```csharp
+using System.Linq;
+using OfficeIMO;
+using OfficeIMO.Publisher;
+
+var publication = PublisherDocument.Load("flyer.pub");
+var page = publication.Pages[0];
+publication.SetPageObjectOrder(page.Id, page.ObjectIds.Reverse().ToArray());
+
+var report = publication.Save("flyer-reordered.pub", new PublisherSaveOptions { AllowLoss = true });
+File.WriteAllText("flyer-reordered.svg", publication.ToSvg());
+```
+
+The edit retains identifiers, stories, links, assets and old page snapshots.
+The same operation accepts a qualified master page ID. In-memory authored objects
+also follow the new order in SVG/PDF. Native saving needs an imported source whose
+objects have a complete sibling-record profile. Qualified rectangular wrap lists
+update when order or existing frame/shape/picture bounds change, including adding
+or removing foreground obstacles. Ordinary rectangular native defaults are also
+supported. Grouped artwork and unqualified side, outline or master wrapping
+remain outside this profile. The save report includes
+`PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED` and, when exclusions change,
+`PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED`, requiring explicit `AllowLoss = true`. See the
+[qualified ordering contract](SUPPORT.md#existing-page-object-ordering).
+
+### Edit text and layout
+
+For a publication with an ordinary, resolved, untransformed top-level text frame:
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Publisher;
+
+var publication = PublisherDocument.Load("flyer.pub");
+var frame = publication.Pages[0].TextFrames[0];
+
+publication.ReplaceStoryParagraphs(frame.StoryId, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Updated publication", 18, OfficeColor.Black,
+            bold: true, fontFamily: "Arial")
+    })
+});
+publication.SetTextFrameBounds(frame.Id, 72, 72, 360, 108);
+File.WriteAllText("edited.svg", publication.ToSvg());
+```
+
+`OfficeRichTextRun.WithLanguageId(1033)` tags a run as English (United States);
+`1036` selects French. Native source saves can set this value while retaining
+unrelated native formatting. An unspecified language leaves an imported override
+intact; it does not clear it. Language IDs are 16-bit Windows identifiers.
+Enabled automatic hyphenation uses supported language patterns; the current
+English and German resources do not supply French breaks. Paragraph and drawing
+copies retain the annotation. See the [qualified language
+profile](SUPPORT.md) for native creation/editing coverage and limits.
+
+`OfficeRichTextRun.WithAutomaticPairKerningThreshold(8)` returns a copy carrying
+an 8-point native pair-kerning threshold. Native source saves can set the
+threshold, including zero to disable pair kerning, while retaining other native
+formatting. Null retains the selected source definition. The supported native
+scalar range is 0–999.5 points in exact 1/12700-point units. Font-aware shared
+layout and raster, SVG and PDF rendering apply an explicit threshold to each run:
+zero disables kerning, and a positive value enables it at or above that base run
+size. For qualified imported Quill profiles, layout resolves unspecified settings
+through the retained source definitions, including the native 14-point default;
+public story and cell metadata stays nullable. Source-free runs keep the renderer's
+normal feature defaults. Same-font mixed-run activation and exact native glyph
+geometry remain qualification limits. See the
+[native threshold contract](SUPPORT.md#native-pair-kerning-metadata).
+
+`PublisherLoadOptions.Fonts` supplies scoped font faces for story flow and page
+rendering. The options clone the font collection, and exported drawing snapshots
+retain independent copies. For example:
+
+```csharp
+var fonts = new OfficeFontFaceCollection()
+    .Add("Arial", File.ReadAllBytes("assets/Arial.ttf"));
+var withFonts = PublisherDocument.Load("newsletter.pub",
+    new PublisherLoadOptions { Fonts = fonts });
+File.WriteAllText("newsletter.svg", withFonts.ToSvg());
+```
+
+Publisher paragraphs separate font content height from line advance and baseline;
+the final line's unused advance is excluded from vertical alignment. The
+[font profile](SUPPORT.md) defines the qualified native PDF reference and its limits.
+
+`ReplaceStoryParagraphs` replaces a complete non-table story. It derives `Text`
+from the supplied paragraphs, normalizes carriage returns to newlines, and
+retains the source's final paragraph-terminator convention, including after
+clearing and repopulating the story. An empty paragraph collection clears the
+story. Saving that zero-paragraph public state uses the reported native empty-CR
+representation described above; saving does not change the public model or frame
+snapshots. Labelled and unsupported native source profiles still refuse this
+mapping. Styled runs, paragraph layout, list labels and tab settings use the
+shared drawing types. Complete text remains available when it overflows.
+Body runs and labels require well-formed UTF-16 and positive finite font sizes;
+labels also reject control characters. Labels count toward the story run and
+character ceilings, the publication's edit budget and cumulative projection
+work, while remaining separate from `PublisherTextStory.Text`.
+
+`SetTextFrameBounds` uses page-local points. Width and height must be positive
+and finite; negative offsets allow artwork to bleed beyond the clipped page.
+Grouped, rotated, reflected, hidden, unresolved and table frames are rejected.
+Both operations retain identifiers, ownership and frame links, then recalculate
+the current page scenes, assigned text ranges and overflow. SVG and the optional
+PDF package consume those scenes; the Reader adapter can project the current
+in-memory document directly.
+
+`SetTextFrameLayout` replaces a qualified frame's column count, gap, padding and
+vertical alignment without changing its bounds, graphics, story or links:
+
+```csharp
+var current = publication.Pages[0].TextFrames[0];
+publication.SetTextFrameLayout(current.Id, 2, 18,
+    new OfficeTextPadding(8, 6, 8, 6), OfficeTextVerticalAlignment.Top);
+```
+
+`PublisherTextFrame` exposes the current `Padding`, `VerticalAlignment`,
+`ColumnCount` and `ColumnSpacing`. Spacing is the full intercolumn gap in points.
+If no local or inherited native gap is present, import uses Publisher's
+7.2-point full gap; an explicit zero remains zero. Source-free frames start with
+zero spacing. `CanEditLayout` and `LayoutEditLimitation`
+describe this operation independently of bounds editing. Visible resolved
+untransformed document/master frames are eligible, including text-capable
+artwork. Tables and table-story aliases are excluded. Unassessed native anchor,
+text-direction, wrapping, fitting and vertical-alignment forms retain their
+reading and bounds behavior but reject layout editing.
+
+Columns are equal-width, from 1 through 256 within the configured item limit.
+Gap and inset sizes use points. The gap must be nonnegative and finite, and
+insets/gaps must leave a positive finite content area. An existing frame whose
+current insets consume its area can still be corrected with a usable layout.
+Top, Center and Bottom align text within each generated content region; native
+column balancing, distributed alignment and vertical writing are not provided.
+Complete stories and overflow remain available, other frames keep their stored
+settings, and `AddLinkedTextFrame` copies the tail's current layout. Fresh SVG/PDF
+scenes use the same Core flow. Failed validation, cancellation or resource limits
+leave the current document and old snapshots intact.
+
+`AddLinkedTextFrame` appends a continuation frame to the tail of a complete,
+resolved non-table story chain. The destination is an existing document page;
+the new frame shares the complete styled story and copies the preceding
+frame's column count, spacing, padding and vertical alignment. It has no fill,
+outline or wrap references and is appended to that page's drawing order.
+The source chain must contain ordinary visible untransformed document-page
+frames. Master chains, ambiguous chains and non-tail insertion are rejected.
+
+For a two-page publication whose ordinary story starts on the first page:
+
+```csharp
+var continued = PublisherDocument.Load("two-page.pub");
+var start = continued.Pages[0].TextFrames[0];
+continued.SetTextFrameBounds(start.Id, 54, 108, 228, 120);
+var continuation = continued.AddLinkedTextFrame(
+    start.Id, continued.Pages[1].Id, 54, 72, 468, 600);
+Console.WriteLine($"Frame {continuation.Id}, range {continuation.TextStart}+{continuation.TextLength}");
+File.WriteAllText("continued-page.svg", continued.ToSvg(1));
+```
+
+The operation recalculates chain links, assigned text ranges and overflow.
+It retains all story content even when the available frames are too small.
+The returned frame is a snapshot; retrieve it again after later story or bounds
+edits. Object, text-layout and projection limits apply, and failed creation
+leaves the publication and its next object identity unchanged.
+
+`PublisherPage.Pictures` exposes placed pictures separately from the embedded
+assets in `Images`. Each placement identifies its page, image asset, unrotated
+bounds, crop and page transform. Master pictures remain listed on the master;
+their current artwork is included on every referring document page. Coordinates
+are page-local points, and crop values are normalized source-edge fractions.
+`CanEdit` identifies supported placements; `EditLimitation` explains why another
+placement is inspection-only, with the same reason in the read report.
+
+```csharp
+var picture = publication.Pages[0].Pictures.First(item => item.CanEdit);
+publication.ReplacePictureImage(picture.Id, File.ReadAllBytes("replacement.png"));
+publication.SetPictureBounds(picture.Id, 72, 216, 144, 96);
+publication.SetPictureCrop(picture.Id,
+    OfficeImageSourceCrop.FromStrictFractions(0.25, 0.125, 0.0625, 0.1875));
+File.WriteAllText("picture-edited.svg", publication.ToSvg());
+```
+
+`SetPictureCrop` uses normalized source-edge fractions in left/top/right/bottom
+order, independently of the frame's point dimensions and image DPI. Use the
+shared `OfficeImageSourceCrop` type from `OfficeIMO.Drawing`; the crop must leave
+positive visible width and height. It preserves the image, frame, paint, identity
+and neighboring placements. Use `default` to clear the crop. Native source saving
+rounds fractions to the nearest 16.16 value and reports approximation without
+changing the requested in-memory crop. A rounded crop that collapses the visible
+source area refuses native output, including with an explicit loss allowance.
+
+Picture edits support visible, resolved, untransformed top-level rectangular
+PNG/JPEG placements with qualified crop and simple paint. Replacement validates
+the complete PNG or JPEG through the shared managed image decoder and retains
+the selected placement's crop, bounds, identity, page and drawing order. It
+creates a separate asset reference so another placement sharing the old image
+does not change. Original native assets remain available; unreferenced assets
+from superseded replacements are released. Moving a picture also recalculates
+its existing rectangular text-wrap exclusions. Grouped, rotated, reflected,
+hidden, effected, custom-clipped and unresolved pictures retain their reading
+and rendering behavior but reject these edits. Per-image byte and pixel limits,
+the image-store entry limit, and cumulative page-projection budgets apply.
+
+`PublisherPage.Shapes` exposes vector artwork in page drawing order, with its
+stable identifier, page-local bounds, page transform and edit limitation.
+Applied master shapes remain listed on their master. A text-capable shape and
+its text frame share one object identifier and current placement: either bounds
+operation updates both views. Pictures and table artwork retain their separate
+model owners.
+
+```csharp
+var shape = publication.Pages[0].Shapes.First(item => item.CanEdit);
+publication.SetShapeBounds(shape.Id, 72, 300, 180, 72);
+publication.SetShapePaint(shape.Id, OfficeColor.FromRgb(32, 120, 180),
+    OfficeColor.Black, strokeWidth: 2);
+
+var ellipse = OfficeShape.Ellipse(72, 48);
+ellipse.FillColor = OfficeColor.FromRgb(240, 180, 40);
+var added = publication.AddShape(publication.Pages[0].Id, ellipse, 300, 300);
+File.WriteAllText("shapes-edited.svg", publication.ToSvg());
+```
+
+Bounds and solid-paint edits support visible, resolved, untransformed top-level
+rectangles, rounded rectangles, ellipses, diamonds, triangles and lines with
+qualified paint. Moving or resizing an existing wrap obstacle recalculates its
+referencing text frames. `SetShapePaint` replaces the fill and outline colors,
+stroke width and opacities; null colors disable that paint. Stroke widths remain
+in points when geometry is resized.
+
+`AddShape` accepts shared rectangle, rounded-rectangle, ellipse and line
+descriptors on existing document or master pages. It copies the descriptor,
+appends the object to its page's drawing order and returns its current snapshot.
+New shapes have no story or text-wrap references. Horizontal and vertical lines
+keep a zero logical extent on one axis; both endpoints must differ. Other
+shapes require positive extents. Bounds use page-local points and permit clipped
+bleed within the publication's coordinate range.
+
+Grouped, transformed, hidden, custom-path, gradient, effected and unresolved
+artwork remains inspection-only with its existing rendering diagnostics.
+`HasPlacement = false` identifies unavailable geometry. `CreateShape()` returns
+a detached descriptor for editable artwork and rejects inspection-only shapes;
+their current rendered representation remains in `CreateDrawing()`. Creation
+rejects unsupported descriptors rather than dropping their effects.
+
+`PublisherPage.Tables` exposes current tracks, merged spans and styled cell
+paragraphs. `CanEditCellText` and `CanEditBounds` describe separate operations;
+their corresponding limitation properties explain unsupported cases.
+`HasTextMapping` records successful text recovery and does not by itself grant
+editing. A table's graphic belongs to the table and is excluded from `Shapes`.
+
+`PublisherTableCell.FillColor` exposes a recovered solid background.
+`PublisherTable.BorderSegments` exposes shared grid edges with point widths and
+colors through `OfficeBorderSide`. Segment endpoints are row/column boundaries,
+so a shared edge appears once even when it borders two cells. These decorations
+render through qualified rectangular table placement and remain preserved during
+supported cell-text saves. `SetTableCellFillColor` sets or clears an opaque solid
+cell background using its anchor coordinates. `SetTableBorderStyle` assigns a
+solid shared edge along an ordered horizontal or vertical grid range, or clears
+that range with `null`. It splits overlapping collinear edges and retains their
+outside fragments, perpendicular edges and unrelated ranges. Ranges through
+merged-cell interiors are rejected. Both operations update rendering transactionally.
+Native source saving supports solid recoloring, clearing and activation through
+qualified existing cell utility records, preserving latent colors when hidden.
+A missing local color field can be inserted; visibility requires an unambiguous
+local owning field. Existing shared-border color/width edits use qualified local
+scalars. Shared edges can also be added, cleared and replaced within a qualified
+direct utility drawing. New ranges use native cell edges, while a requested full
+merged-cell perimeter can remain one native span. Existing exact border partitions
+remain preserved; use `SetTableBorderStyle` with the complete perimeter range to
+replace adjacent fragments explicitly. Reopened segmentation and record order can
+differ while retaining shared grid coverage. First fills and borders can also initialize utilities for qualified
+borderless rectangular tables in compact sources and native-normalized empty
+utility scopes. A table with no cell or edge utility records can receive its first
+fills and borders beside an already decorated table in a qualified populated
+drawing. This can compose with supported peer border edits and cell-paragraph
+growth in one save. A fill or border decoration
+change can also initialize selectively missing cell utilities in qualified tables,
+including the [decorated merged profile](SUPPORT.md#decorated-merged-table-utilities).
+Only missing native cell-definition indices receive the final
+fill/no-fill state; existing invisible cell records retain their ownership.
+Text or bounds edits alone do not initialize missing cells. Selective
+initialization composes with supported border edits on the same table or a peer,
+and with cell-paragraph growth. The writer retains ordinary drawing bytes,
+unrelated storage and unchanged cell/edge records, and validates counts,
+identifiers, inherited defaults and allocation history. Duplicate or unknown raw
+ownership, unsafe defaults, inconsistent metadata, unsupported paint and widths
+without an exact signed-EMU representation
+refuse saving. A border must fit the table's final perpendicular extent, including
+after resizing.
+Qualified allocation uses the remaining slots in the current SPID cluster before
+appending fresh ordered clusters. Existing allocation entries keep their positions
+and consumed history; retired identifiers are not reused. The [support contract](SUPPORT.md#ordered-table-utility-cluster-allocation)
+defines the dense-grid source profiles and their native validation limits.
+Gradients, cell-specific padding and broader native appearances remain separate profiles.
+Unsupported paint is reported rather than presented as an observed empty style.
+
+Fill visibility changes compose with supported cell-paragraph growth. Native
+source saving refuses ambiguous visibility ownership and unsupported complex or
+BLIP-role boolean fields, including under `AllowLoss = true`. See the [qualified fill and
+shared-border profiles](SUPPORT.md#native-cell-fills-and-shared-borders) for exact limits.
+
+```csharp
+var styledTable = publication.Pages[0].Tables.First();
+var cell = styledTable.Cells.First();
+publication.SetTableCellFillColor(styledTable.Id, cell.RowIndex,
+    cell.ColumnIndex, OfficeColor.FromRgb(192, 224, 192));
+publication.SetTableBorderStyle(styledTable.Id, 0, 0, 0, styledTable.ColumnWidths.Count,
+    new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 1));
+```
+
+```csharp
+var table = publication.Pages[0].Tables.First(item => item.CanEditCellText);
+publication.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Updated cell", 10, OfficeColor.Black,
+            bold: true, fontFamily: "Arial")
+    })
+});
+if (table.CanEditBounds)
+    publication.SetTableBounds(table.Id, 36, 180, 240, 108);
+
+var addedTable = publication.AddTable(publication.Pages[0].Id, 36, 324,
+    new[] { 120D, 120D }, new[] { 30D, 30D });
+publication.MergeTableCells(addedTable.Id, 0, 0, rowCount: 1, columnCount: 2);
+publication.ReplaceTableCellParagraphs(addedTable.Id, 0, 0, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Item", 10, OfficeColor.Black, fontFamily: "Arial")
+    })
+});
+publication.SetTableCellFillColor(addedTable.Id, 0, 0, OfficeColor.FromRgb(192, 224, 192));
+publication.SetTableBorderStyle(addedTable.Id, 0, 0, 0, addedTable.ColumnCount,
+    new OfficeBorderSide(OfficeColor.Black, 1));
+File.WriteAllText("table-edited.svg", publication.ToSvg());
+```
+
+Cell coordinates are zero-based anchors. A merged cell is edited through its
+first row and column; covered coordinates are rejected. Paragraph replacement
+preserves every other cell, the complete styled story and each cell's paragraph
+terminator convention, including when clearing and refilling a cell. Compatible
+tables sharing a story update together. Conflicting cell grids, unresolved
+boundaries and stories also referenced by ordinary text frames reject cell edits.
+`MergeTableCells` joins complete cells in an authored table. It retains their
+styled paragraphs in existing cell-definition order, keeps the anchor fill and
+preserves grid tracks. The requested rectangle must contain every intersecting
+cell completely. Partial overlaps, imported native topology and new merges in
+tables with shared borders are refused. Read and export the
+new table snapshot from `Pages` after editing. The public native save path does
+not serialize newly authored tables.
+Complete text remains inspectable when a cell overflows its rendered frame.
+Clearing through an empty paragraph collection retains the final paragraph's
+formatting and leaves typing unspecified. Native saving retains that cell's CR
+typing; supply an empty styled run when a particular typing style is required.
+Native source saving supports qualified fixed cell partitions and supported
+text formatting. Paragraph counts can change when source definitions are uniform
+within the edited cell; neighboring cells may have different styles. Empty and nonempty,
+unlabelled native paragraphs can also be retained, deleted, reordered or duplicated
+within a cell without changing their text or formatting. Original paragraph
+snapshots select their exact native definitions; copied values require
+unambiguous definitions within that cell. Retained empty paragraphs keep their
+own complete native CR definition in interior and final positions. Count-changing
+text replacement uses unchanged complete paragraph/run formatting with a uniform
+native definition per corresponding run. Formatting and run segmentation changes
+use retained ordered run text or complete paragraph text with preserved fields at
+each position. Matching native templates must agree, including the destination
+CR role. With the paragraph count unchanged, a nonempty multi-run paragraph can
+also replace its complete text and formatting with a different run count when
+all contributing native body definitions agree after supported formatting is
+rewritten. Unspecified language and kerning preserve their source fields; opaque
+and unsupported preserved fields must agree. The paragraph and CR keep their
+existing ownership. A single empty source run can supply its complete CR
+definition for a styled refill with one or more runs during paragraph-count
+changes. Existing correspondence takes priority; empty-source matching prefers
+retained paragraph formatting, and all eligible sources must agree after body,
+CR and paragraph rewriting. The last requested run supplies the new CR typing.
+Complete nonempty text/format replacements during paragraph-count changes also
+use the agreement-based fallback described above, retaining separate interior
+and final CR typing. Matching stays within the edited cell. Unknown
+native partition records, arbitrary count-changing rewrites of nonuniform cell
+definitions and unsupported typing encodings refuse output. Publisher can expand rows when text
+wraps or exceeds a cell, so retained stored bounds do not guarantee fixed native
+rendered heights.
+These native limits are separate from in-memory cell editing.
+
+`SetTableBounds` uses positive finite frame dimensions and proportionally scales
+column and row tracks. Imported differences between track sums and frame size
+are retained in that ratio. Qualified rectangular wrapping recalculates frame
+exclusions when a table enters or leaves a frame. Hidden, grouped, rotated,
+reflected, unplaced and unsupported graphic representations retain their reading/rendering behavior and reject
+bounds edits. Safe cell text can remain editable independently of those graphics.
+Qualified solid cell fills and shared borders are recovered; cell-specific
+padding and broader native paint remain unassessed.
+
+Native source saving supports direct table movement and proportional resizing of
+fixed grids. Coordinates, dimensions and tracks must have an exact signed-EMU
+representation; resizing requires complete native endpoints and nominal sizes
+that agree with the laid-out tracks. Expanded rows can move with their track
+records retained, but resizing them is refused. Supported moves rebuild native
+rectangular wrap references; unqualified wrap relationships refuse saving.
+Edited output reports `PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED` and requires explicit
+`AllowLoss = true`. Native opening can reflow a table, so stored bounds do not promise a
+fixed rendered height. See the [qualified source profile](SUPPORT.md#native-table-placement-and-fixed-track-resizing).
+
+`AddTable` copies positive finite column widths and row heights, appends an empty,
+unmerged, borderless table to an existing qualified document or master page and
+creates its complete story. Master tables remain listed once on the master;
+their current artwork appears on referring pages. Populate the cells through
+the same paragraph API. Table and story identities come from the shared
+publication allocator. Cancellation, text, grid and cumulative projection
+limits apply before the candidate replaces the current document.
+
+Each operation validates and projects its candidate before changing the
+document. Failed or cancelled edits leave the preceding state usable. Concurrent
+mutation is unsupported. Fetch `Pages`, `MasterPages`, `TextStories`, `Images`, frames, tables, pictures and shapes
+again after an edit: previously returned objects remain snapshots.
+`ReadReport` describes the current reconstruction; `SourceReadReport` retains
+the original native decoding evidence without projection findings.
+
+These edits change the in-memory publication and rendered outputs. Native PUB
+saving accepts the qualified imported-source edit profiles described above.
+Source-free native creation, new page/master topology, imported table topology
+changes and arbitrary frame relinking remain unsupported. Opaque preservation
+follows the bounded source-save contract rather than every in-memory edit.
+
+`ReadReport.CurrentObjectCount` includes retained imported objects and authored
+tables, continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects
+represented in the page scenes. `SourceObjectCount` and `SourceReadReport` retain
+the original native object inventory. Authored tables, frames and shapes do not add native records
+to `InspectedRecordCount`.
+
+## Recovered content and layout
 
 `TextStories` retains complete decoded text, including content that cannot be
 placed or does not fit a frame. Paragraphs carry recovered font names, sizes,
@@ -70,8 +799,10 @@ cumulative native vertex, guide and command work and copied shape/mask commands
 as well as drawing elements.
 
 Each page's `TextFrames` exposes native frame identifiers, story links, order,
-column settings and wrap-object references. Linked stories follow their native
-links across frames and pages. Columns and rectangular wrap exclusions use the
+column settings and wrap-object references. Linked stories follow explicit frame
+links or complete native story/frame catalog bindings across frames and pages.
+Catalog counts, object references and consecutive ordinals must agree; shape
+ordinals alone do not establish a chain. Columns and rectangular wrap exclusions use the
 shared managed text engine; tight outlines and native break positions can differ.
 `TextStart` and `TextLength` identify the assigned range in `PublisherTextStory.Text`,
 including paragraph separators. These ranges describe recovered layout, rather
@@ -101,6 +832,11 @@ styled cell paragraphs and text. Grid indices are zero-based; a merged cell
 appears once. Cell coordinates are local to the table and use points. Table
 `PageTransform` maps those coordinates into the page, including rotation and
 enclosing groups. The frame size and the grid track dimensions remain distinct.
+Imported tracks use saved layout endpoints within each axis. Nominal sizes can
+remain smaller when text has expanded a row. An axis with incomplete endpoints
+retains nominal sizes and reports `PUB_TABLE_TRACK_POSITIONS_UNASSESSED`;
+nonincreasing or excessive endpoints reject the input. These values describe
+stored geometry and do not run Publisher's current text fitting or reflow.
 Tables inherited from a master are listed on that master in `MasterPages`.
 Hidden tables and tables with unavailable geometry retain their grid and mapped
 cell text. `HasPlacement = false` identifies a table whose frame cannot be used
@@ -119,8 +855,9 @@ foreach (var page in publication.Pages)
 
 An unresolved native cell-text mapping retains the grid with
 `HasTextMapping = false` and empty cell paragraphs/text. The read report carries
-the omission; complete recovered stories remain in `TextStories`. Cell fills,
-individual borders and padding remain unassessed. These source records describe
+the omission; complete recovered stories remain in `TextStories`. Qualified solid
+fills and shared borders appear in current table snapshots; other native paint
+and cell-specific padding remain unassessed. These source records describe
 recovery; changing the separate page drawing does not update the table model.
 
 ## Export a page as SVG
@@ -185,6 +922,21 @@ it displays a placeholder and reports the omission. Codec output is subject to
 pixel and encoded-byte limits. No external decoder is installed or invoked by
 the package.
 
-Publisher 97/98 and 2000 profiles are recognized and rejected. Native `.pub`
-writing, editable Publisher reconstruction, macro execution, external-resource
-refresh, and embedded-object activation are outside this package's contract.
+Publisher 97/98 and 2000 profiles are recognized and rejected. Native saving
+supports the documented modern imported-source profiles. Macro execution,
+external-resource refresh and embedded-object activation are outside the contract.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 0 | 0 | 0 | 0 | 1 | 0 |
+| Read | 0 | 1 | 0 | 0 | 0 | 0 |
+| Edit | 0 | 1 | 0 | 0 | 0 | 0 |
+| Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Publisher` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->
