@@ -16,7 +16,7 @@ ConvertTo-OfficeMarkdownHtml -Path '.\Runbook.md' `
     -Title 'Operations runbook' -IncludeAnchorLinks
 ```
 
-The [publish-HTML recipe](https://github.com/EvotecIT/OfficeIMO/blob/7fa01d150c47a5a42b8fa099ff2f560b375c9c47/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-PublishHtml.ps1) creates a runbook and publishes a complete HTML document.
+The [publish-HTML recipe](https://github.com/EvotecIT/OfficeIMO/blob/a3a7561a7a38e62070a65f10390194ebd090a9df/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-PublishHtml.ps1) creates a runbook and publishes a complete HTML document.
 
 ## Bring HTML back
 

@@ -23,7 +23,7 @@ Close-OfficeWord -Document $document
 
 Use `Find-OfficeWord -Text` for literal text and `-Pattern` for regular expressions. The inspection family also covers fields, bookmarks, comments and revisions, footnotes and endnotes, images, content controls, tables of contents, and document properties.
 
-The complete [inspect-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/7fa01d150c47a5a42b8fa099ff2f560b375c9c47/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-InspectExisting.ps1) creates a representative file, opens it once, and reports sections, paragraphs, tables, word count, and matches.
+The complete [inspect-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/a3a7561a7a38e62070a65f10390194ebd090a9df/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-InspectExisting.ps1) creates a representative file, opens it once, and reports sections, paragraphs, tables, word count, and matches.
 
 ## Choose the next step
 

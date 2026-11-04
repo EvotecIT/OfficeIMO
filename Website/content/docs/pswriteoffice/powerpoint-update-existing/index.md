@@ -16,4 +16,4 @@ Open-OfficePowerPoint -Path '.\FY24-Review.pptx' {
 }
 ```
 
-Use targeted shape, table, notes, background, theme, layout, transition, and section commands when the change is structural. The [update-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/7fa01d150c47a5a42b8fa099ff2f560b375c9c47/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-UpdateExisting.ps1) demonstrates the complete lifecycle.
+Use targeted shape, table, notes, background, theme, layout, transition, and section commands when the change is structural. The [update-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/a3a7561a7a38e62070a65f10390194ebd090a9df/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-UpdateExisting.ps1) demonstrates the complete lifecycle.
