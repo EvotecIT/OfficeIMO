@@ -42,7 +42,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
         if (!row[1].TryParse(CultureInfo.InvariantCulture, out int id)
             || !row[2].TryGetDateTime(date1904, out DateTime date)
             || !row[3].TryParse(CultureInfo.InvariantCulture, out double amount)) throw new InvalidDataException("Incorrect typed value.");
-        if (_validate) Validate(count - 2, name, id, date, amount);
+        if (_validate) Validate(count - 2, name, id, date, amount, EscapedNames);
         checksum = Add(checksum, name, id, date, amount);
     }
 }
