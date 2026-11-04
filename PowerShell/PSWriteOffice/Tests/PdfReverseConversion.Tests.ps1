@@ -21,12 +21,6 @@ Describe 'PDF reverse conversion workflows' {
         } | Out-Null
     }
 
-    It 'exports the three editable PDF conversion commands' {
-        foreach ($command in 'ConvertTo-OfficePdfWord', 'ConvertTo-OfficePdfExcel', 'ConvertTo-OfficePdfPowerPoint') {
-            Get-Command $command -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        }
-    }
-
     It 'reconstructs Word content, Excel tables, and PowerPoint slides from a real PDF' {
         $wordPath = Join-Path $TestDrive 'source.docx'
         $excelPath = Join-Path $TestDrive 'source.xlsx'
@@ -53,8 +47,7 @@ Describe 'PDF reverse conversion workflows' {
         finally { $wordDocument.Dispose() }
 
         $excelReport.ItemsWritten | Should -BeGreaterThan 0
-        $excelSummary = Get-OfficeExcelSummary -Path $excelPath -IncludeSheets
-        $rows = @(Import-OfficeExcel -Path $excelPath -WorksheetName $excelSummary.Sheets[0].Name)
+        $rows = @(Import-OfficeExcel -Path $excelPath -Sheet 1)
         $rows | Should -HaveCount 3
         $rows[0].Region | Should -Be 'North'
         $rows[0].Revenue | Should -Be 1250
@@ -90,39 +83,40 @@ Describe 'PDF reverse conversion workflows' {
 
     It 'honors WhatIf, extension validation, and explicit overwrite' {
         $wordPath = Join-Path $TestDrive 'what-if.docx'
-        ConvertTo-OfficePdfWord -Path $pdfPath -OutputPath $wordPath -WhatIf | Out-Null
+        Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wordPath -WhatIf | Out-Null
         Test-Path -LiteralPath $wordPath | Should -BeFalse
 
         $wrongPath = Join-Path $TestDrive 'wrong.pdf'
         try {
-            ConvertTo-OfficePdfWord -Path $pdfPath -OutputPath $wrongPath -ErrorAction Stop
+            Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wrongPath -ErrorAction Stop
             throw 'Expected invalid-extension failure.'
         } catch {
-            $_.Exception.Message | Should -Match 'must use the .docx extension'
+            $_.Exception.Message | Should -Match 'To and the OutputPath extension must name the same target format'
             $_.CategoryInfo.Category | Should -Be 'InvalidArgument'
         }
 
-        ConvertTo-OfficePdfWord -Path $pdfPath -OutputPath $wordPath | Out-Null
-        try {
-            ConvertTo-OfficePdfWord -Path $pdfPath -OutputPath $wordPath -ErrorAction Stop
-            throw 'Expected existing-output failure.'
-        } catch {
-            $_.Exception.Message | Should -Match 'Use -Force to overwrite it'
-            $_.CategoryInfo.Category | Should -Be 'ResourceExists'
-            $_.TargetObject | Should -Be $wordPath
-        }
-        ConvertTo-OfficePdfWord -Path $pdfPath -OutputPath $wordPath -Force | Out-Null
+        Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wordPath | Out-Null
+        $before = [Convert]::ToBase64String([IO.File]::ReadAllBytes($wordPath))
+        $beforeTimestamp = (Get-Item -LiteralPath $wordPath).LastWriteTimeUtc
+        { Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wordPath -NoClobber -ErrorAction Stop } |
+            Should -Throw
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($wordPath)) | Should -Be $before
+        (Get-Item -LiteralPath $wordPath).LastWriteTimeUtc | Should -Be $beforeTimestamp
+        Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $wordPath | Out-Null
         Test-Path -LiteralPath $wordPath | Should -BeTrue
 
         $blockedDirectory = Join-Path $TestDrive 'not-a-directory'
         Set-Content -LiteralPath $blockedDirectory -Value 'file'
         $unwritableOutput = Join-Path $blockedDirectory 'result.docx'
         try {
-            ConvertTo-OfficePdfWord -Path $pdfPath -OutputPath $unwritableOutput -ErrorAction Stop
+            Convert-OfficeDocument -To Word -Path $pdfPath -OutputPath $unwritableOutput -ErrorAction Stop
             throw 'Expected output-write failure.'
         } catch {
+            $_.Exception | Should -Not -BeNullOrEmpty
+            $_.Exception.Message | Should -Not -Be 'Expected output-write failure.'
             $_.CategoryInfo.Category | Should -Be 'WriteError'
             $_.TargetObject | Should -Be $unwritableOutput
+            Test-Path -LiteralPath $unwritableOutput | Should -BeFalse
         }
     }
 }

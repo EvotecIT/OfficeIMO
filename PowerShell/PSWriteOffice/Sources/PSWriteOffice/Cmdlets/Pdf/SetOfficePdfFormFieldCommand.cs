@@ -1,0 +1,136 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Management.Automation;
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services.Pdf;
+
+namespace PSWriteOffice.Cmdlets.Pdf;
+
+/// <summary>Fills AcroForm fields from a hashtable, optionally flattening the result.</summary>
+/// <example><summary>Use the native OfficePdfFormField command.</summary><code>Set-OfficePdfFormField -Path .\Forms\Access-Request.pdf -OutputPath .\Forms\Access-Request-Ada.pdf -Value @{ Requester = 'Ada Lovelace'; System = 'ERP' }</code></example>
+[Cmdlet("Set", "OfficePdfFormField", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
+[OutputType(typeof(object))]
+public sealed class SetOfficePdfFormFieldCommand : OfficeCmdlet {
+    /// <summary>Path for this operation.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
+    [Parameter(ParameterSetName = "PathDirectory", Mandatory = true, Position = 0)]
+    public string[]? Path { get; set; }
+    /// <summary>OutputPath for this operation.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true)]
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true)]
+    public string? OutputPath { get; set; }
+    /// <summary>Field name -> value; replaces -Field.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true)]
+    [Parameter(ParameterSetName = "PathDirectory", Mandatory = true)]
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true)]
+    [Parameter(ParameterSetName = "LiteralPathDirectory", Mandatory = true)]
+    [Parameter(ParameterSetName = "Document", Mandatory = true)]
+    public System.Collections.Hashtable? Value { get; set; }
+    /// <summary>Flatten for this operation.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter Flatten { get; set; }
+    /// <summary>KeepNeedAppearances for this operation.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter KeepNeedAppearances { get; set; }
+    /// <summary>Incremental for this operation.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter Incremental { get; set; }
+    /// <summary>AppearanceFontPath for this operation.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    [Parameter(ParameterSetName = "Document")]
+    public string? AppearanceFontPath { get; set; }
+    /// <summary>AppearanceFont for this operation.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    [Parameter(ParameterSetName = "Document")]
+    public string? AppearanceFont { get; set; }
+    /// <summary>Argument transformation also accepts a plain string (with a warning) or a PSCredential (its password).</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    [OfficePasswordTransformation]
+    public System.Security.SecureString? Password { get; set; }
+    /// <summary>After successful authentication only; never bypasses a missing password.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    public SwitchParameter IgnorePermissionRestrictions { get; set; }
+    /// <summary>LoadOptions for this operation.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    [OfficeOptionsTransformation(typeof(PdfLoadOptions))]
+    public PdfLoadOptions? LoadOptions { get; set; }
+    /// <summary>PassThru for this operation.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "PathDirectory")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "LiteralPathDirectory")]
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter PassThru { get; set; }
+    /// <summary>OutputDirectory for this operation.</summary>
+    [Parameter(ParameterSetName = "PathDirectory", Mandatory = true)]
+    [Parameter(ParameterSetName = "LiteralPathDirectory", Mandatory = true)]
+    public string? OutputDirectory { get; set; }
+    /// <summary>LiteralPath for this operation.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Parameter(ParameterSetName = "LiteralPathDirectory", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[]? LiteralPath { get; set; }
+    /// <summary>Document for this operation.</summary>
+    [Parameter(ParameterSetName = "Document", Mandatory = true, ValueFromPipeline = true)]
+    public PdfDocument? Document { get; set; }
+
+    /// <inheritdoc />
+    protected override void ProcessRecord() {
+        if (Incremental && (Flatten || AppearanceFontPath != null)) throw new PSArgumentException("Incremental revisions cannot flatten fields or use a custom appearance font.");
+        var values = PdfCommandUtilities.ConvertFieldValues(Value!);
+        if (Document != null) {
+            var changed = Fill(Document, values);
+            if (PassThru) WriteObject(changed);
+            return;
+        }
+        foreach (var pair in PdfFileCommandInputs.Resolve(this, Path, LiteralPath, OutputPath, OutputDirectory, false)) {
+            if (!ShouldProcess(pair.Output, "Fill PDF form fields")) continue;
+            var document = PdfDocument.Load(pair.Input, PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions));
+            var changed = Fill(document, values);
+            PdfCommandUtilities.EnsureDirectory(pair.Output);
+            changed.Save(pair.Output);
+            if (PassThru) WriteObject(new FileInfo(pair.Output));
+        }
+    }
+    private PdfDocument Fill(PdfDocument document, IReadOnlyDictionary<string, string> values) {
+        if (Incremental) return document.Forms.AppendRevision(values, new PdfIncrementalFormFieldUpdateOptions {
+            KeepNeedAppearances = KeepNeedAppearances, GenerateAppearanceStreams = !KeepNeedAppearances
+        });
+        var options = PdfCommandUtilities.CreateFormFillerOptions(this, AppearanceFontPath, AppearanceFont, KeepNeedAppearances);
+        if (Flatten) return options == null ? document.Forms.FillAndFlatten(values) : document.Forms.FillAndFlatten(values, options);
+        return options == null ? document.Forms.Fill(values) : document.Forms.Fill(values, options);
+    }
+}

@@ -34,7 +34,8 @@ internal static class OfficeReadOcr {
     internal static async Task<IOcrEngine> CreateEngineAsync(OfficeOcrOptions options, CancellationToken token) =>
         options.Provider ?? (await TesseractOcr.CreateSessionAsync(options.SessionOptions, token).ConfigureAwait(false)).Engine;
 
-    internal static async Task<PdfSearchableOcrReview> ReadReviewAsync(string path, IOcrEngine engine,
+    internal static async Task<PdfSearchableOcrReview> ReadReviewAsync(string path,
+        Func<CancellationToken, Task<IOcrEngine>> createEngine,
         OfficeOcrOptions options, ReaderOptions readOptions, PdfLoadOptions? sourceOptions, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         var recognition = options.RecognitionOptions.Clone();
@@ -43,10 +44,14 @@ internal static class OfficeReadOcr {
             var load = (sourceOptions ?? recognition.ReadOptions).Clone(readOptions.MaxInputBytes, readOptions.OpenPassword);
             recognition.ReadOptions = load;
             var document = PdfDocument.Load(path, load, token);
-            return await document.PrepareSearchableOcrAsync(engine, recognition, token).ConfigureAwait(false);
+            try {
+                IOcrEngine engine = await createEngine(token).ConfigureAwait(false);
+                return await document.PrepareSearchableOcrAsync(engine, recognition, token).ConfigureAwait(false);
+            } catch { document.Dispose(); throw; }
         }
         long maximum = Math.Min(recognition.MaxRenderedBytesPerPage, readOptions.MaxInputBytes ?? long.MaxValue);
         var image = PdfImageDocumentSource.FromFile(path, maximum);
-        return await image.PrepareSearchableOcrAsync(engine, recognition, token).ConfigureAwait(false);
+        IOcrEngine imageEngine = await createEngine(token).ConfigureAwait(false);
+        return await image.PrepareSearchableOcrAsync(imageEngine, recognition, token).ConfigureAwait(false);
     }
 }

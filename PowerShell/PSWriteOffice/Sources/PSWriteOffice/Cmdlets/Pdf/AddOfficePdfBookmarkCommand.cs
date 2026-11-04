@@ -19,8 +19,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Creates an internal link target inside the generated PDF.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfBookmark", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfBookmark")]
 [OutputType(typeof(PdfDocument))]
+[Alias("PdfBookmark") ]
 public sealed class AddOfficePdfBookmarkCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -35,7 +35,7 @@ public sealed class AddOfficePdfBookmarkCommand : PSCmdlet
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Emit the updated document.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetDocument)]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />

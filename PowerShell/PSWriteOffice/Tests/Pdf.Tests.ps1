@@ -135,7 +135,7 @@ Describe 'PDF cmdlets' {
         (Get-OfficePdfDiagnostic -Type Preflight -Path $newPath).CanRead | Should -BeFalse
         (Get-OfficePdfDiagnostic -Type Preflight -Path $newPath -Password 'open').CanRead | Should -BeTrue
         Read-OfficeDocument -As Text -Path $newPath -Password 'open' | Should -Match 'Generated encrypted PDF text'
-        { Read-OfficeDocument -As Text -Path $newPath -Password 'wrong' } | Should -Throw
+        { Read-OfficeDocument -As Text -Path $newPath -Password 'wrong' -ErrorAction Stop } | Should -Throw
 
         $savedPath = Join-Path $TestDrive 'saved-encrypted.pdf'
         $doc = New-OfficePdf
@@ -164,10 +164,10 @@ Describe 'PDF cmdlets' {
         $document = New-OfficePdf
         PdfParagraph -Document $document 'Existing document content'
 
-        { $document | PdfPageSetup -Margin 36 } |
-            Should -Throw '*cannot update an already-built PdfDocument*'
-        { New-OfficePdf -Path (Join-Path $TestDrive 'deferred-pass-through.pdf') { PdfParagraph 'First' -PassThru | PdfParagraph 'Second' } } |
-            Should -Throw '*cannot emit a PdfDocument before New-OfficePdf finishes composition*'
+        { $document | PdfPageSetup -Margin 36 -ErrorAction Stop } |
+            Should -Throw '*input object cannot be bound*'
+        { New-OfficePdf -Path (Join-Path $TestDrive 'deferred-pass-through.pdf') { PdfParagraph 'First' -PassThru -ErrorAction Stop | PdfParagraph 'Second' -ErrorAction Stop } } |
+            Should -Throw '*Document*'
     }
 
     It 'builds a composed PDF and extracts text' {
@@ -283,15 +283,6 @@ Describe 'PDF cmdlets' {
     }
 
     It 'styles merged PDF table cells' {
-        $parameters = (Get-Command New-OfficePdfTableCell).Parameters.Keys
-        $parameters | Should -Contain 'TextColor'
-        $parameters | Should -Contain 'FillColor'
-        $parameters | Should -Contain 'FontSize'
-        $parameters | Should -Contain 'Bold'
-        $parameters | Should -Contain 'Italic'
-        $parameters | Should -Contain 'Align'
-        $parameters | Should -Contain 'VerticalAlign'
-
         $path = Join-Path $TestDrive 'styled-span-aware-table.pdf'
 
         New-OfficePdf -Path $path {
@@ -563,7 +554,7 @@ Describe 'PDF cmdlets' {
         )
 
         New-OfficePdf -Path $path {
-            PdfTable -InputObject $rows -Property Service, Status, Incidents -TableStyle Report -Caption 'Service status' -CaptionAlignment Center -AutoFit -RightAlignNumeric -ColumnWeight 2, 1, 1
+            PdfTable -InputObject $rows -Property Service, Status, Incidents -TableStyle Report -Caption 'Service status' -CaptionAlignment Center -AutoFit -ColumnWeight 2, 1, 1
         } | Out-Null
 
         (Get-OfficePdfDiagnostic -Type Preflight -Path $path).CanRead | Should -BeTrue
@@ -574,8 +565,6 @@ Describe 'PDF cmdlets' {
     }
 
     It 'shrinks PDF table text to fit fixed-width cells' {
-        (Get-Command PdfTable).Parameters.Keys | Should -Contain 'ShrinkTextToFit'
-        (Get-Command PdfTable).Parameters.Keys | Should -Contain 'MinimumShrinkFontSize'
 
         $path = Join-Path $TestDrive 'shrink-table.pdf'
         $rows = @(
@@ -668,7 +657,7 @@ Describe 'PDF cmdlets' {
         $path = Join-Path $TestDrive 'b5-pdf20.pdf'
 
         New-OfficePdf -Path $path -FileVersion Pdf20 {
-            PdfPageSetup -PageSize B5
+            PdfPageSetup -PageSize EnvelopeB5
             PdfHeading 'B5 PDF 2'
         } | Out-Null
 
@@ -676,8 +665,8 @@ Describe 'PDF cmdlets' {
         $info.HeaderVersion | Should -Be '2.0'
         $info.EffectiveVersion | Should -Be '2.0'
         $info.IsPdf20OrLater | Should -BeTrue
-        [math]::Round($info.Pages[0].Width) | Should -Be 498
-        [math]::Round($info.Pages[0].Height) | Should -Be 708
+        [math]::Abs($info.Pages[0].Width - 176 * 72 / 25.4) | Should -BeLessThan 0.001
+        [math]::Abs($info.Pages[0].Height - 250 * 72 / 25.4) | Should -BeLessThan 0.001
     }
 
     It 'supports PDF page operations with approved verbs' {
@@ -756,7 +745,7 @@ Describe 'PDF cmdlets' {
         $outputs[1].Name | Should -Be 'page-002.pdf'
         $outputs[2].Name | Should -Be 'page-003.pdf'
         foreach ($output in $outputs) {
-            { Read-OfficeDocument -As Text -Path $output.FullName } | Should -Throw '*requires a password*'
+            { Read-OfficeDocument -As Text -Path $output.FullName -ErrorAction Stop } | Should -Throw '*requires a password*'
             ((Get-OfficeDocumentInfo -Detailed -Path $output.FullName -Password 'open').Details).Security.HasEncryption | Should -BeTrue
         }
         Read-OfficeDocument -As Text -Path $outputs[1].FullName -Password 'open' | Should -Match 'Encrypted page two'
@@ -829,10 +818,6 @@ Describe 'PDF cmdlets' {
     }
 
     It 'resizes selected PDF pages' {
-        foreach ($parameter in 'PageSize', 'Width', 'Height', 'Landscape', 'ResizeMode', 'ResizeMargin') {
-            (Get-Command Set-OfficePdfPage).Parameters.Keys | Should -Contain $parameter
-        }
-
         $path = Join-Path $TestDrive 'resize-page-source.pdf'
         $outputPath = Join-Path $TestDrive 'resize-page-output.pdf'
         New-OfficePdf -Path $path {
@@ -917,7 +902,7 @@ Describe 'PDF cmdlets' {
     }
 
     It 'updates PDF form fields as an incremental revision' {
-        (Get-Command Set-OfficePdfForm).Parameters.Keys | Should -Contain 'Incremental'
+        (Get-Command Set-OfficePdfFormField).Parameters.Keys | Should -Contain 'Incremental'
         $path = Join-Path $TestDrive 'form-incremental-source.pdf'
         $outputPath = Join-Path $TestDrive 'form-incremental-output.pdf'
         @'
@@ -1047,11 +1032,15 @@ startxref
 
         $field = Get-OfficePdfFormField -Path $outputPath -Name Name
         $field.Value | Should -Be 'Grace'
-        $info = (Get-OfficeDocumentInfo -Detailed -Path $outputPath).Details
-        $info.Security.HasIncrementalUpdates | Should -BeTrue
-        $info.Security.HasSignatures | Should -BeTrue
-        $info.Security.HasDocMDPPermissions | Should -BeTrue
-        $info.AcroFormNeedAppearances | Should -BeFalse
+        # This synthetic fixture needs explicit native recovery for its incorrect stream length.
+        $preflight = (Get-OfficeDocumentInfo -Detailed -Path $outputPath -Options (New-OfficePdfReadOptions)).PdfPreflight
+        $preflight.CanRead | Should -BeTrue
+        $preflight.ReadBlockers | Should -BeNullOrEmpty
+        $security = $preflight.Probe.Security
+        $security.HasIncrementalUpdates | Should -BeTrue
+        $security.HasSignatures | Should -BeTrue
+        $security.HasDocMDPPermissions | Should -BeTrue
+        [IO.File]::ReadAllText($outputPath) | Should -Match '/NeedAppearances\s+false'
     }
 
     It 'sets page production boundary boxes' {
@@ -1223,7 +1212,7 @@ startxref
         $preparedReport.Signatures[0].ByteRangeCoversEndOfFile | Should -BeTrue
 
         [IO.File]::WriteAllBytes($signaturePath, [byte[]](0x30, 0x82, 0x01, 0x0A, 0xAA, 0x55))
-        $signedReport = Set-OfficePdfSignature -Path $preparedPath -SignaturePath $signaturePath -OutputPath $signedPath -PassThru -PassThru
+        $signedReport = Set-OfficePdfSignature -Path $preparedPath -SignaturePath $signaturePath -OutputPath $signedPath -PassThru
         $signedReport.HasSignatures | Should -BeTrue
         $signedReport.Signatures[0].Signature.ByteRangeValues -join ',' | Should -Be ($plan.ByteRangeValues -join ',')
         $signedReport.Findings.Code | Should -Contain 'signature-detached-cms-sub-filter'
@@ -1258,7 +1247,7 @@ startxref
         $y = $block.BaselineY - ($block.FontSize * 0.25)
         $height = $block.FontSize * 1.1
 
-        Remove-OfficePdfContent -Path $path -OutputPath $redactedPath -Page $block.PageNumber -X $x -Y $y -Width $width -Height $height -BackgroundColor '#111111' |
+        Remove-OfficePdfContent -Path $path -OutputPath $redactedPath -Page $block.PageNumber -X $x -Y $y -Width $width -Height $height -FillColor '#111111' |
             Should -BeOfType System.IO.FileInfo
 
         $text = Read-OfficeDocument -As Text -Path $redactedPath
@@ -1301,7 +1290,7 @@ startxref
         {
             Remove-OfficePdfContent -Path $path -OutputPath $redactedPath `
                 -Text 'Absent secret' -ErrorAction Stop
-        } | Should -Throw '*No PDF text blocks matched*'
+        } | Should -Throw '*No PDF text matched*output was not written*'
 
         Test-Path -LiteralPath $redactedPath | Should -BeFalse
     }
@@ -1327,7 +1316,7 @@ startxref
             PdfPageBorder -Color '#0F766E' -Width 1.5 -Inset 24 -Opacity 0.85
             PdfBookmark 'summary'
             PdfHeading 'Visual Summary'
-            PdfHr -Color '#0F766E' -Thickness 2 -SpacingBefore 8 -SpacingAfter 10
+            PdfHorizontalRule -Color '#0F766E' -Thickness 2 -SpacingBefore 8 -SpacingAfter 10
             PdfPanel 'A polished report surface should support visual structure.'
         } | Out-Null
 
@@ -1350,25 +1339,19 @@ startxref
         New-OfficePdf -Path $path {
             PdfHeading 'Layout Report'
             PdfSpacer 10
-            PdfRow -Gap 16 -SpacingBefore 4 -SpacingAfter 8 -ColumnSeparatorColor '#CBD5E1' -Column @(
-                @{
-                    Width = 38
-                    Content = @(
-                        @{ Type = 'Heading'; Level = 2; Text = 'Highlights'; HeadingColor = '#0F766E' }
-                        @{ Type = 'Paragraph'; Text = 'Left column summary.' }
-                        @{ Type = 'List'; Items = @('Designed surface', 'Readable rhythm'); Numbered = $true }
-                    )
+            PdfRow -Gap 16 -SpacingBefore 4 -SpacingAfter 8 -ColumnSeparatorColor '#CBD5E1' {
+                PdfColumn -Weight 38 {
+                    PdfHeading 'Highlights' -Level 2 -Color '#0F766E'
+                    PdfParagraph 'Left column summary.'
+                    PdfList -Item 'Designed surface', 'Readable rhythm' -Numbered
                 }
-                @{
-                    Width = 62
-                    Content = @(
-                        @{ Type = 'Bookmark'; Name = 'layout-row' }
-                        @{ Type = 'Panel'; Text = 'Right column panel.' }
-                        @{ Type = 'Table'; InputObject = $rows; TableStyle = 'Compact'; Caption = 'Layout row table'; NoBorder = $true }
-                        @{ Type = 'Rule'; Color = '#0F766E'; Thickness = 1.2 }
-                    )
+                PdfColumn -Weight 62 {
+                    PdfBookmark 'layout-row'
+                    PdfPanel 'Right column panel.'
+                    PdfTable -InputObject $rows -TableStyle Compact -Caption 'Layout row table' -NoBorder
+                    PdfHorizontalRule -Color '#0F766E' -Thickness 1.2
                 }
-            )
+            }
             PdfParagraph 'After layout row.'
         } | Out-Null
 
@@ -1386,13 +1369,7 @@ startxref
     It 'renders typed list content directly inside PDF row columns' {
         $path = Join-Path $TestDrive 'layout-row-list.pdf'
         New-OfficePdf -Path $path {
-            PdfRow -Column @(
-                @{
-                    Width = 100
-                    Type = 'List'
-                    Items = @('Alpha', 'Beta')
-                }
-            )
+            PdfRow { PdfColumn -Weight 100 { PdfList -Item 'Alpha', 'Beta' } }
         } | Out-Null
 
         $text = Read-OfficeDocument -As Text -Path $path
@@ -1400,18 +1377,10 @@ startxref
         $text | Should -Match 'Beta'
     }
 
-    It 'renders a single hashtable content block inside PDF row columns' {
+    It 'renders a single paragraph content block inside PDF row columns' {
         $path = Join-Path $TestDrive 'layout-row-single-content.pdf'
         New-OfficePdf -Path $path {
-            PdfRow -Column @(
-                @{
-                    Width = 100
-                    Content = @{
-                        Type = 'Paragraph'
-                        Text = 'Single content block'
-                    }
-                }
-            )
+            PdfRow { PdfColumn -Weight 100 { PdfParagraph 'Single content block' } }
         } | Out-Null
 
         Read-OfficeDocument -As Text -Path $path | Should -Match 'Single content block'
@@ -1420,18 +1389,9 @@ startxref
     It 'renders a single table object inside PDF row columns' {
         $path = Join-Path $TestDrive 'layout-row-single-table-object.pdf'
         New-OfficePdf -Path $path {
-            PdfRow -Column @(
-                @{
-                    Width = 100
-                    Content = @(
-                        @{
-                            Type = 'Table'
-                            InputObject = @{ Name = 'Alpha'; Value = 1 }
-                            Header = @('Name', 'Value')
-                        }
-                    )
-                }
-            )
+            PdfRow {
+                PdfColumn -Weight 100 { PdfTable -InputObject @{ Name = 'Alpha'; Value = 1 } -Header 'Name', 'Value' }
+            }
         } | Out-Null
 
         $text = Read-OfficeDocument -As Text -Path $path
@@ -1481,7 +1441,7 @@ startxref
         $text = Read-OfficeDocument -As Text -Path $path
         $text | Should -Match 'bold'
         $text | Should -Match 'bookmark link'
-        $text | Should -Match 'rich inline text'
+        $text | Should -Match 'rich\s+inline\s+text'
     }
 
     It 'renders native rich-text baselines and tab leaders' {
@@ -1519,5 +1479,83 @@ startxref
         $text = Read-OfficeDocument -As Text -Path $path
         $text | Should -Match 'Styled Report'
         $text | Should -Match 'reusable theme'
+    }
+}
+
+Describe 'PDF native physical and pipeline contracts' {
+    It 'writes physical rule and spacer lengths with typed colors and styled text' {
+        $path = Join-Path $TestDrive 'physical-authoring.pdf'
+        New-OfficePdf -Path $path {
+            PdfParagraph { PdfText 'Physical styled marker' -Bold -Italic -Underline Single -Size '14pt' -Font Helvetica }
+            PdfHorizontalRule -Thickness '1mm' -SpacingBefore '6pt' -SpacingAfter '0.25in' -Color ([OfficeIMO.OfficeColor]::Red)
+            PdfSpacer '0.5in'
+            PdfParagraph 'After physical spacer'
+        } | Out-Null
+        $document = Open-OfficePdf -LiteralPath $path
+        try {
+            $drawing = $document.Render.Drawing(1)
+            $line = @($drawing.Elements | Where-Object {
+                $_ -is [OfficeIMO.Drawing.OfficeDrawingShape] -and $_.Shape.Kind -eq 'Line' -and
+                $_.Shape.StrokeColor -eq [OfficeIMO.OfficeColor]::Red
+            }) | Select-Object -First 1
+            $line | Should -Not -BeNullOrEmpty
+            [math]::Abs($line.Shape.StrokeWidth - 72 / 25.4) | Should -BeLessThan 0.002
+            $line.Shape.StrokeColor | Should -Be ([OfficeIMO.OfficeColor]::Red)
+            $styled = @($drawing.Elements | Where-Object {
+                $_ -is [OfficeIMO.Drawing.OfficeDrawingText] -and $_.Text -match 'Physical styled marker'
+            }) | Select-Object -First 1
+            $styled | Should -Not -BeNullOrEmpty
+            [math]::Abs($styled.Font.Size - 14) | Should -BeLessThan 0.01
+            $styled.Font.Style.ToString() | Should -Match 'Bold'
+            $styled.Font.Style.ToString() | Should -Match 'Italic'
+            $text = $document.Read().Text
+            $text | Should -Match 'Physical styled marker'
+            $text | Should -Match 'After physical spacer'
+        } finally { $document.Dispose() }
+    }
+
+    It 'collects piped chart data once and accepts native document pipelines' {
+        $path = Join-Path $TestDrive 'pipeline-authoring.pdf'
+        $rows = @([pscustomobject]@{ Name = 'North'; Score = 12 }, [pscustomobject]@{ Name = 'South'; Score = 25 })
+        $document = New-OfficePdf
+        try {
+            $rows | Add-OfficePdfChart -Document $document -Category Name -Value Score -Title 'One piped chart'
+            $document | Add-OfficePdfList -Item 'Piped list marker' | Out-Null
+            $document | Add-OfficePdfRow { PdfColumn { PdfParagraph 'Piped row marker' } } | Out-Null
+            $document | Add-OfficePdfFormField -Name PipelineField -Value Before | Out-Null
+            $filled = $document | Set-OfficePdfFormField -Value @{ PipelineField = 'After' } -PassThru
+            try {
+                $filled | Save-OfficePdf -Path $path | Out-Null
+            } finally { if (-not [object]::ReferenceEquals($filled, $document)) { $filled.Dispose() } }
+        } finally { $document.Dispose() }
+        $text = Read-OfficeDocument -Path $path -As Text
+        ([regex]::Matches($text, 'One piped chart')).Count | Should -Be 1
+        $text | Should -Match 'North'
+        $text | Should -Match 'South'
+        $text | Should -Match 'Piped list marker'
+        $text | Should -Match 'Piped row marker'
+        (Get-OfficePdfFormField -Path $path -Name PipelineField).Value | Should -Be 'After'
+    }
+
+    It 'binds literal FileInfo inputs and honors WhatIf before writing for <Operation>' -TestCases @(
+        @{ Operation = 'optimize' }
+        @{ Operation = 'flatten' }
+        @{ Operation = 'fill' }
+        @{ Operation = 'redact' }
+    ) {
+        param($Operation)
+        $source = Join-Path $TestDrive ('literal-' + $Operation + '.pdf')
+        $destination = Join-Path $TestDrive ('literal-' + $Operation + '-output')
+        New-OfficePdf -Path $source { PdfParagraph 'Literal removal marker'; PdfFormField -Name Name -Value Before } | Out-Null
+        $before = [Convert]::ToBase64String([IO.File]::ReadAllBytes($source))
+        $file = Get-Item -LiteralPath $source
+        switch ($Operation) {
+            'optimize' { $file | Optimize-OfficePdf -OutputDirectory $destination -WhatIf | Out-Null }
+            'flatten' { $file | Update-OfficePdf -FlattenForm -OutputDirectory $destination -WhatIf | Out-Null }
+            'fill' { $file | Set-OfficePdfFormField -OutputDirectory $destination -Value @{ Name = 'After' } -WhatIf | Out-Null }
+            'redact' { $file | Remove-OfficePdfContent -OutputDirectory $destination -Text 'Literal removal marker' -WhatIf | Out-Null }
+        }
+        Test-Path -LiteralPath $destination | Should -BeFalse
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes($source)) | Should -Be $before
     }
 }

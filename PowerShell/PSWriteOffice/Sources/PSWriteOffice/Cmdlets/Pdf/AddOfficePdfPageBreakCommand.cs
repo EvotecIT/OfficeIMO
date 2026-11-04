@@ -17,8 +17,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Forces the appendix section to begin on the next page.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfPageBreak", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfPageBreak")]
 [OutputType(typeof(PdfDocument))]
+[Alias("PdfPageBreak") ]
 public sealed class AddOfficePdfPageBreakCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -29,7 +29,7 @@ public sealed class AddOfficePdfPageBreakCommand : PSCmdlet
     public PdfDocument Document { get; set; } = null!;
 
     /// <summary>Emit the updated document.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetDocument)]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />

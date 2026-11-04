@@ -11,11 +11,11 @@ Describe 'PDF HTML cmdlets' {
     It 'converts HTML content to a readable PDF file' {
         $path = Join-Path $TestDrive 'html-report.pdf'
 
-        ConvertFrom-OfficePdfHtml -Html '<h1>HTML Report</h1><p>Ready for archive.</p>' -OutputPath $path -PassThru |
-            Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -To Pdf -From Html -Text '<h1>HTML Report</h1><p>Ready for archive.</p>' -OutputPath $path |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
 
         Test-Path $path | Should -BeTrue
-        $text = Get-OfficePdfText -Path $path
+        $text = Read-OfficeDocument -As Text -Path $path
         $text | Should -Match 'HTML Report'
         $text | Should -Match 'Ready for archive'
     }
@@ -26,10 +26,10 @@ Describe 'PDF HTML cmdlets' {
         @(
             '<h1>Pipeline HTML</h1>'
             '<p>Full document body.</p>'
-        ) | ConvertFrom-OfficePdfHtml -OutputPath $path | Out-Null
+        ) | Convert-OfficeDocument -To Pdf -From Html -Text { $_ } -OutputPath $path | Out-Null
 
         Test-Path $path | Should -BeTrue
-        $text = Get-OfficePdfText -Path $path
+        $text = Read-OfficeDocument -As Text -Path $path
         $text | Should -Match 'Pipeline HTML'
         $text | Should -Match 'Full document body'
     }
@@ -39,11 +39,11 @@ Describe 'PDF HTML cmdlets' {
         $path = Join-Path $TestDrive 'html-file-report.pdf'
         Set-Content -Path $htmlPath -Value '<h1>File HTML</h1><p>Loaded from disk.</p>' -Encoding UTF8
 
-        ConvertFrom-OfficePdfHtml -Path $htmlPath -OutputPath $path -PassThru |
-            Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -To Pdf -Path $htmlPath -OutputPath $path |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
 
         Test-Path $path | Should -BeTrue
-        $text = Get-OfficePdfText -Path $path
+        $text = Read-OfficeDocument -As Text -Path $path
         $text | Should -Match 'File HTML'
         $text | Should -Match 'Loaded from disk'
     }
@@ -51,10 +51,10 @@ Describe 'PDF HTML cmdlets' {
     It 'converts a PDF file to semantic HTML' {
         $path = Join-Path $TestDrive 'source.pdf'
         $htmlPath = Join-Path $TestDrive 'source.html'
-        ConvertFrom-OfficePdfHtml -Html '<h1>PDF To HTML</h1><p>Logical export.</p>' -OutputPath $path | Out-Null
+        Convert-OfficeDocument -To Pdf -From Html -Text '<h1>PDF To HTML</h1><p>Logical export.</p>' -OutputPath $path | Out-Null
 
-        ConvertTo-OfficePdfHtml -Path $path -OutputPath $htmlPath |
-            Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -To Html -Path $path -OutputPath $htmlPath |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
 
         $html = Get-Content -Path $htmlPath -Raw
         $html | Should -Match '<html'

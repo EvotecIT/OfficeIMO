@@ -17,7 +17,7 @@ Describe 'PDF readback and compliance cmdlets' {
             PdfParagraph 'Logical readback should preserve this sentence.'
         } | Out-Null
 
-        ConvertTo-OfficePdfMarkdown -Path $pdfPath -OutputPath $markdownPath | Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -To Markdown -Path $pdfPath -OutputPath $markdownPath | Should -BeOfType OfficeIMO.OfficeConversionReport
 
         $markdown = Get-Content -Raw -Path $markdownPath
         $markdown | Should -Match 'Markdown Source'
@@ -90,9 +90,9 @@ Describe 'PDF readback and compliance cmdlets' {
         } | Out-Null
 
         { Get-OfficePdfAttachment -Path $pdfPath } | Should -Throw
-        (Get-OfficePdfPreflight -Path $pdfPath -Password 'open').CanRead | Should -BeTrue
+        (Get-OfficePdfDiagnostic -Type Preflight -Path $pdfPath -Password 'open').CanRead | Should -BeTrue
         (Get-OfficePdfAttachment -Path $pdfPath -Password 'open').FileName | Should -Be 'encrypted-payload.txt'
-        (Get-OfficePdfInfo -Path $pdfPath -Password 'open').Metadata.Title | Should -Be 'Encrypted attachment report'
+        ((Get-OfficeDocumentInfo -Detailed -Path $pdfPath -Password 'open').Details).Metadata.Title | Should -Be 'Encrypted attachment report'
     }
 
     It 'always returns the replacement document for explicit attachment rewrites' {
@@ -110,11 +110,14 @@ Describe 'PDF readback and compliance cmdlets' {
     }
 
     It 'reports generated PDF compliance readiness' {
-        $document = New-OfficePdf
-        PdfMetadata -Document $document -Title 'Compliance Draft'
-        PdfCompliance -Document $document -Profile PdfUa1 -Groundwork
-        PdfHeading -Document $document 'Compliance Draft'
-        PdfParagraph -Document $document 'This document can be assessed before saving.'
+        $path = Join-Path $TestDrive 'compliance-draft.pdf'
+        New-OfficePdf -Path $path {
+            PdfMetadata -Title 'Compliance Draft'
+            PdfCompliance -Profile PdfUa1 -Groundwork
+            PdfHeading 'Compliance Draft'
+            PdfParagraph 'This document can be assessed before saving.'
+        } | Out-Null
+        $document = Open-OfficePdf -Path $path
 
         $report = $document | Get-OfficePdfCompliance -Profile PdfUa1
         $report.Profile | Should -Be 'PdfUa1'
@@ -123,10 +126,13 @@ Describe 'PDF readback and compliance cmdlets' {
     }
 
     It 'requires artifact-bound external validator evidence for compliance claims' {
-        $document = New-OfficePdf
-        PdfMetadata -Document $document -Title 'Compliance Proof Draft'
-        PdfCompliance -Document $document -Profile PdfA3B -Groundwork
-        PdfParagraph -Document $document 'Compliance proof combines readiness with external validation evidence.'
+        $path = Join-Path $TestDrive 'compliance-proof-draft.pdf'
+        New-OfficePdf -Path $path {
+            PdfMetadata -Title 'Compliance Proof Draft'
+            PdfCompliance -Profile PdfA3B -Groundwork
+            PdfParagraph 'Compliance proof combines readiness with external validation evidence.'
+        } | Out-Null
+        $document = Open-OfficePdf -Path $path
 
         $proof = $document | Get-OfficePdfCompliance -Profile PdfA3B -Proof
 
@@ -243,7 +249,7 @@ startxref
 %%EOF
 '@ | Set-Content -Path $pdfPath -NoNewline -Encoding Ascii
 
-        $updateReport = Set-OfficePdfAnnotation -Path $pdfPath -OutputPath $updatedPath -ObjectNumber 4 -Contents 'Updated note' -Title 'Reviewer' -Name 'Note-2' -Color '#0080FF' -RemoveAction -PassThruReport -PassThru
+        $updateReport = Set-OfficePdfAnnotation -Path $pdfPath -OutputPath $updatedPath -ObjectNumber 4 -Contents 'Updated note' -Title 'Reviewer' -Name 'Note-2' -Color '#0080FF' -RemoveAction -PassThru
         $updateReport.Applied | Should -BeTrue
         $updated = @(Get-OfficePdfAnnotation -Path $updatedPath -Subtype Text)
         $updated.Count | Should -Be 1
@@ -252,7 +258,7 @@ startxref
         $updated[0].Name | Should -Be 'Note-2'
         $updated[0].HasAdditionalActions | Should -BeFalse
 
-        $removeReport = Remove-OfficePdfAnnotation -Path $updatedPath -OutputPath $removedPath -Subtype Text -PassThruReport -PassThru
+        $removeReport = Remove-OfficePdfAnnotation -Path $updatedPath -OutputPath $removedPath -Subtype Text -PassThru
         $removeReport.Applied | Should -BeTrue
         @(Get-OfficePdfAnnotation -Path $removedPath -Subtype Text).Count | Should -Be 0
     }
@@ -274,8 +280,8 @@ startxref
             PdfParagraph 'PDF/UA-2 groundwork from PowerShell.'
         } | Out-Null
 
-        $pdfA4Info = Get-OfficePdfInfo -Path $pdfA4Path
-        $pdfUa2Info = Get-OfficePdfInfo -Path $pdfUa2Path
+        $pdfA4Info = (Get-OfficeDocumentInfo -Detailed -Path $pdfA4Path).Details
+        $pdfUa2Info = (Get-OfficeDocumentInfo -Detailed -Path $pdfUa2Path).Details
         $pdfA4Report = Get-OfficePdfCompliance -Path $pdfA4Path -Profile PdfA4F
         $pdfUa2Report = Get-OfficePdfCompliance -Path $pdfUa2Path -Profile PdfUa2
 

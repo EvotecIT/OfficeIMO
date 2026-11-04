@@ -1,3 +1,6 @@
+using OfficeIMO;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services.Word;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,14 +29,20 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Converts PowerShell objects into a table using selected properties and friendly headers.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfTable", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfTable")]
 [OutputType(typeof(PdfDocument))]
+[Alias("PdfTable") ]
 public sealed class AddOfficePdfTableCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPipelineDocument = "PipelineDocument";
     private readonly List<object?> _items = new();
+    private HashSet<string> _bound = new(StringComparer.OrdinalIgnoreCase);
+    private bool? Bound(string name) => _bound.Contains(name)
+        ? name == nameof(AutoFit) ? AutoFit.IsPresent : name == nameof(ShrinkToFit) ? ShrinkToFit.IsPresent :
+          name == nameof(KeepTogether) ? KeepTogether.IsPresent : name == nameof(KeepWithNext) ? KeepWithNext.IsPresent :
+          name == nameof(NoBorder) ? NoBorder.IsPresent : name == nameof(NoHeaderBackground) ? NoHeaderBackground.IsPresent :
+          name == nameof(NoBanding) ? NoBanding.IsPresent : NoNumericAlignment.IsPresent : null;
 
     /// <summary>PDF document to update outside the DSL context.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocument)]
@@ -44,7 +53,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetContext)]
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPipelineDocument)]
-    public object? InputObject { get; set; }
+    public object[]? InputObject { get; set; }
 
     /// <summary>Specific object properties to include.</summary>
     [Parameter]
@@ -83,9 +92,13 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
     [ValidateRange(1, int.MaxValue)]
     public int MaxNestingDepth { get; set; } = PowerShellObjectNormalizerOptions.DefaultMaxNestingDepth;
 
+    /// <summary>Invariant .NET display formats keyed by selected property name.</summary>
+    [Parameter]
+    public Hashtable? ColumnFormat { get; set; }
+
     /// <summary>Table alignment.</summary>
     [Parameter]
-    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
+    public OfficeAlignment Alignment { get; set; } = OfficeAlignment.Left;
 
     /// <summary>OfficeIMO table style preset or supported Word table style name.</summary>
     [Parameter]
@@ -94,65 +107,65 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
 
     /// <summary>Header fill color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? HeaderFill { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? HeaderBackgroundColor { get; set; }
 
     /// <summary>Header text color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? HeaderTextColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? HeaderColor { get; set; }
 
     /// <summary>Body text color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? TextColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? Color { get; set; }
 
     /// <summary>Alternating body row fill color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? RowStripeFill { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? BandColor { get; set; }
 
     /// <summary>Border color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? BorderColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? BorderColor { get; set; }
 
     /// <summary>Border width in PDF points.</summary>
-    [Parameter]
-    public double? BorderWidth { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? BorderWidth { get; set; }
 
     /// <summary>Body cell font size in PDF points.</summary>
-    [Parameter]
-    public double? FontSize { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
 
     /// <summary>Header cell font size in PDF points.</summary>
-    [Parameter]
-    public double? HeaderFontSize { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? HeaderSize { get; set; }
 
     /// <summary>Wrapped line height multiplier for table cells.</summary>
     [Parameter]
     public double? LineHeight { get; set; }
 
     /// <summary>Horizontal cell padding in PDF points.</summary>
-    [Parameter]
-    public double? CellPaddingX { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? CellPaddingX { get; set; }
 
     /// <summary>Vertical cell padding in PDF points.</summary>
-    [Parameter]
-    public double? CellPaddingY { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? CellPaddingY { get; set; }
 
     /// <summary>Spacing before the table in PDF points.</summary>
-    [Parameter]
-    public double? SpacingBefore { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? SpacingBefore { get; set; }
 
     /// <summary>Spacing after the table in PDF points.</summary>
-    [Parameter]
-    public double? SpacingAfter { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? SpacingAfter { get; set; }
 
     /// <summary>Caption rendered above the table grid.</summary>
     [Parameter]
@@ -160,45 +173,45 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
 
     /// <summary>Caption alignment.</summary>
     [Parameter]
-    public OfficeAlignment? CaptionAlign { get; set; }
+    public OfficeAlignment? CaptionAlignment { get; set; }
 
     /// <summary>Caption color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? CaptionColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? CaptionColor { get; set; }
 
     /// <summary>Caption font size in PDF points.</summary>
-    [Parameter]
-    public double? CaptionFontSize { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? CaptionSize { get; set; }
 
     /// <summary>Fixed column widths in PDF points.</summary>
-    [Parameter]
-    public double[]? ColumnWidthPoints { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength[]? ColumnWidth { get; set; }
 
     /// <summary>Relative column width weights.</summary>
     [Parameter]
-    public double[]? ColumnWidthWeights { get; set; }
+    public double[]? ColumnWeight { get; set; }
 
     /// <summary>Per-column horizontal alignment.</summary>
     [Parameter]
-    public OfficeAlignment[]? ColumnAlign { get; set; }
+    public OfficeAlignment[]? ColumnAlignment { get; set; }
 
     /// <summary>Measure flexible columns from content.</summary>
     [Parameter]
-    public SwitchParameter AutoFitColumns { get; set; }
+    public SwitchParameter AutoFit { get; set; }
 
     /// <summary>Right-align numeric-looking cell values.</summary>
     [Parameter]
-    public SwitchParameter RightAlignNumeric { get; set; }
+    public SwitchParameter NoNumericAlignment { get; set; }
 
     /// <summary>Reduce table text size when needed so cell text fits within the resolved cell width.</summary>
     [Parameter]
-    public SwitchParameter ShrinkTextToFit { get; set; }
+    public SwitchParameter ShrinkToFit { get; set; }
 
-    /// <summary>Smallest font size, in points, used by -ShrinkTextToFit.</summary>
-    [Parameter]
-    public double? MinimumShrinkFontSize { get; set; }
+    /// <summary>Smallest font size, in points, used by -ShrinkToFit.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? MinimumSize { get; set; }
 
     /// <summary>Keep the table together when possible.</summary>
     [Parameter]
@@ -214,11 +227,11 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
 
     /// <summary>Disable the header fill.</summary>
     [Parameter]
-    public SwitchParameter NoHeaderFill { get; set; }
+    public SwitchParameter NoHeaderBackground { get; set; }
 
     /// <summary>Disable alternating row fill.</summary>
     [Parameter]
-    public SwitchParameter NoRowStripeFill { get; set; }
+    public SwitchParameter NoBanding { get; set; }
 
     /// <summary>Number of leading rows rendered as header rows.</summary>
     [Parameter]
@@ -233,12 +246,14 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
     public int? FooterRowCount { get; set; }
 
     /// <summary>Emit the updated document.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetDocument)]
+    [Parameter(ParameterSetName = ParameterSetPipelineDocument)]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        _bound = new HashSet<string>(MyInvocation.BoundParameters.Keys, StringComparer.OrdinalIgnoreCase);
         if (ParameterSetName == ParameterSetPipelineDocument)
         {
             var rows = BuildRows(InputObject);
@@ -273,7 +288,8 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
 
     private void RenderTable(PdfContentBuilder content, object[] inputRows)
     {
-        var projectedRows = TableViewProjection.Project(inputRows, View);
+        var formattedRows = ColumnFormat == null ? inputRows : WordObjectExport.ProjectRows(inputRows, Property, ColumnFormat).Cast<object>().ToArray();
+        var projectedRows = TableViewProjection.Project(formattedRows, View);
         var normalizationOptions = PdfCommandUtilities.CreateTableNormalizationOptions(
             CollectionSeparator,
             DictionaryEntrySeparator,
@@ -283,7 +299,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
         if (OfficeTableSpecParser.TryCreate(projectedRows, Property, Header, out var tableSpec, normalizationOptions))
         {
             var style = ApplyPdfCellStyles(CreateStyle(), tableSpec.Placements);
-            content.AddTable(ToPdfRows(tableSpec), Align, style);
+            content.AddTable(ToPdfRows(tableSpec), Alignment, style);
             return;
         }
 
@@ -294,7 +310,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
             ? PdfCommandUtilities.ConvertDataRows(enumerable, Header, normalizationOptions)
             : PdfCommandUtilities.ConvertToTableRows(projectedRows, Property, Header, normalizationOptions);
 
-        content.AddTable(rows, Align, CreateStyle());
+        content.AddTable(rows, Alignment, CreateStyle());
     }
 
     private static bool IsRowEnumerable(object item)
@@ -395,35 +411,35 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
         return PdfTableStyleBuilder.Create(new PdfTableStyleOptions
         {
             TableStyle = TableStyle,
-            HeaderFill = HeaderFill,
-            HeaderTextColor = HeaderTextColor,
-            TextColor = TextColor,
-            RowStripeFill = RowStripeFill,
-            BorderColor = BorderColor,
-            BorderWidth = BorderWidth,
-            FontSize = FontSize,
-            HeaderFontSize = HeaderFontSize,
+            HeaderFill = HeaderBackgroundColor?.ToString(),
+            HeaderTextColor = HeaderColor?.ToString(),
+            TextColor = Color?.ToString(),
+            RowStripeFill = BandColor?.ToString(),
+            BorderColor = BorderColor?.ToString(),
+            BorderWidth = BorderWidth?.ToPoints(),
+            FontSize = Size?.ToPoints(),
+            HeaderFontSize = HeaderSize?.ToPoints(),
             LineHeight = LineHeight,
-            CellPaddingX = CellPaddingX,
-            CellPaddingY = CellPaddingY,
-            SpacingBefore = SpacingBefore,
-            SpacingAfter = SpacingAfter,
+            CellPaddingX = CellPaddingX?.ToPoints(),
+            CellPaddingY = CellPaddingY?.ToPoints(),
+            SpacingBefore = SpacingBefore?.ToPoints(),
+            SpacingAfter = SpacingAfter?.ToPoints(),
             Caption = Caption,
-            CaptionAlign = CaptionAlign,
-            CaptionColor = CaptionColor,
-            CaptionFontSize = CaptionFontSize,
-            ColumnWidthPoints = ColumnWidthPoints,
-            ColumnWidthWeights = ColumnWidthWeights,
-            ColumnAlign = ColumnAlign,
-            AutoFitColumns = AutoFitColumns.IsPresent,
-            RightAlignNumeric = RightAlignNumeric.IsPresent,
-            ShrinkTextToFit = ShrinkTextToFit.IsPresent,
-            MinimumShrinkFontSize = MinimumShrinkFontSize,
-            KeepTogether = KeepTogether.IsPresent,
-            KeepWithNext = KeepWithNext.IsPresent,
-            NoBorder = NoBorder.IsPresent,
-            NoHeaderFill = NoHeaderFill.IsPresent,
-            NoRowStripeFill = NoRowStripeFill.IsPresent,
+            CaptionAlign = CaptionAlignment,
+            CaptionColor = CaptionColor?.ToString(),
+            CaptionFontSize = CaptionSize?.ToPoints(),
+            ColumnWidthPoints = ColumnWidth?.Select(length => length.ToPoints()).ToArray(),
+            ColumnWidthWeights = ColumnWeight,
+            ColumnAlign = ColumnAlignment,
+            AutoFitColumns = Bound(nameof(AutoFit)),
+            RightAlignNumeric = !(Bound(nameof(NoNumericAlignment)) ?? false),
+            ShrinkTextToFit = Bound(nameof(ShrinkToFit)),
+            MinimumShrinkFontSize = MinimumSize?.ToPoints(),
+            KeepTogether = Bound(nameof(KeepTogether)),
+            KeepWithNext = Bound(nameof(KeepWithNext)),
+            NoBorder = Bound(nameof(NoBorder)),
+            NoHeaderFill = Bound(nameof(NoHeaderBackground)),
+            NoRowStripeFill = Bound(nameof(NoBanding)),
             HeaderRowCount = HeaderRowCount,
             RepeatHeaderRowCount = RepeatHeaderRowCount,
             FooterRowCount = FooterRowCount
