@@ -13,7 +13,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
         _ = document.ToBytes();
 
         var result = await ToVerifyResult(document._wordprocessingDocument);
-        await Verifier.Verify(result, GetSettings());
+        await Verifier.Verify(result);
     }
 
     private static string GetSampleImagePath() {

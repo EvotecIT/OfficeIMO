@@ -14,7 +14,7 @@ public class BookmarkTests : VerifyTestBase {
 
     private static async Task DoTest(WordprocessingDocument document) {
         var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
+        await Verifier.Verify(result);
     }
 
     [Fact]

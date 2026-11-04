@@ -11,7 +11,7 @@ public class ComparerTests : VerifyTestBase {
     private static async Task DoTest(string sourcePath, string targetPath) {
         using var result = WordDocumentComparer.Compare(sourcePath, targetPath);
         var verifyResult = await ToVerifyResult(result._wordprocessingDocument);
-        await Verifier.Verify(verifyResult, GetSettings());
+        await Verifier.Verify(verifyResult);
     }
 
     private static string CreateTempDocxPath() {

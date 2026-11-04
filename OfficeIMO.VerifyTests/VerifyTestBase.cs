@@ -35,12 +35,6 @@ public abstract class VerifyTestBase {
         Environment.SetEnvironmentVariable("Verify_DisableClipboard", "true");
     }
 
-    protected static VerifySettings GetSettings() {
-        var settings = new VerifySettings();
-        settings.UseDirectory("verified");
-        return settings;
-    }
-
     protected static async Task<string> ToVerifyResult(WordprocessingDocument document) {
         NormalizeWord(document);
 
