@@ -6,7 +6,7 @@ internal static class OfficeBatchCommands {
     /// <summary>Returns a CLI command quoted for PowerShell on Windows or a POSIX shell on macOS/Linux.</summary>
     public static string GetCliCommand(string jobPath) => "officeimo workflow job run " + Quote(jobPath, !OfficeRuntimeCompatibility.IsWindows);
     /// <summary>Returns a PowerShell command with a literal quoted job path.</summary>
-    public static string GetPowerShellCommand(string jobPath) => "Invoke-OfficeConversionJob -Path " + Quote(jobPath);
+    public static string GetPowerShellCommand(string jobPath) => "Convert-OfficeDocument -JobPath " + Quote(jobPath);
     private static string Quote(string path, bool posix = false) {
         if ((path == null || string.IsNullOrWhiteSpace(path))) throw new ArgumentException("A non-empty value is required.", nameof(path));
         if (path.Any(char.IsControl)) throw new ArgumentException("A copied job path cannot contain control characters.", nameof(path));

@@ -24,8 +24,8 @@ public sealed class SavedConversionJobCmdletTests {
             using var runspace = CreateRunspace();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            shell.AddCommand("Export-OfficeConversionJob").AddParameter("InputDirectory", input)
-                .AddParameter("OutputDirectory", output).AddParameter("CheckpointDirectory", checkpoint).AddParameter("Path", path);
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("LiteralPath", input).AddParameter("To", "Pdf")
+                .AddParameter("OutputDirectory", output).AddParameter("CheckpointPath", Path.Combine(checkpoint, "plan.json")).AddParameter("SaveJob", path).AddParameter("NoClobber");
             Assert.IsType<FileInfo>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             OfficeBatchOptions saved = OfficeBatchOptions.Load(path);
@@ -33,7 +33,7 @@ public sealed class SavedConversionJobCmdletTests {
             Assert.Equal(output, saved.OutputDirectory);
             Assert.DoesNotContain(root, File.ReadAllText(path));
             shell.Commands.Clear();
-            shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", path).AddParameter("Plan");
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("JobPath", path).AddParameter("Plan");
             var plan = Assert.IsType<OfficeBatchPlan>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.True(plan.CanRun);
             Assert.Equal(1, plan.Selected);
@@ -41,15 +41,16 @@ public sealed class SavedConversionJobCmdletTests {
             Assert.False(Directory.Exists(checkpoint));
             shell.Commands.Clear();
             string whatIfReport = Path.Combine(jobs, "whatif-run.json");
-            shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", path).AddParameter("WhatIf").AddParameter("ReportPath", whatIfReport);
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("JobPath", path).AddParameter("WhatIf").AddParameter("ReportPath", whatIfReport);
             Assert.Empty(shell.Invoke());
             Assert.False(File.Exists(whatIfReport));
             Assert.False(Directory.Exists(output));
             Assert.False(Directory.Exists(checkpoint));
             shell.Commands.Clear();
             string firstReportPath = Path.Combine(jobs, "first[1]-run.json");
-            shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", path).AddParameter("ReportPath", firstReportPath);
-            var first = Assert.IsType<OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("JobPath", path).AddParameter("ReportPath", firstReportPath).AddParameter("SummaryVariable", "first");
+            Assert.IsType<OfficeConversionReport>(Assert.Single(shell.Invoke()).BaseObject);
+            var first = Assert.IsType<OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("first"));
             Assert.Equal(1, first.Completed);
             string pdf = Path.Combine(output, "report.pdf");
             Assert.Contains("Shared saved conversion job", PdfDocument.Load(pdf).Read().Text);
@@ -61,9 +62,10 @@ public sealed class SavedConversionJobCmdletTests {
             Assert.Equal(1, report.Summary.Completed);
             Assert.Single(report.Items);
             shell.Commands.Clear();
-            shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", path).AddParameter("SummaryVariable", "summary")
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("JobPath", path).AddParameter("SummaryVariable", "summary")
                 .AddParameter("ReportPath", Path.Combine(jobs, "resumed-run.json"));
-            var resumed = Assert.IsType<OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
+            Assert.IsType<OfficeBatchItemReport>(Assert.Single(shell.Invoke()).BaseObject);
+            var resumed = Assert.IsType<OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(1, resumed.Reused);
             Assert.Same(resumed, runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(firstBytes, File.ReadAllBytes(pdf));
@@ -101,11 +103,11 @@ public sealed class SavedConversionJobCmdletTests {
             using var runspace = CreateRunspace();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            void AddExport() => shell.AddCommand("Export-OfficeConversionJob")
-                .AddParameter("InputPath", new[] { new FileInfo(source) })
+            void AddExport() => shell.AddCommand("Convert-OfficeDocument")
+                .AddParameter("LiteralPath", new[] { source }).AddParameter("To", "Pdf").AddParameter("NoClobber")
                 .AddParameter("OutputDirectory", Path.Combine(root, "output"))
-                .AddParameter("SourcePasswordEnvironmentVariable", "OFFICEIMO_TEST_INPUT_PASSWORD")
-                .AddParameter("Path", path);
+                .AddParameter("PasswordVariable", "OFFICEIMO_TEST_INPUT_PASSWORD")
+                .AddParameter("SaveJob", path);
             AddExport();
             shell.AddParameter("WhatIf");
             Assert.Empty(shell.Invoke());
@@ -144,7 +146,7 @@ public sealed class SavedConversionJobCmdletTests {
             runspace.SessionStateProxy.SetVariable("reportPath", reportPath);
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            shell.AddScript("$caught = $null; try { Invoke-OfficeConversionJob -Path $jobPath -ReportPath $reportPath -ItemResults -SummaryVariable summary -ErrorAction Stop } catch { $caught = $_.FullyQualifiedErrorId }");
+            shell.AddScript("$caught = $null; try { Convert-OfficeDocument -JobPath $jobPath -ReportPath $reportPath -SummaryVariable summary -ErrorAction Stop } catch { $caught = $_.FullyQualifiedErrorId }");
             var results = shell.Invoke();
             Assert.Equal(OfficeBatchItemStatus.Failed, Assert.IsType<OfficeBatchItemReport>(Assert.Single(results).BaseObject).Status);
             Assert.StartsWith("OfficeConversionJobFailed", Assert.IsType<string>(runspace.SessionStateProxy.GetVariable("caught")));
@@ -168,7 +170,7 @@ public sealed class SavedConversionJobCmdletTests {
             using var runspace = CreateRunspace();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", jobPath).AddParameter("Plan").AddParameter("AllowEmpty");
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("JobPath", jobPath).AddParameter("Plan").AddParameter("AllowEmpty");
             var plan = Assert.IsType<OfficeBatchPlan>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.Equal(0, plan.Selected);
             Assert.Equal(0, plan.Failed);
@@ -176,9 +178,9 @@ public sealed class SavedConversionJobCmdletTests {
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             Assert.False(Directory.Exists(output));
             shell.Commands.Clear();
-            shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", jobPath).AddParameter("Plan");
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("JobPath", jobPath).AddParameter("Plan");
             Assert.Single(shell.Invoke());
-            Assert.StartsWith("OfficeConversionJobPlanInvalid", Assert.Single(shell.Streams.Error).FullyQualifiedErrorId);
+            Assert.StartsWith("OfficeDocumentPlanInvalid", Assert.Single(shell.Streams.Error).FullyQualifiedErrorId);
         } finally {
             Directory.Delete(root, true);
         }
@@ -199,7 +201,7 @@ public sealed class SavedConversionJobCmdletTests {
             using var runspace = CreateRunspace();
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
-            shell.AddCommand("Invoke-OfficeConversionJob").AddParameter("Path", job).AddParameter("ReportPath", reportPath);
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("JobPath", job).AddParameter("ReportPath", reportPath);
             Assert.Throws<CmdletInvocationException>(() => shell.Invoke());
             Assert.False(Directory.Exists(output));
             Assert.Equal("Do not silently skip requested recording", File.ReadAllText(Path.Combine(source, "one.txt")));
@@ -210,8 +212,7 @@ public sealed class SavedConversionJobCmdletTests {
 
     private static Runspace CreateRunspace() {
         var state = InitialSessionState.CreateDefault();
-        state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeConversionJob", typeof(ExportOfficeConversionJobCommand), null));
-        state.Commands.Add(new SessionStateCmdletEntry("Invoke-OfficeConversionJob", typeof(InvokeOfficeConversionJobCommand), null));
+        state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
         state.Commands.Add(new SessionStateCmdletEntry("Import-OfficeConversionReport", typeof(ImportOfficeConversionReportCommand), null));
         var runspace = RunspaceFactory.CreateRunspace(state);
         runspace.Open();

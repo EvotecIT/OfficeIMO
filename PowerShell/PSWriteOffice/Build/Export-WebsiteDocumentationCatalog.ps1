@@ -47,8 +47,8 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'conversion'; title = 'Conversion and capabilities'; description = 'Discover executable routes and protected-content support, and run bounded single-file, selected-file, and resumable directory jobs.'
         docs = 'automation-patterns'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
-        samples = @('Get-OfficeDocumentCapability', 'New-OfficeConversionOptions', 'Convert-OfficeDocument')
-        match = { param($name) $name -match 'OfficeConversion' -or $name -in 'Convert-OfficeDocument', 'ConvertTo-OfficeDocument', 'Get-OfficeDocumentCapability' }
+        samples = @('Get-OfficeDocumentCapability', 'New-OfficeWordPdfOptions', 'Convert-OfficeDocument')
+        match = { param($name) $name -match 'OfficeConversion' -or $name -in 'Convert-OfficeDocument', 'Get-OfficeDocumentCapability' }
     }
     [ordered]@{
         id = 'word'; title = 'Word'; description = 'Create, inspect, update, review, merge, protect, and convert DOC and DOCX documents.'
